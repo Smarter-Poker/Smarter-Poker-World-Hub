@@ -349,6 +349,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <Suspense fallback={null}>
                     <SharedPostCard
                         postId={message.media_metadata.shared_post_id}
+                        mediaMetadata={message.media_metadata}
                         isOwn={message.isOwn}
                     />
                 </Suspense>

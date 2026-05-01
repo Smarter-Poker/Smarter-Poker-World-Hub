@@ -1127,6 +1127,7 @@ export default function UserProfilePage() {
     const [pokerFollowing, setPokerFollowing] = useState([]);
     const [checkinStreak, setCheckinStreak] = useState({ currentStreak: 0, longestStreak: 0, totalCheckins: 0 });
     const [shareStreak, setShareStreak] = useState({ streak_days: 0, is_active: false });
+    const [streakBreakAlert, setStreakBreakAlert] = useState(false);
     const [checkinBadges, setCheckinBadges] = useState([]);
     const [checkinStats, setCheckinStats] = useState(null);
     const [checkinHeatmap, setCheckinHeatmap] = useState(null);
@@ -1664,7 +1665,31 @@ export default function UserProfilePage() {
                         .limit(1)
                         .maybeSingle()
                         .then(({ data: ss }) => {
-                            if (ss) setShareStreak({ streak_days: ss.streak_days || 0, is_active: ss.is_active });
+                            if (ss) {
+                                setShareStreak({ streak_days: ss.streak_days || 0, is_active: ss.is_active });
+                            } else if (isOwnProfile) {
+                                // Streak is NOT active — check if user had a multiplier that just reset
+                                // Only show the notification once per session to avoid spam
+                                const notifKey = `sp-streak-break-notif-${pokerUid}`;
+                                const alreadyShown = sessionStorage.getItem(notifKey);
+                                if (!alreadyShown) {
+                                    supabase
+                                        .from('profiles')
+                                        .select('diamond_multiplier')
+                                        .eq('id', pokerUid)
+                                        .maybeSingle()
+                                        .then(({ data: prof }) => {
+                                            // If multiplier > 1.0 it hasn't been reset yet by the nightly job
+                                            // Show the warning so the user knows to share today to re-activate
+                                            if (prof?.diamond_multiplier && prof.diamond_multiplier > 1.00) {
+                                                // The reset function will clean this up on next share
+                                                setStreakBreakAlert(true);
+                                                try { sessionStorage.setItem(notifKey, '1'); } catch (_) {}
+                                            }
+                                        })
+                                        .catch(() => {});
+                                }
+                            }
                         })
                         .catch(() => {});
                     // Fetch check-in badges
@@ -2227,6 +2252,30 @@ export default function UserProfilePage() {
                                 </Link>
                             )}
                         </div>
+
+                        {/* Streak Break Alert — shown once per session when user's streak expired */}
+                        {isOwnProfile && streakBreakAlert && (
+                            <div style={{
+                                margin: '0 0 12px', padding: '10px 14px',
+                                borderRadius: 10,
+                                background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.10))',
+                                border: '1px solid rgba(245,158,11,0.4)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: 18 }}>⚡</span>
+                                    <div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>Your Share Streak Boost Lapsed</div>
+                                        <div style={{ fontSize: 12, color: '#92400e' }}>Share a post today to re-activate your diamond multiplier!</div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setStreakBreakAlert(false)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0 }}
+                                    aria-label="Dismiss"
+                                >×</button>
+                            </div>
+                        )}
 
                         {/* Name & Stats */}
                         <div className="sp-profile-name-stats">

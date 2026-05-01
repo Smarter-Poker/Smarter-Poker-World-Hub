@@ -46,6 +46,43 @@ const EXTERNAL_PLATFORMS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RICH SHARE PAYLOAD BUILDER
+// Packages full post metadata so messenger recipients see a rich preview card
+// ═══════════════════════════════════════════════════════════════════════════
+function buildRichSharePayload(post, postUrl, senderMessage) {
+    const author = post?.author || {};
+    const authorName = author.name || author.full_name || author.username || 'Player';
+    const mediaUrls = post?.mediaUrls || post?.media_urls || [];
+    const previewImage = mediaUrls[0] || post?.link_image || post?.thumbnail_url || null;
+    const snippet = (post?.content || '').slice(0, 280);
+
+    return {
+        // The plain-text message body shown in the thread
+        text: senderMessage
+            ? `${senderMessage}\n\n${postUrl}`
+            : `Check out this post on Smarter.Poker\n\n${postUrl}`,
+        // Rich metadata — rendered as a preview card in the chat
+        media_metadata: {
+            shared_post_id:     post?.id || null,
+            shared_from:        'share_modal',
+            // Rich preview fields
+            preview_type:       'post',
+            preview_url:        postUrl,
+            preview_title:      `${authorName} on Smarter.Poker`,
+            preview_description: snippet || null,
+            preview_image:      previewImage,
+            preview_site_name:  'Smarter.Poker',
+            // Author info
+            author_name:        authorName,
+            author_avatar:      author.avatar_url || author.avatar || null,
+            author_username:    author.username || null,
+            // Content type
+            content_type:       post?.content_type || post?.contentType || 'text',
+        },
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ORIGINAL POST PREVIEW (embedded card shown in both tabs)
 // ═══════════════════════════════════════════════════════════════════════════
 function OriginalPostPreview({ post, authorUsername }) {
@@ -305,19 +342,20 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                     ]);
                 }
 
-                // Send the shared post message
+                // Send the shared post message with rich preview
+                const richPayload = buildRichSharePayload(post, postUrl, message.trim());
                 await supabase.from('messenger_messages').insert({
                     conversation_id: convId,
                     sender_id: currentUser.id,
-                    text: shareText,
-                    message_type: 'text',
-                    media_metadata: { shared_post_id: post?.id, shared_from: 'share_modal' },
+                    text: richPayload.text,
+                    message_type: 'shared_post',
+                    media_metadata: richPayload.media_metadata,
                     status: 'sent',
                 });
 
-                // Update conversation last message
+                // Update conversation last message with preview title
                 await supabase.from('messenger_conversations').update({
-                    last_message_text: shareText.slice(0, 100),
+                    last_message_text: `📎 ${richPayload.media_metadata.preview_title}`.slice(0, 100),
                     last_message_at: new Date().toISOString(),
                 }).eq('id', convId);
 
@@ -570,19 +608,21 @@ function GroupsTab({ post, onClose }) {
         let successCount = 0;
         for (const groupId of selected) {
             try {
-                // Send the shared post message
+                // Send the shared post message with rich preview
+                const postUrl2 = `${window.location.origin}/hub/post/${post.id}`;
+                const richPayload2 = buildRichSharePayload(post, postUrl2, message.trim());
                 await sb.from('messenger_messages').insert({
                     conversation_id: groupId,
                     sender_id: currentUser.id,
-                    text: shareText,
-                    message_type: 'text',
-                    media_metadata: { shared_post_id: post?.id, shared_from: 'share_modal_group' },
+                    text: richPayload2.text,
+                    message_type: 'shared_post',
+                    media_metadata: { ...richPayload2.media_metadata, shared_from: 'share_modal_group' },
                     status: 'sent',
                 });
 
                 // Update conversation last message
                 await sb.from('messenger_conversations').update({
-                    last_message_text: shareText.slice(0, 100),
+                    last_message_text: `📎 ${richPayload2.media_metadata.preview_title}`.slice(0, 100),
                     last_message_at: new Date().toISOString(),
                 }).eq('id', groupId);
 

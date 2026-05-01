@@ -6777,6 +6777,12 @@ function SocialMediaPage() {
                                         ));
                                         })()}
 
+                                        {/* Leaderboard fallback: show after all posts if feed has < 5 posts */}
+                                        {(() => {
+                                            const fp = posts.filter(p => !blockedUserIds.has(p.authorId)).filter(p => !showClubPostsOnly || p.isClubPagePost || p.metadata?.source_page_id === clubPage?.id);
+                                            return fp.length < 5 ? <ShareStreakLeaderboard key="share-streak-lb-fallback" currentUserId={user?.id} /> : null;
+                                        })()}
+
                                         {/* ♾️ INFINITE SCROLL: Load more trigger */}
                                         <div ref={loadMoreCallbackRef} style={{
                                             padding: '20px',

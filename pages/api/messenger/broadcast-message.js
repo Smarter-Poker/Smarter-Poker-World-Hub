@@ -60,38 +60,44 @@ export default async function handler(req, res) {
           }
 
           // Get all conversations the sender participates in for this club context
+          // Cap at 200 to prevent Vercel timeout and Supabase connection pool exhaustion
           const { data: conversations } = await getSupabase()
               .from('social_conversation_participants')
               .select('conversation_id')
-              .eq('user_id', user.id);
+              .eq('user_id', user.id)
+              .limit(200);
 
           if (!conversations || conversations.length === 0) {
               return res.json({ success: true, sent: 0, message: 'No conversations to broadcast to' });
           }
 
-          // Send to all conversations in parallel for speed
-          const results = await Promise.allSettled(
-              conversations.map(conv =>
-                  getSupabase().rpc('fn_send_message', {
-                      p_conversation_id: conv.conversation_id,
-                      p_sender_id: user.id,
-                      p_content: content,
-                  })
-              )
-          );
-
+          // Send in batches of 20 to avoid overwhelming Supabase connection pool
+          const BATCH_SIZE = 20;
           let sent = 0;
           const errors = [];
-          results.forEach((result, i) => {
-              if (result.status === 'fulfilled' && !result.value.error) {
-                  sent++;
-              } else {
-                  const errMsg = result.status === 'rejected'
-                      ? result.reason?.message
-                      : result.value?.error?.message;
-                  errors.push({ conv: conversations[i].conversation_id, error: errMsg });
-              }
-          });
+
+          for (let i = 0; i < conversations.length; i += BATCH_SIZE) {
+              const batch = conversations.slice(i, i + BATCH_SIZE);
+              const results = await Promise.allSettled(
+                  batch.map(conv =>
+                      getSupabase().rpc('fn_send_message', {
+                          p_conversation_id: conv.conversation_id,
+                          p_sender_id: user.id,
+                          p_content: content,
+                      })
+                  )
+              );
+              results.forEach((result, j) => {
+                  if (result.status === 'fulfilled' && !result.value.error) {
+                      sent++;
+                  } else {
+                      const errMsg = result.status === 'rejected'
+                          ? result.reason?.message
+                          : result.value?.error?.message;
+                      errors.push({ conv: batch[j].conversation_id, error: errMsg });
+                  }
+              });
+          }
 
           return res.json({ success: true, sent, total: conversations.length, errors: errors.length > 0 ? errors : undefined });
       } catch (e) {

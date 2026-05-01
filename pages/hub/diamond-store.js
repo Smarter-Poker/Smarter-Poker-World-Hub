@@ -69,6 +69,7 @@ export default function DiamondStorePage() {
     const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isVip, setIsVip] = useState(false);
+    const [diamondMultiplier, setDiamondMultiplier] = useState(1.0);
 
     const [user, setUser] = useState(null);
 
@@ -108,10 +109,11 @@ export default function DiamondStorePage() {
                 setUser(authUser);
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('is_vip')
+                    .select('is_vip, diamond_multiplier')
                     .eq('id', authUser.id)
                     .maybeSingle();
                 setIsVip(!!profile?.is_vip);
+                if (profile?.diamond_multiplier) setDiamondMultiplier(Number(profile.diamond_multiplier));
             }
         })();
         return () => _c.abort();
@@ -124,6 +126,9 @@ export default function DiamondStorePage() {
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, (payload) => {
                 if (payload.new?.is_vip !== undefined) {
                     setIsVip(!!payload.new.is_vip);
+                }
+                if (payload.new?.diamond_multiplier !== undefined) {
+                    setDiamondMultiplier(Number(payload.new.diamond_multiplier));
                 }
             })
             .subscribe();
@@ -991,6 +996,56 @@ export default function DiamondStorePage() {
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {activeTab === 'rewards' && (
                             <>
+                                {/* Active Diamond Multiplier Banner */}
+                                <div style={{
+                                    margin: '12px 0 0',
+                                    padding: '14px 16px',
+                                    borderRadius: 12,
+                                    background: diamondMultiplier > 1.0
+                                        ? 'linear-gradient(135deg, rgba(245,158,11,0.18), rgba(251,191,36,0.12))'
+                                        : 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
+                                    border: `1px solid ${diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.3)'}`,
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <div style={{
+                                                width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)',
+                                                fontSize: 20,
+                                            }}>
+                                                {diamondMultiplier > 1.0 ? '⚡' : '💎'}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: 700, color: diamondMultiplier > 1.0 ? '#f59e0b' : '#818cf8' }}>
+                                                    {diamondMultiplier > 1.0
+                                                        ? `${diamondMultiplier.toFixed(2)}× Diamond Boost Active`
+                                                        : 'Activate Your Diamond Boost'}
+                                                </div>
+                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>
+                                                    {diamondMultiplier > 1.0
+                                                        ? `Every diamond you earn is multiplied ${diamondMultiplier.toFixed(2)}× by your share streak`
+                                                        : 'Share posts daily for 3+ days to boost ALL your diamond earnings'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                            {[
+                                                { label: 'Streak 3d', mult: '1.2×', color: '#60a5fa' },
+                                                { label: 'Expert 7d', mult: '1.5×', color: '#34d399' },
+                                                { label: 'Master 14d', mult: '1.75×', color: '#818cf8' },
+                                                { label: 'Legend 30d', mult: '2.0×', color: '#f59e0b' },
+                                            ].map(tier => (
+                                                <span key={tier.label} style={{
+                                                    display: 'inline-block', margin: '2px 3px',
+                                                    fontSize: 10, fontWeight: 600, color: tier.color,
+                                                    background: `${tier.color}18`, border: `1px solid ${tier.color}35`,
+                                                    borderRadius: 6, padding: '2px 6px',
+                                                }}>{tier.label} {tier.mult}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Sub-Tab Navigation */}
                                 <div style={styles.rewardsSubNav}>
                                     <button
