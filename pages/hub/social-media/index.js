@@ -5280,6 +5280,36 @@ function SocialMediaPage() {
 
             if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  Calling fn_create_social_post with:', { content: content?.substring(0, 50), type, urlCount: urls.length, hasThumbnail: !!thumbnailUrl });
 
+            // AUDIT-15 (2026-04-30 per Dan: "JUST GIVE ME THE FUCKING ABILITY
+            // TO POST VIDEOS"): The most common cause of 'Unable to post at
+            // this time' on mobile after a long upload is JWT expiration.
+            // Video upload can take 30s-3min. During that window the
+            // Supabase JS SDK auto-refresh may not run if the tab was
+            // backgrounded (iOS aggressively suspends background timers).
+            // Result: by the time we call fn_create_social_post, the
+            // session is expired → role='anon' → RPC returns 'forbidden:
+            // anonymous callers cannot create posts' → fallback INSERT
+            // also fails RLS → user sees generic 'Unable to post' banner.
+            //
+            // Fix: ensure the session is fresh BEFORE the post-create call.
+            // getSession() auto-refreshes if the token is within 60s of
+            // expiry. If refresh fails (e.g., refresh token revoked),
+            // surface a clear 'session expired, please log in again' message
+            // instead of the cryptic generic banner.
+            try {
+                const { data: { session } = {} } = await supabase.auth.getSession();
+                if (!session?.access_token) {
+                    // Session is gone entirely — try a hard refresh.
+                    const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+                    if (refreshErr || !refreshed?.session?.access_token) {
+                        throw new Error('Your session has expired. Please refresh the page or log in again.');
+                    }
+                }
+            } catch (sessionErr) {
+                // If we can't recover a session, fail fast with a clear msg.
+                throw new Error(sessionErr?.message || 'Your session has expired. Please log in again.');
+            }
+
             // Try RPC first (supports thumbnail_url + avoids RLS ambiguity triggers)
             let data = null;
             let error = null;
@@ -5296,7 +5326,12 @@ function SocialMediaPage() {
             if (!rpcError && rpcResult?.success) {
                 data = rpcResult; // { success: true, id: uuid }
             } else {
-                if (rpcError) console.warn('[Social] ⚠️ RPC failed, falling back to direct insert:', rpcError.message);
+                // AUDIT-15: previously only logged rpcError.message, ignoring
+                // the structured error in rpcResult.error (e.g., 'forbidden:
+                // authenticated users may only post as themselves'). Now we
+                // capture both so the eventual throw carries the real reason.
+                const rpcReason = rpcError?.message || rpcResult?.error || 'unknown RPC failure';
+                console.warn('[Social] ⚠️ RPC failed, falling back to direct insert:', rpcReason);
                 // Fallback: direct insert (legacy path — no thumbnail_url support)
                 const insertPayload = {
                     author_id: user.id,
@@ -5316,7 +5351,13 @@ function SocialMediaPage() {
                 }
                 const { data: directData, error: directError } = await supabase.from('social_posts').insert(insertPayload).select('id').maybeSingle();
                 data = directData;
-                error = directError;
+                // If direct insert ALSO failed, the surfaced error mentions
+                // both reasons so Dan can see what really blocked the write.
+                if (directError) {
+                    error = new Error(`Post failed (RPC: ${rpcReason}; direct: ${directError.message})`);
+                } else if (!directData?.id) {
+                    error = new Error(`Post failed: ${rpcReason}`);
+                }
             }
 
             if (error || !data?.id) {
