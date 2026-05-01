@@ -177,7 +177,13 @@ export const EnhancedPostCreator = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [preparingMedia, setPreparingMedia] = useState(false);
+  // STAGE-AWARE BANNER (audit-6 2026-04-30 per Dan): see SharedPostCreator
+  // for the rationale. 'picker' | 'loading' | 'staging' | null.
+  const [preparingStage, setPreparingStage] = useState(null);
+  const preparingMedia = preparingStage !== null;
+  const setPreparingMedia = (val) => setPreparingStage(val ? 'staging' : null);
+  const _hasFileArrivedRef = useRef(false);
+  const _focusGraceTimerRef = useRef(null); // AUDIT-7 — see SharedPostCreator for rationale
 
   const textareaRef = useRef(null);
   const modalRef = useRef(null);
@@ -216,12 +222,44 @@ export const EnhancedPostCreator = ({
     if (!preparingMedia) return;
     const backstop = setTimeout(() => {
       if (mountedRef.current) {
-        setPreparingMedia(false);
+        setPreparingStage(null);
         _pickerOpenRef.current = false;
+        _hasFileArrivedRef.current = false;
       }
-    }, 60_000);
+    }, 90_000);
     return () => clearTimeout(backstop);
   }, [preparingMedia]);
+
+  // AUDIT-6 (2026-04-30): focus-based cancel detection — see SharedPostCreator
+  // useEffect for full rationale.
+  useEffect(() => {
+    if (preparingStage !== 'picker') return;
+    const onFocus = () => {
+      if (!mountedRef.current) return;
+      setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
+      // AUDIT-7: store watchdog in a ref, NOT a closure variable. The
+      // useEffect cleanup fires the moment setPreparingStage transitions
+      // out of 'picker'; if the timer is in a closure var, the cleanup
+      // clearTimeout's it 0-1ms after we set it (silently killing the
+      // cancel detection). Ref storage lets the watchdog survive the
+      // 'picker' → 'loading' transition and self-determine whether a
+      // cancel happened at the 5s mark.
+      if (_focusGraceTimerRef.current) clearTimeout(_focusGraceTimerRef.current);
+      _focusGraceTimerRef.current = setTimeout(() => {
+        _focusGraceTimerRef.current = null;
+        if (!mountedRef.current) return;
+        if (!_hasFileArrivedRef.current) {
+          setPreparingStage(null);
+          _pickerOpenRef.current = false;
+        }
+      }, 5000);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      // DO NOT clear _focusGraceTimerRef here.
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [preparingStage]);
 
   // Track mount lifecycle
   useEffect(() => {
@@ -304,13 +342,18 @@ export const EnhancedPostCreator = ({
     const files = Array.from(e.target.files || []);
     if (files.length === 0) {
       // User cancelled the picker — make sure no banner is up
-      setPreparingMedia(false);
+      setPreparingStage(null);
       return;
     }
-    // Raise the banner now that we have a real file to stage. The 60s
-    // backstop in the useEffect above clears it if anything stalls; the
-    // bottom of this function will also clear it once staging is queued.
-    setPreparingMedia(true);
+    // AUDIT-6/7: mark file arrival so the focus-watchdog (if pending) bails,
+    // explicitly clear the pending watchdog timer to free its setTimeout
+    // reference now, and transition stage to 'staging' (iOS handoff over).
+    _hasFileArrivedRef.current = true;
+    if (_focusGraceTimerRef.current) {
+      clearTimeout(_focusGraceTimerRef.current);
+      _focusGraceTimerRef.current = null;
+    }
+    setPreparingStage('staging');
 
     // Limit total files
     const remainingSlots = MAX_MEDIA_FILES - mediaFiles.length;
@@ -347,6 +390,11 @@ export const EnhancedPostCreator = ({
     const videoFiles = filesToAdd.filter(f => sniffMimeType(f).startsWith('video/'));
 
     // 🚀 PREFETCH + BACKGROUND PROCESSING
+    // AUDIT-6 (2026-04-30): mobile path skips client generateThumbnail (see
+    // SharedPostCreator for full rationale — iPhone HEVC decode adds 1-8s
+    // on top of the iOS handoff, server-side cron fills in thumbnail_url).
+    const _isMobile = typeof navigator !== 'undefined'
+      && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
     if (user?.id) {
       const startIdx = mediaFiles.length; // index offset for new files
       for (let j = 0; j < filesToAdd.length; j++) {
@@ -359,6 +407,15 @@ export const EnhancedPostCreator = ({
         const validation = validateVideoFile(file);
         if (!validation.valid) { setError(validation.error); continue; }
 
+        if (_isMobile) {
+          // Mobile: defer thumbnail generation to the cron worker server-side.
+          thumbnailPromiseRef.current[fk] = Promise.resolve(null);
+          // Still kick the signed-URL prefetch so it's warm by Post-tap time.
+          bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
+          break;
+        }
+
+        // DESKTOP: client-side thumbnail at staging time.
         // Auto-thumbnail generation — store the PROMISE so submit can await
         // it. The previous code only saved the resolved value, which meant
         // any submit fired before HEVC decode finished (every iPhone upload)
@@ -1003,7 +1060,11 @@ export const EnhancedPostCreator = ({
               transform: 'translateZ(0)',
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-              Preparing Your Video — This May Take A Moment...
+              {preparingStage === 'picker'
+                ? 'Opening Photos…'
+                : preparingStage === 'loading'
+                ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
+                : 'Preparing Your Video — This May Take A Moment...'}
             </span>
 
           </div>
@@ -1024,7 +1085,7 @@ export const EnhancedPostCreator = ({
 
           <button
             className="inline-action-btn"
-            onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); /* preparingMedia raised inside handleFileSelect once a file is actually picked — iOS-Safari fix 2026-04-30 */ }}
+            onClick={() => { if (_focusGraceTimerRef.current) { clearTimeout(_focusGraceTimerRef.current); _focusGraceTimerRef.current = null; } _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */ }}
             disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
           >
             <span className="icon">📷</span> Photo/Video
@@ -1388,7 +1449,11 @@ export const EnhancedPostCreator = ({
               transform: 'translateZ(0)',
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-              Preparing Your Video — This May Take A Moment...
+              {preparingStage === 'picker'
+                ? 'Opening Photos…'
+                : preparingStage === 'loading'
+                ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
+                : 'Preparing Your Video — This May Take A Moment...'}
             </span>
 
           </div>
@@ -1411,7 +1476,7 @@ export const EnhancedPostCreator = ({
             <button
               className="tool-btn interactive"
               title="Add Photo/Video"
-              onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); /* preparingMedia raised inside handleFileSelect once a file is actually picked — iOS-Safari fix 2026-04-30 */ }}
+              onClick={() => { if (_focusGraceTimerRef.current) { clearTimeout(_focusGraceTimerRef.current); _focusGraceTimerRef.current = null; } _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */ }}
               disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
             >
               📷
