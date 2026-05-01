@@ -172,6 +172,8 @@ export default function ReelsPage() {
     // BUG FIX (R-6): track copyToast dismiss timer — prevents setState-after-unmount when
     // user copies link then immediately navigates away.
     const copyToastTimerRef = useRef(null);
+    // BUG FIX: track slide animation timers to prevent setState-after-unmount
+    const slideAnimationTimerRef = useRef(null);
     // Phase 10 - Universal HUD auto-hide (5s timeout for usability)
     const [showOverlay, setShowOverlay] = useState(false);
     const hudTimerRef = useRef(null);
@@ -370,6 +372,12 @@ export default function ReelsPage() {
             clearTimeout(likeBounceTimerRef.current);
             clearTimeout(showHeartTimerRef.current);
             clearTimeout(copyToastTimerRef.current);
+            clearTimeout(slideAnimationTimerRef.current);
+            // BUG FIX: cancel iframe retry timers on unmount
+            autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
+            autoUnmuteRetryTimersRef.current = [];
+            playVideoOnLoadTimersRef.current.forEach(t => clearTimeout(t));
+            playVideoOnLoadTimersRef.current = [];
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.isReady]);
@@ -627,7 +635,9 @@ export default function ReelsPage() {
         if (currentIndex < reels.length - 1) {
             slideDebounceRef.current = true;
             setSlideDirection('up');
-            setTimeout(() => {
+            if (slideAnimationTimerRef.current) clearTimeout(slideAnimationTimerRef.current);
+            slideAnimationTimerRef.current = setTimeout(() => {
+                slideAnimationTimerRef.current = null;
                 setCurrentIndex(prev => prev + 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
@@ -640,7 +650,9 @@ export default function ReelsPage() {
         if (currentIndex > 0) {
             slideDebounceRef.current = true;
             setSlideDirection('down');
-            setTimeout(() => {
+            if (slideAnimationTimerRef.current) clearTimeout(slideAnimationTimerRef.current);
+            slideAnimationTimerRef.current = setTimeout(() => {
+                slideAnimationTimerRef.current = null;
                 setCurrentIndex(prev => prev - 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
@@ -1440,7 +1452,9 @@ export default function ReelsPage() {
         if (currentIndexRef.current < reelsLengthRef.current - 1) {
             slideDebounceRef.current = true;
             setSlideDirection('up');
-            setTimeout(() => {
+            if (slideAnimationTimerRef.current) clearTimeout(slideAnimationTimerRef.current);
+            slideAnimationTimerRef.current = setTimeout(() => {
+                slideAnimationTimerRef.current = null;
                 setCurrentIndex(prev => prev + 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
@@ -1452,7 +1466,9 @@ export default function ReelsPage() {
         if (currentIndexRef.current > 0) {
             slideDebounceRef.current = true;
             setSlideDirection('down');
-            setTimeout(() => {
+            if (slideAnimationTimerRef.current) clearTimeout(slideAnimationTimerRef.current);
+            slideAnimationTimerRef.current = setTimeout(() => {
+                slideAnimationTimerRef.current = null;
                 setCurrentIndex(prev => prev - 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
