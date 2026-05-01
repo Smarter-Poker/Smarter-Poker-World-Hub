@@ -784,11 +784,31 @@ silent leaks the prior phases might have missed.
 
 ---
 
+## PHASE 37 — RLS Lockdown (3-tier sweep, 2026-05-01)
+
+**Trigger:** Deep RLS audit found ~170 permissive write policies (USING true / WITH CHECK true) defined for roles `{public}` (i.e., applies to anon + authenticated). Live exploit confirmed: `SET LOCAL ROLE anon; INSERT INTO tournaments (...) VALUES (...);` returned a row.
+
+**Three migrations shipped:**
+
+| Tier | Migration | Scope | Outcome |
+|---|---|---|---|
+| S | `20260501_rls_lockdown_tier_s_money_tables.sql` | 45 policies on 28 money/financial/game-state tables (tournaments, hands, orders, purchase_history, rake_records, settlement_*, table_seats, etc.) | DROP — service_role still bypasses RLS, so engine + API routes still write. SELECT policies preserved so reads work. |
+| B | `20260501_rls_lockdown_tier_b_server_only_writes.sql` | ~110 policies on ~70 server-only operational tables (commander_*, jarvis_*, training_*, trivia_*, horse_* journals/stats, news/poker content, audit logs, sandbox_results, scrape, etc.) | Programmatic DROP loop. Excluded list: tier-S already done + intentional public-write + user-self-scoped. |
+| U | `20260501_rls_lockdown_tier_u_user_self_scoped.sql` | 13 policies on 9 user-scoped tables (profiles INSERT, social_post_comments, social_comment_likes, social_page_reports, sandbox_*, messenger_themes, messenger_labels) | DROP wide-open + CREATE replacement: `TO authenticated WITH CHECK (auth.uid() = <owner_col>)`. |
+
+**Verification:** smoke test attempted anon INSERT on 18 representative tables across all three tiers — every one returned sqlstate **42501** (`new row violates row-level security policy`). Pre-tier-S: same INSERT *succeeded* on tournaments.
+
+**Final state of database:** only **3 wide-open write policies remain** on public roles, all on intentional public-write endpoints (`horse_bug_reports` "Anyone can insert bug reports", `qr_code_scans` "Anyone can record scans", and one `horse_bug_reports` UPDATE on TO authenticated). Documented as accepted exceptions.
+
+**Why it's not a service breakage:** every write path in the codebase that targets these tables uses `SUPABASE_SERVICE_ROLE_KEY` (engine, all `pages/api/*` server routes). service_role bypasses RLS entirely. The only writers blocked by the lockdown are direct anon-key writes from compromised browser sessions or attackers using the public anon JWT.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 37: Club Arena E2E broader** — Game flow, poker hands, full V8 Bible compliance E2E. Deferred since V8 itself is 89% verified — write E2E after the remaining 15 V8 items resolve.
-- **Phase 38: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106).
-- **Phase 39: Finish messenger pivot** — when `messenger_*` is fully populated and all callers migrated, drop `social_conversations` schema + `(p_user_id, p_other_user_id, p_conversation_type) → jsonb` overload. Owned by the parallel session.
-- **Phase 40: Diamond ledger reconciliation** — backfill `diamond_transactions` rows for the 1.95M-diamond drift (signup grants, admin grants, engine-direct UPDATEs that bypassed `add_diamonds_to_balance`). Audit-completeness only, not user-impact (task #126).
+- **Phase 38: Club Arena E2E broader** — Game flow, poker hands, full V8 Bible compliance E2E. Deferred since V8 itself is 89% verified — write E2E after the remaining 15 V8 items resolve.
+- **Phase 39: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106).
+- **Phase 40: Finish messenger pivot** — when `messenger_*` is fully populated and all callers migrated, drop `social_conversations` schema + `(p_user_id, p_other_user_id, p_conversation_type) → jsonb` overload. Owned by the parallel session.
+- **Phase 41: Diamond ledger reconciliation** — backfill `diamond_transactions` rows for the 1.95M-diamond drift (signup grants, admin grants, engine-direct UPDATEs that bypassed `add_diamonds_to_balance`). Audit-completeness only, not user-impact (task #126).
 
 ---
 
