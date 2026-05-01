@@ -118,13 +118,23 @@ class MessagingService {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Get or create a 1-1 conversation between two users
+     * Get or create a 1-1 conversation between two users.
+     *
+     * NOTE 2026-05-01: this used to call the legacy `(user1_id, user2_id)`
+     * overload of fn_get_or_create_conversation which returns a bare uuid.
+     * That overload exists alongside the canonical
+     * `(p_user_id, p_other_user_id, p_conversation_type)` jsonb-returning
+     * one, and PostgREST overload-resolution ambiguity caused the same
+     * 500-class incident as Phase 29's add_diamonds_to_balance bug. Now
+     * pinned to the canonical overload; legacy is scheduled for removal in
+     * a follow-up migration once we've verified nothing else hits it.
      */
     async getOrCreateConversation(userId, otherUserId) {
         const { data, error } = await supabase
             .rpc('fn_get_or_create_conversation', {
-                user1_id: userId,
-                user2_id: otherUserId,
+                p_user_id: userId,
+                p_other_user_id: otherUserId,
+                p_conversation_type: 'direct',
             });
 
         if (error) {
@@ -132,6 +142,12 @@ class MessagingService {
             throw error;
         }
 
+        // Canonical overload returns { success, conversation_id, ... };
+        // legacy returned a bare uuid. Normalise both shapes to a uuid so
+        // existing callers don't have to change.
+        if (data && typeof data === 'object' && data.conversation_id) {
+            return data.conversation_id;
+        }
         return data;
     }
 
