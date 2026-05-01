@@ -191,7 +191,10 @@ export default function NotificationFeed({ onClose, onNavigate }) {
         });
 
         return () => {
-            subRef.current?.unsubscribe();
+            if (subRef.current) {
+                supabase.removeChannel(subRef.current);
+                subRef.current = null;
+            }
             unsubPost?.();
             if (likeDebounce) clearTimeout(likeDebounce);
         };
