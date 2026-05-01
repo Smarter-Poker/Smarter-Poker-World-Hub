@@ -655,10 +655,120 @@ flood verified stopped at 15:23:55 UTC.
 
 ---
 
+## PHASE 32 — Regression E2E (scoped, Completed 2026-05-01)
+
+Single Playwright spec `e2e/015-recent-fix-regressions.spec.ts` that
+pins the surface area of the 2026-04-30/05-01 fixes against future
+reverts:
+
+| Test block | Pins |
+|---|---|
+| batch-counts venue_ids parsing | task #109 — TypeError when arg arrives as array. 4 input shapes covered. |
+| link-preview timeout cap | task #103 — AbortController must respond <12s + reject SSRF target |
+| Commander admin gate | task #96 — server-side gate must not leak admin-only markup to unauthed |
+| api/health post-engine-fix | PHASE 30 — engine deploy didn't break runtime |
+
+Phase 32 BROADER (full V8 Bible compliance E2E) deferred — V8
+Bible compliance is already at 127/142 VERIFIED (~89%), bigger-bang
+is to first finish the remaining 15 PARTIAL/MISSING items rather
+than write E2E around them.
+
+---
+
+## PHASE 33 — DB Migration Safety (Completed 2026-05-01)
+
+Process tooling so the next migration follows the discipline this
+session had to invent on the fly.
+
+| Deliverable | Location |
+|---|---|
+| Migration safety protocol | `.agent/workflows/migration-safety.md` |
+| Migration template | `supabase/migrations/.template.sql` |
+| CLAUDE.md wire-up | `CLAUDE.md §2` |
+
+Tier system: 1 = doc-only, 2 = additive, 3 = destructive (DROP /
+ALTER COLUMN TYPE / RPC overload changes — must include rollback).
+Pre-flight asserts assumptions, post-apply asserts goal achieved.
+
+The 5 migrations after this protocol landed all followed it:
+  - `drop_legacy_get_or_create_conversation` (later backed out — see
+    Phase 35 lessons)
+  - `drop_legacy_overloads_phase29_sweep` (3 money-moving)
+  - `drop_legacy_overloads_phase29_sweep_tail` (4 stubs + 1 rename)
+
+---
+
+## PHASE 34 — Phase 29 Overload-Ambiguity Sweep (Completed 2026-05-01)
+
+After fixing the daily-login flood (Phase 29) by collapsing
+`add_diamonds_to_balance` overloads, an advisor query found 8 more
+public-schema functions with same-name/different-return-type
+overloads — the same shape of bomb.
+
+Resolved:
+
+| Function | Resolution |
+|---|---|
+| `add_to_player_wallet` (uuid, numeric) → void | DROPPED (no callers) |
+| `deduct_agent_balance` (uuid, numeric) → void | DROPPED (no callers) |
+| `log_wallet_transaction` 6-arg → uuid | DROPPED (all callers pass 9 args) |
+| `update_leaderboard` (uuid, text, integer) → void | DROPPED (no callers) |
+| `record_arena_message` 4-arg jsonb | DROPPED (was a stub) |
+| `calculate_agent_spread` 1-arg json | DROPPED (was a stub) |
+| `fn_discover_clubs` 2-arg variant | DROPPED (superseded by 3-arg) |
+| `recompute_club_levels` (uuid, boolean) → void | RENAMED → `recompute_club_levels_silent` + 2 SQL caller updates |
+| `fn_get_or_create_conversation` (user1_id, user2_id) → uuid | KEPT — see Phase 35 |
+
+Final count: 1 same-name pair with different return types remains
+(`fn_get_or_create_conversation`, intentionally — see Phase 35).
+
+---
+
+## PHASE 35 — Conversation Schema Pivot Recognized (Completed 2026-05-01)
+
+While running the Phase 34 sweep I dropped
+`fn_get_or_create_conversation(uuid, uuid) → uuid` thinking it was
+orphaned legacy. It came right back. Investigating:
+
+The DB has THREE conversation table sets in production
+simultaneously. Not redundancy — historical layers of an in-flight
+migration:
+
+| Set | Status | Last write |
+|---|---|---|
+| `social_conversations` + `social_conversation_participants` + `social_messages` | DEPRECATED | 2026-04-20 |
+| `messenger_conversations` + `messenger_participants` + `messenger_messages` | NEW CANONICAL | being built right now |
+| `conversations` | LEGACY underlying FK target during pivot | 1 row |
+
+The parallel session has been actively rebuilding messenger on
+`messenger_*` for 11+ days. Their migrations
+`20260501104942_fix_messenger_rpc.sql` +
+`20260501110219_fix_messenger_rpc_schema_typo.sql` re-create the
+`(user1_id, user2_id) → uuid` overload pointing at `messenger_*`,
+and their CI re-applies migration files on push. So my drop
+oscillated.
+
+Backed out:
+- Deleted my drop migration file
+  (`20260501_drop_legacy_get_or_create_conversation.sql`)
+- Reverted `services/MessagingService.js` to
+  `(user1_id, user2_id)` so it routes to messenger_* canonical
+- Restored both overloads as a union type in `src/types/supabase.ts`
+- Wrote `.agent/audits/2026-05-01-conversation-schema-pivot.md`
+  with the full picture so the next agent doesn't re-fight this
+
+**Lesson logged for future agents:** when you find a "duplicate
+overload" with different return types, check whether each variant
+points at a DIFFERENT table set. Same-name-different-table during
+a schema pivot is NOT the Phase 29 bomb — it's intentional dual
+canonical during a transition.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 32: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests (was Phase 24 in old plan)
-- **Phase 33: Database Migration Safety** — Now that we've shipped 3 migrations ad-hoc, formalize tooling: dry-run, rollback, Supabase shadow-db diffing (was Phase 26)
-- **Phase 34: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106)
+- **Phase 36: Club Arena E2E broader** — Game flow, poker hands, full V8 Bible compliance E2E. Deferred from Phase 32 (scoped) since V8 itself is 89% verified — write E2E after the remaining 15 V8 items resolve.
+- **Phase 37: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106).
+- **Phase 38: Finish messenger pivot** — when `messenger_*` is fully populated and all callers migrated, drop `social_conversations` schema + `(p_user_id, p_other_user_id, p_conversation_type) → jsonb` overload. Owned by the parallel session.
 
 ---
 
