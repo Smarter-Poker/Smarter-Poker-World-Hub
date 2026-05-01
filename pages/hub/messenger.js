@@ -2604,8 +2604,9 @@ function MessengerPage() {
                 console.warn('[Messenger] Deep-link compose error:', e?.message || e);
             }
 
-            // Clean up the URL query params without navigation
-            router.replace('/hub/messenger', undefined, { shallow: true });
+            // Clean up the URL query params without navigation or React state reset
+            // We use history API directly because router.replace triggers _app.js remount via router.asPath key
+            window.history.replaceState(null, '', '/hub/messenger');
         };
 
         openCompose();
@@ -4372,10 +4373,11 @@ function MessengerPage() {
                 isRequest: isRequest || false,
             };
 
-            // Add to list if not exists
+            // Add to list if not exists.
+            // Note: conversations in closure might be stale (empty), so we rely on prev to update the list.
+            // We use newConv to start the chat immediately, which works fine as it has the correct ID.
             setConversations(prev => {
-                const exists = prev.find(c => c.id === convId);
-                if (exists) return prev;
+                if (prev.find(c => c.id === convId)) return prev;
                 return [newConv, ...prev];
             });
 
