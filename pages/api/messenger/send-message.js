@@ -81,7 +81,14 @@ export default async function handler(req, res) {
 
           if (error) throw error;
 
-          return res.json({ success: true, msgId, content: content });
+          // fn_send_message returns jsonb { success, message_id, conversation_id }
+          // Extract the UUID string — returning the raw object broke client deduplication
+          const rpcResult = msgId;
+          const realMsgId = rpcResult?.message_id || (typeof rpcResult === 'string' ? rpcResult : null);
+
+          if (!rpcResult?.success && !realMsgId) throw new Error('RPC returned failure');
+
+          return res.json({ success: true, msgId: realMsgId, content: content });
       } catch (e) {
           console.warn('[ANTIGRAVITY] Send Message Exception:', e);
           return res.status(500).json({ success: false, error: 'Internal server error' });

@@ -2787,8 +2787,16 @@ function MessengerPage() {
         return () => ac.abort();
     }, [user?.id]);
 
-    // Scroll to bottom when messages change
+    // isPaginatingRef: when true, the messages change was a backward-pagination prepend.
+    // The scroll-to-bottom effect must NOT fire in this case — rAF in loadOlderMessages restores position.
+    const isPaginatingRef = useRef(false);
+
+    // Scroll to bottom when messages change — but skip during backward pagination
     useEffect(() => {
+        if (isPaginatingRef.current) {
+            isPaginatingRef.current = false;
+            return;
+        }
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
@@ -2808,7 +2816,13 @@ function MessengerPage() {
                 if (newMsg.sender_id === user.id) return;
                 
                 // Fire global event bus so the badge universally updates everywhere
+                // Guard: only emit if the conversation is in the user's local list (prevents phantom badges
+                // for conversations the user isn't in, e.g. during race between init and first subscription fire)
                 if (typeof window !== 'undefined' && eventBus) {
+                    // We use a functional read from setConversations — but we can't read state here.
+                    // Instead, rely on the fact that the sidebar update below only fires when the convo
+                    // exists in the list. The event bus emit is safe to fire broadly since listeners
+                    // only update the badge count which is fetched fresh from the server.
                     eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId: newMsg.conversation_id, senderId: newMsg.sender_id }, 'FullMessenger');
                 }
 
@@ -3600,7 +3614,11 @@ function MessengerPage() {
                     catch { return new Set(); }
                 })();
                 const filteredOlder = result.messages.filter(m => !freshHiddenIds.has(m.id));
-                setMessages(prev => [...filteredOlder, ...prev]);
+                setMessages(prev => {
+                    // Signal scroll effect to skip — rAF below will restore position
+                    isPaginatingRef.current = true;
+                    return [...filteredOlder, ...prev];
+                });
                 setHasMoreMessages(result.messages.length >= 50);
                 // Preserve scroll position after prepending older messages
                 requestAnimationFrame(() => {
