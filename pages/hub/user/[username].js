@@ -1667,7 +1667,7 @@ export default function UserProfilePage() {
                         .then(({ data: ss }) => {
                             if (ss) {
                                 setShareStreak({ streak_days: ss.streak_days || 0, is_active: ss.is_active });
-                            } else if (isOwnProfile) {
+                            } else if (user?.id && user.id === data.id) {
                                 // Streak is NOT active — check if user had a multiplier that just reset
                                 // Only show the notification once per session to avoid spam
                                 const notifKey = `sp-streak-break-notif-${pokerUid}`;

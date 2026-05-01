@@ -326,7 +326,7 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                         .insert({
                             type: 'direct',
                             created_by: currentUser.id,
-                            last_message_text: shareText.slice(0, 100),
+                            last_message_text: `📎 ${(post?.author?.name || post?.author?.username || 'Player')} on Smarter.Poker`.slice(0, 100),
                             last_message_at: new Date().toISOString(),
                         })
                         .select('id')
@@ -601,16 +601,11 @@ function GroupsTab({ post, onClose }) {
         if (!currentUser) { setSending(false); return; }
 
         const postUrl = `${window.location.origin}/hub/post/${post.id}`;
-        const shareText = message.trim()
-            ? `${message.trim()}\n\n${postUrl}`
-            : `Check out this post on Smarter.Poker\n\n${postUrl}`;
-
         let successCount = 0;
         for (const groupId of selected) {
             try {
                 // Send the shared post message with rich preview
-                const postUrl2 = `${window.location.origin}/hub/post/${post.id}`;
-                const richPayload2 = buildRichSharePayload(post, postUrl2, message.trim());
+                const richPayload2 = buildRichSharePayload(post, postUrl, message.trim());
                 await sb.from('messenger_messages').insert({
                     conversation_id: groupId,
                     sender_id: currentUser.id,

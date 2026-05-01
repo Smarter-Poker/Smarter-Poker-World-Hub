@@ -7,7 +7,6 @@
  * Falls back to a Supabase fetch only when rich fields are absent (legacy messages).
  */
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 let _supabase = null;
 function getSB() {

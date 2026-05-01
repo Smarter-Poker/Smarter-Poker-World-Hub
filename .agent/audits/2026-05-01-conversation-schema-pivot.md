@@ -142,3 +142,30 @@ Once `messenger_*` has fully replaced `social_conversations` (i.e.
 all callers in `pages/api/messenger/`, `pages/hub/messenger.js`,
 `pages/api/club-arena/*-cashout.js`, etc. have been moved), the
 jsonb overload can be dropped. Don't do it before that.
+
+## Pivot status as of 2026-05-01 16:35 UTC
+
+The pivot has **barely started**. Of the 4 messenger RPCs in the
+public schema:
+
+| Function | Tables referenced | Status |
+|---|---|---|
+| `fn_get_or_create_conversation` jsonb overload | `social_conversations`, `social_conversation_participants` | DEPRECATED PATH, still in active use |
+| `fn_get_or_create_conversation` uuid overload | `messenger_conversations`, `messenger_participants` | NEW PATH but **BROKEN** (role + FK bugs) |
+| `fn_get_user_conversations` | `social_conversations`, `social_conversation_participants`, `social_messages` | NOT YET MIGRATED |
+| `fn_send_message` | `social_conversation_participants`, `social_messages` | NOT YET MIGRATED |
+| `fn_mark_messages_read` | `social_conversation_participants`, `social_messages` | NOT YET MIGRATED |
+
+So 3 of 4 messenger RPCs are STILL on the deprecated schema.
+`social_messages` last got a write 2026-04-20 (see body of this doc),
+but the RPCs above all READ from it — that's why the messenger
+appears to "work" (it reads stale data).
+
+**Conclusion for an agent considering further pivot work:**
+- The pivot is a bigger job than it looks. Don't cherry-pick
+  individual functions; flip them as a set with their callers.
+- The (user1_id, user2_id) → uuid overload as it stands is dead
+  code. It can't ever route real traffic until (a) the FK is
+  retargeted, (b) the role values are fixed, AND (c) the read-side
+  RPCs are pivoted too — otherwise newly-created messenger_*
+  rows are invisible to the rest of the messenger.
