@@ -596,7 +596,7 @@ function GroupsTab({ post, onClose }) {
 
         if (!currentUser) { setSending(false); return; }
 
-        const postUrl = `${window.location.origin}/hub/post/${post?.id}`;
+        const postUrl = `${window.location.origin}/hub/post/${post.id}`;
         let successCount = 0;
         for (const groupId of selected) {
             try {
@@ -629,7 +629,7 @@ function GroupsTab({ post, onClose }) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ 
-                        post_id: post?.id,
+                        post_id: post.id,
                         destination: 'messenger_group',
                         success_count: successCount
                     })
