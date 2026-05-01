@@ -4683,7 +4683,9 @@ function MessengerPage() {
                 const state = presenceChannel.presenceState();
                 const onlineSet = new Set(Object.keys(state || {}));
                 setOnlineUsers(onlineSet);
-                console.warn('[Presence] Sync — online users:', onlineSet.size);
+                if (process.env.NODE_ENV === 'development') {
+                    console.debug('[Presence] Sync — online users:', onlineSet.size);
+                }
 
                 // Update active conversation's other user status in real-time
                 if (activeConversationRef.current?.otherUser?.id) {
@@ -4775,16 +4777,16 @@ function MessengerPage() {
         };
     }, [user?.id]);
 
-    // Calculate total unread count + favicon badge
+    // Calculate total unread count — derived from conversations, gated on primitive change
+    const totalUnreadSum = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
     useEffect(() => {
-        const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-        setTotalUnreadCount(total);
+        setTotalUnreadCount(totalUnreadSum);
         // Update browser tab title with unread badge
         if (typeof document !== 'undefined') {
-            document.title = total > 0 ? `(${total}) Messenger | Smarter.Poker` : 'Messenger | Smarter.Poker';
+            document.title = totalUnreadSum > 0 ? `(${totalUnreadSum}) Messenger | Smarter.Poker` : 'Messenger | Smarter.Poker';
         }
-        // Update favicon with red badge
-        updateFaviconBadge(total);
+        // Update favicon with red badge (potentially expensive canvas op — only run on actual change)
+        updateFaviconBadge(totalUnreadSum);
         // Cleanup: reset favicon and title when leaving messenger
         return () => {
             if (typeof document !== 'undefined') {
@@ -4792,7 +4794,9 @@ function MessengerPage() {
                 updateFaviconBadge(0);
             }
         };
-    }, [conversations]);
+    // Use primitive dep — avoids expensive favicon/title updates on every conversations array mutation
+    // (e.g. last_message_preview refresh, sidebar reorder) that doesn't change the unread count.
+    }, [totalUnreadSum]);
 
     // Sync local conversations state to Zustand/localStorage cache
     // This ensures re-entry renders current data (RT updates, mark-read, sent messages)
