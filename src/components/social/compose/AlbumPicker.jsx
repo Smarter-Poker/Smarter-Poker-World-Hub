@@ -10,7 +10,7 @@
  *
  * The picker is re-triggerable via "+ Add more" so users can append.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useComposeStore } from '../../../stores/composeStore';
 
 const COLS = 3;
