@@ -1,8 +1,61 @@
-# 🚨 Vercel Production Builds Blocked — NPM_TOKEN Expired
+# Vercel "build failures" were a phantom project, not real
 
 **Found:** 2026-04-30  
-**Severity:** SHIP-STOPPER — every push to `main` since the token expired
-has produced an **ERROR** deploy. Production is frozen at a stale build.
+**Updated:** 2026-04-30 03:20 UTC after auth-tokened investigation  
+**Severity:** ~~SHIP-STOPPER~~ → **resolved / non-issue**
+
+## TL;DR — original alarm was wrong target
+
+I originally raised this as a SHIP-STOPPER thinking production builds
+were broken because of an expired NPM_TOKEN. After Dan handed me a
+Vercel API token I was able to drill in, and the real picture is:
+
+- The actual production Vercel project is **`hub-vanguard`**
+  (`prj_op66GkZyZcygXQKm76iyycfVFAQx`, created 2026-01-11). It has 49
+  env vars including a working NPM_TOKEN, and is happily auto-deploying
+  from `main`.  Latest READY production deploy at the time of this
+  edit: `dpl_Hxq1szB5rb1iPUtT4QwaMJKPC551` containing commit
+  `85560c78fd` — well past my commits.
+- The "ERROR" deploys I was looking at via the Cowork Vercel MCP came
+  from a **second project named `smarter-poker-world-hub`**
+  (`prj_ELynDO2aeUzqNuKhnqsfS7m0LELU`, created today 2026-05-01
+  01:52:22). It has zero env vars set, has the same GitHub repo
+  connected, and so every push to `main` triggers an auto-deploy that
+  fails at `npm install` because `${NPM_TOKEN}` resolves to empty.
+- The `.vercel/project.json` that the Cowork MCP was reading pointed
+  at the phantom project. That file is `.gitignore`d and was removed
+  between my queries — so the misconfig was local-only, not committed.
+- **None of the parallel session's nor my fixes were ever blocked.**
+  All of today's commits — including
+    a321d5b0c0 (DB security/perf migrations)
+    4d75febb62 (add_diamonds overload consolidation, after rebase from 68555ec2ba)
+    3508a973cb (supabase.ts type fix, after rebase from 85baa83827)
+    a6c1bf8c45 (this doc, after rebase from 46d3906bb0)
+  are on `main` and were built by `hub-vanguard` (or are queued behind
+  the latest commits).
+
+## How the phantom project came to exist
+
+Best guess from timestamps: 2026-05-01 01:52:22 is when the parallel
+session ran `vercel link --yes` from a fresh checkout, which prompted
+Vercel CLI to create a project named after the repo
+(`smarter-poker-world-hub`) instead of recognising the existing
+`hub-vanguard`. Vercel's GitHub integration then auto-connected the
+new project to the same repo, so every push fan-outs to BOTH
+projects.
+
+## Recommendation — clean up the phantom
+
+Delete the duplicate project at:
+https://vercel.com/smarter-poker/smarter-poker-world-hub/settings →
+"Delete Project". This stops the ERROR-deploy noise on every push.
+
+(Don't delete `hub-vanguard`. That's the real one.)
+
+If you want to keep the duplicate around but stop the failed builds,
+go to its Settings → Git → "Disconnect from Git" instead. Reversible.
+
+## What was actually production-blocking — nothing
 
 ## Symptom
 
