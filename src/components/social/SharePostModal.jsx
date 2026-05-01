@@ -246,8 +246,9 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                             last_message_at: new Date().toISOString(),
                         })
                         .select('id')
-                        .single();
+                        .maybeSingle();
                     if (convErr) throw convErr;
+                    if (!newConv?.id) throw new Error('Failed to create conversation');
                     convId = newConv.id;
 
                     // Add both participants
