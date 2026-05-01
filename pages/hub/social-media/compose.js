@@ -17,6 +17,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
 import bgUpload from '../../../src/lib/backgroundVideoUpload';
 import { busEmit } from '../../../src/engine/EventBus';
+import { broadcastSync, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import toast from '../../../src/stores/toastStore';
 
 import AlbumPicker from '../../../src/components/social/compose/AlbumPicker';
@@ -253,41 +254,81 @@ export default function ComposePage() {
                 }
             }
 
-            // 6. Persist share_to_groups selection.
-            // No /api/social/home-groups/post endpoint exists yet — the
-            // proper "mirror this post into each home group's stream" is
-            // backend infrastructure that lives in the future Hetzner
-            // Open Claw worker (see CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md).
-            //
-            // AUDIT (2026-05-01 secondary pass): bug fix — the previous
-            // version did `.update({metadata: {share_to_groups: ...}})`
-            // which OVERWRITES whatever metadata the RPC just stored
-            // (achievement data, transcode pointers, etc). Read-merge-
-            // write so we add the field without nuking siblings.
-            if (state.shareToGroups?.length && postId) {
+            // 6. Persist share_to_groups + co_authors selections in metadata.
+            // No backend mirror-job exists yet for either; we save the
+            // selections to social_posts.metadata so future infrastructure
+            // (Hetzner Open Claw worker per CLUB-ARENA-OFFICIAL-
+            // UPGRADE-INTEGRATION.md) can pick them up. Read-merge-write
+            // pattern preserves any sibling fields the RPC stored.
+            const needsMetaPatch =
+                (state.shareToGroups?.length || state.coAuthors?.length) && postId;
+            if (needsMetaPatch) {
                 try {
                     const { data: existing } = await supabase
                         .from('social_posts')
                         .select('metadata')
                         .eq('id', postId)
                         .maybeSingle();
-                    const merged = {
-                        ...(existing?.metadata && typeof existing.metadata === 'object' ? existing.metadata : {}),
-                        share_to_groups: state.shareToGroups.map(g => ({ id: g.id, name: g.name })),
-                    };
+                    const base = (existing?.metadata && typeof existing.metadata === 'object')
+                        ? existing.metadata
+                        : {};
+                    const merged = { ...base };
+                    if (state.shareToGroups?.length) {
+                        merged.share_to_groups = state.shareToGroups.map(g => ({ id: g.id, name: g.name }));
+                    }
+                    if (state.coAuthors?.length) {
+                        merged.co_authors = state.coAuthors.map(a => ({
+                            id: a.id, name: a.name, username: a.username,
+                        }));
+                    }
                     await supabase.from('social_posts')
                         .update({ metadata: merged })
                         .eq('id', postId);
-                } catch (groupsErr) {
-                    console.warn('[Compose] share_to_groups metadata save failed:', groupsErr?.message || groupsErr);
+                } catch (metaErr) {
+                    // Non-fatal — the post is created, just missing the
+                    // metadata sidecar fields.
+                    console.warn('[Compose] metadata sidecar save failed:', metaErr?.message || metaErr);
                 }
             }
 
-            // 8. Notify the rest of the app
+            // 7. Notify the rest of the app + cross-tab sync.
+            // AUDIT-PASS-3 (2026-05-01): added masterBus.publish('SOCIAL_POST')
+            // so the social-media page realtime handler — which deliberately
+            // SKIPS self-authored posts (line 4313) on the assumption they
+            // were already added optimistically — falls through to the
+            // masterBus loadFeed(0) reload trigger instead. Without this,
+            // the user's own post never appeared in their own feed until
+            // a manual refresh. Also added broadcastSync so OTHER open tabs
+            // see the new post.
             try {
                 busEmit.dataMutated?.('social');
                 busEmit.socialPostCreated?.(postId, user.id);
+                if (typeof window !== 'undefined' && window.masterBus?.publish) {
+                    window.masterBus.publish('SOCIAL_POST', { id: postId, authorId: user.id });
+                }
+                broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
             } catch (_) {}
+
+            // AUDIT-PASS-3 (2026-05-01): success chime — restored from
+            // SharedPostCreator's old handlePost. Compose.js had silently
+            // dropped this when it took over the post-create handler.
+            try {
+                if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+                    const ac = new (window.AudioContext || window.webkitAudioContext)();
+                    const o = ac.createOscillator();
+                    const g = ac.createGain();
+                    o.connect(g); g.connect(ac.destination);
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(880, ac.currentTime);
+                    o.frequency.exponentialRampToValueAtTime(1320, ac.currentTime + 0.12);
+                    g.gain.setValueAtTime(0.0001, ac.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.18, ac.currentTime + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.18);
+                    o.start();
+                    o.stop(ac.currentTime + 0.2);
+                    setTimeout(() => { try { ac.close(); } catch (_) {} }, 400);
+                }
+            } catch (_) { /* audio is a nice-to-have, never block the post */ }
 
             toast.success('Posted!', 2000);
             // Persist last audience choice so the next compose defaults to it
