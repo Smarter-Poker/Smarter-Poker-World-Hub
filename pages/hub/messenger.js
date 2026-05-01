@@ -3054,6 +3054,7 @@ function MessengerPage() {
                 }
 
                 // Auto-decline after 30 seconds
+                if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
                 callTimeoutRef.current = setTimeout(() => {
                     handleDeclineCall('timeout');
                 }, 30000);
@@ -3148,6 +3149,10 @@ function MessengerPage() {
                     incomingCallAudioRef.current.loop = false;
                     incomingCallAudioRef.current.pause();
                     incomingCallAudioRef.current.currentTime = 0;
+                }
+                // Stop any running call timeout
+                if (callTimeoutRef.current) {
+                    clearTimeout(callTimeoutRef.current);
                 }
             })
             .subscribe();
