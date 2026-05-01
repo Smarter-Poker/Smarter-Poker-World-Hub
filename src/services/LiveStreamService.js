@@ -537,7 +537,13 @@ class LiveStreamService {
         // Clean up any LiveKit audio elements attached to body
         document.querySelectorAll('[id^="livekit-audio-"]').forEach(el => el.remove());
         console.debug('[LiveKit] Left stream:', this.currentStreamId);
+        // FIX: reset ALL identity fields so the singleton is clean for the next
+        // joinStream() call (prevents multi-tab/multi-session state leakage).
+        // Previously only endBroadcast() reset currentUserId — leaveStream() did not,
+        // allowing the viewer identity to bleed into subsequent sessions.
         this.currentStreamId = null;
+        this.currentUserId = null;      // FIX: was never reset in leaveStream()
+        this.isManualDisconnect = false; // FIX: reset so next join can reconnect on disconnect
     }
 
     // ═══════════════════════════════════════════════════

@@ -232,36 +232,42 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         setLoadingMoreComments(false);
     };
 
-    /** Send comment — direct insert (RPC was never deployed) + optimistic local update */
+    /** Send comment — via server API (resolves author_name from profiles server-side
+     *  to eliminate client-spoofing). Optimistic update for instant UX. */
     const handleSendComment = async () => {
         const text = commentInput.trim();
         if (!text || !stream?.id || !userId) return;
         setCommentInput('');
         setCommentError('');
         commentInputRef.current?.blur(); // #10: dismiss mobile keyboard
-        const authorName = user?.full_name || user?.user_metadata?.full_name || user?.username || user?.email?.split('@')[0] || 'Viewer';
-        // Optimistic: show comment immediately for sender
+        // Optimistic: use locally-known display name for instant feedback.
+        // The server will store the canonical profile username — the real row
+        // replaces this optimistic one once the API responds.
+        const localDisplayName = user?.username || user?.user_metadata?.preferred_username || user?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Viewer';
         const optimisticId = `optimistic-${Date.now()}`;
-        const optimisticComment = { id: optimisticId, stream_id: stream.id, user_id: userId, author_name: authorName, text, created_at: new Date().toISOString() };
+        const optimisticComment = { id: optimisticId, stream_id: stream.id, user_id: userId, author_name: localDisplayName, text, created_at: new Date().toISOString() };
         setComments(prev => [...prev, optimisticComment]);
         try {
-            const { data, error } = await supabase.from('live_comments').insert({
-                stream_id: stream.id,
-                user_id: userId,
-                author_name: authorName,
-                text,
-            }).select().maybeSingle();
-            if (error) {
-                // Remove optimistic comment on failure
+            const resp = await fetch('/api/live/comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ stream_id: stream.id, text }),
+            });
+            const json = await resp.json();
+            if (!resp.ok) {
+                // Remove optimistic comment and show error
                 setComments(prev => prev.filter(c => c.id !== optimisticId));
-                setCommentError(error.message || 'Comment failed');
+                setCommentError(json.error || 'Comment failed');
                 setTimeout(() => setCommentError(''), 3000);
-            } else if (data) {
-                // Replace optimistic comment with real DB row (avoids duplicate from realtime)
-                setComments(prev => prev.map(c => c.id === optimisticId ? data : c));
+            } else if (json.comment) {
+                // Replace optimistic comment with real DB row (has server-resolved author_name)
+                setComments(prev => prev.map(c => c.id === optimisticId ? json.comment : c));
             }
         } catch (err) {
             setComments(prev => prev.filter(c => c.id !== optimisticId));
+            setCommentError('Network error — please retry');
+            setTimeout(() => setCommentError(''), 3000);
             console.warn('[LiveStreamViewer] comment failed:', err);
         }
     };
