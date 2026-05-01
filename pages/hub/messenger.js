@@ -4043,9 +4043,9 @@ function MessengerPage() {
         if (!editingMessage || !editText.trim() || !user) return;
 
         // EAGER STATE SYNCHRONIZATION: Update message content immediately (BFCache-safe)
-        const prevMessages = messages;
         const newContent = editText.trim();
         const editingId = editingMessage.id;
+        const originalContent = editingMessage.content; // Capture for targeted rollback
         setMessages(prev => prev.map(m =>
             m.id === editingId ? { ...m, content: newContent, is_edited: true } : m
         ));
@@ -4080,13 +4080,18 @@ function MessengerPage() {
                     setToast({ type: 'success', message: 'Message Edited' });
                     busEmit.messageEdited(activeConversation?.id, editingId);
                 } else {
-                    // Rollback on API error
-                    setMessages(prevMessages);
+                    // Targeted rollback — restore only the edited message, not the entire snapshot
+                    setMessages(prev => prev.map(m =>
+                        m.id === editingId ? { ...m, content: originalContent, is_edited: m.is_edited && m.content !== originalContent } : m
+                    ));
                     setToast({ type: 'error', message: result.error || 'Edit Failed' });
                 }
             } catch (e) {
                 console.warn('Edit message error:', e);
-                setMessages(prevMessages);
+                // Targeted rollback on network error
+                setMessages(prev => prev.map(m =>
+                    m.id === editingId ? { ...m, content: originalContent } : m
+                ));
                 setToast({ type: 'error', message: 'Failed To Edit Message' });
             }
         })();
