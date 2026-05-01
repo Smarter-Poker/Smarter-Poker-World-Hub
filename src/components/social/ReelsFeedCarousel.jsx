@@ -85,7 +85,7 @@ function ReelCard({ reel, onClick }) {
         setIsHovered(true);
         if (!isYouTube && videoRef.current) {
             const p = videoRef.current.play();
-            if (p !== undefined) p.catch(() => {}); // suppress AbortError on rapid hover
+            if (p !== undefined) p.catch(() => { }); // suppress AbortError on rapid hover
         }
     };
 
@@ -260,7 +260,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     useEffect(() => {
         if (!reels || reels.length === 0) return;
         const currentReelId = reels[currentIndex]?.id;
-        
+
         if (prevReelIdRef.current && currentReelId !== prevReelIdRef.current) {
             // reels array changed under us! Find where our reel moved to.
             const newIndex = reels.findIndex(r => r.id === prevReelIdRef.current);
@@ -268,7 +268,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 setCurrentIndex(newIndex);
             }
         }
-        
+
         // Update the ref to the currently viewing reel
         if (reels[currentIndex]?.id) {
             prevReelIdRef.current = reels[currentIndex].id;
@@ -288,7 +288,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const cancelLongPress = () => {
         if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     };
-    
+
     // Phase 9: Watched Indicator
     const [watchedReelIds, setWatchedReelIds] = useState([]);
     useEffect(() => {
@@ -569,7 +569,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         // 5s fallback: if YouTube never fires onStateChange, show play button
         const ytFallback = setTimeout(() => setYtReady(true), 5000);
         return () => clearTimeout(ytFallback);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
 
     // Auto-hide overlay after 2.5 seconds — but NOT when video is paused
@@ -642,7 +642,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         if (vid) { reportFailureToServer(vid, data.info, 'ReelsFeedCarousel'); reportToSentry(vid, data.info, 'ReelsFeedCarousel'); }
                     } catch { /* best-effort */ }
                 }
-            } catch (_) {}
+            } catch (_) { }
         };
         window.addEventListener('message', handleYTMessage);
         return () => window.removeEventListener('message', handleYTMessage);
@@ -1169,7 +1169,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             video.removeEventListener('canplay', onCanPlay);
             video.removeEventListener('play', onPlay);
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
 
     // Auto-advance on YouTube error after 3 seconds
@@ -1248,7 +1248,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 e.preventDefault();
                 if (videoRef.current) {
                     if (videoRef.current.paused) {
-                        videoRef.current.play().catch(() => {});
+                        videoRef.current.play().catch(() => { });
                     } else {
                         videoRef.current.pause();
                     }
@@ -1337,7 +1337,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             return;
         }
         lastTapRef.current = now;
-        
+
         // Single tap = show overlay ONLY (no play/pause)
         setShowOverlay(true);
         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
@@ -1387,7 +1387,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     const delta = swipeDeltaRef.current;
                     swipeStartRef.current = null;
                     if (Math.abs(delta) > 50) {
-                        try { navigator?.vibrate?.(10); } catch(_) {}
+                        try { navigator?.vibrate?.(10); } catch (_) { }
                         if (delta < 0) goNext();
                         else goPrev();
                         return;
@@ -1696,8 +1696,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                         fontSize: 28, padding: '4px',
                                         transition: 'transform 0.15s ease',
                                     }}
-                                    onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
-                                    onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                                        onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
+                                        onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                                     >{r.emoji}</button>
                                 ))}
                             </div>
@@ -1785,7 +1785,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
                                     background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'left',
                                 }}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                                     Copy Link
                                 </button>
                                 <button onClick={() => { setShowReportModal(true); setShowMoreMenu(false); }} style={{
@@ -1892,7 +1892,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 padding: '16px 20px', color: 'white', fontSize: 16, fontWeight: 600, textAlign: 'left',
                                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                             }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill={saved[currentReel?.id] ? 'white' : 'none'} stroke="white" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill={saved[currentReel?.id] ? 'white' : 'none'} stroke="white" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
                                 {saved[currentReel?.id] ? 'Unsave' : 'Save Reel'}
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); handleShare(); }} style={{
@@ -1900,7 +1900,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 padding: '16px 20px', color: 'white', fontSize: 16, fontWeight: 600, textAlign: 'left',
                                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                             }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                                 Share / Repost
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); setShowReportModal(true); }} style={{
@@ -1908,7 +1908,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 padding: '16px 20px', color: '#ff3b30', fontSize: 16, fontWeight: 600, textAlign: 'left',
                                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                             }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
                                 Report
                             </button>
                         </div>
@@ -1939,14 +1939,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 transition: 'all 0.3s ease',
                             }}>
                                 {sharedToFeed ? (
-                                    <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg> Shared to My Feed!</>
+                                    <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg> Shared to My Feed!</>
                                 ) : sharingToFeed ? 'Sharing...' : (
-                                    <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Share to My Feed</>
+                                    <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg> Share to My Feed</>
                                 )}
                             </button>
                             <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center', marginBottom: 10, fontWeight: 500 }}>OR SHARE EXTERNALLY</div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                                {[{id:'copy',label:'Copy Link',color:'#00d4ff'},{id:'x',label:'X',color:'#fff'},{id:'facebook',label:'Facebook',color:'#1877F2'},{id:'whatsapp',label:'WhatsApp',color:'#25D366'}].map(p => (
+                                {[{ id: 'copy', label: 'Copy Link', color: '#00d4ff' }, { id: 'x', label: 'X', color: '#fff' }, { id: 'facebook', label: 'Facebook', color: '#1877F2' }, { id: 'whatsapp', label: 'WhatsApp', color: '#25D366' }].map(p => (
                                     <button key={p.id} onClick={() => handleShareAction(p.id)} style={{
                                         background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
                                         borderRadius: 12, padding: '14px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,

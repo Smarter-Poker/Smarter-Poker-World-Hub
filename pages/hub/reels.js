@@ -319,15 +319,16 @@ export default function ReelsPage() {
     useEffect(() => {
         if (!router.isReady) return;
         loadReels();
-        // Lock body scroll so swipe gestures don't scroll the page behind the reels container
-        document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
-        document.body.style.touchAction = 'none';
-        // Also lock <html> element for iOS Safari
-        document.documentElement.style.overflow = 'hidden';
+        // Lock body scroll so swipe gestures don't scroll the page behind the reels container.
+        // Use CLASS-based lock (not inline styles) so the CSS desktop failsafe in index.css
+        // can distinguish reels-locked state from stale style leaks on other pages.
+        document.body.classList.add('reels-lock');
+        document.documentElement.classList.add('reels-lock');
         return () => {
-            // Always clear — don't restore saved values (race condition risk
+            // Always remove the class — never leaves stale state
+            document.body.classList.remove('reels-lock');
+            document.documentElement.classList.remove('reels-lock');
+            // Also clear any legacy inline styles that may have been set before this change
             // when multiple components compete for body scroll state)
             document.body.style.overflow = '';
             document.body.style.position = '';
