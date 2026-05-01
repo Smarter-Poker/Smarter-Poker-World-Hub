@@ -228,6 +228,8 @@ export function ReelsViewer({ onClose }) {
     const likeBounceTimerRef = useRef(null);
     // BUG FIX (RLXS-2): commentFocusTimerRef — prevents focus() on unmounted input.
     const commentFocusTimerRef = useRef(null);
+    // BUG FIX (RLXS-4): copyToastTimerRef — prevents setState-after-unmount on copy-link dismiss.
+    const copyToastTimerRef = useRef(null);
 
     useEffect(() => {
         loadReels();
@@ -567,6 +569,8 @@ export function ReelsViewer({ onClose }) {
             // RLXS-1/2: cancel bounce and focus timers
             clearTimeout(likeBounceTimerRef.current);
             clearTimeout(commentFocusTimerRef.current);
+            // RLXS-4: cancel copy-link toast timer
+            clearTimeout(copyToastTimerRef.current);
         };
     }, []);
 
@@ -1898,7 +1902,10 @@ export function ReelsViewer({ onClose }) {
                                 <button onClick={() => {
                                     const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
                                     navigator.clipboard.writeText(url).then(() => {
-                                        setCopyToast(true); setTimeout(() => setCopyToast(false), 2000);
+                                        // BUG FIX (RLXS-4): cancel previous copyToast timer before scheduling a new one.
+                                        setCopyToast(true);
+                                        if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
+                                        copyToastTimerRef.current = setTimeout(() => { copyToastTimerRef.current = null; setCopyToast(false); }, 2000);
                                     }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     setShowMoreMenu(false);
                                 }} style={{
