@@ -3162,10 +3162,18 @@ function MessengerPage() {
                             duration: 0,
                             status: receiptStatus,
                         });
-                        supabase.rpc('fn_send_message', {
-                            p_conversation_id: currentConvo.id,
-                            p_sender_id: user.id,
-                            p_content: `[CALL_RECEIPT]${receiptPayload}`,
+                        // Route through authenticated API (not anon supabase.rpc) to bypass RLS
+                        const receiptToken = getAccessToken();
+                        fetch('/api/messenger/send-message', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(receiptToken ? { Authorization: `Bearer ${receiptToken}` } : {}),
+                            },
+                            body: JSON.stringify({
+                                conversationId: currentConvo.id,
+                                content: `[CALL_RECEIPT]${receiptPayload}`,
+                            }),
                         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
 
@@ -3247,7 +3255,9 @@ function MessengerPage() {
             supabase.removeChannel(callChannel);
             if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
         };
-    }, [user]); // BUG-3 FIX: Only re-subscribe when user changes, not on showCall/callingUser
+    // Use user?.id (primitive) not the full user object — profile updates would tear
+    // down the call channel, creating a gap window where incoming calls are dropped.
+    }, [user?.id]);
 
     // Handle accepting incoming call
     const handleAcceptCall = async () => {
@@ -3640,6 +3650,10 @@ function MessengerPage() {
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadMessagesRef.current = loadMessages;
 
+    // Send lock — prevents double-send from rapid Enter spam, thumbs-up taps, or retry button mashing.
+    // Without this, two concurrent fetch('/api/messenger/send-message') calls create duplicate DB rows.
+    const sendLockRef = useRef(false);
+
     // Load older messages (pagination — triggered when scrolling to top)
     // FIX #3: useRef-based lock prevents duplicate pagination from rapid scroll
     const paginationLockRef = useRef(false);
@@ -3895,6 +3909,14 @@ function MessengerPage() {
         // Regular message handling
         // Prepend reply context if replying to a message
         let finalContent = content.trim();
+
+        // Send lock: prevent double-send from rapid Enter spam, thumbs-up, or retry mashing
+        if (sendLockRef.current) return;
+        sendLockRef.current = true;
+
+        // Capture conversation at send time — user may switch before the await resolves
+        const sendConversationId = activeConversation.id;
+
         if (replyToMessage) {
             const replyText = (replyToMessage.content || replyToMessage.text || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80);
             finalContent = `[REPLY:${replyText}] ${finalContent}`;
@@ -3917,7 +3939,7 @@ function MessengerPage() {
         // Update conversation preview and re-sort to move to top
         setConversations(prev => {
             const updated = prev.map(c =>
-                c.id === activeConversation.id
+                c.id === sendConversationId
                     ? { ...c, last_message_preview: finalContent, last_message_at: new Date().toISOString() }
                     : c
             );
@@ -3939,7 +3961,7 @@ function MessengerPage() {
                     ...(sendToken ? { Authorization: `Bearer ${sendToken}` } : {}),
                 },
                 body: JSON.stringify({
-                    conversationId: activeConversation.id,
+                    conversationId: sendConversationId,
                     content: finalContent,
                 }),
             });
@@ -3947,19 +3969,20 @@ function MessengerPage() {
             if (!sendResp.ok || !sendResult.success) throw new Error(sendResult.error || 'Send failed');
             const data = sendResult.msgId;
 
-            // Replace optimistic message with real one (use server-sanitized content)
-            // Guard: only replace tempId if we got a real UUID back (null msgId would break deduplication)
-            const realId = data || tempId;
-            setMessages(prev => prev.map(m =>
-                m.id === tempId
-                    ? { ...m, id: realId, content: sendResult.content || m.content, status: 'sent' }
-                    : m
-            ));
+            // Replace optimistic message with real one — only if still in same conversation
+            if (activeConversationRef.current?.id === sendConversationId) {
+                const realId = data || tempId;
+                setMessages(prev => prev.map(m =>
+                    m.id === tempId
+                        ? { ...m, id: realId, content: sendResult.content || m.content, status: 'sent' }
+                        : m
+                ));
+            }
 
             // Notify header to refresh unread badges
             busEmit.dataMutated('messenger');
             // DEEP SWEEP FIX: Push native global Message Sent event
-            busEmit.messageSent(activeConversation.id, activeConversation.otherUser?.id);
+            busEmit.messageSent(sendConversationId, activeConversation.otherUser?.id);
         } catch (e) {
             console.warn('Send message error:', e);
             // Mark message as failed
@@ -3967,6 +3990,8 @@ function MessengerPage() {
                 m.id === tempId ? { ...m, status: 'failed' } : m
             ));
             setToast({ type: 'error', message: 'Failed To Send Message. Tap To Retry.' });
+        } finally {
+            sendLockRef.current = false;
         }
     };
 
