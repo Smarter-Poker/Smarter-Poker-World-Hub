@@ -3100,6 +3100,19 @@ function MessengerPage() {
                         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
 
+                    // DEFENSE-IN-DEPTH: Caller-side cancel of pending_calls row.
+                    // The callee already cancels, but if their fetch failed this ensures cleanup.
+                    if (user?.id && currentConvo?.otherUser?.id) {
+                        const cancelToken = getAccessToken();
+                        if (cancelToken) {
+                            fetch('/api/calls/cancel', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
+                                body: JSON.stringify({ callerId: user.id, calleeId: currentConvo.otherUser.id }),
+                            }).catch(() => {});
+                        }
+                    }
+
                     setCallingUser(null);
                     // BUG-8 FIX: Also close the call modal — caller shouldn't stay in empty room
                     setShowCall(false);
@@ -4806,16 +4819,26 @@ function MessengerPage() {
         }
         callStartTimeRef.current = null;
 
-        // Cancel any pending call in database (in case call wasn't answered)
+        // Cancel any pending call in database (in case call wasn't answered).
+        // CRITICAL FIX: We don't know if this user is the caller or the callee — try both orderings.
+        // The cancel API verifies the authenticated user is a party to the call before deleting.
         if (activeConversation?.otherUser?.id && user?.id) {
-            fetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({
-                    callerId: user.id,
-                    calleeId: activeConversation.otherUser.id
-                }),
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            const cancelToken = getAccessToken();
+            const otherUserId = activeConversation.otherUser.id;
+            if (cancelToken) {
+                // Try as caller (we initiated the call)
+                fetch('/api/calls/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
+                    body: JSON.stringify({ callerId: user.id, calleeId: otherUserId }),
+                }).catch(() => {});
+                // Try as callee (they initiated the call) — ensures cleanup regardless of who called whom
+                fetch('/api/calls/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
+                    body: JSON.stringify({ callerId: otherUserId, calleeId: user.id }),
+                }).catch(() => {});
+            }
         }
 
         setShowCall(false);
