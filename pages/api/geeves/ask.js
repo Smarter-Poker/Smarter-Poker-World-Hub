@@ -186,7 +186,14 @@ async function checkSimilarCache(question) {
 }
 
 async function incrementCacheServed(cacheId) {
-    await getSupabase().rpc('increment_cache_served', { cache_uuid: cacheId });
+    // Stats-only — log on failure so cache_hit drift is visible.
+    // Previous version swallowed both throw AND rpc {error} without trace.
+    try {
+        const { error } = await getSupabase().rpc('increment_cache_served', { cache_uuid: cacheId });
+        if (error) console.warn('[Geeves] increment_cache_served RPC error:', error.message || error);
+    } catch (err) {
+        console.warn('[Geeves] increment_cache_served threw:', err?.message || err);
+    }
 }
 
 async function saveToCache(question, answer, questionType, userId) {
