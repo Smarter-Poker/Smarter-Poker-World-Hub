@@ -319,6 +319,13 @@ try {
         // Idempotency key prevents double-kicks from fat-fingers.
         // ─────────────────────────────────────────────────────
         case 'kick_player': {
+          // Round 68 follow-up: this action used to call the World-Hub-internal
+          // GameController.standUp which operates on a parallel in-memory
+          // lobby that has NO entries for production tables (engine lives on
+          // Hetzner). Result: every kick was a silent no-op. Now we forward
+          // the request to the engine's POST /admin/kick endpoint, which
+          // independently verifies the caller's club_members.role + drives
+          // the real ServerTableEngine.leaveTable cleanup.
           const { playerId: targetPlayerId, reason } = params;
           let { tableId } = params;
 
@@ -326,7 +333,7 @@ try {
             return res.status(400).json({ error: 'playerId required' });
           }
 
-          // If no tableId provided, try to find the player's active table session
+          // If no tableId provided, look up the player's active session
           if (!tableId) {
             const { data: activeSession } = await getSupabase()
               .from('table_sessions')
@@ -338,163 +345,79 @@ try {
             tableId = activeSession?.table_id || null;
           }
 
-          // ── Step tracker for disconnect recovery ──
-          const kickOp = {
-            step: 0, // 0=init, 1=stood_up, 2=session_closed, 3=chips_returned, 4=logged
-            standUpResult: null,
-            cashoutAmount: 0,
-            errors: [],
-          };
-
-          try {
-            // If player has no active table, skip stand-up and just log the kick
-            if (!tableId) {
-              kickOp.step = 3; // Skip steps 1-3 (no table to remove from)
-            } else {
-              // STEP 1: Force stand up via game controller
-              let controller = null;
-              try {
-                const { getController } = await import('../../../src/lib/poker-engine/GameController');
-                controller = await getController();
-              } catch (importErr) {
-                console.warn('[AntiCheat] GameController import error:', importErr?.message);
-              }
-
-              if (!controller) {
-                return res.status(500).json({ error: 'Game controller not available' });
-              }
-
-              const result = await controller.standUp(tableId, targetPlayerId);
-              kickOp.step = 1;
-              kickOp.standUpResult = result;
-              kickOp.cashoutAmount = result.cashout || 0;
-
-              if (!result.success) {
-                return res.status(200).json({
-                  success: false,
-                  message: result.error || 'Failed to remove player — may already be stood up',
-                });
-              }
-
-              // STEP 2: Close table session (RPC — atomic on DB side).
-              // CRITICAL: Supabase rpc() returns { data, error } and does NOT
-              // throw on RPC errors. The previous try/catch only caught
-              // network exceptions; a real RPC error returned silently with
-              // step still 1, leaving stale rows in table_sessions until
-              // their natural expiry. Capture the error explicitly.
-              try {
-                const { error: sessionErr } = await getSupabase().rpc('close_table_session', {
-                  p_table_id: tableId,
-                  p_player_id: targetPlayerId,
-                  p_reason: reason || 'Anti-cheat violation: removed by admin',
-                });
-                if (sessionErr) {
-                  kickOp.errors.push({ step: 'close_session', error: sessionErr?.message });
-                  console.warn('[AntiCheat] Session close RPC failed (player already stood up):', sessionErr?.message || sessionErr);
-                } else {
-                  kickOp.step = 2;
-                }
-              } catch (throwErr) {
-                kickOp.errors.push({ step: 'close_session', error: throwErr?.message });
-                console.warn('[AntiCheat] Session close threw:', throwErr?.message || throwErr);
-                // Non-fatal: player is already stood up, session will expire naturally
-              }
-
-              // STEP 3: Return chips to club balance (if applicable)
-              if (kickOp.cashoutAmount > 0) {
-                try {
-                  const ChipBridgeModule = await import('../../../src/lib/poker-engine/ChipBridge');
-                  const ChipBridge = ChipBridgeModule.default || ChipBridgeModule;
-                  await ChipBridge.unlockChips(clubId, targetPlayerId, tableId, kickOp.cashoutAmount);
-                  kickOp.step = 3;
-                } catch (chipErr) {
-                  kickOp.errors.push({ step: 'unlock_chips', error: chipErr?.message, amount: kickOp.cashoutAmount });
-                  console.warn('[AntiCheat] Chip unlock failed — MANUAL RECOVERY NEEDED:', {
-                    clubId, targetPlayerId, tableId, amount: kickOp.cashoutAmount,
-                  });
-                  // CRITICAL: Log to anti_cheat_events for manual recovery
-                  await getSupabase().from('anti_cheat_events').insert({
-                    event_type: 'chip_unlock_failed',
-                    player_id: targetPlayerId,
-                    club_id: clubId,
-                    table_id: tableId,
-                    details: {
-                      reason: 'Mid-kick chip unlock failure — requires manual recovery',
-                      amount: kickOp.cashoutAmount,
-                      error: chipErr?.message,
-                      kicked_by: userId,
-                    },
-                    triggered_by: 'system',
-                  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Best-effort logging
-                }
-              } else {
-                kickOp.step = 3; // No chips to unlock
-              }
-            } // end of if (tableId) else block
-
-            // STEP 4: Log the kick event
+          // No table = nothing to remove from on the engine, but still log.
+          let engineResult = null;
+          if (tableId) {
+            const engineUrl = process.env.GAME_SERVER_URL || 'https://engine.smarter.poker';
             try {
-              await getSupabase().from('anti_cheat_events').insert({
-                event_type: 'player_kicked',
-                player_id: targetPlayerId,
-                club_id: clubId,
-                table_id: tableId,
-                details: {
-                  reason,
-                  kicked_by: userId,
-                  cashout: kickOp.cashoutAmount,
-                  recovery_steps_completed: kickOp.step,
-                  errors: kickOp.errors.length > 0 ? kickOp.errors : undefined,
+              const resp = await fetch(`${engineUrl}/admin/kick`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
                 },
-                triggered_by: userId,
+                body: JSON.stringify({
+                  tableId,
+                  userId: targetPlayerId,
+                  reason: reason || 'Anti-cheat violation: removed by admin',
+                }),
               });
-              kickOp.step = 4;
-            } catch (logErr) {
-              kickOp.errors.push({ step: 'log_event', error: logErr?.message });
-              // Non-fatal: kick succeeded, just logging failed
-            }
-
-            const kickResult = {
-              success: true,
-              message: `Player removed from table. Chips returned: ${kickOp.cashoutAmount}`,
-              recovery: kickOp.errors.length > 0 ? {
-                warnings: kickOp.errors,
-                steps_completed: kickOp.step,
-              } : undefined,
-            };
-
-            // Cache idempotent response
-            if (idempotencyKey) {
-              idempotencyStore.set(idempotencyKey, {
-                status: 200, body: kickResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
+              const respBody = await resp.json().catch(() => ({}));
+              if (!resp.ok) {
+                return res.status(resp.status).json({
+                  success: false,
+                  error: respBody?.error || 'Engine kick failed',
+                  step: 'engine_admin_kick',
+                });
+              }
+              engineResult = respBody;
+            } catch (engineErr) {
+              console.warn('[AntiCheat] engine /admin/kick failed:', engineErr?.message || engineErr);
+              return res.status(502).json({
+                success: false,
+                error: 'Engine unreachable',
+                step: 'engine_admin_kick',
               });
             }
+          }
 
-            return res.status(200).json(kickResult);
-
-          } catch (fatalErr) {
-            console.warn('[App] Handled exception:', fatalErr?.message || fatalErr);
-            // Best-effort: try to log the partial failure
+          // Engine writes its own anti_cheat_events row on success (R71), but
+          // we ALSO write the dashboard-side audit row so admin review stays
+          // unified whether the kick happened mid-session (engine path) or
+          // when the player was already idle (no engine call).
+          try {
             await getSupabase().from('anti_cheat_events').insert({
-              event_type: 'kick_failed',
+              event_type: 'player_kicked',
               player_id: targetPlayerId,
               club_id: clubId,
               table_id: tableId,
               details: {
-                reason: 'Fatal error during kick operation',
-                error: fatalErr?.message,
-                step_reached: kickOp.step,
+                reason,
                 kicked_by: userId,
+                source: tableId ? 'engine_admin_kick' : 'no_active_table',
+                engine_result: engineResult,
               },
-              triggered_by: 'system',
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Best-effort
+              triggered_by: userId,
+            });
+          } catch (logErr) {
+            console.warn('[AntiCheat] kick log failed:', logErr?.message || logErr);
+            // Non-fatal — kick already succeeded server-side
+          }
 
-            return res.status(500).json({
-              error: 'Kick operation failed mid-execution',
-              step_reached: kickOp.step,
-              recovery_logged: true,
+          const kickResult = {
+            success: true,
+            message: tableId
+              ? 'Player removed from engine table'
+              : 'Player not at any active table — kick logged only',
+            engine_result: engineResult,
+          };
+
+          if (idempotencyKey) {
+            idempotencyStore.set(idempotencyKey, {
+              status: 200, body: kickResult, expiry: Date.now() + IDEMPOTENCY_TTL_MS,
             });
           }
+          return res.status(200).json(kickResult);
         }
 
         // ─────────────────────────────────────────────────────
@@ -597,11 +520,30 @@ try {
         case 'get_collusion_pairs': {
           const { threshold = 0.75, minHands = 5, limit = 500 } = params;
 
+          // Round 68 fix: read from live hand_history (was reading the stale
+          // mv_hand_histories MV — 4 rows from 2026-03-03, never refreshed).
+          // hand_history is the canonical engine output and has the same
+          // logical fields under different column names: players + winners
+          // are JSONB arrays, pot_size replaces pot_total, ended_at replaces
+          // completed_at. We derive netResult from the winner side: the
+          // winner's net is +pot_size, every other dealt-in player is -invested.
+          //
+          // Filter by club_id via the tables side-table since hand_history
+          // doesn't carry club_id directly.
+          const { data: clubTables } = await getSupabase()
+            .from('tables')
+            .select('id')
+            .eq('club_id', clubId);
+          const tableIds = (clubTables ?? []).map((t) => t.id);
+          if (tableIds.length === 0) {
+            return res.status(200).json({ success: true, pairs: [], analyzed_hands: 0, threshold });
+          }
+
           const { data: hands, error: hErr } = await getSupabase()
-            .from('mv_hand_histories')
-            .select('player_ids, winner_ids, hand_data, pot_total')
-            .eq('club_id', clubId)
-            .order('completed_at', { ascending: false })
+            .from('hand_history')
+            .select('id, players, winners, pot_size, ended_at')
+            .in('table_id', tableIds)
+            .order('ended_at', { ascending: false })
             .limit(limit);
 
           if (hErr) throw hErr;
@@ -611,8 +553,30 @@ try {
           const pairHandCount = {};
 
           for (const hand of (hands || [])) {
-            const players = hand.hand_data?.players || [];
-            if (players.length < 2) continue;
+            const playersRaw = Array.isArray(hand.players) ? hand.players : [];
+            if (playersRaw.length < 2) continue;
+
+            const winnersRaw = Array.isArray(hand.winners) ? hand.winners : [];
+            const winnerIds = new Set(
+              winnersRaw.map((w) => w?.user_id ?? w?.userId ?? w?.id).filter(Boolean)
+            );
+            const pot = Number(hand.pot_size ?? 0);
+
+            // Build players[] with netResult derived from winner status +
+            // chips_invested (engine writes invested per seat in players JSONB).
+            const players = playersRaw.map((p) => {
+              const id = String(p.user_id ?? p.userId ?? p.id ?? '');
+              const invested = Number(p.chips_invested ?? p.invested ?? 0);
+              const isWinner = winnerIds.has(id);
+              // Winner net = pot - invested; loser net = -invested.
+              // Approximate: assumes single-winner hands. Multi-winner chops
+              // skipped (winnerIds.size > 1 hands handled below).
+              const netResult = isWinner && winnerIds.size === 1 ? pot - invested : -invested;
+              return { id, netResult };
+            });
+
+            // Skip chops (multi-winner) — net attribution becomes ambiguous
+            if (winnerIds.size !== 1) continue;
 
             // Track net results between each pair
             for (let i = 0; i < players.length; i++) {
@@ -629,7 +593,6 @@ try {
 
                 if (!flowMatrix[pairKey]) flowMatrix[pairKey] = { a: pA, b: pB, aToB: 0, bToA: 0 };
 
-                // If A lost and B won (in the same hand), chips flowed A → B
                 if (netA < 0 && netB > 0) {
                   flowMatrix[pairKey].aToB += Math.min(Math.abs(netA), netB);
                 } else if (netB < 0 && netA > 0) {
@@ -681,11 +644,24 @@ try {
         case 'get_anomalies': {
           const { limit = 500 } = params;
 
+          // Round 68 fix: read from live hand_history (was reading the stale
+          // mv_hand_histories MV — 4 rows from 2026-03-03). Map the new
+          // column shape: actions JSONB has stage='river' + action='fold';
+          // hand_name carries the strong-hand label.
+          const { data: clubTables } = await getSupabase()
+            .from('tables')
+            .select('id')
+            .eq('club_id', clubId);
+          const tableIds = (clubTables ?? []).map((t) => t.id);
+          if (tableIds.length === 0) {
+            return res.status(200).json({ success: true, anomalies: [], analyzed_hands: 0 });
+          }
+
           const { data: hands, error: hErr } = await getSupabase()
-            .from('mv_hand_histories')
-            .select('id, hand_number, player_ids, winner_ids, hand_data, pot_total, completed_at')
-            .eq('club_id', clubId)
-            .order('completed_at', { ascending: false })
+            .from('hand_history')
+            .select('id, hand_number, players, winners, actions, pot_size, ended_at')
+            .in('table_id', tableIds)
+            .order('ended_at', { ascending: false })
             .limit(limit);
 
           if (hErr) throw hErr;
@@ -694,36 +670,34 @@ try {
           const anomalies = [];
 
           for (const hand of (hands || [])) {
-            const hd = hand.hand_data || {};
-            const players = hd.players || [];
-            const riverActions = hd.streets?.river?.actions || [];
+            const playersRaw = Array.isArray(hand.players) ? hand.players : [];
+            const actionsRaw = Array.isArray(hand.actions) ? hand.actions : [];
+            const riverFolds = actionsRaw
+              .filter((a) => (a?.stage ?? a?.street) === 'river' && a?.action === 'fold')
+              .map((a) => String(a?.userId ?? a?.user_id ?? a?.playerId ?? ''));
+            if (riverFolds.length === 0) continue;
 
-            for (const p of players) {
-              const pid = String(p.id);
-              // Check if player folded on the river
-              const foldedRiver = riverActions.some(a =>
-                String(a.playerId) === pid && a.type === 'fold'
-              );
-
-              if (!foldedRiver) continue;
-
-              // Check if player had a strong hand
-              const playerHand = p.finalHand || p.handRank || p.bestHand;
+            // Each player's hand-strength label sits in player.hand_name (set
+            // by the engine at showdown when cards are revealed).
+            for (const p of playersRaw) {
+              const pid = String(p.user_id ?? p.userId ?? p.id ?? '');
+              if (!pid || !riverFolds.includes(pid)) continue;
+              const playerHand = p.hand_name ?? p.finalHand ?? p.handRank ?? null;
               if (!playerHand) continue;
-
               const handKey = String(playerHand).toLowerCase().replace(/\s+/g, '_');
-              if (STRONG_HANDS.includes(handKey)) {
-                anomalies.push({
-                  hand_id: hand.id,
-                  hand_number: hand.hand_number,
-                  player_id: pid,
-                  action: 'folded_strong_hand_on_river',
-                  hand_rank: playerHand,
-                  pot_total: hand.pot_total,
-                  completed_at: hand.completed_at,
-                  severity: ['royal_flush', 'straight_flush', 'four_of_a_kind'].includes(handKey) ? 'critical' : 'high',
-                });
-              }
+              if (!STRONG_HANDS.includes(handKey)) continue;
+              anomalies.push({
+                hand_id: hand.id,
+                hand_number: hand.hand_number,
+                player_id: pid,
+                action: 'folded_strong_hand_on_river',
+                hand_rank: playerHand,
+                pot_total: Number(hand.pot_size ?? 0),
+                completed_at: hand.ended_at,
+                severity: ['royal_flush', 'straight_flush', 'four_of_a_kind'].includes(handKey)
+                  ? 'critical'
+                  : 'high',
+              });
             }
           }
 

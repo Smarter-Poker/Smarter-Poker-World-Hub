@@ -85,6 +85,37 @@ export default async function handler(req, res) {
               return res.status(404).json({ success: false, error: 'Club not found. Check the code.' });
           }
 
+          // Round 70: Blacklist enforcement gate. Banned users cannot
+          // (re-)join the club they were banned from, and cannot join any
+          // club inside a union they were banned from.
+          try {
+              const { data: clubMeta } = await supabaseAdmin
+                  .from('clubs')
+                  .select('union_id')
+                  .eq('id', club.id)
+                  .maybeSingle();
+              const banQuery = supabaseAdmin
+                  .from('blacklists')
+                  .select('id, reason, expires_at')
+                  .eq('user_id', user.id)
+                  .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+              const orParts = [`club_id.eq.${club.id}`];
+              if (clubMeta?.union_id) orParts.push(`union_id.eq.${clubMeta.union_id}`);
+              const { data: bans } = await banQuery.or(orParts.join(','));
+              if (bans && bans.length > 0) {
+                  return res.status(403).json({
+                      success: false,
+                      error: 'banned',
+                      reason: bans[0].reason || 'Banned from this club',
+                      expires_at: bans[0].expires_at,
+                  });
+              }
+          } catch (banErr) {
+              // Belt-and-suspenders: never block legitimate joins on a
+              // blacklist-check error. Log + proceed.
+              console.warn('[join-club] blacklist check skipped:', banErr?.message || banErr);
+          }
+
           // Check existing membership
           const { data: existing } = await getSupabase()
               .from('club_members')
