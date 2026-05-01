@@ -1,7 +1,7 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-04-03
-**Owner:** Dan / Antigravity Agents
+**Last Updated:** 2026-05-01
+**Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
 
@@ -524,11 +524,141 @@
 
 ---
 
+## PHASE 23 — Commander SSR Auth (Completed late April 2026)
+
+| Deliverable | Status | Detail |
+|---|---|---|
+| Server-side admin auth | DONE | Replaced client-side PIN gate (HTML/JS still visible without auth) with SSR-side gate. Commander admin pages now check session + role server-side before rendering. |
+
+**Impact:** Closed an obvious data-leak vector. Commander admin HTML is no longer publicly viewable to anyone who knows the route.
+
+---
+
+## PHASE 24 — Vercel→Hetzner Cron Migration (Phase 2A series, Completed April 2026)
+
+40 of the original Vercel cron jobs ported to a Hetzner CPX21 VM
+("openclaw") to escape per-execution timeouts and cost. Shipped as 3 waves
+with progressive risk classification.
+
+| Wave | Routes | Status |
+|---|---|---|
+| Wave 1 (low-risk) | 12 routes | DONE |
+| Wave 2 (medium-risk) | 16 routes | DONE |
+| Wave 3 (high-risk, 4 most sensitive) | 4 routes | DONE |
+| Hetzner DISPATCHER_ROLE flipped to primary | DONE | Mac LaunchAgent retired |
+| Dispatcher monitoring + alerting | DONE | Phase 2A gate gap closed |
+
+---
+
+## PHASE 25 — Workers VM Buildout (Phase 2B series, Completed April 2026)
+
+Provisioned a second Hetzner VM ("workers") for HTTP-routed cron handlers
+that needed Node.js 22 + Docker + private network access to openclaw.
+
+| Step | Status |
+|---|---|
+| 2B.1 — Provision CPX21 + first container | DONE |
+| 2B.2(a) — openclaw↔workers private network reachability | DONE |
+| 2B.2(b–i) — Flip 39 SCRIPT_JOBS routes to workers HTTP across Batches A/B/C/F + parallel-session-shipped + horses-social-friends | DONE |
+| 2B.3 — Cleanup: delete 38 dead-code monolith handlers + 7 dead crons + relocate 2 .md docs | DONE |
+
+---
+
+## PHASE 26 — API Consolidation to Hono Catch-Alls (Phase 4.4/4.5, Completed late April 2026)
+
+23 directories of fragmented API handlers consolidated to single Hono
+catch-all routes for cleaner ownership + lower bundle size.
+
+| Module | Dir |
+|---|---|
+| 4.4#1 — pilot | livekit, venues |
+| 4.4#3–#11 | trivia, kyc, hendonmob, employee, promo, live-help, video, news, messenger |
+| 4.4#12–#19 | rewards, avatar, bankroll, gto, poker-brain, geeves, notifications, social (excl. uploads) |
+| 4.5#1–#4 | clawbot, god-mode, live, rg |
+
+**Caveat:** A subset of consolidations had a Hono+Pages-Router compatibility
+hang (task #77/#78); those were reverted to per-file handlers and verified
+healthy post-revert. The catch-alls that survived are stable.
+
+---
+
+## PHASE 27 — Commander Shared Package (Phase 3.3, Completed late April 2026)
+
+| Deliverable | Status | Detail |
+|---|---|---|
+| Extract @smarter-poker/commander-shared | DONE | 90 duplicate components moved into a published GitHub Packages npm package |
+| Replace duplicates with re-export shims | DONE | World Hub + Commander both consume the package |
+| Vercel `transpilePackages` hook | DONE | Raw JSX from the package transpiled at build time |
+| GitHub Packages auth | DONE | NPM_TOKEN env var on Vercel; 49 env vars verified |
+
+---
+
+## PHASE 28 — API Safety Audit Campaign (Completed 2026-04-30)
+
+Multi-day audit and fix sweep across the World Hub API surface.
+
+| Class of fix | Count | Examples |
+|---|---|---|
+| Silent-RPC failure (await rpc() without {error}) | 30+ handlers | rewards/* daily-login, video-watch; live/gift; club-arena/anti-cheat, marketplace-purchase, manage-agent, tournaments, tournament-cron; social/referral with reversal-money-loss; horses/admin-reviews; account/delete-gdpr + admin/users/delete-gdpr |
+| ReferenceError to undefined `supabase` (lazy init not consumed) | 19 handlers | Mostly rewards/, training/* |
+| Missing/unstable `p_reference_id` on diamond credits | 7+ handlers | Closed retry-double-credit window |
+| Critical money-loss patterns | 3 | live/gift deduct-without-refund, social/referral reversal collision, daily-login claim-row stuck on RPC fail |
+| Critical security gaps | 2 | poker show-cards.js force-reveal, Commander admin client-side PIN (Phase 23) |
+| Cron supabaseKey crashes | 1 cluster | Horse/Content cron, ~216 failures/day → 0 |
+| Hub messenger error-boundary trip | 1 critical | Conversation enumeration shape mismatch + null-status crashes + orphaned conversation rows; full RCA + fix |
+
+---
+
+## PHASE 29 — DB Hardening (Completed 2026-04-30)
+
+3 Supabase migrations applied to live DB:
+
+| Migration | Effect |
+|---|---|
+| `20260430_consolidate_add_diamonds_to_balance.sql` | Collapsed 3 ambiguous overloads (uuid+text+text vs uuid+text+uuid vs uuid+integer) to 1 canonical jsonb-returning overload. Reconciled 20 desynced profiles (sum diff ~508k diamonds). Eliminated /api/rewards/daily-login intermittent 500s — was firing every 30–90 min in prod. |
+| `20260430b_lock_search_path_secdef_triggers.sql` | Locked search_path on `enforce_live_comment_author_name` + `fn_auto_create_story_from_post` (closed 2 SECURITY DEFINER advisor findings). |
+| `20260430c_add_missing_fk_indexes.sql` | Added covering indexes for 3 FK columns (`live_streams.feed_post_id`, `profile_picture_history.user_id`, `social_media_library.user_id`). |
+
+Plus a follow-up flagged for soak: 20 unused indexes (~200MB) to drop after
+14d stat verification (task #106 pending until ~2026-05-14).
+
+---
+
+## PHASE 30 — Engine Repo Chip-Cast Fix (Completed 2026-05-01)
+
+Postgres logs flooded with ~150k errors/day:
+`invalid input syntax for type integer: "80511.97"`
+
+Source: `Smarter-Poker-Club-Arena` engine repo (separate Hetzner-deployed
+service). Two write sites used `Math.trunc(stack*100)/100` for cents
+precision into `tournament_players.chips` (integer column). PostgREST
+rejected every cast.
+
+| Commit | File | Change |
+|---|---|---|
+| 943cb47e61 | `server/src/services/supabase.ts:162` | `Math.trunc(stack*100)/100` → `Math.floor(stack)` |
+| 062a7f318a | `server/src/GameServer.ts:1755` | `update({ chips: stackValue })` → `update({ chips: Math.floor(stackValue) })` |
+
+Applied directly via GitHub REST API (sandbox disk was full and couldn't
+host a clone). CI passed, `Deploy Hetzner Engine` workflow triggered via
+workflow_dispatch with `confirm=deploy` + `ref_sha=062a7f318a`. Postgres
+flood verified stopped at 15:23:55 UTC.
+
+---
+
+## PHASE 31 — Vercel Project Hygiene (Completed 2026-05-01)
+
+| Issue | Fix |
+|---|---|
+| Phantom duplicate `smarter-poker-world-hub` project (`prj_ELynDO2...`, created 2026-05-01 01:52 by Antigravity `vercel deploy --yes` from a fresh checkout, zero env vars, fan-out fail on every push) | Deleted via REST API. 6 legitimate projects remain. |
+| Recurrence prevention | `scripts/antigravity-deploy.sh` + `scripts/force-redeploy.sh` patched to write `.vercel/project.json` with hub-vanguard projectId BEFORE invoking the Vercel CLI. |
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 23: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 24: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 25: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 26: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 32: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests (was Phase 24 in old plan)
+- **Phase 33: Database Migration Safety** — Now that we've shipped 3 migrations ad-hoc, formalize tooling: dry-run, rollback, Supabase shadow-db diffing (was Phase 26)
+- **Phase 34: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106)
 
 ---
 
