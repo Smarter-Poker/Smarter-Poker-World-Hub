@@ -682,10 +682,31 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 p,
                 new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)),
             ]);
+            // AUDIT-18: an access_token in localStorage may be shape-valid
+            // but expired. Accepting it makes the upload+post run with an
+            // expired JWT; bgUpload's pre-flight gets 401 from Storage and
+            // fn_create_social_post returns 'forbidden: anonymous'. Validate
+            // the exp claim (same _isFreshJWT pattern bgUpload uses) so the
+            // fast-path only applies when the token is genuinely fresh.
+            const _isFreshJwt = (tok) => {
+                if (typeof tok !== 'string') return false;
+                const parts = tok.split('.');
+                if (parts.length !== 3) return false;
+                try {
+                    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
+                    const json = (typeof atob === 'function')
+                        ? atob(b64 + pad)
+                        : Buffer.from(b64 + pad, 'base64').toString('utf-8');
+                    const payload = JSON.parse(json);
+                    if (typeof payload.exp !== 'number') return false;
+                    return payload.exp > Math.floor(Date.now() / 1000) + 30; // 30s skew
+                } catch (_) { return false; }
+            };
             let sessionOk = false;
             try {
                 const { data } = await _withTimeout(supabase.auth['getSession'](), 4000, 'getSession');
-                sessionOk = !!data?.session?.access_token;
+                sessionOk = _isFreshJwt(data?.session?.access_token);
             } catch (lockErr) {
                 console.warn('[SharedPostCreator] getSession timed out (likely locks contention):', lockErr?.message);
             }
@@ -695,7 +716,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     const raw = localStorage.getItem('smarter-poker-auth');
                     if (raw) {
                         const parsed = JSON.parse(raw);
-                        if (parsed?.access_token) sessionOk = true;
+                        if (_isFreshJwt(parsed?.access_token)) sessionOk = true;
                     }
                 } catch (_) { /* localStorage may be unavailable */ }
             }
@@ -703,7 +724,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 // Last resort: try refreshSession with same timeout guard.
                 try {
                     const { data: refreshed } = await _withTimeout(supabase.auth.refreshSession(), 4000, 'refreshSession');
-                    if (refreshed?.session?.access_token) sessionOk = true;
+                    if (_isFreshJwt(refreshed?.session?.access_token)) sessionOk = true;
                 } catch (refreshErr) {
                     console.warn('[SharedPostCreator] refreshSession timed out:', refreshErr?.message);
                 }

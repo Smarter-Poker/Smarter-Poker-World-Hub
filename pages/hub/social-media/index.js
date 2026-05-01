@@ -5307,10 +5307,31 @@ function SocialMediaPage() {
                     p,
                     new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)),
                 ]);
+                // AUDIT-18: a JWT in localStorage may be shape-valid but
+                // expired — accepting it leads fn_create_social_post to
+                // see role='anon' and return 'forbidden'. Validate exp
+                // claim (same pattern as bgUpload._isFreshJWT) so the
+                // localStorage fast-path only applies when the token is
+                // genuinely fresh; otherwise fall through to refreshSession.
+                const _isFreshJwt = (tok) => {
+                    if (typeof tok !== 'string') return false;
+                    const parts = tok.split('.');
+                    if (parts.length !== 3) return false;
+                    try {
+                        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                        const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
+                        const json = (typeof atob === 'function')
+                            ? atob(b64 + pad)
+                            : Buffer.from(b64 + pad, 'base64').toString('utf-8');
+                        const payload = JSON.parse(json);
+                        if (typeof payload.exp !== 'number') return false;
+                        return payload.exp > Math.floor(Date.now() / 1000) + 30; // 30s skew
+                    } catch (_) { return false; }
+                };
                 let sessionOk = false;
                 try {
                     const { data } = await _withTimeout(supabase.auth['getSession'](), 4000, 'getSession');
-                    sessionOk = !!data?.session?.access_token;
+                    sessionOk = _isFreshJwt(data?.session?.access_token);
                 } catch (lockErr) {
                     console.warn('[Social] getSession timed out:', lockErr?.message);
                 }
@@ -5319,14 +5340,14 @@ function SocialMediaPage() {
                         const raw = localStorage.getItem('smarter-poker-auth');
                         if (raw) {
                             const parsed = JSON.parse(raw);
-                            if (parsed?.access_token) sessionOk = true;
+                            if (_isFreshJwt(parsed?.access_token)) sessionOk = true;
                         }
                     } catch (_) {}
                 }
                 if (!sessionOk) {
                     try {
                         const { data: refreshed } = await _withTimeout(supabase.auth['refreshSession'](), 4000, 'refreshSession');
-                        if (refreshed?.session?.access_token) sessionOk = true;
+                        if (_isFreshJwt(refreshed?.session?.access_token)) sessionOk = true;
                     } catch (refreshErr) {
                         console.warn('[Social] refreshSession timed out:', refreshErr?.message);
                     }
