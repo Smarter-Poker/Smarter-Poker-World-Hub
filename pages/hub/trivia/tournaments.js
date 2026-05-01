@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -357,8 +357,7 @@ export default function TournamentsPage() {
         //  trivia_tournament_entries and trivia_tournaments — both now
         //  RLS-locked to service_role per Phase 37.)
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
+            const token = getAccessToken();
             if (!token) {
                 console.warn('[Tournaments] No session token — cannot register');
                 return;
