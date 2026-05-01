@@ -2307,6 +2307,20 @@ export default function UserProfilePage() {
                                         </span>
                                     </>
                                 )}
+                                {isOwnProfile && profile?.diamond_multiplier > 1.00 && (
+                                    <>
+                                        <span className="sp-stat-dot">·</span>
+                                        <span title="Your active share streak is boosting all diamond earnings!" style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 3,
+                                            background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.12))',
+                                            border: '1px solid rgba(245,158,11,0.4)',
+                                            borderRadius: 12, padding: '2px 8px', fontSize: 12, fontWeight: 700,
+                                            color: '#f59e0b', whiteSpace: 'nowrap', cursor: 'default'
+                                        }}>
+                                            ⚡ {Number(profile.diamond_multiplier).toFixed(2)}× Boost
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -5,7 +5,7 @@
  * Chat system with conversation list and message threads
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from '../social/SmarterPokerStyleCard';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
@@ -14,6 +14,7 @@ import { useMessengerService } from '../../hooks/useMessengerService';
 import GiphyPicker from '../shared/GiphyPicker';
 import LocationEnableModal from '../ui/LocationEnableModal';
 import SPImage from '../common/SPImage';
+const SharedPostCard = lazy(() => import('../social/SharedPostCard'));
 
 // ─── Lazy Supabase Getter ──────────────────────────────────────────────
 let _supabase = null;
@@ -341,6 +342,16 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
             {message.message_type !== 'sticker' && !message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
                 <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
+            )}
+
+            {/* Shared Post Rich Embed Card */}
+            {message.media_metadata?.shared_post_id && (
+                <Suspense fallback={null}>
+                    <SharedPostCard
+                        postId={message.media_metadata.shared_post_id}
+                        isOwn={message.isOwn}
+                    />
+                </Suspense>
             )}
 
             {/* P10-7 + P11-7: Link Preview Card */}

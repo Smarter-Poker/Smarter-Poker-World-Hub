@@ -84,23 +84,22 @@ export default async function handler(req, res) {
             // The RPC returns FLAT columns (verified via pg_get_function_result):
             //   conversation_id, title, is_group, last_message_at, unread_count,
             //   other_user_id, other_user_username, other_user_avatar
-            // It does NOT return is_request or request_sender_id (pre-dates message requests).
-            // Supplement with a secondary query to get request status.
+            // Supplement with a secondary query to get request status AND last_message_preview.
+            // The RPC doesn't return last_message_preview — fetch it here for all conversations.
             const rpcConvIds = rpcData.map(c => c.conversation_id || c.id).filter(Boolean);
-            let requestStatusMap = {};
+            let convMetaMap = {}; // id → { is_request, request_sender_id, last_message_preview }
             if (rpcConvIds.length > 0) {
                 try {
-                    const { data: requestRows } = await getSupabase()
+                    const { data: metaRows } = await getSupabase()
                         .from('social_conversations')
-                        .select('id, is_request, request_sender_id')
-                        .in('id', rpcConvIds)
-                        .eq('is_request', true);
-                    if (requestRows) {
-                        requestRows.forEach(r => { requestStatusMap[r.id] = r; });
+                        .select('id, is_request, request_sender_id, last_message_preview')
+                        .in('id', rpcConvIds);
+                    if (metaRows) {
+                        metaRows.forEach(r => { convMetaMap[r.id] = r; });
                     }
                 } catch (reqErr) {
-                    // Non-fatal: if this fails, all conversations show (no filtering)
-                    console.warn('[get-conversations] Request status query failed:', reqErr?.message);
+                    // Non-fatal: if this fails, all conversations show (no filtering, no preview)
+                    console.warn('[get-conversations] Metadata query failed:', reqErr?.message);
                 }
             }
 
@@ -108,15 +107,15 @@ export default async function handler(req, res) {
             const conversations = rpcData
                 .filter((c) => {
                     const convId = c.conversation_id || c.id;
-                    const reqInfo = requestStatusMap[convId];
+                    const meta = convMetaMap[convId];
                     // Exclude message requests where current user is the RECIPIENT
                     // (requests where user is the sender still show in their inbox)
-                    if (reqInfo?.is_request && reqInfo.request_sender_id && reqInfo.request_sender_id !== userId) return false;
+                    if (meta?.is_request && meta.request_sender_id && meta.request_sender_id !== userId) return false;
                     return true;
                 })
                 .map((c) => {
                 const convId = c.conversation_id || c.id;
-                const reqInfo = requestStatusMap[convId];
+                const meta = convMetaMap[convId];
                 const otherUserId = c.other_user_id || null;
                 const otherUser = otherUserId
                     ? {
@@ -131,13 +130,13 @@ export default async function handler(req, res) {
                     id: convId,
                     title: c.title || null,
                     last_message_at: c.last_message_at,
-                    // RPC doesn't return last_message_preview today; pass through if it ever does.
-                    last_message_preview: c.last_message_preview ?? null,
+                    // Use the supplementary query value (RPC doesn't include it)
+                    last_message_preview: meta?.last_message_preview ?? c.last_message_preview ?? null,
                     is_group: c.is_group || false,
                     otherUser,
                     unreadCount: Number(c.unread_count ?? c.unreadCount ?? 0),
                     last_read_at: c.last_read_at ?? null,
-                    isRequest: reqInfo?.is_request || false,
+                    isRequest: meta?.is_request || false,
                 };
             });
             return res.status(200).json({ success: true, conversations });

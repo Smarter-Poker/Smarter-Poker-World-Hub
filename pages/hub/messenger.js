@@ -2494,8 +2494,22 @@ function MessengerPage() {
     }, [showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
 
     // Phase 3: Connection status monitor (navigator.onLine + Supabase health)
+    // On reconnect, reload conversations and the active conversation to catch missed messages.
+    const goOnlineUserRef = useRef(null);
+    useEffect(() => { goOnlineUserRef.current = user; }, [user]);
     useEffect(() => {
-        const goOnline = () => setConnectionStatus('connected');
+        const goOnline = () => {
+            setConnectionStatus('connected');
+            // Reload missed messages after reconnect
+            const currentUser = goOnlineUserRef.current;
+            if (currentUser?.id) {
+                loadConversations(currentUser.id);
+                const activeConv = activeConversationRef.current;
+                if (activeConv?.id && !activeConv.isJarvis) {
+                    loadMessages(activeConv.id);
+                }
+            }
+        };
         const goOffline = () => setConnectionStatus('disconnected');
         window.addEventListener('online', goOnline);
         window.addEventListener('offline', goOffline);
@@ -3874,9 +3888,11 @@ function MessengerPage() {
             const data = sendResult.msgId;
 
             // Replace optimistic message with real one (use server-sanitized content)
+            // Guard: only replace tempId if we got a real UUID back (null msgId would break deduplication)
+            const realId = data || tempId;
             setMessages(prev => prev.map(m =>
                 m.id === tempId
-                    ? { ...m, id: data, content: sendResult.content || m.content, status: 'sent' }
+                    ? { ...m, id: realId, content: sendResult.content || m.content, status: 'sent' }
                     : m
             ));
 
@@ -4141,6 +4157,13 @@ function MessengerPage() {
                 throw new Error(errData.error || `Forward failed (${resp.status})`);
             }
             setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.username || 'Conversation'}` });
+            // Update the target conversation's sidebar preview (global listener skips own messages)
+            const forwardedAt = new Date().toISOString();
+            setConversations(prev => prev.map(c =>
+                c.id === targetConversation.id
+                    ? { ...c, last_message_preview: content, last_message_at: forwardedAt }
+                    : c
+            ));
             // DEEP SWEEP FIX: Push native global Message Forwarded event
             busEmit.messageForwarded(forwardingMessage.conversation_id || activeConversation?.id, targetConversation.id);
         } catch (e) {
@@ -4262,7 +4285,7 @@ function MessengerPage() {
             // Update message with real data
             setMessages(prev => prev.map(m =>
                 m.id === tempId
-                    ? { ...m, id: mediaResult.msgId, content, media_url: publicUrl, status: 'sent' }
+                    ? { ...m, id: mediaResult.msgId || tempId, content, media_url: publicUrl, status: 'sent' }
                     : m
             ));
 
@@ -4352,7 +4375,7 @@ function MessengerPage() {
 
             setMessages(prev => prev.map(m =>
                 m.id === tempId
-                    ? { ...m, id: result.msgId, content, status: 'sent' }
+                    ? { ...m, id: result.msgId || tempId, content, status: 'sent' }
                     : m
             ));
 

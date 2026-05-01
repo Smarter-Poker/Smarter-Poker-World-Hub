@@ -15,9 +15,8 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-          if (!applyRateLimit(req, res, LIMITS.write)) return;
-      }
+      // get-messages is a read-only operation — apply the read limit (higher allowance)
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });

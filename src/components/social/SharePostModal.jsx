@@ -481,14 +481,222 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
 // ═══════════════════════════════════════════════════════════════════════════
 // TAB 3: GROUPS / CLUBS
 // ═══════════════════════════════════════════════════════════════════════════
-function GroupsTab() {
+function GroupsTab({ post, onClose }) {
+    const [groups, setGroups] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selected, setSelected] = useState(new Set());
+    const [message, setMessage] = useState('');
+    const [sending, setSending] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        const fetchGroups = async () => {
+            const sb = getSupabase();
+            if (!sb) return;
+
+            let currentUser = null;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                currentUser = session?.user;
+            } catch (err) {}
+            if (!currentUser) { if (!cancelled) setLoading(false); return; }
+
+            const cacheKey = `sp-groups-${currentUser.id}`;
+            try {
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Date.now() - parsed.ts < 60000) {
+                        if (!cancelled) {
+                            setGroups(parsed.data);
+                            setLoading(false);
+                        }
+                        return;
+                    }
+                }
+            } catch (_) {}
+
+            try {
+                // Fetch messenger conversations where type is 'group' or 'announcement'
+                const { data, error } = await sb
+                    .from('messenger_participants')
+                    .select('conversation_id, messenger_conversations!inner(id, title, avatar_url, type)')
+                    .eq('user_id', currentUser.id)
+                    .in('messenger_conversations.type', ['group', 'announcement']);
+
+                if (!error && data) {
+                    const parsedGroups = data.map(d => ({
+                        id: d.conversation_id,
+                        name: d.messenger_conversations.title || 'Unnamed Group',
+                        avatar_url: d.messenger_conversations.avatar_url,
+                        type: d.messenger_conversations.type
+                    }));
+                    if (!cancelled) {
+                        setGroups(parsedGroups);
+                        try {
+                            sessionStorage.setItem(cacheKey, JSON.stringify({ data: parsedGroups, ts: Date.now() }));
+                        } catch (_) {}
+                    }
+                }
+            } catch (err) {
+                console.warn('[GroupsTab] error fetching groups:', err);
+            }
+            if (!cancelled) setLoading(false);
+        };
+        fetchGroups();
+        return () => { cancelled = true; };
+    }, []);
+
+    const handleSend = async () => {
+        if (selected.size === 0) return;
+        setSending(true);
+
+        const sb = getSupabase();
+        let currentUser = null;
+        let token = null;
+        try {
+            const { data: { session } } = await sb.auth.getSession();
+            currentUser = session?.user;
+            token = session?.access_token;
+        } catch (e) {}
+
+        if (!currentUser) { setSending(false); return; }
+
+        const postUrl = `${window.location.origin}/hub/post/${post.id}`;
+        const shareText = message.trim()
+            ? `${message.trim()}\n\n${postUrl}`
+            : `Check out this post on Smarter.Poker\n\n${postUrl}`;
+
+        let successCount = 0;
+        for (const groupId of selected) {
+            try {
+                // Send the shared post message
+                await sb.from('messenger_messages').insert({
+                    conversation_id: groupId,
+                    sender_id: currentUser.id,
+                    text: shareText,
+                    message_type: 'text',
+                    media_metadata: { shared_post_id: post?.id, shared_from: 'share_modal_group' },
+                    status: 'sent',
+                });
+
+                // Update conversation last message
+                await sb.from('messenger_conversations').update({
+                    last_message_text: shareText.slice(0, 100),
+                    last_message_at: new Date().toISOString(),
+                }).eq('id', groupId);
+
+                successCount++;
+            } catch (err) {
+                console.warn(`[GroupsTab] error sending to ${groupId}:`, err);
+            }
+        }
+
+        if (successCount > 0) {
+            try {
+                fetch('/api/social/share-count', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: JSON.stringify({ 
+                        post_id: post.id,
+                        destination: 'messenger_group',
+                        success_count: successCount
+                    })
+                }).catch(() => {});
+            } catch (_) {}
+
+            setTimeout(() => { onClose(); }, 500);
+        } else {
+            setSending(false);
+        }
+    };
+
     return (
-        <div style={{ padding: '20px 0', textAlign: 'center', color: C.textSec }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>Share to Clubs</div>
-            <div style={{ fontSize: 13, maxWidth: 280, margin: '0 auto' }}>
-                Sharing to specific poker clubs and study groups is coming soon!
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ display: 'flex', padding: '12px 16px', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+                <SPAvatar src={null} size={40} />
+                <textarea
+                    placeholder="Say something about this in your group..."
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    style={{
+                        flex: 1, height: 60, border: 'none', background: 'transparent',
+                        color: C.text, fontSize: 15, resize: 'none', outline: 'none'
+                    }}
+                />
             </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }} className="hide-scroll">
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec, fontSize: 13 }}>Loading groups...</div>
+                ) : groups.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                        <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+                        <div style={{ fontSize: 14 }}>You are not in any groups or clubs yet.</div>
+                    </div>
+                ) : (
+                    groups.map(group => {
+                        const isSelected = selected.has(group.id);
+                        return (
+                            <div
+                                key={group.id}
+                                onClick={() => {
+                                    const next = new Set(selected);
+                                    if (isSelected) next.delete(group.id);
+                                    else next.add(group.id);
+                                    setSelected(next);
+                                }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', padding: '8px 16px', gap: 12,
+                                    cursor: 'pointer', transition: 'background 0.15s',
+                                    background: isSelected ? 'rgba(45, 136, 255, 0.08)' : 'transparent'
+                                }}
+                                onMouseEnter={e => !isSelected && (e.currentTarget.style.background = C.hover)}
+                                onMouseLeave={e => !isSelected && (e.currentTarget.style.background = 'transparent')}
+                            >
+                                <div style={{ position: 'relative' }}>
+                                    <SPAvatar src={group.avatar_url} size={44} name={group.name} />
+                                    <div style={{
+                                        position: 'absolute', bottom: -2, right: -2, width: 16, height: 16,
+                                        borderRadius: '50%', background: group.type === 'announcement' ? '#FF9800' : '#4CAF50',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 9, border: `2px solid ${C.bg}`
+                                    }}>
+                                        {group.type === 'announcement' ? '📢' : '👥'}
+                                    </div>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{group.name}</div>
+                                    <div style={{ fontSize: 13, color: C.textSec }}>
+                                        {group.type === 'announcement' ? 'Announcement Channel' : 'Group Chat'}
+                                    </div>
+                                </div>
+                                <div style={{
+                                    width: 24, height: 24, borderRadius: '50%', border: `2px solid ${isSelected ? C.primary : C.border}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: isSelected ? C.primary : 'transparent'
+                                }}>
+                                    {isSelected && <span style={{ color: '#fff', fontSize: 14 }}>✓</span>}
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+
+            <button
+                disabled={selected.size === 0 || sending}
+                onClick={handleSend}
+                style={{
+                    margin: '12px 16px', padding: '12px', borderRadius: 8,
+                    background: selected.size > 0 ? C.primary : C.hover,
+                    color: selected.size > 0 ? '#fff' : C.textSec,
+                    border: 'none', fontSize: 15, fontWeight: 600, cursor: selected.size > 0 ? 'pointer' : 'default',
+                    transition: 'all 0.2s', opacity: sending ? 0.7 : 1
+                }}
+            >
+                {sending ? 'Sending...' : `Send${selected.size > 0 ? ` To ${selected.size} Group${selected.size > 1 ? 's' : ''}` : ''}`}
+            </button>
         </div>
     );
 }
@@ -700,7 +908,7 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
                         />
                     )}
 
-                    {tab === 'groups' && <GroupsTab />}
+                    {tab === 'groups' && <GroupsTab post={post} onClose={handleBackdrop} />}
                     {tab === 'who' && <WhoSharedTab post={post} />}
 
                     {tab === 'external' && (

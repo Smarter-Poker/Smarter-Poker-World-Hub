@@ -45,26 +45,37 @@ export default async function handler(req, res) {
 
 
       try {
-          // Update last_read_at to now
-          const { data, error } = await getSupabase()
-              .from('social_conversation_participants')
-              .update({ last_read_at: new Date().toISOString() })
-              .eq('conversation_id', conversationId)
-              .eq('user_id', userId)
-              .select()
-              .maybeSingle();
+          // PRIMARY: Call fn_mark_messages_read RPC — this populates social_message_reads (per-message)
+          // AND updates last_read_at on social_conversation_participants in one atomic operation.
+          // The fn_get_user_conversations RPC counts unread from social_message_reads, so this is required
+          // for the unread badge to clear correctly.
+          const { error: rpcErr } = await getSupabase().rpc('fn_mark_messages_read', {
+              p_conversation_id: conversationId,
+              p_user_id: userId,
+          });
 
-          if (error) {
-              console.warn('[MARK-READ] Update error:', error);
-              return res.status(500).json({ success: false, error: 'Internal server error' });
+          if (rpcErr) {
+              // Fallback: directly update last_read_at (keeps waterfall fallback working)
+              console.warn('[MARK-READ] RPC failed, using direct update fallback:', rpcErr.message);
+              const { data, error } = await getSupabase()
+                  .from('social_conversation_participants')
+                  .update({ last_read_at: new Date().toISOString() })
+                  .eq('conversation_id', conversationId)
+                  .eq('user_id', userId)
+                  .select()
+                  .maybeSingle();
+
+              if (error) {
+                  console.warn('[MARK-READ] Fallback update error:', error);
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
+              }
+              if (!data) {
+                  console.warn('[MARK-READ] No participant found to mark as read');
+                  return res.status(404).json({ success: false, error: 'Participant not found' });
+              }
           }
 
-          if (!data) {
-              console.warn('[MARK-READ] No participant found to mark as read');
-              return res.status(404).json({ success: false, error: 'Participant not found' });
-          }
-
-          return res.json({ success: true, data });
+          return res.json({ success: true });
 
       } catch (error) {
           console.warn('[MARK-READ] Error:', error);

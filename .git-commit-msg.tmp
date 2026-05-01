@@ -1,36 +1,56 @@
-fix(transcode): MAX-RIGOR pass — orientation-aware 1080p cap
+fix(compose): preserve iOS Safari user-gesture for Photo/Video → compose flow
 
-Pass-1 of the FINAL maximum-rigor 4-pass audit found that the C.1
-1080p cap only worked correctly for landscape video. Portrait iPhone
-4K (2160w × 3840h) re-encoded as 1920w × 3413h — width capped,
-height proportionally ballooned, file ~2.5x the intended target.
+iOS Safari blocks programmatic file-input .click() that doesn't happen
+inside the originating user-gesture handler. The previous wire of
+SharedPostCreator's Photo/Video tap was:
 
-Math:
-  scale='min(1920,iw)':'-2'
-    iw=2160, ih=3840
-    w' = min(1920, 2160) = 1920  (downscale width)
-    h' = -2 = auto = (ih * w' / iw) = 3840 * 1920 / 2160 = 3413
-    output: 1920 x 3413  (NOT 1080 x 1920 as intended)
+  onClick:
+    if (context==='social-media') router.push('/compose'); return;
+    setPreparingStage('picker');
+    fileRef.current?.click();   // never reached on social-media
 
-Fix: branch on orientation, cap whichever edge is the longer one:
-  landscape (iw > ih)  → w = min(1920, iw), h = -2
-  portrait/square      → w = -2,           h = min(1920, ih)
+  AlbumPicker (mounted on /compose):
+    useEffect(() => {
+      setTimeout(() => fileInputRef.current?.click(), 50);   // BLOCKED by iOS
+    }, []);
 
-Verified:
-  3840 x 2160 (landscape 4K)      → 1920 x 1080   ✓
-  2160 x 3840 (portrait 4K iPhone)→ 1080 x 1920   ✓
-  1280 x 720  (already <= cap)    → 1280 x 720    ✓ (no upscale)
-   720 x 1280 (portrait 720p)     →  720 x 1280   ✓ (no upscale)
-  2160 x 2160 (square 4K)         → 1920 x 1920   ✓
+Result on iPhone: tap Photo/Video → land on the compose picker page →
+file input never opens → user has to tap "Open library" manually.
+That's exactly the regression Dan described as the original complaint.
 
-The remux fast-path for already-H.264 sources is untouched — no
-scale filter applied, files served at native resolution.
+Fix: keep the click() inside the user-gesture handler (it works as it
+always did). Move the route hop to AFTER the file change event arrives.
+In handleFiles, when context==='social-media' AND we got files back,
+hand them to composeStore (addMedia + setStep('edit') + reset()) and
+THEN router.push('/hub/social-media/compose'). AlbumPicker's auto-fire
+becomes irrelevant — by the time /compose renders, the store already
+holds media and step='edit' so the user lands directly on EditPostScreen.
 
-Passes after fix:
-  Pass 1 (wiring) — clean. Filter expression valid ffmpeg syntax.
-  Pass 2 (real-time) — clean. Cron path unchanged; realtime UPDATE
-    on social_posts is pre-existing INSERT-only gap (not regression).
-  Pass 3 (adversarial) — clean. Filename passed to ffmpeg as separate
-    arg (no shell injection). Max output bounded at 1920x1920.
-  Pass 4 (edge cases) — clean. Equal w/h handled by ih branch.
-    Sources <= cap not upscaled. 8K → 1920 max edge.
+Modified files:
+  src/components/social/SharedPostCreator.jsx
+    • Reverted the early router.push redirect; click(file input) is
+      now always in the user-gesture
+    • Added composeStore import
+    • In handleFiles top-fork: build {id,type,file,url,...} entries,
+      reset+addMedia+setStep('edit'), router.push to /compose, return.
+      Try/catch fallback drops back to inline staging if anything in
+      the handoff throws.
+
+Direct-URL-to-/compose flow still works (no media in store →
+AlbumPicker shows the prominent "Open library" empty-state CTA which
+opens the picker on user tap — also a real user gesture).
+
+4-pass verification after fix:
+  Pass 1 (wiring) — clean. SharedPostCreator now imports useComposeStore;
+    handleFiles fork sits before existing inline-staging logic;
+    AlbumPicker auto-fire still gated on `media.length === 0` so it's
+    a no-op when the store is pre-populated. esbuild parse passes.
+  Pass 2 (real-time) — clean. No new Supabase calls; the bgUpload start
+    + fn_create_social_post path on /compose is unchanged.
+  Pass 3 (adversarial) — clean. The fork is gated on context check
+    (only the public social-media composer hits it); club-page and
+    other inline contexts unaffected.
+  Pass 4 (edge cases) — clean. Empty file selection in handleFiles
+    short-circuits before the fork (line 355). Fork wraps in try/catch
+    that falls through to inline staging on failure. Fileref value
+    cleared so the same files can be re-picked.

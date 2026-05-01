@@ -39,11 +39,11 @@ async function getSupabase() {
 }
 
 const TIER_CONFIG = {
-    legend: { label: 'Legend', color: '#f59e0b', min: 30 },
-    master:  { label: 'Master',  color: '#818cf8', min: 14 },
-    expert:  { label: 'Expert',  color: '#34d399', min: 7  },
-    streak:  { label: 'Streak',  color: '#60a5fa', min: 3  },
-    base:    { label: 'Base',    color: '#9ca3af', min: 1  },
+    legend: { label: 'Legend', color: '#f59e0b', min: 30, multiplier: '2.0×' },
+    master:  { label: 'Master',  color: '#818cf8', min: 14, multiplier: '1.75×' },
+    expert:  { label: 'Expert',  color: '#34d399', min: 7,  multiplier: '1.5×'  },
+    streak:  { label: 'Streak',  color: '#60a5fa', min: 3,  multiplier: '1.2×'  },
+    base:    { label: 'Base',    color: '#9ca3af', min: 1,  multiplier: '1.0×'  },
 };
 
 function getTier(days) {
@@ -266,12 +266,13 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                                     <StreakBar days={entry.streak_days} />
                                 </div>
 
-                                {/* Streak + diamonds */}
+                                {/* Streak + diamonds + multiplier */}
                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: tier.color }}>{entry.streak_days}d</div>
                                     {entry.totalDiamonds > 0 && (
                                         <div style={{ fontSize: 11, color: '#818cf8', fontWeight: 600 }}>💎{entry.totalDiamonds}</div>
                                     )}
+                                    <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>⚡{tier.multiplier}</div>
                                 </div>
                             </div>
                         );
@@ -288,10 +289,21 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                         </div>
                     )}
 
-                    {/* CTA */}
-                    <div style={{ margin: '10px 16px 0', textAlign: 'center' }}>
-                        <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.5 }}>
-                            Share a post every day to earn 💎 diamonds and climb the leaderboard!
+                    {/* CTA + Tier Legend */}
+                    <div style={{ margin: '10px 16px 0' }}>
+                        <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.5, textAlign: 'center', marginBottom: 10 }}>
+                            Share daily to earn 💎 diamonds and boost your multiplier!
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+                            {Object.entries(TIER_CONFIG).reverse().map(([key, t]) => key !== 'base' && (
+                                <span key={key} style={{
+                                    fontSize: 10, fontWeight: 600, color: t.color,
+                                    background: `${t.color}14`, border: `1px solid ${t.color}35`,
+                                    borderRadius: 6, padding: '2px 7px',
+                                }}>
+                                    {t.label} {t.min}d ⚡{t.multiplier}
+                                </span>
+                            ))}
                         </div>
                     </div>
                 </div>

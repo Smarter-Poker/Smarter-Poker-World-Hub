@@ -58,10 +58,13 @@ export default async function handler(req, res) {
             .rpc('fn_award_share_streak_diamonds', { p_user_id: user.id })
             .then(({ data: streakResult }) => {
                 if (streakResult?.awarded) {
-                    console.log(`[share-streak] Awarded ${streakResult.diamonds} diamonds to ${user.id} (day ${streakResult.streak}, ${streakResult.tier} tier)`);
+                    const mult = streakResult.multiplier ?? 1.0;
+                    console.log(`[share-streak] Awarded ${streakResult.diamonds}💎 to ${user.id} (day ${streakResult.streak}, ${streakResult.tier} tier, ${mult}× multiplier)`);
                 }
             })
             .catch(() => {});
+        // Opportunistically reset any users whose streak broke (no dedicated cron needed)
+        getSupabase().rpc('fn_reset_broken_streak_multipliers').catch(() => {});
     }).catch(() => {});
 
     try {

@@ -89,6 +89,53 @@ parameter name, not arity — this is unambiguous from PostgREST's
 perspective. Lower risk than the daily-login `add_diamonds_to_balance`
 case where both overloads accepted the same named args.
 
+## TWO bugs in the (user1_id, user2_id) → uuid overload (added 2026-05-01)
+
+Live-tested the function via direct SQL call:
+```
+SELECT fn_get_or_create_conversation(user1_id := <real_uuid>, user2_id := <real_uuid>);
+```
+
+Both bugs surface back-to-back:
+
+1. **Role CHECK violation.** The function inserts
+   `INSERT INTO messenger_participants (conversation_id, user_id, role)
+   VALUES (..., 'owner'), (..., 'owner');` but the table has
+   `messenger_participants_role_check = (role IN ('admin','member'))`
+   — `'owner'` is rejected. The 130 existing rows split admin=70 /
+   member=60, so the convention is initiator=admin, recipient=member.
+
+2. **Foreign-key violation.** Even if role were valid,
+   `messenger_participants.conversation_id` foreign-keys to
+   `public.conversations`, NOT `public.messenger_conversations`.
+   The function inserts a row into `messenger_conversations` and
+   uses that ID, which doesn't exist in `conversations` → FK violation
+   on participants insert.
+
+The function has been broken since it shipped at 2026-05-01 11:02 UTC.
+It works zero times. The 130 messenger_participants rows must have
+been created by another code path (direct INSERTs that target
+`conversations` directly), not via this RPC.
+
+**Why it's not currently a P0 production issue:** the only caller in
+the codebase is `services/MessagingService.js`, which is dead code
+(no imports anywhere in any local repo, verified by grep). So nobody
+hits it.
+
+**When it becomes a P0:** the moment somebody starts importing
+`MessagingService.getOrCreateConversation()`, every messenger DM
+attempt 500s.
+
+**Fix when the parallel session is ready:** two-part Tier 3 migration.
+(a) Change `INSERT INTO messenger_conversations` → `INSERT INTO
+public.conversations` OR retarget the FK to messenger_conversations
+(deciding which one is the canonical conversation row table is a
+parallel-session call). (b) Change `'owner', 'owner'` → `'admin',
+'member'`. I'm not shipping this from this session because the FK
+choice is architectural and I don't have enough context on which of
+{conversations, messenger_conversations} is intended to be canonical
+post-pivot.
+
 ## When the pivot completes
 
 Once `messenger_*` has fully replaced `social_conversations` (i.e.
