@@ -162,6 +162,7 @@ export function ReelsViewer({ onClose }) {
     const ytIframeRef = useRef(null);          // Persistent YouTube iframe ref
     const userInteractedRef = useRef(false);   // Tracks if user has touched/swiped at least once
     const userWantsSoundRef = useRef(true);    // User sound preference — persists across reel changes
+    const onLoadRetryTimersRef = useRef([]);   // Cancelled on reel change to avoid stale-iframe commands
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -363,6 +364,12 @@ export function ReelsViewer({ onClose }) {
         setShowOverlay(false);
         setProgress(0);
         setYtError(null); // Clear YouTube error state on reel change
+
+        // Cancel pending onLoad retry timers from the previous reel's iframe.onLoad.
+        // The key prop causes the iframe to remount on index change, but the old
+        // timers still fire and send commands to the NEW iframe prematurely.
+        onLoadRetryTimersRef.current.forEach(t => clearTimeout(t));
+        onLoadRetryTimersRef.current = [];
 
         // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
         // If ytReady is still false after 5s, force it true so the play button appears.
@@ -1556,10 +1563,12 @@ export function ReelsViewer({ onClose }) {
                                 }}
                                 title={currentReel?.caption || 'Poker Reel'}
                                 onLoad={() => {
+                                    // Cancel any in-flight retry timers from the previous load
+                                    onLoadRetryTimersRef.current.forEach(t => clearTimeout(t));
                                     sendYTCmd('playVideo');
                                     autoUnmute();
                                     // Retry loop for slow YouTube API init
-                                    [300, 800, 1500].forEach(delay => setTimeout(() => {
+                                    onLoadRetryTimersRef.current = [300, 800, 1500].map(delay => setTimeout(() => {
                                         sendYTCmd('playVideo');
                                         if (userInteractedRef.current && userWantsSoundRef.current) {
                                             sendYTCmd('unMute');
