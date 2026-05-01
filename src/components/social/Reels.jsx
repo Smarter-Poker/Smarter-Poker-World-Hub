@@ -221,8 +221,13 @@ export function ReelsViewer({ onClose }) {
     const sharedToFeedTimerRef = useRef(null); // Prevents setState-after-unmount in handleShareToFeed
     const reportModalTimerRef = useRef(null);  // Prevents setState-after-unmount in handleReport
     // BUG FIX (R2): showHeartTimerRef — tracks the 800ms heart-flash timer so it
-    // can be cancelled on unmount (was firing setState on unmounted component).
+    // can be cancelled on unmount or on rapid successive like-taps.
     const showHeartTimerRef = useRef(null);
+    // BUG FIX (RLXS-1): likeBounceTimerRef — tracks the 400ms like-count bounce so
+    // rapid double-taps don't accumulate orphan timers.
+    const likeBounceTimerRef = useRef(null);
+    // BUG FIX (RLXS-2): commentFocusTimerRef — prevents focus() on unmounted input.
+    const commentFocusTimerRef = useRef(null);
 
     useEffect(() => {
         loadReels();
@@ -559,6 +564,9 @@ export function ReelsViewer({ onClose }) {
             // R1+R2: also cancel error toast and heart-flash timers
             clearTimeout(errorToastTimerRef.current);
             clearTimeout(showHeartTimerRef.current);
+            // RLXS-1/2: cancel bounce and focus timers
+            clearTimeout(likeBounceTimerRef.current);
+            clearTimeout(commentFocusTimerRef.current);
         };
     }, []);
 
@@ -824,8 +832,10 @@ export function ReelsViewer({ onClose }) {
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
         setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? -1 : 1)) }));
         // #7 Animated Like Counter - trigger bounce
+        // BUG FIX (RLXS-1): cancel previous bounce timer before starting a new one.
         setLikeBounceId(currentReel.id);
-        setTimeout(() => setLikeBounceId(null), 400);
+        if (likeBounceTimerRef.current) clearTimeout(likeBounceTimerRef.current);
+        likeBounceTimerRef.current = setTimeout(() => { likeBounceTimerRef.current = null; setLikeBounceId(null); }, 400);
 
         // Resolve userId fresh to avoid stale closure
         const userId = currentUserId || getAuthUser()?.id;
@@ -959,7 +969,9 @@ export function ReelsViewer({ onClose }) {
                     }
                 } catch (e) { console.warn('Handled exception:', e); }
             } catch { setReelComments([]); }
-            setTimeout(() => commentInputRef.current?.focus(), 100);
+            // BUG FIX (RLXS-2): cancel previous focus timer — prevents focus() on unmounted input.
+            if (commentFocusTimerRef.current) clearTimeout(commentFocusTimerRef.current);
+            commentFocusTimerRef.current = setTimeout(() => { commentFocusTimerRef.current = null; commentInputRef.current?.focus(); }, 100);
         }
     };
 
@@ -1792,9 +1804,11 @@ export function ReelsViewer({ onClose }) {
                                     { emoji: '\uD83D\uDE21', label: 'Angry', type: 'angry' },
                                 ].map(r => (
                                     <button key={r.type} onClick={() => {
-                                        if (r.type === 'like') { handleLike(); if (!liked[currentReel?.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        // BUG FIX (RLXS-3): use showHeartTimerRef for all reaction-picker heart animations
+                                        const triggerHeart = () => { if (!liked[currentReel?.id]) { setShowHeart(true); if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current); showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800); } };
+                                        if (r.type === 'like') { handleLike(); triggerHeart(); }
                                         else if (r.type === 'dislike') handleDislike();
-                                        else { handleLike(); if (!liked[currentReel?.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        else { handleLike(); triggerHeart(); }
                                         setShowReactionPicker(false);
                                         haptic(10);
                                     }} aria-label={r.label} style={{

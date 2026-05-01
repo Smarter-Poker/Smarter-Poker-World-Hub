@@ -156,6 +156,15 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
     const touchStartRef = useRef({ x: 0, y: 0 });
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
+    // BUG FIX (SVC-1): track showHeart dismiss timer — prevents setState-after-unmount
+    // when user double-taps and navigates away within 800ms.
+    const showHeartTimerRef = useRef(null);
+    // BUG FIX (SVC-2): track YouTube onLoad retry timers — prevents stale postMessage
+    // to a closed/unmounted iframe after the user closes the viewer within 1500ms.
+    const ytOnLoadTimersRef = useRef([]);
+    // BUG FIX (SVC-3): track shareToast dismiss timer — prevents setState-after-unmount
+    // when the user shares then immediately closes the viewer within 2000ms.
+    const shareToastTimerRef = useRef(null);
 
     // Centralized YouTube error management
     const ytVideoId = isYouTubeUrl(videoUrl) ? getYouTubeVideoId(videoUrl) : null;
@@ -183,6 +192,11 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
             document.body.style.overflow = '';
             // Cancel any running progress RAF to prevent memory leak
             if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+            // BUG FIX (SVC-1/2/3): cancel all tracked timers on unmount
+            clearTimeout(showHeartTimerRef.current);
+            clearTimeout(shareToastTimerRef.current);
+            ytOnLoadTimersRef.current.forEach(t => clearTimeout(t));
+            ytOnLoadTimersRef.current = [];
         };
     }, []);
 
@@ -212,7 +226,9 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
             onLike?.();
             try { navigator?.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             setShowHeart(true);
-            setTimeout(() => setShowHeart(false), 800);
+            // BUG FIX (SVC-1): cancel previous heart timer before scheduling a new one.
+            if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
+            showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800);
             lastTapRef.current = 0;
             return;
         }
@@ -293,7 +309,9 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
                                 const iframeWindow = e.target.contentWindow;
                                 if (iframeWindow) {
                                     // Mandatory: mute=1 in URL enables autoplay; unMute via postMessage restores audio
-                                    [300, 800, 1500].forEach(delay => setTimeout(() => {
+                                    // BUG FIX (SVC-2): cancel previous retry batch before scheduling new ones.
+                                    ytOnLoadTimersRef.current.forEach(t => clearTimeout(t));
+                                    ytOnLoadTimersRef.current = [300, 800, 1500].map(delay => setTimeout(() => {
                                         iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
                                         iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
                                     }, delay));
@@ -370,7 +388,13 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
                 <button onClick={onComment} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
                     <span style={{ fontSize: 24 }}>💬</span><span style={{ fontSize: 10, fontWeight: 500 }}>Comment</span>
                 </button>
-                <button onClick={() => { onShare?.(); setShareToast(true); setTimeout(() => setShareToast(false), 2000); }} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
+                <button onClick={() => {
+                    onShare?.();
+                    // BUG FIX (SVC-3): cancel previous shareToast timer before scheduling a new one.
+                    if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                    setShareToast(true);
+                    shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(false); }, 2000);
+                }} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
                     <span style={{ fontSize: 24 }}>📤</span><span style={{ fontSize: 10, fontWeight: 500 }}>Share</span>
                 </button>
             </div>
