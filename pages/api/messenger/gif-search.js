@@ -59,7 +59,10 @@ export default async function handler(req, res) {
             url = `https://api.giphy.com/v1/${endpoint}/trending?api_key=${GIPHY_API_KEY}&limit=${limit}&offset=${offset}&rating=pg-13`;
         }
 
-        const response = await fetch(url);
+        const gifController = new AbortController();
+        const gifTimeout = setTimeout(() => gifController.abort(), 8000); // 8s — GIPHY SLA
+        const response = await fetch(url, { signal: gifController.signal });
+        clearTimeout(gifTimeout);
         if (!response.ok) {
             if (response.status === 401) {
                 return res.status(200).json({ success: false, error: 'GIPHY API key is not configured or invalid', gifs: [] });

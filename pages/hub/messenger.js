@@ -13,7 +13,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser, getAccessToken, ensureAuthReady } from '../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
 import { broadcastSync } from '../../src/lib/broadcastSync';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
@@ -326,7 +326,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
         setGifError('');
         try {
             const gifToken = getAccessToken();
-            const resp = await fetch('/api/messenger/gif-search?limit=20', {
+            const resp = await authedFetch('/api/messenger/gif-search?limit=20', {
                 headers: gifToken ? { Authorization: `Bearer ${gifToken}` } : {},
             });
             const data = await resp.json();
@@ -1132,7 +1132,7 @@ function LinkPreviewCard({ url, isOwn }) {
         const fetchPreview = async () => {
             try {
                 const token = getAccessToken();
-                const resp = await fetch('/api/messenger/link-preview', {
+                const resp = await authedFetch('/api/messenger/link-preview', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2294,7 +2294,7 @@ function MessengerPage() {
                     if (!mounted) return;
                     try {
                         const token = getAccessToken();
-                        const resp = await fetch('/api/friends?action=list', {
+                        const resp = await authedFetch('/api/friends?action=list', {
                             headers: { 'Authorization': 'Bearer ' + token }
                         }).then(r => r.json()).catch(() => ({ data: { friends: [] } }));
                         if (mounted && resp?.data?.friends) setFriends(resp.data.friends);
@@ -2729,7 +2729,7 @@ function MessengerPage() {
                     const authUser = getAuthUser();
                     if (!authUser) return;
                     const token = getAccessToken();
-                    const resp = await fetch('/api/user/get-header-stats', {
+                    const resp = await authedFetch('/api/user/get-header-stats', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                         body: JSON.stringify({})
@@ -3420,7 +3420,7 @@ function MessengerPage() {
             const result = await circuit.execute(
                 async () => {
                     const token = getAccessToken();
-                    const resp = await fetch('/api/messenger/get-conversations', {
+                    const resp = await authedFetch('/api/messenger/get-conversations', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -3583,7 +3583,7 @@ function MessengerPage() {
 
             // Use API route to bypass RLS issues
             const msgToken = getAccessToken();
-            const response = await fetch('/api/messenger/get-messages', {
+            const response = await authedFetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3617,7 +3617,7 @@ function MessengerPage() {
             // Mark as read - use API with service role to bypass RLS
             try {
                 const readToken = getAccessToken();
-                await fetch('/api/messenger/mark-read', {
+                await authedFetch('/api/messenger/mark-read', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3676,7 +3676,7 @@ function MessengerPage() {
             const prevScrollHeight = container?.scrollHeight || 0;
             const oldestMsg = messages[0];
             const msgToken = getAccessToken();
-            const response = await fetch('/api/messenger/get-messages', {
+            const response = await authedFetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3867,7 +3867,7 @@ function MessengerPage() {
 
             try {
                 const jarvisToken = getAccessToken();
-                const response = await fetch('/api/geeves/chat', {
+                const response = await authedFetch('/api/geeves/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3969,7 +3969,7 @@ function MessengerPage() {
         try {
             // Route through API for XSS sanitization, rate limiting, and auth verification
             const sendToken = getAccessToken();
-            const sendResp = await fetch('/api/messenger/send-message', {
+            const sendResp = await authedFetch('/api/messenger/send-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -4052,7 +4052,7 @@ function MessengerPage() {
         try {
             // Route through API — fn_toggle_message_reaction is 403 for authenticated role (missing GRANT EXECUTE)
             const token = getAccessToken();
-            const resp = await fetch('/api/messenger/react-message', {
+            const resp = await authedFetch('/api/messenger/react-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -4167,7 +4167,7 @@ function MessengerPage() {
         (async () => {
             try {
                 const token = getAccessToken();
-                const resp = await fetch('/api/messenger/edit-message', {
+                const resp = await authedFetch('/api/messenger/edit-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -4236,7 +4236,7 @@ function MessengerPage() {
         // Delete via authenticated API (not anon supabase.rpc which may lack grants)
         try {
             const unsendToken = getAccessToken();
-            const unsendResp = await fetch('/api/messenger/delete-message', {
+            const unsendResp = await authedFetch('/api/messenger/delete-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -4285,7 +4285,7 @@ function MessengerPage() {
                 : '[Forwarded Message]';
 
             const token = getAccessToken();
-            const resp = await fetch('/api/messenger/send-message', {
+            const resp = await authedFetch('/api/messenger/send-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -4380,7 +4380,7 @@ function MessengerPage() {
             // ── SIGNED-URL UPLOAD (bypasses SDK auth lock, works with social-media bucket) ──
             // The 'user-media' bucket doesn't exist — use upload-url proxy to social-media bucket.
             const uploadToken = getAccessToken();
-            const metaRes = await fetch('/api/social/upload-url', {
+            const metaRes = await authedFetch('/api/social/upload-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadToken}` },
                 body: JSON.stringify({
@@ -4415,7 +4415,7 @@ function MessengerPage() {
                 : `[Video](${publicUrl})`;
 
             const mediaToken = getAccessToken();
-            const mediaResp = await fetch('/api/messenger/send-message', {
+            const mediaResp = await authedFetch('/api/messenger/send-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -4483,7 +4483,7 @@ function MessengerPage() {
         try {
             // ── SIGNED-URL UPLOAD for voice (bypasses SDK auth lock, social-media bucket) ──
             const voiceUploadToken = getAccessToken();
-            const voiceMetaRes = await fetch('/api/social/upload-url', {
+            const voiceMetaRes = await authedFetch('/api/social/upload-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${voiceUploadToken}` },
                 body: JSON.stringify({
@@ -4511,7 +4511,7 @@ function MessengerPage() {
 
             // Send via API
             const voiceToken = getAccessToken();
-            const resp = await fetch('/api/messenger/send-message', {
+            const resp = await authedFetch('/api/messenger/send-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -4580,7 +4580,7 @@ function MessengerPage() {
         try {
             // Route through API — fn_get_or_create_conversation requires service role (no GRANT to authenticated)
             const startToken = getAccessToken();
-            const resp = await fetch('/api/messenger/start-conversation', {
+            const resp = await authedFetch('/api/messenger/start-conversation', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -4673,7 +4673,7 @@ function MessengerPage() {
                 const effectiveOnline = preferencesRef.current.activeStatus !== false ? isOnlineNow : false;
                 // Route through API — fn_update_presence returns 403 for authenticated role (missing GRANT EXECUTE)
                 const presenceToken = getAccessToken();
-                await fetch('/api/messenger/update-presence', {
+                await authedFetch('/api/messenger/update-presence', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -4936,7 +4936,7 @@ function MessengerPage() {
             // 📱 Create pending call in database (for offline users)
             try {
                 const callToken = getAccessToken();
-                await fetch('/api/calls/create', {
+                await authedFetch('/api/calls/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -4959,7 +4959,7 @@ function MessengerPage() {
             // Also send push notification for users not on the page
             // This will make their phone RING like a real call!
             try {
-                const pushRes = await fetch('/api/notifications/send', {
+                const pushRes = await authedFetch('/api/notifications/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -5080,7 +5080,7 @@ function MessengerPage() {
             try {
                 // Route through authenticated API (not anon supabase.rpc) to bypass RLS
                 const endReceiptToken = getAccessToken();
-                await fetch('/api/messenger/send-message', {
+                await authedFetch('/api/messenger/send-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -6006,7 +6006,7 @@ function MessengerPage() {
                                             // Persist: delete from Supabase so it doesn't reappear on refresh
                                             try {
                                                 const token = getAccessToken();
-                                                await fetch('/api/messenger/delete-conversation', {
+                                                await authedFetch('/api/messenger/delete-conversation', {
                                                     method: 'POST',
                                                     headers: {
                                                         'Content-Type': 'application/json',
