@@ -4260,6 +4260,9 @@ function MessengerPage() {
         if (!user || !activeConversation || !file) {
             return;
         }
+        // Capture conversationId at start — if user switches conversation during a slow
+        // upload the setMessages update must target the original conversation's messages.
+        const uploadConversationId = activeConversation.id;
 
 
         const isImage = file.type.startsWith('image/');
@@ -4347,12 +4350,14 @@ function MessengerPage() {
             const mediaResult = await mediaResp.json();
             if (!mediaResp.ok || !mediaResult.success) throw new Error(mediaResult.error || 'Send failed');
 
-            // Update message with real data
-            setMessages(prev => prev.map(m =>
-                m.id === tempId
-                    ? { ...m, id: mediaResult.msgId || tempId, content, media_url: publicUrl, status: 'sent' }
-                    : m
-            ));
+            // Update message with real data — only if user hasn't switched conversations
+            if (activeConversationRef.current?.id === uploadConversationId) {
+                setMessages(prev => prev.map(m =>
+                    m.id === tempId
+                        ? { ...m, id: mediaResult.msgId || tempId, content, media_url: publicUrl, status: 'sent' }
+                        : m
+                ));
+            }
 
             // Revoke blob URL to prevent memory leak
             URL.revokeObjectURL(mediaPreview);
@@ -4364,7 +4369,8 @@ function MessengerPage() {
         } catch (e) {
             console.warn('Media upload error:', e);
             setMessages(prev => prev.map(m =>
-                m.id === tempId ? { ...m, status: 'failed' } : m
+                m.id === tempId && activeConversationRef.current?.id === uploadConversationId
+                    ? { ...m, status: 'failed' } : m
             ));
             // Revoke blob URL on failure too to prevent memory leak
             URL.revokeObjectURL(mediaPreview);
@@ -4377,6 +4383,8 @@ function MessengerPage() {
     // ═══════════════════════════════════════════════════════════════════════════
     const handleVoiceSend = async (audioBlob, durationSeconds) => {
         if (!user || !activeConversation || !audioBlob) return;
+        // Capture conversationId at start — voice uploads can take seconds; user may switch.
+        const voiceConversationId = activeConversation.id;
 
         // Optimistic UI
         const tempId = `temp-voice-${Date.now()}`;
@@ -4431,18 +4439,21 @@ function MessengerPage() {
                     ...(voiceToken ? { Authorization: `Bearer ${voiceToken}` } : {}),
                 },
                 body: JSON.stringify({
-                    conversationId: activeConversation.id,
+                    conversationId: voiceConversationId,
                     content: content,
                 }),
             });
             const result = await resp.json();
             if (!resp.ok || !result.success) throw new Error(result.error || 'Send failed');
 
-            setMessages(prev => prev.map(m =>
-                m.id === tempId
-                    ? { ...m, id: result.msgId || tempId, content, status: 'sent' }
-                    : m
-            ));
+            // Only update UI if user hasn't switched conversations during the upload
+            if (activeConversationRef.current?.id === voiceConversationId) {
+                setMessages(prev => prev.map(m =>
+                    m.id === tempId
+                        ? { ...m, id: result.msgId || tempId, content, status: 'sent' }
+                        : m
+                ));
+            }
 
             URL.revokeObjectURL(blobUrl);
             busEmit.dataMutated('messenger');
@@ -4450,7 +4461,8 @@ function MessengerPage() {
         } catch (e) {
             console.warn('Voice upload error:', e);
             setMessages(prev => prev.map(m =>
-                m.id === tempId ? { ...m, status: 'failed' } : m
+                m.id === tempId && activeConversationRef.current?.id === voiceConversationId
+                    ? { ...m, status: 'failed' } : m
             ));
             URL.revokeObjectURL(blobUrl);
             setToast({ type: 'error', message: `Voice Send Failed: ${e.message}` });

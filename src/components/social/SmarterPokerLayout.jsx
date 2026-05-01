@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import { useUnreadCount, UnreadBadge } from '../../hooks/useUnreadCount';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
+import { useRouter } from 'next/router';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN NAVIGATION BAR

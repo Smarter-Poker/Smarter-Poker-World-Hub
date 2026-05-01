@@ -70,7 +70,9 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: deleteErr.message });
         }
 
-        // Check if the conversation has NO remaining participants — if so, delete the conversation itself
+        // TOCTOU note: between the participant DELETE above and this remaining-count check,
+        // another concurrent delete request may have also removed their participant row.
+        // Both requests may see remaining=0 and attempt cascade — second DELETE is a no-op (idempotent).
         const { data: remaining, error: remainErr } = await getSupabase()
             .from('social_conversation_participants')
             .select('id')
@@ -79,15 +81,28 @@ export default async function handler(req, res) {
 
         if (!remainErr && (!remaining || remaining.length === 0)) {
             // No participants left — safe to delete conversation and its messages
-            await getSupabase()
+            // Delete messages first (FK dependency on conversation)
+            const { error: msgDelErr } = await getSupabase()
                 .from('social_messages')
                 .delete()
                 .eq('conversation_id', conversationId);
 
-            await getSupabase()
+            if (msgDelErr) {
+                console.warn('[DELETE-CONVERSATION] Messages cascade delete error:', msgDelErr);
+                // Non-fatal: conversation record will remain with orphaned messages
+                // which is preferable to partially deleting data
+                return res.json({ success: true, warning: 'Conversation hidden but orphaned messages may remain' });
+            }
+
+            const { error: convDelErr } = await getSupabase()
                 .from('social_conversations')
                 .delete()
                 .eq('id', conversationId);
+
+            if (convDelErr) {
+                console.warn('[DELETE-CONVERSATION] Conversation cascade delete error:', convDelErr);
+                // Non-fatal: conversation record will be an empty shell
+            }
         }
 
         return res.json({ success: true });
