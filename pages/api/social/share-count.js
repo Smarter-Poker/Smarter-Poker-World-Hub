@@ -1,11 +1,11 @@
 /**
  * 📊 SHARE COUNT INCREMENT API
  * pages/api/social/share-count.js
- * 
+ *
  * Increments the share_count on social_posts OR social_reels when a user shares content.
  * Detects which table the ID belongs to and routes to the correct atomic RPC.
- * Fire-and-forget endpoint — non-critical if it fails.
- * 
+ * Runs share_events insert + streak award synchronously to return fresh streak data.
+ *
  * SECURITY: JWT auth required + rate limiting.
  */
 
@@ -15,6 +15,11 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Validated set of allowed destinations (mirrors CHECK constraint in share_events)
+const VALID_DESTINATIONS = new Set([
+    'feed', 'messenger', 'messenger_group', 'copy', 'twitter', 'whatsapp', 'external'
+]);
 
 let _supabase = null;
 function getSupabase() {
@@ -47,47 +52,54 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'post_id is required' });
     }
 
-    // Fire-and-forget analytics insert + streak reward
-    getSupabase().from('share_events').insert({
-        post_id,
-        user_id: user.id,
-        destination,
-        platform: platform || null,
-    }).then(() => {
-        // After inserting share event, award streak diamond reward (non-blocking)
-        getSupabase()
-            .rpc('fn_award_share_streak_diamonds', { p_user_id: user.id })
-            .then(({ data: streakResult }) => {
-                if (streakResult?.awarded) {
-                    const mult = streakResult.multiplier ?? 1.0;
-                    console.log(`[share-streak] Awarded ${streakResult.diamonds}💎 to ${user.id} (day ${streakResult.streak}, ${streakResult.tier} tier, ${mult}× multiplier)`);
-                }
-            })
-            .catch(() => {});
-        // Opportunistically reset any users whose streak broke (no dedicated cron needed)
-        getSupabase().rpc('fn_reset_broken_streak_multipliers').catch(() => {});
-    }).catch(() => {});
+    // Normalize destination to prevent constraint violation
+    const safeDestination = VALID_DESTINATIONS.has(destination) ? destination : 'external';
 
     try {
-        // Detect whether this is a native reel (social_reels) or post (social_posts)
-        let source = 'posts';
+        // === STEP 1: Insert share event synchronously ===
+        let shareEventError = null;
+        try {
+            const { error } = await getSupabase().from('share_events').insert({
+                post_id,
+                user_id: user.id,
+                destination: safeDestination,
+                platform: platform || null,
+            });
+            shareEventError = error;
+            if (error) console.warn('[share-count] share_events insert failed:', error.message);
+        } catch (e) {
+            console.warn('[share-count] share_events insert exception:', e?.message);
+        }
+
+        // === STEP 2: Award streak diamonds (synchronous so response has fresh data) ===
+        let streakAward = null;
+        try {
+            const { data: awardResult } = await getSupabase()
+                .rpc('fn_award_share_streak_diamonds', { p_user_id: user.id });
+            if (awardResult?.awarded) {
+                console.log(`[share-streak] Awarded ${awardResult.diamonds}💎 to ${user.id} (${awardResult.streak_days}-day streak, ${awardResult.tier} tier)`);
+                streakAward = awardResult;
+            }
+        } catch (e) {
+            console.warn('[share-count] streak award RPC failed:', e?.message);
+        }
+
+        // === STEP 3: Reset broken multipliers (fire-and-forget is fine) ===
+        getSupabase().rpc('fn_reset_broken_streak_multipliers').catch(() => {});
+
+        // === STEP 4: Increment post/reel share count ===
         const { data: reelCheck } = await getSupabase()
             .from('social_reels')
             .select('id')
             .eq('id', post_id)
             .maybeSingle();
-        if (reelCheck) source = 'reels';
 
-        if (source === 'reels') {
-            // Atomic increment on social_reels via RPC
+        if (reelCheck) {
             const { error: rpcError } = await getSupabase().rpc('increment_reel_count', {
                 p_reel_id: post_id, p_field: 'share_count'
             });
-            if (rpcError) {
-                console.warn('[share-count] Reel RPC failed (non-critical):', rpcError.message);
-            }
+            if (rpcError) console.warn('[share-count] Reel RPC failed (non-critical):', rpcError.message);
         } else {
-            // Atomic increment on social_posts via RPC
             const { error: rpcError } = await getSupabase().rpc('increment_post_count', {
                 p_post_id: post_id, p_field: 'share_count'
             });
@@ -107,18 +119,30 @@ export default async function handler(req, res) {
             }
         }
 
-        // Check today's streak reward status to include in response
+        // === STEP 5: Build streak response for frontend toast ===
+        // If no fresh award this call, check for today's existing streak reward record
         let streakData = null;
-        try {
-            const { data: sr } = await getSupabase()
-                .from('share_streak_rewards')
-                .select('streak_length, diamonds_awarded, reward_day')
-                .eq('user_id', user.id)
-                .order('reward_day', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            if (sr) streakData = sr;
-        } catch (_) {}
+        if (streakAward) {
+            // Return the just-awarded data directly — no extra query needed
+            streakData = {
+                streak_length: streakAward.streak_days,
+                diamonds_awarded: streakAward.diamonds,
+                reward_day: new Date().toISOString().split('T')[0],
+                tier: streakAward.tier,
+            };
+        } else {
+            // Check if there's an existing reward today (user already got their streak today)
+            try {
+                const { data: sr } = await getSupabase()
+                    .from('share_streak_rewards')
+                    .select('streak_length, diamonds_awarded, reward_day')
+                    .eq('user_id', user.id)
+                    .order('reward_day', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (sr) streakData = sr;
+            } catch (_) {}
+        }
 
         return res.status(200).json({ success: true, streak: streakData });
     } catch (err) {

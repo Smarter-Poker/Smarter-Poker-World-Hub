@@ -154,7 +154,13 @@ export default function ComposePage() {
             return;
         }
 
-        useComposeStore.setState({ inFlight: true, error: null });
+        useComposeStore.setState({
+            inFlight: true,
+            error: null,
+            uploadPct: 0,
+            uploadLabel: 'Preparing…',
+            uploadStage: 'preflight',
+        });
 
         try {
             // 1. Session preflight (timeout-guarded)
@@ -164,8 +170,11 @@ export default function ComposePage() {
             }
 
             // 2. Upload all media. Videos use background TUS; images use POST /api/social/upload.
+            useComposeStore.getState().setUploadStage('uploading');
             const uploadedUrls = [];
             let videoUrl = null;
+            const totalCount = state.media.length;
+            let doneCount = 0;
             for (const m of state.media) {
                 if (m.type === 'video') {
                     const url = await new Promise((resolve, reject) => {
@@ -178,6 +187,17 @@ export default function ComposePage() {
                             thumbnail: null, // server cron extracts thumbnails
                         }).catch(reject);
                         unsub = bgUpload.subscribe({
+                            // Live progress feed → composeStore so EditPostScreen
+                            // can render a progress overlay while the upload runs.
+                            onProgress: ({ pct, label }) => {
+                                // Average across multiple files: each file contributes
+                                // 100/totalCount of the overall progress.
+                                const overall = Math.round(((doneCount * 100) + (pct || 0)) / Math.max(totalCount, 1));
+                                useComposeStore.getState().setUploadProgress(
+                                    overall,
+                                    label || `Uploading… ${pct || 0}%`,
+                                );
+                            },
                             onComplete: ({ publicUrl }) => { unsub?.(); resolve(publicUrl); },
                             onError: ({ error }) => { unsub?.(); reject(error); },
                             onBackground: () => { /* ghost card takes over in feed */ },
@@ -185,11 +205,19 @@ export default function ComposePage() {
                     });
                     videoUrl = url;
                     uploadedUrls.push(url);
+                    doneCount += 1;
                 } else {
+                    useComposeStore.getState().setUploadProgress(
+                        Math.round((doneCount / Math.max(totalCount, 1)) * 100),
+                        `Uploading photo ${doneCount + 1} of ${totalCount}…`,
+                    );
                     const url = await uploadImage(m.file, user.id, 'photos');
                     uploadedUrls.push(url);
+                    doneCount += 1;
                 }
             }
+            useComposeStore.getState().setUploadProgress(100, 'Creating post…');
+            useComposeStore.getState().setUploadStage('creating');
 
             // 3. Persist custom cover (if user uploaded one) — gives us a thumbnail_url
             let thumbnailUrl = null;

@@ -29,6 +29,9 @@ const DEFAULTS = {
     customCoverPreviewUrl: null,     // blob: URL for preview of customCoverFile
     inFlight: false,                 // upload + post-create in progress
     error: null,                     // user-facing error string for the current screen
+    uploadPct: 0,                    // 0-100 — bgUpload onProgress live %
+    uploadLabel: '',                 // human-readable label e.g. "Uploading… 42% at 1.2 MB/s — ~14s"
+    uploadStage: null,               // 'preflight' | 'uploading' | 'creating' | 'finishing' | null
 };
 
 export const useComposeStore = create((set, get) => ({
@@ -115,6 +118,13 @@ export const useComposeStore = create((set, get) => ({
     // ── Lifecycle ───────────────────────────────────────────────────────────
     setInFlight: (inFlight) => set({ inFlight }),
     setError: (error) => set({ error }),
+
+    // ── Upload progress ────────────────────────────────────────────────────
+    setUploadProgress: (pct, label) => set({
+        uploadPct: typeof pct === 'number' ? Math.max(0, Math.min(100, pct)) : 0,
+        uploadLabel: label || '',
+    }),
+    setUploadStage: (stage) => set({ uploadStage: stage || null }),
 
     reset: () => {
         // Clean up blob URLs to avoid memory leaks

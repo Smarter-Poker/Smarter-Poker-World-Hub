@@ -66,6 +66,9 @@ export default function EditPostScreen({ onBack, onEditCover, onPostNow }) {
     const setShareToStory = useComposeStore(s => s.setShareToStory);
     const inFlight = useComposeStore(s => s.inFlight);
     const error = useComposeStore(s => s.error);
+    const uploadPct = useComposeStore(s => s.uploadPct);
+    const uploadLabel = useComposeStore(s => s.uploadLabel);
+    const uploadStage = useComposeStore(s => s.uploadStage);
 
     const [openSheet, setOpenSheet] = useState(null);  // 'visibility' | 'location' | 'people' | 'groups' | 'topics' | null
 
@@ -266,6 +269,108 @@ export default function EditPostScreen({ onBack, onEditCover, onPostNow }) {
                     }}
                 >{inFlight ? 'Posting…' : 'Post now'}</button>
             </div>
+
+            {/* ── Upload progress overlay ───────────────────── */}
+            {inFlight && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 99999,
+                        background: 'rgba(15,16,20,0.78)',
+                        backdropFilter: 'blur(6px)',
+                        WebkitBackdropFilter: 'blur(6px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: 24,
+                    }}
+                >
+                    <style>{`
+                        @keyframes spPrepSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                        @keyframes spPrepPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+                        @keyframes spPrepBar {
+                            0% { transform: translateX(-100%); }
+                            100% { transform: translateX(100%); }
+                        }
+                    `}</style>
+                    <div style={{
+                        width: '100%', maxWidth: 320,
+                        background: '#fff', borderRadius: 16,
+                        padding: '28px 24px 22px',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+                    }}>
+                        {/* Spinner */}
+                        <div style={{
+                            width: 48, height: 48,
+                            border: '4px solid #e4e6eb',
+                            borderTopColor: '#1877F2',
+                            borderRadius: '50%',
+                            animation: 'spPrepSpin 0.9s linear infinite',
+                        }} />
+
+                        {/* Stage title */}
+                        <div style={{
+                            fontSize: 16, fontWeight: 700, color: '#050505',
+                            textAlign: 'center', lineHeight: 1.3,
+                        }}>
+                            {uploadStage === 'preflight' && 'Preparing…'}
+                            {uploadStage === 'uploading' && (uploadPct >= 100 ? 'Almost done…' : 'Uploading your video')}
+                            {uploadStage === 'creating' && 'Creating your post…'}
+                            {uploadStage === 'finishing' && 'Finishing up…'}
+                            {!uploadStage && 'Working on it…'}
+                        </div>
+
+                        {/* Progress bar */}
+                        <div style={{
+                            width: '100%', height: 8,
+                            background: '#e4e6eb', borderRadius: 999,
+                            overflow: 'hidden', position: 'relative',
+                        }}>
+                            {uploadStage === 'creating' || uploadStage === 'finishing' ? (
+                                /* Indeterminate sweep when % is meaningless */
+                                <div style={{
+                                    position: 'absolute', inset: 0,
+                                    background: 'linear-gradient(90deg, transparent, #1877F2, transparent)',
+                                    animation: 'spPrepBar 1.4s ease-in-out infinite',
+                                }} />
+                            ) : (
+                                <div style={{
+                                    width: `${Math.max(2, uploadPct || 0)}%`,
+                                    height: '100%', background: '#1877F2',
+                                    borderRadius: 999, transition: 'width 0.25s ease',
+                                }} />
+                            )}
+                        </div>
+
+                        {/* Percentage + label */}
+                        <div style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                            width: '100%',
+                        }}>
+                            {(uploadStage === 'uploading' || uploadStage === 'preflight') && (
+                                <div style={{
+                                    fontSize: 22, fontWeight: 700, color: '#1877F2',
+                                    fontVariantNumeric: 'tabular-nums',
+                                }}>{Math.min(100, Math.max(0, uploadPct || 0))}%</div>
+                            )}
+                            {uploadLabel && (
+                                <div style={{
+                                    fontSize: 13, color: '#65676B', textAlign: 'center',
+                                    lineHeight: 1.4, animation: 'spPrepPulse 1.6s ease-in-out infinite',
+                                }}>{uploadLabel}</div>
+                            )}
+                        </div>
+
+                        {/* Reassurance copy */}
+                        <div style={{
+                            fontSize: 11, color: '#8a8d91', textAlign: 'center',
+                            lineHeight: 1.4, marginTop: 4,
+                        }}>
+                            Keep this screen open. We'll let you know when it's posted.
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Sheets ────────────────────────────────────── */}
             {openSheet === 'visibility' && (
