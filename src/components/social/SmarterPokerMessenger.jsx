@@ -2604,6 +2604,7 @@ export const ChatWindow = ({
 
                     <div className="input-wrapper">
                         <input
+                            autoFocus
                             type="text"
                             placeholder="Aa"
                             value={inputText}

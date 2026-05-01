@@ -216,7 +216,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                                         View Profile
                                     </Link>
                                     <Link
-                                        href={`/hub/messenger?user=${profile.id}`}
+                                        href={`/hub/messenger?compose=${encodeURIComponent(profile.username)}&uid=${profile.id}`}
                                         style={{
                                             flex: 1,
                                             padding: '10px 16px',

@@ -7,8 +7,8 @@
 import React, { useState, useEffect } from 'react';
 import { SP_COLORS, SPAvatar } from './SmarterPokerStyleCard';
 import { NotificationBell, NotificationsDropdown } from './SmarterPokerNotifications';
-import { ChatDock } from './SmarterPokerMessenger';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'next/router';
 import { useUnreadCount, UnreadBadge } from '../../hooks/useUnreadCount';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
@@ -324,6 +324,7 @@ const BLOCKED_NOTIF_TYPES = ['like', 'comment', 'share', 'mention', 'tag', 'hand
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate }) => {
+    const router = useRouter();
     // 1. Get Real User Data from Supabase auth
     const [authUser, setAuthUser] = useState(null);
     const [authProfile, setAuthProfile] = useState(null);
@@ -463,68 +464,12 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
         return () => { supabase.removeChannel(channel); };
     }, [authUser?.id]);
 
-    // 3. Chat State management
-    const [openChats, setOpenChats] = useState([]);
-
+    // 3. Chat State management - Replaced legacy ChatDock with Messenger Deep Linking
     const handleOpenChat = (participant) => {
-        if (openChats.find(c => c.conversation.id === participant.id || c.conversation.participants[0].id === participant.id)) {
-            return;
-        }
-
-        const newChat = {
-            conversation: {
-                id: `chat_${participant.id}`,
-                participants: [participant],
-                lastMessage: null
-            },
-            messages: [],
-            minimized: false
-        };
-
-        setOpenChats(prev => [...prev, newChat]);
-    };
-
-    const handleCloseChat = (chatId) => {
-        setOpenChats(openChats.filter(c => c.conversation.id !== chatId));
-    };
-
-    const handleMinimizeChat = (chatId) => {
-        setOpenChats(openChats.map(c =>
-            c.conversation.id === chatId
-                ? { ...c, minimized: !c.minimized }
-                : c
-        ));
-    };
-
-    const handleSendMessage = async (chatId, text) => {
-        if (!authUser?.id || !text.trim()) return;
-
-        // Optimistic local update
-        setOpenChats(prev => prev.map(c => {
-            if (c.conversation.id === chatId) {
-                return {
-                    ...c,
-                    messages: [...c.messages, {
-                        id: Date.now(),
-                        text,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        senderId: authUser.id
-                    }]
-                };
-            }
-            return c;
-        }));
-
-        // Persist to Supabase
-        try {
-            const participantId = chatId.replace('chat_', '');
-            await supabase.from('social_messages').insert({
-                sender_id: authUser.id,
-                receiver_id: participantId,
-                content: text,
-            });
-        } catch {
-            // Message table may not exist - fail silently
+        if (!participant) return;
+        const targetUsername = participant.username || participant.name || participant.id;
+        if (targetUsername && participant.id) {
+            router.push(`/hub/messenger?compose=${encodeURIComponent(targetUsername)}&uid=${participant.id}`);
         }
     };
 
@@ -554,15 +499,6 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
                     {childrenWithProps}
                 </SocialErrorBoundary>
             </main>
-
-            {/* Chat Dock */}
-            <ChatDock
-                openChats={openChats}
-                currentUser={currentUser}
-                onClose={handleCloseChat}
-                onMinimize={handleMinimizeChat}
-                onSend={handleSendMessage}
-            />
 
             <style>{`
                 .sp-shell {

@@ -5731,75 +5731,41 @@ function SocialMediaPage() {
         }, 300);
     };
 
-    const handleOpenChat = async (c) => {
-        if (openChats.find(x => x.id === c.id)) return;
-        let convId = c.conversationId;
-        if (!convId && user?.id) {
-            try {
-                const { data } = await supabase.rpc('fn_get_or_create_conversation', { p_user_id: user.id, p_other_user_id: c.id, p_conversation_type: 'direct' });
-                convId = data?.conversation_id || data; // RPC returns { created, conversation_id }
-            } catch (e) { console.warn(e); }
-        }
-        const chat = { id: c.id, name: c.name || c.username, avatar: null, online: false, conversationId: convId };
-        setOpenChats(prev => [...prev.slice(-2), chat]);
-        if (convId) {
-            try {
-                const { data } = await supabase.from('social_messages').select('id, content, sender_id').eq('conversation_id', convId).eq('is_deleted', false).order('created_at', { ascending: true }).limit(50);
-                if (data) setChatMsgs(prev => ({ ...prev, [c.id]: data.map(m => ({ id: m.id, text: m.content, senderId: m.sender_id })) }));
-            } catch (e) { console.warn(e); }
+    const handleOpenChat = (c) => {
+        if (!c) return;
+        // Deep-link to the unified messenger with compose mode — no local chat dock
+        const targetUsername = c.username || c.name || c.id;
+        if (targetUsername && c.id) {
+            router.push(`/hub/messenger?compose=${encodeURIComponent(targetUsername)}&uid=${c.id}`);
         }
     };
 
-    // 📡 Supabase Realtime: Listen for incoming messages across all conversations
-    // Uses ref for openChats to avoid re-binding channel on every chat open/close
-    const openChatsRef = useRef(openChats);
-    useEffect(() => { openChatsRef.current = openChats; }, [openChats]);
-
+    // 📡 Supabase Realtime: Forward incoming messages to the global EventBus
+    // (Messenger page handles all rendering — this just keeps unread counts fresh)
+    const openChatsRef = useRef([]);
     useEffect(() => {
         if (!user?.id) return;
-        
-        const channel = supabase.channel('messenger_realtime')
+        const channel = supabase
+            .channel(`social-media-realtime-${user.id}`)
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'social_messages' },
+                { event: 'INSERT', schema: 'public', table: 'social_messages', filter: `receiver_id=eq.${user.id}` },
                 (payload) => {
                     const newMsg = payload.new;
+                    if (!newMsg) return;
                     const convId = newMsg.conversation_id;
-                    
-                    // Update chatMsgs if this conversation is open and it's not our own message (we optimistically add our own)
                     if (newMsg.sender_id !== user.id) {
-                        setChatMsgs(prev => {
-                            // Find which open chat has this conversation ID (via ref to avoid stale closure)
-                            const chatEntry = openChatsRef.current.find(c => c.conversationId === convId);
-                            if (chatEntry) {
-                                return {
-                                    ...prev,
-                                    [chatEntry.id]: [...(prev[chatEntry.id] || []), { id: newMsg.id, text: newMsg.content, senderId: newMsg.sender_id }]
-                                };
-                            }
-                            return prev;
-                        });
-                        
-                        // Fire global event bus so the badge and SmartPokerMessenger can react
+                        // Fire global event bus so unread badges update
                         eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId: convId, senderId: newMsg.sender_id }, 'SocialMedia');
                     }
                 }
             )
             .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        return () => { supabase.removeChannel(channel); };
     }, [user?.id]);
 
-    const handleSendMsg = async (cid, txt) => {
-        const chat = openChats.find(x => x.id === cid);
-        if (!chat?.conversationId || !user?.id) return;
-        try {
-            await supabase.rpc('fn_send_message', { p_conversation_id: chat.conversationId, p_sender_id: user.id, p_content: txt });
-            setChatMsgs(prev => ({ ...prev, [cid]: [...(prev[cid] || []), { id: Date.now(), text: txt, senderId: user.id }] }));
-        } catch (e) { console.warn(e); }
-    };
+
 
     // Only show loading skeleton if intro is done and still loading
     if (loading && !showIntro) return (
@@ -6960,10 +6926,7 @@ function SocialMediaPage() {
                     </Link>
                 </nav>
 
-                {/* Chat Windows */}
-                <div style={{ position: 'fixed', bottom: 70, right: 16, display: 'flex', gap: 8, zIndex: 1000 }}>
-                    {openChats.map(ch => <ChatWindow key={ch.id} chat={ch} messages={chatMsgs[ch.id] || []} currentUserId={user?.id} onSend={txt => handleSendMsg(ch.id, txt)} onClose={() => setOpenChats(prev => prev.filter(x => x.id !== ch.id))} />)}
-                </div>
+
 
                 {/* Go Live Modal */}
                 <GoLiveModal
