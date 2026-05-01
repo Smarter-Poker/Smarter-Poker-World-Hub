@@ -237,26 +237,12 @@ export const EnhancedPostCreator = ({
     const onFocus = () => {
       if (!mountedRef.current) return;
       setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
-      // AUDIT-7: store watchdog in a ref, NOT a closure variable. The
-      // useEffect cleanup fires the moment setPreparingStage transitions
-      // out of 'picker'; if the timer is in a closure var, the cleanup
-      // clearTimeout's it 0-1ms after we set it (silently killing the
-      // cancel detection). Ref storage lets the watchdog survive the
-      // 'picker' → 'loading' transition and self-determine whether a
-      // cancel happened at the 5s mark.
-      if (_focusGraceTimerRef.current) clearTimeout(_focusGraceTimerRef.current);
-      _focusGraceTimerRef.current = setTimeout(() => {
-        _focusGraceTimerRef.current = null;
-        if (!mountedRef.current) return;
-        if (!_hasFileArrivedRef.current) {
-          setPreparingStage(null);
-          _pickerOpenRef.current = false;
-        }
-      }, 5000);
+      // AUDIT-8 — see SharedPostCreator: NO short watchdog. iOS handoff is
+      // 5-30s, watchdog at 5s was clearing the banner mid-legitimate-pick.
+      // 90s ultimate backstop covers the cancel case.
     };
     window.addEventListener('focus', onFocus);
     return () => {
-      // DO NOT clear _focusGraceTimerRef here.
       window.removeEventListener('focus', onFocus);
     };
   }, [preparingStage]);

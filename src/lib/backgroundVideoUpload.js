@@ -934,6 +934,34 @@ const bgUpload = {
             _setState('done', 100, 'Upload complete!');
             _emit('onComplete', { publicUrl: finalPublicUrl, wasBackground });
 
+            // AUDIT-8 (2026-04-30 per Dan): success chime on upload-complete.
+            // The personal-account post path also fires a chime AFTER the DB
+            // insert succeeds, but that path doesn't run if (a) the post
+            // creation fails, (b) the user is on the home-group/club-page
+            // path which has no chime, or (c) the user navigated away
+            // (background upload). This chime fires the moment Storage
+            // returns 201 — guaranteed audible feedback that the bytes are
+            // safely uploaded, regardless of what happens to the post row.
+            try {
+                if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+                    const ac = new (window.AudioContext || window.webkitAudioContext)();
+                    const o = ac.createOscillator();
+                    const g = ac.createGain();
+                    o.connect(g); g.connect(ac.destination);
+                    o.type = 'sine';
+                    // Two-note chirp: A5 → E6 (rising fifth) — same shape as
+                    // the post-publish chime so the user gets a familiar cue.
+                    o.frequency.setValueAtTime(880, ac.currentTime);
+                    o.frequency.exponentialRampToValueAtTime(1320, ac.currentTime + 0.12);
+                    g.gain.setValueAtTime(0.0001, ac.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.18, ac.currentTime + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.18);
+                    o.start();
+                    o.stop(ac.currentTime + 0.2);
+                    setTimeout(() => { try { ac.close(); } catch(_){} }, 400);
+                }
+            } catch (_) { /* audio is a nice-to-have; never let it break upload completion */ }
+
             // NOTE: callers fire the "Video is live" toast AFTER their DB insert
             // so we don't announce too early. bgUpload only handles the upload.
 

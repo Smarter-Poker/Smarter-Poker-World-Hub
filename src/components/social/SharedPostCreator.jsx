@@ -232,27 +232,23 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             // Picker just dismissed. Switch to 'loading' state — iOS is now
             // doing its sandbox-copy / iCloud-pull work before firing change.
             setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
-            // Schedule the watchdog in a REF, not a closure variable. If we
-            // used a closure var, the useEffect cleanup (which fires the
-            // moment setPreparingStage transitions out of 'picker') would
-            // clearTimeout the watchdog 0-1ms after we set it — the bug
-            // caught in audit-7. Storing in a ref lets the watchdog survive
-            // the 'picker' → 'loading' transition; the watchdog is cleared
-            // when handleFiles fires (file arrived) or naturally fires
-            // after 5s and self-determines whether a cancel happened.
-            if (_focusGraceTimerRef.current) clearTimeout(_focusGraceTimerRef.current);
-            _focusGraceTimerRef.current = setTimeout(() => {
-                _focusGraceTimerRef.current = null;
-                if (!mountedRef.current) return;
-                if (!_hasFileArrivedRef.current) {
-                    setPreparingStage(null);
-                    _pickerOpenRef.current = false;
-                }
-            }, 5000);
+            // AUDIT-8 FIX (2026-04-30 per Dan — REPRODUCED ON HIS iPHONE):
+            // NO short watchdog. The previous 5s 'cancel detection' fired
+            // mid-handoff for legitimate iPhone HEVC selections (the iOS
+            // sandbox-copy + iCloud-pull window is 5-30s, not <5s). Net
+            // effect for Dan: banner cleared at T+5s, then 5-25s of BLANK
+            // screen until the change event finally fired and staging
+            // started. Exactly what he reported: "nothing happens for 25-30s
+            // before the video starts staging". Removing the watchdog
+            // entirely; the banner now stays up through the entire iOS
+            // handoff. Cancel detection falls back to the 90s ultimate
+            // backstop (sibling useEffect above) — annoying if the user
+            // genuinely cancels (banner stuck for up to 90s) but
+            // ZERO risk of clearing a banner mid-legitimate-upload, which
+            // was the user-visible disaster.
         };
         window.addEventListener('focus', onFocus);
         return () => {
-            // DO NOT clear _focusGraceTimerRef here — see comment above.
             window.removeEventListener('focus', onFocus);
         };
     }, [preparingStage]);
@@ -1140,23 +1136,29 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                             </div>
                                         </div>
                                     ) : (
-                                        // AUDIT-6 (2026-04-30): no client thumbnail (mobile path,
-                                        // or desktop where canvas decode hasn't finished yet) →
-                                        // fall back to <video preload="metadata"> which the browser
-                                        // auto-renders showing the first decoded frame as poster.
-                                        // No JS work needed; render is essentially free. Tap still
-                                        // promotes to a controlled <video> for full preview.
-                                        // The play-button overlay sits on top so it's tappable.
+                                        // AUDIT-8 (2026-04-30 per Dan: black staging tile bug):
+                                        // <video preload="metadata"> on iOS Safari with HEVC does
+                                        // NOT decode any frames — it only loads the moov atom for
+                                        // duration/dimensions. Result: video element renders BLACK
+                                        // until the user taps play. Fix: autoPlay + muted +
+                                        // playsInline + onLoadedData={pause} forces the browser to
+                                        // decode the first frame, display it, then immediately
+                                        // pause. iOS Safari permits muted+playsInline autoplay
+                                        // without a user gesture, so this works on iPhone HEVC
+                                        // sources where preload="metadata" alone shows black.
                                         <div
                                             style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer', background: '#000' }}
                                             onClick={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: true } : item))}
                                         >
                                             <video
                                                 src={m.url}
-                                                preload="metadata"
+                                                autoPlay
                                                 muted
                                                 playsInline
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
+                                                preload="auto"
+                                                loop={false}
+                                                onLoadedData={(e) => { try { e.currentTarget.pause(); } catch (_) {} }}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', background: '#000' }}
                                             />
                                             {/* Play overlay */}
                                             <div style={{

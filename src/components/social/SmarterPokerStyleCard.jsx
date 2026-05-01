@@ -483,12 +483,60 @@ export const SPPostCard = ({
                                         >
                                             {isVideo ? (
                                                 <>
-                                                    <img
-                                                        src={media.thumbnail || post.thumbnailUrl || post.thumbnail_url || `https://img.youtube.com/vi/${mediaUrl?.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/hqdefault.jpg`}
-                                                        alt={`Video ${idx + 1}`}
-                                                        loading="lazy"
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
+                                                    {(() => {
+                                                        // AUDIT-8 (2026-04-30 per Dan): the feed used to ALWAYS
+                                                        // render an <img> for video posters. When thumbnail_url
+                                                        // was null AND the URL wasn't YouTube, the YouTube
+                                                        // regex match failed and produced an
+                                                        // 'https://img.youtube.com/vi/undefined/hqdefault.jpg'
+                                                        // 404 → black tile. Now we branch:
+                                                        //   • Real thumbnail URL → <img> (cheap, cacheable)
+                                                        //   • YouTube source → YouTube poster <img>
+                                                        //   • Otherwise (uploaded video w/ no thumbnail yet —
+                                                        //     cron hasn't run) → autoplay-once <video> that
+                                                        //     decodes the first frame and pauses, same
+                                                        //     pattern as the staging tile in SharedPostCreator.
+                                                        const thumb = media.thumbnail || post.thumbnailUrl || post.thumbnail_url;
+                                                        const ytId = mediaUrl?.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1];
+                                                        if (thumb) {
+                                                            return (
+                                                                <img
+                                                                    src={thumb}
+                                                                    alt={`Video ${idx + 1}`}
+                                                                    loading="lazy"
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                />
+                                                            );
+                                                        }
+                                                        if (ytId) {
+                                                            return (
+                                                                <img
+                                                                    src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                                                                    alt={`Video ${idx + 1}`}
+                                                                    loading="lazy"
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                />
+                                                            );
+                                                        }
+                                                        // Uploaded video without a server-generated thumbnail
+                                                        // yet: render the actual video element. autoPlay+muted
+                                                        // +playsInline pulls the first frame on iOS Safari
+                                                        // (works for native MP4; HEVC-only sources will look
+                                                        // black on Chrome but render correctly on iOS until
+                                                        // the cron transcodes to H.264).
+                                                        return (
+                                                            <video
+                                                                src={mediaUrl}
+                                                                autoPlay
+                                                                muted
+                                                                playsInline
+                                                                preload="auto"
+                                                                loop={false}
+                                                                onLoadedData={(e) => { try { e.currentTarget.pause(); } catch (_) {} }}
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+                                                            />
+                                                        );
+                                                    })()}
                                                     {/* Play Button Overlay */}
                                                     <div className="video-play-overlay">
                                                         <div className="play-button">▶</div>
