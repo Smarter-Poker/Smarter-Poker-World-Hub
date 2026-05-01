@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
@@ -15,6 +16,7 @@ import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
 
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
+    const router = useRouter();
     const [postVisibility, setPostVisibility] = useState('public');
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
@@ -1701,6 +1703,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         // AUDIT-13: reset and start the timing baseline. tap=0 by definition.
                         _timingsRef.current = { tap: performance.now() };
                         setTimingDisplay('tap=0');
+                        // COMPOSE-V2 (2026-05-01): on the main social feed, route the
+                        // tap into the new multi-screen FB-style flow at /compose
+                        // (Picker → Edit → Cover → Post). Other contexts (club page,
+                        // group, etc.) keep the inline staging composer.
+                        if (context === 'social-media' && router) {
+                            try { router.push('/hub/social-media/compose'); } catch (_) {}
+                            return;
+                        }
                         setPreparingStage('picker');
                         fileRef.current?.click();
                     }}

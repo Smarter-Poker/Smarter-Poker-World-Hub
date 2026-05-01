@@ -95,6 +95,26 @@ async function probeCodec(file) {
     });
 }
 
+// Probe duration in seconds (float) for the input. Used to compute evenly-spaced
+// timestamps for the 8-frame cover_frames extraction.
+async function probeDurationSec(file) {
+    return new Promise((resolve) => {
+        const p = spawn(FFPROBE_BIN, [
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'csv=p=0',
+            file,
+        ]);
+        let out = '';
+        p.stdout.on('data', d => { out += d.toString(); });
+        p.on('close', () => {
+            const n = parseFloat(out.trim());
+            resolve(isFinite(n) && n > 0 ? n : 0);
+        });
+        p.on('error', () => resolve(0));
+    });
+}
+
 async function runFfmpeg(args) {
     return new Promise((resolve, reject) => {
         const p = spawn(FFMPEG_BIN, args);
@@ -138,7 +158,7 @@ export default async function handler(req, res) {
     //    original social_page_posts row).
     const { data: queue, error: qErr } = await supa
         .from('social_posts')
-        .select('id, author_id, media_urls, original_media_url, content_type, metadata, thumbnail_url')
+        .select('id, author_id, media_urls, original_media_url, content_type, metadata, thumbnail_url, cover_frame_index')
         .eq('transcode_status', 'queued')
         .order('created_at', { ascending: true })
         .limit(1);
@@ -231,62 +251,99 @@ export default async function handler(req, res) {
         await runFfmpeg(ffArgs);
         const outSize = (await stat(outFile)).size;
 
-        // ─── 4b. THUMBNAIL EXTRACTION (AUDIT-20, 2026-04-30 per Dan: "POSTED
-        //         BY STILL ONLY SHOWED THE BLACK SCREEN, NO THUMBNAIL").
-        // The client-side generateThumbnail can't reliably read iPhone HEVC
-        // frames into a canvas (Safari hardware-decode path doesn't expose
-        // pixels), so iPhone uploads land with thumbnail_url=NULL. The feed
-        // then renders a black gradient placeholder. Cron-side ffmpeg has
-        // no such limitation — extract one frame here while the source is
-        // already on disk, upload it, and back-prop into the same DB UPDATE
-        // as the transcode result so feed cards swap from black → poster
-        // the moment realtime fires.
-        let thumbPublicUrl = null;
+        // ─── 4b. COVER-FRAMES EXTRACTION (AUDIT-21, 2026-05-01 — Compose V2)
+        // Replaces the single-frame thumbnail extraction (AUDIT-20) with an
+        // 8-frame ladder so the new "Edit cover" UI can offer a real scrubber.
+        //
+        // What we do here:
+        //   1. Probe duration. Compute 8 timestamps evenly spaced across the
+        //      middle 90% of the video (skipping the first/last 5% to avoid
+        //      black fade-in/out frames).
+        //   2. Extract each frame to <work>/frame_<i>.jpg using ffmpeg with
+        //      -ss-before-i fast-seek (keyframe-accurate, 10-50× faster than
+        //      post-decode seek; perfectly fine for cover thumbnails).
+        //   3. Upload each frame to social-media bucket as a public URL.
+        //   4. Persist all 8 URLs in social_posts.cover_frames TEXT[].
+        //   5. If post.cover_frame_index is set (user picked a specific
+        //      frame on the Edit cover screen BEFORE the cron ran), use that
+        //      one as thumbnail_url. Otherwise use frame 0.
+        //
+        // Failure mode: if any individual frame extraction throws, we log and
+        // skip that index — the array can have nulls. The post is never
+        // blocked by cover-frame extraction failures.
+        let coverFrameUrls = [];
+        let chosenThumbUrl = null;
         try {
-            const thumbFile = join(work, 'thumb.jpg');
-            // Seek to 1s (covers black-fade-in intros), single frame, scale
-            // longest edge to 480px, JPEG q=2 (~visually lossless ~50KB).
-            // -ss BEFORE -i is the "fast seek" path — keyframe-accurate
-            // enough for thumbnails and 10-50× faster than post-decode seek.
-            await runFfmpeg([
-                '-y', '-hide_banner', '-loglevel', 'error',
-                '-ss', '1',
-                '-i', inFile,
-                '-vframes', '1',
-                '-vf', "scale='if(gt(iw,ih),480,-2)':'if(gt(iw,ih),-2,480)'",
-                '-q:v', '2',
-                thumbFile,
-            ]);
-            const thumbBuf = await readFile(thumbFile);
-            if (thumbBuf && thumbBuf.length > 100) {
-                // Mirror the video's storage path: same prefix, swap base name
-                // to thumb_<ts>.jpg and folder thumbnails/. Cosmetic only —
-                // any path under social-media bucket works.
-                const thumbBucketPath = dstBucketPath
-                    .replace(/^videos\//, 'thumbnails/')
-                    .replace(/\.mp4$/, `_thumb_${Date.now()}.jpg`);
-                const thumbUploadUrl = `${SUPABASE_URL}/storage/v1/object/social-media/${thumbBucketPath}`;
-                const thumbUp = await fetch(thumbUploadUrl, {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${SERVICE_KEY}`,
-                        apikey: SERVICE_KEY,
-                        'Content-Type': 'image/jpeg',
-                        'x-upsert': 'true',
-                    },
-                    body: thumbBuf,
-                });
-                if (thumbUp.ok) {
-                    thumbPublicUrl = `${SUPABASE_URL}/storage/v1/object/public/social-media/${thumbBucketPath}`;
-                } else {
-                    const txt = await thumbUp.text().catch(() => '');
-                    console.warn(`[transcode] thumbnail upload failed ${thumbUp.status}: ${txt.slice(0, 200)}`);
+            const durationSec = await probeDurationSec(inFile);
+            const FRAME_COUNT = 8;
+            const timestamps = Array.from({ length: FRAME_COUNT }, (_, i) => {
+                if (durationSec > 0) {
+                    return Math.max(0.1, (durationSec * 0.05) + (durationSec * 0.9 * i) / Math.max(FRAME_COUNT - 1, 1));
+                }
+                // Fallback: 1 second per frame for unknown-duration files
+                return 1 + i;
+            });
+
+            const thumbBaseName = dstBucketPath
+                .replace(/^videos\//, 'thumbnails/')
+                .replace(/\.mp4$/, '');
+            const tsStamp = Date.now();
+
+            for (let i = 0; i < FRAME_COUNT; i++) {
+                const t = timestamps[i];
+                const localFrame = join(work, `frame_${i}.jpg`);
+                try {
+                    await runFfmpeg([
+                        '-y', '-hide_banner', '-loglevel', 'error',
+                        '-ss', String(t),
+                        '-i', inFile,
+                        '-vframes', '1',
+                        '-vf', "scale='if(gt(iw,ih),480,-2)':'if(gt(iw,ih),-2,480)'",
+                        '-q:v', '2',
+                        localFrame,
+                    ]);
+                    const frameBuf = await readFile(localFrame);
+                    if (!frameBuf || frameBuf.length < 100) {
+                        coverFrameUrls.push(null);
+                        continue;
+                    }
+                    const bucketPath = `${thumbBaseName}_frame${i}_${tsStamp}.jpg`;
+                    const upUrl = `${SUPABASE_URL}/storage/v1/object/social-media/${bucketPath}`;
+                    const upRes = await fetch(upUrl, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${SERVICE_KEY}`,
+                            apikey: SERVICE_KEY,
+                            'Content-Type': 'image/jpeg',
+                            'x-upsert': 'true',
+                        },
+                        body: frameBuf,
+                    });
+                    if (upRes.ok) {
+                        coverFrameUrls.push(`${SUPABASE_URL}/storage/v1/object/public/social-media/${bucketPath}`);
+                    } else {
+                        const txt = await upRes.text().catch(() => '');
+                        console.warn(`[transcode] cover frame ${i} upload failed ${upRes.status}: ${txt.slice(0, 200)}`);
+                        coverFrameUrls.push(null);
+                    }
+                } catch (frameErr) {
+                    console.warn(`[transcode] cover frame ${i} extraction skipped:`, frameErr?.message || frameErr);
+                    coverFrameUrls.push(null);
                 }
             }
-        } catch (thumbErr) {
-            // Best-effort — never block the transcode itself.
-            console.warn('[transcode] thumbnail extraction skipped:', thumbErr?.message || thumbErr);
+
+            // Pick the chosen frame for thumbnail_url. Prefer post.cover_frame_index
+            // if the user selected one on the Edit cover screen; else use frame 0.
+            const idx = (typeof post.cover_frame_index === 'number' && post.cover_frame_index >= 0 && post.cover_frame_index < FRAME_COUNT)
+                ? post.cover_frame_index
+                : 0;
+            chosenThumbUrl = coverFrameUrls[idx] || coverFrameUrls.find(u => !!u) || null;
+        } catch (coverErr) {
+            console.warn('[transcode] cover-frames extraction skipped:', coverErr?.message || coverErr);
         }
+        // Legacy single-thumb name kept so the AUDIT-20 update payload below
+        // still finds a value when cover_frames extraction succeeded.
+        const thumbPublicUrl = chosenThumbUrl;
 
         // 5. Upload to storage (POST to /storage/v1/object/<bucket>/<path>).
         const outBuf = await readFile(outFile);
@@ -313,9 +370,11 @@ export default async function handler(req, res) {
             ? [newPublicUrl, ...post.media_urls.slice(1)]
             : [newPublicUrl];
 
-        // AUDIT-20: include thumbnail_url ONLY if extraction succeeded AND
-        // the row doesn't already have one (don't overwrite a client-side
-        // thumbnail that may be better than our 1s seek).
+        // AUDIT-20/21: include thumbnail_url + cover_frames in the row update.
+        // thumbnail_url ONLY if we don't already have one OR the user picked a
+        // specific frame on the Edit cover screen (post.cover_frame_index set);
+        // cover_frames always overwrites any prior value since it's the
+        // canonical post-transcode state.
         const updatePayload = {
             media_urls: newMediaUrls,
             transcode_status: 'done',
@@ -323,8 +382,16 @@ export default async function handler(req, res) {
             transcoded_at: new Date().toISOString(),
             original_media_url: srcUrl,
         };
-        if (thumbPublicUrl && !post.thumbnail_url) {
-            updatePayload.thumbnail_url = thumbPublicUrl;
+        if (Array.isArray(coverFrameUrls) && coverFrameUrls.some(u => !!u)) {
+            updatePayload.cover_frames = coverFrameUrls;
+        }
+        if (thumbPublicUrl) {
+            // If the user picked a specific frame index in the composer, the
+            // thumbnail should reflect that even if the row already had one.
+            const userPicked = typeof post.cover_frame_index === 'number';
+            if (userPicked || !post.thumbnail_url) {
+                updatePayload.thumbnail_url = thumbPublicUrl;
+            }
         }
         await supa.from('social_posts').update(updatePayload).eq('id', post.id);
 
