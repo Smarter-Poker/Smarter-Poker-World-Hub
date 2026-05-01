@@ -380,16 +380,17 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 }));
                 useComposeStore.getState().reset();
                 useComposeStore.getState().addMedia(items);
-                // FB-PARITY-FIX (2026-05-01 per Dan): land the user on the
-                // AlbumPicker REVIEW screen — that's where our big blue
-                // "Next" button lives, matching the in-picker "Next" Dan
-                // pointed to in the FB screenshots. AlbumPicker won't
-                // re-fire the iOS picker because media.length > 0 already.
-                // After Next tap, AlbumPicker calls onNext → setStep('edit')
-                // and the user lands on the staging area (description,
-                // thumbnail editor) — that's the 1:1 FB sequence:
-                //   iOS Photos picker → "Next" → edit/staging
-                useComposeStore.getState().setStep('picker');
+                // KILL-ALBUMPICKER (2026-05-01 per Dan): the AlbumPicker
+                // review screen was breaking real uploads — its mount-time
+                // auto-click of fileRef was firing a SECOND iOS picker
+                // even when media was already populated, which Dan saw as
+                // a "select video / open library" full-screen popping up
+                // after his upload had already started. He asked us to
+                // remove it entirely. New flow:
+                //   iOS Photos picker → EditPostScreen (staging)
+                // No intermediate review screen. Same direct handoff that
+                // worked before the FB-parity tweak.
+                useComposeStore.getState().setStep('edit');
                 if (fileRef.current) fileRef.current.value = '';
                 setPreparingStage(null);
                 router.push('/hub/social-media/compose');

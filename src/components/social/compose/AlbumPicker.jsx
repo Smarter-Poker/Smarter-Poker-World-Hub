@@ -10,7 +10,7 @@
  *
  * The picker is re-triggerable via "+ Add more" so users can append.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useComposeStore } from '../../../stores/composeStore';
 
 const COLS = 3;
@@ -65,9 +65,16 @@ export default function AlbumPicker({ onClose, onNext }) {
     // KILL-AUTO-CLICK (2026-05-01 per Dan): AlbumPicker is no longer in the
     // active flow (compose.js dropped its import; default step is now
     // 'edit'). Even if some stale chunk somehow mounts this component,
+<<<<<<< Updated upstream
     // the auto-click is permanently disabled — it was firing a SECOND iOS
     // Photos picker on iPhone after the upload had already started, breaking
     // real uploads. Component kept around only as a defensive fallback.
+=======
+    // the auto-click is disabled — it was firing a SECOND iOS Photos
+    // picker on iPhone after the upload had already started, breaking
+    // real uploads. Component kept around only as a defensive fallback.
+    // No-op effect.
+>>>>>>> Stashed changes
     useEffect(() => {
         autoOpenedRef.current = true;
     }, []);

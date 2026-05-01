@@ -385,9 +385,15 @@ export default function ComposePage() {
 
     // ── Render the active step ────────────────────────────────────────
     // KILL-ALBUMPICKER (2026-05-01 per Dan): the picker step is dead. If
+<<<<<<< Updated upstream
     // any caller (or stale state) tries to set step='picker', we render
     // EditPostScreen anyway. AlbumPicker was opening a duplicate iOS
     // picker on mount and breaking real uploads.
+=======
+    // someone (or stale state) tries to set step='picker', we treat it
+    // as 'edit'. AlbumPicker was opening a duplicate iOS picker on mount
+    // and breaking real uploads.
+>>>>>>> Stashed changes
     if (step === 'cover') {
         return <CoverFramePicker onBack={() => setStep('edit')} onSave={() => setStep('edit')} />;
     }

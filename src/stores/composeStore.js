@@ -12,7 +12,10 @@
 import { create } from 'zustand';
 
 const DEFAULTS = {
-    step: 'picker',                  // 'picker' | 'edit' | 'cover' | 'uploading'
+    // KILL-ALBUMPICKER (2026-05-01 per Dan): default is now 'edit'.
+    // 'picker' is kept as a valid value so existing callers don't break,
+    // but compose.js renders EditPostScreen for both 'edit' and 'picker'.
+    step: 'edit',                    // 'edit' | 'cover' | 'uploading' (legacy: 'picker')
     media: [],                       // [{ id, type:'photo'|'video', file, url:blobUrl, thumbnail, durationSec, width, height }]
     draft: '',                       // post text / description
     visibility: 'public',            // legacy public/friends — kept for fn_create_social_post compatibility
