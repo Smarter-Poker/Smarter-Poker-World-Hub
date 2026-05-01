@@ -3586,20 +3586,30 @@ export type Database = {
           seat_number: number
         }[]
       }
-      fn_get_or_create_conversation: {
-        // Live signature (verified 2026-04-30 against pg_proc):
-        //   p_user_id uuid, p_other_user_id uuid, p_conversation_type text DEFAULT 'direct'
-        //   RETURNS jsonb
-        // Previous types here (user1_id/user2_id, returns string) were stale —
-        // every caller had to cast and the wrong shape masked the real bug
-        // tracked in task #93/#94 (messenger conversation enumeration).
-        Args: {
-          p_user_id: string
-          p_other_user_id: string
-          p_conversation_type?: string
-        }
-        Returns: Json
-      }
+      fn_get_or_create_conversation:
+        // The smarter.poker DB has TWO live overloads of this function during
+        // the conversation-schema pivot (see
+        // .agent/audits/2026-05-01-conversation-schema-pivot.md):
+        //   (user1_id, user2_id) → uuid
+        //     The new canonical, targets messenger_* tables. Used by
+        //     services/MessagingService.js.
+        //   (p_user_id, p_other_user_id, p_conversation_type) → jsonb
+        //     The deprecated overload, targets social_conversations. Used by
+        //     pages/api/messenger/start-conversation.js, club-arena
+        //     approve-cashout / request-cashout, hub/messenger.js.
+        // Both will coexist until the migration completes.
+        | {
+            Args: { user1_id: string; user2_id: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_user_id: string
+              p_other_user_id: string
+              p_conversation_type?: string
+            }
+            Returns: Json
+          }
       fn_get_social_feed: {
         Args: {
           p_filter?: string

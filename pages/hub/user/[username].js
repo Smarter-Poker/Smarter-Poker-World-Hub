@@ -1126,6 +1126,7 @@ export default function UserProfilePage() {
     const [pokerCheckins, setPokerCheckins] = useState([]);
     const [pokerFollowing, setPokerFollowing] = useState([]);
     const [checkinStreak, setCheckinStreak] = useState({ currentStreak: 0, longestStreak: 0, totalCheckins: 0 });
+    const [shareStreak, setShareStreak] = useState({ streak_days: 0, is_active: false });
     const [checkinBadges, setCheckinBadges] = useState([]);
     const [checkinStats, setCheckinStats] = useState(null);
     const [checkinHeatmap, setCheckinHeatmap] = useState(null);
@@ -1653,6 +1654,19 @@ export default function UserProfilePage() {
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setCheckinStreak({ currentStreak: j.currentStreak || 0, longestStreak: j.longestStreak || 0, totalCheckins: j.totalCheckins || 0 }); })
                         .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    // Fetch share streak data from share_streaks view
+                    supabase
+                        .from('share_streaks')
+                        .select('streak_days, is_active, streak_end')
+                        .eq('user_id', pokerUid)
+                        .eq('is_active', true)
+                        .order('streak_days', { ascending: false })
+                        .limit(1)
+                        .maybeSingle()
+                        .then(({ data: ss }) => {
+                            if (ss) setShareStreak({ streak_days: ss.streak_days || 0, is_active: ss.is_active });
+                        })
+                        .catch(() => {});
                     // Fetch check-in badges
                     fetch('/api/poker/checkins/badges?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
@@ -2275,6 +2289,21 @@ export default function UserProfilePage() {
                                                     (Best: {checkinStreak.longestStreak})
                                                 </span>
                                             )}
+                                        </span>
+                                    </>
+                                )}
+                                {shareStreak.is_active && shareStreak.streak_days >= 2 && (
+                                    <>
+                                        <span className="sp-stat-dot">·</span>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 3,
+                                            background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))',
+                                            border: '1px solid rgba(99,102,241,0.35)',
+                                            borderRadius: 12, padding: '2px 8px', fontSize: 12, fontWeight: 700,
+                                            color: '#818cf8', whiteSpace: 'nowrap'
+                                        }}>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#818cf8" stroke="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                                            💎 {shareStreak.streak_days}-Day Shares
                                         </span>
                                     </>
                                 )}
