@@ -621,3 +621,8 @@ img[style*="borderRadius:50%"] {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+@keyframes shareSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

@@ -1194,7 +1194,7 @@ ${messages.map(m =>
             const participantRows = [currentUser.id, ...participants].map(uid => ({
                 conversation_id: conv.id,
                 user_id: uid,
-                role: uid === currentUser.id ? 'admin' : 'member'
+                role: 'admin'
             }));
             await supabase.from('messenger_participants').insert(participantRows);
             return conv;
@@ -1223,7 +1223,7 @@ ${messages.map(m =>
             await supabase.from('messenger_participants').insert({
                 conversation_id: conversationId,
                 user_id: userId,
-                role: 'member'
+                role: 'admin'
             });
             return true;
         } catch (_) { return false; }

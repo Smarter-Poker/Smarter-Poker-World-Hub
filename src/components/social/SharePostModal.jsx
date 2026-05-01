@@ -265,16 +265,17 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
         let successCount = 0;
         for (const friendId of selected) {
             try {
-                // Find or create conversation, then send message
                 const { data: existingConv } = await supabase
                     .from('messenger_participants')
-                    .select('conversation_id')
-                    .eq('user_id', currentUser.id);
+                    .select('conversation_id, messenger_conversations!inner(type)')
+                    .eq('user_id', currentUser.id)
+                    .eq('messenger_conversations.type', 'direct');
 
                 const { data: friendConv } = await supabase
                     .from('messenger_participants')
-                    .select('conversation_id')
-                    .eq('user_id', friendId);
+                    .select('conversation_id, messenger_conversations!inner(type)')
+                    .eq('user_id', friendId)
+                    .eq('messenger_conversations.type', 'direct');
 
                 const myConvIds = new Set((existingConv || []).map(c => c.conversation_id));
                 const sharedConv = (friendConv || []).find(c => myConvIds.has(c.conversation_id));
@@ -286,7 +287,8 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                     const { data: newConv, error: convErr } = await supabase
                         .from('messenger_conversations')
                         .insert({
-                            conversation_type: 'direct',
+                            type: 'direct',
+                            created_by: currentUser.id,
                             last_message_text: shareText.slice(0, 100),
                             last_message_at: new Date().toISOString(),
                         })
@@ -298,8 +300,8 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
 
                     // Add both participants
                     await supabase.from('messenger_participants').insert([
-                        { conversation_id: convId, user_id: currentUser.id, role: 'member' },
-                        { conversation_id: convId, user_id: friendId, role: 'member' },
+                        { conversation_id: convId, user_id: currentUser.id, role: 'owner' },
+                        { conversation_id: convId, user_id: friendId, role: 'owner' },
                     ]);
                 }
 
@@ -342,7 +344,7 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                     fetch('/api/social/share-count', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                        body: JSON.stringify({ post_id: post?.id }),
+                        body: JSON.stringify({ post_id: post?.id, destination: 'messenger' }),
                     }).catch(() => {});
                 }
             } catch (_) {}
@@ -584,7 +586,7 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
                     fetch('/api/social/share-count', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                        body: JSON.stringify({ post_id: post?.id }),
+                        body: JSON.stringify({ post_id: post?.id, destination: 'external', platform: platform.id }),
                     }).catch(() => {});
                 }
             } catch (_) {}
@@ -608,16 +610,27 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
             onClick={handleBackdrop}
             style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-                zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 16, animation: 'shareFadeIn 0.2s ease',
+                zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                padding: '0', animation: 'shareFadeIn 0.2s ease',
             }}
         >
-            <div style={{
-                background: C.card, borderRadius: 16, width: '100%', maxWidth: 520,
-                maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.25)', animation: 'shareScaleIn 0.25s ease',
-                overflow: 'hidden',
-            }}>
+            <div 
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                    background: C.card, width: '100%', maxWidth: 520,
+                    maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+                    boxShadow: '0 -4px 20px rgba(0,0,0,0.15)', animation: 'shareSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    overflow: 'hidden', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+                    transform: dragY > 0 ? `translateY(${dragY}px)` : 'none',
+                    transition: dragY === 0 ? 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+                }}
+            >
+                {/* Swipe Handle Indicator */}
+                <div style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+                    <div style={{ width: 40, height: 5, borderRadius: 3, background: C.border }} />
+                </div>
                 {/* Header */}
                 <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',

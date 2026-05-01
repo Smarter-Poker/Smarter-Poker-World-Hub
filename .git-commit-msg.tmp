@@ -1,0 +1,53 @@
+fix(compose): wire 3 sheets to real endpoints + fix shareToGroups persistence
+
+Audit caught four wiring bugs in the V2 compose flow that would have
+silently 404'd or returned empty results:
+
+  1. TagPeopleSheet was calling /api/social/users/search — that endpoint
+     does not exist. Switched to direct supabase.from('profiles')
+     .select(id, username, full_name, avatar_url) .or(username.ilike,
+     full_name.ilike) — the same pattern the existing global search at
+     pages/hub/social-media/index.js:5708 already uses. profiles_select
+     RLS is USING(true) so authenticated reads work.
+
+  2. LocationPickerSheet was calling /api/venues/search — also doesn't
+     exist. Switched to /api/poker/venues with the documented params
+     (search=, lat=, lng=, radius=, limit=). Also fixed the response
+     parser: that endpoint returns {success, data: [...]}, not
+     {venues: [...]}; defensive fallback chain handles future variants.
+     Fixed venue picker to map venue.latitude/longitude (the actual
+     column names) into store.location.lat/lng — was hard-coded to
+     v.lat/v.lng which were undefined, leading to silent location
+     metadata loss.
+
+  3. ShareToGroupsSheet was calling /api/social/home-groups — also
+     missing. Switched to direct Supabase reads: union of
+     commander_home_groups WHERE owner_id = me AND is_active, with
+     commander_home_group_follows JOIN commander_home_groups WHERE
+     user_id = me AND is_active. Deduped by group id.
+
+  4. compose.js was calling /api/social/home-groups/post in a
+     fire-and-forget loop to mirror the post into each picked group —
+     that endpoint also doesn't exist. Real "mirror this post into N
+     home group streams" needs the future Hetzner Open Claw worker
+     (per CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md). For now, persist
+     the picked group IDs onto the post's metadata.share_to_groups
+     JSONB so the future worker can pick them up — no data loss.
+
+Verified clean:
+  • social_posts RLS: stale "Anyone can view posts" policy is gone;
+    new "Audience-aware view" calls fn_can_view_post.
+  • fn_can_view_post(uuid, NULL, NULL) returns TRUE — no regression
+    for legacy posts that never had audience_mode set.
+  • fn_can_view_post(uuid, 'public', NULL) → TRUE
+  • fn_can_view_post(uuid, 'only_me', NULL) → FALSE for non-author
+  • fn_can_view_post(uuid, 'invalid_mode', NULL) → FALSE (fail-closed)
+  • profiles_select RLS USING(true) — TagPeopleSheet works for any
+    authenticated viewer.
+  • All modified files pass esbuild --loader:.jsx=jsx parse.
+  • SharedPostCreator router.push gated on context==='social-media' so
+    club-page and other inline composers are unaffected.
+
+The /api/social/home-groups/post mirror is the only deferred piece;
+its absence now degrades gracefully (data preserved in metadata,
+no 404 on every post).
