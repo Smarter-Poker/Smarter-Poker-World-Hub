@@ -1,9 +1,31 @@
-# Postgres `invalid input syntax for type integer` Flood
+# Postgres `invalid input syntax for type integer` Flood — FIXED
 
 **Found:** 2026-04-30  
-**Severity:** Noise (engine retries succeed, no data loss observed)  
-**Frequency:** ~9 errors every 5 seconds, ~150k errors/day  
-**Owning subsystem:** Tournament/table game engine (Hetzner workers VM)
+**Fixed:** 2026-05-01 15:18 UTC (engine commits `943cb47e61` + `062a7f318a`)  
+**Severity:** Noise (engine retries succeeded, no data loss observed)  
+**Was firing at:** ~9 errors every 5 seconds, ~150k errors/day  
+**Owning subsystem:** Tournament/table game engine
+(github.com/Smarter-Poker/Smarter-Poker-Club-Arena, deployed to
+Hetzner workers VM)
+
+## Resolution
+
+Two `Math.floor()` insertions on the engine side, applied directly via
+the GitHub REST API since the sandbox couldn't free disk for a clone:
+
+- `server/src/services/supabase.ts` line 162 — `syncTournamentChips()`
+  was computing `Math.trunc(seat.stack * 100) / 100`, intentionally
+  preserving 2-decimal cents from the cash-style `table_seats.stack`
+  (numeric(15,2)) into the tournament-style
+  `tournament_players.chips` (integer). Now `Math.floor(seat.stack)`.
+
+- `server/src/GameServer.ts` line 1755 — per-hand chip settlement
+  was passing `stackValue` (numeric) directly into the integer
+  column. Now `Math.floor(stackValue)`.
+
+Both commits landed on `main` of the engine repo at 2026-05-01T15:18Z.
+Once Hetzner pulls and restarts the worker process, the postgres log
+flood will stop.
 
 ## Symptom
 
