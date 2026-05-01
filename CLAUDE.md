@@ -79,6 +79,15 @@ exceptions:
    `list_migrations` that the migration appears. Never apply schema changes
    via raw `execute_sql` — migrations only, so the change is auditable.
 
+   For Tier-2+ migrations (anything beyond doc/comment changes), follow
+   the four-step protocol in `.agent/workflows/migration-safety.md`:
+   write from the `supabase/migrations/.template.sql` skeleton, run the
+   pre-flight checklist, apply, then run the post-apply assertions.
+   The template includes `DO $$ ... RAISE EXCEPTION ... $$` blocks so
+   the migration aborts on its own assumption violations. Tier 3
+   (DROP, ALTER COLUMN TYPE, RPC overload changes) MUST include a
+   pasted ROLLBACK section.
+
 3. **Document substantive audits/incidents** under `.agent/audits/<YYYY-MM-DD>-<slug>.md`
    so future agents can read what was investigated, what was fixed, and what
    was deferred. Update `.agent/CLAUDE_AGENT_RULES.md` if a new operating rule
