@@ -105,11 +105,8 @@ export function EndStreamModal({
         const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
         // Get access token for authenticated upload
-        let accessToken = SUPABASE_ANON_KEY;
-        try {
-            const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-            if (authData?.access_token) accessToken = authData.access_token;
-        } catch (_) {}
+        // BUG FIX (ESM-3): use getAccessToken() instead of raw localStorage read
+        const accessToken = getAccessToken() || SUPABASE_ANON_KEY;
 
         // Use XHR for real upload progress instead of Supabase SDK
         return new Promise((resolve, reject) => {

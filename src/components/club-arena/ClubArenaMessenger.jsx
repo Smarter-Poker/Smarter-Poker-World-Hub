@@ -149,6 +149,7 @@ const useMessengerPrefs = () => {
         mutedConversations: {},
         priorityFlags: {},
         unreadCounts: {},
+        showReadReceipts: true,
         templates: [
             "Your funds are ready",
             "Tournament starts in 30 min",
@@ -377,8 +378,27 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
             {/* P5-4 + P10-2 + P14-3 + P20-7: Delivery status ticks with read time tooltip */}
             {message.isOwn && (
-                <span className="read-receipt" title={message.readStatus === 'read' ? `Read at ${message.read_at ? new Date(message.read_at).toLocaleTimeString() : 'unknown'}` : message.readStatus === 'delivered' ? 'Delivered' : 'Sent'} style={{ color: message.readStatus === 'read' ? '#2D88FF' : '#999', fontSize: 10, marginLeft: 4, cursor: 'default' }}>
-                    {message.readStatus === 'read' ? '✓✓' : message.readStatus === 'delivered' ? '✓✓' : '✓'}
+                <span
+                    className="read-receipt"
+                    title={message.readStatus === 'read' ? `Read at ${message.read_at ? new Date(message.read_at).toLocaleTimeString() : 'unknown'}` : 'Delivered'}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        color: (message.readStatus === 'read' && message.showReadReceipts) ? '#2D88FF' : '#8a8d91',
+                        fontSize: 10,
+                        marginLeft: 4,
+                        cursor: 'default',
+                        fontWeight: 500,
+                        letterSpacing: 0.2,
+                    }}
+                >
+                    {(message.readStatus === 'read' && message.showReadReceipts)
+                        ? <><span style={{ color: '#2D88FF' }}>✓✓</span><span style={{ color: '#2D88FF', fontStyle: 'normal' }}>Read</span></>
+                        : message.readStatus === 'delivered' || message.readStatus === 'read'
+                            ? <><span>✓✓</span><span>Delivered</span></>
+                            : <><span>✓</span><span>Sent</span></>
+                    }
                 </span>
             )}
 
@@ -2009,7 +2029,8 @@ export const ChatWindow = ({
                         isOwn: msg.senderId === currentUser?.id,
                         readStatus: msg.readStatus || (msg.senderId === currentUser?.id ? 'sent' : null),
                         priorityFlag: prefs.priorityFlags?.[msg.id] || null,
-                        deliveryStatus: msg.deliveryStatus || 'delivered'
+                        deliveryStatus: msg.deliveryStatus || 'delivered',
+                        showReadReceipts: prefs.showReadReceipts !== false,
                     };
 
                     const isOwn = enrichedMsg.senderId === currentUser?.id;

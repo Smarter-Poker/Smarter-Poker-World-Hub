@@ -1,0 +1,14 @@
+[Unit]
+Description=Smarter Poker YouTube Cookie Refresh Timer
+Requires=sp-yt-cookie-refresh.service
+
+[Timer]
+# Run 2 minutes after boot (ensures network is stable)
+OnBootSec=2min
+# Then every 6 hours (YouTube session cookies last ~24h; refresh 4x/day is safe)
+OnUnitActiveSec=6h
+Unit=sp-yt-cookie-refresh.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

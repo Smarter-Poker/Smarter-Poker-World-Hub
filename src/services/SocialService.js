@@ -54,7 +54,8 @@ export class SocialService {
                     content: row.content,
                     content_type: row.content_type,
                     media_urls: row.media_urls,
-                    thumbnail_url: row.thumbnail_url || null,
+                    thumbnail_url: row.thumbnail_url || null,  // BUG FIX (SS-1): RPC now returns this
+                    metadata: row.metadata || null,            // BUG FIX (SS-1): RPC now returns this
                     like_count: row.like_count,
                     comment_count: row.comment_count,
                     share_count: row.share_count,
@@ -155,7 +156,7 @@ export class SocialService {
                 p_content: content,
                 p_content_type: contentType,
                 p_media_urls: mediaUrls,
-                p_thumbnail_url: thumbnailUrl || null,
+                p_thumbnail_url: thumbnailUrl || null,  // BUG FIX (SS-2): was silently dropped
                 p_visibility: visibility,
                 p_achievement_data: achievementData
             });

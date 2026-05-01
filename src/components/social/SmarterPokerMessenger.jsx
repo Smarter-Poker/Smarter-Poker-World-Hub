@@ -148,6 +148,7 @@ const useMessengerPrefs = () => {
         mutedConversations: {},
         priorityFlags: {},
         unreadCounts: {},
+        showReadReceipts: true,
         templates: [
             "Your funds are ready",
             "Tournament starts in 30 min",
@@ -166,7 +167,7 @@ const useMessengerPrefs = () => {
     const syncToSupabase = async (state) => {
         const sb = await getSupabase();
         if (!sb) return;
-        // Read token from localStorage — avoids supabase.auth.getSession() lock contention
+        // Read token from localStorage — bypasses Supabase client lock contention
         let _uid = null;
         try {
             const _raw = localStorage.getItem('smarter-poker-auth');
@@ -376,8 +377,28 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
             {/* P5-4 + P10-2 + P14-3 + P20-7: Delivery status ticks with read time tooltip */}
             {message.isOwn && (
-                <span className="read-receipt" title={message.readStatus === 'read' ? `Read at ${message.read_at ? new Date(message.read_at).toLocaleTimeString() : 'unknown'}` : message.readStatus === 'delivered' ? 'Delivered' : 'Sent'} style={{ color: message.readStatus === 'read' ? '#2D88FF' : '#999', fontSize: 10, marginLeft: 4, cursor: 'default' }}>
-                    {message.readStatus === 'read' ? '✓✓' : message.readStatus === 'delivered' ? '✓✓' : '✓'}
+                <span
+                    className="read-receipt"
+                    title={message.readStatus === 'read' ? `Read at ${message.read_at ? new Date(message.read_at).toLocaleTimeString() : 'unknown'}` : 'Delivered'}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        color: (message.readStatus === 'read' && message.showReadReceipts) ? '#2D88FF' : '#8a8d91',
+                        fontSize: 10,
+                        marginLeft: 4,
+                        cursor: 'default',
+                        fontWeight: 500,
+                        letterSpacing: 0.2,
+                    }}
+                >
+                    {/* Always show delivered ticks. Show blue read ticks only when read receipts enabled. */}
+                    {(message.readStatus === 'read' && message.showReadReceipts)
+                        ? <><span style={{ color: '#2D88FF' }}>✓✓</span><span style={{ color: '#2D88FF', fontStyle: 'normal' }}>Read</span></>
+                        : message.readStatus === 'delivered' || message.readStatus === 'read'
+                            ? <><span>✓✓</span><span>Delivered</span></>
+                            : <><span>✓</span><span>Sent</span></>
+                    }
                 </span>
             )}
 
@@ -586,6 +607,7 @@ export const ChatWindow = ({
     const [labelFilter, setLabelFilter] = useState('');
     const [showDisappearMenu, setShowDisappearMenu] = useState(false);
     const [showScheduledQueue, setShowScheduledQueue] = useState(false);
+    const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
     // P4 state
     const [forwardMsg, setForwardMsg] = useState(null);
     const [threadParent, setThreadParent] = useState(null);
@@ -1425,7 +1447,7 @@ export const ChatWindow = ({
                 setIsRecording(false);
                 setRecordingTime(0);
 
-                // Use signed-URL upload to avoid supabase.auth.getSession() lock contention
+                // Use signed-URL upload to bypass Supabase client lock contention
                 try {
                     let _voiceToken = null;
                     try {
@@ -1555,101 +1577,93 @@ export const ChatWindow = ({
                     </span>
                 </div>
                 <div className="chat-header-actions">
-                    {/* P7-1 & P7-2: Live Audio / Video Calls (P12-5: WebRTC) */}
+                    {/* Core actions always visible */}
                     <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'audio', status: 'connecting' }); busEmit.callStarted('audio', conversationId, otherUser?.id); svc.startCall(otherUser?.id, 'audio'); }} title="Start Voice Call" style={{ color: activeCall?.type === 'audio' ? '#0088ff' : undefined }}>📞</button>
                     <button className="header-btn call-btn" onClick={() => { setActiveCall({ type: 'video', status: 'connecting' }); busEmit.callStarted('video', conversationId, otherUser?.id); svc.startCall(otherUser?.id, 'video'); }} title="Start Video Call" style={{ color: activeCall?.type === 'video' ? '#0088ff' : undefined }}>🎥</button>
-                    
-                    {/* P8-5: Secret Chat / E2E Encryption */}
                     <button className="header-btn e2e-btn" onClick={() => setIsE2E(!isE2E)} title="Toggle E2E Encryption" style={{ color: isE2E ? '#00e676' : undefined }}>🔒</button>
-                    
-                    {/* E1: Broadcast button for admins */}
                     {isAdmin && <button className="header-btn" onClick={() => { if (inputText.trim()) onBroadcast?.(inputText); }} title="Broadcast to All Members" style={{ color: inputText.trim() ? '#0088ff' : '#ccc' }}>📢</button>}
-                    {/* E3: Label Filter */}
-                    <select className="label-filter-select" value={labelFilter} onChange={e => setLabelFilter(e.target.value)} title="Filter by Label">
-                        <option value="">All</option>
-                        {LABEL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
-                    <button className="header-btn" onClick={() => setShowThemePicker(!showThemePicker)} title="Themes">🎨</button>
-                    {/* E7: Disappearing Timer dropdown */}
-                    <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <button className="header-btn" onClick={() => setShowDisappearMenu(!showDisappearMenu)} title="Disappearing Timer">⏱️</button>
-                        {showDisappearMenu && (
-                            <div className="disappear-menu">
-                                {DISAPPEAR_OPTIONS.map(opt => (
-                                    <button key={opt.value} className={`disappear-opt ${disappearMs === opt.value ? 'active' : ''}`} onClick={() => { updatePrefs(p => ({ ...p, disappearing: { ...p.disappearing, [conversationId]: opt.value } })); setShowDisappearMenu(false); }}>{opt.label}</button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <button className="header-btn" onClick={() => setBookmarksOpen(!bookmarksOpen)} title="Saved Messages">📌</button>
-                    {/* E4: Scheduled Queue viewer */}
-                    <button className="header-btn" onClick={() => setShowScheduledQueue(!showScheduledQueue)} title="Pending Messages" style={{ position: 'relative' }}>
-                        ⏰
-                        {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).length > 0 && (
-                            <span style={{ position: 'absolute', top: -2, right: -2, background: '#0088ff', color: 'white', borderRadius: 8, fontSize: 9, padding: '0 3px', fontWeight: 700 }}>
-                                {(prefs.scheduledQueue || []).filter(q => q.conversationId === conversationId).length}
-                            </span>
-                        )}
-                    </button>
-                    {/* P4-5: Archive toggle */}
-                    <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, archivedConversations: isArchived ? (p.archivedConversations || []).filter(id => id !== conversationId) : [...(p.archivedConversations || []), conversationId] }))} title={isArchived ? 'Unarchive' : 'Archive'} style={{ color: isArchived ? '#0088ff' : undefined }}>📦</button>
-                    {/* P5-1: Search toggle */}
                     <button className="header-btn" onClick={() => setMsgSearch(msgSearch ? '' : ' ')} title="Search Messages">🔍</button>
-                    {/* P5-8: Stats toggle */}
-                    <button className="header-btn" onClick={() => setShowStats(!showStats)} title="Chat Stats">📊</button>
-                    {/* P14-10: Pinned Messages Panel toggle */}
-                    <button className="header-btn" onClick={() => setShowPinnedPanel(!showPinnedPanel)} title="Pinned Messages" style={{ color: showPinnedPanel ? '#2D88FF' : undefined }}>📍</button>
-                    {/* P14-9: Sound Picker toggle */}
-                    <button className="header-btn" onClick={() => setShowSoundPicker(!showSoundPicker)} title="Notification Sound" style={{ color: showSoundPicker ? '#2D88FF' : undefined }}>🔔</button>
-                    {/* P14-8: Archive/Export toggle */}
-                    <button className="header-btn" onClick={() => setShowArchiveExport(!showArchiveExport)} title="Archive/Export" style={{ color: showArchiveExport ? '#2D88FF' : undefined }}>💾</button>
-                    {/* P18-6: Auto-Away toggle */}
-                    <button className="header-btn" onClick={() => setShowAutoAwaySettings(!showAutoAwaySettings)} title="Auto-Away" style={{ color: svc.autoAwayConfig?.enabled ? '#ffd700' : (showAutoAwaySettings ? '#2D88FF' : undefined) }}>🌙</button>
-                    {/* P18-4: Label picker toggle */}
-                    <button className="header-btn" onClick={() => setShowLabelPicker(!showLabelPicker)} title="Labels" style={{ color: showLabelPicker ? '#2D88FF' : undefined }}>🏷️</button>
-                    {/* P18-10: Backup/Restore toggle */}
-                    <button className="header-btn" onClick={() => setShowBackupRestore(!showBackupRestore)} title="Backup/Restore" style={{ color: showBackupRestore ? '#2D88FF' : undefined }}>📦</button>
-                    {/* P19-3: Search toggle */}
-                    <button className="header-btn" onClick={() => setShowSearchOverlay(!showSearchOverlay)} title="Search Messages" style={{ color: showSearchOverlay ? '#2D88FF' : undefined }}>🔎</button>
-                    {/* P19-5: Scheduled messages toggle */}
-                    <button className="header-btn" onClick={() => setShowSchedulePanel(!showSchedulePanel)} title="Scheduled Messages" style={{ color: showSchedulePanel ? '#2D88FF' : undefined }}>⏰</button>
-                    {/* P20-5: Theme Picker */}
-                    <button className="header-btn" onClick={() => setShowThemePicker(!showThemePicker)} title="Chat Theme" style={{ color: showThemePicker ? '#2D88FF' : undefined }}>🎨</button>
-                    {/* P20-2: Contact Insights */}
-                    <button className="header-btn" onClick={() => setShowContactInsights(!showContactInsights)} title="Contact Insights" style={{ color: showContactInsights ? '#2D88FF' : undefined }}>📊</button>
-                    {/* P20-8: Bookmarks Drawer */}
-                    <button className="header-btn" onClick={() => setShowBookmarksDrawer(!showBookmarksDrawer)} title="Bookmarks" style={{ color: showBookmarksDrawer ? '#2D88FF' : undefined }}>🔖</button>
-                    {/* P20-10: Export Formats */}
-                    <button className="header-btn" onClick={() => setShowExportPicker(!showExportPicker)} title="Export Chat" style={{ color: showExportPicker ? '#2D88FF' : undefined }}>💾</button>
-                    {/* P20-6: Multi-Select Forward */}
-                    <button className="header-btn" onClick={() => { setMultiSelectMode(!multiSelectMode); if (multiSelectMode) setSelectedMessageIds([]); }} title={multiSelectMode ? 'Cancel Select' : 'Select Messages'} style={{ color: multiSelectMode ? '#ffd700' : undefined }}>☑️</button>
-                    {/* P21-2: Reminders */}
-                    <button className="header-btn" onClick={() => setShowRemindersPanel(!showRemindersPanel)} title="Reminders" style={{ color: showRemindersPanel ? '#ffd700' : undefined }}>⏰</button>
-                    {/* P21-3: Format Toolbar */}
-                    <button className="header-btn" onClick={() => setShowFormatToolbar(!showFormatToolbar)} title="Format Guide" style={{ color: showFormatToolbar ? '#8ab4f8' : undefined }}>✏️</button>
-                    {/* P15-5: Block User toggle */}
-                    <button className="header-btn" onClick={() => { if (svc.blockedUsers?.includes(otherUser?.id)) { svc.unblockUser(otherUser?.id); } else { svc.blockUser(otherUser?.id); } }} title={svc.blockedUsers?.includes(otherUser?.id) ? 'Unblock User' : 'Block User'} style={{ color: svc.blockedUsers?.includes(otherUser?.id) ? '#ff4444' : undefined }}>🚫</button>
-                    {/* P15-1: Create Group */}
-                    <button className="header-btn" onClick={() => setShowGroupWizard(!showGroupWizard)} title="Create Group" style={{ color: showGroupWizard ? '#2D88FF' : undefined }}>👥</button>
-                    {/* P16-1: Media Gallery toggle */}
-                    <button className="header-btn" onClick={() => { setShowMediaGallery(!showMediaGallery); if (!showMediaGallery) svc.loadMediaGallery(); }} title="Media Gallery" style={{ color: showMediaGallery ? '#2D88FF' : undefined }}>📸</button>
-                    {/* P16-4: Sticker Picker toggle */}
-                    <button className="header-btn" onClick={() => setShowStickerPicker(!showStickerPicker)} title="Stickers" style={{ color: showStickerPicker ? '#2D88FF' : undefined }}>🎭</button>
-                    {/* P16-9: Keyboard Shortcuts */}
-                    <button className="header-btn" onClick={() => setShowShortcuts(!showShortcuts)} title="Keyboard Shortcuts" style={{ color: showShortcuts ? '#2D88FF' : undefined }}>⌨️</button>
-                    {/* P6-1: DND toggle */}
-                    <button className="header-btn" onClick={() => updatePrefs(p => ({ ...p, dndConversations: { ...p.dndConversations, [conversationId]: !isDND } }))} title={isDND ? 'Disable DND' : 'Do Not Disturb'} style={{ color: isDND ? '#E41E3F' : undefined }}>🔕</button>
-                    {/* P6-6: Mute timer */}
+
+                    {/* ☰ Hamburger Menu */}
                     <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <button className="header-btn" onClick={() => setShowMuteMenu(!showMuteMenu)} title={isMuted ? 'Muted' : 'Mute'} style={{ color: isMuted ? '#999' : undefined }}>🔇</button>
-                        {showMuteMenu && (
-                            <div className="disappear-menu">
-                                {MUTE_OPTIONS.map(opt => (
-                                    <button key={opt.value} className={`disappear-opt ${muteUntil === opt.value || (opt.value > 0 && muteUntil > 0 && muteUntil !== -1) ? '' : ''}`} onClick={() => { updatePrefs(p => ({ ...p, mutedConversations: { ...p.mutedConversations, [conversationId]: opt.value === -1 ? -1 : opt.value === 0 ? 0 : Date.now() + opt.value } })); setShowMuteMenu(false); }}>{opt.label}</button>
+                        <button
+                            className="header-btn"
+                            id="messenger-hamburger-btn"
+                            onClick={() => setShowHamburgerMenu(v => !v)}
+                            title="More Options"
+                            style={{ fontSize: 18, fontWeight: 700, padding: '2px 6px', color: showHamburgerMenu ? '#2D88FF' : undefined }}
+                        >☰</button>
+                        {showHamburgerMenu && (
+                            <div id="messenger-hamburger-menu" style={{ position: 'absolute', top: '110%', right: 0, background: '#1c1e21', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.45)', zIndex: 200, minWidth: 240, overflow: 'hidden' }}>
+                                {/* — Messaging — */}
+                                <div style={{ padding: '10px 14px 4px', fontSize: 10, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Messaging</div>
+                                {/* Read Receipts toggle */}
+                                <button
+                                    id="messenger-read-receipts-toggle"
+                                    onClick={() => updatePrefs(p => ({ ...p, showReadReceipts: !(p.showReadReceipts !== false) }))}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 14px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#e4e6ea', fontSize: 14, textAlign: 'left' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 15 }}>✓✓</span>
+                                        <span>Read Receipts</span>
+                                    </span>
+                                    <span style={{ width: 36, height: 20, borderRadius: 10, background: prefs.showReadReceipts !== false ? '#2D88FF' : '#555', display: 'inline-flex', alignItems: 'center', padding: '0 3px', transition: 'background 0.2s', flexShrink: 0 }}>
+                                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'white', transform: prefs.showReadReceipts !== false ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s', display: 'block' }} />
+                                    </span>
+                                </button>
+                                <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
+                                {/* — Chat — */}
+                                <div style={{ padding: '6px 14px 4px', fontSize: 10, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Chat</div>
+                                {[
+                                    { label: '🎨 Chat Theme', action: () => setShowThemePicker(v => !v) },
+                                    { label: '⏱️ Disappearing Messages', action: () => setShowDisappearMenu(v => !v) },
+                                    { label: '📌 Saved / Bookmarks', action: () => setBookmarksOpen(v => !v) },
+                                    { label: '📍 Pinned Messages', action: () => setShowPinnedPanel(v => !v) },
+                                    { label: '📸 Media Gallery', action: () => { setShowMediaGallery(v => !v); if (!showMediaGallery) svc.loadMediaGallery?.(); } },
+                                    { label: '📊 Chat Stats', action: () => setShowStats(v => !v) },
+                                    { label: '🔔 Notification Sound', action: () => setShowSoundPicker(v => !v) },
+                                    { label: '⏰ Scheduled Messages', action: () => setShowSchedulePanel(v => !v) },
+                                    { label: '☑️ Select Messages', action: () => { setMultiSelectMode(v => !v); if (multiSelectMode) setSelectedMessageIds([]); } },
+                                    { label: '✏️ Format Guide', action: () => setShowFormatToolbar(v => !v) },
+                                ].map(item => (
+                                    <button key={item.label} onClick={() => { item.action(); setShowHamburgerMenu(false); }}
+                                        style={{ display: 'block', width: '100%', padding: '9px 14px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#e4e6ea', fontSize: 13, textAlign: 'left' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >{item.label}</button>
                                 ))}
+                                <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
+                                {/* — Privacy — */}
+                                <div style={{ padding: '6px 14px 4px', fontSize: 10, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Privacy</div>
+                                {[
+                                    { label: isDND ? '🔕 Disable Do Not Disturb' : '🔕 Do Not Disturb', action: () => updatePrefs(p => ({ ...p, dndConversations: { ...p.dndConversations, [conversationId]: !isDND } })) },
+                                    { label: isMuted ? '🔇 Unmute' : '🔇 Mute', action: () => setShowMuteMenu(v => !v) },
+                                    { label: isArchived ? '📦 Unarchive' : '📦 Archive', action: () => updatePrefs(p => ({ ...p, archivedConversations: isArchived ? (p.archivedConversations || []).filter(id => id !== conversationId) : [...(p.archivedConversations || []), conversationId] })) },
+                                    { label: svc.blockedUsers?.includes(otherUser?.id) ? '🚫 Unblock User' : '🚫 Block User', action: () => svc.blockedUsers?.includes(otherUser?.id) ? svc.unblockUser?.(otherUser?.id) : svc.blockUser?.(otherUser?.id), danger: !svc.blockedUsers?.includes(otherUser?.id) },
+                                    { label: '💾 Export / Backup', action: () => setShowArchiveExport(v => !v) },
+                                    { label: '👥 Create Group', action: () => setShowGroupWizard(v => !v) },
+                                ].map(item => (
+                                    <button key={item.label} onClick={() => { item.action(); setShowHamburgerMenu(false); }}
+                                        style={{ display: 'block', width: '100%', padding: '9px 14px', border: 'none', background: 'transparent', cursor: 'pointer', color: item.danger ? '#ff6b6b' : '#e4e6ea', fontSize: 13, textAlign: 'left' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >{item.label}</button>
+                                ))}
+                                {/* Mute submenu */}
+                                {showMuteMenu && (
+                                    <div className="disappear-menu" style={{ margin: '0 8px 8px', borderRadius: 8 }}>
+                                        {MUTE_OPTIONS.map(opt => (
+                                            <button key={opt.value} className="disappear-opt" onClick={() => { updatePrefs(p => ({ ...p, mutedConversations: { ...p.mutedConversations, [conversationId]: opt.value === -1 ? -1 : opt.value === 0 ? 0 : Date.now() + opt.value } })); setShowMuteMenu(false); setShowHamburgerMenu(false); }}>{opt.label}</button>
+                                        ))}
+                                    </div>
+                                )}
+                                <div style={{ height: 6 }} />
                             </div>
                         )}
                     </div>
+
                     <button className="header-btn" onClick={onMinimize}>−</button>
                     <button className="header-btn" onClick={onClose}>✕</button>
                 </div>
@@ -1989,7 +2003,10 @@ export const ChatWindow = ({
                         isOwn: msg.senderId === currentUser?.id,
                         readStatus: msg.readStatus || (msg.senderId === currentUser?.id ? 'sent' : null),
                         priorityFlag: prefs.priorityFlags?.[msg.id] || null,
-                        deliveryStatus: msg.deliveryStatus || 'delivered'
+                        deliveryStatus: msg.deliveryStatus || 'delivered',
+                        // Propagate the global read-receipt preference so MessageBubble can
+                        // decide whether to show blue "Read" ticks (prefs → message level)
+                        showReadReceipts: prefs.showReadReceipts !== false,
                     };
 
                     const isOwn = enrichedMsg.senderId === currentUser?.id;

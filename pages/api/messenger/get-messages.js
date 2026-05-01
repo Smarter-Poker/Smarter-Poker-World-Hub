@@ -96,10 +96,17 @@ export default async function handler(req, res) {
           // Both paths use descending — reverse to ascending for display
           const sorted = (messages || []).reverse();
 
+          // The DB column is `content` but the entire messenger frontend reads `message.text`.
+          // Normalize here so we don't have to touch hundreds of UI references.
+          const normalized = sorted.map(m => ({
+              ...m,
+              text: m.content ?? null, // alias content → text for frontend compatibility
+          }));
+
           return res.json({
               success: true,
-              messages: sorted,
-              count: sorted.length
+              messages: normalized,
+              count: normalized.length
           });
       } catch (e) {
           console.warn('[ANTIGRAVITY] Exception:', e);

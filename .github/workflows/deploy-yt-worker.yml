@@ -59,10 +59,18 @@ jobs:
           # Always upgrade yt-dlp (YouTube changes their player frequently)
           sudo pip3 install --upgrade --break-system-packages yt-dlp 2>/dev/null \
             || sudo pip3 install --upgrade yt-dlp
+          # Install camoufox (stealth Firefox for cookie harvesting)
+          if ! python3 -c "import camoufox" 2>/dev/null; then
+            sudo pip3 install --break-system-packages "camoufox[geoip]" 2>/dev/null \
+              || sudo pip3 install "camoufox[geoip]"
+          fi
+          # Download camoufox browser binary (idempotent)
+          python3 -m camoufox fetch 2>/dev/null || true
           sudo mkdir -p /opt/smarter-poker/yt-transcode-worker
           sudo chown "$(whoami):$(whoami)" /opt/smarter-poker/yt-transcode-worker
           yt-dlp --version
           ffmpeg -version | head -1
+          python3 -c "import camoufox; print('camoufox OK')"
           EOSSH
 
       - name: Sync worker code
@@ -73,6 +81,7 @@ jobs:
           rsync -azv --delete \
             --exclude=node_modules \
             --exclude=DEPLOY.md \
+            --exclude=cookies.txt \
             -e "ssh -o StrictHostKeyChecking=accept-new" \
             scripts/yt-transcode-worker/ \
             "$USER@$HOST:/opt/smarter-poker/yt-transcode-worker/"
@@ -92,17 +101,27 @@ jobs:
           EOF
           ssh "$USER@$HOST" 'sudo chmod 600 /etc/sp-yt-transcode.env && sudo chown root:root /etc/sp-yt-transcode.env'
 
-      - name: Install / update systemd unit
+      - name: Install / update systemd units (worker + cookie-refresh timer)
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
           USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
         run: |
           scp scripts/yt-transcode-worker/sp-yt-transcode.service \
             "$USER@$HOST:/tmp/sp-yt-transcode.service"
+          scp scripts/yt-transcode-worker/sp-yt-cookie-refresh.service \
+            "$USER@$HOST:/tmp/sp-yt-cookie-refresh.service"
+          scp scripts/yt-transcode-worker/sp-yt-cookie-refresh.timer \
+            "$USER@$HOST:/tmp/sp-yt-cookie-refresh.timer"
           ssh "$USER@$HOST" '
             sudo mv /tmp/sp-yt-transcode.service /etc/systemd/system/sp-yt-transcode.service
+            sudo mv /tmp/sp-yt-cookie-refresh.service /etc/systemd/system/sp-yt-cookie-refresh.service
+            sudo mv /tmp/sp-yt-cookie-refresh.timer /etc/systemd/system/sp-yt-cookie-refresh.timer
             sudo systemctl daemon-reload
-            sudo systemctl enable sp-yt-transcode
+            sudo systemctl enable sp-yt-transcode sp-yt-cookie-refresh.timer
+            # Run initial cookie harvest before starting the worker
+            echo "Running initial cookie harvest via camoufox..."
+            python3 /opt/smarter-poker/yt-transcode-worker/refresh-yt-cookies.py --test || true
+            sudo systemctl enable --now sp-yt-cookie-refresh.timer
             sudo systemctl restart sp-yt-transcode
             sleep 3
             sudo systemctl is-active sp-yt-transcode

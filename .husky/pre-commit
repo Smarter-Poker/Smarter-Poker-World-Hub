@@ -16,12 +16,12 @@ fi
 # Check for dangerous patterns
 DANGEROUS=0
 for file in $FILES; do
-  if git show ":$file" 2>/dev/null | grep -v '^\s*//' | grep -v '^\s*\*' | grep -q 'supabase\.auth\.getUser'; then
+  if git show ":$file" 2>/dev/null | tr -d '\r' | grep -v '^\s*//' | grep -v '^\s*\*' | grep -q 'supabase\.auth\.getUser'; then
     echo "🚫 BLOCKED: $file contains supabase.auth.getUser()"
     echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
     DANGEROUS=1
   fi
-  if git show ":$file" 2>/dev/null | grep -v '^\s*//' | grep -v '^\s*\*' | grep -q 'supabase\.auth\.getSession'; then
+  if git show ":$file" 2>/dev/null | tr -d '\r' | grep -v '^\s*//' | grep -v '^\s*\*' | grep -q 'supabase\.auth\.getSession'; then
     echo "🚫 BLOCKED: $file contains supabase.auth.getSession()"
     echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
     DANGEROUS=1

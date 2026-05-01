@@ -476,7 +476,16 @@ export const SPPostCard = ({
                                             className="media-item"
                                             onClick={() => {
                                                 if (isVideo) {
-                                                    router.push(`/hub/reels?id=${post.id}`);
+                                                    // BUG FIX (SC-1): Live replay posts must navigate to
+                                                    // /hub/lives?id= not /hub/reels. Live replays are stored
+                                                    // in live_streams (not social_reels), so the Reels viewer
+                                                    // cannot resolve them — produces a black screen.
+                                                    const meta = post.metadata;
+                                                    if (meta?.source === 'live_replay' && (meta?.lives_id || meta?.stream_id)) {
+                                                        router.push(`/hub/lives?id=${meta.lives_id || meta.stream_id}`);
+                                                    } else {
+                                                        router.push(`/hub/reels?id=${post.id}`);
+                                                    }
                                                 }
                                             }}
                                             style={isVideo ? { cursor: 'pointer' } : {}}

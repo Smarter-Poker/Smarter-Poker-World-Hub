@@ -101,6 +101,9 @@ export function createPost(row, author = null) {
         contentType: row.content_type || 'text',
         mediaUrls: row.media_urls || [],
         thumbnail_url: row.thumbnail_url || null,
+        thumbnailUrl: row.thumbnail_url || null, // camelCase alias for components that expect it
+        // BUG FIX (ST-1): map metadata so feed cards can read source/lives_id for routing
+        metadata: row.metadata || null,
         engagement: {
             likeCount: row.like_count || 0,
             commentCount: row.comment_count || 0,

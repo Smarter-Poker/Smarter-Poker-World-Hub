@@ -1,0 +1,16 @@
+[Unit]
+Description=Smarter Poker YouTube Cookie Refresh (camoufox)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=openclaw
+WorkingDirectory=/opt/smarter-poker/yt-transcode-worker
+ExecStart=/usr/bin/python3 /opt/smarter-poker/yt-transcode-worker/refresh-yt-cookies.py --test
+# Restart the YT worker after refreshing cookies so it picks them up
+ExecStartPost=/usr/bin/systemctl restart sp-yt-transcode
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sp-yt-cookie-refresh
+TimeoutStartSec=120

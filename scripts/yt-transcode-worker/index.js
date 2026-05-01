@@ -55,9 +55,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, readFile, stat } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, stat, access } from 'node:fs/promises';
 import { tmpdir, hostname } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const COOKIES_FILE = join(__dirname, 'cookies.txt');
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -134,17 +138,27 @@ async function processJob(job) {
 
   try {
     // ── 1. Download via yt-dlp (<=1080p, MP4 preferred) ─────────────────────
-    await runProcess('yt-dlp', [
+    // Check for camoufox-harvested cookies (written by refresh-yt-cookies.py)
+    const cookiesExist = await access(COOKIES_FILE).then(() => true).catch(() => false);
+    if (cookiesExist) {
+      log(`  Using cookies: ${COOKIES_FILE}`);
+    } else {
+      warn('  No cookies.txt found — downloads may fail on datacenter IPs');
+    }
+
+    const ytdlpArgs = [
       '-f', 'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]/bv*[height<=1080]+ba/b[height<=1080]',
       '--merge-output-format', 'mp4',
       '--no-playlist',
       '--no-warnings',
       '--restrict-filenames',
-      // Use iOS + web player clients — avoids cookie requirement on headless servers
-      '--extractor-args', 'youtube:player_client=ios,web',
-      '-o', rawFile,
-      ytUrl,
-    ], YT_DOWNLOAD_TIMEOUT);
+    ];
+    if (cookiesExist) {
+      ytdlpArgs.push('--cookies', COOKIES_FILE);
+    }
+    ytdlpArgs.push('-o', rawFile, ytUrl);
+
+    await runProcess('yt-dlp', ytdlpArgs, YT_DOWNLOAD_TIMEOUT);
 
     const rawStat = await stat(rawFile);
     if (rawStat.size > MAX_FILE_SIZE) {

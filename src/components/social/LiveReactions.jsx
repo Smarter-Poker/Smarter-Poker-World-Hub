@@ -80,15 +80,24 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
         if (!channelRef.current) return;
         addFloater(emoji); // Show immediately for sender
         setReactionCounts(prev => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
-        await channelRef.current.send({
+        // Broadcast to all viewers (ephemeral, instant)
+        channelRef.current.send({
             type: 'broadcast',
             event: 'reaction',
             // BUG FIX (L1): removed userId from payload. Reactions are ephemeral
             // and anonymous — broadcasting the viewer's identity to all channel
             // subscribers is unnecessary and a privacy leak.
             payload: { emoji },
-        });
-        // NOTE: reaction counts are ephemeral (broadcast only, no DB persistence)
+        }).catch(() => {}); // Non-fatal
+        // BUG FIX (LR-1): persist to DB for analytics (fire-and-forget, non-blocking)
+        // Without this, reaction_count was always 0 in end-stream analytics card.
+        if (streamId && userId) {
+            supabase.from('live_reactions').insert({
+                stream_id: streamId,
+                sender_id: userId,
+                emoji,
+            }).then(() => {}).catch(() => {}); // Truly non-fatal
+        }
     };
 
     return (
