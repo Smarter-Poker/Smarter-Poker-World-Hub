@@ -207,7 +207,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 //  MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend, disabled }) {
+function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend, disabled, autoFocus }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [showGifPicker, setShowGifPicker] = useState(false);
@@ -226,6 +226,15 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
     const gifSearchTimer = useRef(null);
+
+    // Auto-focus textarea when autoFocus prop is set (deep-link compose)
+    useEffect(() => {
+        if (autoFocus && inputRef.current) {
+            // Slight delay to ensure DOM is fully rendered after conversation switch
+            const timer = setTimeout(() => inputRef.current?.focus(), 150);
+            return () => clearTimeout(timer);
+        }
+    }, [autoFocus]);
 
     const emojis = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🃏', '🎰'];
 
@@ -2564,6 +2573,7 @@ function MessengerPage() {
     // ═══════════════════════════════════════════════════════════════════════════
     const router = useRouter();
     const deepLinkHandled = useRef(false);
+    const [composeFocus, setComposeFocus] = useState(false);
     useEffect(() => {
         if (deepLinkHandled.current) return;
         if (!user?.id) return;
@@ -2584,6 +2594,8 @@ function MessengerPage() {
                 if (targetProfile) {
                     // Auto-start conversation with this user
                     await handleStartConversation(targetProfile);
+                    // Signal that the message input should auto-focus for composing
+                    setComposeFocus(true);
                 } else {
                     console.warn('[Messenger] Deep-link target not found:', compose, uid);
                     setToast({ type: 'error', message: 'User not found' });
@@ -6218,7 +6230,7 @@ function MessengerPage() {
                                     </div>
                                 )}
 
-                                <MessageInput key={activeConversation.id} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} />
+                                <MessageInput key={activeConversation.id} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} />
                             </>
                         ) : (
                             /* No conversation selected */
