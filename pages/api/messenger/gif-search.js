@@ -1,4 +1,6 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -11,6 +13,17 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 // GIPHY beta key — this is a FREE public SDK key from GIPHY for development use (not a secret).
 // Override with a paid/production key via GIPHY_API_KEY env var in Vercel if needed.
 const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'GRZ1Yjou2kmUFz1jcXP0S2skHrMZOFoQ';
@@ -20,7 +33,18 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { q, offset = 0, limit = 20, type = 'gif' } = req.query;
+    // Rate limit — gif search uses GIPHY quota (limited per key)
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
+    // Auth required — protects GIPHY quota from unauthenticated scraping
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+    if (authErr || !authData?.user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    // Cap limit to prevent GIPHY quota exhaustion and oversized payloads
+    const { q, offset = 0, type = 'gif' } = req.query;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
 
     // Determine endpoint based on type: 'gif' or 'sticker'
     const endpoint = type === 'sticker' ? 'stickers' : 'gifs';

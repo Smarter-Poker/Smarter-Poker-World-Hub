@@ -10,6 +10,18 @@
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // In-memory cache (survives across requests in the same serverless instance)
 const previewCache = new Map();
@@ -42,9 +54,25 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Invalid URL' });
     }
 
-    // Block internal/private IPs (SSRF protection)
+    // Require auth — link-preview is an outbound HTTP proxy; open access is an SSRF risk
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+    if (authErr || !authData?.user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    // Block internal/private IPs — hardened SSRF protection
     const hostname = parsedUrl.hostname.toLowerCase();
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+    const isPrivate =
+        hostname === 'localhost' ||
+        hostname === '0.0.0.0' ||
+        hostname === '::1' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('169.254.') ||  // AWS/GCP metadata service — critical SSRF vector
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        // 172.16.0.0/12 only (172.16–172.31), not all of 172.x.x.x
+        /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+    if (isPrivate) {
         return res.status(400).json({ success: false, error: 'Private URLs not allowed' });
     }
 

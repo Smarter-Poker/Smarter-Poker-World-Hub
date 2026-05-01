@@ -620,7 +620,7 @@ function GroupsTab({ post, onClose }) {
                     status: 'sent',
                 });
 
-                // Update conversation last message
+                // Update conversation last message with preview title
                 await sb.from('messenger_conversations').update({
                     last_message_text: `📎 ${richPayload2.media_metadata.preview_title}`.slice(0, 100),
                     last_message_at: new Date().toISOString(),

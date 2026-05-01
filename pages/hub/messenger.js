@@ -2380,11 +2380,20 @@ function MessengerPage() {
     const preferencesRef = useRef(preferences);
     useEffect(() => { preferencesRef.current = preferences; setSoundPrefsRef(preferences); }, [preferences]);
 
-    // Message Cache for Instant Display
-    const messageCacheRef = useRef({});
+    // Message Cache for Instant Display — Map with LRU eviction (max 20 conversations)
+    const MESSAGE_CACHE_MAX = 20;
+    const messageCacheRef = useRef(new Map());
     useEffect(() => {
         if (activeConversation?.id && messages.length > 0) {
-            messageCacheRef.current[activeConversation.id] = messages;
+            const cache = messageCacheRef.current;
+            // Move to end (most recent) — delete+re-set implements LRU
+            cache.delete(activeConversation.id);
+            cache.set(activeConversation.id, messages);
+            // Evict oldest entry if over limit
+            if (cache.size > MESSAGE_CACHE_MAX) {
+                const oldestKey = cache.keys().next().value;
+                cache.delete(oldestKey);
+            }
         }
     }, [messages, activeConversation?.id]);
 
@@ -2847,13 +2856,13 @@ function MessengerPage() {
 
                 // DEEP SWEEP FIX: Natively inject the incoming background message into the message cache.
                 // This eliminates the 300ms "pop in" delay if the user clicks over to this conversation.
-                if (messageCacheRef.current && messageCacheRef.current[newMsg.conversation_id]) {
-                    const cacheArr = messageCacheRef.current[newMsg.conversation_id];
+                const cachedMsgs = messageCacheRef.current.get(newMsg.conversation_id);
+                if (cachedMsgs) {
                     // Verify it isn't already in the cache to prevent duplicates
-                    if (!cacheArr.some(m => m.id === newMsg.id)) {
+                    if (!cachedMsgs.some(m => m.id === newMsg.id)) {
                         // The cache lacks the profile join since this is raw from the insert,
                         // but it'll visually render instantly with the content until the background sync finishes.
-                        cacheArr.push(newMsg);
+                        cachedMsgs.push(newMsg);
                     }
                 }
 
@@ -3002,7 +3011,10 @@ function MessengerPage() {
             .subscribe();
 
         return () => supabase.removeChannel(channel);
-    }, [user, activeConversation]);
+    // Use activeConversation.id (primitive) not the full object — the object changes identity
+    // on every setConversations call (sidebar preview refresh), which would tear down the
+    // subscription and create a gap window on every incoming message.
+    }, [user?.id, activeConversation?.id]);
 
     // Typing indicator broadcast
     const typingTimerRef = useRef(null);
@@ -3056,7 +3068,8 @@ function MessengerPage() {
             }
             setOtherTyping(false);
         };
-    }, [user, activeConversation]);
+    // Same primitive-dep pattern as above — avoids teardown on every sidebar refresh
+    }, [user?.id, activeConversation?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // 📞 CALL SIGNALING VIA SUPABASE REALTIME
@@ -3519,8 +3532,9 @@ function MessengerPage() {
 
     const loadMessages = async (conversationId) => {
         // Optimistic UI check for instant loading
-        if (messageCacheRef.current[conversationId]) {
-            setMessages(messageCacheRef.current[conversationId]);
+        const cachedMessages = messageCacheRef.current.get(conversationId);
+        if (cachedMessages) {
+            setMessages(cachedMessages);
             setLoadingMessages(false);
         } else {
             setLoadingMessages(true);
@@ -3543,6 +3557,10 @@ function MessengerPage() {
             const result = await response.json();
 
             if (result.success && result.messages) {
+                // Staleness guard: if the user switched conversations while this fetch was in-flight,
+                // discard the response so we don't overwrite the current conversation's messages.
+                if (activeConversationRef.current?.id !== conversationId) return;
+
                 // Filter out hidden messages — re-read from localStorage for freshness
                 const freshHiddenIds = (() => {
                     try { return new Set(JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]')); }
@@ -3552,6 +3570,7 @@ function MessengerPage() {
                 setMessages(filtered);
                 setHasMoreMessages(result.messages.length >= 50);
             } else {
+                if (activeConversationRef.current?.id !== conversationId) return;
                 setMessages([]);
                 setHasMoreMessages(false);
             }
