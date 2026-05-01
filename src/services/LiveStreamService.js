@@ -503,13 +503,22 @@ class LiveStreamService {
      * Leave the current stream
      */
     async leaveStream() {
-        if (!this.currentStreamId || !this.currentUserId) return;
+        // BUG FIX (S1): only gate on currentStreamId. Previously also gated on
+        // currentUserId which we reset to null on first call — causing a second
+        // leaveStream() call (React StrictMode double-effect, nav) to exit early
+        // without deleting the live_viewers row, permanently inflating viewer counts.
+        if (!this.currentStreamId) return;
         this.isManualDisconnect = true;
+        // Capture before nulling
+        const leavingStreamId = this.currentStreamId;
+        const leavingUserId = this.currentUserId;
 
-        await supabase.from('live_viewers')
-            .delete()
-            .eq('stream_id', this.currentStreamId)
-            .eq('viewer_id', this.currentUserId);
+        if (leavingUserId) {
+            await supabase.from('live_viewers')
+                .delete()
+                .eq('stream_id', leavingStreamId)
+                .eq('viewer_id', leavingUserId);
+        }
 
         if (this.room) {
             await this.room.disconnect();
@@ -536,7 +545,7 @@ class LiveStreamService {
         this._remoteMediaStream = null;
         // Clean up any LiveKit audio elements attached to body
         document.querySelectorAll('[id^="livekit-audio-"]').forEach(el => el.remove());
-        console.debug('[LiveKit] Left stream:', this.currentStreamId);
+        console.debug('[LiveKit] Left stream:', leavingStreamId);
         // FIX: reset ALL identity fields so the singleton is clean for the next
         // joinStream() call (prevents multi-tab/multi-session state leakage).
         // Previously only endBroadcast() reset currentUserId — leaveStream() did not,
@@ -560,32 +569,63 @@ class LiveStreamService {
     }
 
     /**
-     * Ban a user from commenting
+     * Ban a user from commenting — uses server-side API (service role) to avoid
+     * RLS issues and to ensure the broadcaster identity is resolved server-side.
      */
     async banUser(streamId, bannedUserId) {
-        await supabase.from('live_bans').upsert({
-            stream_id: streamId,
-            banned_user_id: bannedUserId,
-            banned_by: this.currentUserId,
-        }, { onConflict: 'stream_id,banned_user_id' });
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/live/moderate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                credentials: 'same-origin',
+                body: JSON.stringify({ action: 'ban_user', stream_id: streamId, target_user_id: bannedUserId }),
+            });
+            if (!resp.ok) {
+                const d = await resp.json().catch(() => ({}));
+                throw new Error(d.error || `Ban failed (${resp.status})`);
+            }
+        } catch (err) { logError('banUser', err); }
     }
 
     /**
-     * Delete a comment
+     * Delete a comment — must use server-side API (anon key can't delete
+     * comments written by other users even as broadcaster; RLS blocks it).
+     * Broadcasters can delete any comment in their own stream via the API.
      */
     async deleteComment(commentId) {
-        await supabase.from('live_comments').delete().eq('id', commentId);
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/live/moderate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                credentials: 'same-origin',
+                body: JSON.stringify({ action: 'delete_comment', comment_id: commentId, stream_id: this.currentStreamId }),
+            });
+            if (!resp.ok) {
+                const d = await resp.json().catch(() => ({}));
+                throw new Error(d.error || `Delete failed (${resp.status})`);
+            }
+        } catch (err) { logError('deleteComment', err); }
     }
 
     /**
      * Pin a comment (replaces existing pin for the stream)
      */
     async pinComment(streamId, commentId) {
-        await supabase.from('live_pins').upsert({
-            stream_id: streamId,
-            comment_id: commentId,
-            pinned_by: this.currentUserId,
-        }, { onConflict: 'stream_id' });
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/live/moderate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                credentials: 'same-origin',
+                body: JSON.stringify({ action: 'pin_comment', stream_id: streamId, comment_id: commentId }),
+            });
+            if (!resp.ok) {
+                const d = await resp.json().catch(() => ({}));
+                throw new Error(d.error || `Pin failed (${resp.status})`);
+            }
+        } catch (err) { logError('pinComment', err); }
     }
 
     // ═══════════════════════════════════════════════════
@@ -642,12 +682,16 @@ class LiveStreamService {
     }
 
     _subscribeToViewers(streamId) {
-        // FIX: store channel ref so endBroadcast/leaveStream can unsubscribe
+        // FIX (S5): Use role-specific channel name to prevent broadcaster and
+        // viewer singleton channels from colliding when both are on same device.
+        // Without this, a viewer joining overwrites the broadcaster's _viewerChannel
+        // ref, then their leaveStream() removes the broadcaster's subscription.
+        const roleSuffix = this.isBroadcaster ? 'bc' : 'vw';
         if (this._viewerChannel) {
             supabase.removeChannel(this._viewerChannel);
         }
         this._viewerChannel = supabase
-            .channel(`live-viewers-${streamId}`)
+            .channel(`live-viewers-${streamId}-${roleSuffix}`)
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'live_streams',
                 filter: `id=eq.${streamId}`,

@@ -46,6 +46,17 @@ export default function LivesPage() {
     const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
     const containerRef = useRef(null);
     const videoRefs = useRef({});
+    // BUG FIX (L-LIVES-1,3,4): store toast/share timer refs for cleanup on unmount
+    const publishToastTimerRef = useRef(null);
+    const shareMsgTimerRef = useRef(null);
+
+    // Cleanup timer refs on unmount
+    useEffect(() => {
+        return () => {
+            if (publishToastTimerRef.current) clearTimeout(publishToastTimerRef.current);
+            if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current);
+        };
+    }, []);
 
     // Get auth user for FeatureGate
     useEffect(() => {
@@ -164,7 +175,12 @@ export default function LivesPage() {
             if (!resp.ok) throw new Error(data.error || 'Publish failed');
             // #5: Success toast
             setPublishToast('Stream Published to Feed!');
-            setTimeout(() => setPublishToast(null), 3000);
+            // BUG FIX (L-LIVES-1): track timer to prevent setState on unmounted component
+            if (publishToastTimerRef.current) clearTimeout(publishToastTimerRef.current);
+            publishToastTimerRef.current = setTimeout(() => {
+                publishToastTimerRef.current = null;
+                setPublishToast(null);
+            }, 3000);
             await Promise.all([fetchStreams(), fetchMyDrafts()]);
         } catch (err) {
             console.warn('Publish draft error:', err);
@@ -307,21 +323,47 @@ export default function LivesPage() {
         }
     };
 
+    // BUG FIX (L-LIVES-2,5): live streams should use /api/live/comment (enforces
+    // ban/slow mode); replay streams use social interactions for comment replay.
     const submitChatMsg = async () => {
-        if (!chatText.trim()) return;
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (!userId) return;
+        if (!chatText.trim() || !currentStream) return;
+        // BUG FIX (L-LIVES-2): use authenticated userId from state, not anon localStorage uid
+        const authedUserId = userId;
+        if (!authedUserId) return;
         setSubmittingChat(true);
         try {
-            const res = await authedFetch('/api/social/interactions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'comment', content: chatText.trim() })
-            });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
-            if (json.comment) {
-                setChatMessages(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
+            if (currentStream.isLive) {
+                // Live stream: use /api/live/comment (enforces ban/slow mode server-side)
+                const token = getAccessToken();
+                const res = await fetch('/api/live/comment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ stream_id: currentStream.id, text: chatText.trim() }),
+                });
+                if (!res.ok) {
+                    const d = await res.json().catch(() => ({}));
+                    throw new Error(d.error || `Request failed (${res.status})`);
+                }
+                const json = await res.json();
+                if (json.comment) {
+                    setChatMessages(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
+                }
+            } else {
+                // Recorded stream: use social interactions (chat replay)
+                const res = await authedFetch('/api/social/interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: currentStream.id, user_id: authedUserId, interaction_type: 'comment', content: chatText.trim() }),
+                });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                const json = await res.json();
+                if (json.comment) {
+                    setChatMessages(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
+                }
             }
             setChatText('');
         } catch (e) { console.warn('Submit chat:', e); }
@@ -336,21 +378,31 @@ export default function LivesPage() {
         const url = window.location.origin + '/hub/lives?id=' + currentStream.id;
         try {
             await navigator.clipboard.writeText(url);
+            // BUG FIX (L-LIVES-3): cancel previous timer before setting new one
+            if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current);
             setShareMsg('Copied!');
-            setTimeout(() => setShareMsg(''), 2000);
-            const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-            if (userId) {
+            shareMsgTimerRef.current = setTimeout(() => {
+                shareMsgTimerRef.current = null;
+                setShareMsg('');
+            }, 2000);
+            const shareUserId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+            if (shareUserId) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
+                    body: JSON.stringify({ post_id: currentStream.id, user_id: shareUserId, interaction_type: 'share' }),
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
             }
         } catch {
+            // BUG FIX (L-LIVES-4): cancel previous timer before setting new one
+            if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current);
             setShareMsg('Failed');
-            setTimeout(() => setShareMsg(''), 2000);
+            shareMsgTimerRef.current = setTimeout(() => {
+                shareMsgTimerRef.current = null;
+                setShareMsg('');
+            }, 2000);
             setShareBusy(false);
         }
     };
