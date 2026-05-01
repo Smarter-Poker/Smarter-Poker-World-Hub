@@ -3130,7 +3130,10 @@ function MessengerPage() {
                 // Track call start time for call receipt
                 callStartTimeRef.current = Date.now();
                 // Stop outgoing ring - call connected! (Web Audio only now)
-                if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
+                if (outgoingRingToneRef.current) {
+                    outgoingRingToneRef.current.stop();
+                    outgoingRingToneRef.current = null;
+                }
             })
             .on('broadcast', { event: 'call_ended' }, (payload) => {
                 setShowCall(false);
@@ -4482,22 +4485,27 @@ function MessengerPage() {
             updateDbPresence(false);
             presenceChannel.untrack();
             
-            // EDGE-CASE FIX: If user closes tab while calling/in-call, clean up pending calls
+            // EDGE-CASE FIX: If user closes tab while calling/in-call, clean up pending calls.
+            // Try both orderings (caller->callee and callee->caller) since we don't know which
+            // role this user played in the interrupted call.
             if (showCallRef.current || callingUserRef.current) {
                 const token = getAccessToken();
-                if (token && user?.id) {
+                const otherUserId = activeConversationRef.current?.otherUser?.id;
+                if (token && user?.id && otherUserId && otherUserId !== user.id) {
                     try {
-                        // keepalive: true ensures the request completes even after the tab closes
                         fetch('/api/calls/cancel', {
                             method: 'POST',
                             keepalive: true,
-                            headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${token}`
-                            },
-                            body: JSON.stringify({ callerId: user.id, calleeId: activeConversationRef.current?.otherUser?.id || user.id })
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ callerId: user.id, calleeId: otherUserId })
                         }).catch(() => {});
-                    } catch (e) { /* ignore */ }
+                        fetch('/api/calls/cancel', {
+                            method: 'POST',
+                            keepalive: true,
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ callerId: otherUserId, calleeId: user.id })
+                        }).catch(() => {});
+                    } catch (e) { /* ignore — tab is closing */ }
                 }
             }
         };
