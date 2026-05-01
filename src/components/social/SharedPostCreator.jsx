@@ -132,6 +132,22 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
+    // AUDIT-16: refresh the session whenever the tab returns from
+    // backgrounded. iOS Safari suspends the SDK's auto-refresh timer when
+    // the tab is hidden (lock screen, app switch, push notification, OS
+    // file picker). The session can silently expire while the user is away.
+    // This visibilitychange listener forces a fresh refresh the moment they
+    // return, so any subsequent upload or post-create gets a fresh JWT.
+    useEffect(() => {
+        const onVis = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                supabase.auth.getSession().catch(() => {});
+            }
+        };
+        document.addEventListener('visibilitychange', onVis);
+        return () => document.removeEventListener('visibilitychange', onVis);
+    }, []);
+
     // Track media via ref for cleanup (avoids stale closure in useEffect)
     const mediaRef = useRef(media);
     mediaRef.current = media;
@@ -648,6 +664,32 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         try {
         if (!content.trim() && !media.length && !linkPreview && !checkInVenue) { _submittingRef.current = false; return; }
         setError('');
+
+        // AUDIT-16 (2026-04-30 per Dan: "make this fully functional, never
+        // let it break or happen again"). Refresh the session at the START
+        // of every post — this guarantees BOTH the long upload AND the
+        // post-create call get a fresh JWT (good for ~1hr). Without this,
+        // any time the iPhone tab was backgrounded mid-upload (locked
+        // screen, app switch, push notification, etc.), the SDK's
+        // auto-refresh timer was suspended by iOS and the JWT silently
+        // expired. By the time bgUpload sent its first chunk OR the
+        // RPC fired, role='anon' → 401 → silent failure.
+        try {
+            const { data: { session } = {} } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+                if (refreshErr || !refreshed?.session?.access_token) {
+                    if (mountedRef.current) setError('Your session has expired. Please refresh the page or log in again.');
+                    _submittingRef.current = false;
+                    return;
+                }
+            }
+        } catch (sessionErr) {
+            console.warn('[SharedPostCreator] Session refresh failed:', sessionErr?.message || sessionErr);
+            if (mountedRef.current) setError('Could not refresh your session. Please refresh the page and try again.');
+            _submittingRef.current = false;
+            return;
+        }
 
         // ── STEP 1: Upload any staged files (files with .file property) ──────
         const stagedFiles = media.filter(m => m.file);
