@@ -1,5 +1,6 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -25,6 +26,12 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+
+  // Round 80: rate-limit before any external xAI call. This route incurs
+  // per-call cost on the xAI API and was previously the only un-limited
+  // hot endpoint in club-arena. Use the standard 'club-arena/generate-logo'
+  // bucket — which falls back to per-IP if no auth is established.
+  if (!applyRateLimit(req, res, 'club-arena/generate-logo')) return;
 
   // Idempotency guard — prevents duplicate mutations from laggy mobile networks
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {

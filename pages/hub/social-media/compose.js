@@ -20,7 +20,9 @@ import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import toast from '../../../src/stores/toastStore';
 
-import AlbumPicker from '../../../src/components/social/compose/AlbumPicker';
+// AlbumPicker import REMOVED (2026-05-01 per Dan): the review-grid screen
+// was firing a SECOND iOS Photos picker on mount and breaking real uploads.
+// Flow is now direct: iOS Photos picker → EditPostScreen (staging).
 import EditPostScreen from '../../../src/components/social/compose/EditPostScreen';
 import CoverFramePicker from '../../../src/components/social/compose/CoverFramePicker';
 
@@ -382,16 +384,17 @@ export default function ComposePage() {
     }, []);
 
     // ── Render the active step ────────────────────────────────────────
-    if (step === 'picker') {
-        return <AlbumPicker onClose={exitToFeed} onNext={() => setStep('edit')} />;
-    }
+    // KILL-ALBUMPICKER (2026-05-01 per Dan): the picker step is dead. If
+    // any caller (or stale state) tries to set step='picker', we render
+    // EditPostScreen anyway. AlbumPicker was opening a duplicate iOS
+    // picker on mount and breaking real uploads.
     if (step === 'cover') {
         return <CoverFramePicker onBack={() => setStep('edit')} onSave={() => setStep('edit')} />;
     }
-    // 'edit' (default fallback)
+    // Default + 'picker' fallback both render EditPostScreen.
     return (
         <EditPostScreen
-            onBack={() => setStep('picker')}
+            onBack={exitToFeed}
             onEditCover={() => setStep('cover')}
             onPostNow={handlePostNow}
         />

@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -346,76 +346,47 @@ export default function TournamentsPage() {
             sessionStorage.removeItem('trivia_mode');
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-        // Fresh balance check from DB to avoid stale-state false negatives
-        let freshBalance = userDiamonds;
-        try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-            if (profile) {
-                freshBalance = profile.diamonds || 0;
-                setUserDiamonds(freshBalance);
-            }
-        } catch (e) {
-            console.warn('[Tournaments] Balance check failed:', e);
-        }
-
-        if (freshBalance < tournament.entry_fee) {
+        // Cheap client-side balance check (server re-verifies authoritatively)
+        if (userDiamonds < tournament.entry_fee) {
             setShowOutOfDiamonds(true);
             return;
         }
 
-        // Deduct entry fee via audit-safe RPC
+        // Atomic server-side entry: deduct fee + insert entry + update prize pool
+        // (replaces the previous client-side flow that direct-wrote to
+        //  trivia_tournament_entries and trivia_tournaments — both now
+        //  RLS-locked to service_role per Phase 37.)
         try {
-            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: -tournament.entry_fee,
-                p_type: 'tournament_entry',
-                p_description: `Tournament entry — ${tournament.name} (${tournament.entry_fee}💎)`,
-                p_reference_id: tournament.id
+            const token = getAccessToken();
+            if (!token) {
+                console.warn('[Tournaments] No session token — cannot register');
+                return;
+            }
+            const resp = await fetch('/api/trivia/tournament-enter', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ tournament_id: tournament.id })
             });
-            if (rpcErr) throw rpcErr;
-            // Refresh balance from DB
-            const { data: freshProfile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-            if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
+            const json = await resp.json().catch(() => ({}));
+            if (!resp.ok || !json.success) {
+                if (resp.status === 402 || json.error === 'insufficient_diamonds') {
+                    setShowOutOfDiamonds(true);
+                } else if (json.error === 'already_entered') {
+                    await loadData();
+                } else {
+                    console.warn('[Tournaments] Entry failed:', json.error || resp.status);
+                }
+                return;
+            }
+            setUserEntry(json.entry);
+            if (typeof json.new_balance === 'number') setUserDiamonds(json.new_balance);
+            busEmit.diamondsSpent(tournament.entry_fee, 'Tournament Entry');
         } catch (e) {
-            console.warn('[Tournaments] Entry fee deduction failed — aborting:', e);
+            console.warn('[Tournaments] Entry RPC failed:', e?.message || e);
             return;
-        }
-
-        busEmit.diamondsSpent(tournament.entry_fee, 'Tournament Entry');
-
-        // Create entry and update prize pool
-        try {
-            const { data: entry } = await supabase
-                .from('trivia_tournament_entries')
-                .insert({
-                    tournament_id: tournament.id,
-                    user_id: userId,
-                    score: 0,
-                    created_at: new Date().toISOString()
-                })
-                .select()
-                .maybeSingle();
-
-            setUserEntry(entry);
-
-            // Update prize pool (net of 10% house rake)
-            const netEntryFee = tournament.entry_fee - Math.floor(tournament.entry_fee * 0.1);
-            await supabase
-                .from('trivia_tournaments')
-                .update({
-                    prize_pool: (tournament.prize_pool || 0) + netEntryFee
-                })
-                .eq('id', tournament.id);
-        } catch (e) {
-            console.warn('[Tournaments] Entry creation failed after fee deduction:', e);
         }
 
         // Refresh tournament data

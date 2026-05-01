@@ -62,16 +62,15 @@ export default function AlbumPicker({ onClose, onNext }) {
     const addMedia = useComposeStore(s => s.addMedia);
     const removeMedia = useComposeStore(s => s.removeMedia);
 
-    // On first mount with no media, auto-open the OS picker so the user
-    // doesn't see an empty "review" screen before they've picked anything.
+    // KILL-AUTO-CLICK (2026-05-01 per Dan): AlbumPicker is no longer in the
+    // active flow (compose.js dropped its import; default step is now
+    // 'edit'). Even if some stale chunk somehow mounts this component,
+    // the auto-click is permanently disabled — it was firing a SECOND iOS
+    // Photos picker on iPhone after the upload had already started, breaking
+    // real uploads. Component kept around only as a defensive fallback.
     useEffect(() => {
-        if (!autoOpenedRef.current && media.length === 0) {
-            autoOpenedRef.current = true;
-            // Defer one tick so the file input is attached to the DOM.
-            const t = setTimeout(() => fileInputRef.current?.click(), 50);
-            return () => clearTimeout(t);
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        autoOpenedRef.current = true;
+    }, []);
 
     const handleFiles = async (e) => {
         const files = Array.from(e?.target?.files || []);
