@@ -35,7 +35,18 @@ import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const PROBE_EMAIL_DOMAIN = 'probe.smarter.local';
+// [2026-05-03b] Domain is a subdomain we own. NEVER `.local` (RFC 6762
+// reserved for mDNS — Supabase email validator inconsistently rejects it
+// across environments). NEVER `.test` (RFC 2606 reserved for testing —
+// some MX-validating projects refuse it). probe.smarter.poker has no
+// MX record so any actual delivery attempt fails fast, but Supabase
+// accepts it as syntactically valid.
+//
+// IMPORTANT: this exact prefix+domain pair is also referenced in the
+// signup_health_view migration filter. If you change it here, update
+// the view too (otherwise probe users get counted as real signups,
+// reintroducing the green-dashboard failure mode).
+const PROBE_EMAIL_DOMAIN = 'probe.smarter.poker';
 const PROBE_EMAIL_PREFIX = 'probe-';
 
 // In-memory rate limit: at most one probe per 60s on this Lambda instance.
@@ -141,30 +152,53 @@ export default async function handler(req, res) {
         steps.signup.ok = true;
         steps.signup.user_id = userId;
 
-        // Give triggers a moment to settle (handle_new_user etc are AFTER INSERT)
-        await new Promise(r => setTimeout(r, 800));
-
-        // Step 2-5: verify each downstream row
+        // [2026-05-03b] Trigger row visibility — POLL with backoff instead
+        // of a fixed sleep. Triggers fire AFTER INSERT (synchronously inside
+        // the transaction) so the rows ARE visible the moment auth.users
+        // commits, but under DB load a single sleep can be insufficient and
+        // a fixed sleep is wasteful when the rows are visible faster.
         const checks = [
-            { name: 'auth_users', table: null, query: () => admin.auth.admin.getUserById(userId) },
-            { name: 'profiles', table: 'profiles', query: () => admin.from('profiles').select('id, username, player_number').eq('id', userId).maybeSingle() },
-            { name: 'wallets', table: 'wallets', query: () => admin.from('wallets').select('user_id, wallet_type, balance').eq('user_id', userId).eq('wallet_type', 'PLAYER').maybeSingle() },
-            { name: 'user_diamonds', table: 'user_diamonds', query: () => admin.from('user_diamonds').select('user_id, balance').eq('user_id', userId).maybeSingle() },
+            { name: 'auth_users',   query: () => admin.auth.admin.getUserById(userId), shape: (d) => d?.data?.user },
+            { name: 'profiles',     query: () => admin.from('profiles').select('id, username, player_number').eq('id', userId).maybeSingle(), shape: (d) => d?.data },
+            { name: 'wallets',      query: () => admin.from('wallets').select('user_id, wallet_type, balance').eq('user_id', userId).eq('wallet_type', 'PLAYER').maybeSingle(), shape: (d) => d?.data },
+            { name: 'user_diamonds', query: () => admin.from('user_diamonds').select('user_id, balance').eq('user_id', userId).maybeSingle(), shape: (d) => d?.data },
         ];
 
         for (const c of checks) {
-            steps[c.name] = { started_at: Date.now() };
-            const { data, error } = await c.query();
-            steps[c.name].duration_ms = Date.now() - steps[c.name].started_at;
-            // For getUserById the shape is { user }; for from() it's the row directly.
-            const row = c.name === 'auth_users' ? data?.user : data;
-            if (error || !row) {
-                steps[c.name].ok = false;
-                steps[c.name].error = error?.message || 'row not found';
-                throw new Error(`Step ${c.name} failed: ${steps[c.name].error}`);
+            steps[c.name] = { started_at: Date.now(), attempts: 0 };
+            // Poll: 100ms, 200ms, 400ms, 800ms, 1600ms — total ≤3.1s per check
+            const delays = [0, 100, 200, 400, 800, 1600];
+            let lastResult = null;
+            for (const d of delays) {
+                if (d > 0) await new Promise(r => setTimeout(r, d));
+                steps[c.name].attempts++;
+                lastResult = await c.query();
+                const row = c.shape(lastResult);
+                if (row && !lastResult.error) {
+                    steps[c.name].ok = true;
+                    steps[c.name].duration_ms = Date.now() - steps[c.name].started_at;
+                    break;
+                }
             }
-            steps[c.name].ok = true;
+            if (!steps[c.name].ok) {
+                steps[c.name].ok = false;
+                steps[c.name].duration_ms = Date.now() - steps[c.name].started_at;
+                steps[c.name].error = lastResult?.error?.message || 'row not found after polling';
+                throw new Error(`Step ${c.name} failed after ${steps[c.name].attempts} attempts: ${steps[c.name].error}`);
+            }
         }
+
+        // [2026-05-03d] Heartbeat write BEFORE cleanup so the dashboard
+        // can detect a stalled probe (probe_heartbeats survives delete).
+        await admin.from('probe_heartbeats').insert({
+            probe_name: 'signup-probe',
+            status: 'ok',
+            duration_ms: Date.now() - startedAt,
+            details: { steps },
+        }).catch((hbErr) => {
+            // Heartbeat is best-effort; never let it fail an otherwise-OK probe.
+            console.warn('[signup-probe] heartbeat write failed:', hbErr?.message || hbErr);
+        });
 
         // Step 6: cleanup
         await admin.auth.admin.deleteUser(userId).catch(() => null);
@@ -194,6 +228,15 @@ export default async function handler(req, res) {
             steps,
             probe_email: email,
         };
+
+        // Heartbeat the failure too — so signup_health_view shows
+        // probe_failed_1h > 0 even if email/Sentry alerts are dropped.
+        await admin.from('probe_heartbeats').insert({
+            probe_name: 'signup-probe',
+            status: 'failed',
+            duration_ms: failure.duration_ms,
+            details: { failed_step: failure.failed_step, error: failure.error, steps },
+        }).catch(() => null);
 
         // Optional: Resend email alert
         if (process.env.RESEND_API_KEY && process.env.OPS_ALERT_EMAIL) {
