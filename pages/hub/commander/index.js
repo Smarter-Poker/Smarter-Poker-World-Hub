@@ -118,7 +118,7 @@ export default function CommanderHub() {
     if (!user?.id) return;
     const ch = supabase
       .channel('cmd-home-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `user_id=eq.${user.id}` }, () => { fetchVenues(); fetchMyWaitlists(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `player_id=eq.${user.id}` }, () => { fetchVenues(); fetchMyWaitlists(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, () => { fetchVenues(); fetchLiveGames(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };

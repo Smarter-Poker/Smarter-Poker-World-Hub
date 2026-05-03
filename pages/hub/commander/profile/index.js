@@ -129,8 +129,10 @@ export default function PlayerProfilePage() {
     if (!profile?.id) return;
     const _ch = supabase
       .channel(`cmd-profile:${profile.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_members', filter: `user_id=eq.${profile.id}` }, () => { refreshProfile(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_player_stats', filter: `user_id=eq.${profile.id}` }, () => { refreshProfile(); })
+      // commander_members has no user_id column (venue-scoped membership cards
+      // joined by email/phone, not by auth.uid). Subscription removed —
+      // refreshProfile is also triggered by other events.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_player_stats', filter: `player_id=eq.${profile.id}` }, () => { refreshProfile(); })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [profile?.id, refreshProfile]);
