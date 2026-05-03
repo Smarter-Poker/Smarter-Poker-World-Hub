@@ -890,14 +890,16 @@ export const ChatWindow = ({
                 if (status === 'SUBSCRIBED') {
                     await channel.track({ user_id: currentUser.id, is_typing: false });
                     
-                    // Broadcast read receipts for unread messages received from the other user
-                    const unreadMsgs = messages.filter(m => m.sender_id !== currentUser.id && m.status !== 'read');
-                    for (const m of unreadMsgs) {
-                        channel.send({
-                            type: 'broadcast',
-                            event: 'read_receipt',
-                            payload: { messageId: m.id, userId: currentUser.id }
-                        });
+                    // Only broadcast read receipts if the user has enabled them
+                    if (prefs.showReadReceipts !== false) {
+                        const unreadMsgs = messages.filter(m => m.sender_id !== currentUser.id && m.status !== 'read');
+                        for (const m of unreadMsgs) {
+                            channel.send({
+                                type: 'broadcast',
+                                event: 'read_receipt',
+                                payload: { messageId: m.id, userId: currentUser.id }
+                            });
+                        }
                     }
                 }
             });
