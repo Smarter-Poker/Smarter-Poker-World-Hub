@@ -56,7 +56,9 @@ class LiveStreamService {
         this.onConnectionQualityChange = null;
         this.onGiftReceived = null;
         this._viewerCountDebounceTimer = null;
-        this._giftChannel = null;
+        // NOTE: _giftChannel is intentionally absent — gift broadcast channels are
+        // managed by React component refs (GoLiveModal / LiveStreamViewer) to tie
+        // their lifecycle to the component, not the singleton service.
     }
 
     // ═══════════════════════════════════════════════════
@@ -436,11 +438,6 @@ class LiveStreamService {
             clearTimeout(this._viewerCountDebounceTimer);
             this._viewerCountDebounceTimer = null;
         }
-        // Clean up gift channel
-        if (this._giftChannel) {
-            supabase.removeChannel(this._giftChannel);
-            this._giftChannel = null;
-        }
         console.debug('[LiveKit] Broadcast ended:', this.currentStreamId);
         const endedId = this.currentStreamId;
         this.currentStreamId = null;
@@ -565,11 +562,6 @@ class LiveStreamService {
         if (this._viewerCountDebounceTimer) {
             clearTimeout(this._viewerCountDebounceTimer);
             this._viewerCountDebounceTimer = null;
-        }
-        // Clean up gift channel if viewer had one
-        if (this._giftChannel) {
-            supabase.removeChannel(this._giftChannel);
-            this._giftChannel = null;
         }
         // Reset remote stream guard for next join
         this._remoteStreamDelivered = false;
