@@ -74,12 +74,10 @@ export default function HomeGameRosterPage() {
       const groupData = await groupRes.json();
       const g = groupData.group || groupData.data?.group;
       
-      // If we don't own the group or aren't admins, redirect to [id]
-      if (!g || (g.host_id !== window.supabaseUser?.id && !g.is_admin)) {
-        // Just checking host_id for simplicity, in a full app we verify admin from membership
-        // but we'll try to load roster. If it returns 403, we bounce.
-      }
       setGroup(g);
+
+      // Note: host_id check below is best-effort client-side — the roster API
+      // enforces admin/host ownership server-side and returns 403 if not authorized.
 
       const res = await fetch(`/api/commander/home-games/groups/${id}/roster`, { headers });
       if (!res.ok) throw new Error('Not authorized');
@@ -110,7 +108,10 @@ export default function HomeGameRosterPage() {
 
   useEffect(() => {
     if (router.isReady && !checking) {
-      if (!window.supabaseUser) return;
+      // BUG FIX #21: Removed window.supabaseUser bail — this caused the page
+      // to silently get stuck in a loading state if supabaseUser wasn't hydrated
+      // before router.isReady fired. All actual auth is enforced server-side
+      // (the roster API returns 403 if caller isn't admin/host). Safe to proceed.
       fetchRoster();
     }
   }, [router.isReady, checking, fetchRoster]);
@@ -254,7 +255,7 @@ export default function HomeGameRosterPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
-                        {p.user_id && p.user_id !== window.supabaseUser?.id && (
+                        {p.user_id && (
                           <button onClick={() => handleStartDm(p.user_id)} className="p-2 bg-[#1A2C4D] rounded text-[#22D3EE] hover:bg-[#2A416F] transition-colors" title="Message">
                             <MessageSquare className="w-4 h-4" />
                           </button>

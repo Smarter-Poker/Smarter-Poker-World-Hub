@@ -856,12 +856,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     .eq('id', currentReel.id)
                     .maybeSingle();
                 if (!existing) {
+                    // BUG FIX #18: social_posts uses author_id (not user_id) and
+                    // media_urls as a JSONB array (not media_url text). The wrong
+                    // column names were silently swallowed by .catch(), preventing
+                    // the proxy FK row from ever being created — causing all comments
+                    // on social_reels-sourced reels to fail with a FK violation.
                     await supabase.from('social_posts').insert({
                         id: currentReel.id,
-                        user_id: currentReel.author_id || authUser.id,
+                        author_id: currentReel.author_id || authUser.id,
                         content: currentReel.caption || '',
-                        media_url: currentReel.video_url || null,
-                        media_type: 'video',
+                        content_type: 'video',
+                        media_urls: currentReel.video_url ? [currentReel.video_url] : [],
+                        visibility: 'public',
                     }).catch(e => console.warn('[ReelsFeedCarousel] Proxy post creation failed:', e?.message));
                 }
             }
