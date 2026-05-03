@@ -327,16 +327,19 @@ async function processJob(job) {
     const permanent = isPermanentFailure(msg);
 
     if (job.reel_id) {
-      await supa.from('social_reels')
-        .update({ media_status: permanent ? 'ready' : 'failed' })
-        .eq('id', job.reel_id)
-        .catch(() => {});
+      try {
+        await supa.from('social_reels')
+          .update({ media_status: permanent ? 'ready' : 'failed' })
+          .eq('id', job.reel_id);
+      } catch (_) {}
     }
-    await supa.from('video_transcode_jobs').update({
-      status: 'failed',
-      completed_at: new Date().toISOString(),
-      error_message: msg,
-    }).eq('id', job.id).catch(() => {});
+    try {
+      await supa.from('video_transcode_jobs').update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: msg,
+      }).eq('id', job.id);
+    } catch (_) {}
 
     if (permanent) log(`  (permanent — reel ${job.reel_id} kept as iframe-forever)`);
 
