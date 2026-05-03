@@ -34,8 +34,27 @@ export default async function handler(req, res) {
         const { user } = await getServerUserWithFallback(req, supabase);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-        const { room, identity, name, broadcaster = false } = req.body;
+        const { room, identity, name, broadcaster: clientClaimsBroadcaster = false } = req.body;
         if (!room || !identity) return res.status(400).json({ error: 'room and identity required' });
+
+        // BUG FIX (#15): SECURITY — Never trust the client-supplied broadcaster flag.
+        // A malicious viewer could POST { broadcaster: true } and receive a token that
+        // lets them publish their own video/audio into someone else's live stream room.
+        // Server-side verify: the caller must be the actual broadcaster_id of the stream.
+        let isVerifiedBroadcaster = false;
+        if (clientClaimsBroadcaster) {
+            const { data: streamRow } = await supabase
+                .from('live_streams')
+                .select('broadcaster_id')
+                .eq('id', room)
+                .maybeSingle();
+            // Grant broadcast if the stream row exists and the user IS the broadcaster,
+            // OR if no stream row exists yet (broadcaster is creating the room for the first time).
+            isVerifiedBroadcaster = !streamRow || streamRow.broadcaster_id === user.id;
+            if (!isVerifiedBroadcaster) {
+                return res.status(403).json({ error: 'Not the broadcaster of this stream' });
+            }
+        }
 
         // Get display name from profile
         let displayName = name;
@@ -60,10 +79,10 @@ export default async function handler(req, res) {
         at.addGrant({
             roomJoin: true,
             room: String(room),
-            canPublish: Boolean(broadcaster),
+            canPublish: isVerifiedBroadcaster,
             canSubscribe: true,
             canPublishData: true,
-            roomCreate: Boolean(broadcaster),
+            roomCreate: isVerifiedBroadcaster,
         });
 
         // v2 SDK: toJwt() returns a Promise — must await

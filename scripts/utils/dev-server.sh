@@ -232,7 +232,7 @@ full_reset() {
     
     echo -e "${CYAN}Installing dependencies...${NC}"
     cd "$PROJECT_ROOT"
-    npm install
+    npm install --legacy-peer-deps
     
     echo -e "${CYAN}Starting server...${NC}"
     start
