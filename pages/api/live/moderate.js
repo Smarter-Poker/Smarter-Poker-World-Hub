@@ -5,6 +5,7 @@
  * Actions:
  *   - delete_comment: broadcaster deletes any comment in their stream
  *   - pin_comment:    broadcaster pins a comment (one at a time)
+ *   - unpin_comment:  broadcaster unpins the current comment
  *   - ban_user:       broadcaster bans a viewer from commenting
  *   - unban_user:     broadcaster unbans a viewer
  *
@@ -69,6 +70,11 @@ export default async function handler(req, res) {
                 return res.json({ success: true, action: 'pin_comment' });
             }
 
+            case 'unpin_comment': {
+                await supabase.from('live_pins').delete().eq('stream_id', stream_id);
+                return res.json({ success: true, action: 'unpin_comment' });
+            }
+
             case 'ban_user': {
                 if (!target_user_id) return res.status(400).json({ error: 'target_user_id required' });
                 if (target_user_id === user.id) return res.status(400).json({ error: 'Cannot ban yourself' });
@@ -90,7 +96,7 @@ export default async function handler(req, res) {
             }
 
             default:
-                return res.status(400).json({ error: `Unknown action: ${action}. Use: delete_comment, pin_comment, ban_user, unban_user` });
+                return res.status(400).json({ error: `Unknown action: ${action}. Use: delete_comment, pin_comment, unpin_comment, ban_user, unban_user` });
         }
     } catch (err) {
         console.warn('[/api/live/moderate] Error:', err.message);

@@ -126,7 +126,10 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${streamId}` },
                 (payload) => {
                     if (payload.new.user_id !== user?.id) { // Don't double-add own comments
-                        setComments(prev => [...prev, payload.new]);
+                        setComments(prev => {
+                            if (prev.some(c => c.id === payload.new.id)) return prev;
+                            return [...prev, payload.new];
+                        });
                     }
                 }
             ).subscribe();
@@ -734,7 +737,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             <div style={{ position:'absolute', bottom:320, left:12, right:80, zIndex:10, background:'rgba(0,0,0,0.7)', borderRadius:10, padding:'8px 12px', border:'1px solid rgba(255,215,0,0.3)' }}>
                                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
                                     <span style={{ color:'#FFD700', fontSize:11, fontWeight:700 }}>PINNED</span>
-                                    <button onClick={() => setPinnedComment(null)} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.5)', fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+                                    <button onClick={() => { setPinnedComment(null); liveStreamService.unpinComment(streamId).catch(() => {}); }} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.5)', fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
                                 </div>
                                 <span style={{ color:'#00CFFF', fontWeight:700, fontSize:12, marginRight:6 }}>{pinnedComment.author_name}</span>
                                 <span style={{ color:'white', fontSize:12 }}>{pinnedComment.text}</span>

@@ -290,6 +290,10 @@ class LiveStreamService {
             }
             // FIX: reset stream guard so TrackSubscribed can deliver the new remote stream
             this._remoteStreamDelivered = false;
+            // FIX: clean up stale audio elements and old remote stream from the previous session
+            // to prevent track accumulation across reconnect cycles.
+            document.querySelectorAll('[id^="livekit-audio-"]').forEach(el => el.remove());
+            this._remoteMediaStream = null;
             await this._connectRoom(url, token, this.isBroadcaster, this.localStream);
             this.isReconnecting = false;
             this.reconnectAttempts = 0;
@@ -471,9 +475,10 @@ class LiveStreamService {
 
         // Handle already-published tracks that fired before TrackSubscribed listener
         let remoteStreamDelivered = false;
-        if (!this._remoteMediaStream) {
-            this._remoteMediaStream = new MediaStream();
-        }
+        // FIX (LSV-7): Reset _remoteMediaStream at joinStream start. Without this, rapid
+        // join→leave→join cycles accumulate stale tracks from the previous session,
+        // causing black video (wrong track) or audio from a previous stream.
+        this._remoteMediaStream = new MediaStream();
         for (const [, participant] of this.room.remoteParticipants) {
             for (const [, publication] of participant.trackPublications) {
                 if (publication.isSubscribed && publication.track) {
@@ -537,7 +542,7 @@ class LiveStreamService {
             supabase.removeChannel(this._viewerChannel);
             this._viewerChannel = null;
         }
-        // Clean up debounce timer (viewers also trigger this via ParticipantConnected)
+        // Clean up debounce timer (only fires for broadcaster now; safe to cancel for viewers too)
         if (this._viewerCountDebounceTimer) {
             clearTimeout(this._viewerCountDebounceTimer);
             this._viewerCountDebounceTimer = null;
@@ -633,6 +638,25 @@ class LiveStreamService {
                 throw new Error(d.error || `Pin failed (${resp.status})`);
             }
         } catch (err) { logError('pinComment', err); }
+    }
+
+    /**
+     * Unpin the current comment for the stream
+     */
+    async unpinComment(streamId) {
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/live/moderate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                credentials: 'same-origin',
+                body: JSON.stringify({ action: 'unpin_comment', stream_id: streamId }),
+            });
+            if (!resp.ok) {
+                const d = await resp.json().catch(() => ({}));
+                throw new Error(d.error || `Unpin failed (${resp.status})`);
+            }
+        } catch (err) { logError('unpinComment', err); }
     }
 
     // ═══════════════════════════════════════════════════

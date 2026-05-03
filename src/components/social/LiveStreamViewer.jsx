@@ -151,6 +151,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         // starting with 'optimistic-'. If there's a matching optimistic entry,
                         // replace it (already done in handleSendComment). Otherwise, add it.
                         setComments(prev => {
+                            // BUG FIX (LSV-5): Deduplicate by exact DB ID. If handleSendComment API
+                            // responded first, the exact row is already here. Don't add it twice.
+                            if (prev.some(c => c.id === payload.new.id)) return prev;
+
                             const hasOptimistic = prev.some(c => c.id?.toString().startsWith('optimistic-') && c.user_id === payload.new.user_id && c.text === payload.new.text);
                             if (hasOptimistic) {
                                 // Replace the optimistic placeholder with the real DB row
@@ -162,7 +166,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                             return [...prev, payload.new];
                         });
                     }
-                ).subscribe();
+                )
+                // BUG FIX (LSV-6): Handle DELETE events — broadcaster deletes propagate to
+                // all viewer screens. Previously, deleted comments were permanently visible.
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${stream.id}` },
+                    (payload) => {
+                        setComments(prev => prev.filter(c => c.id !== payload.old.id));
+                    }
+                )
+                .subscribe();
             commentChannelRef.current = ch;
         }
 
@@ -191,9 +203,13 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         if (stream?.id) {
             const pinCh = supabase.channel(`live-pins-${stream.id}`)
                 .on('postgres_changes', {
-                    event: 'INSERT', schema: 'public', table: 'live_pins',
+                    event: '*', schema: 'public', table: 'live_pins',
                     filter: `stream_id=eq.${stream.id}`,
                 }, async (payload) => {
+                    if (payload.eventType === 'DELETE') {
+                        setPinnedComment(null);
+                        return;
+                    }
                     if (payload.new?.comment_id) {
                         const { data: comment } = await supabase.from('live_comments')
                             .select('*').eq('id', payload.new.comment_id).maybeSingle();
@@ -368,6 +384,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 style={{
                     position: 'absolute',
                     inset: 0,
