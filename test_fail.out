@@ -1,0 +1,75 @@
+✖ auth-critical files exist on disk (1.086708ms)
+✔ auth-critical files are non-empty (0.193916ms)
+✖ auth callback exports a default React component (0.069958ms)
+✖ every redirect target referenced in auth pages has a backing file (0.243542ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 1
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.834958
+
+✖ failing tests:
+
+test at __tests__/auth-routes-exist.test.mjs:44:1
+✖ auth-critical files exist on disk (1.086708ms)
+  AssertionError [ERR_ASSERTION]: Critical auth files are missing — signup will 404.
+  Missing: [
+    "pages/auth/callback.js"
+  ]
+  + actual - expected
+  
+  + [
+  +   'pages/auth/callback.js'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Users/smarter.poker/Documents/Smarter-Poker-World-Hub/__tests__/auth-routes-exist.test.mjs:48:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pages/auth/callback.js' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at __tests__/auth-routes-exist.test.mjs:64:1
+✖ auth callback exports a default React component (0.069958ms)
+  Error: ENOENT: no such file or directory, open '/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/pages/auth/callback.js'
+      at Object.readFileSync (node:fs:441:20)
+      at TestContext.<anonymous> (file:///Users/smarter.poker/Documents/Smarter-Poker-World-Hub/__tests__/auth-routes-exist.test.mjs:65:19)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/pages/auth/callback.js'
+  }
+
+test at __tests__/auth-routes-exist.test.mjs:74:1
+✖ every redirect target referenced in auth pages has a backing file (0.243542ms)
+  AssertionError [ERR_ASSERTION]: Auth flow redirects to /auth/callback but pages/auth/callback.js does not exist.
+      at TestContext.<anonymous> (file:///Users/smarter.poker/Documents/Smarter-Poker-World-Hub/__tests__/auth-routes-exist.test.mjs:77:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

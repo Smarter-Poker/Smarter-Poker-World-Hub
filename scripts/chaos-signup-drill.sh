@@ -115,11 +115,15 @@ run_drill() {
     # shellcheck disable=SC2046
     node --test $(ls __tests__/_test-guards-exist.test.mjs \
                      __tests__/auth-routes-exist.test.mjs \
-                     __tests__/signup-hardening.test.mjs 2>/dev/null) \
+                     __tests__/signup-hardening.test.mjs \
+                     __tests__/build-2-deliverables.test.mjs \
+                     __tests__/sentry-coverage.test.mjs \
+                     __tests__/phase-3-deliverables.test.mjs \
+                     __tests__/phase-4-deliverables.test.mjs 2>/dev/null) \
         > "$out" 2>&1 || true
 
     local fail_count
-    fail_count=$(grep -E '^# fail' "$out" | head -1 | awk '{print $3}')
+    fail_count=$(grep -E '(#|ℹ)\s*fail' "$out" | head -1 | awk '{print $3}')
     fail_count=${fail_count:-0}
 
     if [ "$fail_count" -gt 0 ]; then

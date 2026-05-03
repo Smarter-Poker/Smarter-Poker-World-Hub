@@ -387,26 +387,29 @@ NODE_MODULES_OK=false
 if [ -d "node_modules" ] && [ -f "node_modules/.package-lock.json" -o -f "node_modules/.modules.yaml" -o -d "node_modules/next" ]; then
   NODE_MODULES_OK=true
 fi
+
 echo "🗑️  Running absolute garbage collection (git clean -fdX) to eliminate phantom state..."
-git clean -fdX -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules/**" -e "!node_modules" -e "!.husky" 2>/dev/null || true
+if [ "$DRY_RUN" = true ]; then
+  git clean -fdXn -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules" -e "!node_modules/**" -e "!.husky" 2>/dev/null || true
+else
+  git clean -fdX -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules" -e "!node_modules/**" -e "!.husky" 2>/dev/null || true
+fi
+
 # INTEGRITY CHECK: If node_modules was present before clean but is now gone, auto-restore.
 if [ "$NODE_MODULES_OK" = true ] && [ ! -d "node_modules" ]; then
   echo "⚠️  CRITICAL: node_modules was wiped by git clean — this should never happen."
   echo "   Auto-restoring node_modules (this will take ~30s)..."
-  # Warn if NPM_TOKEN not set — @smarter-poker/commander-shared requires GitHub Packages auth
   if [ -z "${NPM_TOKEN:-}" ]; then
     echo ""
     echo "  ⚠️  WARNING: NPM_TOKEN is not set in your environment."
     echo "     @smarter-poker/commander-shared requires GitHub Packages auth."
-    echo "     npm install may fail with 401 Unauthorized."
     echo "     Fix: bash scripts/setup-npm-auth.sh ghp_yourToken"
-    echo "     Or:  export NPM_TOKEN=ghp_yourToken  then re-run"
     echo ""
   fi
   npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>&1 | tail -3
   echo "✅ node_modules restored"
 elif [ ! -d "node_modules" ]; then
-  echo "⚠️  node_modules missing before clean too — restoring..."
+  echo "⚠️  node_modules is missing — auto-restoring (this will take ~30s)..."
   if [ -z "${NPM_TOKEN:-}" ]; then
     echo ""
     echo "  ⚠️  WARNING: NPM_TOKEN is not set in your environment."
