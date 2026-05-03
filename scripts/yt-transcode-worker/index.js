@@ -273,6 +273,39 @@ async function processJob(job) {
       if (thumbUrl) reelUpdate.thumbnail_url = thumbUrl;
       const { error: reelErr } = await supa.from('social_reels').update(reelUpdate).eq('id', job.reel_id);
       if (reelErr) warn(`  reel update warn (job ${job.id}):`, reelErr.message);
+
+      // M7: also rewrite the source social_posts.media_urls[0] so the main
+      // social feed (and any other reader of social_posts) gets the native
+      // URL. Without this, the same content shows twice in the Reels feed:
+      // once as the converted reel, once as the still-iframe post.
+      // Wrapped in a tolerant try/catch — failures here MUST NOT mark the
+      // whole job failed (the reel side already succeeded).
+      try {
+        const { data: reelRow } = await supa.from('social_reels')
+          .select('source_post_id, thumbnail_url')
+          .eq('id', job.reel_id).maybeSingle();
+        if (reelRow?.source_post_id) {
+          const { data: postRow } = await supa.from('social_posts')
+            .select('media_urls, thumbnail_url, original_media_url')
+            .eq('id', reelRow.source_post_id).maybeSingle();
+          if (postRow) {
+            const existingArr = Array.isArray(postRow.media_urls) ? postRow.media_urls : [];
+            const updatePayload = {
+              media_urls: [publicUrl, ...existingArr.slice(1)],
+              original_media_url: postRow.original_media_url || existingArr[0] || null,
+            };
+            if (!postRow.thumbnail_url && reelRow.thumbnail_url) {
+              updatePayload.thumbnail_url = reelRow.thumbnail_url;
+            }
+            const { error: postErr } = await supa.from('social_posts')
+              .update(updatePayload).eq('id', reelRow.source_post_id);
+            if (postErr) warn(`  post sync warn (job ${job.id}):`, postErr.message);
+            else log(`  ↳ synced social_posts.media_urls[0] for post ${reelRow.source_post_id}`);
+          }
+        }
+      } catch (syncErr) {
+        warn(`  syncPostFromReel skipped (job ${job.id}):`, syncErr?.message);
+      }
     } else {
       warn(`  Job ${job.id} has no reel_id — video uploaded but no reel linked`);
     }

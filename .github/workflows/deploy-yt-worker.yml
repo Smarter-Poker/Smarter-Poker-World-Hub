@@ -99,7 +99,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
           SUPABASE_SERVICE_ROLE_KEY=$SERVICE_KEY
           WORKER_ID=hetzner-ash-yt-01
-          MAX_CONCURRENT_YT=3
+          MAX_CONCURRENT_YT=6
           EOF
           ssh "$USER@$HOST" 'sudo chmod 600 /etc/sp-yt-transcode.env && sudo chown root:root /etc/sp-yt-transcode.env'
 

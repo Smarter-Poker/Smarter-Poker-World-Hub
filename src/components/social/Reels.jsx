@@ -590,7 +590,13 @@ export function ReelsViewer({ onClose }) {
             // Solution: fetch each source separately then interleave 2:1 (user:library).
             const REEL_SELECT = `id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, profiles:author_id (id, username, avatar_url, full_name)`;
 
-            const [userResult, libraryResult, postsResult] = await Promise.all([
+            // M7 (2026-05-03): postsResult removed. Every public video post in
+            // social_posts now has a social_reels mirror via the new
+            // trg_social_posts_video_to_reel_mirror trigger, so a separate
+            // social_posts query produces duplicates rather than fresh content.
+            // Horse-posted videos surface via the new horseResult slot below
+            // (source_type IN ('youtube','native') with source_post_id set).
+            const [userResult, libraryResult, horseResult] = await Promise.all([
                 // Slot A: User-uploaded reels (genuine social content)
                 supabase
                     .from('social_reels')
@@ -607,40 +613,26 @@ export function ReelsViewer({ onClose }) {
                     .eq('source_type', 'video_library')
                     .order('created_at', { ascending: false })
                     .limit(60),
-                // Slot C: Social posts with video/YouTube links
+                // Slot C: Horse-posted reels (from social_posts via trigger mirror)
+                // includes both 'youtube' (still iframe while queue drains) and
+                // 'native' (already converted to Supabase MP4)
                 supabase
-                    .from('social_posts')
-                    .select(`id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, profiles:author_id (id, username, avatar_url, full_name)`)
-                    .eq('visibility', 'public')
-                    .not('media_urls', 'is', null)
+                    .from('social_reels')
+                    .select(REEL_SELECT)
+                    .eq('is_public', true)
+                    .in('source_type', ['youtube', 'native'])
+                    .not('source_post_id', 'is', null)
                     .order('created_at', { ascending: false })
-                    .limit(20)
+                    .limit(60),
             ]);
 
             const userReels = userResult.data || [];
             const libReels = libraryResult.data || [];
+            const horseReels = (horseResult.data || []).map(r => ({ ...r, source: 'reels' }));
 
-            const postsAsReels = (postsResult.data || [])
-                .filter(p => {
-                    const url = p.media_urls?.[0];
-                    return p.content_type === 'video' || (url && (
-                        url.includes('youtube.com') || url.includes('youtu.be') ||
-                        url.match(/\.(mp4|webm|mov)(\?|$)/i)
-                    ));
-                })
-                .map(p => ({
-                    ...p,
-                    source: 'posts',
-                    video_url: p.media_urls?.[0],
-                    caption: p.content,
-                    view_count: p.view_count || 0,
-                    is_public: true,
-                }));
-
-            // Interleave 2 user reels + 1 library reel + sprinkle posts
-            // This ensures a natural scroll experience regardless of timestamp differences
+            // Interleave 2 user reels + 1 library reel + sprinkle horse content
             const interleaved = [];
-            const maxLen = Math.max(userReels.length, libReels.length);
+            const maxLen = Math.max(userReels.length, libReels.length, horseReels.length);
             let uIdx = 0, lIdx = 0, pIdx = 0;
             for (let i = 0; i < maxLen * 3 && interleaved.length < 120; i++) {
                 // Pattern: user, user, library (repeating)
@@ -652,15 +644,15 @@ export function ReelsViewer({ onClose }) {
                     if (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
                     else if (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
                 }
-                // Splice in a post every 10 reels
-                if (interleaved.length > 0 && interleaved.length % 10 === 0 && pIdx < postsAsReels.length) {
-                    interleaved.push(postsAsReels[pIdx++]);
+                // Splice in a horse-posted reel every 10 items
+                if (interleaved.length > 0 && interleaved.length % 10 === 0 && pIdx < horseReels.length) {
+                    interleaved.push(horseReels[pIdx++]);
                 }
             }
             // Append any remaining
             while (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
             while (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
-            while (pIdx < postsAsReels.length) interleaved.push(postsAsReels[pIdx++]);
+            while (pIdx < horseReels.length) interleaved.push(horseReels[pIdx++]);
 
             // Deduplicate by id AND video_url. Same physical video can land in
             // BOTH social_reels (auto-mirror via source_post_id) AND social_posts
@@ -754,11 +746,11 @@ export function ReelsViewer({ onClose }) {
         setLoadingMore(true);
         try {
             const REEL_SELECT = 'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, profiles:author_id (id, username, avatar_url, full_name)';
-            // IMPROVEMENT: also fetch social_posts so they keep appearing in infinite scroll.
-            // Previously only social_reels were fetched here - post-sourced content (every 10th reel
-            // in the initial feed) disappeared entirely after the first 120 items.
-            const postOffset = Math.floor(pageOffset / 3);
-            const [userRes, libRes, postsRes] = await Promise.all([
+            // M7 (2026-05-03): retired the social_posts query — every public
+            // video post now has a social_reels mirror, so a separate query
+            // produced duplicates. Horse-posted reels surface via the
+            // horseRes slot (same pattern as loadReels).
+            const [userRes, libRes, horseRes] = await Promise.all([
                 supabase.from('social_reels').select(REEL_SELECT)
                     .eq('is_public', true).eq('source_type', 'user')
                     .order('created_at', { ascending: false })
@@ -767,34 +759,28 @@ export function ReelsViewer({ onClose }) {
                     .eq('is_public', true).eq('source_type', 'video_library')
                     .order('created_at', { ascending: false })
                     .range(pageOffset, pageOffset + 29),
-                supabase.from('social_posts')
-                    .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, profiles:author_id (id, username, avatar_url, full_name)')
-                    .eq('visibility', 'public')
-                    .not('media_urls', 'is', null)
+                supabase.from('social_reels').select(REEL_SELECT)
+                    .eq('is_public', true)
+                    .in('source_type', ['youtube', 'native'])
+                    .not('source_post_id', 'is', null)
                     .order('created_at', { ascending: false })
-                    .range(postOffset, postOffset + 9),
+                    .range(pageOffset, pageOffset + 29),
             ]);
-            const postsAsReels = (postsRes.data || [])
-                .filter(p => {
-                    const url = p.media_urls?.[0];
-                    return p.content_type === 'video' || (url && (
-                        url.includes('youtube.com') || url.includes('youtu.be') ||
-                        url.match(/\.(mp4|webm|mov)(\?|$)/i)
-                    ));
-                })
-                .map(p => ({ ...p, source: 'posts', video_url: p.media_urls?.[0], caption: p.content, view_count: 0, is_public: true }));
+            const horseReels = (horseRes.data || []).map(r => ({ ...r, source: 'reels' }));
 
             const reelItems = [
                 ...(userRes.data || []).map(r => ({ ...r, source: 'reels' })),
                 ...(libRes.data || []).map(r => ({ ...r, source: 'reels' })),
             ];
-            // Splice a post every 10 reels (mirrors loadReels interleave pattern)
+            // Splice a horse reel every 10 items (mirrors loadReels interleave pattern)
             const combined = [];
             let pIdx = 0;
             reelItems.forEach((r, i) => {
                 combined.push(r);
-                if ((i + 1) % 10 === 0 && pIdx < postsAsReels.length) combined.push(postsAsReels[pIdx++]);
+                if ((i + 1) % 10 === 0 && pIdx < horseReels.length) combined.push(horseReels[pIdx++]);
             });
+            // Append remaining horse reels
+            while (pIdx < horseReels.length) combined.push(horseReels[pIdx++]);
 
             if (combined.length === 0) {
                 setHasMore(false);
