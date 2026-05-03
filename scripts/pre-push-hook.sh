@@ -170,13 +170,41 @@ fi
 echo ""
 
 # ─── CHECK 6: No /auth/signin route references (canonical is /auth/login) ──
-echo "CHECK 6: Auth route canonicalization..."
+# Plus: validate that all auth-critical files exist on disk. Added 2026-05-02
+# after pages/auth/callback.js was silently deleted, 404'ing every signup.
+# This is a HARD BLOCK — missing auth files prevent the push.
+echo "CHECK 6: Auth route canonicalization + critical file presence..."
 
+# 6a — auth-critical file existence (hard block)
+AUTH_CRITICAL_FILES="
+pages/auth/callback.js
+pages/auth/login.js
+pages/auth/signup.js
+pages/auth/forgot-password.js
+pages/auth/reset-password.js
+pages/api/auth/ensure-profile.js
+"
+MISSING_AUTH=""
+for f in $AUTH_CRITICAL_FILES; do
+    [ -z "$f" ] && continue
+    if [ ! -f "$f" ]; then
+        MISSING_AUTH="${MISSING_AUTH}\n    - $f"
+    fi
+done
+if [ -n "$MISSING_AUTH" ]; then
+    echo -e "${RED}  ✗ FATAL: Auth-critical files are missing — signup will 404 in production:${NC}"
+    echo -e "$MISSING_AUTH"
+    echo ""
+    echo "    These files are mandatory. Restore from git history before pushing."
+    echo "    See docs/runbooks/07-auth-outage.md."
+    ERRORS=$((ERRORS + 1))
+fi
+
+# 6b — /auth/signin string references (warn only — next.config.js handles
+# the redirect, but stale references should still migrate to /auth/login)
 SIGNIN_HITS=""
 for file in $JS_FILES; do
     [ -f "$file" ] || continue
-    # Skip the redirect file itself — it's SUPPOSED to reference signin
-    echo "$file" | grep -qE 'pages/auth/signin\.js$' && continue
 
     HITS=$(grep -n '/auth/signin' "$file" 2>/dev/null | grep -v '// ')
     if [ -n "$HITS" ]; then
@@ -191,8 +219,8 @@ for file in $JS_FILES; do
     fi
 done
 
-if [ -z "$SIGNIN_HITS" ]; then
-    echo -e "${GREEN}  ✓ All auth routes use canonical /auth/login path.${NC}"
+if [ -z "$SIGNIN_HITS" ] && [ -z "$MISSING_AUTH" ]; then
+    echo -e "${GREEN}  ✓ All auth-critical files present and routes use canonical /auth/login.${NC}"
 fi
 echo ""
 # ─── CHECK 7: Pages with /api/ fetch calls but no auth imports ───────────

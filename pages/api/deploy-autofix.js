@@ -52,6 +52,8 @@ const PROTECTED_FILES = [
   'pages/auth/callback.js',
   'pages/auth/login.js',
   'pages/auth/signup.js',
+  'pages/auth/forgot-password.js',
+  'pages/auth/reset-password.js',
   'pages/api/auth/ensure-profile.js',
   '__tests__/auth-routes-exist.test.mjs',
 ];

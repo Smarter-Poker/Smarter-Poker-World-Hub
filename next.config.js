@@ -1,3 +1,78 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUTH-CRITICAL FILES — BUILD-TIME EXISTENCE GUARD
+   ─────────────────────────────────────────────────────────────────────────
+   This block runs every time Next.js parses next.config.js (build, dev, lint).
+   If any of the listed auth-flow files is missing or empty, the build dies
+   IMMEDIATELY with a clear error — before Vercel can compile and ship a
+   broken auth tree to production.
+
+   Background: on 2026-05-02 every signup (Google + email) was 404'ing in
+   prod because pages/auth/callback.js had been silently deleted from the
+   repo. Vercel happily built and deployed the missing-file tree because
+   nothing in the build pipeline checked. The npm `prebuild` hook does NOT
+   run on Vercel (Vercel invokes `next build` directly, not `npm run build`).
+   This guard runs unconditionally as part of next.config.js evaluation, so
+   it catches the same regression class regardless of how the build is
+   triggered.
+
+   ANY change to this list MUST also update:
+     - __tests__/auth-routes-exist.test.mjs       (CI/local node --test guard)
+     - pages/api/deploy-autofix.js  PROTECTED_FILES + SENSITIVE_PATHS
+     - .github/workflows/build-safety-gate.yml CHECK 8
+     - scripts/pre-push-hook.sh CHECK 6 (canonical route validation)
+   See docs/AUTH_FLOW.md.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(() => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const AUTH_CRITICAL_FILES = [
+    'pages/auth/callback.js',
+    'pages/auth/login.js',
+    'pages/auth/signup.js',
+    'pages/auth/forgot-password.js',
+    'pages/auth/reset-password.js',
+    'pages/api/auth/ensure-profile.js',
+  ];
+
+  const missing = [];
+  const tooSmall = [];
+  for (const rel of AUTH_CRITICAL_FILES) {
+    const abs = path.resolve(__dirname, rel);
+    if (!fs.existsSync(abs)) {
+      missing.push(rel);
+      continue;
+    }
+    const size = fs.statSync(abs).size;
+    if (size < 200) tooSmall.push(`${rel} (${size}B)`);
+  }
+
+  if (missing.length || tooSmall.length) {
+    const lines = [
+      '',
+      '╔══════════════════════════════════════════════════════════════════╗',
+      '║  BUILD ABORTED — AUTH-CRITICAL FILES ARE MISSING OR TRUNCATED    ║',
+      '╠══════════════════════════════════════════════════════════════════╣',
+      '║  Without these files the live signup flow 404s. Restore from    ║',
+      '║  git history before continuing. See docs/AUTH_FLOW.md.          ║',
+      '╚══════════════════════════════════════════════════════════════════╝',
+      '',
+    ];
+    if (missing.length) {
+      lines.push('  MISSING:');
+      for (const f of missing) lines.push(`    - ${f}`);
+      lines.push('');
+    }
+    if (tooSmall.length) {
+      lines.push('  SUSPICIOUSLY SMALL (likely truncated):');
+      for (const f of tooSmall) lines.push(`    - ${f}`);
+      lines.push('');
+    }
+    // Throw — this aborts `next build` / `next dev` immediately.
+    throw new Error(lines.join('\n'));
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const { withSentryConfig } = require('@sentry/nextjs');
 const withPWA = require('@ducanh2912/next-pwa').default({

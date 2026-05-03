@@ -1325,7 +1325,12 @@ export default function SettingsPage() {
                                             setPasswordResetStatus('sending');
                                             try {
                                                 const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                                                    redirectTo: `${window.location.origin}/hub/reset-auth`
+                                                    // 2026-05-02 fix: was /hub/reset-auth which is
+                                                    // an auth-clearing utility (signs the user out
+                                                    // and clears localStorage — wrong destination).
+                                                    // Route through /auth/callback so the recovery
+                                                    // flow lands on /auth/reset-password.
+                                                    redirectTo: `${window.location.origin}/auth/callback`
                                                 });
                                                 if (error) {
                                                     setPasswordResetStatus('error');

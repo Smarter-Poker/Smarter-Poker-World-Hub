@@ -25,6 +25,8 @@ const CRITICAL_AUTH_FILES = [
     'pages/auth/callback.js',
     'pages/auth/login.js',
     'pages/auth/signup.js',
+    'pages/auth/forgot-password.js',
+    'pages/auth/reset-password.js',
     'pages/api/auth/ensure-profile.js',
 ];
 
@@ -32,9 +34,11 @@ const CRITICAL_AUTH_FILES = [
 // codebase but the corresponding file is missing, the redirect 404s.
 // Each entry: { route, mustExist: 'pages/...' }
 const AUTH_ROUTE_TARGETS = [
-    { route: '/auth/callback', mustExist: 'pages/auth/callback.js' },
-    { route: '/auth/login',    mustExist: 'pages/auth/login.js' },
-    { route: '/auth/signup',   mustExist: 'pages/auth/signup.js' },
+    { route: '/auth/callback',        mustExist: 'pages/auth/callback.js' },
+    { route: '/auth/login',           mustExist: 'pages/auth/login.js' },
+    { route: '/auth/signup',          mustExist: 'pages/auth/signup.js' },
+    { route: '/auth/forgot-password', mustExist: 'pages/auth/forgot-password.js' },
+    { route: '/auth/reset-password',  mustExist: 'pages/auth/reset-password.js' },
 ];
 
 test('auth-critical files exist on disk', () => {

@@ -104,7 +104,7 @@ export default function AuthCallback() {
                     // Recovery links go to the password-reset page, not the hub.
                     if (typeStr === 'recovery') {
                         setStatus('Redirecting to password reset…');
-                        return setTimeout(() => router.replace('/auth/settings/reset-password'), 600);
+                        return setTimeout(() => router.replace('/auth/reset-password'), 600);
                     }
                 }
 

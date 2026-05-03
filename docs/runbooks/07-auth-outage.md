@@ -158,3 +158,105 @@ logs — they're tagged by user_id), whether the deploy guardrails
 should have caught a code regression pre-merge, and for C issues,
 whether a recurring pattern suggests an MFA enrolment UX issue rather
 than individual user error.
+
+---
+
+## Appendix — Failure Class E: Missing auth-flow files (2026-05-02 incident)
+
+### What happened
+
+On 2026-05-02 every signup attempt — Google OAuth and email/password —
+404'd in production. Vercel runtime logs showed:
+
+```
+GET /auth/callback | 404
+```
+
+`pages/auth/callback.js` had been silently deleted from the repo.
+`signup.js` and `login.js` both tell Supabase to redirect to
+`${origin}/auth/callback` after the auth handshake (`emailRedirectTo`
+for email confirmation, `redirectTo` for OAuth). With no file at that
+route, every user got dead-ended after the redirect.
+
+A subsequent audit found two more rotted routes:
+
+- `/auth/forgot-password` — the "Forgot password?" button on
+  `/auth/login` 404'd.
+- `/auth/reset-password` — the recovery flow had no landing page.
+
+`pages/hub/settings.js` was also calling `resetPasswordForEmail` with
+`redirectTo: /hub/reset-auth`, which is an *auth-clearing* utility,
+not a password-reset form — so the in-app reset path was broken too.
+
+### Why the existing guardrails missed it
+
+- `pages/auth/` was not in `SENSITIVE_PATHS` or `PROTECTED_FILES` in
+  `pages/api/deploy-autofix.js`. Autofix could overwrite or delete
+  files there without a PR.
+- Pre-push hook CHECK 6 only warned about `/auth/signin` *string
+  references*; it did not validate that referenced files existed on
+  disk.
+- The `npm prebuild` lifecycle hook was added briefly but never ran
+  on Vercel — Vercel invokes `next build` directly, bypassing
+  `npm run build`.
+
+### What's now in place to prevent recurrence (Failure Class E)
+
+The auth-critical file set is:
+
+```
+pages/auth/callback.js
+pages/auth/login.js
+pages/auth/signup.js
+pages/auth/forgot-password.js
+pages/auth/reset-password.js
+pages/api/auth/ensure-profile.js
+```
+
+If any of these is missing or truncated, multiple guards fire:
+
+1. **`next.config.js`** — synchronous `fs.existsSync` check at the top
+   of the file. `next build` and `next dev` both fail with a clear
+   error before compilation begins. This is the production-blocking
+   guard — Vercel cannot ship without it passing.
+2. **`__tests__/auth-routes-exist.test.mjs`** — `node --test` guard.
+   Single source of truth for the file list.
+3. **`.github/workflows/build-safety-gate.yml` CHECK 8** — runs the
+   above test on every push and PR to `main`.
+4. **`scripts/pre-push-hook.sh` CHECK 6** — local hard block before
+   `git push` lands on the remote.
+5. **`pages/api/deploy-autofix.js`** — files are in `PROTECTED_FILES`
+   (autofix never modifies them) and `pages/auth/` is in
+   `SENSITIVE_PATHS` (any change must ship via PR).
+
+### Diagnosis when this recurs
+
+```bash
+# Step 1 — confirm the 404 in runtime logs
+# (Vercel dashboard → Logs → filter path /auth/callback or status 404)
+
+# Step 2 — check which auth files are present at HEAD
+for f in pages/auth/callback.js pages/auth/login.js pages/auth/signup.js \
+         pages/auth/forgot-password.js pages/auth/reset-password.js \
+         pages/api/auth/ensure-profile.js; do
+  if [ ! -f "$f" ]; then echo "MISSING: $f"; fi
+done
+
+# Step 3 — find the deletion commit
+git log --diff-filter=D --name-only --since="7 days ago" -- pages/auth/ pages/api/auth/
+
+# Step 4 — restore from the parent of the deleting commit
+git checkout <parent-sha> -- <missing-path>
+git commit -m "fix(auth): restore <file> deleted by <SHA>"
+git push
+```
+
+### Symptoms unique to Class E
+
+- All sign-in attempts succeed up to the moment of redirect, then 404.
+- Active sessions are unaffected (token refresh path doesn't touch
+  these files).
+- Supabase Auth logs look healthy — the failure is downstream of
+  Supabase, on our redirect target.
+- Sentry shows no errors because the 404 is served by Next.js's
+  static 404 handler, not by application code.
