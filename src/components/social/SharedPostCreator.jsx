@@ -1714,23 +1714,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         // AUDIT-13: reset and start the timing baseline. tap=0 by definition.
                         _timingsRef.current = { tap: performance.now() };
                         setTimingDisplay('tap=0');
-                        // COMPOSE-V2 + iOS-USER-GESTURE FIX (2026-05-01):
-                        // The Photo/Video click must fire fileRef.click()
-                        // SYNCHRONOUSLY inside the user-gesture window, otherwise
-                        // iOS Safari refuses to open the Photos picker. Earlier
-                        // we redirected to /compose first which broke that —
-                        // AlbumPicker's useEffect-based auto-click was rejected
-                        // by Safari, leaving the user staring at an empty page.
-                        //
-                        // New flow on context==='social-media':
-                        //   1. Click the file input HERE (preserves user gesture)
-                        //   2. iOS Photos picker opens, user picks files
-                        //   3. handleFiles below detects context==='social-media',
-                        //      writes the files into composeStore.addMedia, then
-                        //      router.push('/hub/social-media/compose')
-                        //   4. AlbumPicker mounts with media already in store —
-                        //      no auto-click needed; user lands directly on the
-                        //      review-and-Next screen.
+                        // iOS-USER-GESTURE: fileRef.click() MUST fire synchronously
+                        // inside the same handler call as the user tap, otherwise
+                        // iOS Safari refuses to open the Photos picker. After the
+                        // user picks, handleFiles below stages the files inline
+                        // (setMedia + thumbnail/compression in background). When
+                        // the user taps Post, handlePost runs the upload via
+                        // bgUpload + onPost callback to the parent feed page.
                         setPreparingStage('picker');
                         fileRef.current?.click();
                     }}
