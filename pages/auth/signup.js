@@ -369,14 +369,30 @@ export default function SignUpPage() {
     };
 
     // Handle OAuth sign in (Google, Apple, SmarterPoker)
+    // [2026-05-03] Apex-domain hardening. PKCE stores code_verifier in
+    // localStorage on the origin where signInWithOAuth is called. If the
+    // user is on www.smarter.poker, Supabase redirects to Google which
+    // returns to /auth/callback — but the www→apex middleware redirect
+    // strips the user to apex, where the verifier is unreadable, and
+    // exchangeCodeForSession fails with "code verifier not found".
     const handleOAuthSignIn = async (provider) => {
         setError('');
         setOauthLoading(provider);
+        try {
+            const host = (typeof window !== 'undefined' && window.location.hostname) || '';
+            if (host.startsWith('www.')) {
+                const apex = host.replace(/^www\./, '');
+                window.location.replace(`https://${apex}/auth/signup?provider=${encodeURIComponent(provider)}`);
+                return;
+            }
+        } catch (_originErr) { /* SSR — skip */ }
+
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
                     redirectTo: `${window.location.origin}/auth/callback`,
+                    queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
                 },
             });
             if (error) throw error;
@@ -386,6 +402,19 @@ export default function SignUpPage() {
             setOauthLoading('');
         }
     };
+
+    // [2026-05-03] Resume OAuth after the www→apex bounce above.
+    useEffect(() => {
+        if (!router.isReady) return;
+        const provider = router.query.provider;
+        if (typeof provider === 'string' && ['google', 'apple', 'discord'].includes(provider)) {
+            const cleanQuery = { ...router.query };
+            delete cleanQuery.provider;
+            router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, { shallow: true });
+            handleOAuthSignIn(provider);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router.isReady]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // SUBMIT: Create account with email/password
@@ -512,11 +541,8 @@ export default function SignUpPage() {
                         signup_source: isReferralCode ? 'referral' : (formData.promoCode ? 'promo' : 'organic'),
                         state: formData.state,
                     });
-                    capture(FunnelEvents.SIGNUP, {
-                        has_referral: !!isReferralCode,
-                        has_promo: !!formData.promoCode && !isReferralCode,
-                        phone_verified: !!phoneVerified,
-                    });
+                    // [2026-05-03] Deferred — fired only after profile provision.
+                    // capture(FunnelEvents.SIGNUP, …) — see end of try{} block below.
                 }
             } catch (_analyticsErr) { console.warn('[App] Handled exception:', _analyticsErr?.message || _analyticsErr); }
 
@@ -710,6 +736,19 @@ export default function SignUpPage() {
                     console.warn('Referral reward error (non-blocking):', refErr);
                 }
             }
+
+            // [2026-05-03] Deferred SIGNUP funnel event. Fire AFTER the
+            // full provisioning attempt so orphaned auth.users rows (no
+            // profile) are tracked separately and don't inflate the funnel.
+            try {
+                if (authData?.user?.id) {
+                    capture(FunnelEvents.SIGNUP, {
+                        has_referral: !!isReferralCode,
+                        has_promo: !!formData.promoCode && !isReferralCode,
+                        phone_verified: !!phoneVerified,
+                    });
+                }
+            } catch (_pcErr) { console.warn('[App] Handled exception:', _pcErr?.message || _pcErr); }
 
             // Check if email confirmation is required
             if (authData.user && !authData.session) {

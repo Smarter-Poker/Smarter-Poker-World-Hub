@@ -12,6 +12,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
+// [2026-05-03] Defense-in-depth: this page has a 'signup' mode that uses a
+// stripped-down supabase.auth.signUp(). The canonical signup flow lives at
+// /auth/signup.js with HIBP + entropy + state + age + alias-availability
+// checks. Importing validatePassword here so the simple form can refuse
+// weak passwords AND nudge users to the canonical form, instead of silently
+// minting accounts that fail downstream provisioning.
+import { validatePassword } from '../../src/lib/passwordStrength';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -188,33 +195,32 @@ export default function LoginPage() {
         const safeEmail = email.trim().toLowerCase();
         const safePassword = password.trim();
 
-        try {
-            const { data, error: authError } = await supabase.auth.signUp({
-                email: safeEmail,
-                password: safePassword,
-                options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
-                }
-            });
-
-            if (authError) throw authError;
-
-            if (data.user && !data.session) {
-                // Email confirmation required
-                setMessage('Check your email for a confirmation link!');
-            } else if (data.session) {
-                // Auto-confirmed (for development)
-                console.log('✅ Signup successful:', data.user?.email);
-                // Set flag so hub plays intro animation
-                sessionStorage.setItem('just_authenticated', 'true');
-                router.push(getRedirectUrl());
-            }
-        } catch (err) {
-            console.warn('Signup error:', err);
-            setError(err.message || 'Signup failed');
-        } finally {
+        // ── [2026-05-03] Parity with canonical /auth/signup ──────────────────
+        // This simplified form historically allowed any 6+ char password and
+        // captured no metadata, so users created here landed in auth.users
+        // with no first/last name, no state, no age verification, no alias.
+        // Downstream pages (the hub, the diamond store, prize-redemption
+        // gates) assume those fields exist and crash without them. We now:
+        //   1. Run the SAME validatePassword (HIBP + entropy) used on
+        //      /auth/signup. Weak/breached passwords are rejected here too.
+        //   2. If the user is missing fields the canonical flow requires
+        //      (name, state, age, phone), redirect them to /auth/signup
+        //      with email pre-filled instead of creating a half-built account.
+        const pwCheck = await validatePassword(safePassword);
+        if (!pwCheck.ok) {
+            setError(pwCheck.reason || 'Please choose a stronger password.');
             setIsLoading(false);
+            return;
         }
+
+        // Always route real signups through the full /auth/signup form so we
+        // capture state/age/alias. Saves users from being blocked at the
+        // diamond store later because their profile is incomplete.
+        try {
+            sessionStorage.setItem('signup_email_prefill', safeEmail);
+        } catch (_ssErr) { /* ignore */ }
+        router.push('/auth/signup');
+        setIsLoading(false);
     };
 
     const handleMagicLink = async () => {

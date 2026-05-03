@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { prefetchVideoStart } from '../../lib/reelsPrefetcher';
 import { YouTubeErrorOverlay, reportFailureToServer, reportToSentry } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
@@ -723,16 +724,28 @@ export function ReelsViewer({ onClose }) {
     const goNext = useCallback(() => {
         setCurrentIndex(prev => {
             if (prev >= reels.length - 1) return prev;
-            // Trigger background load when 3 reels from end
-            if (prev >= reels.length - 4 && hasMore && !loadingMore) {
-                loadMoreReels();
-            }
-            return prev + 1;
+            if (prev >= reels.length - 4 && hasMore && !loadingMore) loadMoreReels();
+            const next = prev + 1;
+            requestAnimationFrame(() => {
+                containerRef.current
+                    ?.querySelector(`[data-reel-index="${next}"]`)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            return next;
         });
     }, [reels.length, hasMore, loadingMore]);
 
     const goPrev = useCallback(() => {
-        setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
+        setCurrentIndex(prev => {
+            if (prev <= 0) return prev;
+            const next = prev - 1;
+            requestAnimationFrame(() => {
+                containerRef.current
+                    ?.querySelector(`[data-reel-index="${next}"]`)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            return next;
+        });
     }, []);
 
     // Infinite scroll - load more reels when near end
@@ -1344,56 +1357,44 @@ export function ReelsViewer({ onClose }) {
         return () => window.removeEventListener('keydown', handleKey);
     }, [onClose]);
 
-    // Touch/scroll navigation (swipe to next/prev)
+    // M4: IntersectionObserver — single source of truth for currentIndex
     useEffect(() => {
         const container = containerRef.current;
-        if (!container) return;
-
-        let startY = 0;
-        let startX = 0;
-        const handleTouchStart = (e) => {
-            startY = e.touches[0].clientY;
-            startX = e.touches[0].clientX;
-        };
-        const handleTouchEnd = (e) => {
-            const endY = e.changedTouches[0].clientY;
-            const endX = e.changedTouches[0].clientX;
-            const diffY = startY - endY;
-            const diffX = startX - endX;
-            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
-                try { navigator?.vibrate?.(10); } catch (e) { console.warn('Handled exception:', e); }
-                // Unmute synchronously here — this IS the user gesture context.
-                // Calling it inside goNext() goes through React state + setTimeout which
-                // breaks the browser's gesture chain and setMuted() causes a mid-slide re-render.
-                if (userWantsSoundRef.current) {
-                    sendYTCmd('unMute');
-                    sendYTCmd('setVolume', [100]);
-                    setMuted(false);
-                    userInteractedRef.current = true;
+        if (!container || reels.length === 0) return;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.intersectionRatio < 0.6) return;
+                const newIdx = parseInt(entry.target.dataset.reelIndex, 10);
+                if (isNaN(newIdx)) return;
+                setCurrentIndex(newIdx);
+                if (userWantsSoundRef.current) { userInteractedRef.current = true; setMuted(false); }
+                const activeMedia = entry.target.querySelector('video, iframe');
+                if (activeMedia?.tagName === 'VIDEO') {
+                    activeMedia.muted = !userWantsSoundRef.current;
+                    activeMedia.play().catch(() => {});
+                } else if (activeMedia?.tagName === 'IFRAME') {
+                    activeMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                    if (userWantsSoundRef.current) {
+                        activeMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                        activeMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                    }
                 }
-                if (diffY > 0) goNext();   // Swipe up = next
-                else goPrev();              // Swipe down = prev
-            }
-            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-                try { navigator?.vibrate?.(10); } catch (e) { console.warn('Handled exception:', e); }
-                if (userWantsSoundRef.current) {
-                    sendYTCmd('unMute');
-                    sendYTCmd('setVolume', [100]);
-                    setMuted(false);
-                    userInteractedRef.current = true;
-                }
-                if (diffX > 0) goNext();   // Swipe left = next
-                else goPrev();              // Swipe right = prev
-            }
-        };
-
-        container.addEventListener('touchstart', handleTouchStart, { passive: true });
-        container.addEventListener('touchend', handleTouchEnd, { passive: true });
-        return () => {
-            container.removeEventListener('touchstart', handleTouchStart);
-            container.removeEventListener('touchend', handleTouchEnd);
-        };
-    // BUG FIX: include reels.length so goNext/goPrev don't close over stale state
+                container.querySelectorAll('[data-reel-index]').forEach(el => {
+                    if (parseInt(el.dataset.reelIndex, 10) === newIdx) return;
+                    const vid = el.querySelector('video');
+                    if (vid) vid.pause();
+                    const ifr = el.querySelector('iframe');
+                    if (ifr?.contentWindow) ifr.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                });
+                const nextReel = reels[newIdx + 1];
+                if (nextReel?.video_url && !isYouTubeUrl(nextReel.video_url)) prefetchVideoStart(nextReel.video_url);
+                const evictEl = container.querySelector(`[data-reel-index="${newIdx - 2}"] video`);
+                if (evictEl) { evictEl.src = ''; evictEl.load(); }
+            });
+        }, { threshold: 0.6, root: container });
+        container.querySelectorAll('[data-reel-index]').forEach(el => observer.observe(el));
+        return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex, reels.length]);
 
     if (loading) {
@@ -1546,10 +1547,13 @@ export function ReelsViewer({ onClose }) {
             ref={containerRef}
             style={{
                 position: 'fixed', inset: 0,
-                background: C.bg, zIndex: 10000,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 10000,
+                overflowY: 'scroll',
+                scrollSnapType: 'y mandatory',
+                overscrollBehaviorY: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                background: '#000',
             }}
-            onClick={handleTap}
             onTouchStart={handleLongPressTouchStart}
             onTouchEnd={cancelLongPress}
             onTouchMove={cancelLongPress}
@@ -1558,104 +1562,116 @@ export function ReelsViewer({ onClose }) {
             onMouseMove={cancelLongPress}
             onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
         >
-            {/* Close / Back button - always touchable; fades when overlay hidden */}
+            {/* Fixed close button */}
             <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
                 aria-label="Close reels"
                 style={{
-                    position: 'absolute', top: 20, left: 20,
+                    position: 'fixed', top: 20, left: 20,
                     width: 44, height: 44, borderRadius: '50%',
                     background: 'rgba(255,255,255,0.1)',
                     border: 'none', color: 'white', fontSize: 20,
-                    cursor: 'pointer', zIndex: 10,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', zIndex: 10001,
                     opacity: showOverlay ? 1 : 0.3,
                     transition: 'opacity 0.3s ease',
                     pointerEvents: 'auto',
                 }}
             >←</button>
 
-            {/* Reel container */}
-            <div style={{
-                width: '100%', maxWidth: 420, height: '100vh',
-                position: 'relative', background: '#000',
-            }}>
-                {/* Video / YouTube iframe - smart renderer */}
-                {(() => {
-                    const url = currentReel?.video_url;
-                    const ytId = getYouTubeVideoId(url);
-                    if (ytId) {
-                        // YouTube embed - autoplay, muted, loop
-                        // Fix: Remove muted from key and use postMessage to prevent re-rendering flash
-                        const embedSrc = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`;
-                        return (
+            {/* M4: 3-slot virtualized window */}
+            {[currentIndex - 1, currentIndex, currentIndex + 1].map(idx => {
+                if (idx < 0 || idx >= reels.length) return null;
+                const reel = reels[idx];
+                if (!reel) return null;
+                const isActive = idx === currentIndex;
+                const url = reel.video_url;
+                const ytId = getYouTubeVideoId(url);
+                const isYT = !!ytId;
+                const embedSrc = ytId
+                    ? `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`
+                    : null;
+
+                return (
+                    <div
+                        key={reel.id}
+                        data-reel-index={idx}
+                        onClick={isActive ? handleTap : undefined}
+                        style={{
+                            height: '100vh', width: '100%', maxWidth: 420, margin: '0 auto',
+                            position: 'relative', background: '#000',
+                            scrollSnapAlign: 'start', flexShrink: 0, overflow: 'hidden',
+                        }}
+                    >
+                        {reel.thumbnail_url && (
+                            <img src={reel.thumbnail_url} alt="" style={{
+                                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                                objectFit: 'cover', zIndex: 0,
+                            }} />
+                        )}
+
+                        {isYT ? (
                             <iframe
-                                ref={ytIframeRef}
-                                key={`yt-${currentReel?.id}`}
+                                ref={isActive ? ytIframeRef : null}
+                                key={reel.id}
                                 src={embedSrc}
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                                 style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    border: 'none',
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    objectFit: 'cover',
-                                    pointerEvents: 'none',
+                                    width: '100%', height: '100%', border: 'none',
+                                    position: 'absolute', top: 0, left: 0,
+                                    objectFit: 'cover', pointerEvents: 'none', zIndex: 1,
                                 }}
-                                title={currentReel?.caption || 'Poker Reel'}
+                                title={reel.caption || 'Poker Reel'}
                                 onLoad={() => {
-                                    // Cancel any in-flight retry timers from the previous load
+                                    if (!isActive) return;
                                     onLoadRetryTimersRef.current.forEach(t => clearTimeout(t));
                                     sendYTCmd('playVideo');
                                     autoUnmute();
-                                    // Retry loop for slow YouTube API init
-                                    onLoadRetryTimersRef.current = [300, 800, 1500].map(delay => setTimeout(() => {
-                                        sendYTCmd('playVideo');
-                                        if (userInteractedRef.current && userWantsSoundRef.current) {
-                                            sendYTCmd('unMute');
-                                            sendYTCmd('setVolume', [100]);
-                                        }
-                                    }, delay));
+                                    onLoadRetryTimersRef.current = [300, 800, 1500].map(delay =>
+                                        setTimeout(() => {
+                                            sendYTCmd('playVideo');
+                                            if (userInteractedRef.current && userWantsSoundRef.current) {
+                                                sendYTCmd('unMute');
+                                                sendYTCmd('setVolume', [100]);
+                                            }
+                                        }, delay)
+                                    );
                                 }}
                             />
-                        );
-                    }
-                    // Raw video (MP4, WebM, etc.)
-                    return (
-                        <video
-                            ref={videoRef}
-                            key={currentReel?.id}
-                            src={url}
-                            autoPlay
-                            muted={muted}
-                            playsInline
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onPlay={() => {
-                                setPaused(false);
-                                progressRAF.current = requestAnimationFrame(updateProgressRef.current);
-                            }}
-                            onPause={() => {
-                                setPaused(true);
-                                if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-                            }}
-                            onEnded={() => {
-                                if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-                                setProgress(0);
-                                if (currentIndex < reels.length - 1) goNext();
-                            }}
-                        />
-                    );
-                })()}
+                        ) : (
+                            <video
+                                ref={isActive ? videoRef : null}
+                                key={reel.id}
+                                src={url}
+                                preload="auto"
+                                playsInline
+                                loop
+                                muted={!userWantsSoundRef.current}
+                                poster={reel.thumbnail_url || undefined}
+                                style={{
+                                    width: '100%', height: '100%', objectFit: 'cover',
+                                    position: 'absolute', inset: 0, zIndex: 1,
+                                }}
+                                onCanPlay={(e) => {
+                                    if (isActive) {
+                                        e.target.muted = !userWantsSoundRef.current;
+                                        e.target.play().catch(() => {});
+                                    }
+                                }}
+                                onPlay={() => {
+                                    if (isActive) { setPaused(false); setYtReady(true); progressRAF.current = requestAnimationFrame(updateProgressRef.current); }
+                                }}
+                                onPause={() => {
+                                    if (isActive) { setPaused(true); if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }
+                                }}
+                                onEnded={() => {
+                                    if (isActive) { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); setProgress(0); if (currentIndex < reels.length - 1) goNext(); }
+                                }}
+                            />
+                        )}
 
-                {/* Preload next video - only for MP4/WebM (not YouTube iframes) */}
-                {reels[currentIndex + 1]?.video_url &&
-                 !isYouTubeUrl(reels[currentIndex + 1]?.video_url) && (
-                    <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
-                )}
-
+                        {/* Active-slot social overlays only */}
+                        {isActive && (<>
                 {/* Play Button Overlay - visible when explicitly paused (ytReady suppresses it during autoplay startup) */}
                 {paused && ytReady && !ytError && (
                     <div style={{
@@ -2417,7 +2433,11 @@ export function ReelsViewer({ onClose }) {
                         </div>
                     </div>
                 )}
-            </div>
+
+                        </>)}
+                    </div>
+                );
+            })}
         </div>
     );
 }

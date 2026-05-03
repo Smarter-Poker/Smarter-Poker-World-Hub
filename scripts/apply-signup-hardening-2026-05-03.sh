@@ -194,15 +194,135 @@ PY
   ok "PATCH 3 (middleware auth-allowlist guard): applied"
 fi
 
+# ── PATCH 4: signup.js — apex-OAuth pre-flight + PostHog reorder ──────────
+SIGNUP="$ROOT/pages/auth/signup.js"
+if [ ! -f "$SIGNUP" ]; then
+  fail "signup.js not found at $SIGNUP"
+fi
+
+if grep -q "AUTH_ALWAYS_ALLOW\|host.startsWith('www\|profileProvisioned" "$SIGNUP"; then
+  ok "PATCH 4 (signup.js apex-OAuth + PostHog gate): already applied"
+else
+  backup "$SIGNUP"
+  python3 - "$SIGNUP" <<'PY'
+import re, sys, pathlib
+path = pathlib.Path(sys.argv[1])
+src = path.read_text()
+
+# 4a. Apex-domain pre-flight in handleOAuthSignIn
+old_oauth = """    const handleOAuthSignIn = async (provider) => {
+        setError('');
+        setOauthLoading(provider);
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                },
+            });
+            if (error) throw error;
+        } catch (err) {
+            console.warn(`${provider} sign in error:`, err);
+            setError(err.message || `Failed to sign in with ${provider}`);
+            setOauthLoading('');
+        }
+    };"""
+new_oauth = """    // [2026-05-03] Apex-domain hardening. PKCE stores code_verifier in
+    // localStorage on the origin where signInWithOAuth is called. If the
+    // user is on www.smarter.poker, Supabase redirects to Google which
+    // returns to /auth/callback — but the www→apex middleware redirect
+    // strips the user to apex, where the verifier is unreadable, and
+    // exchangeCodeForSession fails with "code verifier not found".
+    const handleOAuthSignIn = async (provider) => {
+        setError('');
+        setOauthLoading(provider);
+        try {
+            const host = (typeof window !== 'undefined' && window.location.hostname) || '';
+            if (host.startsWith('www.')) {
+                const apex = host.replace(/^www\\./, '');
+                window.location.replace(`https://${apex}/auth/signup?provider=${encodeURIComponent(provider)}`);
+                return;
+            }
+        } catch (_originErr) { /* SSR — skip */ }
+
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                    queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
+                },
+            });
+            if (error) throw error;
+        } catch (err) {
+            console.warn(`${provider} sign in error:`, err);
+            setError(err.message || `Failed to sign in with ${provider}`);
+            setOauthLoading('');
+        }
+    };
+
+    // [2026-05-03] Resume OAuth after the www→apex bounce above.
+    useEffect(() => {
+        if (!router.isReady) return;
+        const provider = router.query.provider;
+        if (typeof provider === 'string' && ['google', 'apple', 'discord'].includes(provider)) {
+            const cleanQuery = { ...router.query };
+            delete cleanQuery.provider;
+            router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, { shallow: true });
+            handleOAuthSignIn(provider);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router.isReady]);"""
+src = src.replace(old_oauth, new_oauth, 1)
+
+# 4b. PostHog SIGNUP capture should fire only when profile exists.
+# Move the capture call from immediately-after-signUp to after profile
+# provisioning succeeds. We wrap the existing call in a guard.
+old_capture = """                    capture(FunnelEvents.SIGNUP, {
+                        has_referral: !!isReferralCode,
+                        has_promo: !!formData.promoCode && !isReferralCode,
+                        phone_verified: !!phoneVerified,
+                    });"""
+new_capture = """                    // [2026-05-03] Deferred — fired only after profile provision.
+                    // capture(FunnelEvents.SIGNUP, …) — see end of try{} block below."""
+src = src.replace(old_capture, new_capture, 1)
+
+# Insert the deferred capture right before the email_pending / success
+# branching at the end of the handleSignUp try block.
+anchor = """            // Check if email confirmation is required
+            if (authData.user && !authData.session) {"""
+deferred = """            // [2026-05-03] Deferred SIGNUP funnel event. Fire AFTER the
+            // full provisioning attempt so orphaned auth.users rows (no
+            // profile) are tracked separately and don't inflate the funnel.
+            try {
+                if (authData?.user?.id) {
+                    capture(FunnelEvents.SIGNUP, {
+                        has_referral: !!isReferralCode,
+                        has_promo: !!formData.promoCode && !isReferralCode,
+                        phone_verified: !!phoneVerified,
+                    });
+                }
+            } catch (_pcErr) { console.warn('[App] Handled exception:', _pcErr?.message || _pcErr); }
+
+"""
+src = src.replace(anchor, deferred + anchor, 1)
+
+path.write_text(src)
+PY
+  ok "PATCH 4 (signup.js apex-OAuth + PostHog gate): applied"
+fi
+
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ALL PATCHES APPLIED. Backups in $BACKUP_DIR"
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 echo "Next steps:"
-echo "  1. Run: node --test __tests__/auth-routes-exist.test.mjs"
-echo "  2. Commit: git add -A && git commit -m 'harden(signup): geo-allow /auth/, login.js parity, middleware guard'"
-echo "  3. Push.  Vercel deploys automatically."
-echo "  4. Verify: curl -s https://smarter.poker/api/health/signup | jq"
-echo "  5. Add cron entry to vercel.json so signup-probe runs every 5min."
+echo "  1. Run:    node --test __tests__/auth-routes-exist.test.mjs"
+echo "  2. Run:    node --test __tests__/signup-hardening.test.mjs   (new)"
+echo "  3. Commit: git add -A && git commit -m 'harden(signup): geo-allow /auth/, login.js parity, middleware guard, apex-OAuth, posthog gate'"
+echo "  4. Push.   Vercel deploys automatically."
+echo "  5. Verify: curl -s https://smarter.poker/api/health/signup | jq"
+echo "  6. Add cron entry to vercel.json so signup-probe runs every 5min:"
+echo '       { "path": "/api/cron/signup-probe", "schedule": "*/5 * * * *" }'
 echo ""

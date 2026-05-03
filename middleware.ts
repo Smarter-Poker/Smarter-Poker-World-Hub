@@ -23,7 +23,40 @@ const RESTRICTED_US_STATES = new Set<string>(
 const ALLOW_PATHS: string[] = geoBlocks.allow_paths || [];
 const ADMIN_BYPASS_HEADER = geoBlocks.admin_bypass_header || 'x-geo-bypass';
 
+// ── [2026-05-03] Hardcoded auth allowlist (cannot be disabled via JSON) ───
+// Account creation, login, and OAuth callback MUST be reachable from every
+// jurisdiction. State-tier gating happens AFTER signup via
+// profiles.access_tier = 'Restricted_Tier' (set by handle_new_user trigger
+// for users in WA/ID/MI/NV/CA), which gates real-money / prize-redemption
+// features inside the app. Geo-blocking the SIGNUP page itself silently
+// bricked every signup originating from WA/UT/LA/ID/MT/SD/IN/MI/MS/TN
+// between 2026-04-24 and 2026-05-03 with zero observable signal because
+// users were redirected before reaching Supabase auth — nothing showed up
+// in auth logs, the audit trail was empty, and every "is signup down?"
+// dashboard returned green. This list is a hard-fail guard: if a future
+// change to geo-blocks.json removes /auth/ from allow_paths, this list
+// still allows the auth flow through. Only edit if you genuinely need to
+// block account creation in a jurisdiction (which requires legal review).
+const AUTH_ALWAYS_ALLOW = [
+    '/auth/',
+    '/api/auth/',
+    '/api/sms/send-otp',
+    '/api/sms/verify-otp',
+    '/api/promo/validate-promo-code',
+    '/api/promo/validate-referral-code',
+    '/api/health',
+    '/api/health/signup',
+];
+
+function isAuthAlwaysAllow(pathname: string): boolean {
+    for (const p of AUTH_ALWAYS_ALLOW) {
+        if (p.endsWith('/') ? pathname.startsWith(p) : pathname === p) return true;
+    }
+    return false;
+}
+
 function isAllowPath(pathname: string): boolean {
+    if (isAuthAlwaysAllow(pathname)) return true;
     for (const p of ALLOW_PATHS) {
         if (p.endsWith('/') ? pathname.startsWith(p) : pathname === p) return true;
     }

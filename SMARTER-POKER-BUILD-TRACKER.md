@@ -804,11 +804,57 @@ silent leaks the prior phases might have missed.
 
 ---
 
-## FUTURE PHASES (Not Yet Started)
-- **Phase 38: Club Arena E2E broader** — Game flow, poker hands, full V8 Bible compliance E2E. Deferred since V8 itself is 89% verified — write E2E after the remaining 15 V8 items resolve.
-- **Phase 39: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106).
-- **Phase 40: Finish messenger pivot** — when `messenger_*` is fully populated and all callers migrated, drop `social_conversations` schema + `(p_user_id, p_other_user_id, p_conversation_type) → jsonb` overload. Owned by the parallel session.
-- **Phase 41: Diamond ledger reconciliation** — backfill `diamond_transactions` rows for the 1.95M-diamond drift (signup grants, admin grants, engine-direct UPDATEs that bypassed `add_diamonds_to_balance`). Audit-completeness only, not user-impact (task #126).
+## PHASE 38 — Club Arena E2E broader (2026-05-03)
+
+Added `e2e/016-club-arena-game-flow.spec.ts` — broader Playwright suite covering:
+- 4 public game-flow pages (clubs lobby, poker hub, diamond arena, live poker) return < 500
+- 11 mutation engine endpoints (action, seat, show-cards, connect, club-connect, create-live-table, buyin, cancel-cashout, anti-cheat, approve-cashout, clawback-chips) reject no-auth + bogus-token with 4xx (catches Phase-86-class regressions)
+- 2 post-Phase-37 atomic-entry endpoints (trivia/tournament-enter, club-arena/shop-items) require auth
+- engine/state requires auth (NOT 200 with leaked state)
+- engine/tables list responds in < 5s (catches SupabaseResilience cold-start regressions)
+- 2 settlement/money endpoints (approve-cashout, buyin) reject no-auth
+
+Deep V8 Bible engine invariants (deck shuffling, fairness math, settlement math, state-machine transitions) live in `club-arena/tests/engine/v8-bible/` in the engine repo and are exercised by the parallel session — they're not addressable from the World Hub HTTP surface alone.
+
+## PHASE 39 — Drop unused indexes (2026-05-03)
+
+Migration: `20260503_phase39_drop_unused_indexes.sql`. Calendar lock through 2026-05-14 was overconservative — `pg_stat_database.stats_reset = NULL` showed scan stats accumulated since DB creation 2026-01-06 (~4 months). All 43 targeted indexes had idx_scan=0 over the full 4-month window, not just the recent soak.
+
+Dropped 43 indexes, ~200MB freed. Excluded 3: `mv_active_poker_locations_geog`, `mv_active_poker_locations_activity` (materialized-view refresh might need them even if user queries don't), and `autofix_attempts_status_next_retry_idx` (recently added by sentry autofix automation, may need warm-up).
+
+## PHASE 40 — Messenger "pivot" closed (2026-05-03)
+
+Investigation revealed the original "social_* → messenger_* pivot" framing was wrong. Reality:
+
+- `social_*` schema = direct (1-to-1) DMs between users — live, all 4 messaging RPCs target it
+- `messenger_*` schema + `conversations` table = group chats (live poker table chat via `LivePokerTable.jsx` + commander home group chats via trigger). 130 active participant rows, properly RLS-locked with `auth.uid()` checks
+- The two schemas are **distinct messaging features**, not a half-finished migration
+
+Migration: `phase40_drop_dead_uuid_overload`. Dropped the dead `fn_get_or_create_conversation(uuid, uuid) → uuid` overload — its only caller was unimported `services/MessagingService.js`, and it had two known production bugs (role 'owner' violates check constraint, FK targets wrong table). Confirmed via pg_proc post-drop: exactly 1 surviving overload (the jsonb 3-arg, the live one).
+
+Audit doc `.agent/audits/2026-05-01-conversation-schema-pivot.md` updated with a CORRECTION section explaining the actual two-feature architecture.
+
+## PHASE 41 — Diamond ledger reconciliation (2026-05-03)
+
+Migration: `20260503_phase41_diamond_ledger_reconciliation.sql`. Inserted 572 reconciliation `diamond_transactions` rows to close the 1,945,149 💎 cumulative drift between `profiles.diamonds` and `sum(diamond_transactions.amount)`.
+
+Pre-flight: 298 real-user profiles with +1,765,949 💎 excess + 274 horse profiles with +179,200 💎 excess. 0 deficits — no users were owed money.
+Post-apply: 0 profiles drifted, 1008 balanced.
+
+Each reconciliation row uses:
+- `type='reconciliation'`
+- `source='phase41_audit'`
+- `reference_id='reconcile_<user_id>_2026-05-03'` (idempotent — re-run is no-op)
+- `description` explaining the drift sources (signup grants, admin grants, engine-direct UPDATEs that bypassed `add_diamonds_to_balance`)
+- `metadata.is_horse` flag + `pre_ledger_total` for forensic clarity
+
+Future ledger queries are now authoritative — `sum(diamond_transactions)` matches `profile.diamonds` for every account.
+
+---
+
+## FUTURE PHASES (Deferred — none currently actionable)
+
+- **Phase 4.5: App Router Migration** — 1,146 pages, multi-month work. Per the original mission plan: "Don't do this under duress. Only once the platform is stable and you have headroom." Deferred to Q3 2026+.
 
 ---
 
