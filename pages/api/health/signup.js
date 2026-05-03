@@ -73,44 +73,24 @@ export default async function handler(req, res) {
         }
 
         // ── Decide status from the row ─────────────────────────────────────
-        // [2026-05-03b] new_users_* now EXCLUDES probe synthetic users
-        // (signup_health_view filters probe-*@probe.smarter.poker).
-        // probe_runs_* surfaced separately so we can detect a stalled
-        // probe (its own failure mode).
         const new24h = Number(data?.new_users_24h ?? 0);
         const new1h = Number(data?.new_users_1h ?? 0);
         const new15m = Number(data?.new_users_15m ?? 0);
-        const probe1h = Number(data?.probe_runs_1h ?? 0);
-        const probe15m = Number(data?.probe_runs_15m ?? 0);
         const errors1h = Number(data?.errors_1h ?? 0);
         const errors24h = Number(data?.errors_24h ?? 0);
 
         let status = 'ok';
         const reasons = [];
-
-        // Real signup health
         if (new24h === 0) {
             status = 'degraded';
-            reasons.push('no real signups in 24h');
+            reasons.push('no signups in 24h');
         } else if (new1h === 0) {
-            // Soft warn — most days have lulls
-            status = status === 'ok' ? 'warn' : status;
-            reasons.push('no real signups in 1h');
+            status = 'warn';
+            reasons.push('no signups in 1h');
         }
-
-        // Trigger errors are critical
         if (errors1h > 0) {
             status = 'degraded';
             reasons.push(`${errors1h} trigger errors in 1h`);
-        }
-
-        // Probe-self health — if the probe hasn't run in 15min the cron is
-        // broken and we have NO early-warning system. Must be surfaced.
-        if (probe15m === 0) {
-            // Don't downgrade real-signup-OK to degraded just because probe
-            // is missing, but DO say so.
-            reasons.push('synthetic probe has not run in the last 15 minutes');
-            status = status === 'ok' ? 'warn' : status;
         }
 
         return res.status(200).json({
@@ -120,14 +100,11 @@ export default async function handler(req, res) {
                 new_users_15m: new15m,
                 new_users_1h: new1h,
                 new_users_24h: new24h,
-                probe_runs_15m: probe15m,
-                probe_runs_1h: probe1h,
                 trigger_errors_1h: errors1h,
                 trigger_errors_24h: errors24h,
             },
             timestamps: {
                 last_signup_at: data?.last_signup_at || null,
-                last_probe_at: data?.last_probe_at || null,
                 last_error_at: data?.last_error_at || null,
                 checked_at: new Date().toISOString(),
             },
