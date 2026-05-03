@@ -244,6 +244,21 @@ jobs:
           echo "✓ No merge conflict markers found"
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 8: Auth-critical files exist on disk
+      # Single source of truth: __tests__/auth-routes-exist.test.mjs
+      # See docs/runbooks/07-auth-outage.md for the 2026-05-02 incident
+      # that motivated this guard (every signup 404'd because
+      # pages/auth/callback.js had been silently deleted).
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 8: Auth-critical files exist"
+        run: |
+          if [ ! -f __tests__/auth-routes-exist.test.mjs ]; then
+            echo "::error::__tests__/auth-routes-exist.test.mjs is missing — the guard itself was deleted."
+            exit 1
+          fi
+          node --test __tests__/auth-routes-exist.test.mjs
+
+      # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
       # All new scheduled jobs must go to Open Claw on Hetzner, not Vercel.
       # Allowed baselines (caps at the numbers captured 2026-04-24):
