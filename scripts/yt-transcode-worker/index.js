@@ -92,6 +92,24 @@ const log = (...args) => console.log(`[yt-worker ${new Date().toISOString()}]`, 
 const warn = (...args) => console.warn(`[yt-worker ${new Date().toISOString()}]`, ...args);
 
 // ════════════════════════════════════════════════════════════════════════════
+// Permanent-failure patterns — yt-dlp exits non-zero and prints one of these.
+// These videos will NEVER succeed regardless of retries. Promote reel to
+// media_status='ready' so it renders as iframe-forever and clears the M4 gate.
+// ════════════════════════════════════════════════════════════════════════════
+const PERMANENT_PATTERNS = [
+  /Video unavailable/i,
+  /This video is private/i,
+  /This video has been removed/i,
+  /removed by the uploader/i,
+  /This live event will begin/i,
+  /age-restricted/i,
+  /members-only/i,
+  /copyright claim/i,
+  /ffmpeg_timeout_/i,
+];
+const isPermanentFailure = (msg) => PERMANENT_PATTERNS.some((rx) => rx.test(msg));
+
+// ════════════════════════════════════════════════════════════════════════════
 // Atomic claim — UPDATE only succeeds if status is still 'queued', so two
 // workers can't race on the same job. Returns the claimed row, or null if
 // another worker grabbed it (or queue is empty).
@@ -273,20 +291,21 @@ async function processJob(job) {
     const msg = (err?.message || String(err)).slice(0, 500);
     warn(`✗ Job ${job.id} failed: ${msg}`);
 
-    // Reel stays as YouTube iframe — backfill --requeue-failed can retry later.
+    const permanent = isPermanentFailure(msg);
+
     if (job.reel_id) {
-      // Supabase v2: query builder is not a Promise — must await, not .catch()
-      const { error: reelFailErr } = await supa.from('social_reels')
-        .update({ media_status: 'failed' })
-        .eq('id', job.reel_id);
-      if (reelFailErr) warn(`  reel fail-mark warn:`, reelFailErr.message);
+      await supa.from('social_reels')
+        .update({ media_status: permanent ? 'ready' : 'failed' })
+        .eq('id', job.reel_id)
+        .catch(() => {});
     }
-    const { error: jobFailErr } = await supa.from('video_transcode_jobs').update({
+    await supa.from('video_transcode_jobs').update({
       status: 'failed',
       completed_at: new Date().toISOString(),
       error_message: msg,
-    }).eq('id', job.id);
-    if (jobFailErr) warn(`  job fail-mark warn:`, jobFailErr.message);
+    }).eq('id', job.id).catch(() => {});
+
+    if (permanent) log(`  (permanent — reel ${job.reel_id} kept as iframe-forever)`);
 
   } finally {
     try { await rm(dir, { recursive: true, force: true }); } catch (_) {}
@@ -338,18 +357,35 @@ function runProcess(cmd, args, timeoutMs) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Crash recovery — reset stale 'processing' rows owned by THIS worker only
-// (don't touch rows another worker may still be processing).
+// Stale-processing reset — clears ANY 'processing' YouTube job that has been
+// stuck for >10 minutes, regardless of which worker claimed it. Called at
+// startup (worker_startup) AND on every poll tick (periodic_stale_reset) so
+// orphans from crashed workers / previous deploys are never permanent zombies.
 // ════════════════════════════════════════════════════════════════════════════
-async function resetStaleProcessing() {
+async function resetStaleProcessing(reason = 'periodic_stale_reset') {
   const { data, error } = await supa.from('video_transcode_jobs')
-    .update({ status: 'queued', error_message: null })  // null: not a failure, just interrupted
+    .update({
+      status: 'queued',
+      worker_id: null,
+      started_at: null,
+      error_message: reason,
+    })
     .eq('status', 'processing')
-    .eq('worker_id', WORKER_ID)
     .eq('source_type', 'youtube')
-    .select('id');
-  if (error) warn('stale reset error:', error.message);
-  if (data?.length) log(`Reset ${data.length} stale 'processing' row(s) → queued`);
+    .lt('started_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
+    .select('reel_id');
+
+  if (error) { warn('stale reset error:', error.message); return; }
+  if (!data?.length) return;
+
+  log(`Reset ${data.length} stale 'processing' row(s) (${reason})`);
+
+  const reelIds = data.map((r) => r.reel_id).filter(Boolean);
+  if (reelIds.length) {
+    await supa.from('social_reels')
+      .update({ media_status: 'queued' })
+      .in('id', reelIds);
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -362,10 +398,11 @@ log(`  Supabase:         ${SUPABASE_URL}`);
 log(`  Concurrency:      ${MAX_CONCURRENT_YT}`);
 log(`  Poll: idle ${POLL_MS / 1000}s / busy ${FAST_POLL_MS / 1000}s`);
 
-await resetStaleProcessing();
+await resetStaleProcessing('worker_startup');
 
 async function pollLoop() {
   try {
+    await resetStaleProcessing();   // periodic: every tick, catches cross-worker orphans
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;

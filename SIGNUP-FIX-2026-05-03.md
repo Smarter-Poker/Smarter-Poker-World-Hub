@@ -65,6 +65,44 @@ Two compounding factors hid the failure:
   script in case any of the file edits get reverted by autofix or a
   linter pass. Run anytime; no-ops if already applied.
 
+## Bug-hunt findings (2026-05-03 second pass)
+
+After the initial fix landed, I went looking for what we missed. Found and
+fixed five additional bugs:
+
+1. **Probe domain `.local` was a footgun** — RFC 6762 reserves `.local` for
+   mDNS and some Supabase environments reject it. Switched to
+   `probe.smarter.poker` (subdomain we own; never delivers email).
+2. **`signup_health_view` counted probe users** — would have always shown
+   green even if real signups were broken (the exact failure mode we're
+   trying to detect). Migration `harden_signup_view_exclude_probes` filters
+   probe emails out of `new_users_*`.
+3. **`probe_runs_*` was always 0** — probe deletes its user immediately,
+   so counting `auth.users WHERE email LIKE 'probe-%'` returned 0 even
+   right after a successful probe. Added `public.probe_heartbeats` table
+   that the probe writes to BEFORE cleanup. View reads from there.
+4. **`SUPABASE_SERVICE_ROLE_KEY` in 6 of 7 `.env*` files is STALE** —
+   tested each anon key against live Supabase; only `.env.production.local`
+   returned 200. The others (`.env.production`, `.env.vercel`,
+   `.env.vercel.local`, `.env.vercel-db`, `.env.verify.local`,
+   `.env.example`) return 401. Production deploys are unaffected because
+   Vercel uses its own UI-set env vars, but anyone running local builds or
+   scripts will silently get 401s.
+5. **Polling-with-backoff replaced fixed 800ms sleep** — empirical e2e
+   test showed trigger rows are visible at 0ms (synchronous in-txn). The
+   polling is harmless safety net for future async-trigger changes.
+
+E2E verification (against live Supabase, run from this machine):
+```
+Step 1 signup: user_id=52fb8ec7-...  (1352ms)
+  ✓ profiles      visible after 0ms
+  ✓ wallets       visible after 0ms
+  ✓ user_diamonds visible after 0ms
+  cleanup DELETE: HTTP 200
+  heartbeat insert: HTTP 201
+  Final view: new_users_15m=0  probe_runs_15m=1  probe_ok_15m=1  errors_1h=0
+```
+
 ## Manual steps (not auto-applied)
 
 1. **Add the cron entry to `vercel.json`** so the synthetic probe runs:
@@ -108,7 +146,24 @@ Two compounding factors hid the failure:
    #   WHERE created_at > now() - interval '5 minutes';
    ```
 
-5. **Watch the probe** for the first 24h after deploy:
+5. **Audit and rotate stale env files** — six `.env*` files have anon
+   keys that return 401 against live Supabase. Vercel deploys use UI env
+   vars so production is unaffected, but local dev / scripts / one-off
+   commands will silently fail with "Invalid API key":
+   ```
+   .env.production       → 401 (stale)
+   .env.production.local → 200 (current — keep)
+   .env.vercel           → 401 (stale)
+   .env.vercel.local     → 401 (stale)
+   .env.vercel-db        → 401 (stale)
+   .env.verify.local     → 401 (stale)
+   .env.example          → 401 (intentional placeholder, but worth a comment)
+   ```
+   Recommended: delete the stale .local-suffix-less files and `.env.vercel*`,
+   keeping only `.env.production.local` and `.env.example` (with a comment
+   explaining the latter is a template).
+
+6. **Watch the probe** for the first 24h after deploy:
 
    ```sql
    SELECT * FROM public.signup_health_view;

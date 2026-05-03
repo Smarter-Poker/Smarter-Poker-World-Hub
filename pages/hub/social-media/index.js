@@ -925,7 +925,7 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                                             if (!streamId) return;
                                             if (isEnded) {
                                                 // Stream is over — show toast, don't navigate to dead stream URL
-                                                import('../../../src/stores/toastStore').then(m => m.default?.info?.('This stream has ended')).catch(() => {});
+                                                toast.info('This stream has ended');
                                                 return;
                                             }
                                             router.push(`/hub/social-media?stream=${streamId}`);
