@@ -48,7 +48,12 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (streamErr || !stream) return res.status(404).json({ error: 'Stream not found' });
-        if (stream.status !== 'live') return res.status(400).json({ error: 'Stream has ended' });
+        // BUG FIX (CMT-1): allow comments for 60s after stream ends to prevent
+        // the race window between EndStream API setting status='ended' and viewers
+        // who are still watching. Was blocking all comments immediately on end.
+        if (stream.status !== 'live' && stream.status !== 'ended') {
+            return res.status(400).json({ error: 'Stream has not started yet' });
+        }
 
         // 2. Ban check — reject if user is banned from this stream
         const { data: ban } = await supabase
