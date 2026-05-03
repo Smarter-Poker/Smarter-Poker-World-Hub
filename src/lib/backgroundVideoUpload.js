@@ -406,6 +406,32 @@ async function _uploadWithTus(file, meta, mimeType) {
         console.warn('[bgUpload] _uploadWithTus refusing to start — no valid JWT available');
         throw new Error('Session expired. Please refresh the page and try again.');
     }
+    // PHASE-B (2026-05-03): proactive JWT lifetime check. tus-js-client v4.3.1
+    // attaches `headers` ONCE at constructor time and the appendable-header bug
+    // means we can't safely rotate Authorization mid-upload. Long uploads
+    // (3-min+ video on cellular) can outlive a token that was already 55 min
+    // old at start, then chunk #20 fails with "Invalid Compact JWS" and the
+    // user sees a generic error after waiting 3 minutes. Estimating size /
+    // expected bytes-per-second is fragile; instead require >=120s of remaining
+    // JWT life. Below that, abort up-front with an actionable message and let
+    // the user refresh / log in fresh — far better than silent mid-upload
+    // failure. Threshold deliberately conservative: 2 min covers preflight +
+    // small files; bigger files force a token refresh first.
+    try {
+        const _parts = userToken.split('.');
+        const _payload = JSON.parse(atob(_parts[1].replace(/-/g,'+').replace(/_/g,'/') + '==='.slice((_parts[1].length + 3) % 4)));
+        const expSec = Number(_payload?.exp) || 0;
+        const remainingSec = expSec - Math.floor(Date.now() / 1000);
+        if (remainingSec > 0 && remainingSec < 120) {
+            console.warn('[bgUpload] JWT only has', remainingSec, 's remaining — failing fast to avoid mid-upload expiry');
+            throw new Error('Your session is about to expire. Please refresh the page and try posting again.');
+        }
+    } catch (e) {
+        // Decode failure isn't a hard fail — _ensureBearer already validated
+        // shape. Just continue; the actual TUS request will surface JWT
+        // problems if any.
+        if (e?.message?.includes('about to expire')) throw e;
+    }
     // Diagnostic log (console.log = "Default" level, visible without changing
     // DevTools filter). When this DOES log but the server still rejects with
     // "Invalid Compact JWS", the cached session token is stale-against-current-

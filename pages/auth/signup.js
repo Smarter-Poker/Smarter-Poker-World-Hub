@@ -120,6 +120,21 @@ export default function SignUpPage() {
         }
     }, [router.isReady]);
 
+    // [2026-05-03] Pick up email pre-fill from /auth/login (the simple form
+    // there now redirects here so users don't end up with under-provisioned
+    // accounts). sessionStorage is read once and cleared so refresh doesn't
+    // re-overwrite a field the user has since edited.
+    useEffect(() => {
+        try {
+            const prefill = (typeof window !== 'undefined') && window.sessionStorage?.getItem('signup_email_prefill');
+            if (prefill && typeof prefill === 'string' && prefill.includes('@')) {
+                setFormData(prev => prev.email ? prev : { ...prev, email: prefill });
+                window.sessionStorage.removeItem('signup_email_prefill');
+            }
+        } catch (_ssErr) { /* sessionStorage unavailable (privacy mode) */ }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Override global html/body background for SmarterPoker Dark theme
     useEffect(() => {
         const style = document.createElement('style');

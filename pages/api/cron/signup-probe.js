@@ -133,20 +133,37 @@ export default async function handler(req, res) {
     const steps = {};
 
     try {
-        // Step 1: signup via the anon client (same path real users take)
+        // Step 1: create user via admin API.
+        //
+        // [2026-05-03e] Originally used anon.auth.signUp({...}) for full
+        // path parity. Problem: with mailer_autoconfirm=false, Supabase
+        // tries to send a confirmation email per signup. probe.smarter.poker
+        // has no MX so all 288 emails/day bounce, which hurts sender
+        // reputation and burns email-quota that real users need.
+        //
+        // admin.auth.admin.createUser({email_confirm:true}) fires the SAME
+        // INSERT into auth.users → SAME trigger chain (handle_new_user,
+        // wallet trigger, diamonds trigger). The only thing it skips is the
+        // GoTrue email-send step, which is a tiny REST handler unlikely to
+        // silently break. Net: same coverage, zero email burn.
         steps.signup = { started_at: Date.now() };
-        const { data: signUpData, error: signUpErr } = await anon.auth.signUp({
+        const { data: signUpData, error: signUpErr } = await admin.auth.admin.createUser({
             email,
             password,
-            options: {
-                data: { full_name: 'Health Probe', first_name: 'Health', last_name: 'Probe', poker_alias: 'probe' },
+            email_confirm: true,
+            user_metadata: {
+                full_name: 'Health Probe',
+                first_name: 'Health',
+                last_name: 'Probe',
+                poker_alias: 'probe',
+                _is_probe: true,
             },
         });
         steps.signup.duration_ms = Date.now() - steps.signup.started_at;
         if (signUpErr || !signUpData?.user?.id) {
             steps.signup.ok = false;
             steps.signup.error = signUpErr?.message || 'no user returned';
-            throw new Error(`Step 1 (signup) failed: ${steps.signup.error}`);
+            throw new Error(`Step 1 (createUser) failed: ${steps.signup.error}`);
         }
         userId = signUpData.user.id;
         steps.signup.ok = true;

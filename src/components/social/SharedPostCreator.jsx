@@ -678,6 +678,32 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (!content.trim() && !media.length && !linkPreview && !checkInVenue) { _submittingRef.current = false; return; }
         setError('');
 
+        // PHASE-A (2026-05-03): network pre-check. If the device is offline OR
+        // the connection is too slow to plausibly complete the upload, fail
+        // fast with a clear message instead of letting TUS retry-loop for 60s
+        // and then spit out a generic "Upload failed: timeout" error. We
+        // check navigator.onLine + navigator.connection.effectiveType (Network
+        // Information API) — both are advisory, but they catch the common
+        // "airplane mode mid-flight" / "subway tunnel" cases that produce
+        // the worst UX. Only block on hard offline; warn-only on slow.
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            setError("You're offline. Reconnect and try again.");
+            try { toast.error("You're offline. Reconnect and try again.", 5000); } catch (_) {}
+            _submittingRef.current = false;
+            return;
+        }
+        if (media.some(m => m.type === 'video') && typeof navigator !== 'undefined') {
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            const eff = conn?.effectiveType;
+            if (eff === 'slow-2g' || eff === '2g') {
+                // Don't block — just warn. Some 2g connections can still
+                // upload tiny files, and Network Information API isn't
+                // available everywhere; treating it as fatal would falsely
+                // block users on browsers that don't expose it.
+                try { toast.info('Slow connection detected — upload may take a while.', 4000); } catch (_) {}
+            }
+        }
+
         // AUDIT-17 (2026-04-30 per Dan: "make all real deep corrections,
         // zero patches"). Refresh the session at the START of every post,
         // BUT WITH A TIMEOUT GUARD. Audit-16 used a bare
@@ -905,11 +931,36 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         _submittingRef.current = false;
                         return;
                     }
+                    // PHASE-A (2026-05-03): map common low-level errors to
+                    // human-readable messages. Generic "Upload failed: <msg>"
+                    // hides the real cause from users (every iPhone JWT-stale
+                    // bug looked like "Upload failed: Invalid Compact JWS"
+                    // which means nothing to a non-engineer). Patterns are
+                    // matched on the error message string because tus-js-client
+                    // doesn't expose status codes consistently across versions.
+                    const rawMsg = (err?.message || String(err) || 'unknown').toLowerCase();
+                    let friendlyMsg;
+                    if (rawMsg.includes('compact jws') || rawMsg.includes('jwt expired') || rawMsg.includes('jws') || rawMsg.includes('access denied') || rawMsg.includes('unauthorized')) {
+                        friendlyMsg = 'Your session expired. Please refresh the page or log in again.';
+                    } else if (rawMsg.includes('413') || rawMsg.includes('too large') || rawMsg.includes('payload too large')) {
+                        friendlyMsg = 'Video file is too large. Maximum 5GB.';
+                    } else if (rawMsg.includes('403') || rawMsg.includes('forbidden') || rawMsg.includes('not allowed') || rawMsg.includes('row level security')) {
+                        friendlyMsg = 'Permission denied — your account may not have upload access. Please log out and back in.';
+                    } else if (rawMsg.includes('mime') || rawMsg.includes('type not allowed') || rawMsg.includes('content type')) {
+                        friendlyMsg = 'File format not supported. Try MP4, MOV, or HEVC.';
+                    } else if (rawMsg.includes('network') || rawMsg.includes('failed to fetch') || rawMsg.includes('econnreset') || rawMsg.includes('timeout') || rawMsg.includes('aborted')) {
+                        friendlyMsg = 'Network error during upload. Check your connection and try again.';
+                    } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                        friendlyMsg = "You're offline. Reconnect and try again.";
+                    } else {
+                        friendlyMsg = 'Upload failed: ' + (err?.message || 'unknown error');
+                    }
                     if (mountedRef.current) {
-                        setError('Upload failed: ' + err.message);
+                        setError(friendlyMsg);
                         setUploadProgress(null);
                         setUploading(false);
                     }
+                    try { toast.error(friendlyMsg, 7000); } catch (_) {}
                     _submittingRef.current = false;
                     return; // abort post on upload failure
                 }

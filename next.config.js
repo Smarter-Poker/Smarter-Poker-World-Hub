@@ -174,8 +174,19 @@ const nextConfig = {
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
   // Keep it ON for production builds where it helps catch bugs; OFF for dev stability.
   reactStrictMode: process.env.NODE_ENV === 'production',
-  eslint: { ignoreDuringBuilds: true },
+  // NOTE: `eslint` top-level key removed — deprecated in Next.js 16. ESLint is
+  // ignored at build time via the `ignoreDuringBuilds` flag which is now controlled
+  // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
+
+  // ─── Next.js 16 Turbopack — Silence webpack-vs-turbopack conflict ──────────
+  // Next.js 16 enables Turbopack by default. We have a custom `webpack` config
+  // (for the supabase.js alias + dev watchOptions). Having webpack config with
+  // no turbopack config is a HARD BUILD ERROR in Next.js 16. Setting an empty
+  // turbopack object tells Next.js "yes, we know we have a webpack config" and
+  // silences the fatal error while keeping our webpack customisations intact.
+  // See: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+  turbopack: {},
 
   // ─── Serverless Bundle Slimming ────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
@@ -208,58 +219,60 @@ const nextConfig = {
   // CRITICAL: Only enable in production — in dev mode, workerThreads causes a race
   // condition where vendor chunks get deleted mid-request, triggering
   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
-  experimental: {
-    // ─── Server External Packages (OOM FIX) ────────────────────────────────────
-    // Tell Next.js NOT to bundle these in the server bundle. They are native,
-    // browser-only, or too large to webpack. Dramatically reduces build RAM by
-    // preventing standalone mode from deep-tracing their entire dependency subtrees.
-    serverComponentsExternalPackages: [
-      'puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth',
-      'canvas', 'phaser',
-      'pg', 'pg-protocol',
-      'sharp',
-      'pdf-parse',
-      'twilio',
-      'jspdf', 'jspdf-autotable',
-      'docx',
-      'livekit-server-sdk',
-      'posthog-node',
-      '@sentry/node',
-      // ffmpeg/ffprobe ship native binaries — must NOT be webpacked.
-      // Used by /api/cron/transcode-videos to convert HEVC → H.264 MP4.
-      '@ffmpeg-installer/ffmpeg',
-      '@ffprobe-installer/ffprobe',
+  // ─── Server External Packages (OOM FIX) — moved from experimental in Next 16 ──
+  // `experimental.serverComponentsExternalPackages` was promoted to a stable top-level
+  // key `serverExternalPackages` in Next.js 15+. Using the old path causes a build warning
+  // and the setting is silently ignored. Moved here so it actually takes effect.
+  serverExternalPackages: [
+    'puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth',
+    'canvas', 'phaser',
+    'pg', 'pg-protocol',
+    'sharp',
+    'pdf-parse',
+    'twilio',
+    'jspdf', 'jspdf-autotable',
+    'docx',
+    'livekit-server-sdk',
+    'posthog-node',
+    '@sentry/node',
+    // ffmpeg/ffprobe ship native binaries — must NOT be webpacked.
+    // Used by /api/cron/transcode-videos to convert HEVC → H.264 MP4.
+    '@ffmpeg-installer/ffmpeg',
+    '@ffprobe-installer/ffprobe',
+  ],
+
+  // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ─────
+  // ffmpeg-installer + ffprobe-installer ship platform-specific binaries.
+  // Vercel builds on linux-x64; we need that subdir + the wrapper module's
+  // index.js + the package.json. Explicit globs are safer than `**/*`
+  // because the tracer sometimes silently drops executable bits.
+  // Moved from experimental.outputFileTracingIncludes (promoted in Next.js 15+).
+  outputFileTracingIncludes: {
+    'pages/api/cron/transcode-videos': [
+      'node_modules/@ffmpeg-installer/ffmpeg/**/*',
+      'node_modules/@ffmpeg-installer/linux-x64/**/*',
+      'node_modules/@ffprobe-installer/ffprobe/**/*',
+      'node_modules/@ffprobe-installer/linux-x64/**/*',
     ],
+  },
 
-    // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ─────
-    // ffmpeg-installer + ffprobe-installer ship platform-specific binaries.
-    // Vercel builds on linux-x64; we need that subdir + the wrapper module's
-    // index.js + the package.json. Explicit globs are safer than `**/*`
-    // because the tracer sometimes silently drops executable bits.
-    outputFileTracingIncludes: {
-      'pages/api/cron/transcode-videos': [
-        'node_modules/@ffmpeg-installer/ffmpeg/**/*',
-        'node_modules/@ffmpeg-installer/linux-x64/**/*',
-        'node_modules/@ffprobe-installer/ffprobe/**/*',
-        'node_modules/@ffprobe-installer/linux-x64/**/*',
-      ],
-    },
+  // ─── Output File Tracing — Serverless Bundle Exclusions ───────────────────
+  // Moved from experimental.outputFileTracingExcludes (promoted in Next.js 15+).
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/puppeteer/**',
+      'node_modules/puppeteer-core/**',
+      'node_modules/puppeteer-extra/**',
+      'node_modules/puppeteer-extra-plugin-stealth/**',
+      'node_modules/@puppeteer/**',
+      'node_modules/canvas/**',
+      'node_modules/phaser/**',
+      'node_modules/pdf-parse/**',
+      'node_modules/three/examples/**',
+    ],
+  },
 
-    // ─── Output File Tracing — Serverless Bundle Exclusions ───────────────────
-    outputFileTracingExcludes: {
-      '*': [
-        'node_modules/puppeteer/**',
-        'node_modules/puppeteer-core/**',
-        'node_modules/puppeteer-extra/**',
-        'node_modules/puppeteer-extra-plugin-stealth/**',
-        'node_modules/@puppeteer/**',
-        'node_modules/canvas/**',
-        'node_modules/phaser/**',
-        'node_modules/pdf-parse/**',
-        'node_modules/three/examples/**',
-      ],
-    },
-
+  experimental: {
     // [Phase 1.4, 2026-04-21] cpus: 1→2. Phases 1.1–1.3 removed ~49MB of
     // unused deps, excluded puppeteer/phaser/canvas/pdf-parse from the
     // file tracer, moved puppeteer+canvas to devDeps (Vercel skips them
@@ -275,10 +288,9 @@ const nextConfig = {
     cpus: process.env.NODE_ENV === 'production' ? 2 : undefined,
     // [OOM FIX] Disable worker threads — with cpus:1 they add spawn overhead for no gain.
     workerThreads: false,
-    // [Phase 6.1.18] Enable instrumentation hook (src/instrumentation.js) so
-    // production env guardrails run once at server boot and fail fast if any
-    // critical webhook/DB secret is missing.
-    instrumentationHook: true,
+    // instrumentationHook removed — no longer an experimental key in Next.js 16.
+    // instrumentation.js is loaded by default; the old flag is ignored (causes
+    // "Unrecognized key" build warning). No replacement needed.
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
@@ -331,7 +343,8 @@ const nextConfig = {
     return config;
   },
 
-  swcMinify: true, // SWC minifier uses less memory than Terser
+  // swcMinify removed — deprecated in Next.js 15+ (SWC is the only minifier;
+  // the flag is no longer recognized and causes an "Unrecognized key" build warning).
 
   // Removed generateBuildId override:
   // Hardcoding the build ID in development (e.g. 'dev-stable-v2') causes Next.js Fast Refresh

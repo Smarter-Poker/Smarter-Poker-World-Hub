@@ -5421,10 +5421,30 @@ function SocialMediaPage() {
 
             // ═══ PRIMARY SUCCESS: Add to feed IMMEDIATELY ═══
             // This must happen before ANY secondary operations (mentions, reels)
-            // so that failures in those don't prevent the post from appearing
+            // so that failures in those don't prevent the post from appearing.
+            //
+            // PHASE-A (2026-05-03): the RPC now returns a hydrated payload
+            // (id, author_id, content, content_type, created_at, media_urls,
+            // thumbnail_url, like_count, comment_count). Use it directly when
+            // available so the optimistic card matches what the realtime sub
+            // will deliver moments later — eliminates the brief flicker where
+            // the card's timestamp jumps from "Just now" to the real time and
+            // counts re-zero. When falling through to direct INSERT (which
+            // returns only `id`), we still construct from local state.
+            const hydrated = (rpcResult && rpcResult.success) ? rpcResult : null;
             setPosts(prev => [{
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
+                // Use the RPC's NOW() timestamp when available so the realtime
+                // INSERT event from the same row doesn't reorder the feed.
+                created_at: hydrated?.created_at || new Date().toISOString(),
+                createdAt: hydrated?.created_at || new Date().toISOString(),
+                // Mirror DB shape for code paths that key off snake_case.
+                author_id: user.id,
+                content_type: type,
+                media_urls: urls,
+                like_count: hydrated?.like_count ?? 0,
+                comment_count: hydrated?.comment_count ?? 0,
                 // RACE FIX (2026-04-29): include thumbnailUrl in BOTH camelCase and
                 // snake_case so the SmarterPokerStyleCard's `post.thumbnail_url`
                 // lookup hits on the just-posted video. Without this, the freshly
