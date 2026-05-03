@@ -461,53 +461,39 @@ export default function TournamentsPage() {
 
     async function finishRoundPlay() {
         setIsTimerRunning(false);
-        const totalTime = Math.round((Date.now() - startTime) / 1000);
 
-        // Submit score for bracket matchup
+        // Server-side score submission via /api/trivia/tournament-submit-round.
+        // Replaces direct anon-key writes that let users DevTools-edit their
+        // own finalScore. The API verifies each answer against
+        // tournament.questions[i].correct_index and writes the authoritative
+        // score to trivia_tournament_entries + trivia_tournament_rounds.
         if (currentRoundData && myMatchup) {
-            const isPlayer1 = myMatchup.player1_id === userId;
-            const scoreField = isPlayer1 ? 'player1_score' : 'player2_score';
-
-            // Update the matchup in the round (use scoreRef for accurate value)
-            const finalScore = scoreRef.current;
-            const updatedMatchups = currentRoundData.matchups.map(m => {
-                if (m.match_index === myMatchup.match_index) {
-                    return { ...m, [scoreField]: finalScore };
-                }
-                return m;
-            });
-
-            // Check if both players have played — determine winner inline
-            const updatedMatch = updatedMatchups.find(m => m.match_index === myMatchup.match_index);
-            if (updatedMatch.player1_score !== null && updatedMatch.player2_score !== null) {
-                if (updatedMatch.player1_score > updatedMatch.player2_score) {
-                    updatedMatch.winner_id = updatedMatch.player1_id;
-                } else if (updatedMatch.player2_score > updatedMatch.player1_score) {
-                    updatedMatch.winner_id = updatedMatch.player2_id;
-                } else {
-                    // Tie — use time_spent as tiebreaker (faster wins)
-                    updatedMatch.winner_id = userId; // Current player wins ties since they played
-                }
-            }
-
             try {
-                await supabase
-                    .from('trivia_tournament_rounds')
-                    .update({ matchups: updatedMatchups })
-                    .eq('id', currentRoundData.id);
-
-                // Also update the user's entry (use scoreRef for accurate value)
-                await supabase
-                    .from('trivia_tournament_entries')
-                    .update({
-                        score: (userEntry?.score || 0) + finalScore,
-                        time_spent: (userEntry?.time_spent || 0) + totalTime,
-                        completed_at: new Date().toISOString()
-                    })
-                    .eq('tournament_id', activeTournament.id)
-                    .eq('user_id', userId);
+                const token = getAccessToken();
+                if (!token) {
+                    console.warn('[Tournaments] No session token — cannot submit round');
+                    return;
+                }
+                // Build { question_id, selected } per question. selected is
+                // the user's actual answer index (correct_index when correct,
+                // -1 sentinel otherwise — server treats -1 as wrong).
+                const answersPayload = questions
+                    .filter(q => q.id != null)
+                    .map((q, idx) => ({
+                        question_id: q.id,
+                        selected: answersRef.current[idx] === true ? q.correct_index : -1
+                    }));
+                const resp = await fetch('/api/trivia/tournament-submit-round', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ round_id: currentRoundData.id, answers: answersPayload })
+                });
+                const json = await resp.json().catch(() => ({}));
+                if (!resp.ok || !json.success) {
+                    console.warn('[Tournaments] Round submit failed:', json.error || resp.status);
+                }
             } catch (e) {
-                console.warn('[Tournaments] Failed to save round results:', e);
+                console.warn('[Tournaments] Failed to submit round results:', e);
             }
         }
 
