@@ -106,6 +106,16 @@ const PERMANENT_PATTERNS = [
   /members-only/i,
   /copyright claim/i,
   /ffmpeg_timeout_/i,
+  // M7.6: caught in deep audit — 8,177 reels were stuck because these
+  // failures hit the worker but weren't classified permanent, so the
+  // broadcast never fanned out 'iframe-forever' to siblings.
+  /available to this channel's members/i,           // YouTube channel members-only (different msg from /members-only/)
+  /Use --cookies-from-browser or --cookies/i,       // cookie auth required (datacenter IP blocked)
+  /from-browser or --cookies for the authentication/i, // alternate phrasing
+  /not available in your country/i,                 // region-blocked
+  /use a VPN or a proxy server/i,                   // alternate region-block phrasing
+  /yt-dlp_exit_null/i,                              // yt-dlp crashed without exit code — treat permanent, requeue manually if recoverable
+  /Sign in to confirm/i,                            // YouTube anti-bot challenge
 ];
 const isPermanentFailure = (msg) => PERMANENT_PATTERNS.some((rx) => rx.test(msg));
 
