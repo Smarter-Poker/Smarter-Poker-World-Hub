@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
+// useRouter import removed (PHASE-E 2026-05-03): the only consumer was the
+// killed compose-V2 fork in handleFiles. Removing it eliminates a per-mount
+// hook subscription that's now pure dead weight.
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
@@ -18,7 +20,6 @@ import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
 
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
-    const router = useRouter();
     const [postVisibility, setPostVisibility] = useState('public');
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);

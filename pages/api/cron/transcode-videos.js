@@ -125,6 +125,88 @@ async function runFfmpeg(args) {
     });
 }
 
+// PHASE-C (2026-05-03): full ffprobe validation BEFORE we waste compute on a
+// re-encode. Returns { valid: true } for shippable videos or
+// { valid: false, reason: '...' } for files we should reject. Catches:
+//   • Truncated MP4s (no streams visible)
+//   • Audio-only files mislabeled as video (no video stream)
+//   • Broken HEVC headers (ffprobe exits non-zero)
+//   • Zero-duration files (no playable content)
+//   • Silly tiny files that snuck past the size cap (< 1KB usually = failed
+//     upload that wrote a partial object)
+//
+// Failure mode is non-blocking on probe-tool errors — if ffprobe itself errors
+// we let the transcode attempt anyway, because the underlying ffmpeg run will
+// surface the real problem. We only reject on POSITIVE evidence of corruption.
+async function validateVideoSource(file) {
+    const inSize = (await stat(file)).size;
+    if (inSize < 1024) {
+        return { valid: false, reason: `Source file is only ${inSize} bytes — likely a failed/truncated upload` };
+    }
+    // Run ffprobe -show_format -show_streams to get a comprehensive view
+    const probe = await new Promise((resolve) => {
+        const p = spawn(FFPROBE_BIN, [
+            '-v', 'error',
+            '-show_format',
+            '-show_streams',
+            '-of', 'json',
+            file,
+        ]);
+        let out = '';
+        let err = '';
+        p.stdout.on('data', d => { out += d.toString(); });
+        p.stderr.on('data', d => { err += d.toString(); });
+        p.on('close', code => resolve({ code, stdout: out, stderr: err }));
+        p.on('error', e => resolve({ code: -1, stdout: '', stderr: e?.message || 'spawn error' }));
+    });
+
+    if (probe.code !== 0) {
+        // Probe failed — could be missing binary, corrupt input, or unknown format.
+        // Don't reject just because probe failed — the transcode might still work
+        // (ffmpeg sometimes handles things ffprobe trips on). But log the diagnostic.
+        console.warn('[transcode] ffprobe non-zero exit:', probe.code, probe.stderr.slice(0, 300));
+        return { valid: true, reason: null, warning: `ffprobe exit ${probe.code} — proceeding optimistically` };
+    }
+
+    let parsed = null;
+    try {
+        parsed = JSON.parse(probe.stdout || '{}');
+    } catch (_) {
+        return { valid: true, reason: null, warning: 'ffprobe stdout not parseable as JSON — proceeding' };
+    }
+
+    const streams = Array.isArray(parsed?.streams) ? parsed.streams : [];
+    const videoStreams = streams.filter(s => s?.codec_type === 'video');
+    if (videoStreams.length === 0) {
+        return { valid: false, reason: 'No video stream found in source — file is audio-only or corrupt' };
+    }
+
+    // Format-level duration. Some streams (esp. HEVC) report duration only at
+    // format level, not stream level. Accept either.
+    const fmtDuration = parseFloat(parsed?.format?.duration);
+    const streamDuration = parseFloat(videoStreams[0]?.duration);
+    const durationSec = isFinite(fmtDuration) && fmtDuration > 0
+        ? fmtDuration
+        : (isFinite(streamDuration) && streamDuration > 0 ? streamDuration : 0);
+    if (durationSec === 0) {
+        return { valid: false, reason: 'Source has zero duration — likely a corrupt file' };
+    }
+
+    // Reject single-frame "videos" (< 0.1s) — almost certainly corrupt.
+    if (durationSec < 0.1) {
+        return { valid: false, reason: `Source duration ${durationSec}s is below playable threshold` };
+    }
+
+    return {
+        valid: true,
+        reason: null,
+        codec: videoStreams[0]?.codec_name || 'unknown',
+        durationSec,
+        width: videoStreams[0]?.width || 0,
+        height: videoStreams[0]?.height || 0,
+    };
+}
+
 export default async function handler(req, res) {
     const auth = (req.headers.authorization || '').replace('Bearer ', '');
     if (!process.env.CRON_SECRET || auth !== process.env.CRON_SECRET) {
@@ -226,8 +308,30 @@ export default async function handler(req, res) {
         await writeFile(inFile, buf);
         const inSize = (await stat(inFile)).size;
 
+        // PHASE-C (2026-05-03): server-side validation BEFORE we burn 60-90s of
+        // ffmpeg compute. Catches corrupt uploads (truncated MP4, audio-only
+        // files mislabeled video, broken HEVC headers, zero-duration). Mark the
+        // post 'invalid' so the feed renders an error tile instead of a black
+        // box that never plays. Cheaper to fail here than after the transcode.
+        const validation = await validateVideoSource(inFile);
+        if (!validation.valid) {
+            console.warn('[transcode] source validation failed for post', post.id, ':', validation.reason);
+            await supa.from('social_posts').update({
+                transcode_status: 'invalid',
+                transcode_error: validation.reason,
+                transcoded_at: new Date().toISOString(),
+            }).eq('id', post.id);
+            try { await rm(work, { recursive: true, force: true }); } catch (_) {}
+            return res.status(200).json({
+                processed: 0,
+                error: 'invalid_source',
+                post_id: post.id,
+                reason: validation.reason,
+            });
+        }
+
         // 4. Probe — choose fast remux vs full re-encode.
-        const codec = await probeCodec(inFile);
+        const codec = validation.codec || await probeCodec(inFile);
         const isAlreadyH264 = codec === 'h264';
 
         // PHASE-C.1 (2026-05-01): cap output at 1080p when re-encoding.

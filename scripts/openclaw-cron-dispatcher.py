@@ -182,6 +182,12 @@ ALL_CRONS = [
     # picks ONE per minute, runs ffmpeg, and updates the post + reel mirror.
     # Idempotent: returns {processed:0} immediately when nothing is queued.
     ('/api/cron/transcode-videos',          dict(minute='*/1')),       # every minute — drains video transcode queue
+    # ── Storage hygiene — orphan upload cleanup (PHASE-D 2026-05-03) ──
+    # Once daily at 03:30 UTC. Sweeps the social-media bucket for objects
+    # older than 24h with no corresponding social_posts/social_reels row,
+    # deletes them up to a 200-object cap per run. Dry-run available via
+    # ?dry=1 query param.
+    ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
