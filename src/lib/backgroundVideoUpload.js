@@ -422,7 +422,22 @@ async function _uploadWithTus(file, meta, mimeType) {
         const _payload = JSON.parse(atob(_parts[1].replace(/-/g,'+').replace(/_/g,'/') + '==='.slice((_parts[1].length + 3) % 4)));
         const expSec = Number(_payload?.exp) || 0;
         const remainingSec = expSec - Math.floor(Date.now() / 1000);
-        if (remainingSec > 0 && remainingSec < 120) {
+        // PHASE-B + AUDIT-MAX-2 (2026-05-03 Pass 1 finding): the original
+        // condition was `remainingSec > 0 && remainingSec < 120` — that
+        // SKIPS already-expired tokens (remainingSec <= 0). _ensureBearer's
+        // fallback path returns "lastShapeValid" even for expired tokens,
+        // so an expired token CAN reach here. Three-tier check now:
+        //   • expSec === 0 (no exp claim)        → proceed; storage will
+        //                                            return a clear 401.
+        //   • remainingSec <= 0 (expired)        → fail-fast "session
+        //                                            expired" message.
+        //   • remainingSec < 120 (about to)      → fail-fast "about to
+        //                                            expire" message.
+        if (expSec > 0 && remainingSec <= 0) {
+            console.warn('[bgUpload] JWT already expired by', Math.abs(remainingSec), 's — failing fast');
+            throw new Error('Your session has expired. Please log in again and try posting.');
+        }
+        if (expSec > 0 && remainingSec < 120) {
             console.warn('[bgUpload] JWT only has', remainingSec, 's remaining — failing fast to avoid mid-upload expiry');
             throw new Error('Your session is about to expire. Please refresh the page and try posting again.');
         }
@@ -430,7 +445,7 @@ async function _uploadWithTus(file, meta, mimeType) {
         // Decode failure isn't a hard fail — _ensureBearer already validated
         // shape. Just continue; the actual TUS request will surface JWT
         // problems if any.
-        if (e?.message?.includes('about to expire')) throw e;
+        if (e?.message?.includes('about to expire') || e?.message?.includes('session has expired')) throw e;
     }
     // Diagnostic log (console.log = "Default" level, visible without changing
     // DevTools filter). When this DOES log but the server still rejects with
