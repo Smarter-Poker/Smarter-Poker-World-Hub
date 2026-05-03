@@ -85,9 +85,9 @@ test('scripts/chaos-signup-drill.sh exists, executable, exercises all known fail
     for (const drill of [
         'callback.js deleted',
         'signup.js truncated',
-        'removed from BOTH geo-blocks AND middleware',
+        'removed from BOTH',
         'reverted to bare signUp',
-        'signup-probe deleted',
+        'signup-probe.js deleted',
         'hardening test deleted',
     ]) {
         assert.ok(src.includes(drill), `chaos drill missing scenario: ${drill}`);

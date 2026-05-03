@@ -382,8 +382,24 @@ echo "🧹 Phase 1: Cleaning environment & Garbage Collection..."
 
 # 1-zero. Aggressive Garbage Collection
 # Deep-purges all phantom files (dist-bug*, generated caches) while safely omitting .env overrides and node_modules.
+# SAFETY: Record node_modules state BEFORE clean so we can detect+restore if git clean misfires.
+NODE_MODULES_OK=false
+if [ -d "node_modules" ] && [ -f "node_modules/.package-lock.json" -o -f "node_modules/.modules.yaml" -o -d "node_modules/next" ]; then
+  NODE_MODULES_OK=true
+fi
 echo "🗑️  Running absolute garbage collection (git clean -fdX) to eliminate phantom state..."
-git clean -fdX -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules/**" -e "!.husky" 2>/dev/null || true
+git clean -fdX -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules/**" -e "!node_modules" -e "!.husky" 2>/dev/null || true
+# INTEGRITY CHECK: If node_modules was present before clean but is now gone, auto-restore.
+if [ "$NODE_MODULES_OK" = true ] && [ ! -d "node_modules" ]; then
+  echo "⚠️  CRITICAL: node_modules was wiped by git clean — this should never happen."
+  echo "   Auto-restoring node_modules (this will take ~30s)..."
+  npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>&1 | tail -3
+  echo "✅ node_modules restored"
+elif [ ! -d "node_modules" ]; then
+  echo "⚠️  node_modules missing before clean too — restoring..."
+  npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>&1 | tail -3
+  echo "✅ node_modules restored"
+fi
 
 # 1a. Remove stale lock files from crashed git processes
 for lock in "${GIT_DIR}/HEAD.lock" "${GIT_DIR}/index.lock"; do
@@ -561,7 +577,9 @@ if [ "$BUILD_CHECK" = true ]; then
     # Check if failure was due to broken node_modules
     if echo "$BUILD_OUTPUT" | grep -iqE 'MODULE_NOT_FOUND|Cannot find module|command not found'; then
       echo "⚠️  Build failed due to corrupted node_modules. Auto-healing..."
-      rm -rf node_modules && npm install --no-audit --no-fund --prefer-offline 2>/dev/null
+      # MUST use --legacy-peer-deps: eslint@8 conflicts with eslint-config-next@16 peer dep requirements.
+      # Without this flag npm install exits non-zero and node_modules remains broken.
+      rm -rf node_modules && npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>/dev/null
       
       echo "🔨 Retrying build after environment heal..."
       BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build --webpack 2>&1)

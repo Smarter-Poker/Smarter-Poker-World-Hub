@@ -77,7 +77,9 @@ start_server() {
     rm -rf node_modules/.cache 2>/dev/null
 
     # Start the dev server
-    NODE_OPTIONS='--max-old-space-size=16384' npx next dev -p ${port} 2>&1 &
+    # MUST use --webpack: Next.js 16+ defaults to Turbopack (for both dev AND build).
+    # Our codebase has 246+ named-export mismatches that webpack ignores but Turbopack errors on.
+    NODE_OPTIONS='--max-old-space-size=16384' npx next dev --webpack -p ${port} 2>&1 &
     SERVER_PID=$!
 
     echo "   PID: ${SERVER_PID}"

@@ -183,7 +183,7 @@ update() {
     
     echo ""
     echo -e "${CYAN}📦 Updating dependencies${NC}"
-    npm install
+    npm install --legacy-peer-deps
     
     echo -e "${GREEN}✓ Update complete${NC}"
 }
@@ -388,7 +388,7 @@ EOF
 # Check if package.json changed
 if git diff HEAD@{1} --name-only | grep -q "package.json"; then
     echo "📦 package.json changed, running npm install..."
-    npm install
+    npm install --legacy-peer-deps
 fi
 EOF
     chmod +x "$hooks_dir/post-merge"
