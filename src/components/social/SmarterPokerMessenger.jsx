@@ -1374,7 +1374,7 @@ export const ChatWindow = ({
     useEffect(() => {
         if (messages.length > 0) {
             const lastMsg = messages[messages.length - 1];
-            if (lastMsg?.senderId !== currentUser?.id && lastMsg?.text) {
+            if (lastMsg?.sender_id !== currentUser?.id && lastMsg?.text) {
                 const lower = lastMsg.text.toLowerCase();
                 for (const rule of SMART_REPLIES) {
                     if (rule.trigger.some(t => lower.includes(t))) {
