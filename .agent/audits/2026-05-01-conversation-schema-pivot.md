@@ -143,29 +143,40 @@ all callers in `pages/api/messenger/`, `pages/hub/messenger.js`,
 `pages/api/club-arena/*-cashout.js`, etc. have been moved), the
 jsonb overload can be dropped. Don't do it before that.
 
-## Pivot status as of 2026-05-01 16:35 UTC
+## CORRECTION (2026-05-03) — there's no pivot, just feature carve-out
 
-The pivot has **barely started**. Of the 4 messenger RPCs in the
-public schema:
+After re-investigating during Phase 40 wrap-up, the original audit's
+"pivot in progress" framing was wrong. Actual reality:
 
-| Function | Tables referenced | Status |
-|---|---|---|
-| `fn_get_or_create_conversation` jsonb overload | `social_conversations`, `social_conversation_participants` | DEPRECATED PATH, still in active use |
-| `fn_get_or_create_conversation` uuid overload | `messenger_conversations`, `messenger_participants` | NEW PATH but **BROKEN** (role + FK bugs) |
-| `fn_get_user_conversations` | `social_conversations`, `social_conversation_participants`, `social_messages` | NOT YET MIGRATED |
-| `fn_send_message` | `social_conversation_participants`, `social_messages` | NOT YET MIGRATED |
-| `fn_mark_messages_read` | `social_conversation_participants`, `social_messages` | NOT YET MIGRATED |
+- **`social_*` schema** = direct (1-to-1) DMs between users — live, used
+  by `fn_get_or_create_conversation` (jsonb overload), `fn_send_message`,
+  `fn_get_user_conversations`, `fn_mark_messages_read`. Last write
+  2026-05-01 17:53.
+- **`messenger_*` schema + `conversations` table** = group chats (live
+  poker table chat via `LivePokerTable.jsx` + `ClubArenaMessenger.jsx`,
+  commander home group chats via `fn_create_home_group_conversation`
+  trigger). 130 active participant rows. Properly RLS-locked with
+  `auth.uid()` checks. NOT abandoned.
+- **The (user1_id, user2_id) → uuid overload was a stillborn refactor
+  attempt** that tried to pivot direct DMs onto the group-chat schema.
+  It's dead code — only reference is `services/MessagingService.js`
+  which is unimported. **Dropped 2026-05-03 in
+  `phase40_drop_dead_uuid_overload`.** Verified via pg_proc post-drop:
+  exactly 1 surviving overload (the jsonb 3-arg, the live one).
 
-So 3 of 4 messenger RPCs are STILL on the deprecated schema.
-`social_messages` last got a write 2026-04-20 (see body of this doc),
-but the RPCs above all READ from it — that's why the messenger
-appears to "work" (it reads stale data).
+So the 3-table-set thing isn't a half-finished migration — it's two
+distinct messaging features (DMs + group chat) that share a vocabulary.
 
-**Conclusion for an agent considering further pivot work:**
-- The pivot is a bigger job than it looks. Don't cherry-pick
-  individual functions; flip them as a set with their callers.
-- The (user1_id, user2_id) → uuid overload as it stands is dead
-  code. It can't ever route real traffic until (a) the FK is
-  retargeted, (b) the role values are fixed, AND (c) the read-side
-  RPCs are pivoted too — otherwise newly-created messenger_*
-  rows are invisible to the rest of the messenger.
+| Function | Tables referenced | Purpose | Status |
+|---|---|---|---|
+| `fn_get_or_create_conversation` jsonb overload | `social_*` | Direct DMs | LIVE (kept) |
+| `fn_get_or_create_conversation` uuid overload | `messenger_*` | (was: pivot direct DMs to messenger schema) | **DROPPED 2026-05-03** |
+| `fn_get_user_conversations` | `social_*` | List user's DMs | LIVE (kept) |
+| `fn_send_message` | `social_*` | Send a DM | LIVE (kept) |
+| `fn_mark_messages_read` | `social_*` | Mark DM read | LIVE (kept) |
+| `fn_create_home_group_conversation` (trigger) | `conversations` + `messenger_participants` | Auto-create group chat for home group | LIVE (kept) |
+| `fn_add_member_to_group_conversation` (trigger) | `messenger_participants` | Track group joins | LIVE (kept) |
+| `fn_remove_member_from_group_conversation` (trigger) | `messenger_participants` | Track group leaves | LIVE (kept) |
+
+**Net: nothing more to do for the "pivot."** The dead code that motivated
+the audit is gone. social_* and messenger_* coexist intentionally.
