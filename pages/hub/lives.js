@@ -747,9 +747,11 @@ export default function LivesPage() {
                                         <span style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
                                             {stream.viewer_count} watching
                                         </span>
-                                                                         style={{
-                                        position: 'absolute',
-                                        top: '50%',
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setWatchingStream(stream)}
+                                    style={{
                                         left: '50%',
                                         transform: 'translate(-50%, -50%)',
                                         background: 'rgba(250, 56, 62, 0.9)',

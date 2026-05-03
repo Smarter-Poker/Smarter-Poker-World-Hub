@@ -1,0 +1,38 @@
+
+> hub-vanguard@1.0.1 prebuild
+> node --test __tests__/auth-routes-exist.test.mjs
+
+✔ auth-critical files exist on disk (0.655916ms)
+✔ auth-critical files are non-empty (0.1795ms)
+✔ auth callback exports a default React component (0.777958ms)
+✔ every redirect target referenced in auth pages has a backing file (0.138125ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44.37675
+
+> hub-vanguard@1.0.1 build
+> NODE_OPTIONS='--max-old-space-size=7168' node node_modules/next/dist/bin/next build
+
+node:internal/modules/cjs/loader:1479
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/bin/next'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1476:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1049:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1073:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1094:12)
+    at Module._load (node:internal/modules/cjs/loader:1262:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.15.0

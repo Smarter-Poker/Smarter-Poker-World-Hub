@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import SheetShell from './SheetShell';
 import { useComposeStore } from '../../../../stores/composeStore';
 import { supabase } from '../../../../lib/supabase';
-import { getAuthUserId } from '../../../../lib/authUtils';
+import { getAuthUser } from '../../../../lib/authUtils';
 
 /**
  * ShareToGroupsSheet — pick home groups to mirror this post into.
@@ -23,7 +23,7 @@ export default function ShareToGroupsSheet({ onClose }) {
         let cancelled = false;
         (async () => {
             try {
-                const userId = getAuthUserId();
+                const userId = getAuthUser()?.id;
                 if (!userId) {
                     if (!cancelled) { setGroups([]); setLoading(false); }
                     return;
