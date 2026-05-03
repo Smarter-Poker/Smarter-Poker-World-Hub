@@ -407,6 +407,10 @@ class LiveStreamService {
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             credentials: 'same-origin',
+            // BUG FIX (#13): keepalive: true is MANDATORY for requests fired during
+            // beforeunload / page teardown. Without it, the browser cancels the fetch
+            // as the page unloads, so force_end never reaches the server.
+            keepalive: true,
             body: JSON.stringify({ stream_id: streamIdForEnd, action: 'force_end' }),
         }).catch(() => {}); // Non-fatal — EndStreamModal will also call markFeedPostEnded
 
