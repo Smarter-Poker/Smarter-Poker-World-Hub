@@ -18,6 +18,11 @@
 # 9. Catch-block corruption — detects collapsed try/catch with orphaned code
 #    (the April 21, 2026 incident: 17 failed deploys from automated refactoring)
 # 10. TypeScript type checking via tsc --noEmit (only NEW errors block the push)
+# 11. Vercel build command sanity — vercel.json buildCommand must include --webpack
+#     when Next.js >= 15 is installed (Turbopack is default and breaks our codebase).
+#     Also checks next.config.js for deprecated keys (swcMinify, serverComponentsExternalPackages)
+#     that cause hard build errors in Next.js 15+.
+#     (the May 2026 incident: 10+ consecutive Vercel failures from Next.js 16 Turbopack upgrade)
 #
 # INSTALL: Run `bash scripts/install-hooks.sh` from the project root
 # ═══════════════════════════════════════════════════════════════════════════
@@ -476,6 +481,71 @@ if [ -n "$TS_FILES" ]; then
     fi
 else
     echo -e "${GREEN}  ✓ No .ts/.tsx files changed. Skipping TypeScript check.${NC}"
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════"
+
+# ─── CHECK 11: Vercel build command + Next.js config sanity ─────────────
+# Root cause of May 2026 incident: Next.js 16 defaulted to Turbopack, but
+# vercel.json ran `next build` without --webpack. Turbopack strict export
+# validation killed 246 named imports webpack silently ignored. 10+ failures.
+#
+# This check validates:
+#   a) vercel.json buildCommand has --webpack when Next.js >= 15 is installed
+#   b) next.config.js has no deprecated keys that cause hard build errors
+#      (swcMinify, experimental.serverComponentsExternalPackages)
+echo ""
+echo "CHECK 11: Vercel build command + Next.js config sanity..."
+
+NEXTJS_CONFIG_ERRORS=0
+
+# 11a — vercel.json buildCommand must include --webpack for Next.js >= 15
+if [ -f "vercel.json" ]; then
+    BUILD_CMD=$(node -e "try{const d=require('./vercel.json');console.log(d.buildCommand||'')}catch(e){}" 2>/dev/null || echo "")
+    if [ -n "$BUILD_CMD" ]; then
+        NEXT_VERSION=$(node -e "try{const p=require('./node_modules/next/package.json');console.log(p.version)}catch(e){console.log('0')}" 2>/dev/null || echo "0")
+        NEXT_MAJOR=$(echo "$NEXT_VERSION" | cut -d. -f1)
+        if [ "$NEXT_MAJOR" -ge 15 ] 2>/dev/null; then
+            if ! echo "$BUILD_CMD" | grep -q "\-\-webpack"; then
+                echo -e "${RED}  ✗ FATAL: vercel.json buildCommand is missing --webpack${NC}"
+                echo "    Command: $BUILD_CMD"
+                echo "    Next.js $NEXT_VERSION defaults to Turbopack (since v15)."
+                echo "    Our custom webpack config + named export mismatches WILL break Turbopack."
+                echo "    Fix: \"buildCommand\": \"NODE_OPTIONS='--max-old-space-size=7168' next build --webpack\""
+                echo ""
+                ERRORS=$((ERRORS + 1))
+                NEXTJS_CONFIG_ERRORS=$((NEXTJS_CONFIG_ERRORS + 1))
+            fi
+        fi
+    fi
+fi
+
+# 11b — next.config.js must not contain deprecated keys (hard errors in Next.js 15+)
+if [ -f "next.config.js" ]; then
+    # swcMinify removed in Next.js 15 — causes Unrecognized key build error
+    if grep -q "swcMinify: true" next.config.js 2>/dev/null; then
+        echo -e "${RED}  ✗ FATAL: next.config.js has deprecated 'swcMinify' key${NC}"
+        echo "    Removed in Next.js 15+. SWC is the only minifier. Delete this line."
+        echo ""
+        ERRORS=$((ERRORS + 1))
+        NEXTJS_CONFIG_ERRORS=$((NEXTJS_CONFIG_ERRORS + 1))
+    fi
+
+    # experimental.serverComponentsExternalPackages moved to top-level in Next.js 15
+    if grep -v '^\s*//' next.config.js 2>/dev/null | grep -q "serverComponentsExternalPackages"; then
+        echo -e "${RED}  ✗ FATAL: next.config.js uses 'experimental.serverComponentsExternalPackages'${NC}"
+        echo "    Moved to top-level 'serverExternalPackages' in Next.js 15+."
+        echo "    The experimental key is SILENTLY IGNORED — external packages won't be excluded."
+        echo "    Fix: Move to 'serverExternalPackages: [...]' at the top level of nextConfig."
+        echo ""
+        ERRORS=$((ERRORS + 1))
+        NEXTJS_CONFIG_ERRORS=$((NEXTJS_CONFIG_ERRORS + 1))
+    fi
+fi
+
+if [ "$NEXTJS_CONFIG_ERRORS" -eq 0 ]; then
+    echo -e "${GREEN}  ✓ Vercel build command and Next.js config look correct.${NC}"
 fi
 
 echo ""
