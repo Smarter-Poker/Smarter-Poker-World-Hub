@@ -320,9 +320,22 @@ export function ReelsViewer({ onClose }) {
         const _ch = supabase
             .channel(`reels-viewer:${currentUserId}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-                // Debounce: wait 3s before reloading so multiple rapid inserts collapse into one reload
                 clearTimeout(reloadTimer);
                 reloadTimer = setTimeout(() => { loadReels(); }, 3000);
+            })
+            // M7.4: surgical UPDATE handler. When the YT worker converts a reel
+            // and broadcasts the new Supabase URL to siblings (UPDATE), swap state
+            // in place so mid-session viewers see the native player without
+            // a full reload. Only acts when video_url actually changed; ignores
+            // like_count / view_count / comment_count UPDATE noise.
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_reels' }, (payload) => {
+                const next = payload?.new;
+                if (!next?.id) return;
+                setReels(prev => prev.map(r => {
+                    if (r.id !== next.id) return r;
+                    if (r.video_url === next.video_url) return r;
+                    return { ...r, video_url: next.video_url, source_type: next.source_type, media_status: next.media_status, thumbnail_url: next.thumbnail_url || r.thumbnail_url };
+                }));
             })
             .subscribe();
         return () => { clearTimeout(reloadTimer); supabase.removeChannel(_ch); };
