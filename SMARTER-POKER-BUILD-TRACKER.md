@@ -852,6 +852,44 @@ Future ledger queries are now authoritative — `sum(diamond_transactions)` matc
 
 ---
 
+## PHASE 42 — Audit/Improvement Pass (2026-05-03)
+
+User-driven sweep through deferred items: service-role key exposure scan, fresh Supabase advisor pass, RLS lockdown follow-ups, search_path hardening, realtime filter sweep, silent-failure pattern audit. After "do a real bug hunt" pushback, expanded into a deep-audit pass that caught additional defects.
+
+| Item | Outcome |
+|---|---|
+| Service-role key exposure scan | Zero leaks. 474 legitimate server-side refs, 0 in client bundles |
+| Supabase advisor pass — `function_search_path_mutable` | Pinned `search_path=''` on 4 owned functions: `fn_get_social_feed_v2`, `update_live_peak_viewers`, `fn_queue_video_transcode`, `fn_video_transcode_jobs_touch_updated_at` |
+| Supabase advisor pass — `unindexed_foreign_keys` | Added 5 FK indexes: `club_wallet_transactions.club_id`, `video_transcode_jobs.{post_id, reel_id, user_id}`, `live_reactions.sender_id` |
+| Supabase advisor pass — `auth_users_exposed` | Locked `signup_health_view` to `service_role` only (REVOKE ALL FROM anon, authenticated). Aggregates only — no per-user PII anyway |
+| Supabase advisor pass — `rls_init_plan` | Wrapped 26 RLS policies' bare `auth.uid()` in `(SELECT auth.uid())` for per-query (not per-row) eval. Most were policies I myself created in earlier Phase 37 + post-audit migrations |
+| `horse_bug_reports` UPDATE auth-wide-open | Dropped policy. No anon-context UPDATE callers existed |
+| Realtime filter sanity | Fixed 3 broken `postgres_changes` filters: `commander_waitlist.user_id` → `player_id`, `commander_player_stats.user_id` → `player_id`, removed `commander_members` subscription (no user_id column exists) |
+| Silent-failure pattern sweep | Verified all 12 reward-claim handlers + 6 money-RPC handlers correctly check errors + roll back |
+| Bug-hunt pass | Caught 3 migration files with embedded conflict markers from parallel session's auto-stash. Cleaned all 3 + dropped offending stashes. Caught + fixed 4 over-aggressive RLS drops (jarvis_response_cache, training_events, trivia_tournaments+entries, sandbox_results) |
+| Server-side trivia round submission | New `pages/api/trivia/tournament-submit-round.js` — verifies each answer against `tournament.questions[i].correct_index`, writes authoritative score. Replaces direct anon-key writes in `tournaments.js` (closes pre-existing client-side score-edit cheat surface) |
+
+## PHASE 43 — Realtime Publication Audit + Trim (2026-05-03)
+
+Built a Cowork artifact dashboard showing all 59 publication tables with row count, last-write timestamp, anon-context subscriber count from grep of pages/+src/. Acted on findings:
+
+**Trim (drop 15 zero-subscriber tables):**
+- `financial_alerts` (1383 rows, 14d-stale, 0 subs)
+- `commander_members` (107 rows, 61d-stale, 0 subs)
+- `conversations` (61 rows, 12d-stale; group-chat triggers continue to write fine, just no realtime broadcast)
+- `commander_promotions` + 12 empty tables (cashout_requests, club_arena_audit_logs, commander_home_poll_votes/polls/post_comments/post_likes, follows, live_gifts, pending_calls, video_favorites, video_watch_history)
+
+**Add (restore 11 missing user-feature tables):**
+- `trivia_tournaments`, `trivia_tournament_rounds` — bracket page live updates
+- `messenger_messages`, `messenger_call_signals` — group chat + calls
+- `table_chat`, `session_chat_messages` — live poker table chat + spectator chat
+- `diamond_arena_events` — schedule live updates
+- `commander_leaderboard_entries`, `commander_leagues`, `training_leaderboard`, `venue_live_tables` — leaderboard + live-games feed UIs
+
+Net publication: 59 → 56 (3 fewer than baseline). Estimated $60-120/mo savings on the $205/mo Realtime line, with all known user-facing live features still functional. CI hook added (`.github/workflows/no-conflict-markers.yml`) to prevent recurrence of the conflict-marker pollution that recurred 3 times this session.
+
+---
+
 ## FUTURE PHASES (Deferred — none currently actionable)
 
 - **Phase 4.5: App Router Migration** — 1,146 pages, multi-month work. Per the original mission plan: "Don't do this under duress. Only once the platform is stable and you have headroom." Deferred to Q3 2026+.
