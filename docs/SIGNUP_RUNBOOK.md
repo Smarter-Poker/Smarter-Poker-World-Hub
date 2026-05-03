@@ -174,6 +174,105 @@ This silently kills conversion.
 
 ---
 
+## ALERT: `login_probe_failed` (Phase 4)
+
+**Source:** `/api/cron/login-probe` returned 503.
+
+**What it means:** Synthetic user can sign UP but cannot sign IN. Distinct
+from signup-probe — could mean: password hashing changed, JWT signer
+broken, refresh-token endpoint down, GoTrue session table corrupted.
+
+**Check first:**
+1. `/admin/auth-health` — what does the Login flow card show? `failed_step` value?
+2. `failed_step = login` (signInWithPassword): rate limit on Supabase OR
+   wrong password format OR GoTrue down.
+3. `failed_step = getuser`: session JWT is being issued but doesn't
+   verify. Likely JWT signing keys rotated without app restart.
+
+**How to fix:**
+- **GoTrue rate limit:** lower the per-cron probe count or increase the
+  Supabase rate limit. Don't disable the probe.
+- **JWT signer rotated:** restart all Vercel deployments (forces them to
+  pick up the new JWKS). Sometimes a Supabase platform restart auto-rotates.
+- **Session-table corruption:** run `SELECT * FROM auth.sessions WHERE
+  user_id NOT IN (SELECT id FROM auth.users)` — orphan rows? Delete them.
+
+**Verify:**
+```bash
+curl https://smarter.poker/api/cron/login-probe -H "Authorization: Bearer $CRON_SECRET"
+# expect: {"status":"ok","steps":{"create":{"ok":true},"login":{"ok":true},"getuser":{"ok":true}}}
+```
+
+---
+
+## ALERT: `recovery_probe_failed` (Phase 4)
+
+**Source:** `/api/cron/recovery-probe` returned 503.
+
+**What it means:** Either password-reset request OR magic-link request
+is failing at the API level. Users can't reset their password OR can't
+sign in via magic link.
+
+**Check first:**
+1. `/admin/auth-health` Recovery flow card: which sub-flow failed?
+2. `flows.password_reset.error` or `flows.magic_link.error` in the response
+
+**How to fix:**
+- **`Email rate limit exceeded`:** Supabase auth rate limit. Increase in
+  dashboard → Authentication → Rate Limits.
+- **`Database error`:** check signup_errors for related entries.
+- **HTTP 5xx:** Supabase outage. Wait + retry.
+
+**Note:** these probes verify the API ACCEPTS the request. Actual email
+delivery requires `email-deliverability-check` (separate cron).
+
+---
+
+## ALERT: `auth_integrity_audit: real orphans detected` (Phase 4)
+
+**Source:** `/api/cron/auth-integrity-audit` returns
+`status: "real_orphans_detected"` with non-zero counts in `real_orphans`.
+
+**What it means:** Real (non-system) auth.users exist without their
+profile, wallet, or user_diamonds row. They're broken users — they can
+sign in but the app crashes on first request because expected DB rows
+are missing.
+
+**Check first:**
+1. Response body shows the counts: `real_orphans.no_profile`, `.no_wallet`,
+   `.no_diamonds`.
+2. Query for the affected users:
+   ```sql
+   SELECT u.id, u.email, u.created_at,
+     EXISTS(SELECT 1 FROM profiles p WHERE p.id=u.id) AS has_profile,
+     EXISTS(SELECT 1 FROM wallets w WHERE w.user_id=u.id) AS has_wallet,
+     EXISTS(SELECT 1 FROM user_diamonds d WHERE d.user_id=u.id) AS has_diamonds
+   FROM auth.users u
+   WHERE u.deleted_at IS NULL
+     AND NOT public.is_system_user(u.email)
+     AND (NOT EXISTS(SELECT 1 FROM profiles p WHERE p.id=u.id)
+       OR NOT EXISTS(SELECT 1 FROM wallets w WHERE w.user_id=u.id)
+       OR NOT EXISTS(SELECT 1 FROM user_diamonds d WHERE d.user_id=u.id));
+   ```
+3. Are there entries in `signup_errors` for these users? That tells you
+   WHICH trigger failed.
+
+**How to fix:**
+```bash
+# Heal the orphans (idempotent)
+curl "https://smarter.poker/api/cron/auth-integrity-audit?heal=1" \
+  -H "Authorization: Bearer $CRON_SECRET"
+# Re-run the audit to confirm:
+curl "https://smarter.poker/api/cron/auth-integrity-audit" \
+  -H "Authorization: Bearer $CRON_SECRET"
+# expect real_orphans counts now 0
+```
+
+If the audit immediately re-detects orphans on the next run, a trigger
+is actively failing. Run `trigger-audit` and check `signup_errors`.
+
+---
+
 ## ALERT: signup-hardening test failure on a PR
 
 **Source:** GitHub Action `Build Safety Gate` fails on
