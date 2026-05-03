@@ -98,7 +98,17 @@ if [ -f "$LOCK_FILE" ]; then
   rm -f "$LOCK_FILE" 2>/dev/null || true
 fi
 echo $$ > "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE" 2>/dev/null' EXIT INT TERM HUP
+# Kill any verify-deploy.js or child processes we spawn if the script is interrupted
+_cleanup() {
+  rm -f "$LOCK_FILE" 2>/dev/null
+  # Kill any verify-deploy.js zombies we may have spawned
+  pkill -f "verify-deploy.js" 2>/dev/null || true
+  # Restore node_modules if it was mid-rename when we were killed
+  if [ -d ".node_modules_safe" ] && [ ! -d "node_modules" ]; then
+    mv .node_modules_safe node_modules 2>/dev/null || true
+  fi
+}
+trap '_cleanup' EXIT INT TERM HUP
 
 echo "═══════════════════════════════════════════════════"
 echo "🤖 git-safe-push v4.1 — Autonomous Agent Push"

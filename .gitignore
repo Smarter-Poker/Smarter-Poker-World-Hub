@@ -80,6 +80,7 @@ lerna-debug.log*
 logs
 logs/
 node_modules
+.node_modules_safe
 npm-debug.log*
 pnpm-debug.log*
 pokerbrain-assets/
