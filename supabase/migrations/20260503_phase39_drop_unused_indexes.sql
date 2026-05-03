@@ -9,6 +9,7 @@
 -- window. Calendar lock through 2026-05-14 was overconservative.
 --
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 -- Excluded (3): mv_active_poker_locations_geog,
 -- mv_active_poker_locations_activity (mv refresh paths), and
 -- autofix_attempts_status_next_retry_idx (recently added, may need warm-up).
@@ -16,22 +17,32 @@
 -- Already applied to production via Supabase MCP apply_migration on
 -- 2026-05-03; this file is the audit-trail / reproduction copy.
 =======
+=======
+>>>>>>> Stashed changes
 -- Excluded (3): mv_active_poker_locations_geog, mv_active_poker_locations_activity
 -- (materialized-view refresh paths), and autofix_attempts_status_next_retry_idx
 -- (recently added, may need warm-up).
 --
 -- Already applied to production via Supabase MCP apply_migration on 2026-05-03;
 -- this file is the audit-trail/reproduction copy.
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 -- ═══════════════════════════════════════════════════════════════════════
 DO $$
 DECLARE
     r RECORD;
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     v_pre_count integer := 0;
     v_pre_size bigint := 0;
     v_dropped integer := 0;
     v_dropped_size bigint := 0;
+=======
+    v_pre_count integer := 0; v_pre_size bigint := 0;
+    v_dropped integer := 0; v_dropped_size bigint := 0;
+>>>>>>> Stashed changes
 =======
     v_pre_count integer := 0; v_pre_size bigint := 0;
     v_dropped integer := 0; v_dropped_size bigint := 0;
@@ -45,8 +56,12 @@ BEGIN
     FOR r IN
         SELECT s.indexrelname AS indexname, s.relname AS tablename, pg_relation_size(s.indexrelid) AS bytes
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         FROM pg_stat_user_indexes s
         JOIN pg_index i ON i.indexrelid = s.indexrelid
+=======
+        FROM pg_stat_user_indexes s JOIN pg_index i ON i.indexrelid = s.indexrelid
+>>>>>>> Stashed changes
 =======
         FROM pg_stat_user_indexes s JOIN pg_index i ON i.indexrelid = s.indexrelid
 >>>>>>> Stashed changes
@@ -56,6 +71,7 @@ BEGIN
           AND pg_relation_size(s.indexrelid) > 32 * 1024
           AND NOT (s.indexrelname = ANY(v_excluded))
         ORDER BY pg_relation_size(s.indexrelid) DESC
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     LOOP
         v_pre_count := v_pre_count + 1;
@@ -73,6 +89,8 @@ BEGIN
         FROM pg_stat_user_indexes s
         JOIN pg_index i ON i.indexrelid = s.indexrelid
 =======
+=======
+>>>>>>> Stashed changes
     LOOP v_pre_count := v_pre_count + 1; v_pre_size := v_pre_size + r.bytes; END LOOP;
 
     RAISE NOTICE 'Pre-flight: % indexes, % bytes', v_pre_count, v_pre_size;
@@ -81,6 +99,9 @@ BEGIN
     FOR r IN
         SELECT s.indexrelname AS indexname, s.relname AS tablename, pg_relation_size(s.indexrelid) AS bytes
         FROM pg_stat_user_indexes s JOIN pg_index i ON i.indexrelid = s.indexrelid
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         WHERE s.schemaname = 'public'
           AND s.idx_scan = 0
@@ -91,10 +112,16 @@ BEGIN
     LOOP
         EXECUTE format('DROP INDEX IF EXISTS public.%I', r.indexname);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         v_dropped := v_dropped + 1;
         v_dropped_size := v_dropped_size + r.bytes;
     END LOOP;
     RAISE NOTICE 'Dropped %, freed % bytes', v_dropped, v_dropped_size;
+=======
+        v_dropped := v_dropped + 1; v_dropped_size := v_dropped_size + r.bytes;
+    END LOOP;
+    RAISE NOTICE 'Dropped %, freed %', v_dropped, v_dropped_size;
+>>>>>>> Stashed changes
 =======
         v_dropped := v_dropped + 1; v_dropped_size := v_dropped_size + r.bytes;
     END LOOP;

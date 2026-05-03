@@ -108,11 +108,14 @@ run_drill() {
     # Apply
     eval "$apply_fn"
 
-    # Run tests, parse fail count
+    # Run ALL signup-related tests (glob, so new ones are picked up
+    # automatically). The meta-guard _test-guards-exist.test.mjs is
+    # included to catch deletion of any other test file.
     local out="$BACKUPS/drill-$DRILL_NUM-out.txt"
-    node --test \
-        __tests__/auth-routes-exist.test.mjs \
-        __tests__/signup-hardening.test.mjs \
+    # shellcheck disable=SC2046
+    node --test $(ls __tests__/_test-guards-exist.test.mjs \
+                     __tests__/auth-routes-exist.test.mjs \
+                     __tests__/signup-hardening.test.mjs 2>/dev/null) \
         > "$out" 2>&1 || true
 
     local fail_count

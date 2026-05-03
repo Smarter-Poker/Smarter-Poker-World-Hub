@@ -8,8 +8,13 @@
 -- (298 real-user, 274 horse), 0 deficits, 0 user impact.
 --
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 -- Already applied to production via Supabase MCP apply_migration
 -- on 2026-05-03; this file is the audit-trail / reproduction copy.
+=======
+-- Already applied to production via Supabase MCP apply_migration on
+-- 2026-05-03; this file is the audit-trail/reproduction copy.
+>>>>>>> Stashed changes
 =======
 -- Already applied to production via Supabase MCP apply_migration on
 -- 2026-05-03; this file is the audit-trail/reproduction copy.
@@ -23,10 +28,15 @@ DECLARE
     r RECORD;
 BEGIN
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     WITH txn_sums AS (
         SELECT user_id, COALESCE(SUM(amount), 0) AS ledger_total
         FROM diamond_transactions GROUP BY user_id
     )
+=======
+    WITH txn_sums AS (SELECT user_id, COALESCE(SUM(amount), 0) AS ledger_total
+                      FROM diamond_transactions GROUP BY user_id)
+>>>>>>> Stashed changes
 =======
     WITH txn_sums AS (SELECT user_id, COALESCE(SUM(amount), 0) AS ledger_total
                       FROM diamond_transactions GROUP BY user_id)
@@ -37,6 +47,7 @@ BEGIN
     WHERE p.diamonds IS NOT NULL AND p.diamonds > COALESCE(t.ledger_total, 0);
 
     RAISE NOTICE 'Pre-flight: % profiles with % drift', v_pre_count, v_pre_drift;
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     IF v_pre_count = 0 THEN
         RAISE NOTICE 'Nothing to reconcile (idempotent re-run)';
@@ -49,11 +60,16 @@ BEGIN
             FROM diamond_transactions GROUP BY user_id
         )
 =======
+=======
+>>>>>>> Stashed changes
     IF v_pre_count = 0 THEN RAISE NOTICE 'Nothing to reconcile'; RETURN; END IF;
 
     FOR r IN
         WITH txn_sums AS (SELECT user_id, COALESCE(SUM(amount), 0) AS ledger_total
                           FROM diamond_transactions GROUP BY user_id)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         SELECT p.id AS user_id, p.is_horse, p.diamonds AS profile_diamonds,
                p.diamonds - COALESCE(t.ledger_total, 0) AS drift
@@ -61,6 +77,7 @@ BEGIN
         WHERE p.diamonds IS NOT NULL AND p.diamonds > COALESCE(t.ledger_total, 0)
         ORDER BY p.id
     LOOP
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         IF EXISTS (
             SELECT 1 FROM diamond_transactions
@@ -89,6 +106,8 @@ BEGIN
         FROM diamond_transactions GROUP BY user_id
     )
 =======
+=======
+>>>>>>> Stashed changes
         IF EXISTS (SELECT 1 FROM diamond_transactions
                    WHERE reference_id = 'reconcile_' || r.user_id::text || '_2026-05-03') THEN
             v_skipped := v_skipped + 1; CONTINUE;
@@ -107,6 +126,9 @@ BEGIN
 
     WITH txn_sums AS (SELECT user_id, COALESCE(SUM(amount), 0) AS ledger_total
                       FROM diamond_transactions GROUP BY user_id)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     SELECT COUNT(*), COALESCE(SUM(p.diamonds - COALESCE(t.ledger_total, 0)), 0)
     INTO v_post_count, v_post_drift
@@ -114,9 +136,13 @@ BEGIN
     WHERE p.diamonds IS NOT NULL AND p.diamonds > COALESCE(t.ledger_total, 0);
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     IF v_post_count > 0 THEN
         RAISE EXCEPTION 'Post-apply: % drifted by %', v_post_count, v_post_drift;
     END IF;
+=======
+    IF v_post_count > 0 THEN RAISE EXCEPTION 'Post-apply: % drifted by %', v_post_count, v_post_drift; END IF;
+>>>>>>> Stashed changes
 =======
     IF v_post_count > 0 THEN RAISE EXCEPTION 'Post-apply: % drifted by %', v_post_count, v_post_drift; END IF;
 >>>>>>> Stashed changes

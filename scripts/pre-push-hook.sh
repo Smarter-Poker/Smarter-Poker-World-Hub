@@ -548,6 +548,42 @@ if [ "$NEXTJS_CONFIG_ERRORS" -eq 0 ]; then
     echo -e "${GREEN}  ✓ Vercel build command and Next.js config look correct.${NC}"
 fi
 
+# 11c — dev scripts must also use --webpack (Next.js 16: Turbopack is default for BOTH dev and build)
+if [ -f "package.json" ] && command -v node &>/dev/null; then
+    NEXT_MAJOR=$(node -e "try{const p=require('./node_modules/next/package.json');console.log(p.version.split('.')[0])}catch(e){console.log('0')}" 2>/dev/null || echo "0")
+    if [ "$NEXT_MAJOR" -ge 15 ] 2>/dev/null; then
+        DEV_SCRIPT=$(node -e "try{const p=require('./package.json');console.log(p.scripts.dev||'')}catch(e){}" 2>/dev/null || echo "")
+        if [ -n "$DEV_SCRIPT" ] && ! echo "$DEV_SCRIPT" | grep -q "\-\-webpack"; then
+            echo -e "${RED}  ✗ FATAL: package.json 'dev' script is missing --webpack${NC}"
+            echo "    Script: $DEV_SCRIPT"
+            echo "    Next.js $NEXT_MAJOR: Turbopack is the DEFAULT for next dev too (not just next build)."
+            echo "    Fix: Add '--webpack' before '-p 3000' in the dev script."
+            echo ""
+            ERRORS=$((ERRORS + 1))
+            NEXTJS_CONFIG_ERRORS=$((NEXTJS_CONFIG_ERRORS + 1))
+        fi
+    fi
+fi
+
+# 11d — @next/env and eslint-config-next must match Next.js major version
+if [ -f "package.json" ] && command -v node &>/dev/null; then
+    NEXT_MAJOR=$(node -e "try{const p=require('./node_modules/next/package.json');console.log(p.version.split('.')[0])}catch(e){
+    try{const p=require('./package.json');const v=(p.dependencies||{}).next||(p.devDependencies||{}).next||'0';console.log(v.replace(/[^0-9.]/g,'').split('.')[0])}catch(e2){console.log('0')}
+    }" 2>/dev/null || echo "0")
+    if [ "$NEXT_MAJOR" -ge 15 ] 2>/dev/null; then
+        for pkg_name in "@next/env" "eslint-config-next"; do
+            PKG_VER=$(node -e "try{const p=require('./package.json'); const d={...p.dependencies,...p.devDependencies}; const v=d['${pkg_name}']||''; const clean=v.replace(/^[^0-9]*/,''); console.log(clean.split('.')[0]||'0')}catch(e){console.log('0')}" 2>/dev/null || echo "0")
+            if [ -n "$PKG_VER" ] && [ "$PKG_VER" != "0" ] && [ "$PKG_VER" != "$NEXT_MAJOR" ] 2>/dev/null; then
+                echo -e "${YELLOW}  ⚠ WARNING: ${pkg_name} major version (${PKG_VER}) does not match Next.js (${NEXT_MAJOR})${NC}"
+                echo "    This can cause lint failures and missing environment variable loading."
+                echo "    Fix: Pin ${pkg_name} to ${NEXT_MAJOR}.x.x in package.json"
+                echo ""
+                WARNINGS=$((WARNINGS + 1))
+            fi
+        done
+    fi
+fi
+
 echo ""
 echo "═══════════════════════════════════════════════════════"
 
