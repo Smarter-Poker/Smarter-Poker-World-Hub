@@ -47,11 +47,14 @@ export function EndStreamModal({
         vidEl.muted = true;
         vidEl.playsInline = true;
         const blobUrl = URL.createObjectURL(videoBlob);
+        // FIX: safety revoke after 30s in case onseeked/onerror never fire
+        const safetyRevoke = setTimeout(() => { URL.revokeObjectURL(blobUrl); }, 30000);
         vidEl.src = blobUrl;
         vidEl.onloadedmetadata = () => {
             vidEl.currentTime = Math.min(1, vidEl.duration * 0.1);
         };
         vidEl.onseeked = async () => {
+            clearTimeout(safetyRevoke);
             try {
                 const canvas = document.createElement('canvas');
                 canvas.width = vidEl.videoWidth || 640;
@@ -79,7 +82,7 @@ export function EndStreamModal({
             } catch (e) { console.warn('[EndStreamModal] thumb extract failed:', e); }
             URL.revokeObjectURL(blobUrl);
         };
-        vidEl.onerror = () => URL.revokeObjectURL(blobUrl);
+        vidEl.onerror = () => { clearTimeout(safetyRevoke); URL.revokeObjectURL(blobUrl); };
     }, [videoBlob, user?.id, streamId, resolvedThumbUrl]);
 
     // Set video source when blob is available
