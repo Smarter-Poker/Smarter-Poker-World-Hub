@@ -306,6 +306,57 @@ async function processJob(job) {
       } catch (syncErr) {
         warn(`  syncPostFromReel skipped (job ${job.id}):`, syncErr?.message);
       }
+
+      // M7.1: BROADCAST — multiple horses can post the same YouTube clip,
+      // landing as N social_reels rows with the same video_url. The trigger
+      // (m7_1) cancels redundant jobs so we convert each unique URL once.
+      // Now we fan the conversion result out to ALL sibling reels (same
+      // original_youtube_url, different reel id) and their source_posts.
+      const sourceYtUrl = job.youtube_url || job.source_url;
+      if (sourceYtUrl) {
+        try {
+          // Update sibling reels — use original_youtube_url which the trigger
+          // populated and which never gets rewritten by the worker (only
+          // video_url flips). Excludes the reel we just updated above.
+          const { data: siblings, error: sibErr } = await supa
+            .from('social_reels')
+            .update({
+              video_url: publicUrl,
+              source_type: 'native',
+              media_status: 'ready',
+              ...(thumbUrl ? { thumbnail_url: thumbUrl } : {}),
+            })
+            .eq('original_youtube_url', sourceYtUrl)
+            .neq('id', job.reel_id)
+            .select('id, source_post_id');
+          if (sibErr) {
+            warn(`  sibling broadcast warn (job ${job.id}):`, sibErr.message);
+          } else if (siblings?.length) {
+            log(`  ↳ broadcast native URL to ${siblings.length} sibling reel(s)`);
+
+            // Sync each sibling's source_post in one batch — pull all rows,
+            // rewrite media_urls[0], write back. ~10ms per sibling.
+            const sourcePostIds = siblings.map(s => s.source_post_id).filter(Boolean);
+            if (sourcePostIds.length) {
+              const { data: siblingPosts } = await supa.from('social_posts')
+                .select('id, media_urls, thumbnail_url, original_media_url')
+                .in('id', sourcePostIds);
+              for (const sp of (siblingPosts || [])) {
+                const arr = Array.isArray(sp.media_urls) ? sp.media_urls : [];
+                const payload = {
+                  media_urls: [publicUrl, ...arr.slice(1)],
+                  original_media_url: sp.original_media_url || arr[0] || null,
+                };
+                if (!sp.thumbnail_url && thumbUrl) payload.thumbnail_url = thumbUrl;
+                await supa.from('social_posts').update(payload).eq('id', sp.id);
+              }
+              log(`  ↳ broadcast native URL to ${siblingPosts?.length || 0} sibling post(s)`);
+            }
+          }
+        } catch (broadcastErr) {
+          warn(`  sibling broadcast skipped (job ${job.id}):`, broadcastErr?.message);
+        }
+      }
     } else {
       warn(`  Job ${job.id} has no reel_id — video uploaded but no reel linked`);
     }

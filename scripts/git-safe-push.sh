@@ -548,7 +548,9 @@ if [ "$BUILD_CHECK" = true ]; then
     BUILD_START=$(date +%s)
     
     # Capture output to check for node_modules corruption
-  BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1)
+  # MUST use --webpack: Next.js 16+ defaults to Turbopack which breaks on our
+  # custom webpack config and 246+ named-export mismatches (May 2026 incident).
+  BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build --webpack 2>&1)
   BUILD_STATUS=$?
   
   if [ $BUILD_STATUS -eq 0 ]; then
@@ -562,7 +564,7 @@ if [ "$BUILD_CHECK" = true ]; then
       rm -rf node_modules && npm install --no-audit --no-fund --prefer-offline 2>/dev/null
       
       echo "🔨 Retrying build after environment heal..."
-      BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1)
+      BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build --webpack 2>&1)
       BUILD_STATUS=$?
       
       if [ $BUILD_STATUS -eq 0 ]; then

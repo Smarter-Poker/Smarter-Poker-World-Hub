@@ -34,7 +34,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build Next.js
-        run: npx next build
+        # MUST use --webpack: Next.js 16+ defaults to Turbopack which breaks on
+        # our custom webpack config + 246 named-export mismatches (May 2026 incident).
+        run: npx next build --webpack
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
