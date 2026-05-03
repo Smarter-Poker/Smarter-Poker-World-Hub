@@ -752,6 +752,8 @@ export default function LivesPage() {
                                 <button
                                     onClick={() => setWatchingStream(stream)}
                                     style={{
+                                        position: 'absolute',
+                                        top: '50%',
                                         left: '50%',
                                         transform: 'translate(-50%, -50%)',
                                         background: 'rgba(250, 56, 62, 0.9)',
