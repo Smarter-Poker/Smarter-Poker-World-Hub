@@ -117,12 +117,14 @@ export default async function handler(req, res) {
         const status = failures.length === 0 ? 'ok' : 'failed';
 
         // Heartbeat
-        await admin.from('probe_heartbeats').insert({
-            probe_name: 'recovery-probe',
-            status,
-            duration_ms: Date.now() - startedAt,
-            details: { flows, failure_count: failures.length },
-        }).catch(() => null);
+        try {
+            await admin.from('probe_heartbeats').insert({
+                probe_name: 'recovery-probe',
+                status,
+                duration_ms: Date.now() - startedAt,
+                details: { flows, failure_count: failures.length },
+            });
+        } catch (_) { /* heartbeat is best-effort */ }
 
         return res.status(failures.length > 0 ? 503 : 200).json({
             status,
@@ -133,12 +135,14 @@ export default async function handler(req, res) {
         for (const id of userIds) {
             await admin.auth.admin.deleteUser(id).catch(() => null);
         }
-        await admin.from('probe_heartbeats').insert({
-            probe_name: 'recovery-probe',
-            status: 'failed',
-            duration_ms: Date.now() - startedAt,
-            details: { error: err?.message, flows },
-        }).catch(() => null);
+        try {
+            await admin.from('probe_heartbeats').insert({
+                probe_name: 'recovery-probe',
+                status: 'failed',
+                duration_ms: Date.now() - startedAt,
+                details: { error: err?.message, flows },
+            });
+        } catch (_) { /* heartbeat is best-effort */ }
         return res.status(503).json({ status: 'error', error: err?.message, flows });
     }
 }

@@ -106,12 +106,14 @@ export default async function handler(req, res) {
         steps.getuser.ok = true;
 
         // Heartbeat OK
-        await admin.from('probe_heartbeats').insert({
-            probe_name: 'login-probe',
-            status: 'ok',
-            duration_ms: Date.now() - startedAt,
-            details: { steps },
-        }).catch(() => null);
+        try {
+            await admin.from('probe_heartbeats').insert({
+                probe_name: 'login-probe',
+                status: 'ok',
+                duration_ms: Date.now() - startedAt,
+                details: { steps },
+            });
+        } catch (_) { /* heartbeat is best-effort */ }
 
         // Cleanup
         await admin.auth.admin.deleteUser(userId).catch(() => null);
@@ -128,12 +130,14 @@ export default async function handler(req, res) {
             steps,
         };
 
-        await admin.from('probe_heartbeats').insert({
-            probe_name: 'login-probe',
-            status: 'failed',
-            duration_ms: failure.duration_ms,
-            details: failure,
-        }).catch(() => null);
+        try {
+            await admin.from('probe_heartbeats').insert({
+                probe_name: 'login-probe',
+                status: 'failed',
+                duration_ms: failure.duration_ms,
+                details: failure,
+            });
+        } catch (_) { /* heartbeat is best-effort */ }
 
         return res.status(503).json(failure);
     }

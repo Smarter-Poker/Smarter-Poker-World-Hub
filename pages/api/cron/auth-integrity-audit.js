@@ -78,12 +78,14 @@ export default async function handler(req, res) {
         }
 
         // Heartbeat
-        await admin.from('probe_heartbeats').insert({
-            probe_name: 'auth-integrity-audit',
-            status: realCount > 0 ? 'partial' : 'ok',
-            duration_ms: Date.now() - started,
-            details: { audit: auditData, heal: healResult, healed: shouldHeal },
-        }).catch(() => null);
+        try {
+            await admin.from('probe_heartbeats').insert({
+                probe_name: 'auth-integrity-audit',
+                status: realCount > 0 ? 'partial' : 'ok',
+                duration_ms: Date.now() - started,
+                details: { audit: auditData, heal: healResult, healed: shouldHeal },
+            });
+        } catch (_) { /* heartbeat is best-effort */ }
 
         // Alert on real orphans
         if (realCount > 0) {
