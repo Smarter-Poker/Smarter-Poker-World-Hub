@@ -41,7 +41,7 @@ async function markFeedPostEnded(stream_id, videoUrl = null) {
         if (videoUrl) {
             const existingUrls = livePost.media_urls || [];
             // Replace thumbnail with replay video (or append if no thumbnail)
-            updatePayload.media_urls = existingUrls.length > 0 ? [videoUrl] : [videoUrl];
+            updatePayload.media_urls = [videoUrl];
         }
 
         await supabase.from('social_posts')

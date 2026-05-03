@@ -4893,6 +4893,10 @@ function SocialMediaPage() {
                     const streamData = await LiveStreamService.getStream(streamId);
                     if (streamData && streamData.status === 'live') {
                         setWatchingStream(streamData);
+                    } else if (streamData && streamData.status === 'ended') {
+                        toast.info('This stream has ended');
+                    } else if (!streamData) {
+                        toast.info('This stream is no longer available');
                     }
                 } catch (e) { console.warn('[stream param] failed:', e); }
                 router.replace('/hub/social-media', undefined, { shallow: true });

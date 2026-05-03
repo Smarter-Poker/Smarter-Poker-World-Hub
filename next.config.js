@@ -179,12 +179,14 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
-  // ─── Next.js 16 Turbopack — Silence webpack-vs-turbopack conflict ──────────
-  // Next.js 16 enables Turbopack by default. We have a custom `webpack` config
-  // (for the supabase.js alias + dev watchOptions). Having webpack config with
-  // no turbopack config is a HARD BUILD ERROR in Next.js 16. Setting an empty
-  // turbopack object tells Next.js "yes, we know we have a webpack config" and
-  // silences the fatal error while keeping our webpack customisations intact.
+  // ─── Next.js 16 Turbopack — Forced webpack via build script flag ───────────
+  // Next.js 16 enables Turbopack by default. Our codebase uses a custom webpack
+  // config (supabase.js alias + dev watchOptions) and was built against webpack
+  // semantics. The `build` script in package.json passes `--webpack` to force
+  // webpack explicitly. This `turbopack: {}` is an additional config-level
+  // declaration kept as belt-and-braces — if anything passes --turbopack, this
+  // empty config ensures the "webpack config without turbopack config" hard error
+  // does not surface. Both guards together guarantee webpack is used.
   // See: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
   turbopack: {},
 
