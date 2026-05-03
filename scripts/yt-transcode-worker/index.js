@@ -85,6 +85,7 @@ const FFMPEG_TIMEOUT = 600_000;          // 10 min per re-encode
 const MAX_FILE_SIZE = 500_000_000;       // 500 MB hard cap
 
 let activeJobs = 0;
+let shutdownRequested = false;
 
 // ─── Logging ─────────────────────────────────────────────────────────────────
 const log = (...args) => console.log(`[yt-worker ${new Date().toISOString()}]`, ...args);
@@ -154,6 +155,8 @@ async function processJob(job) {
       '--restrict-filenames',
       '--js-runtimes', 'node',
       '--remote-components', 'ejs:github',
+      '--max-filesize', '400m',          // Abort download if file > 400 MB (before re-encode)
+      '--match-filter', 'duration < 600', // Skip videos longer than 10 minutes
     ];
     if (cookiesExist) {
       ytdlpArgs.push('--cookies', COOKIES_FILE);
@@ -161,6 +164,18 @@ async function processJob(job) {
     ytdlpArgs.push('-o', rawFile, ytUrl);
 
     await runProcess('yt-dlp', ytdlpArgs, YT_DOWNLOAD_TIMEOUT);
+
+    // --match-filter exits with code 0 but creates no file when video is filtered
+    const rawExists = await access(rawFile).then(() => true).catch(() => false);
+    if (!rawExists) {
+      warn(`  Job ${job.id} skipped — video filtered (too long or too large)`);
+      await supa.from('video_transcode_jobs').update({
+        status: 'skipped',
+        completed_at: new Date().toISOString(),
+        error_message: 'filtered: video exceeds duration or size limit',
+      }).eq('id', job.id);
+      return;
+    }
 
     const rawStat = await stat(rawFile);
     if (rawStat.size > MAX_FILE_SIZE) {
@@ -186,7 +201,36 @@ async function processJob(job) {
     const outStat = await stat(outFile);
     log(`  Re-encoded → ${(outStat.size / 1_048_576).toFixed(1)} MB`);
 
-    // ── 3. Upload to social-media bucket ────────────────────────────────────
+    // ── 3. Extract thumbnail (1s frame) ─────────────────────────────────────
+    const thumbFile = join(dir, 'thumb.jpg');
+    let thumbUrl = null;
+    try {
+      await runProcess('ffmpeg', [
+        '-y', '-hide_banner', '-loglevel', 'error',
+        '-ss', '1',
+        '-i', outFile,
+        '-vframes', '1',
+        '-q:v', '3',
+        '-vf', 'scale=720:-2',
+        thumbFile,
+      ], 30_000);
+      const thumbBuf = await readFile(thumbFile);
+      const thumbPath = `reels/thumbs/${job.user_id}/${Date.now()}_${job.id}.jpg`;
+      const { error: thumbErr } = await supa.storage
+        .from(STORAGE_BUCKET)
+        .upload(thumbPath, thumbBuf, { contentType: 'image/jpeg', upsert: true });
+      if (thumbErr) {
+        warn(`  thumbnail upload warn:`, thumbErr.message);
+      } else {
+        const { data: thumbPub } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(thumbPath);
+        thumbUrl = thumbPub.publicUrl;
+        log(`  Thumbnail → ${thumbUrl}`);
+      }
+    } catch (thumbEx) {
+      warn(`  thumbnail extract skipped: ${thumbEx.message}`);
+    }
+
+    // ── 4. Upload video to social-media bucket ───────────────────────────────
     const storagePath = `reels/${job.user_id}/${Date.now()}_${job.id}.mp4`;
     const fileBuf = await readFile(outFile);
     const { error: upErr } = await supa.storage
@@ -201,17 +245,21 @@ async function processJob(job) {
     const { data: pub } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
     const publicUrl = pub.publicUrl;
 
-    // ── 4. Flip the reel: youtube → native ──────────────────────────────────
+    // ── 5. Flip the reel: youtube → native ──────────────────────────────────
     if (job.reel_id) {
-      const { error: reelErr } = await supa.from('social_reels').update({
+      const reelUpdate = {
         video_url: publicUrl,
         source_type: 'native',
         media_status: 'ready',
-      }).eq('id', job.reel_id);
+      };
+      if (thumbUrl) reelUpdate.thumbnail_url = thumbUrl;
+      const { error: reelErr } = await supa.from('social_reels').update(reelUpdate).eq('id', job.reel_id);
       if (reelErr) warn(`  reel update warn (job ${job.id}):`, reelErr.message);
+    } else {
+      warn(`  Job ${job.id} has no reel_id — video uploaded but no reel linked`);
     }
 
-    // ── 5. Mark job done ────────────────────────────────────────────────────
+    // ── 6. Mark job done ────────────────────────────────────────────────────
     await supa.from('video_transcode_jobs').update({
       status: 'completed',
       completed_at: new Date().toISOString(),
@@ -250,6 +298,7 @@ async function processJob(job) {
 // Fire-and-forget — does NOT await jobs to finish, lets them run concurrently.
 // ════════════════════════════════════════════════════════════════════════════
 async function tick() {
+  if (shutdownRequested) return 0;  // No new jobs after SIGTERM
   let dispatched = 0;
   while (activeJobs < MAX_CONCURRENT_YT) {
     const job = await claimJob();
@@ -294,13 +343,13 @@ function runProcess(cmd, args, timeoutMs) {
 // ════════════════════════════════════════════════════════════════════════════
 async function resetStaleProcessing() {
   const { data, error } = await supa.from('video_transcode_jobs')
-    .update({ status: 'queued', error_message: 'worker_restarted' })
+    .update({ status: 'queued', error_message: null })  // null: not a failure, just interrupted
     .eq('status', 'processing')
     .eq('worker_id', WORKER_ID)
     .eq('source_type', 'youtube')
     .select('id');
   if (error) warn('stale reset error:', error.message);
-  if (data?.length) log(`Reset ${data.length} stale 'processing' row(s)`);
+  if (data?.length) log(`Reset ${data.length} stale 'processing' row(s) → queued`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -329,11 +378,25 @@ async function pollLoop() {
 pollLoop();
 
 // ─── Graceful shutdown ───────────────────────────────────────────────────────
-process.on('SIGTERM', () => {
-  log('SIGTERM received — shutting down (active jobs continue until they finish or die)');
-  process.exit(0);
-});
-process.on('SIGINT', () => {
-  log('SIGINT received — shutting down');
-  process.exit(0);
-});
+function gracefulShutdown(signal) {
+  if (shutdownRequested) return;
+  shutdownRequested = true;
+  log(`${signal} received — draining ${activeJobs} active job(s) before exit...`);
+  const waitForDrain = () => {
+    if (activeJobs === 0) {
+      log('All jobs drained. Exiting cleanly.');
+      process.exit(0);
+    } else {
+      log(`  Waiting for ${activeJobs} job(s) to finish...`);
+      setTimeout(waitForDrain, 2_000);
+    }
+  };
+  waitForDrain();
+  // Hard kill after 10 min if jobs are stuck
+  setTimeout(() => {
+    warn('Drain timeout (10 min) — forcing exit.');
+    process.exit(1);
+  }, 600_000).unref();
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
