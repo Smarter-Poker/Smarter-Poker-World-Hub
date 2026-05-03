@@ -243,7 +243,7 @@ ALL_CRONS = [
     ('/api/cron/ledger-reconcile',                dict(hour=8, minute=0)),
     ('/api/cron/vip-status-check',                dict(minute=0)),          # every hour
     ('/api/cron/vip-diamond-stipend',             dict(day=1, hour=0, minute=5)),  # monthly, 1st @ 00:05 UTC
-    ('/api/cron/collusion-scan',                  dict(hour=3, minute=30)),
+    ('/api/cron/collusion-scan',                  dict(minute='*/30')),       # every 30 min — 4-pattern detector incl. TIMING_CORRELATION (x67c)
 
     # ══ WAVE 4 — Live Streaming Infrastructure (2026-04-28) ═══════════════════
     # Zombie cleanup: marks stale live streams (>6h) as ended, cleans viewers.
@@ -260,13 +260,21 @@ ALL_CRONS = [
     # rakeback-period-settle is the relaunch-blocker of this batch — it
     # runs 30 min after the auto-settlement-distribute Mon-10:10 fire, to
     # close all pending rakeback periods for clubs that just settled.
+    #
+    # Anti-cheat cadences (2026-05-03 — AG dispatch final closeout v2):
+    # Previous draft cadences (every 6h / 12h) were placeholder conservative
+    # rates. Corrected to Phase F+G spec cadences per Cowork audit:
+    #   multi-account: every 30 min (shared-IP detection)
+    #   bot-timing:    hourly (intra-hand delta std-dev; x67-1)
+    #   chip-dump:     every 30 min (giver→receiver pair pattern; x69)
+    #   collusion-scan: every 30 min (4-pattern incl. TIMING_CORRELATION; x67c)
     ('/api/cron/bbj-detect',                       dict(minute='*/5')),       # every 5 min — promptly detect BBJ hits
     ('/api/cron/tournament-bounty-detect',         dict(minute='*/10')),      # every 10 min during MTT runs
     ('/api/cron/player-stats-refresh',             dict(minute=15)),          # hourly @ :15 — leaderboard refresh
     ('/api/cron/rakeback-period-settle',           dict(day_of_week='mon', hour=10, minute=30)),
-    ('/api/cron/anti-cheat-multi-account',         dict(hour='*/6', minute=20)),  # every 6h
-    ('/api/cron/anti-cheat-bot-timing',            dict(hour='*/12', minute=40)), # 2x daily
-    ('/api/cron/anti-cheat-chip-dump',             dict(hour='*/12', minute=50)), # 2x daily, staggered
+    ('/api/cron/anti-cheat-multi-account',         dict(minute='*/30')),      # every 30 min — shared-IP detection (R67)
+    ('/api/cron/anti-cheat-bot-timing',            dict(minute=0)),           # hourly — intra-hand delta std-dev (x67-1)
+    ('/api/cron/anti-cheat-chip-dump',             dict(minute='*/30')),      # every 30 min — giver→receiver pair pattern (x69)
 
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
