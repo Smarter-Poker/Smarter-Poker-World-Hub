@@ -152,6 +152,8 @@ async function processJob(job) {
       '--no-playlist',
       '--no-warnings',
       '--restrict-filenames',
+      '--js-runtimes', 'node',
+      '--remote-components', 'ejs:github',
     ];
     if (cookiesExist) {
       ytdlpArgs.push('--cookies', COOKIES_FILE);

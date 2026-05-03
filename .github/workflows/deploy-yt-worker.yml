@@ -8,6 +8,8 @@ name: Deploy YT Transcode Worker (Hetzner)
 #   HETZNER_HOST             — public IP or hostname of the Ashburn CX22
 #   HETZNER_SSH_USER         — defaults to 'openclaw' if unset
 #   SUPABASE_SERVICE_ROLE_KEY — written to /etc/sp-yt-transcode.env on first run
+#   YT_GOOGLE_EMAIL           — Google account for yt-dlp cookie auth
+#   YT_GOOGLE_PASS            — Google account password
 #
 # Note: this workflow uses `on: push`, NOT `schedule:`, so it does not violate
 # the cron-governance rule in CLAUDE.md §11.5.
@@ -114,14 +116,12 @@ jobs:
             "$USER@$HOST:/tmp/sp-yt-cookie-refresh.timer"
           ssh "$USER@$HOST" '
             sudo mv /tmp/sp-yt-transcode.service /etc/systemd/system/sp-yt-transcode.service
-            sudo mv /tmp/sp-yt-cookie-refresh.service /etc/systemd/system/sp-yt-cookie-refresh.service
-            sudo mv /tmp/sp-yt-cookie-refresh.timer /etc/systemd/system/sp-yt-cookie-refresh.timer
             sudo systemctl daemon-reload
-            sudo systemctl enable sp-yt-transcode sp-yt-cookie-refresh.timer
-            # Run initial cookie harvest before starting the worker
-            echo "Running initial cookie harvest via camoufox..."
-            python3 /opt/smarter-poker/yt-transcode-worker/refresh-yt-cookies.py --test || true
-            sudo systemctl enable --now sp-yt-cookie-refresh.timer
+            sudo systemctl enable sp-yt-transcode
+            
+            # Disable auto-refresh timer to prevent wiping manually harvested auth cookies
+            sudo systemctl disable --now sp-yt-cookie-refresh.timer || true
+            
             sudo systemctl restart sp-yt-transcode
             sleep 3
             sudo systemctl is-active sp-yt-transcode
