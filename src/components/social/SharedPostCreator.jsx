@@ -494,7 +494,18 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     ));
                 },
             }).then(result => {
-                compressionRef.current[item.url] = { ...compressionRef.current[item.url], result };
+                // AUDIT-MAX-3 (2026-05-03 Pass 1 finding): the original code
+                // unconditionally re-set compressionRef.current[item.url] here,
+                // which RESURRECTED a deleted entry if the user removed the
+                // staged item via the × button between staging and compression
+                // completion. The resurrected entry was `{...undefined, result}`
+                // = `{result}` — controller missing, so the unmount cleanup
+                // loop's c.controller?.abort() silently no-op'd and the
+                // compressed File blob stayed pinned until next composer reset.
+                // Now: only update if the entry still exists.
+                if (compressionRef.current[item.url]) {
+                    compressionRef.current[item.url] = { ...compressionRef.current[item.url], result };
+                }
                 if (result.compressed && mountedRef.current) {
                     const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
                     toast.success(`Video compressed — saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
@@ -1408,24 +1419,33 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                 )}
                                 <button
                                     onClick={() => {
-                                        const item = media[i];
+                                        // AUDIT-MAX-3 (2026-05-03 Pass 4 finding): use the tile's
+                                        // CURRENT m.url (closure-captured at this render) as the
+                                        // identity, and filter setMedia by url instead of by
+                                        // index. The previous `prev.filter((_, idx) => idx !== i)`
+                                        // was index-based: rapid double-tap on the × button before
+                                        // re-render fires both handlers with the same closure
+                                        // index `i`, batched setState removes 2 items instead of
+                                        // 1 (first filter shifts indices down, second filter
+                                        // removes the new item-at-index-0). url-based filter is
+                                        // idempotent on repeat fires.
+                                        const item = m;
+                                        if (!item?.url) return;
                                         // Cancel background compression if running
-                                        if (item?.url && compressionRef.current[item.url]) {
+                                        if (compressionRef.current[item.url]) {
                                             compressionRef.current[item.url].controller?.abort();
                                             delete compressionRef.current[item.url];
                                         }
-                                        // AUDIT-MAX (2026-05-03 Pass 4 finding): also drop the
-                                        // thumbnail promise. Without this, removing a staged
-                                        // video left its thumbnail Promise resolved-but-
-                                        // unreachable in thumbnailPromiseRef forever.
-                                        if (item?.url && thumbnailPromiseRef.current[item.url]) {
+                                        // Drop the thumbnail promise so the resolved data url
+                                        // can be garbage-collected.
+                                        if (thumbnailPromiseRef.current[item.url]) {
                                             delete thumbnailPromiseRef.current[item.url];
                                         }
                                         // Revoke blob URL to free memory
-                                        if (item?.file && item?.url?.startsWith('blob:')) {
+                                        if (item.file && item.url.startsWith('blob:')) {
                                             try { URL.revokeObjectURL(item.url); } catch (_) {}
                                         }
-                                        setMedia(prev => prev.filter((_, idx) => idx !== i));
+                                        setMedia(prev => prev.filter(p => p.url !== item.url));
                                     }}
                                     disabled={uploading}
                                     style={{
