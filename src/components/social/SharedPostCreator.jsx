@@ -13,7 +13,8 @@ import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, snif
 import bgUpload from '../../../src/lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, generateFrames, compressVideo } from '../../../src/lib/videoCompressor';
 import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
-import { useComposeStore } from '../../../src/stores/composeStore';
+// useComposeStore import removed (2026-05-03): the /compose route handoff
+// is gone, inline staging handles everything via local component state.
 
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
@@ -355,51 +356,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (!files.length) { setPreparingStage(null); return; }
         if (!user?.id) { setError('Please log in to upload media.'); setPreparingStage(null); return; }
 
-        // ── COMPOSE-V2 fork (2026-05-01 iOS-USER-GESTURE FIX) ──────────────
-        // On the main social feed, the file input was clicked here to satisfy
-        // iOS Safari's user-gesture requirement (programmatic .click() from a
-        // useEffect on the /compose page is BLOCKED by Safari). Now that we
-        // have the File handles in hand, hand them to the compose store and
-        // route to /hub/social-media/compose where AlbumPicker renders the
-        // review screen. AlbumPicker no longer needs to auto-click anything —
-        // the media is already in the store.
-        if (context === 'social-media' && router) {
-            try {
-                const items = await Promise.all(files.map(async (file) => {
-                    let type = 'photo';
-                    if (file.type?.startsWith('video/')) type = 'video';
-                    else if (file.type?.startsWith('image/')) type = 'photo';
-                    else {
-                        const ext = (file.name || '').toLowerCase().split('.').pop();
-                        if (['mov','mp4','m4v','3gp','3g2','mkv','avi','webm','hevc'].includes(ext)) type = 'video';
-                    }
-                    const url = (typeof URL !== 'undefined' && URL.createObjectURL)
-                        ? URL.createObjectURL(file) : null;
-                    const id = `${file.name}|${file.size}|${file.lastModified}|${Math.random().toString(36).slice(2, 8)}`;
-                    return { id, type, file, url, thumbnail: null, durationSec: 0, width: 0, height: 0 };
-                }));
-                useComposeStore.getState().reset();
-                useComposeStore.getState().addMedia(items);
-                // KILL-ALBUMPICKER (2026-05-01 per Dan): the AlbumPicker
-                // review screen was breaking real uploads — its mount-time
-                // auto-click of fileRef was firing a SECOND iOS picker
-                // even when media was already populated, which Dan saw as
-                // a "select video / open library" full-screen popping up
-                // after his upload had already started. He asked us to
-                // remove it entirely. New flow:
-                //   iOS Photos picker → EditPostScreen (staging)
-                // No intermediate review screen. Same direct handoff that
-                // worked before the FB-parity tweak.
-                useComposeStore.getState().setStep('edit');
-                if (fileRef.current) fileRef.current.value = '';
-                setPreparingStage(null);
-                router.push('/hub/social-media/compose');
-                return;
-            } catch (composeRouteErr) {
-                console.warn('[SharedPostCreator] compose route handoff failed, falling back to inline:', composeRouteErr?.message || composeRouteErr);
-                // Fall through to existing inline staging on failure.
-            }
-        }
+        // KILL-COMPOSE-V2-FORK (2026-05-03 per Dan: "nothing works, make it
+        // fully functional so I can actually post videos again"):
+        // The detour to /hub/social-media/compose introduced too many
+        // failure modes (router race, store sync, AlbumPicker auto-click,
+        // EditPostScreen mount timing). The inline staging path below
+        // (handlePost ~line 706) is the proven flow that works on iPhone
+        // and desktop. Falling through to it now. /compose is still
+        // reachable as a direct URL but we no longer auto-route there.
 
         // Check total media limit
         const remaining = MAX_MEDIA - media.length;

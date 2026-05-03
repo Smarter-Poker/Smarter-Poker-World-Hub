@@ -454,10 +454,12 @@ class LiveStreamService {
         // Register viewer — onConflict MUST target the composite unique (stream_id, viewer_id).
         // Without it, Supabase falls back to the PK, so reconnects/StrictMode double-fires
         // created duplicate rows that permanently inflated viewer counts after leaveStream().
-        await supabase.from('live_viewers').upsert(
-            { stream_id: streamId, viewer_id: userId },
-            { onConflict: 'stream_id,viewer_id' }
-        );
+        if (userId) {
+            await supabase.from('live_viewers').upsert(
+                { stream_id: streamId, viewer_id: userId },
+                { onConflict: 'stream_id,viewer_id' }
+            );
+        }
 
         // Update peak_viewers if needed — wrapped in try/catch because supabase.rpc()
         // returns a thenable without .catch() on some iOS Safari builds
@@ -655,6 +657,7 @@ class LiveStreamService {
 
     /** Debounce viewer count updates — prevents write storms with 100+ viewers */
     _debouncedUpdateViewerCount() {
+        if (!this.isBroadcaster) return; // FIX: Only the broadcaster tracks and updates the true viewer count
         if (this._viewerCountDebounceTimer) clearTimeout(this._viewerCountDebounceTimer);
         // Immediately update the local callback for instant UI
         if (this.room) this.onViewerCountChange?.(this.room.remoteParticipants.size);
