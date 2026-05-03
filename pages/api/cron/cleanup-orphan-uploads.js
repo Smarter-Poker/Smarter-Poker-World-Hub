@@ -131,6 +131,36 @@ export default async function handler(req, res) {
             collectPath(row.thumbnail_url);
         }
 
+        // AUDIT-MAX (2026-05-03 Pass 1 finding): club-page posts live in
+        // social_page_posts with their OWN media_urls + thumbnail_url. The
+        // initial Phase-D code only walked social_posts + social_reels —
+        // every club-page video upload would have been classified as an
+        // orphan and deleted on the first cron run. Add it to the reference
+        // set so club-page media survives.
+        const { data: pagePosts, error: ppErr } = await supa
+            .from('social_page_posts')
+            .select('media_urls, thumbnail_url');
+        // Don't fail the whole cron if the table doesn't exist or the query
+        // errors — defensive, since the worst-case correctness story is
+        // "skip the run, retry tomorrow".
+        if (!ppErr) {
+            for (const row of pagePosts || []) {
+                const arr = Array.isArray(row.media_urls) ? row.media_urls : [];
+                for (const u of arr) collectPath(u);
+                collectPath(row.thumbnail_url);
+            }
+        } else {
+            console.warn('[cleanup-orphan-uploads] social_page_posts query failed (non-fatal):', ppErr.message);
+            // Skip the deletion phase entirely if we can't enumerate club-page
+            // media — better to leave orphans than delete legitimate club content.
+            return res.status(200).json({
+                success: false,
+                skipped: true,
+                reason: 'social_page_posts query failed; refusing to delete to avoid data loss',
+                error: ppErr.message,
+            });
+        }
+
         // 2. List every object in the social-media bucket.
         const objects = await listAllObjects(supa);
 

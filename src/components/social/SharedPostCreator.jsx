@@ -177,6 +177,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 try { c.controller?.abort(); } catch (_) {}
             });
             compressionRef.current = {};
+            // AUDIT-MAX (2026-05-03 Pass 4 finding): clear thumbnail promise
+            // ref so resolved values don't keep references alive after unmount.
+            // generateThumbnail can't be aborted (it returns a bare Promise),
+            // but dropping the ref lets the Promise + its resolved data url
+            // get garbage-collected once the in-flight decode finishes.
+            thumbnailPromiseRef.current = {};
             mountedRef.current = false;
         };
     }, []);
@@ -443,6 +449,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         // the actual crash was the autoplay-<video> staging tile, which is
         // now a static placeholder. With the real thumbnail running, Dan
         // sees the iOS-style preview tile he expects.
+        // AUDIT-MAX (2026-05-03 Pass 2 finding): a stray `break` at the bottom
+        // of this loop was meant to limit ONLY the bgUpload.prefetch call to
+        // the first video, but it short-circuited thumbnail + compression for
+        // videos #2..#N too. Multi-video posts shipped with no thumbnails on
+        // the trailing tiles and uncompressed copies sent over the wire.
+        // Restructured: thumbnail + compression run for EVERY video; prefetch
+        // runs once for the first.
         for (const item of staged) {
             if (item.type !== 'video') continue;
 
@@ -492,10 +505,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 return result;
             });
             compressionRef.current[item.url] = { controller, promise: compPromise, result: null };
+        }
 
-            // 3. Signed URL prefetch
-            bgUpload.prefetch({ file: item.file, userId: user.id, folder: 'videos' });
-            break; // only process first video for prefetch
+        // 3. Signed URL prefetch — only for the first video (one upload-url at a
+        //    time; subsequent prefetches would clobber the cached signed URL
+        //    that bgUpload.start consumes).
+        const firstStagedVideo = staged.find(s => s.type === 'video');
+        if (firstStagedVideo) {
+            bgUpload.prefetch({ file: firstStagedVideo.file, userId: user.id, folder: 'videos' });
         }
 
         // Reset file input so the same file can be re-selected
@@ -1396,6 +1413,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                         if (item?.url && compressionRef.current[item.url]) {
                                             compressionRef.current[item.url].controller?.abort();
                                             delete compressionRef.current[item.url];
+                                        }
+                                        // AUDIT-MAX (2026-05-03 Pass 4 finding): also drop the
+                                        // thumbnail promise. Without this, removing a staged
+                                        // video left its thumbnail Promise resolved-but-
+                                        // unreachable in thumbnailPromiseRef forever.
+                                        if (item?.url && thumbnailPromiseRef.current[item.url]) {
+                                            delete thumbnailPromiseRef.current[item.url];
                                         }
                                         // Revoke blob URL to free memory
                                         if (item?.file && item?.url?.startsWith('blob:')) {
