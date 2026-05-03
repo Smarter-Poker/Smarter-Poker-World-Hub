@@ -395,6 +395,21 @@ class LiveStreamService {
             .update({ status: 'ended', ended_at: new Date().toISOString() })
             .eq('id', this.currentStreamId);
 
+        // BUG FIX (#11): Fire-and-forget call to mark the live feed post as ended immediately.
+        // Without this, if the broadcaster force-closes (tab close, modal dismiss during live)
+        // without going through EndStreamModal, the feed post stays with "LIVE NOW" badge forever.
+        const streamIdForEnd = this.currentStreamId;
+        const token = getAccessToken();
+        fetch('/api/live/end-stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ stream_id: streamIdForEnd, action: 'force_end' }),
+        }).catch(() => {}); // Non-fatal — EndStreamModal will also call markFeedPostEnded
+
         // Disconnect LiveKit room
         if (this.room) {
             await this.room.disconnect();

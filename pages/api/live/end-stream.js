@@ -21,26 +21,49 @@ const supabase = createClient(
 /**
  * Update the live broadcast feed post to reflect stream-ended state.
  * Merges { ended: true } into the existing metadata JSONB without overwriting other fields.
- * Also updates thumbnail_url and media_urls with the final recording URL (if available).
+ * Also updates media_urls with the final recording URL (if available).
+ *
+ * Strategy: use feed_post_id FK (direct O(1) PK lookup) stored on live_streams.
+ * Fall back to metadata JSONB contains() scan for streams created before feed_post_id existed.
  */
 async function markFeedPostEnded(stream_id, videoUrl = null) {
     try {
-        // Fetch the live post to get its current metadata
-        const { data: livePost } = await supabase.from('social_posts')
-            .select('id, metadata, media_urls')
-            .eq('content_type', 'live')
-            .contains('metadata', { stream_id })
+        // BUG FIX (#10): Use feed_post_id stored on the stream row for a direct PK lookup.
+        // The old code used .contains('metadata', { stream_id }) which is a slow JSONB scan
+        // and silently returns null if the JSON key is missing or the index is stale.
+        const { data: streamRow } = await supabase.from('live_streams')
+            .select('feed_post_id')
+            .eq('id', stream_id)
             .maybeSingle();
 
-        if (!livePost) return;
+        let livePost = null;
+
+        if (streamRow?.feed_post_id) {
+            // Fast path: direct PK lookup via stored FK
+            const { data } = await supabase.from('social_posts')
+                .select('id, metadata, media_urls')
+                .eq('id', streamRow.feed_post_id)
+                .maybeSingle();
+            livePost = data;
+        }
+
+        if (!livePost) {
+            // Fallback: JSONB scan (for streams created before feed_post_id column existed)
+            const { data } = await supabase.from('social_posts')
+                .select('id, metadata, media_urls')
+                .eq('content_type', 'live')
+                .contains('metadata', { stream_id })
+                .maybeSingle();
+            livePost = data;
+        }
+
+        if (!livePost) return; // No live post to update — silently skip
 
         const mergedMetadata = { ...(livePost.metadata || {}), ended: true };
         const updatePayload = { metadata: mergedMetadata };
 
         // If the replay video is available, update media_urls so the post shows the replay
         if (videoUrl) {
-            const existingUrls = livePost.media_urls || [];
-            // Replace thumbnail with replay video (or append if no thumbnail)
             updatePayload.media_urls = [videoUrl];
         }
 
@@ -123,7 +146,16 @@ export default async function handler(req, res) {
             return res.json({ success: true, action: 'posted', postId: post?.id });
         }
 
-        return res.status(400).json({ error: 'Invalid action. Use: post, save, or delete' });
+        if (action === 'force_end') {
+            // BUG FIX (#11): Called when broadcaster force-closes GoLiveModal without
+            // going through EndStreamModal (tab close, crash, modal dismiss during live).
+            // Ensures the live feed post badge transitions from "LIVE NOW" → "STREAM ENDED"
+            // so it doesn't stay in a ghost-live state indefinitely.
+            await markFeedPostEnded(stream_id);
+            return res.json({ success: true, action: 'force_ended' });
+        }
+
+        return res.status(400).json({ error: 'Invalid action. Use: post, save, delete, or force_end' });
     } catch (err) {
         console.warn('[end-stream] error:', err.message);
         return res.status(500).json({ error: err.message });

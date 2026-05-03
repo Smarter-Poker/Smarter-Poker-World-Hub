@@ -2292,77 +2292,35 @@ export function ReelsFeedCarousel() {
         // Only the very first load should show the shimmer placeholder.
         if (!isBackground) setLoading(true);
         try {
-            // Parallel fetch: social_reels + social_posts with video content
-            const [reelsResult, postsResult] = await Promise.all([
-                supabase
-                    .from('social_reels')
-                    .select(`
-                        id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
-                        profiles:author_id (id, username, avatar_url, full_name)
-                    `)
-                    .eq('is_public', true)
-                    .order('created_at', { ascending: false })
-                    .limit(20),
-                supabase
-                    .from('social_posts')
-                    .select('id, author_id, content, content_type, media_urls, thumbnail_url, like_count, comment_count, created_at, visibility')
-                    .eq('visibility', 'public')
-                    .not('media_urls', 'is', null)
-                    .order('created_at', { ascending: false })
-                    .limit(30),
-            ]);
+            // M7.1 (2026-05-03): retired the social_posts fallback. Every public
+            // video post now has a social_reels mirror via the
+            // trg_social_posts_video_to_reel_mirror trigger, so a separate
+            // social_posts query produced duplicates rather than fresh content
+            // (and the dedup-by-video_url filter dropped the iframe variant
+            // anyway, making the work pure waste). All reel content surfaces
+            // through social_reels now — including horse-posted videos.
+            const reelsResult = await supabase
+                .from('social_reels')
+                .select(`
+                    id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, source_post_id,
+                    profiles:author_id (id, username, avatar_url, full_name)
+                `)
+                .eq('is_public', true)
+                .order('created_at', { ascending: false })
+                .limit(50);
 
-            const allReels = reelsResult.data || [];
-
-            // Filter posts to video/YouTube only
-            const ytPosts = (postsResult.data || []).filter(p => {
-                const url = p.media_urls?.[0];
-                return p.content_type === 'video' || (url && (
-                    url.includes('youtube.com') || url.includes('youtu.be') ||
-                    url.match(/\.(mp4|webm|mov)(\?|$)/i)
-                ));
-            });
-
-            if (ytPosts.length > 0) {
-                const authorIds = [...new Set(ytPosts.map(p => p.author_id))];
-                const { data: profiles } = await supabase
-                    .from('profiles')
-                    .select('id, username, avatar_url, full_name')
-                    .in('id', authorIds);
-                const pm = {};
-                (profiles || []).forEach(p => { pm[p.id] = p; });
-                // Dedup by id AND video_url. social_reels rows mirror social_posts
-                // rows (auto-bridge via source_post_id) — same physical video, two
-                // different table IDs. Old dedup checked only `id` and let the
-                // same clip render twice in the carousel. (Bug 2026-04-29:
-                // V12 upload showed up as two side-by-side reels.)
-                const existingIds = new Set(allReels.map(r => r.id));
-                const existingUrls = new Set(allReels.map(r => r.video_url).filter(Boolean));
-                ytPosts.forEach(p => {
-                    const videoUrl = p.media_urls?.[0];
-                    // Guard: skip posts where the resolved URL is falsy
-                    // (content_type='video' posts can pass the filter even with empty media_urls)
-                    if (!videoUrl) return;
-                    if (existingIds.has(p.id)) return;
-                    if (existingUrls.has(videoUrl)) return; // already represented as a social_reels mirror
-                    existingIds.add(p.id);
-                    existingUrls.add(videoUrl);
-                    allReels.push({
-                        // CRITICAL: source flag tells incrementMetric which table to update
-                        source: 'posts',
-                        id: p.id,
-                        author_id: p.author_id,
-                        video_url: videoUrl,
-                        thumbnail_url: p.thumbnail_url,
-                        caption: p.content,
-                        like_count: p.like_count || 0,
-                        comment_count: p.comment_count || 0,
-                        view_count: 0,
-                        created_at: p.created_at,
-                        profiles: pm[p.author_id] || { username: 'Anonymous' },
-                    });
-                });
-            }
+            const rawReels = reelsResult.data || [];
+            // Dedup by video_url — multiple horses can post the SAME YouTube
+            // clip, each landing as its own social_reels row via the mirror
+            // trigger. Without this filter the carousel renders the same clip
+            // up to 169 times in a row.
+            const seenUrls = new Set();
+            const allReels = rawReels.filter(r => {
+                if (!r.video_url) return true;
+                if (seenUrls.has(r.video_url)) return false;
+                seenUrls.add(r.video_url);
+                return true;
+            }).map(r => ({ ...r, source: 'reels' }));
 
             // Sort merged set by date descending
             allReels.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
