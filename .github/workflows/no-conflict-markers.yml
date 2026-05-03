@@ -1,0 +1,42 @@
+# Fails any push or PR that contains unresolved git merge-conflict markers
+# in tracked source files. Caught by Phase 42 audit after several
+# migration files were committed with markers buried in them.
+name: No Conflict Markers
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for conflict markers
+        shell: bash
+        run: |
+          # Look for any unescaped marker line in tracked source files.
+          # Excludes node_modules + dist + .next via path filter; ripgrep
+          # respects .gitignore by default.
+          set -e
+          if grep -rEn '^<<<<<<< |^>>>>>>> |^======= ' \
+               --include='*.sql' \
+               --include='*.js' \
+               --include='*.jsx' \
+               --include='*.ts' \
+               --include='*.tsx' \
+               --include='*.md' \
+               --include='*.yml' \
+               --include='*.yaml' \
+               --include='*.json' \
+               --exclude-dir=node_modules \
+               --exclude-dir=.next \
+               --exclude-dir=dist \
+               --exclude-dir=public \
+               .; then
+              echo ""
+              echo "::error::Conflict markers found in tracked files. Resolve them before merging."
+              exit 1
+          fi
+          echo "OK — no conflict markers."
