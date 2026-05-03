@@ -771,6 +771,9 @@ export const ChatWindow = ({
     const recordingTimerRef = useRef(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const [prefs, updatePrefs] = useMessengerPrefs();
+    // Keep a live ref so stale closures (channel subscribe, etc.) always read current prefs
+    const prefsRef = useRef(prefs);
+    prefsRef.current = prefs;
 
     const theme = prefs.themes[conversationId] || SP_COLORS.bgWhite;
     const disappearMs = prefs.disappearing[conversationId] || 0;
@@ -890,8 +893,8 @@ export const ChatWindow = ({
                 if (status === 'SUBSCRIBED') {
                     await channel.track({ user_id: currentUser.id, is_typing: false });
                     
-                    // Only broadcast read receipts if the user has enabled them
-                    if (prefs.showReadReceipts !== false) {
+                    // Only broadcast read receipts if the user has enabled them (read from live ref — not stale closure)
+                    if (prefsRef.current.showReadReceipts !== false) {
                         const unreadMsgs = messages.filter(m => m.sender_id !== currentUser.id && m.status !== 'read');
                         for (const m of unreadMsgs) {
                             channel.send({
@@ -2021,7 +2024,6 @@ export const ChatWindow = ({
                         // BUG-FIX: DB column is 'status', not 'readStatus'
                         readStatus: msg.status || (msg.sender_id === currentUser?.id ? 'sent' : null),
                         priorityFlag: prefs.priorityFlags?.[msg.id] || null,
-                        deliveryStatus: msg.deliveryStatus || msg.status || 'sent',
                         // Propagate the global read-receipt preference so MessageBubble can
                         // decide whether to show blue "Read" ticks (prefs → message level)
                         showReadReceipts: prefs.showReadReceipts !== false,
