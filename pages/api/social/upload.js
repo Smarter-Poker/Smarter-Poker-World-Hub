@@ -123,10 +123,14 @@ export default async function handler(req, res) {
           }
 
           // Build storage path
+          // AUDIT-MAX-4 (2026-05-03): Date.now() + same filename collision
+          // hazard. See upload-url.js for the same fix. 6-char random suffix
+          // makes path collision-free.
           const ext = file.originalFilename?.split('.').pop() || 'bin';
           const timestamp = Date.now();
+          const rand = Math.random().toString(36).slice(2, 8);
           const safeName = (file.originalFilename || 'file').replace(/[^a-zA-Z0-9._-]/g, '_');
-          const pathParts = [folder, prefix, `${timestamp}_${safeName}`].filter(Boolean);
+          const pathParts = [folder, prefix, `${timestamp}_${rand}_${safeName}`].filter(Boolean);
           const storagePath = pathParts.join('/');
 
           // Read file buffer

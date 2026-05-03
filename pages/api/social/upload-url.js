@@ -133,13 +133,24 @@ export default async function handler(req, res) {
 
 
           // Build storage path
+          // AUDIT-MAX-4 (2026-05-03 Pass 2 finding): Date.now() alone is NOT
+          // collision-free. Two simultaneous uploads from the same user with
+          // the same filename in the same millisecond (rare but possible —
+          // double-tab uploads, batch picks of identically-named files) end
+          // up with the SAME storagePath. Combined with `upsert: true` on
+          // the signed URL, the second PUT silently overwrites the first
+          // and both posts then reference the same public URL with whichever
+          // content finished last. Real data-corruption vector. Add a 6-char
+          // random suffix to make the path collision-free under any rate.
           const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
           const timestamp = Date.now();
-          // Stories: flat path — stories/{userId}/{timestamp}_{name}
-          // Social-media: grouped by type — {type}/{prefix}/{timestamp}_{name}
+          const rand = Math.random().toString(36).slice(2, 8);
+          const uniqueName = `${timestamp}_${rand}_${safeName}`;
+          // Stories: flat path — stories/{userId}/{timestamp}_{rand}_{name}
+          // Social-media: grouped by type — {type}/{prefix}/{timestamp}_{rand}_{name}
           const storagePath = BUCKET === 'stories'
-              ? [folder || 'stories', prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/')
-              : [(isVideo ? (folder || 'videos') : isAudio ? (folder || 'audio') : (folder || 'photos')), prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/');
+              ? [folder || 'stories', prefix, uniqueName].filter(Boolean).join('/')
+              : [(isVideo ? (folder || 'videos') : isAudio ? (folder || 'audio') : (folder || 'photos')), prefix, uniqueName].filter(Boolean).join('/');
 
           // Create a presigned upload token. { upsert: true } makes the token's
           // claim match the client's `x-upsert: true` header so retries to the
