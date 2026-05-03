@@ -252,7 +252,8 @@ export default function LivesPage() {
     }, [currentIndex, streams.length]);
 
     // Auto-play current video, pause others
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         Object.entries(videoRefs.current || {}).forEach(([idx, video]) => {
             if (video) {
@@ -263,8 +264,8 @@ export default function LivesPage() {
                 }
             }
         });
-    return () => _c.abort();
-  }, [currentIndex]);
+        return () => _c.abort();
+    }, [currentIndex]);
 
     const currentStream = streams[currentIndex];
 
@@ -275,12 +276,14 @@ export default function LivesPage() {
         setLikeBusy(true);
         const wasLiked = likedStreams[currentStream.id];
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (userId) {
+        // BUG FIX (LV-LIKES): use authenticated userId from state — not the anon localStorage uid
+        // which shadows the outer `userId` state and attributes likes to the wrong identity.
+        const likeUserId = userId;
+        if (likeUserId) {
             authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'like' })
+                body: JSON.stringify({ post_id: currentStream.id, user_id: likeUserId, interaction_type: 'like' })
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
@@ -385,12 +388,12 @@ export default function LivesPage() {
                 shareMsgTimerRef.current = null;
                 setShareMsg('');
             }, 2000);
-            const shareUserId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-            if (shareUserId) {
+            // BUG FIX (LV-SHARE): use authenticated userId from state — not the anon localStorage uid
+            if (userId) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentStream.id, user_id: shareUserId, interaction_type: 'share' }),
+                    body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' }),
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
@@ -408,25 +411,26 @@ export default function LivesPage() {
     };
 
     // Reset chat when switching streams
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         setShowChat(false);
         setChatMessages([]);
         setChatText('');
-    return () => _c.abort();
-  }, [currentIndex]);
-  // Realtime subscription — soft re-fetch on stream changes (no hard reload)
-  useEffect(() => {
-    if (!userId) return;
-    const _ch = supabase
-      .channel(`lives:${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-        // Soft re-fetch: silently refresh the stream list without destroying scroll position
-        fetchStreams();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [userId, fetchStreams]);
+        return () => _c.abort();
+    }, [currentIndex]);
+    // Realtime subscription — soft re-fetch on stream changes (no hard reload)
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`lives:${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
+                // Soft re-fetch: silently refresh the stream list without destroying scroll position
+                fetchStreams();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId, fetchStreams]);
 
     return (
         <>
@@ -436,152 +440,152 @@ export default function LivesPage() {
                 canonical="/hub/lives"
             />
 
-                <div
-                    ref={containerRef}
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                    onWheel={handleWheel}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: C.bg,
-                        overflow: 'hidden',
-                    }}
-                >
-                    {/* Header */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        padding: '16px 20px',
-                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
-                        zIndex: 100,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                    }}>
-                        <button 
-                            onClick={() => router.back()}
-                            style={{ 
-                                width: 32, 
-                                height: 32, 
-                                background: 'none', 
-                                border: 'none', 
-                                color: 'white', 
-                                fontSize: 24, 
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
+            <div
+                ref={containerRef}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onWheel={handleWheel}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: C.bg,
+                    overflow: 'hidden',
+                }}
+            >
+                {/* Header */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    padding: '16px 20px',
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
+                    zIndex: 100,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
+                    <button
+                        onClick={() => router.back()}
+                        style={{
+                            width: 32,
+                            height: 32,
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            fontSize: 24,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        ←
+                    </button>
+                    <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
+                        🔴 Lives
+                    </h1>
+                    <div style={{ width: 32 }} />
+                </div>
+
+                {/* Category Filter Bar */}
+                <div style={{
+                    position: 'absolute', top: 50, left: 0, right: 0, zIndex: 8,
+                    display: 'flex', gap: 8, padding: '8px 16px', overflowX: 'auto',
+                    scrollbarWidth: 'none',
+                }}>
+                    {[
+                        { value: 'all', label: 'All' },
+                        { value: 'cash_game', label: 'Cash Game' },
+                        { value: 'tournament', label: 'Tournament' },
+                        { value: 'strategy', label: 'Strategy' },
+                        { value: 'hand_review', label: 'Hand Review' },
+                        { value: 'just_chatting', label: 'Chatting' },
+                    ].map(cat => (
+                        <button
+                            key={cat.value}
+                            onClick={() => { setCategoryFilter(cat.value); setCurrentIndex(0); }}
+                            style={{
+                                padding: '6px 14px', borderRadius: 20, border: 'none',
+                                background: categoryFilter === cat.value ? C.red : 'rgba(255,255,255,0.15)',
+                                color: 'white', fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', whiteSpace: 'nowrap',
+                                transition: 'background 0.2s',
                             }}
                         >
-                            ←
+                            {cat.label}
                         </button>
-                        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
-                            🔴 Lives
-                        </h1>
-                        <div style={{ width: 32 }} />
-                    </div>
+                    ))}
+                    {/* My Drafts button — only show if user has drafts */}
+                    {myDrafts.length > 0 && (
+                        <button
+                            onClick={() => setShowDrafts(true)}
+                            style={{
+                                padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,215,0,0.4)',
+                                background: 'rgba(255,215,0,0.1)',
+                                color: '#FFD700', fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                        >
+                            My Drafts ({myDrafts.length})
+                        </button>
+                    )}
+                </div>
 
-                    {/* Category Filter Bar */}
+                {/* #20: Upcoming Scheduled Lives */}
+                {scheduledLives.length > 0 && (
                     <div style={{
-                        position: 'absolute', top: 50, left: 0, right: 0, zIndex: 8,
-                        display: 'flex', gap: 8, padding: '8px 16px', overflowX: 'auto',
+                        position: 'absolute', top: 90, left: 0, right: 0, zIndex: 7,
+                        display: 'flex', gap: 10, padding: '0 16px', overflowX: 'auto',
                         scrollbarWidth: 'none',
                     }}>
-                        {[
-                            { value: 'all', label: 'All' },
-                            { value: 'cash_game', label: 'Cash Game' },
-                            { value: 'tournament', label: 'Tournament' },
-                            { value: 'strategy', label: 'Strategy' },
-                            { value: 'hand_review', label: 'Hand Review' },
-                            { value: 'just_chatting', label: 'Chatting' },
-                        ].map(cat => (
-                            <button
-                                key={cat.value}
-                                onClick={() => { setCategoryFilter(cat.value); setCurrentIndex(0); }}
-                                style={{
-                                    padding: '6px 14px', borderRadius: 20, border: 'none',
-                                    background: categoryFilter === cat.value ? C.red : 'rgba(255,255,255,0.15)',
-                                    color: 'white', fontSize: 13, fontWeight: 600,
-                                    cursor: 'pointer', whiteSpace: 'nowrap',
-                                    transition: 'background 0.2s',
-                                }}
-                            >
-                                {cat.label}
-                            </button>
-                        ))}
-                        {/* My Drafts button — only show if user has drafts */}
-                        {myDrafts.length > 0 && (
-                            <button
-                                onClick={() => setShowDrafts(true)}
-                                style={{
-                                    padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,215,0,0.4)',
-                                    background: 'rgba(255,215,0,0.1)',
-                                    color: '#FFD700', fontSize: 13, fontWeight: 600,
-                                    cursor: 'pointer', whiteSpace: 'nowrap',
-                                }}
-                            >
-                                My Drafts ({myDrafts.length})
-                            </button>
-                        )}
-                    </div>
-
-                    {/* #20: Upcoming Scheduled Lives */}
-                    {scheduledLives.length > 0 && (
-                        <div style={{
-                            position: 'absolute', top: 90, left: 0, right: 0, zIndex: 7,
-                            display: 'flex', gap: 10, padding: '0 16px', overflowX: 'auto',
-                            scrollbarWidth: 'none',
-                        }}>
-                            {scheduledLives.map(sl => {
-                                const scheduledDate = new Date(sl.scheduled_at);
-                                const now = new Date();
-                                const diffMs = scheduledDate - now;
-                                const hours = Math.floor(Math.max(0, diffMs) / 3600000);
-                                const mins = Math.floor((Math.max(0, diffMs) % 3600000) / 60000);
-                                const countdown = diffMs <= 0 ? 'Starting soon' : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-                                return (
-                                    <div key={sl.id} style={{
-                                        minWidth: 160,
-                                        background: 'rgba(0,0,0,0.7)',
-                                        backdropFilter: 'blur(10px)',
-                                        borderRadius: 12,
-                                        padding: '10px 14px',
-                                        border: '1px solid rgba(255,100,100,0.3)',
-                                        flexShrink: 0,
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                            <img
-                                                src={sl.profiles?.avatar_url || '/avatars/default.png'}
-                                                alt={sl.profiles?.username}
-                                                style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
-                                                loading="lazy"
-                                            />
-                                            <span style={{ color: 'white', fontSize: 12, fontWeight: 600 }}>
-                                                @{sl.profiles?.username || 'user'}
-                                            </span>
-                                        </div>
-                                        <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginBottom: 4, lineHeight: 1.3 }}>
-                                            {sl.title || 'Scheduled Stream'}
-                                        </div>
-                                        <div style={{ color: '#FF6B6B', fontSize: 12, fontWeight: 700 }}>
-                                            Starts in {countdown}
-                                        </div>
+                        {scheduledLives.map(sl => {
+                            const scheduledDate = new Date(sl.scheduled_at);
+                            const now = new Date();
+                            const diffMs = scheduledDate - now;
+                            const hours = Math.floor(Math.max(0, diffMs) / 3600000);
+                            const mins = Math.floor((Math.max(0, diffMs) % 3600000) / 60000);
+                            const countdown = diffMs <= 0 ? 'Starting soon' : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                            return (
+                                <div key={sl.id} style={{
+                                    minWidth: 160,
+                                    background: 'rgba(0,0,0,0.7)',
+                                    backdropFilter: 'blur(10px)',
+                                    borderRadius: 12,
+                                    padding: '10px 14px',
+                                    border: '1px solid rgba(255,100,100,0.3)',
+                                    flexShrink: 0,
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                        <img
+                                            src={sl.profiles?.avatar_url || '/avatars/default.png'}
+                                            alt={sl.profiles?.username}
+                                            style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+                                            loading="lazy"
+                                        />
+                                        <span style={{ color: 'white', fontSize: 12, fontWeight: 600 }}>
+                                            @{sl.profiles?.username || 'user'}
+                                        </span>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                    <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginBottom: 4, lineHeight: 1.3 }}>
+                                        {sl.title || 'Scheduled Stream'}
+                                    </div>
+                                    <div style={{ color: '#FF6B6B', fontSize: 12, fontWeight: 700 }}>
+                                        Starts in {countdown}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
-                    {/* Loading State — Shimmer Skeleton */}
-                    {loading && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
-                            <style>{`
+                {/* Loading State — Shimmer Skeleton */}
+                {loading && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
+                        <style>{`
                                 @keyframes lives-shimmer {
                                     0%   { background-position: -600px 0; }
                                     100% { background-position: 600px 0; }
@@ -593,133 +597,136 @@ export default function LivesPage() {
                                     border-radius: 8px;
                                 }
                             `}</style>
-                            {[0, 1, 2].map(i => (
-                                <div key={i} style={{ marginBottom: 24, opacity: 1 - i * 0.25 }}>
-                                    <div className="lives-skel" style={{ width: '60%', height: 16, marginBottom: 8 }} />
-                                    <div className="lives-skel" style={{ width: '40%', height: 12, marginBottom: 16 }} />
-                                    <div className="lives-skel" style={{ width: '100%', height: 200 }} />
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                        {[0, 1, 2].map(i => (
+                            <div key={i} style={{ marginBottom: 24, opacity: 1 - i * 0.25 }}>
+                                <div className="lives-skel" style={{ width: '60%', height: 16, marginBottom: 8 }} />
+                                <div className="lives-skel" style={{ width: '40%', height: 12, marginBottom: 16 }} />
+                                <div className="lives-skel" style={{ width: '100%', height: 200 }} />
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                    {/* Empty State */}
-                    {!loading && streams.length === 0 && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
+                {/* Empty State */}
+                {!loading && streams.length === 0 && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: 'white',
+                        textAlign: 'center',
+                        padding: 40,
+                    }}>
+                        <div style={{ fontSize: 64, marginBottom: 20 }}>🔴</div>
+                        <h2 style={{ margin: '0 0 12px', fontSize: 24 }}>No Lives Yet</h2>
+                        <p style={{ color: C.textSec, margin: '0 0 24px' }}>
+                            Be the first to go live and share with the community!
+                        </p>
+                        {/* #4: Show draft count when user has saved streams */}
+                        {myDrafts.length > 0 && (
+                            <button
+                                onClick={() => setShowDrafts(true)}
+                                style={{
+                                    display: 'block',
+                                    margin: '0 auto 16px',
+                                    padding: '10px 22px',
+                                    background: 'rgba(255, 215, 0, 0.15)',
+                                    border: '1px solid rgba(255, 215, 0, 0.4)',
+                                    borderRadius: 8,
+                                    color: '#FFD700',
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                You have {myDrafts.length} saved {myDrafts.length === 1 ? 'stream' : 'streams'} ready to publish
+                            </button>
+                        )}
+                        <Link href="/hub/social-media" style={{
+                            display: 'inline-block',
+                            padding: '14px 28px',
+                            background: C.red,
                             color: 'white',
-                            textAlign: 'center',
-                            padding: 40,
+                            borderRadius: 8,
+                            fontWeight: 600,
+                            textDecoration: 'none',
                         }}>
-                            <div style={{ fontSize: 64, marginBottom: 20 }}>🔴</div>
-                            <h2 style={{ margin: '0 0 12px', fontSize: 24 }}>No Lives Yet</h2>
-                            <p style={{ color: C.textSec, margin: '0 0 24px' }}>
-                                Be the first to go live and share with the community!
-                            </p>
-                            {/* #4: Show draft count when user has saved streams */}
-                            {myDrafts.length > 0 && (
-                                <button
-                                    onClick={() => setShowDrafts(true)}
-                                    style={{
-                                        display: 'block',
-                                        margin: '0 auto 16px',
-                                        padding: '10px 22px',
-                                        background: 'rgba(255, 215, 0, 0.15)',
-                                        border: '1px solid rgba(255, 215, 0, 0.4)',
-                                        borderRadius: 8,
-                                        color: '#FFD700',
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    You have {myDrafts.length} saved {myDrafts.length === 1 ? 'stream' : 'streams'} ready to publish
-                                </button>
-                            )}
-                            <Link href="/hub/social-media" style={{
-                                display: 'inline-block',
-                                padding: '14px 28px',
-                                background: C.red,
-                                color: 'white',
-                                borderRadius: 8,
-                                fontWeight: 600,
-                                textDecoration: 'none',
-                            }}>
-                                Go Live Now
-                            </Link>
-                        </div>
-                    )}
+                            Go Live Now
+                        </Link>
+                    </div>
+                )}
 
-                    {/* Stream Videos */}
-                    {streams.map((stream, idx) => (
-                        <div
-                            key={stream.id}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-                                transform: `translateY(${(idx - currentIndex) * 100}%)`,
-                                opacity: Math.abs(idx - currentIndex) <= 1 ? 1 : 0,
-                            }}
-                        >
-                            {/* Video Player */}
-                            {stream.video_url ? (
-                                <video
-                                    ref={el => videoRefs.current[idx] = el}
-                                    src={stream.video_url}
-                                    poster={stream.thumbnail_url}
-                                    loop={stream.isLive}
-                                    controls={!stream.isLive}
-                                    muted
-                                    playsInline
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                        background: '#000',
-                                    }}
-                                    onClick={(e) => {
-                                        // Toggle play/pause on tap
-                                        if (e.target.paused) {
-                                            e.target.play();
-                                        } else {
-                                            e.target.pause();
-                                        }
-                                    }}
-                                />
-                            ) : stream.thumbnail_url ? (
-                                <img
-                                    src={stream.thumbnail_url}
-                                    alt={stream.title}
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                    }}
-                                 loading="lazy" />
-                            ) : (
-                                <div style={{
+                {/* Stream Videos */}
+                {streams.map((stream, idx) => (
+                    <div
+                        key={stream.id}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
+                            transform: `translateY(${(idx - currentIndex) * 100}%)`,
+                            opacity: Math.abs(idx - currentIndex) <= 1 ? 1 : 0,
+                        }}
+                    >
+                        {/* Video Player */}
+                        {stream.video_url ? (
+                            <video
+                                ref={el => videoRefs.current[idx] = el}
+                                src={stream.video_url}
+                                poster={stream.thumbnail_url}
+                                loop={stream.isLive}
+                                controls={!stream.isLive}
+                                // BUG FIX (LV-AUDIO): only mute live streams (required for autoplay).
+                                // Recorded replays should play with audio — muting them silences
+                                // the entire broadcast recording the user just posted.
+                                muted={stream.isLive}
+                                playsInline
+                                style={{
                                     width: '100%',
                                     height: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: C.textSec,
-                                    fontSize: 60,
-                                }}>
-                                    📺
-                                </div>
-                            )}
+                                    objectFit: 'contain',
+                                    background: '#000',
+                                }}
+                                onClick={(e) => {
+                                    // Toggle play/pause on tap
+                                    if (e.target.paused) {
+                                        e.target.play();
+                                    } else {
+                                        e.target.pause();
+                                    }
+                                }}
+                            />
+                        ) : stream.thumbnail_url ? (
+                            <img
+                                src={stream.thumbnail_url}
+                                alt={stream.title}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain',
+                                }}
+                                loading="lazy" />
+                        ) : (
+                            <div style={{
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: C.textSec,
+                                fontSize: 60,
+                            }}>
+                                📺
+                            </div>
+                        )}
 
-                            {/* Live Badge + Watch Button */}
-                            {stream.isLive && (
-                                <>
+                        {/* Live Badge + Watch Button */}
+                        {stream.isLive && (
+                            <>
                                 <div style={{
                                     position: 'absolute',
                                     top: 70,
@@ -740,15 +747,7 @@ export default function LivesPage() {
                                         <span style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
                                             {stream.viewer_count} watching
                                         </span>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (!guardAction()) return;
-                                        setWatchingStream(stream);
-                                    }}
-                                    style={{
+                                                                         style={{
                                         position: 'absolute',
                                         top: '50%',
                                         left: '50%',
@@ -761,357 +760,366 @@ export default function LivesPage() {
                                         padding: '16px 32px',
                                         fontSize: 18,
                                         fontWeight: 700,
-                                        cursor: watchingStream ? 'wait' : 'pointer',
-                                        opacity: watchingStream ? 0.6 : 1,
+                                        // BUG FIX (LV-WATCH): compare by stream.id not object reference —
+                                        // object identity changes after setWatchingStream(stream), so
+                                        // `watchingStream === stream` was always false, never showing 'Connecting...'.
+                                        cursor: watchingStream?.id === stream.id ? 'wait' : 'pointer',
+                                        opacity: watchingStream?.id === stream.id ? 0.6 : 1,
                                         boxShadow: '0 4px 24px rgba(250, 56, 62, 0.4)',
                                         zIndex: 10,
                                     }}
                                 >
-                                    {watchingStream === stream ? 'Connecting...' : 'Watch Live'}
+                                    {watchingStream?.id === stream.id ? 'Connecting...' : 'Watch Live'}
                                 </button>
                                 </>
                             )}
 
-                            {/* Bottom Info Overlay */}
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 0,
-                                left: 0,
-                                right: 80, // Leave room for action buttons
-                                padding: '40px 20px',
-                                background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-                            }}>
-                                {/* Broadcaster Info */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                    <img
-                                        src={stream.broadcaster?.avatar_url || stream.profiles?.avatar_url || '/avatars/default.png'}
-                                        alt={stream.broadcaster?.username || stream.profiles?.username}
-                                        style={{
-                                            width: 44,
-                                            height: 44,
-                                            borderRadius: '50%',
-                                            border: '2px solid white',
-                                            objectFit: 'cover',
-                                        }}
-                                     loading="lazy" />
-                                    <div>
-                                        <div style={{ fontWeight: 700, color: 'white', fontSize: 16 }}>
-                                            @{stream.broadcaster?.username || stream.profiles?.username || 'Unknown'}
-                                        </div>
-                                        <div style={{ color: C.textSec, fontSize: 13 }}>
-                                            {stream.broadcaster?.full_name || stream.profiles?.full_name || ''}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Stream Title */}
-                                <div style={{ color: 'white', fontSize: 15, marginBottom: 8 }}>
-                                    {stream.title || 'Live Stream'}
-                                </div>
-
-                                {/* Stats */}
-                                <div style={{ color: C.textSec, fontSize: 13 }}>
-                                    {stream.isLive ? (
-                                        <span>👁️ {stream.viewer_count || 0} watching</span>
-                                    ) : (
-                                        <span>▶️ Replay • {new Date(stream.created_at).toLocaleDateString()}</span>
-                                    )}
-                                </div>
+                {/* Bottom Info Overlay */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 80, // Leave room for action buttons
+                    padding: '40px 20px',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+                }}>
+                    {/* Broadcaster Info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                        <img
+                            src={stream.broadcaster?.avatar_url || stream.profiles?.avatar_url || '/avatars/default.png'}
+                            alt={stream.broadcaster?.username || stream.profiles?.username}
+                            style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: '50%',
+                                border: '2px solid white',
+                                objectFit: 'cover',
+                            }}
+                            loading="lazy" />
+                        <div>
+                            <div style={{ fontWeight: 700, color: 'white', fontSize: 16 }}>
+                                @{stream.broadcaster?.username || stream.profiles?.username || 'Unknown'}
                             </div>
-
-                            {/* Right Side Action Buttons */}
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 100,
-                                right: 12,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 20,
-                                alignItems: 'center',
-                            }}>
-                                {/* Like Button */}
-                                <button onClick={handleLivelike} style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'white',
-                                    fontSize: 28,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                }}>
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill={likedStreams[stream.id] ? '#FA383E' : 'none'} stroke={likedStreams[stream.id] ? '#FA383E' : 'white'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                                    <span style={{ fontSize: 12 }}>{likedStreams[stream.id] ? 'Liked' : 'Like'}</span>
-                                </button>
-
-                                {/* Comment Button */}
-                                <button onClick={handleLiveChat} style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: showChat ? C.blue : 'white',
-                                    fontSize: 28,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                }}>
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                    <span style={{ fontSize: 12 }}>Chat</span>
-                                </button>
-
-                                {/* Share Button */}
-                                <button onClick={handleLiveShare} style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'white',
-                                    fontSize: 28,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                }}>
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                                    <span style={{ fontSize: 12 }}>{shareMsg || 'Share'}</span>
-                                </button>
+                            <div style={{ color: C.textSec, fontSize: 13 }}>
+                                {stream.broadcaster?.full_name || stream.profiles?.full_name || ''}
                             </div>
                         </div>
-                    ))}
+                    </div>
 
-                    {/* Navigation Dots */}
-                    {streams.length > 1 && (
-                        <div style={{
-                            position: 'absolute',
-                            right: 6,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 6,
-                            zIndex: 100,
-                        }}>
-                            {streams.slice(0, 10).map((_, idx) => (
-                                <div
-                                    key={idx}
-                                    onClick={() => setCurrentIndex(idx)}
-                                    style={{
-                                        width: 6,
-                                        height: idx === currentIndex ? 20 : 6,
-                                        borderRadius: 3,
-                                        background: idx === currentIndex ? 'white' : 'rgba(255,255,255,0.4)',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    )}
+                    {/* Stream Title */}
+                    <div style={{ color: 'white', fontSize: 15, marginBottom: 8 }}>
+                        {stream.title || 'Live Stream'}
+                    </div>
 
-                    {/* Chat Panel */}
-                    {showChat && (
-                        <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200,
-                            background: 'rgba(0,0,0,0.95)', borderRadius: '16px 16px 0 0',
-                            maxHeight: '50vh', display: 'flex', flexDirection: 'column',
-                        }}>
-                            <div style={{
-                                padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                            }}>
-                                <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Live Chat</span>
-                                <button onClick={() => setShowChat(false)} style={{
-                                    background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
-                                }}>x</button>
-                            </div>
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
-                                {chatMessages.length === 0 && (
-                                    <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 20, fontSize: 14 }}>
-                                        No messages yet. Start the conversation!
-                                    </div>
-                                )}
-                                {chatMessages.map((m, i) => (
-                                    <div key={m.id || i} style={{ marginBottom: 10 }}>
-                                        <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>{m.author_name || m.author?.username || 'User'}: </span>
-                                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>{m.text || m.content}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div style={{
-                                padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)',
-                                display: 'flex', gap: 8
-                            }}>
-                                <input
-                                    value={chatText}
-                                    onChange={e => setChatText(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
-                                    placeholder="Say Something..."
-                                    style={{
-                                        flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
-                                        border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
-                                    }}
-                                />
-                                <button
-                                    onClick={submitChatMsg}
-                                    disabled={!chatText.trim() || submittingChat}
-                                    style={{
-                                        padding: '8px 16px', background: C.red, color: 'white',
-                                        border: 'none', borderRadius: 20, fontWeight: 600, fontSize: 13,
-                                        cursor: chatText.trim() ? 'pointer' : 'not-allowed',
-                                        opacity: chatText.trim() ? 1 : 0.5
-                                    }}
-                                >{submittingChat ? '...' : 'Send'}</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Counter */}
-                    {streams.length > 0 && !showChat && (
-                        <div style={{
-                            position: 'absolute',
-                            bottom: 20,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            color: 'rgba(255,255,255,0.5)',
-                            fontSize: 12,
-                        }}>
-                            {currentIndex + 1} / {streams.length}
-                        </div>
-                    )}
+                    {/* Stats */}
+                    <div style={{ color: C.textSec, fontSize: 13 }}>
+                        {stream.isLive ? (
+                            <span>👁️ {stream.viewer_count || 0} watching</span>
+                        ) : (
+                            <span>▶️ Replay • {new Date(stream.created_at).toLocaleDateString()}</span>
+                        )}
+                    </div>
                 </div>
 
-                {/* Pulse animation */}
-                <style>{`
+                {/* Right Side Action Buttons */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 100,
+                    right: 12,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 20,
+                    alignItems: 'center',
+                }}>
+                    {/* Like Button */}
+                    <button onClick={handleLivelike} style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'white',
+                        fontSize: 28,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                    }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill={likedStreams[stream.id] ? '#FA383E' : 'none'} stroke={likedStreams[stream.id] ? '#FA383E' : 'white'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                        <span style={{ fontSize: 12 }}>{likedStreams[stream.id] ? 'Liked' : 'Like'}</span>
+                    </button>
+
+                    {/* Comment Button */}
+                    <button onClick={handleLiveChat} style={{
+                        background: 'none',
+                        border: 'none',
+                        color: showChat ? C.blue : 'white',
+                        fontSize: 28,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                    }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                        <span style={{ fontSize: 12 }}>Chat</span>
+                    </button>
+
+                    {/* Share Button */}
+                    <button onClick={handleLiveShare} style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'white',
+                        fontSize: 28,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                    }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                        <span style={{ fontSize: 12 }}>{shareMsg || 'Share'}</span>
+                    </button>
+                </div>
+            </div>
+                    ))}
+
+            {/* Navigation Dots */}
+            {streams.length > 1 && (
+                <div style={{
+                    position: 'absolute',
+                    right: 6,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    zIndex: 100,
+                }}>
+                    {streams.slice(0, 10).map((_, idx) => (
+                        <div
+                            key={idx}
+                            onClick={() => setCurrentIndex(idx)}
+                            style={{
+                                width: 6,
+                                height: idx === currentIndex ? 20 : 6,
+                                borderRadius: 3,
+                                background: idx === currentIndex ? 'white' : 'rgba(255,255,255,0.4)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Chat Panel */}
+            {showChat && (
+                <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200,
+                    background: 'rgba(0,0,0,0.95)', borderRadius: '16px 16px 0 0',
+                    maxHeight: '50vh', display: 'flex', flexDirection: 'column',
+                }}>
+                    <div style={{
+                        padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}>
+                        <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Live Chat</span>
+                        <button onClick={() => setShowChat(false)} style={{
+                            background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
+                        }}>x</button>
+                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
+                        {chatMessages.length === 0 && (
+                            <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 20, fontSize: 14 }}>
+                                No messages yet. Start the conversation!
+                            </div>
+                        )}
+                        {chatMessages.map((m, i) => (
+                            <div key={m.id || i} style={{ marginBottom: 10 }}>
+                                <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>{m.author_name || m.author?.username || 'User'}: </span>
+                                <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>{m.text || m.content}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{
+                        padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)',
+                        display: 'flex', gap: 8
+                    }}>
+                        <input
+                            value={chatText}
+                            onChange={e => setChatText(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
+                            placeholder="Say Something..."
+                            style={{
+                                flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
+                                border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
+                            }}
+                        />
+                        <button
+                            onClick={submitChatMsg}
+                            disabled={!chatText.trim() || submittingChat}
+                            style={{
+                                padding: '8px 16px', background: C.red, color: 'white',
+                                border: 'none', borderRadius: 20, fontWeight: 600, fontSize: 13,
+                                cursor: chatText.trim() ? 'pointer' : 'not-allowed',
+                                opacity: chatText.trim() ? 1 : 0.5
+                            }}
+                        >{submittingChat ? '...' : 'Send'}</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Counter */}
+            {streams.length > 0 && !showChat && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: 12,
+                }}>
+                    {currentIndex + 1} / {streams.length}
+                </div>
+            )}
+        </div >
+
+            {/* Pulse animation */ }
+            < style > {`
          @keyframes pulse {
            0%, 100% { opacity: 1; }
            50% { opacity: 0.7; }
          }
-       `}</style>
+       `}</style >
 
-                {/* My Drafts drawer */}
-                {showDrafts && (
-                    <div
-                        onClick={() => setShowDrafts(false)}
-                        style={{
-                            position: 'fixed', inset: 0, zIndex: 500,
-                            background: 'rgba(0,0,0,0.7)',
-                            display: 'flex', alignItems: 'flex-end',
-                        }}
-                    >
-                        <div
-                            onClick={e => e.stopPropagation()}
-                            style={{
-                                width: '100%',
-                                background: '#111',
-                                borderRadius: '20px 20px 0 0',
-                                maxHeight: '70vh',
-                                overflow: 'auto',
-                                padding: '20px 16px',
-                            }}
-                        >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                <h3 style={{ margin: 0, color: 'white', fontSize: 18, fontWeight: 700 }}>My Saved Streams</h3>
-                                <button onClick={() => setShowDrafts(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, cursor: 'pointer' }}>&#10005;</button>
+    {/* My Drafts drawer */ }
+{
+    showDrafts && (
+        <div
+            onClick={() => setShowDrafts(false)}
+            style={{
+                position: 'fixed', inset: 0, zIndex: 500,
+                background: 'rgba(0,0,0,0.7)',
+                display: 'flex', alignItems: 'flex-end',
+            }}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    width: '100%',
+                    background: '#111',
+                    borderRadius: '20px 20px 0 0',
+                    maxHeight: '70vh',
+                    overflow: 'auto',
+                    padding: '20px 16px',
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, color: 'white', fontSize: 18, fontWeight: 700 }}>My Saved Streams</h3>
+                    <button onClick={() => setShowDrafts(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, cursor: 'pointer' }}>&#10005;</button>
+                </div>
+                {myDrafts.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)' }}>
+                        No saved streams. After going live, choose &quot;Save To Lives&quot; to save here.
+                    </div>
+                ) : (
+                    myDrafts.map(draft => (
+                        <div key={draft.id} style={{
+                            display: 'flex', gap: 12, padding: '12px 0',
+                            borderBottom: '1px solid rgba(255,255,255,0.08)',
+                            alignItems: 'center',
+                        }}>
+                            <div style={{
+                                width: 80, height: 56, borderRadius: 8, overflow: 'hidden',
+                                background: '#222', flexShrink: 0,
+                            }}>
+                                {draft.thumbnail_url ? (
+                                    <img src={draft.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 24 }}>&#128250;</div>
+                                )}
                             </div>
-                            {myDrafts.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)' }}>
-                                    No saved streams. After going live, choose &quot;Save To Lives&quot; to save here.
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ color: 'white', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {draft.title || 'Untitled Stream'}
                                 </div>
-                            ) : (
-                                myDrafts.map(draft => (
-                                    <div key={draft.id} style={{
-                                        display: 'flex', gap: 12, padding: '12px 0',
-                                        borderBottom: '1px solid rgba(255,255,255,0.08)',
-                                        alignItems: 'center',
-                                    }}>
-                                        <div style={{
-                                            width: 80, height: 56, borderRadius: 8, overflow: 'hidden',
-                                            background: '#222', flexShrink: 0,
-                                        }}>
-                                            {draft.thumbnail_url ? (
-                                                <img src={draft.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                                            ) : (
-                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 24 }}>&#128250;</div>
-                                            )}
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ color: 'white', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {draft.title || 'Untitled Stream'}
-                                            </div>
-                                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
-                                                {new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => publishDraft(draft)}
-                                            disabled={publishingDraft === draft.id}
-                                            style={{
-                                                padding: '8px 16px',
-                                                background: publishingDraft === draft.id ? '#333' : 'linear-gradient(135deg, #00D4FF, #0088FF)',
-                                                color: 'white', border: 'none', borderRadius: 8,
-                                                fontSize: 13, fontWeight: 700,
-                                                cursor: publishingDraft === draft.id ? 'wait' : 'pointer',
-                                                whiteSpace: 'nowrap',
-                                            }}
-                                        >
-                                            {publishingDraft === draft.id ? 'Publishing...' : 'Publish'}
-                                        </button>
-                                        <button
-                                            onClick={() => deleteDraft(draft)}
-                                            style={{
-                                                padding: '8px 12px',
-                                                background: 'rgba(250,56,62,0.15)',
-                                                color: '#FA383E',
-                                                border: '1px solid rgba(250,56,62,0.3)',
-                                                borderRadius: 8, fontSize: 13, fontWeight: 600,
-                                                cursor: 'pointer',
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                ))
-                            )}
+                                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
+                                    {new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => publishDraft(draft)}
+                                disabled={publishingDraft === draft.id}
+                                style={{
+                                    padding: '8px 16px',
+                                    background: publishingDraft === draft.id ? '#333' : 'linear-gradient(135deg, #00D4FF, #0088FF)',
+                                    color: 'white', border: 'none', borderRadius: 8,
+                                    fontSize: 13, fontWeight: 700,
+                                    cursor: publishingDraft === draft.id ? 'wait' : 'pointer',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {publishingDraft === draft.id ? 'Publishing...' : 'Publish'}
+                            </button>
+                            <button
+                                onClick={() => deleteDraft(draft)}
+                                style={{
+                                    padding: '8px 12px',
+                                    background: 'rgba(250,56,62,0.15)',
+                                    color: '#FA383E',
+                                    border: '1px solid rgba(250,56,62,0.3)',
+                                    borderRadius: 8, fontSize: 13, fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Delete
+                            </button>
                         </div>
-                    </div>
+                    ))
                 )}
+            </div>
+        </div>
+    )
+}
 
-                {/* LiveStreamViewer overlay for watching active live streams */}
-                {watchingStream && userId && (
-                    <LiveStreamViewer
-                        stream={watchingStream}
-                        userId={userId}
-                        user={user}
-                        onClose={(action) => {
-                            setWatchingStream(null);
-                            fetchStreams();
-                        }}
-                    />
-                )}
+{/* LiveStreamViewer overlay for watching active live streams */ }
+{
+    watchingStream && userId && (
+        <LiveStreamViewer
+            stream={watchingStream}
+            userId={userId}
+            user={user}
+            onClose={(action) => {
+                setWatchingStream(null);
+                fetchStreams();
+            }}
+        />
+    )
+}
 
-                {/* #5: Publish success toast */}
-                {publishToast && (
-                    <div style={{
-                        position: 'fixed',
-                        top: 80,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: 'rgba(0, 200, 100, 0.95)',
-                        color: 'white',
-                        padding: '12px 28px',
-                        borderRadius: 12,
-                        fontSize: 15,
-                        fontWeight: 700,
-                        zIndex: 10001,
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                        animation: 'slideUp 0.3s ease-out',
-                    }}>
-                        {publishToast}
-                    </div>
-                )}
+{/* #5: Publish success toast */ }
+{
+    publishToast && (
+        <div style={{
+            position: 'fixed',
+            top: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(0, 200, 100, 0.95)',
+            color: 'white',
+            padding: '12px 28px',
+            borderRadius: 12,
+            fontSize: 15,
+            fontWeight: 700,
+            zIndex: 10001,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            animation: 'slideUp 0.3s ease-out',
+        }}>
+            {publishToast}
+        </div>
+    )
+}
 
-            {UpgradePopup}
+{ UpgradePopup }
         </>
     );
 }
