@@ -30,6 +30,17 @@ jobs:
         run: |
           npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
 
+      - name: Verify lock file integrity
+        # Ensures package.json and package-lock.json are in sync.
+        # If someone edited package.json without running npm install, this catches it.
+        run: |
+          # Check that lock file matches package.json specs
+          if npm install --dry-run --package-lock-only 2>&1 | grep -E "^added|^removed|^changed" | grep -v "^0"; then
+            echo "::warning::package-lock.json may be out of sync with package.json. Run 'npm install' locally and commit the updated lock file."
+          else
+            echo "✅ package-lock.json is in sync with package.json"
+          fi
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
