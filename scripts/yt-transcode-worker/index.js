@@ -383,6 +383,27 @@ async function processJob(job) {
           .update({ media_status: permanent ? 'ready' : 'failed' })
           .eq('id', job.reel_id);
       } catch (_) {}
+
+      // M7.1: BROADCAST FAILURE — when a video is permanently unconvertible
+      // (private/removed/age-restricted/...), every sibling reel sharing the
+      // same source URL is also unconvertible. Set them all to iframe-forever
+      // so they don't stay stuck in 'queued' state with no job to claim them.
+      if (permanent) {
+        const sourceYtUrl = job.youtube_url || job.source_url;
+        if (sourceYtUrl) {
+          try {
+            const { data: siblings } = await supa.from('social_reels')
+              .update({ media_status: 'ready' })
+              .eq('original_youtube_url', sourceYtUrl)
+              .neq('id', job.reel_id)
+              .in('media_status', ['queued', 'processing', 'failed'])
+              .select('id');
+            if (siblings?.length) {
+              log(`  ↳ broadcast iframe-forever to ${siblings.length} sibling reel(s) (permanent failure)`);
+            }
+          } catch (_) {}
+        }
+      }
     }
     try {
       await supa.from('video_transcode_jobs').update({
