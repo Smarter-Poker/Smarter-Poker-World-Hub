@@ -2357,6 +2357,17 @@ export function ReelsFeedCarousel() {
             .channel(`reels-feed-carousel-${Math.random().toString(36).slice(2, 8)}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, debouncedReload)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, debouncedReload)
+            // M7.4: surgical UPDATE handler for worker conversion broadcasts.
+            // Only acts when video_url actually changed; ignores like/comment UPDATEs.
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_reels' }, (payload) => {
+                const next = payload?.new;
+                if (!next?.id) return;
+                setReels(prev => prev.map(r => {
+                    if (r.id !== next.id) return r;
+                    if (r.video_url === next.video_url) return r;
+                    return { ...r, video_url: next.video_url, source_type: next.source_type, thumbnail_url: next.thumbnail_url || r.thumbnail_url };
+                }));
+            })
             .subscribe();
 
         const handleDataMutated = (event) => {

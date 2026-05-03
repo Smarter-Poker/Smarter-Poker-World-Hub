@@ -1619,9 +1619,19 @@ export default function ReelsPage() {
     const _ch = supabase
       .channel(`reels:${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-        // Debounce: wait 3s before reloading so multiple rapid inserts collapse into one reload
         clearTimeout(reloadTimer);
         reloadTimer = setTimeout(() => { loadReels(); }, 3000);
+      })
+      // M7.4: surgical UPDATE handler — swap state when video_url changes
+      // (worker conversion broadcast). Ignores like/comment/view UPDATEs.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_reels' }, (payload) => {
+        const next = payload?.new;
+        if (!next?.id) return;
+        setReels(prev => prev.map(r => {
+          if (r.id !== next.id) return r;
+          if (r.video_url === next.video_url) return r;
+          return { ...r, video_url: next.video_url, source_type: next.source_type, thumbnail_url: next.thumbnail_url || r.thumbnail_url };
+        }));
       })
       .subscribe();
     return () => { clearTimeout(reloadTimer); supabase.removeChannel(_ch); };
