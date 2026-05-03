@@ -46,6 +46,14 @@ const PROTECTED_FILES = [
   'scripts/git-safe-push.sh',
   'scripts/verify-deploy.js',
   'scripts/openclaw-cron-dispatcher.py',
+  // Auth-flow protection (added 2026-05-02 after callback.js was deleted,
+  // 404'ing every Google + email signup). Any change to these files must
+  // ship through a human-reviewed PR via the SENSITIVE_PATHS rule below.
+  'pages/auth/callback.js',
+  'pages/auth/login.js',
+  'pages/auth/signup.js',
+  'pages/api/auth/ensure-profile.js',
+  '__tests__/auth-routes-exist.test.mjs',
 ];
 
 // Directories autofix is allowed to modify
@@ -55,6 +63,10 @@ const ALLOWED_DIRS = ['src/', 'pages/', 'lib/', 'components/', 'services/', 'dat
 // Rationale: these areas are security/correctness-critical — human review required.
 const SENSITIVE_PATHS = [
   'pages/api/auth/',
+  // 2026-05-02: pages/auth/ added after callback.js was silently deleted and
+  // broke every signup. Any change to the user-facing auth pages now requires
+  // a PR — autofix can suggest, but a human merges.
+  'pages/auth/',
   'pages/api/stripe',
   'pages/api/webhooks/',
   'src/engine/',

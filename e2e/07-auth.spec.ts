@@ -90,3 +90,60 @@ test.describe('Auth — Route Protection', () => {
     expect(url).toBeTruthy();
   });
 });
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  AUTH CALLBACK — REGRESSION GUARD                                     ║
+// ║                                                                       ║
+// ║  Added 2026-05-02 after a production incident where every signup      ║
+// ║  (Google OAuth + email) 404'd because pages/auth/callback.js had      ║
+// ║  been silently deleted. The Vercel logs were the only signal.         ║
+// ║  These tests fail loudly if the route stops responding.               ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+test.describe('Auth — Callback Route', () => {
+  test('GET /auth/callback responds 200 (not 404)', async ({ page }) => {
+    // Hit the route with no params — it should still render the loading
+    // shell and not 404. If callback.js is missing the request returns 404.
+    const response = await page.goto('/auth/callback', { waitUntil: 'domcontentloaded' });
+    expect(response?.status()).toBe(200);
+  });
+
+  test('GET /auth/callback with a provider error redirects to /auth/login', async ({ page }) => {
+    // When OAuth fails, the provider sends ?error=…&error_description=…
+    // The callback must surface the error and bounce the user to /auth/login.
+    await page.goto('/auth/callback?error=access_denied&error_description=test_error', {
+      waitUntil: 'domcontentloaded',
+    });
+    // The redirect happens via setTimeout — wait for it.
+    await page.waitForURL(/\/auth\/login/, { timeout: 6000 });
+    expect(page.url()).toContain('/auth/login');
+  });
+
+  test('GET /auth/callback with no session redirects to /auth/login', async ({ page }) => {
+    // Cold hit with no code, token, or session — should land on login.
+    await page.goto('/auth/callback', { waitUntil: 'domcontentloaded' });
+    await page.waitForURL(/\/auth\/login/, { timeout: 8000 });
+    expect(page.url()).toContain('/auth/login');
+  });
+});
+
+test.describe('Auth — ensure-profile API contract', () => {
+  test('POST /api/auth/ensure-profile without a Bearer token returns 401', async ({ request }) => {
+    // The OAuth callback flow depends on this endpoint to create profiles
+    // for new Google users. If the auth contract changes, signup breaks.
+    const res = await request.post('/api/auth/ensure-profile', {
+      data: { user_id: '00000000-0000-0000-0000-000000000000' },
+    });
+    expect(res.status()).toBe(401);
+  });
+
+  test('POST /api/auth/ensure-profile with no body returns 4xx (not 500)', async ({ request }) => {
+    // Defensive: a malformed request must not crash the function.
+    const res = await request.post('/api/auth/ensure-profile', {
+      headers: { 'Content-Type': 'application/json' },
+      data: {},
+    });
+    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
+  });
+});
