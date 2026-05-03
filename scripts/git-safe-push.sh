@@ -383,7 +383,7 @@ echo "🧹 Phase 1: Cleaning environment & Garbage Collection..."
 # 1-zero. Aggressive Garbage Collection
 # Deep-purges all phantom files (dist-bug*, generated caches) while safely omitting .env overrides and node_modules.
 echo "🗑️  Running absolute garbage collection (git clean -fdX) to eliminate phantom state..."
-git clean -fdX -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules" -e "!.husky" 2>/dev/null || true
+git clean -fdX -e "!.env*" -e "!public/hub/club-arena/assets" -e "!node_modules/**" -e "!.husky" 2>/dev/null || true
 
 # 1a. Remove stale lock files from crashed git processes
 for lock in "${GIT_DIR}/HEAD.lock" "${GIT_DIR}/index.lock"; do
@@ -559,7 +559,7 @@ if [ "$BUILD_CHECK" = true ]; then
     # Check if failure was due to broken node_modules
     if echo "$BUILD_OUTPUT" | grep -iqE 'MODULE_NOT_FOUND|Cannot find module|command not found'; then
       echo "⚠️  Build failed due to corrupted node_modules. Auto-healing..."
-      npm install --no-audit --no-fund --prefer-offline 2>/dev/null
+      rm -rf node_modules && npm install --no-audit --no-fund --prefer-offline 2>/dev/null
       
       echo "🔨 Retrying build after environment heal..."
       BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1)
