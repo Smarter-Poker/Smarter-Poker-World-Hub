@@ -67,6 +67,7 @@ export default async function handler(req, res) {
                   created_at,
                   updated_at,
                   sender_id,
+                  status,
                   is_deleted,
                   is_edited,
                   profiles:sender_id (id, username, avatar_url, is_vip)

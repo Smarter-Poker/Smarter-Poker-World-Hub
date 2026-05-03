@@ -885,9 +885,9 @@ export const ChatWindow = ({
             // Listen for read receipts
             channel.on('broadcast', { event: 'read_receipt' }, (payload) => {
                 if (payload.payload?.userId !== currentUser.id) {
-                    setMessages(prev => prev.map(m => 
-                        (m.id === payload.payload.messageId && m.senderId === currentUser.id)
-                            ? { ...m, readStatus: 'read' } : m
+                    setMessages(prev => prev.map(m =>
+                        (m.id === payload.payload.messageId && m.sender_id === currentUser.id)
+                            ? { ...m, status: 'read' } : m
                     ));
                 }
             });
@@ -897,7 +897,7 @@ export const ChatWindow = ({
                     await channel.track({ user_id: currentUser.id, is_typing: false });
                     
                     // Broadcast read receipts for unread messages received from the other user
-                    const unreadMsgs = messages.filter(m => m.senderId !== currentUser.id && m.readStatus !== 'read');
+                    const unreadMsgs = messages.filter(m => m.sender_id !== currentUser.id && m.status !== 'read');
                     for (const m of unreadMsgs) {
                         channel.send({
                             type: 'broadcast',
@@ -1516,8 +1516,8 @@ export const ChatWindow = ({
     // P5-8: Compute stats
     const stats = {
         total: messages.length,
-        mine: messages.filter(m => m.senderId === currentUser?.id).length,
-        theirs: messages.filter(m => m.senderId !== currentUser?.id).length,
+        mine: messages.filter(m => m.sender_id === currentUser?.id).length,
+        theirs: messages.filter(m => m.sender_id !== currentUser?.id).length,
         avgLength: messages.length > 0 ? Math.round(messages.reduce((sum, m) => sum + (m.text?.length || 0), 0) / messages.length) : 0
     };
 
@@ -2026,16 +2026,18 @@ export const ChatWindow = ({
                         threadCount: (prefs.threadReplies[msg.id] || []).length,
                         reactionList: prefs.reactions[msg.id] || [],
                         isEdited: (prefs.editHistory[msg.id] || []).length > 0 || msg.media_metadata?.edited === true,
-                        isOwn: msg.senderId === currentUser?.id,
-                        readStatus: msg.readStatus || (msg.senderId === currentUser?.id ? 'sent' : null),
+                        // BUG-FIX: DB returns sender_id (snake_case), not senderId
+                        isOwn: msg.sender_id === currentUser?.id,
+                        // BUG-FIX: DB column is 'status', not 'readStatus'
+                        readStatus: msg.status || (msg.sender_id === currentUser?.id ? 'sent' : null),
                         priorityFlag: prefs.priorityFlags?.[msg.id] || null,
-                        deliveryStatus: msg.deliveryStatus || 'delivered',
+                        deliveryStatus: msg.deliveryStatus || msg.status || 'sent',
                         showReadReceipts: prefs.showReadReceipts !== false,
                     };
 
-                    const isOwn = enrichedMsg.senderId === currentUser?.id;
+                    const isOwn = enrichedMsg.sender_id === currentUser?.id;
                     const prevMsg = messages[i - 1];
-                    const showAvatar = !isOwn && (!prevMsg || prevMsg.senderId !== enrichedMsg.senderId);
+                    const showAvatar = !isOwn && (!prevMsg || prevMsg.sender_id !== enrichedMsg.sender_id);
 
                     // P20-4: Unread Separator Line
                     const unreadIdx = svc.getUnreadSeparatorIndex?.(messages);
