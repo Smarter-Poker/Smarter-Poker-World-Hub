@@ -196,22 +196,24 @@ class LiveStreamService {
 
         // Track subscriptions (for viewers)
         this.room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            if (track.kind === Track.Kind.Video && !this._remoteStreamDelivered) {
-                const ms = this._trackToStream(track);
-                if (ms) {
-                    this._remoteStreamDelivered = true;
-                    this._remoteMediaStream = ms; // Store reference for audio attachment
-                    this.onRemoteStream?.(ms);
-                }
+            // BUG FIX: Audio or video can arrive first. Initialize stream if it doesn't exist,
+            // then add the incoming track. The HTML5 <video> element will automatically pick up
+            // tracks added to the MediaStream later.
+            if (!this._remoteMediaStream) {
+                this._remoteMediaStream = new MediaStream();
             }
+            if (track.mediaStreamTrack) {
+                this._remoteMediaStream.addTrack(track.mediaStreamTrack);
+            }
+            if (!this._remoteStreamDelivered && this._remoteMediaStream.getTracks().length > 0) {
+                this._remoteStreamDelivered = true;
+                this.onRemoteStream?.(this._remoteMediaStream);
+            }
+
             // Attach audio tracks — LiveKit requires explicit attach() for audio playback
             if (track.kind === Track.Kind.Audio) {
                 try {
-                    // Add audio track to existing media stream if available
-                    if (this._remoteMediaStream && track.mediaStreamTrack) {
-                        this._remoteMediaStream.addTrack(track.mediaStreamTrack);
-                    }
-                    // Also use LiveKit's built-in attach for reliable cross-browser audio
+                    // Use LiveKit's built-in attach for reliable cross-browser audio
                     const audioEl = track.attach();
                     audioEl.id = `livekit-audio-${participant.sid}`;
                     audioEl.style.display = 'none';
@@ -449,8 +451,13 @@ class LiveStreamService {
         if (error || !stream) throw new Error('Stream not found');
         if (stream.status !== 'live') throw new Error('Stream has ended');
 
-        // Register viewer
-        await supabase.from('live_viewers').upsert({ stream_id: streamId, viewer_id: userId });
+        // Register viewer — onConflict MUST target the composite unique (stream_id, viewer_id).
+        // Without it, Supabase falls back to the PK, so reconnects/StrictMode double-fires
+        // created duplicate rows that permanently inflated viewer counts after leaveStream().
+        await supabase.from('live_viewers').upsert(
+            { stream_id: streamId, viewer_id: userId },
+            { onConflict: 'stream_id,viewer_id' }
+        );
 
         // Update peak_viewers if needed — wrapped in try/catch because supabase.rpc()
         // returns a thenable without .catch() on some iOS Safari builds
@@ -461,25 +468,19 @@ class LiveStreamService {
         await this._connectRoom(url, token, false, null);
 
         // Handle already-published tracks that fired before TrackSubscribed listener
-        // FIG: use a flag to prevent double-fire when autoSubscribe also triggers TrackSubscribed
         let remoteStreamDelivered = false;
+        if (!this._remoteMediaStream) {
+            this._remoteMediaStream = new MediaStream();
+        }
         for (const [, participant] of this.room.remoteParticipants) {
             for (const [, publication] of participant.trackPublications) {
                 if (publication.isSubscribed && publication.track) {
-                    if (publication.track.kind === Track.Kind.Video && !remoteStreamDelivered) {
-                        const ms = this._trackToStream(publication.track);
-                        if (ms) {
-                            this._remoteMediaStream = ms;
-                            onRemoteStream?.(ms);
-                            remoteStreamDelivered = true;
-                        }
+                    if (publication.track.mediaStreamTrack) {
+                        this._remoteMediaStream.addTrack(publication.track.mediaStreamTrack);
                     }
                     // Attach pre-existing audio tracks
                     if (publication.track.kind === Track.Kind.Audio) {
                         try {
-                            if (this._remoteMediaStream && publication.track.mediaStreamTrack) {
-                                this._remoteMediaStream.addTrack(publication.track.mediaStreamTrack);
-                            }
                             const audioEl = publication.track.attach();
                             audioEl.id = `livekit-audio-${participant.sid}`;
                             audioEl.style.display = 'none';
@@ -488,6 +489,10 @@ class LiveStreamService {
                     }
                 }
             }
+        }
+        if (this._remoteMediaStream.getTracks().length > 0) {
+            remoteStreamDelivered = true;
+            onRemoteStream?.(this._remoteMediaStream);
         }
         // FIX: store a flag so TrackSubscribed handler won't double-fire if loop already delivered
         this._remoteStreamDelivered = remoteStreamDelivered;
