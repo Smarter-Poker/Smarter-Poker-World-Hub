@@ -43,7 +43,9 @@ export default async function handler(req, res) {
         // 1. Load stream — verify it exists and is live
         const { data: stream, error: streamErr } = await supabase
             .from('live_streams')
-            .select('id, status, slow_mode, slow_mode_delay')
+            // BUG FIX (CMT-2): slow_mode_delay column does not exist on live_streams.
+            // Removed from SELECT — slow mode falls back to DEFAULT_SLOW_MODE_DELAY_SECS (3s).
+            .select('id, status, slow_mode')
             .eq('id', stream_id)
             .maybeSingle();
 
@@ -66,7 +68,7 @@ export default async function handler(req, res) {
 
         // 3. Slow mode check
         if (stream.slow_mode) {
-            const delaySecs = stream.slow_mode_delay || DEFAULT_SLOW_MODE_DELAY_SECS;
+            const delaySecs = DEFAULT_SLOW_MODE_DELAY_SECS; // slow_mode_delay column not on live_streams — use default
             const { data: recent } = await supabase
                 .from('live_comments')
                 .select('created_at')
