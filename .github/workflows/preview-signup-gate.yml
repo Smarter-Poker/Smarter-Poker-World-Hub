@@ -1,0 +1,100 @@
+name: Preview Signup Gate
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Runs on every Vercel preview deploy. Hits the deploy URL with:
+#   1. /api/health/signup probe (must return ok or warn — degraded blocks)
+#   2. Real Playwright signup against the preview's signup form
+#
+# If either fails, the deployment status is marked failure and the PR
+# author sees a red check. They cannot merge with a red required check.
+#
+# Why this exists: between 2026-04-24 and 2026-05-03, every signup was
+# silently broken in production for 9 days because the geo-block
+# middleware redirected /auth/* before reaching Supabase. Local tests
+# couldn't catch it because the bug only manifested with Vercel's
+# request.geo populated. A real synthetic signup against the preview
+# URL is the ONLY way to catch this class of bug pre-merge.
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  deployment_status:
+
+# Only run on Vercel previews — not localhost or production rebuilds
+jobs:
+  gate:
+    name: Synthetic signup against preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: |
+      github.event.deployment_status.state == 'success'
+      && contains(github.event.deployment_status.environment, 'Preview')
+      && github.event.deployment_status.environment_url != ''
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: 'npm'
+
+      - name: Install (only what we need for Playwright + curl)
+        run: |
+          npm ci --no-audit --no-fund --prefer-offline
+          npx playwright install --with-deps chromium
+
+      - name: Health probe — must NOT return degraded
+        env:
+          PREVIEW_URL: ${{ github.event.deployment_status.environment_url }}
+        run: |
+          set -euo pipefail
+          echo "Probing $PREVIEW_URL/api/health/signup"
+          # Retry up to 5x because preview cold-start can be slow
+          for i in 1 2 3 4 5; do
+            BODY=$(curl -fsS --max-time 15 "$PREVIEW_URL/api/health/signup" || true)
+            if [ -n "$BODY" ]; then break; fi
+            echo "  attempt $i failed, sleeping…"
+            sleep 5
+          done
+          echo "Response: $BODY"
+          STATUS=$(echo "$BODY" | jq -r '.status // "unreachable"')
+          if [ "$STATUS" = "degraded" ] || [ "$STATUS" = "unreachable" ] || [ "$STATUS" = "error" ]; then
+            echo "::error::Health probe returned $STATUS — blocking merge"
+            echo "$BODY" | jq
+            exit 1
+          fi
+          echo "::notice::Health probe status: $STATUS"
+
+      - name: Playwright — real e2e signup
+        env:
+          PREVIEW_URL: ${{ github.event.deployment_status.environment_url }}
+          # Service-role key allows the test to clean up after itself
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          npx playwright test e2e/signup-real.spec.ts \
+            --reporter=list \
+            --config=playwright.preview.config.ts
+
+      - name: Comment on PR with result
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.deployment.sha;
+            const url = context.payload.deployment_status.environment_url;
+            // Find the PR for this commit
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: sha,
+            });
+            for (const pr of prs.data) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `🚨 **Signup gate FAILED on preview ${url}**\n\nThe synthetic signup did not complete on this preview deploy. This blocks merge to main because the same failure would brick production signups.\n\nSee the workflow run logs for the failing step. Common causes:\n- Geo-block middleware blocking /auth/*\n- Trigger function error in handle_new_user\n- Supabase env vars missing on the preview\n\nFix and re-push to retest.`,
+              });
+            }

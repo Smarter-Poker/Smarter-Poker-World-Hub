@@ -439,7 +439,7 @@
   "crons": [
     { "path": "/api/cron/signup-probe", "schedule": "*/5 * * * *" }
   ],
-  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build",
+  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
   "rewrites": [
     {
       "source": "/commander/:path*",

@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 -- Phase 39 — Drop unused indexes (audit-trail copy)
 -- Already applied via Supabase MCP on 2026-05-03. 43 indexes dropped, ~200MB freed.
 -- pg_stat_database.stats_reset = NULL means stats accumulated since DB creation
@@ -21,6 +22,8 @@ BEGIN
     END LOOP;
     RAISE NOTICE 'Dropped: %', v_dropped;
 =======
+=======
+>>>>>>> Stashed changes
 -- ═══════════════════════════════════════════════════════════════════════
 -- 20260503_phase39_drop_unused_indexes.sql
 -- TIER 2 (DDL drop, idempotent via IF EXISTS)
@@ -77,5 +80,8 @@ BEGIN
         v_dropped := v_dropped + 1; v_dropped_size := v_dropped_size + r.bytes;
     END LOOP;
     RAISE NOTICE 'Dropped %, freed %', v_dropped, v_dropped_size;
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 END $$;

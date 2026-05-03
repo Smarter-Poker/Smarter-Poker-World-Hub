@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 -- Phase 41 — Diamond ledger reconciliation (audit-trail copy)
 -- Already applied to production via Supabase MCP on 2026-05-03.
 -- 572 reconciliation rows inserted, 1,945,149 💎 drift closed,
@@ -23,6 +24,8 @@ BEGIN
     END LOOP;
     RAISE NOTICE 'Inserted: %', v_inserted;
 =======
+=======
+>>>>>>> Stashed changes
 -- ═══════════════════════════════════════════════════════════════════════
 -- 20260503_phase41_diamond_ledger_reconciliation.sql
 -- TIER 2 (data-only backfill, idempotent via reference_id)
@@ -86,5 +89,8 @@ BEGIN
 
     IF v_post_count > 0 THEN RAISE EXCEPTION 'Post-apply: % drifted by %', v_post_count, v_post_drift; END IF;
     RAISE NOTICE 'Post-apply: 0 drifted, ledger reconciled';
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 END $$;
