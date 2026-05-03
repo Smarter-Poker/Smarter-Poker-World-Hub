@@ -1858,8 +1858,15 @@ export default function DiamondStorePage() {
                                                                     <button onClick={async () => {
                                                                         if (!confirm(`Delete "${item.name}"?`)) return;
                                                                         try {
-                                                                            const { error } = await supabase.from('club_shop_items').delete().eq('id', item.id).eq('club_id', item.club_id);
-                                                                            if (error) throw error;
+                                                                            const token = getAccessToken();
+                                                                            if (!token) throw new Error('Not authenticated');
+                                                                            const resp = await fetch('/api/club-arena/shop-items', {
+                                                                                method: 'POST',
+                                                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                                body: JSON.stringify({ action: 'delete', clubId: item.club_id, itemId: item.id })
+                                                                            });
+                                                                            const json = await resp.json().catch(() => ({}));
+                                                                            if (!resp.ok || !json.success) throw new Error(json.error || `HTTP ${resp.status}`);
                                                                             loadClubShopAdmin();
                                                                             clubShopLoadingRef.current = false;
                                                                             loadClubShop(true);
