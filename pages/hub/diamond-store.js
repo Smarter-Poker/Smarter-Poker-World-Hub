@@ -1776,12 +1776,25 @@ export default function DiamondStorePage() {
                                                             if (price > 1000000000) { showStoreToast('error', 'Price exceeds maximum'); return; }
                                                             setClubShopProcessing(true);
                                                             try {
-                                                                const { error } = await supabase.from('club_shop_items').insert({
-                                                                    club_id: clubShopClubId, name: clubShopNewName.trim(), price,
-                                                                    description: clubShopNewDesc.trim() || null, category: clubShopNewCategory,
-                                                                    image_url: clubShopNewImage.trim() || null, is_active: true,
+                                                                // Server-side admin CRUD (post-Phase-37 RLS lockdown — anon
+                                                                // writes to club_shop_items now blocked by design).
+                                                                const token = getAccessToken();
+                                                                if (!token) throw new Error('Not authenticated');
+                                                                const resp = await fetch('/api/club-arena/shop-items', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                    body: JSON.stringify({
+                                                                        action: 'create',
+                                                                        clubId: clubShopClubId,
+                                                                        name: clubShopNewName.trim(),
+                                                                        price,
+                                                                        description: clubShopNewDesc.trim() || null,
+                                                                        category: clubShopNewCategory,
+                                                                        imageUrl: clubShopNewImage.trim() || null
+                                                                    })
                                                                 });
-                                                                if (error) throw error;
+                                                                const json = await resp.json().catch(() => ({}));
+                                                                if (!resp.ok || !json.success) throw new Error(json.error || `HTTP ${resp.status}`);
                                                                 setClubShopLastCreate(Date.now());
                                                                 setClubShopNewName(''); setClubShopNewPrice(''); setClubShopNewDesc(''); setClubShopNewImage(''); setClubShopNewCategory('Time Banks');
                                                                 loadClubShopAdmin();
@@ -1821,8 +1834,15 @@ export default function DiamondStorePage() {
                                                                 <div style={{ display: 'flex', gap: 8 }}>
                                                                     <button onClick={async () => {
                                                                         try {
-                                                                            const { error } = await supabase.from('club_shop_items').update({ is_active: !item.is_active }).eq('id', item.id).eq('club_id', item.club_id);
-                                                                            if (error) throw error;
+                                                                            const token = getAccessToken();
+                                                                            if (!token) throw new Error('Not authenticated');
+                                                                            const resp = await fetch('/api/club-arena/shop-items', {
+                                                                                method: 'POST',
+                                                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                                body: JSON.stringify({ action: 'toggle', clubId: item.club_id, itemId: item.id })
+                                                                            });
+                                                                            const json = await resp.json().catch(() => ({}));
+                                                                            if (!resp.ok || !json.success) throw new Error(json.error || `HTTP ${resp.status}`);
                                                                             loadClubShopAdmin();
                                                                             clubShopLoadingRef.current = false;
                                                                             loadClubShop(true);
