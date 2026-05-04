@@ -5,11 +5,21 @@ import { SP_COLORS } from './SmarterPokerStyleCard';
 export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
     const [frames, setFrames] = useState([]);
     const [loading, setLoading] = useState(true);
-    // Keep onSelect in a ref so the effect doesn't need it as a dep (avoids stale closure)
+
+    // Keep onSelect stable so effects don't need it as a dep
     const onSelectRef = React.useRef(onSelect);
     React.useLayoutEffect(() => { onSelectRef.current = onSelect; });
 
+    // Detect mobile — skip HEVC frame generation entirely on iOS/Android.
+    // generateFrames() decodes the full video stream, which causes OOM crashes
+    // and 30+ second hangs on iPhones with HEVC content. Mobile users get a
+    // clean "Add Cover Photo" button instead; desktop keeps the filmstrip.
+    const isMobile = typeof navigator !== 'undefined'
+        && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+
     useEffect(() => {
+        // Never attempt frame extraction on mobile — OOM / hang risk
+        if (isMobile) { setLoading(false); return; }
         let mounted = true;
         if (!file) return;
 
@@ -19,11 +29,11 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
                 // Generate 6 frames evenly spaced
                 const generated = await generateFrames(file, 6);
                 if (!mounted) return;
-                
+
                 const validFrames = generated.filter(f => f && f.dataUrl);
                 setFrames(validFrames);
-                
-                // If we don't have a current thumbnail yet, pick the first frame
+
+                // Auto-select first frame only if no thumbnail is already set
                 if (!currentThumbnail && validFrames.length > 0) {
                     onSelectRef.current(validFrames[0].dataUrl);
                 }
@@ -36,23 +46,118 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
 
         loadFrames();
         return () => { mounted = false; };
-    }, [file]);
+    }, [file, isMobile]);
 
     const handleCustomUpload = (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        
+        const uploadedFile = e.target.files?.[0];
+        if (!uploadedFile) return;
+
         const reader = new FileReader();
         reader.onload = (event) => {
             if (event.target.result) {
                 onSelect(event.target.result);
             }
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(uploadedFile);
     };
 
     if (!file) return null;
 
+    // ── MOBILE: Custom image upload only (no frame decode) ──────────────────
+    if (isMobile) {
+        return (
+            <div className="sp-thumbnail-picker">
+                <div className="picker-header">
+                    <span className="picker-title">Cover Image</span>
+                    <span className="picker-subtitle">Upload a cover photo for your video</span>
+                </div>
+                <div className="mobile-cover-row">
+                    {currentThumbnail && (
+                        <div className="mobile-current-thumb">
+                            <img src={currentThumbnail} alt="Selected cover" />
+                        </div>
+                    )}
+                    <label className="mobile-upload-btn">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCustomUpload}
+                            style={{ display: 'none' }}
+                        />
+                        <span className="icon">📸</span>
+                        <span className="label">
+                            {currentThumbnail ? 'Change Cover' : 'Add Cover Photo'}
+                        </span>
+                    </label>
+                </div>
+                <style>{`
+                    .sp-thumbnail-picker {
+                        background: rgba(0,0,0,0.2);
+                        border-radius: 8px;
+                        padding: 12px;
+                        margin-top: 12px;
+                        margin-bottom: 16px;
+                    }
+                    .picker-header { margin-bottom: 12px; }
+                    .picker-title {
+                        display: block;
+                        font-weight: 600;
+                        color: ${SP_COLORS.textPrimary};
+                        font-size: 14px;
+                    }
+                    .picker-subtitle {
+                        display: block;
+                        font-size: 12px;
+                        color: ${SP_COLORS.textSecondary};
+                        margin-top: 2px;
+                    }
+                    .mobile-cover-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        margin-top: 8px;
+                    }
+                    .mobile-current-thumb {
+                        width: 72px;
+                        height: 48px;
+                        border-radius: 6px;
+                        overflow: hidden;
+                        flex-shrink: 0;
+                        border: 2px solid ${SP_COLORS.blue};
+                    }
+                    .mobile-current-thumb img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
+                    .mobile-upload-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        background: ${SP_COLORS.bgHover};
+                        border: 1px dashed ${SP_COLORS.divider};
+                        border-radius: 8px;
+                        padding: 10px 16px;
+                        cursor: pointer;
+                        flex: 1;
+                        -webkit-tap-highlight-color: transparent;
+                    }
+                    .mobile-upload-btn:active {
+                        border-color: ${SP_COLORS.blue};
+                        background: ${SP_COLORS.bgMain};
+                    }
+                    .mobile-upload-btn .icon { font-size: 20px; }
+                    .mobile-upload-btn .label {
+                        font-size: 14px;
+                        font-weight: 500;
+                        color: ${SP_COLORS.textPrimary};
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    // ── DESKTOP: Full 6-frame filmstrip picker ───────────────────────────────
     return (
         <div className="sp-thumbnail-picker">
             <div className="picker-header">
