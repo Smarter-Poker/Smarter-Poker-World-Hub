@@ -2022,6 +2022,7 @@ export default function ReelsPage() {
 
                         // Swipe gesture (more than 50px vertical)
                         if (Math.abs(delta) > 50) {
+                            if (e.cancelable) e.preventDefault();
                             try { navigator?.vibrate?.(10); } catch(_) {}
                             if (delta < 0) {
                                 // Swiped UP = next video

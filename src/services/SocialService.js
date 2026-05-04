@@ -838,6 +838,11 @@ export class SocialService {
                             id: row.id,
                             content: row.content,
                             contentType: row.content_type || 'text',
+                            // Propagate thumbnail + media changes from background processes
+                            // (e.g., cron filling in thumbnail_url after transcode)
+                            thumbnail_url: row.thumbnail_url || null,
+                            thumbnailUrl: row.thumbnail_url || null,
+                            mediaUrls: row.media_urls || undefined, // undefined = don't overwrite if missing
                             engagement: {
                                 likeCount: row.like_count || 0,
                                 commentCount: row.comment_count || 0,

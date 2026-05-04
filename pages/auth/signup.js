@@ -612,16 +612,13 @@ export default function SignUpPage() {
                 } catch (rpcErr) {
                     console.warn('[App] Handled exception:', rpcErr?.message || rpcErr);
 
-                    // Fallback: query current max player_number and do a direct profile update
+                    // Fallback: query current max player_number using numeric cast RPC
+                    // (avoid lexicographic sort bug: '999' > '1500' on TEXT column)
                     try {
-                        const { data: maxData } = await supabase
-                            .from('profiles')
-                            .select('player_number')
-                            .order('player_number', { ascending: false })
-                            .limit(1)
-                            .maybeSingle();
+                        const { data: maxNum } = await supabase
+                            .rpc('get_max_player_number');
 
-                        const nextPlayerNumber = Math.max(1500, (parseInt(maxData?.player_number, 10) || 1499) + 1);
+                        const nextPlayerNumber = Math.max(1500, (parseInt(maxNum, 10) || 1499) + 1);
                         console.log('Updating profile for user:', authData.user.id);
 
                         // UPDATE the profile created by the database trigger
@@ -810,8 +807,8 @@ export default function SignUpPage() {
         e.preventDefault();
         setError('');
 
-        if (verificationCode.length < 6) {
-            setError('Please Enter The Complete Verification Code');
+        if (verificationCode.length < 4) {
+            setError('Please Enter The 4-Digit Verification Code');
             return;
         }
 
@@ -1350,7 +1347,7 @@ export default function SignUpPage() {
                             <h2 style={styles.successTitle}>Verify Your Email</h2>
 
                             <p style={styles.emailPendingText}>
-                                We've sent a verification code to:
+                                We've sent a 4-digit verification code to:
                             </p>
                             <p style={styles.emailHighlight}>{formData.email}</p>
 
@@ -1359,17 +1356,18 @@ export default function SignUpPage() {
                                     <label style={styles.label}>Enter Verification Code</label>
                                     <input
                                         type="text"
+                                        inputMode="numeric"
                                         value={verificationCode}
-                                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                                        placeholder="Enter 6-8 Digit Code"
+                                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                        placeholder="• • • •"
                                         style={{
                                             ...styles.inputSingle,
                                             textAlign: 'center',
-                                            fontSize: '24px',
+                                            fontSize: '28px',
                                             fontFamily: 'Orbitron, monospace',
-                                            letterSpacing: '8px',
+                                            letterSpacing: '12px',
                                         }}
-                                        maxLength={8}
+                                        maxLength={4}
                                         autoComplete="one-time-code"
                                         autoFocus
                                     />
@@ -1379,9 +1377,9 @@ export default function SignUpPage() {
                                     type="submit"
                                     style={{
                                         ...styles.submitButton,
-                                        opacity: verifying || verificationCode.length < 6 ? 0.7 : 1,
+                                        opacity: verifying || verificationCode.length < 4 ? 0.7 : 1,
                                     }}
-                                    disabled={verifying || verificationCode.length < 6}
+                                    disabled={verifying || verificationCode.length < 4}
                                 >
                                     {verifying ? 'Verifying...' : 'Verify Email'}
                                 </button>

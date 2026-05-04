@@ -11,10 +11,28 @@ import { getAccessToken } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
 import toast from '../../stores/toastStore';
 
+let globalAudioCtx = null;
+function initAudio() {
+    if (!globalAudioCtx) {
+        try {
+            globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = globalAudioCtx.createOscillator();
+            const gain = globalAudioCtx.createGain();
+            gain.gain.value = 0;
+            osc.connect(gain);
+            gain.connect(globalAudioCtx.destination);
+            osc.start();
+            osc.stop(globalAudioCtx.currentTime + 0.01);
+        } catch (_) {}
+    }
+    if (globalAudioCtx?.state === 'suspended') globalAudioCtx.resume();
+}
+
 /** Play a short success chime via Web Audio API (no external file needed) */
 function playSuccessChime() {
     try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = globalAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
         const osc1 = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -32,7 +50,6 @@ function playSuccessChime() {
         osc2.start(ctx.currentTime + 0.15);
         osc1.stop(ctx.currentTime + 0.5);
         osc2.stop(ctx.currentTime + 0.5);
-        setTimeout(() => ctx.close(), 600);
     } catch (_) { /* Web Audio not available — silent fallback */ }
 }
 
@@ -78,7 +95,7 @@ export function EndStreamModal({
         const safetyRevoke = setTimeout(() => { URL.revokeObjectURL(blobUrl); }, 30000);
         vidEl.src = blobUrl;
         vidEl.onloadedmetadata = () => {
-            vidEl.currentTime = Math.min(1, vidEl.duration * 0.1);
+            vidEl.currentTime = Math.min(3.5, (vidEl.duration || 10) / 2);
         };
         vidEl.onseeked = async () => {
             clearTimeout(safetyRevoke);
@@ -188,6 +205,7 @@ export function EndStreamModal({
     };
 
     const handlePostNow = async () => {
+        try { initAudio(); } catch (e) {}
         setIsUploading(true);
         setError('');
         setUploadProgress(1);
@@ -219,8 +237,8 @@ export function EndStreamModal({
             setUploadProgress(100);
 
             // BUG FIX (ESM-5): Success feedback — chime + toast
-            playSuccessChime();
-            toast.success('Stream posted to your feed!', 3000);
+            toast.info('Your Stream Was Posted Successfully.', 3000);
+            setTimeout(() => { playSuccessChime(); }, 100);
 
             // BUG FIX (ESM-6): Trigger feed refresh so the new post
             // appears at the top of the social feed immediately

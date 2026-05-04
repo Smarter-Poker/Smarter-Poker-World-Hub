@@ -81,7 +81,7 @@ import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
-import { AvatarProvider } from '../src/contexts/AvatarContext';
+import { AvatarProvider, useAvatar } from '../src/contexts/AvatarContext';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
@@ -252,6 +252,12 @@ const GlobalErrorCatcher = dynamic(
 // Dynamic import for Chunk Load Recovery (auto-reloads on stale chunks after deploy)
 const ChunkLoadRecovery = dynamic(
   () => import('../src/components/ui/ChunkLoadRecovery'),
+  { ssr: false }
+);
+
+// Dynamic import for New User Welcome Modal (500💎 + 30-Day VIP announcement)
+const NewUserWelcomeModal = dynamic(
+  () => import('../src/components/gates/NewUserWelcomeModal'),
   { ssr: false }
 );
 
@@ -537,6 +543,28 @@ function PhoneVerifyGate() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// WELCOME MODAL GATE — Renders NewUserWelcomeModal on first hub visit
+// Reads showWelcomeModal / dismissWelcomeModal from AvatarContext
+// ═══════════════════════════════════════════════════════════════════════════
+function WelcomeModalGate() {
+  const router = useRouter();
+  const { showWelcomeModal, dismissWelcomeModal, user } = useAvatar();
+
+  // Only show on hub pages
+  const path = router.asPath;
+  if (!path.startsWith('/hub')) return null;
+  if (!showWelcomeModal) return null;
+
+  return (
+    <NewUserWelcomeModal
+      isOpen={true}
+      onClose={dismissWelcomeModal}
+      userName={user?.user_metadata?.full_name || user?.user_metadata?.poker_alias || ''}
+    />
+  );
+}
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
@@ -669,6 +697,9 @@ export default function App({ Component, pageProps }) {
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Chunk Load Recovery" fallback={<></>}>
                                   <ChunkLoadRecovery />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Welcome Modal" fallback={<></>}>
+                                  <WelcomeModalGate />
                                 </HubErrorBoundary>
 
                               </ToastProvider>

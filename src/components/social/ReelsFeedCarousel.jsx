@@ -1383,9 +1383,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
 
         // LEFT 30% = previous
-        if (e?.clientX && e.clientX < window.innerWidth * 0.3) { goPrev(); return; }
+        if (e?.clientX && e.clientX < window.innerWidth * 0.3) {
+            if (userWantsSoundRef.current) {
+                sendYTCmd('unMute');
+                sendYTCmd('setVolume', [100]);
+                setMuted(false);
+                setUserWantsSound(true);
+            }
+            goPrev();
+            return;
+        }
         // RIGHT 30% = next
-        if (e?.clientX && e.clientX > window.innerWidth * 0.7) { goNext(); return; }
+        if (e?.clientX && e.clientX > window.innerWidth * 0.7) {
+            if (userWantsSoundRef.current) {
+                sendYTCmd('unMute');
+                sendYTCmd('setVolume', [100]);
+                setMuted(false);
+                setUserWantsSound(true);
+            }
+            goNext();
+            return;
+        }
 
         if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
             // Double-tap = toggle play/pause
@@ -1459,12 +1477,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     cancelLongPress();
                     e.preventDefault();
                 }}
-                onTouchEnd={() => {
+                onTouchEnd={(e) => {
                     cancelLongPress();
                     const delta = swipeDeltaRef.current;
                     swipeStartRef.current = null;
                     if (Math.abs(delta) > 50) {
+                        if (e.cancelable) e.preventDefault();
                         try { navigator?.vibrate?.(10); } catch (_) { }
+                        if (userWantsSoundRef.current) {
+                            sendYTCmd('unMute');
+                            sendYTCmd('setVolume', [100]);
+                            setMuted(false);
+                            setUserWantsSound(true);
+                        }
                         if (delta < 0) goNext();
                         else goPrev();
                         return;

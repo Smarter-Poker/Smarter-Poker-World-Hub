@@ -1,0 +1,26 @@
+=== Inspecting club-arena-engine (125093929) - cpx11 in ash at 178.156.160.206 ===
+--- engine-safe checks only ---
+{"status":"ok","version":"local","running":true,"uptime":268639,"activeTables":36,"activeTournaments":28,"totalHandsDealt":8747,"telemetry":{"avgHandDurationMs":42387,"avgHandsPerHour":90,"tablesWithMetrics":19},"performance":{"avgActionProcessingMs":0,"totalActionsRecorded":0,"processingThresholdViolations":0,"broadcastThresholdViolations":0}}
+club-arena-engine
+ 20:49:06 up 21 days, 0 min,  1 user,  load average: 0.59, 0.52, 0.53
+---
+club-arena-engine	Up 3 days	0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+sp-alertmanager	Up 2 weeks	127.0.0.1:9093->9093/tcp
+sp-grafana	Up 2 weeks	127.0.0.1:3001->3000/tcp
+sp-prometheus	Up 2 weeks	127.0.0.1:9090->9090/tcp
+sp-node-exporter	Up 2 weeks	
+---
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                                   
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=557293,fd=3),("systemd",pid=1,fd=132))
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=581042,fd=17))             
+LISTEN 0      4096       127.0.0.1:35517      0.0.0.0:*    users:(("containerd",pid=774,fd=9))                      
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*    users:(("docker-proxy",pid=572300,fd=7))                 
+LISTEN 0      4096       127.0.0.1:9090       0.0.0.0:*    users:(("docker-proxy",pid=148902,fd=7))                 
+LISTEN 0      4096       127.0.0.1:9093       0.0.0.0:*    users:(("docker-proxy",pid=149212,fd=7))                 
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=581042,fd=15))             
+LISTEN 0      4096       127.0.0.1:2019       0.0.0.0:*    users:(("caddy",pid=724,fd=7))                           
+LISTEN 0      4096            [::]:22            [::]:*    users:(("sshd",pid=557293,fd=4),("systemd",pid=1,fd=137))
+LISTEN 0      4096               *:80               *:*    users:(("caddy",pid=724,fd=10))                          
+LISTEN 0      4096               *:443              *:*    users:(("caddy",pid=724,fd=9))                           
+LISTEN 0      4096            [::]:8080          [::]:*    users:(("docker-proxy",pid=572306,fd=7))                 
+LISTEN 0      4096               *:9100             *:*    users:(("node_exporter",pid=146097,fd=3))                

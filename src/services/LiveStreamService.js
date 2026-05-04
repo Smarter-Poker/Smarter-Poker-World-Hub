@@ -154,8 +154,8 @@ class LiveStreamService {
             adaptiveStream: true,
             dynacast: true,             // Automatically adjust quality
             publishDefaults: {
-                simulcast: true,        // Publish multiple quality layers
-                videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+                simulcast: false,       // Fix #1: Disable simulcast to prevent initial blurriness
+                videoResolution: VideoPresets.h720,
             },
         });
 
@@ -260,8 +260,8 @@ class LiveStreamService {
                 if (videoTrack) {
                     await this.room.localParticipant.publishTrack(videoTrack, {
                         name: 'camera',
-                        simulcast: true,
-                        videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+                        simulcast: false, // Fix #1: Disable simulcast
+                        videoResolution: VideoPresets.h720,
                     });
                 }
                 if (audioTrack) {
@@ -340,9 +340,15 @@ class LiveStreamService {
 
             for (const pub of videoPublications) {
                 if (pub.track) {
-                    await pub.track.replaceTrack(newVideoTrack);
+                    await localParticipant.unpublishTrack(pub.track);
                 }
             }
+
+            await localParticipant.publishTrack(newVideoTrack, {
+                name: 'camera',
+                simulcast: false,
+                videoResolution: VideoPresets.h720,
+            });
 
             // Update local stream reference for recording
             if (this.localStream) {

@@ -533,11 +533,14 @@ export const SPPostCard = ({
                                                         // replacement uses preload="metadata" which only
                                                         // fetches container headers (~100KB) to extract
                                                         // the initial keyframe — no decode loop, no OOM.
+                                                        // #t=0.001 media fragment forces iOS Safari to
+                                                        // seek to frame 0 and render it — without this,
+                                                        // iOS shows a blank black box despite metadata.
                                                         // Falls back to a styled placeholder if metadata
                                                         // loading fails (e.g. CORS, network error).
                                                         return (
                                                             <video
-                                                                src={mediaUrl}
+                                                                src={`${mediaUrl}${mediaUrl?.includes('#') ? '' : '#t=0.001'}`}
                                                                 preload="metadata"
                                                                 muted
                                                                 playsInline

@@ -136,15 +136,12 @@ export default async function handler(req, res) {
           // Step 2: Profile doesn't exist by id OR email - CREATE IT NOW
           console.info('[ANTIGRAVITY] Creating profile for orphaned user (ID redacted for security).');
 
-          // Get next player number
+          // NOTE: player_number is stored as TEXT. We must cast to int for numeric MAX
+          // to avoid lexicographic ordering where '999' > '1500'.
           const { data: maxPlayer } = await getSupabase()
-              .from('profiles')
-              .select('player_number')
-              .order('player_number', { ascending: false })
-              .limit(1)
-              .maybeSingle();
+              .rpc('get_max_player_number');
 
-          const nextPlayerNumber = Math.max(1500, (maxPlayer?.player_number || 1499) + 1);
+          const nextPlayerNumber = Math.max(1500, (parseInt(maxPlayer, 10) || 1499) + 1);
 
           // Generate username if not provided
           const finalUsername = username ||
