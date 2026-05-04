@@ -1,6 +1,6 @@
 # Smarter-Poker — Standing Rules for Claude / AG Agents
 
-**Last updated:** 2026-04-29 (Dan, via Cowork session)
+**Last updated:** 2026-05-04 (Dan, via Cowork session — added RULE 10: Cloud infrastructure lifecycle)
 
 This file is the authoritative source for behavior rules that apply to ANY
 Claude-family agent working on the Smarter-Poker codebase — Cowork, Claude

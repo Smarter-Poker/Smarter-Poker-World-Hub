@@ -159,6 +159,67 @@ export const CreatePostBox = ({ user, onPost }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 🎥 FEED VIDEO PLAYER (Intersection Observer Autoplay)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// BUG FIX: Solves the "black background" issue for native videos on iOS.
+// The old `#t=0.001` trick failed to render on iOS because Safari refuses to
+// decode the frame until playback actually starts. By using an IntersectionObserver,
+// we auto-play the video ONLY when it's >50% visible, and pause it when scrolled
+// away. This exactly matches the Reels playback behavior (which the user confirmed
+// works) AND prevents the OOM crashes that happen if 20 videos play simultaneously.
+export const FeedVideoPlayer = ({ src }) => {
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    // Force the media engine to decode and play
+                    video.play().catch(e => {
+                        // Ignore standard Autoplay prevented errors if any
+                    });
+                } else {
+                    // Pause off-screen to prevent iOS HEVC OOM crash
+                    video.pause();
+                }
+            });
+        }, { threshold: 0.5 });
+
+        observer.observe(video);
+        return () => {
+            observer.unobserve(video);
+            observer.disconnect();
+        };
+    }, []);
+
+    return (
+        <video
+            ref={videoRef}
+            src={src}
+            preload="metadata"
+            muted
+            playsInline
+            loop
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+                // Replace broken video with gradient placeholder
+                const parent = e.target.parentElement;
+                if (parent) {
+                    const placeholder = document.createElement('div');
+                    placeholder.style.cssText = 'width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;';
+                    placeholder.innerHTML = '<span style="font-size:32px;opacity:0.5">🎬</span>';
+                    parent.replaceChild(placeholder, e.target);
+                }
+            }}
+        />
+    );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 📰 POST CARD
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -528,35 +589,12 @@ export const SPPostCard = ({
                                                             );
                                                         }
                                                         // AUDIT-9 SUPERSEDED (2026-05-04):
-                                                        // The old autoplay <video> caused OOM on iPhone
-                                                        // because it decoded the full HEVC stream. The
-                                                        // replacement uses preload="metadata" which only
-                                                        // fetches container headers (~100KB) to extract
-                                                        // the initial keyframe — no decode loop, no OOM.
-                                                        // #t=0.001 media fragment forces iOS Safari to
-                                                        // seek to frame 0 and render it — without this,
-                                                        // iOS shows a blank black box despite metadata.
-                                                        // Falls back to a styled placeholder if metadata
-                                                        // loading fails (e.g. CORS, network error).
-                                                        return (
-                                                            <video
-                                                                src={`${mediaUrl}${mediaUrl?.includes('#') ? '' : '#t=0.001'}`}
-                                                                preload="metadata"
-                                                                muted
-                                                                playsInline
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                onError={(e) => {
-                                                                    // Replace broken video with gradient placeholder
-                                                                    const parent = e.target.parentElement;
-                                                                    if (parent) {
-                                                                        const placeholder = document.createElement('div');
-                                                                        placeholder.style.cssText = 'width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;';
-                                                                        placeholder.innerHTML = '<span style="font-size:32px;opacity:0.5">🎬</span>';
-                                                                        parent.replaceChild(placeholder, e.target);
-                                                                    }
-                                                                }}
-                                                            />
-                                                        );
+                                                        // The old autoplay <video> caused OOM on iPhone.
+                                                        // The `#t=0.001` fallback often rendered black on iOS
+                                                        // because Safari won't decode without playback.
+                                                        // Now we use FeedVideoPlayer which plays ONLY when
+                                                        // on-screen via IntersectionObserver.
+                                                        return <FeedVideoPlayer src={mediaUrl} />;
                                                     })()}
                                                     {/* Play Button Overlay */}
                                                     <div className="video-play-overlay">
