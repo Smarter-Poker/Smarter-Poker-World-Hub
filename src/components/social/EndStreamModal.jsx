@@ -11,7 +11,6 @@ import { getAccessToken } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
 import toast from '../../stores/toastStore';
 
-
 let globalAudioCtx = null;
 function initAudio() {
     if (!globalAudioCtx) {
@@ -51,6 +50,7 @@ function playSuccessChime() {
         osc2.start(ctx.currentTime + 0.15);
         osc1.stop(ctx.currentTime + 0.5);
         osc2.stop(ctx.currentTime + 0.5);
+        setTimeout(() => { if (ctx !== globalAudioCtx) ctx.close(); }, 600);
     } catch (_) { /* Web Audio not available — silent fallback */ }
 }
 

@@ -134,3 +134,90 @@ Update this file when:
 
 Then commit the change with `docs(rules): <what changed>` so the next agent
 sees the update via `git log`.
+
+## RULE 10 — Cloud infrastructure lifecycle (added 2026-05-04)
+
+**Background:** April 2026 invoice flagged 4 × CAX41 Hetzner servers
+($56/month, ~83% of the bill) that no agent could account for. They were
+provisioned by some prior agent without documentation and never deleted.
+Eventually killed only after surfacing on a billing audit. This rule
+prevents recurrence.
+
+**Scope:** Applies to ANY paid cloud resource — Hetzner servers / volumes
+/ networks / load balancers, Vercel projects, Supabase projects, GitHub
+repos and GHCR packages, DNS zones, Cloudflare resources, paid SaaS
+accounts, anything that costs money or accrues quota usage.
+
+### 10.1 Before creating a paid cloud resource
+
+1. **Justify in writing.** Add a note to
+   `.agent/audits/YYYY-MM-DD-<slug>.md` BEFORE provisioning that states:
+   - **WHAT** you're creating (type, size, region)
+   - **WHY** it's needed (link to plan/handoff/decision doc)
+   - **WHO** requested it (Dan / agent / which session)
+   - **KILL CRITERIA** — under what conditions it should be deleted
+     (e.g., "delete if backfill queue stays at zero for 14 days",
+     "delete after Phase 2B.3 completes", or `permanent` for production)
+
+2. **Commit the audit first.** Run `git-safe-push.sh` on the audit file
+   BEFORE provisioning the resource. If the agent crashes mid-task the
+   trail still exists.
+
+3. **Label the resource at creation time** with attribution metadata.
+   For Hetzner Cloud servers, set these labels via the API or Console:
+   - `created_by: <agent-name>` — e.g., `cowork-2026-05-04`,
+     `antigravity-phase-2b1`, `dan-manual`
+   - `purpose: <short-tag>` — e.g., `cron-dispatcher`, `yt-transcode`,
+     `experiment-<name>`
+   - `created_at: <ISO date>`
+   - `kill_after: <ISO date or "permanent">`
+   For other systems use the platform's metadata mechanism (Vercel
+   project description, GitHub repo description with same fields,
+   Supabase project name prefix, etc.).
+
+### 10.2 Before ending any session that created paid resources
+
+For every resource you provisioned this session, decide:
+- **Keep** → confirm labels are set + audit file documents why
+- **Delete** → delete it NOW and update the audit
+- **Hand off** → write a handoff prompt referencing the audit so the
+  receiving agent inherits the kill-criteria
+
+**Never leave an unlabeled resource alive.** If you find one mid-task —
+yours or another agent's — either label it after confirming purpose, or
+surface it to Dan for a kill/keep decision before session end.
+
+### 10.3 Standing audits (monthly + on-bill-spike)
+
+Once per month, AND any time a Hetzner / Vercel / Supabase invoice grows
+more than 20% month-over-month:
+1. Pull the live inventory (Hetzner API, Vercel API, etc.) into
+   `.agent/audits/YYYY-MM-DD-<system>-inventory/`.
+2. Cross-reference every resource against (a) its labels, (b) audit-file
+   justifications in `.agent/audits/`, (c) active code references via
+   `grep`-able service identifiers.
+3. Surface any unaccounted-for resource to Dan for keep/kill — do not
+   delete unilaterally.
+
+The 2026-05-04 audit is the canonical reference for how this looks:
+- Handoff: `.agent/handoffs/2026-05-04-hetzner-full-inventory-audit.md`
+- Report: `.agent/audits/2026-05-04-hetzner-inventory/REPORT.md`
+
+### 10.4 Hetzner-specific snapshot (2026-05-04 baseline)
+
+The full documented Hetzner footprint is exactly **4 servers**:
+
+| ID | Name | Type | DC | Role | Service identifiers |
+|---|---|---|---|---|---|
+| 125093929 | `club-arena-engine` | CPX11 | ash | Live poker game server | Docker `club-arena-engine`, Caddy → `engine.smarter.poker` |
+| 127861894 | `openclaw-dispatcher` | CX23 | nbg1 | Cron scheduler + HEVC transcoder | systemd `openclaw.service` + `sp-transcode.service` |
+| 127930016 | `workers-dispatcher` | CX23 | fsn1 | Cron job handlers | Docker `smarter-poker-workers` |
+| 128782737 | `reels-transcode-worker` | CPX21 | ash | YouTube → MP4 conversion | systemd `sp-yt-transcode.service` |
+
+ANY additional Hetzner server is suspect until documented per §10.1.
+Verify on every monthly audit that the inventory still matches this
+table (or the table has been updated in a labeled commit).
+
+Hetzner billing alerts: configured by Dan in
+`https://console.hetzner.cloud` Billing → Usage Alerts. Agents must not
+rotate or modify alert thresholds without approval.
