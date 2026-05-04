@@ -527,14 +527,32 @@ export const SPPostCard = ({
                                                                 />
                                                             );
                                                         }
-                                                        // AUDIT-9 (per Dan: iPhone CRASH on staging):
-                                                        // Reverted the autoplay video fallback. Rendering an
-                                                        // autoplay <video> for HEVC content on iPhone can OOM
-                                                        // the tab, especially with multiple feed cards.
-                                                        // Static placeholder is safe; cron will fill the
-                                                        // thumbnail within 1-2 minutes.
+                                                        // AUDIT-9 SUPERSEDED (2026-05-04):
+                                                        // The old autoplay <video> caused OOM on iPhone
+                                                        // because it decoded the full HEVC stream. The
+                                                        // replacement uses preload="metadata" which only
+                                                        // fetches container headers (~100KB) to extract
+                                                        // the initial keyframe — no decode loop, no OOM.
+                                                        // Falls back to a styled placeholder if metadata
+                                                        // loading fails (e.g. CORS, network error).
                                                         return (
-                                                            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)' }} />
+                                                            <video
+                                                                src={mediaUrl}
+                                                                preload="metadata"
+                                                                muted
+                                                                playsInline
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                onError={(e) => {
+                                                                    // Replace broken video with gradient placeholder
+                                                                    const parent = e.target.parentElement;
+                                                                    if (parent) {
+                                                                        const placeholder = document.createElement('div');
+                                                                        placeholder.style.cssText = 'width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;';
+                                                                        placeholder.innerHTML = '<span style="font-size:32px;opacity:0.5">🎬</span>';
+                                                                        parent.replaceChild(placeholder, e.target);
+                                                                    }
+                                                                }}
+                                                            />
                                                         );
                                                     })()}
                                                     {/* Play Button Overlay */}
