@@ -1,0 +1,710 @@
+{
+    "meta": {
+        "pagination": {
+            "last_page": 1,
+            "next_page": null,
+            "page": 1,
+            "per_page": 25,
+            "previous_page": null,
+            "total_entries": 8
+        }
+    },
+    "primary_ips": [
+        {
+            "assignee_id": 125093929,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-03-27T15:08:22Z",
+            "datacenter": {
+                "description": "Ashburn virtual DC 1",
+                "id": 5,
+                "location": {
+                    "city": "Ashburn, VA",
+                    "country": "US",
+                    "description": "Ashburn, VA",
+                    "id": 4,
+                    "latitude": 39.045821,
+                    "longitude": -77.487073,
+                    "name": "ash",
+                    "network_zone": "us-east"
+                },
+                "name": "ash-dc1",
+                "server_types": {
+                    "available": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "available_for_migration": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        23,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Ashburn, VA",
+                "country": "US",
+                "description": "Ashburn, VA",
+                "id": 4,
+                "latitude": 39.045821,
+                "longitude": -77.487073,
+                "name": "ash",
+                "network_zone": "us-east"
+            },
+            "dns_ptr": [
+                {
+                    "ip": "178.156.160.206",
+                    "dns_ptr": "static.206.160.156.178.clients.your-server.de"
+                }
+            ],
+            "id": 123914920,
+            "ip": "178.156.160.206",
+            "labels": {},
+            "name": "primary_ip-123914920",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv4"
+        },
+        {
+            "assignee_id": 125093929,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-03-27T15:08:22Z",
+            "datacenter": {
+                "description": "Ashburn virtual DC 1",
+                "id": 5,
+                "location": {
+                    "city": "Ashburn, VA",
+                    "country": "US",
+                    "description": "Ashburn, VA",
+                    "id": 4,
+                    "latitude": 39.045821,
+                    "longitude": -77.487073,
+                    "name": "ash",
+                    "network_zone": "us-east"
+                },
+                "name": "ash-dc1",
+                "server_types": {
+                    "available": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "available_for_migration": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        23,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Ashburn, VA",
+                "country": "US",
+                "description": "Ashburn, VA",
+                "id": 4,
+                "latitude": 39.045821,
+                "longitude": -77.487073,
+                "name": "ash",
+                "network_zone": "us-east"
+            },
+            "dns_ptr": [],
+            "id": 123914921,
+            "ip": "2a01:4ff:f0:5296::/64",
+            "labels": {},
+            "name": "primary_ip-123914921",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv6"
+        },
+        {
+            "assignee_id": 127861894,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-04-23T23:39:20Z",
+            "datacenter": {
+                "description": "Nuremberg 1 virtual DC 3",
+                "id": 2,
+                "location": {
+                    "city": "Nuremberg",
+                    "country": "DE",
+                    "description": "Nuremberg DC Park 1",
+                    "id": 2,
+                    "latitude": 49.452102,
+                    "longitude": 11.076665,
+                    "name": "nbg1",
+                    "network_zone": "eu-central"
+                },
+                "name": "nbg1-dc3",
+                "server_types": {
+                    "available": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "available_for_migration": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        94,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        45,
+                        93,
+                        95,
+                        114,
+                        115,
+                        116,
+                        117,
+                        23,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Nuremberg",
+                "country": "DE",
+                "description": "Nuremberg DC Park 1",
+                "id": 2,
+                "latitude": 49.452102,
+                "longitude": 11.076665,
+                "name": "nbg1",
+                "network_zone": "eu-central"
+            },
+            "dns_ptr": [
+                {
+                    "ip": "178.104.160.250",
+                    "dns_ptr": "static.250.160.104.178.clients.your-server.de"
+                }
+            ],
+            "id": 127937317,
+            "ip": "178.104.160.250",
+            "labels": {},
+            "name": "primary_ip-127937317",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv4"
+        },
+        {
+            "assignee_id": 127861894,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-04-23T23:39:20Z",
+            "datacenter": {
+                "description": "Nuremberg 1 virtual DC 3",
+                "id": 2,
+                "location": {
+                    "city": "Nuremberg",
+                    "country": "DE",
+                    "description": "Nuremberg DC Park 1",
+                    "id": 2,
+                    "latitude": 49.452102,
+                    "longitude": 11.076665,
+                    "name": "nbg1",
+                    "network_zone": "eu-central"
+                },
+                "name": "nbg1-dc3",
+                "server_types": {
+                    "available": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "available_for_migration": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        94,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        45,
+                        93,
+                        95,
+                        114,
+                        115,
+                        116,
+                        117,
+                        23,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Nuremberg",
+                "country": "DE",
+                "description": "Nuremberg DC Park 1",
+                "id": 2,
+                "latitude": 49.452102,
+                "longitude": 11.076665,
+                "name": "nbg1",
+                "network_zone": "eu-central"
+            },
+            "dns_ptr": [],
+            "id": 127937318,
+            "ip": "2a01:4f8:1c1b:5eb0::/64",
+            "labels": {},
+            "name": "primary_ip-127937318",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv6"
+        },
+        {
+            "assignee_id": 127930016,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-04-24T16:22:22Z",
+            "datacenter": {
+                "description": "Falkenstein 1 virtual DC 14",
+                "id": 4,
+                "location": {
+                    "city": "Falkenstein",
+                    "country": "DE",
+                    "description": "Falkenstein DC Park 1",
+                    "id": 1,
+                    "latitude": 50.47612,
+                    "longitude": 12.370071,
+                    "name": "fsn1",
+                    "network_zone": "eu-central"
+                },
+                "name": "fsn1-dc14",
+                "server_types": {
+                    "available": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        114,
+                        115,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "available_for_migration": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        114,
+                        115,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        94,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        45,
+                        93,
+                        95,
+                        114,
+                        115,
+                        116,
+                        117,
+                        23,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Falkenstein",
+                "country": "DE",
+                "description": "Falkenstein DC Park 1",
+                "id": 1,
+                "latitude": 50.47612,
+                "longitude": 12.370071,
+                "name": "fsn1",
+                "network_zone": "eu-central"
+            },
+            "dns_ptr": [
+                {
+                    "ip": "178.104.180.220",
+                    "dns_ptr": "static.220.180.104.178.clients.your-server.de"
+                }
+            ],
+            "id": 128043804,
+            "ip": "178.104.180.220",
+            "labels": {},
+            "name": "primary_ip-128043804",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv4"
+        },
+        {
+            "assignee_id": 127930016,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-04-24T16:22:22Z",
+            "datacenter": {
+                "description": "Falkenstein 1 virtual DC 14",
+                "id": 4,
+                "location": {
+                    "city": "Falkenstein",
+                    "country": "DE",
+                    "description": "Falkenstein DC Park 1",
+                    "id": 1,
+                    "latitude": 50.47612,
+                    "longitude": 12.370071,
+                    "name": "fsn1",
+                    "network_zone": "eu-central"
+                },
+                "name": "fsn1-dc14",
+                "server_types": {
+                    "available": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        114,
+                        115,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "available_for_migration": [
+                        96,
+                        98,
+                        99,
+                        100,
+                        101,
+                        97,
+                        45,
+                        114,
+                        115,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        94,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        45,
+                        93,
+                        95,
+                        114,
+                        115,
+                        116,
+                        117,
+                        23,
+                        109,
+                        110,
+                        111,
+                        112,
+                        113,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Falkenstein",
+                "country": "DE",
+                "description": "Falkenstein DC Park 1",
+                "id": 1,
+                "latitude": 50.47612,
+                "longitude": 12.370071,
+                "name": "fsn1",
+                "network_zone": "eu-central"
+            },
+            "dns_ptr": [],
+            "id": 128043805,
+            "ip": "2a01:4f8:c013:c5f3::/64",
+            "labels": {},
+            "name": "primary_ip-128043805",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv6"
+        },
+        {
+            "assignee_id": 128782737,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-05-01T17:52:04Z",
+            "datacenter": {
+                "description": "Ashburn virtual DC 1",
+                "id": 5,
+                "location": {
+                    "city": "Ashburn, VA",
+                    "country": "US",
+                    "description": "Ashburn, VA",
+                    "id": 4,
+                    "latitude": 39.045821,
+                    "longitude": -77.487073,
+                    "name": "ash",
+                    "network_zone": "us-east"
+                },
+                "name": "ash-dc1",
+                "server_types": {
+                    "available": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "available_for_migration": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        23,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Ashburn, VA",
+                "country": "US",
+                "description": "Ashburn, VA",
+                "id": 4,
+                "latitude": 39.045821,
+                "longitude": -77.487073,
+                "name": "ash",
+                "network_zone": "us-east"
+            },
+            "dns_ptr": [
+                {
+                    "ip": "5.161.49.206",
+                    "dns_ptr": "static.206.49.161.5.clients.your-server.de"
+                }
+            ],
+            "id": 128947464,
+            "ip": "5.161.49.206",
+            "labels": {},
+            "name": "primary_ip-128947464",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv4"
+        },
+        {
+            "assignee_id": 128782737,
+            "assignee_type": "server",
+            "auto_delete": true,
+            "blocked": false,
+            "created": "2026-05-01T17:52:04Z",
+            "datacenter": {
+                "description": "Ashburn virtual DC 1",
+                "id": 5,
+                "location": {
+                    "city": "Ashburn, VA",
+                    "country": "US",
+                    "description": "Ashburn, VA",
+                    "id": 4,
+                    "latitude": 39.045821,
+                    "longitude": -77.487073,
+                    "name": "ash",
+                    "network_zone": "us-east"
+                },
+                "name": "ash-dc1",
+                "server_types": {
+                    "available": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "available_for_migration": [
+                        25,
+                        96,
+                        22,
+                        23,
+                        24
+                    ],
+                    "supported": [
+                        25,
+                        96,
+                        98,
+                        99,
+                        22,
+                        26,
+                        100,
+                        101,
+                        97,
+                        23,
+                        24
+                    ]
+                }
+            },
+            "location": {
+                "city": "Ashburn, VA",
+                "country": "US",
+                "description": "Ashburn, VA",
+                "id": 4,
+                "latitude": 39.045821,
+                "longitude": -77.487073,
+                "name": "ash",
+                "network_zone": "us-east"
+            },
+            "dns_ptr": [],
+            "id": 128947465,
+            "ip": "2a01:4ff:f4:90ca::/64",
+            "labels": {},
+            "name": "primary_ip-128947465",
+            "protection": {
+                "delete": false
+            },
+            "type": "ipv6"
+        }
+    ]
+}

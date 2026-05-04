@@ -1,0 +1,38 @@
+{
+ "ssh_keys": [
+  {
+   "id": 109835740,
+   "name": "deploy-key",
+   "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICbfpGx8YV1Al3VIAY8uIr7aIDX2kfG3R587U9UVip/s smarter.poker@deploy",
+   "fingerprint": "7a:30:46:ad:4e:fd:94:06:3f:9f:51:94:ed:3a:b8:e1",
+   "labels": {},
+   "created": "2026-03-27T15:07:25Z"
+  },
+  {
+   "id": 111265593,
+   "name": "openclaw-deploy-key",
+   "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOlgbxQ9o5gRyIK0QHcmv5UlKUK+h5Au64OYEP49YExI openclaw-dispatcher@smarter.poker",
+   "fingerprint": "39:a4:23:7a:6b:9b:57:b7:e4:0f:4d:97:b8:6f:90:a9",
+   "labels": {},
+   "created": "2026-04-23T23:35:35Z"
+  },
+  {
+   "id": 111299606,
+   "name": "workers-deploy-key",
+   "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHNALy1KTT9mzVkZl2om/cIECi0ljVb4feNOGuvZty4A workers-deploy@smarter.poker",
+   "fingerprint": "21:40:30:5d:10:2d:65:9e:3a:60:c1:68:95:22:85:57",
+   "labels": {},
+   "created": "2026-04-24T15:26:51Z"
+  }
+ ],
+ "meta": {
+  "pagination": {
+   "last_page": 1,
+   "next_page": null,
+   "page": 1,
+   "per_page": 25,
+   "previous_page": null,
+   "total_entries": 3
+  }
+ }
+}
