@@ -621,7 +621,7 @@ export default function SignUpPage() {
                             .limit(1)
                             .maybeSingle();
 
-                        const nextPlayerNumber = (parseInt(maxData?.player_number, 10) || 1254) + 1;
+                        const nextPlayerNumber = Math.max(1500, (parseInt(maxData?.player_number, 10) || 1499) + 1);
                         console.log('Updating profile for user:', authData.user.id);
 
                         // UPDATE the profile created by the database trigger

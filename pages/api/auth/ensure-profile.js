@@ -144,7 +144,7 @@ export default async function handler(req, res) {
               .limit(1)
               .maybeSingle();
 
-          const nextPlayerNumber = (maxPlayer?.player_number || 1254) + 1;
+          const nextPlayerNumber = Math.max(1500, (maxPlayer?.player_number || 1499) + 1);
 
           // Generate username if not provided
           const finalUsername = username ||

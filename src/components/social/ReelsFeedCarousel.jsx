@@ -352,6 +352,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // Array ref for the onLoad retry batch (300/800/1500ms) — prevents stale postMessage
     // to wrong iframe when user swipes before the retry loop fires.
     const ytAutoplayTimersRef = useRef([]);
+    const autoUnmuteRetryTimersRef = useRef([]);
     // Unmute-after-loadVideoById timer (100ms) — tracked so it can be cancelled on unmount.
     const unmuteTimerRef = useRef(null);
     // Comment input focus timer (100ms) — prevents focus() on unmounted input.
@@ -587,7 +588,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
         // 5s fallback: if YouTube never fires onStateChange, show play button
         const ytFallback = setTimeout(() => setYtReady(true), 5000);
-        return () => clearTimeout(ytFallback);
+        return () => {
+            clearTimeout(ytFallback);
+            autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
+            autoUnmuteRetryTimersRef.current = [];
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
 
@@ -629,6 +634,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
             // Cancel any pending YT autoplay retry batch
             ytAutoplayTimersRef.current.forEach(t => clearTimeout(t));
             ytAutoplayTimersRef.current = [];
+            autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
+            autoUnmuteRetryTimersRef.current = [];
         };
     }, []);
 
@@ -650,10 +657,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         clearTimeout(overlayTimerRef.current);
                         overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
                         // Auto-unmute ONLY if user wants sound
+                        autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
                         if (userWantsSoundRef.current) {
-                            sendYTCmd('unMute');
-                            sendYTCmd('setVolume', [100]);
-                            setMuted(false);
+                            const doUnmute = () => {
+                                if (!userWantsSoundRef.current) return;
+                                sendYTCmd('unMute');
+                                sendYTCmd('setVolume', [100]);
+                                setMuted(false);
+                            };
+                            doUnmute();
+                            autoUnmuteRetryTimersRef.current = [100, 300, 600].map(d => setTimeout(doUnmute, d));
+                        } else {
+                            autoUnmuteRetryTimersRef.current = [];
                         }
                     }
                     if (data.info === 2) { // Paused
