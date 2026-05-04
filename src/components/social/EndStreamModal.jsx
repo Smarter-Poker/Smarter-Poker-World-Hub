@@ -8,6 +8,33 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken } from '../../lib/authUtils';
+import { busEmit } from '../../engine/EventBus';
+import toast from '../../stores/toastStore';
+
+/** Play a short success chime via Web Audio API (no external file needed) */
+function playSuccessChime() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, ctx.currentTime);       // C5
+        osc1.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+        osc2.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        osc1.start(ctx.currentTime);
+        osc2.start(ctx.currentTime + 0.15);
+        osc1.stop(ctx.currentTime + 0.5);
+        osc2.stop(ctx.currentTime + 0.5);
+        setTimeout(() => ctx.close(), 600);
+    } catch (_) { /* Web Audio not available — silent fallback */ }
+}
 
 const C = {
     bg: '#F0F2F5',
@@ -187,9 +214,18 @@ export function EndStreamModal({
             setUploadProgress(80);
 
             // 3. Server-side: mark as posted + create social_posts entry (service role)
-            await callEndStream('post');
+            const endResult = await callEndStream('post');
 
             setUploadProgress(100);
+
+            // BUG FIX (ESM-5): Success feedback — chime + toast
+            playSuccessChime();
+            toast.success('Stream posted to your feed!', 3000);
+
+            // BUG FIX (ESM-6): Trigger feed refresh so the new post
+            // appears at the top of the social feed immediately
+            busEmit.socialPostCreated?.(endResult?.postId, user?.id);
+
             onClose('posted');
         } catch (err) {
             console.warn('Post error:', err);
@@ -226,6 +262,11 @@ export function EndStreamModal({
             await callEndStream('save');
 
             setUploadProgress(100);
+
+            // BUG FIX (ESM-5): Success feedback for save action too
+            playSuccessChime();
+            toast.success('Stream saved to your Lives!', 3000);
+
             onClose('saved');
         } catch (err) {
             console.warn('Save error:', err);

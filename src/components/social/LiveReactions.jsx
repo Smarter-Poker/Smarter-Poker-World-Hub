@@ -91,12 +91,18 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
         }).catch(() => {}); // Non-fatal
         // BUG FIX (LR-1): persist to DB for analytics (fire-and-forget, non-blocking)
         // Without this, reaction_count was always 0 in end-stream analytics card.
+        // BUG FIX (LR-2): log errors instead of swallowing — silent RLS/FK failures
+        // made it impossible to diagnose missing reaction counts.
         if (streamId && userId) {
             supabase.from('live_reactions').insert({
                 stream_id: streamId,
                 sender_id: userId,
                 emoji,
-            }).then(() => {}).catch(() => {}); // Truly non-fatal
+            }).then(({ error }) => {
+                if (error) console.warn('[LiveReactions] DB persist failed:', error.message);
+            }).catch((err) => {
+                console.warn('[LiveReactions] DB persist threw:', err?.message || err);
+            });
         }
     };
 

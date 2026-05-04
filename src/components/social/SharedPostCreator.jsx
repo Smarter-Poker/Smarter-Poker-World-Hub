@@ -1120,6 +1120,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             }
             if (mountedRef.current) {
                 setContent(''); setMedia([]); setLinkPreview(null);
+                // BUG FIX (SPC-5): Success feedback — user gets confirmation that post was created
+                toast.success('Post shared successfully!', 2500);
             }
             try { localStorage.removeItem('sp-post-draft'); } catch (e) { console.warn('[App] Handled exception:', e); }
         }

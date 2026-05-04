@@ -632,7 +632,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
                 {/* ── COUNTDOWN STAGE ── */}
                 {stage === 'countdown' && (
-                    <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', minHeight:'100vh' }}>
+                    <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', minHeight:'100dvh', touchAction:'manipulation', overflow:'hidden' }}>
                         <video ref={videoRef} autoPlay muted playsInline style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)', opacity:.4 }} />
                         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
                             <div style={{ fontSize:16, color:'white', fontWeight:700, letterSpacing:3, marginBottom:16, textTransform:'uppercase', opacity:.85 }}>Get Ready</div>
@@ -647,7 +647,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 {/* ── LIVE STAGE ── */}
                 {stage === 'live' && (
                     <div
-                        style={{ height:'100%', width:'100%', position:'relative', background:'#000', cursor:'pointer', minHeight:'100vh' }}
+                        style={{ height:'100%', width:'100%', position:'relative', background:'#000', cursor:'pointer', minHeight:'100dvh', touchAction:'manipulation', overflow:'hidden' }}
                         onClick={handleScreenTap}
                     >
                         {/* Video feed */}

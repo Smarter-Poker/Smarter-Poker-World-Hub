@@ -199,8 +199,7 @@ class LiveStreamService {
         // Track subscriptions (for viewers)
         this.room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
             // BUG FIX: Audio or video can arrive first. Initialize stream if it doesn't exist,
-            // then add the incoming track. The HTML5 <video> element will automatically pick up
-            // tracks added to the MediaStream later.
+            // then add the incoming track.
             if (!this._remoteMediaStream) {
                 this._remoteMediaStream = new MediaStream();
             }
@@ -210,6 +209,16 @@ class LiveStreamService {
             if (!this._remoteStreamDelivered && this._remoteMediaStream.getTracks().length > 0) {
                 this._remoteStreamDelivered = true;
                 this.onRemoteStream?.(this._remoteMediaStream);
+            }
+
+            // BUG FIX (V-VIDEO-1): Many mobile browsers (iOS Safari, Chrome Android)
+            // do NOT render video tracks dynamically added to an already-assigned
+            // srcObject. If the initial delivery only had audio (audio arrived first),
+            // the <video> element keeps showing black even though the video track was
+            // added to the MediaStream. Fire onTrackAdded so the viewer component can
+            // force-reassign srcObject to trigger the browser to re-evaluate tracks.
+            if (this._remoteStreamDelivered && track.kind === Track.Kind.Video) {
+                this.onTrackAdded?.(this._remoteMediaStream, 'video');
             }
 
             // Attach audio tracks — LiveKit requires explicit attach() for audio playback

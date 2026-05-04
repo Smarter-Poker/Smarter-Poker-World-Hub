@@ -92,6 +92,19 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     setRemoteStream(remoteMediaStream);
                     setIsConnecting(false);
                 });
+
+                // BUG FIX (V-VIDEO-1): force-reassign srcObject when a video track
+                // arrives AFTER the initial onRemoteStream delivery (audio arrived first).
+                // Mobile browsers don't render dynamically-added video tracks on an
+                // already-assigned srcObject.
+                liveStreamService.onTrackAdded = (mediaStream, kind) => {
+                    if (kind === 'video' && videoRef.current) {
+                        // Force browser to re-evaluate tracks by re-assigning srcObject
+                        videoRef.current.srcObject = null;
+                        videoRef.current.srcObject = mediaStream;
+                        videoRef.current.play().catch(() => {});
+                    }
+                };
                 // Update streamData with the full DB response (includes broadcaster profile)
                 if (freshStream) setStreamData(freshStream);
 
@@ -251,6 +264,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             liveStreamService.onReconnecting = null;
             liveStreamService.onReconnected = null;
             liveStreamService.onConnectionQualityChange = null;
+            liveStreamService.onTrackAdded = null;
         };
     }, [stream?.id, userId]);
 
