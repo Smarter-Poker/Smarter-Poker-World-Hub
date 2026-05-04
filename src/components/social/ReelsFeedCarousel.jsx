@@ -385,6 +385,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const handleLikeRef = useRef(null);
     const handleSaveRef = useRef(null);
     const handleCommentsRef = useRef(null);
+    // Stable refs so handleYTMessage can read fresh values without being re-registered on every swipe
+    const currentIndexRef = useRef(0);
+    const reelsRef = useRef([]);
+    const goNextRef = useRef(null);
 
     const currentReel = reels[currentIndex];
 
@@ -535,14 +539,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     const goNext = useCallback(() => {
         setCurrentIndex(prev => {
-            if (prev >= reels.length - 1) return prev;
+            if (prev >= reelsRef.current.length - 1) return prev;
             return prev + 1;
         });
-    }, [reels.length]);
+    }, []);
 
     const goPrev = useCallback(() => {
         setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
     }, []);
+
+    // Keep stable refs in sync so the single-registered YT message handler always reads fresh data
+    useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+    useEffect(() => { reelsRef.current = reels; }, [reels]);
+    useEffect(() => { goNextRef.current = goNext; }, [goNext]);
 
     // Switch video on index change using loadVideoById (NO iframe remount!)
     useEffect(() => {
@@ -639,7 +648,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
         };
     }, []);
 
-    // YouTube postMessage listener — auto-unmute on play, auto-advance on end
+    // YouTube postMessage listener — registered ONCE at mount (empty deps) so swipes never
+    // create a listener gap. All state reads go through stable refs to avoid stale closures.
     useEffect(() => {
         const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com'];
         const handleYTMessage = (e) => {
@@ -647,7 +657,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
             try {
                 const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
                 if (data?.event === 'onStateChange') {
-                    if (data.info === 0) goNext(); // Video ended
+                    if (data.info === 0) { // Video ended — advance via stable ref
+                        goNextRef.current?.();
+                    }
                     if (data.info === 1) { // Playing
                         setYtReady(true);
                         setPaused(false);
@@ -680,9 +692,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }
                 if (data?.event === 'onError') {
                     setYtError({ code: data.info });
-                    // Report to server + Sentry (best-effort)
+                    // Report to server + Sentry (best-effort) — read index via stable ref
                     try {
-                        const vid = getYouTubeVideoId(reels[currentIndex]?.video_url);
+                        const vid = getYouTubeVideoId(reelsRef.current[currentIndexRef.current]?.video_url);
                         if (vid) { reportFailureToServer(vid, data.info, 'ReelsFeedCarousel'); reportToSentry(vid, data.info, 'ReelsFeedCarousel'); }
                     } catch { /* best-effort */ }
                 }
@@ -690,7 +702,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
         };
         window.addEventListener('message', handleYTMessage);
         return () => window.removeEventListener('message', handleYTMessage);
-    }, [currentIndex]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // MUST stay [] — listener registered once; reads fresh data via refs
 
     const handleLike = async () => {
         if (!currentReel) return;
