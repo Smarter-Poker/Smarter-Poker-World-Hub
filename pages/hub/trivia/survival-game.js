@@ -32,6 +32,7 @@ import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 const DAILY_DIAMOND_CAP = 10;

@@ -314,6 +314,13 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     useEffect(() => {
         let debounceTimer = null;
         const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+            // Debounce: clear any pending timer before setting a new one
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                loadFeed();
+                debounceTimer = null;
+            }, 3000);
+        });
         const unsub_refresh = eventBus.on(EventType.SOCIAL_FEED_REFRESHED, () => {
             // Debounce: clear any pending timer before setting a new one
             if (debounceTimer) clearTimeout(debounceTimer);

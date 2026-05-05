@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import {
     joinMatchmakingQueue,
     leaveMatchmakingQueue,

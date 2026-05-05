@@ -648,6 +648,12 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     useEffect(() => {
         let debounceTimer = null;
         const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchPosts();
+                debounceTimer = null;
+            }, 3000);
+        });
         const unsub_refresh = eventBus.on(EventType.SOCIAL_FEED_REFRESHED, () => {
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
