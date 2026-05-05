@@ -22,9 +22,13 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
     // Without this, if the parent unmounts within 1.5s of a successful gift,
     // onGiftSent and onClose fire on a stale closed component.
     const successTimerRef = useRef(null);
+    const isMounted = useRef(true);
 
     useEffect(() => {
-        return () => { if (successTimerRef.current) clearTimeout(successTimerRef.current); };
+        return () => { 
+            isMounted.current = false;
+            if (successTimerRef.current) clearTimeout(successTimerRef.current); 
+        };
     }, []);
 
     const handleSend = async () => {
@@ -55,16 +59,20 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                 throw new Error(`Server error: ${resp.status} ${resp.statusText}`);
             }
             if (!resp.ok) throw new Error(data?.error || 'Gift failed');
+            
+            if (!isMounted.current) return;
+            
             setSuccess(true);
             successTimerRef.current = setTimeout(() => {
+                if (!isMounted.current) return;
                 successTimerRef.current = null;
                 onGiftSent?.(selected, data.newBalance);
                 onClose();
             }, 1500);
         } catch (err) {
-            setError(err.message);
+            if (isMounted.current) setError(err.message);
         } finally {
-            setSending(false);
+            if (isMounted.current) setSending(false);
         }
     };
 

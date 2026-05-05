@@ -23,10 +23,16 @@ export default async function handler(req, res) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { stream_id, receiver_id, amount, message } = req.body;
-    if (!stream_id || !receiver_id || !amount || amount < 1) {
-        return res.status(400).json({ error: 'stream_id, receiver_id, and amount required' });
+    
+    // SECURITY: Strictly parse amount to an integer. If amount is NaN, a string 
+    // like "invalid", or an array, it bypasses JS coercion checks (< 1) and could
+    // either cause a DB error or be swallowed as a 0 balance transfer.
+    const parsedAmount = parseInt(amount, 10);
+
+    if (!stream_id || !receiver_id || !parsedAmount || isNaN(parsedAmount) || parsedAmount < 1) {
+        return res.status(400).json({ error: 'stream_id, receiver_id, and a valid amount required' });
     }
-    if (amount > 10000) {
+    if (parsedAmount > 10000) {
         return res.status(400).json({ error: 'Maximum gift is 10,000 diamonds' });
     }
     if (receiver_id === user.id) {
@@ -54,7 +60,7 @@ export default async function handler(req, res) {
         // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)
         const { data: deductResult, error: deductErr } = await supabase.rpc('deduct_diamonds', {
             p_user_id: user.id,
-            p_amount: amount,
+            p_amount: parsedAmount,
             p_description: `Live gift to broadcaster`,
             p_transaction_type: 'live_gift_sent',
         });
@@ -78,7 +84,7 @@ export default async function handler(req, res) {
             try {
                 const { error: refundErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: user.id,
-                    p_amount: amount,
+                    p_amount: parsedAmount,
                     p_type: 'live_gift_refund',
                     p_description: `Live gift refund — ${reason}`,
                     p_reference_id: `live_gift_refund_${giftId}`,
@@ -95,9 +101,9 @@ export default async function handler(req, res) {
         // multiple gifts to the same stream don't collide on dedup.
         const { data: creditResult, error: creditErr } = await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: receiver_id,
-            p_amount: amount,
+            p_amount: parsedAmount,
             p_type: 'live_gift_received',
-            p_description: `${senderName} sent ${amount} diamonds during your live`,
+            p_description: `${senderName} sent ${parsedAmount} diamonds during your live`,
             p_reference_id: `live_gift_${giftId}`,
         });
         if (creditErr) {
@@ -122,7 +128,7 @@ export default async function handler(req, res) {
             stream_id,
             sender_id: user.id,
             receiver_id,
-            amount,
+            amount: parsedAmount,
             message: message || null,
         }).select().maybeSingle();
 
@@ -144,7 +150,7 @@ export default async function handler(req, res) {
                 sender_name: senderName,
                 sender_avatar: senderProfile?.avatar_url || null,
                 receiver_id,
-                amount,
+                amount: parsedAmount,
                 message: message || null,
                 gift_id: gift?.id,
             },
@@ -156,7 +162,7 @@ export default async function handler(req, res) {
             user_id: receiver_id,
             type: 'live_gift',
             title: 'Diamond Gift Received',
-            message: `${senderName} sent you ${amount} diamonds during your live stream!`,
+            message: `${senderName} sent you ${parsedAmount} diamonds during your live stream!`,
             actor_id: user.id,
             link: `/hub/social-media?stream=${stream_id}`,
             read: false,
