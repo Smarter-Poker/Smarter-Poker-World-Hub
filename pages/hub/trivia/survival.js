@@ -217,11 +217,13 @@ export default function SurvivalModePage() {
                 // (id, user_id, level_reached, correct_count, incorrect_count, diamonds_earned, run_data, created_at).
                 // The previous insert wrote `time_survived: 0` which is NOT a column on this
                 // table — every insert silently failed. Now writes only real columns.
-                await supabase.from('trivia_survival_runs').insert({
+                // Capture insert error — supabase-js does NOT throw on DB errors.
+                const { error: runErr } = await supabase.from('trivia_survival_runs').insert({
                     user_id: userId,
                     correct_count: gameResult.correctCount,
                     diamonds_earned: gameResult.diamondsEarned
                 });
+                if (runErr) throw runErr;
 
                 // Award diamonds via audit-safe RPC (capped to daily limit)
                 if (gameResult.diamondsEarned > 0) {

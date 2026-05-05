@@ -656,10 +656,13 @@ export default function StrategyTrivia({ mode }) {
                 }
             }
 
-            // Save score to trivia_scores
+            // Save score to trivia_scores. Capture insert error — supabase-js
+            // does NOT throw on DB errors, so the surrounding try/catch only
+            // saw network errors. Without this, NOT NULL violations / RLS
+            // denials silently dropped scores while UI showed success.
             try {
                 const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
-                await supabase.from('trivia_scores').insert({
+                const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                     user_id: userId,
                     mode,
                     score: actualCorrectCount * 100,
@@ -669,6 +672,7 @@ export default function StrategyTrivia({ mode }) {
                     diamonds_earned: diamondsEarned,
                     play_date: today
                 });
+                if (scoreErr) throw scoreErr;
             } catch (e) {
                 console.warn('[StrategyTrivia] Error saving score:', e);
             }

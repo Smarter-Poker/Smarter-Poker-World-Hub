@@ -214,9 +214,10 @@ export default function TimeAttackPage() {
             const today = new Date().toISOString().split('T')[0];
 
             try {
-                // Phase 1: Save score (only if not already saved)
+                // Phase 1: Save score (only if not already saved).
+                // Capture insert error — supabase-js does NOT throw on DB errors.
                 if (savePhaseRef.current < 1) {
-                    await supabase.from('trivia_scores').insert({
+                    const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                         user_id: userId,
                         username: avatarUser?.username || avatarUser?.display_name || null,
                         mode: 'time-attack',
@@ -226,6 +227,7 @@ export default function TimeAttackPage() {
                         diamonds_earned: gameResult.diamondsEarned,
                         play_date: today
                     });
+                    if (scoreErr) throw scoreErr;
                     savePhaseRef.current = 1;
                 }
 

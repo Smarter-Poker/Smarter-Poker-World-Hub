@@ -626,10 +626,11 @@ export default function EndlessModePage() {
                 savePhaseRef.current = 3;
             }
 
-            // Phase 4: Record to unified trivia_scores (for leaderboard)
+            // Phase 4: Record to unified trivia_scores (for leaderboard).
+            // Capture insert error — supabase-js does NOT throw on DB errors.
             if (savePhaseRef.current < 4) {
                 const today = new Date().toISOString().split('T')[0];
-                await supabase.from('trivia_scores').insert({
+                const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                     user_id: userId,
                     username: avatarUser?.username || avatarUser?.display_name || null,
                     mode: 'endless',
@@ -639,6 +640,7 @@ export default function EndlessModePage() {
                     diamonds_earned: actualAwarded,
                     play_date: today
                 });
+                if (scoreErr) throw scoreErr;
                 savePhaseRef.current = 4;
             }
 

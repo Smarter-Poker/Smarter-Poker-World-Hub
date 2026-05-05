@@ -577,9 +577,13 @@ export default function TriviaModePage() {
             try {
                 const today = getTodayCST();
 
-                // Phase 1: Save score (only if not already saved)
+                // Phase 1: Save score (only if not already saved).
+                // Capture DB errors — supabase-js does NOT throw on insert errors,
+                // so the function-level catch never saw NOT NULL / RLS / schema
+                // violations. Without this, the user's score would silently fail
+                // to persist while the UI showed success.
                 if (savePhaseRef.current < 1) {
-                    await supabase.from('trivia_scores').insert({
+                    const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                         user_id: userId,
                         username: avatarUser?.username || avatarUser?.display_name || null,
                         mode,
@@ -590,6 +594,7 @@ export default function TriviaModePage() {
                         diamonds_earned: diamondsEarned,
                         play_date: today
                     });
+                    if (scoreErr) throw scoreErr;
                     savePhaseRef.current = 1;
                 }
 
