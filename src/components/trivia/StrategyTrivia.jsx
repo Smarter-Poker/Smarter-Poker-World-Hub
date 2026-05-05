@@ -9,6 +9,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { calculateDiamonds, TRIVIA_MODES, getCategoryName } from '../../../src/lib/trivia/triviaEngine';
@@ -210,6 +211,11 @@ export default function StrategyTrivia({ mode }) {
     // instead of independently calling DiamondEngine.isVIP()
     // ═══════════════════════════════════════════════════════════════════
     const { isVip, userId: vipUserId, initializing: vipInitializing } = useVIP();
+    // Reactive auth — was empty-deps useEffect with getAuthUser(). If auth
+    // wasn't hydrated when the component first mounted (common during cold
+    // SSR-hydration), localUserId stayed null forever and the user got an
+    // anon flow even after login. Drives the init useEffect.
+    const { user: avatarUser, loading: avatarLoading } = useAvatar();
 
     // Game state
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, results
@@ -251,9 +257,11 @@ export default function StrategyTrivia({ mode }) {
     // Preloaded questions state (load in background while user views lobby image)
     const [preloadedQuestions, setPreloadedQuestions] = useState(null);
 
-    // Initialize + preload questions
+    // Initialize + preload questions. Re-runs on auth resolution so the user
+    // is properly wired up even if AvatarContext was still loading on first render.
     useEffect(() => {
-        const user = getAuthUser();
+        if (avatarLoading) return;
+        const user = avatarUser || getAuthUser();
         if (user) {
             setLocalUserId(user.id);
             loadUserDiamonds(user.id);
@@ -262,7 +270,8 @@ export default function StrategyTrivia({ mode }) {
         setIsLoading(false);
         // Preload questions in background
         preloadQuestions();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [avatarUser?.id, avatarLoading]);
 
     async function preloadQuestions() {
         try {

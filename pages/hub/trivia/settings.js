@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -17,6 +18,9 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 export default function TriviaSettings() {
     useTrainingBus('trivia-settings');
     const router = useRouter();
+    // Reactive auth — was empty-deps useEffect with getAuthUser(); preferences
+    // never loaded if auth wasn't hydrated on first render.
+    const { user: avatarUser, loading: avatarLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -30,9 +34,10 @@ export default function TriviaSettings() {
     });
 
     useEffect(() => {
+        if (avatarLoading) return;
         async function loadPreferences() {
             try {
-                const user = getAuthUser();
+                const user = avatarUser || getAuthUser();
                 if (user) {
                     setUserId(user.id);
                     const prefs = await getTriviaPreferences(user.id);
@@ -45,7 +50,7 @@ export default function TriviaSettings() {
         }
 
         loadPreferences();
-    }, []);
+    }, [avatarUser?.id, avatarLoading]);
 
     const autoSave = async (newPrefs, onRollback) => {
         if (!userId) return;

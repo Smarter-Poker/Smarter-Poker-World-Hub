@@ -24,9 +24,19 @@ export default function TriviaLeaderboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState(null);
 
+    // Auth-reactive: react to auth state changes, not just mount.
+    // Was empty-deps ([]) → if getAuthUser() returned null on first render,
+    // the user's row was never highlighted in the leaderboard even after login.
     useEffect(() => {
-        const user = getAuthUser();
-        if (user) setCurrentUserId(user.id);
+        const update = () => {
+            const user = getAuthUser();
+            if (user) setCurrentUserId(user.id);
+        };
+        update();
+        // Re-check whenever auth might have changed (other tabs / supabase auth-state-change broadcast)
+        const onStorage = (e) => { if (e.key === 'sb-kuklfnapbkmacvwxktbh-auth-token') update(); };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
     }, []);
 
     useEffect(() => {
