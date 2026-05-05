@@ -41,11 +41,8 @@ export default function GlobalPiPManager() {
             if (liveStreamService.isBroadcaster) {
                 videoRef.current.srcObject = liveStreamService.localStream;
             } else {
-                // Attach the primary remote video track
-                const tracks = liveStreamService.getRemoteTracks();
-                const videoTrack = tracks.find(t => t.kind === 'video');
-                if (videoTrack && videoTrack.mediaStream) {
-                    videoRef.current.srcObject = videoTrack.mediaStream;
+                if (liveStreamService._remoteMediaStream) {
+                    videoRef.current.srcObject = liveStreamService._remoteMediaStream;
                 }
             }
         }

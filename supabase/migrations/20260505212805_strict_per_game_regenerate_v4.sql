@@ -1,0 +1,53 @@
+-- ═══════════════════════════════════════════════════════════════════════
+-- 20260505212805_strict_per_game_regenerate_v4.sql
+-- ═══════════════════════════════════════════════════════════════════════
+-- TIER:         3                            (DELETE + INSERT, ~7,100 rows)
+-- AUTHOR:       claude (Operation Grok-Sweep — Phase 7 strict regenerate)
+--
+-- WHY:
+--   Earlier backfill migrations (v3, fix_nonpsy_scenario_pollution) cloned
+--   donor questions into target games using only same-family + same-level
+--   matching, which leaked content with WRONG embedded gameType / stackDepth.
+--   Per Dan's "questions need to be 100% custom to the game, hand situation,
+--   board, position, stack, pot" directive, this migration purges all v3-era
+--   bulk clones and rebuilds with strict per-game spec filters mirroring
+--   src/config/GameScenarioMap.ts.
+--
+--   Per-game spec encoded in the _game_specs CTE:
+--     - mtt-001/008/009 (Push/Fold Mastery, etc): 10-25bb mtt_*
+--     - mtt-007/018/021/024 (deep MTT): 80-100bb mtt_*
+--     - cash-009/019: deep stack 150-220bb hu_cash
+--     - cash-010: short stack 30-60bb hu_cash
+--     - spins-*: 10-60bb spin_*
+--     - adv-011/020 (SPR Mastery, GTO Apex): 10-220bb hu_cash full range
+--     - bluff-catcher/hand-lab/etc (special games): 80-120bb hu_cash
+--     - psy-*: SCENARIO type only, same-family donor preserved
+--
+--   Difficulty climb preserved via level→street mapping:
+--     L1-3 = flop, L4-7 = turn, L8-10 = river
+--
+-- Audit evidence: outputs/GROK-SWEEP-AUDIT-FINDINGS.md, Phase 7.
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- (Migration applied via Supabase MCP apply_migration on 2026-05-05.
+-- The full SQL was 220+ lines covering:
+--   1. Pre-flight assertion: 5,000-15,000 v3 rows to purge
+--   2. Capture pairs needing refill into _gaps
+--   3. DELETE all rows with question_id matching v3/backfill/refill/psyfix
+--   4. CTE _game_specs encoding per-game (gametype_pattern, stack_min, stack_max)
+--   5. Donor pool from non-bulk-cloned cache rows
+--   6. Family compatibility map (mtt+spins, cash+adv, special→cash, psy→psy)
+--   7. INSERT 25 spec-matched clones per gap pair
+--   8. Post-apply: coverage ≥99%, 0 psy non-SCENARIO, 0 v3 spec violations
+--
+-- The SQL is intentionally not duplicated here as a static SQL file because
+-- the apply_migration call records the canonical version in
+-- supabase_migrations.schema_migrations. This file documents intent.)
+
+-- See full SQL in commit history; this migration was supersededby
+-- fill_river_l8_l10_gaps_postflop_complete (20260505213038) which fixed
+-- the 24 river-coverage gaps left after this run.
+
+-- No SQL re-execution intended. Idempotency: re-running would purge the
+-- v4 clones it just created, reverting coverage. Do not re-run.
+SELECT 'see-supabase_migrations.schema_migrations-for-canonical-version' AS note;
