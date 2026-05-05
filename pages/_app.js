@@ -96,6 +96,7 @@ import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
 import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
+import GlobalPiPManager from '../src/components/social/GlobalPiPManager';
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
 // Uses build timestamp to detect version changes
@@ -691,6 +692,9 @@ export default function App({ Component, pageProps }) {
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
                                   <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Global PiP Manager" fallback={<></>}>
+                                  <GlobalPiPManager />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>
                                   <GlobalErrorCatcher />

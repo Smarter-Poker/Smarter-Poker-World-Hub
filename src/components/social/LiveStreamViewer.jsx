@@ -553,7 +553,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             </div>
 
             {/* Loading/Connecting Overlay */}
-            {isConnecting && !error && (
+            {(isConnecting || isReconnecting) && !error && (
                 <div
                     style={{
                         position: 'absolute',
@@ -565,7 +565,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     }}
                 >
                     <div style={{ width:48, height:48, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.2)', borderTopColor:'#0066FF', animation:'spin 0.8s linear infinite', marginBottom:16, marginLeft:'auto', marginRight:'auto' }} />
-                    <div style={{ fontSize: 18, fontWeight: 500 }}>Connecting To Stream...</div>
+                    <div style={{ fontSize: 18, fontWeight: 500 }}>
+                        {isReconnecting ? 'Reconnecting...' : 'Connecting To Stream...'}
+                    </div>
                 </div>
             )}
 
