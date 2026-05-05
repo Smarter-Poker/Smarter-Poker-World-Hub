@@ -89,40 +89,60 @@ const VELOCITY_TRANSACTIONS_1H = 10;         // Flagged if 10+ transfer attempts
  * the PURCHASED_WON cap applies; otherwise FREE_EARNED cap applies.
  */
 async function getSourceTierAvailable(supabase, userId) {
-    // Sum all lifetime inbound transactions by type
-    const { data: inboundRows } = await supabase
-        .from('diamond_transactions')
-        .select('amount, transaction_type, created_at')
-        .eq('user_id', userId)
-        .gt('amount', 0); // positive = earned/received
-
     let purchasedWonTotal = 0;
     let freeEarnedTotal = 0;
-
     const now = new Date();
     const escrowThreshold = new Date(now.getTime() - 72 * 60 * 60 * 1000); // 72-hour escrow
 
-    for (const row of inboundRows || []) {
-        if (PURCHASED_WON_TYPES.has(row.transaction_type)) {
-            // 72-Hour Fraud Escrow: Purchased diamonds do not count towards the 500 cap for 72 hours
-            if (row.transaction_type.includes('purchase') && new Date(row.created_at) > escrowThreshold) {
-                freeEarnedTotal += Math.abs(row.amount);
+    let inPage = 0;
+    const pageSize = 1000;
+    
+    // Sum all lifetime inbound transactions by type (paginated)
+    while (true) {
+        const { data: inboundRows } = await supabase
+            .from('diamond_transactions')
+            .select('amount, transaction_type, created_at')
+            .eq('user_id', userId)
+            .gt('amount', 0) // positive = earned/received
+            .range(inPage * pageSize, (inPage + 1) * pageSize - 1);
+
+        if (!inboundRows || inboundRows.length === 0) break;
+
+        for (const row of inboundRows) {
+            if (PURCHASED_WON_TYPES.has(row.transaction_type)) {
+                // 72-Hour Fraud Escrow: Purchased diamonds do not count towards the 500 cap for 72 hours
+                if (row.transaction_type.includes('purchase') && new Date(row.created_at) > escrowThreshold) {
+                    freeEarnedTotal += Math.abs(row.amount);
+                } else {
+                    purchasedWonTotal += Math.abs(row.amount);
+                }
             } else {
-                purchasedWonTotal += Math.abs(row.amount);
+                freeEarnedTotal += Math.abs(row.amount);
             }
-        } else {
-            freeEarnedTotal += Math.abs(row.amount);
         }
+        if (inboundRows.length < pageSize) break;
+        inPage++;
     }
 
-    // Sum all lifetime outbound gifts already sent (they reduce the available pool)
-    const { data: outboundRows } = await supabase
-        .from('diamond_transactions')
-        .select('amount')
-        .eq('user_id', userId)
-        .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent']);
+    let totalSent = 0;
+    let outPage = 0;
 
-    const totalSent = (outboundRows || []).reduce((sum, r) => sum + Math.abs(r.amount), 0);
+    // Sum all lifetime outbound gifts already sent (paginated)
+    while (true) {
+        const { data: outboundRows } = await supabase
+            .from('diamond_transactions')
+            .select('amount')
+            .eq('user_id', userId)
+            .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
+            .range(outPage * pageSize, (outPage + 1) * pageSize - 1);
+
+        if (!outboundRows || outboundRows.length === 0) break;
+        
+        totalSent += outboundRows.reduce((sum, r) => sum + Math.abs(r.amount), 0);
+        
+        if (outboundRows.length < pageSize) break;
+        outPage++;
+    }
 
     // Conservative: subtract all gifts from purchased/won first, then free/earned
     const purchasedWonAvailable = Math.max(0, purchasedWonTotal - totalSent);

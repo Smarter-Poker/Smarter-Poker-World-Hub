@@ -74,6 +74,16 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         if (!stream?.id || !userId) return;
         let hasLeft = false;
 
+        // Fetch historical gifts for leaderboard
+        fetch(`/api/live/gifts?stream_id=${stream.id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.topGifters) {
+                    setTopGifters(data.topGifters);
+                }
+            })
+            .catch(err => console.error('Failed to load gifts', err));
+
         const connect = async () => {
             try {
                 setIsConnecting(true);
