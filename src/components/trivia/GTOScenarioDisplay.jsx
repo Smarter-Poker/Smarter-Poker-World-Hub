@@ -34,6 +34,17 @@ const formatPokerText = (text) => {
 };
 
 // Highlight GTO keywords in text
+// Phase 58: escape HTML BEFORE keyword wrapping. Without this, any HTML in the
+// explanation text (admin entry, AI prompt injection, DB tampering) would be
+// rendered as live HTML via dangerouslySetInnerHTML — XSS. Now we escape first,
+// then add our trusted <span class="gto-highlight"> wrappers.
+const escapeHtml = (s) => String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const highlightKeywords = (text) => {
     const keywords = [
         'GTO', 'EV', 'Expected Value', 'fold equity', 'pot equity', 'range',
@@ -43,8 +54,8 @@ const highlightKeywords = (text) => {
         'continuation bet', 'c-bet', 'float', 'probe', '3-bet', '4-bet'
     ];
 
-    // Apply poker formatting first
-    let result = formatPokerText(text);
+    // SECURITY: escape user-provided text before wrapping in trusted spans.
+    let result = formatPokerText(escapeHtml(text));
     keywords.forEach(keyword => {
         const regex = new RegExp(`\\b(${keyword})\\b`, 'gi');
         result = result.replace(regex, '<span class="gto-highlight">$1</span>');
