@@ -743,6 +743,16 @@ export default function PvPPage() {
         const myScore = isPlayer1 ? match.player1_score : match.player2_score;
         const theirScore = isPlayer1 ? match.player2_score : match.player1_score;
 
+        // Calculate winnings — 10% rake on total pot. Floored for integer diamonds.
+        // Phase 55: moved BEFORE busEmit so the toaster shows the same amount as
+        // the result UI. Previously busEmit used `stakeAmount * 2 * 0.9` which
+        // produces a float for non-multiples-of-10 (e.g., custom AllInMode stake
+        // of 33 → busEmit shows 59.4 while actual credit is 60). Now both use
+        // the same floored value.
+        const totalPot = stakeAmount * 2;
+        const rakeAmount = Math.floor(totalPot * 0.1);
+        const winnings = won ? totalPot - rakeAmount : 0;
+
         // Process rewards if we won
         if (won) {
             const loserId = isPlayer1 ? match.player2_id : match.player1_id;
@@ -756,16 +766,11 @@ export default function PvPPage() {
                 .maybeSingle();
             if (profile) setUserDiamonds(profile.diamonds || 0);
 
-            busEmit.diamondsEarned(stakeAmount * 2 * 0.9, 'PvP Real Match Victory');
+            busEmit.diamondsEarned(winnings, 'PvP Real Match Victory');
             busEmit.celebration('confetti');
         } else {
             busEmit.screenShake('medium');
         }
-
-        // Calculate winnings — 10% rake on total pot
-        const totalPot = stakeAmount * 2;
-        const rakeAmount = Math.floor(totalPot * 0.1);
-        const winnings = won ? totalPot - rakeAmount : 0;
 
         setResult({
             won,
