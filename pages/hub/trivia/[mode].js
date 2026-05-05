@@ -23,7 +23,12 @@ import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDispla
 import { TRIVIA_MODES, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import { getRecentlySeenIds } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
+
+// Phase 55 — gameplay quality floor. Questions tagged below this by the audit
+// pipeline (qs=2 auto-demoted via 3-strike user reports, qs=4 unclear English,
+// qs=5 legacy un-audited) are excluded from rotation here too.
+const MIN_QUALITY_SCORE = 6;
 
 // Phase 1 Enhancement Imports
 import PrizeWheel from '../../../src/components/trivia/PrizeWheel';
@@ -257,11 +262,14 @@ export default function TriviaModePage() {
         // ═══════════════════════════════════════════════════════════════
         // STEP 1: Try to load today's daily-tagged questions
         // All users get the same 20 questions per category per day
+        // Phase 55: also enforce quality_score >= MIN_QUALITY_SCORE so reported-bad
+        //           and unclear questions never land on the daily roster.
         // ═══════════════════════════════════════════════════════════════
         let dailyQuery = supabase
             .from('trivia_questions')
             .select('*')
-            .eq('daily_date', today);
+            .eq('daily_date', today)
+            .gte('quality_score', MIN_QUALITY_SCORE);
 
         // Filter by categories if mode is category-specific
         if (categories && categories.length > 0) {
@@ -280,25 +288,33 @@ export default function TriviaModePage() {
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // STEP 2: Fallback — seeded shuffle from full pool
-        // Used when daily questions haven't been rotated yet
+        // STEP 2: Fallback — random-offset pool fetch + seeded daily shuffle
+        // Phase 55: was using .limit(1500) without offset which always pulled
+        //           the same first-1500 by Postgres-internal order. With 8675+
+        //           questions in the pool, ~7000 were never reachable. Now uses
+        //           fetchRandomQuestionPool() to pull a different page each run.
         // ═══════════════════════════════════════════════════════════════
-
-        let poolQuery = supabase.from('trivia_questions').select('*').limit(1500); // larger pool to allow filtering
-        if (categories && categories.length > 0) {
-            poolQuery = poolQuery.in('category', categories);
-        }
-
-        const { data: poolQuestions } = await poolQuery;
+        const poolQuestions = await fetchRandomQuestionPool(supabase, {
+            category: categories,
+            pageSize: 1500,
+        });
 
         if (!poolQuestions || poolQuestions.length === 0) {
             return getFallbackQuestions(count);
         }
 
-        // Filter out questions seen in the last 60 days
-        let filteredPool = poolQuestions.filter(q => !excludedSet.has(q.id));
+        // Apply quality floor + 60-day seen exclusion
+        const qualityPool = poolQuestions.filter(
+            q => typeof q.quality_score !== 'number' || q.quality_score >= MIN_QUALITY_SCORE,
+        );
+        let filteredPool = qualityPool.filter(q => !excludedSet.has(q.id));
 
-        // If they have played so much they exhausted the pool, fallback to including seen questions
+        // Tier-1 fallback: if seen-exclusion empties the pool, drop the seen
+        // filter but KEEP the quality floor — never let qs<6 questions through.
+        if (filteredPool.length < count && qualityPool.length >= count) {
+            filteredPool = qualityPool;
+        }
+        // Tier-2 fallback: pool-health emergency — only then drop quality floor.
         if (filteredPool.length < count && poolQuestions.length >= count) {
             filteredPool = poolQuestions;
         }
@@ -789,6 +805,14 @@ export default function TriviaModePage() {
         setResult(null);
         idempotencyRefs.current = {}; // Reset idempotency keys for new game
         masteryCacheRef.current = null; // Reset mastery cache
+        // Phase 55 fix: previously NOT reset here. If a prior game's save errored
+        // mid-phase and the user navigated past the retry UI without retrying,
+        // savePhaseRef stayed at the partial value (e.g. 2). The next game's
+        // handleComplete would skip phases <= that value — meaning the user's
+        // new score insert (phase 1) would be silently skipped on every
+        // subsequent game until full page reload.
+        savePhaseRef.current = 0;
+        setSaveErrorPayload(null);
         setGameState('ready');
     };
 

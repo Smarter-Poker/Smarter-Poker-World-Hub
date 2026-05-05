@@ -287,7 +287,7 @@ class LiveStreamService {
         });
 
         await this.room.connect(url, token, {
-            autoSubscribe: !isBroadcaster,
+            autoSubscribe: true, // BUG FIX: Must be true so broadcaster can see guests!
         });
 
         // Publish local tracks if broadcaster

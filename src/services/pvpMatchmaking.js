@@ -5,6 +5,9 @@
 
 import { supabase } from '../lib/supabase';
 import { busEmit } from '../engine/EventBus';
+import { fetchRandomQuestionPool, filterAndShuffle } from '../lib/triviaQuestionLoader';
+
+const MIN_QUALITY_SCORE = 6;
 
 /**
  * Join the matchmaking queue for a specific stake level
@@ -126,19 +129,24 @@ export async function findMatch(userId, stakeAmount) {
             console.warn('[PvP Matchmaking] Warning: Could not fetch opponent losses:', lossesError);
         }
 
-        // Load 20 random questions for the match (all categories)
-        const { data: questions, error: questionsError } = await supabase
-            .from('trivia_questions')
-            .select('*')
-            .limit(100);
-
-        if (questionsError || !questions || questions.length === 0) {
+        // Phase 55: real PvP matches (money-flow critical) need:
+        //   1. Random-offset fetch — was always pulling the same 100 newest
+        //      rows by Postgres-internal order, so opponents repeatedly faced
+        //      the same questions.
+        //   2. Quality floor — reported-bad (qs=2) and unclear (qs=4)
+        //      questions must NEVER land in a PvP match where money is at stake.
+        //   3. Unbiased Fisher-Yates shuffle (was using sort(()=>Math.random()-0.5)
+        //      which is mathematically biased — some permutations 2x more likely
+        //      than others, opponent could exploit).
+        const questions = await fetchRandomQuestionPool(supabase, { pageSize: 100 });
+        if (!questions || questions.length === 0) {
             throw new Error('Failed to load trivia questions for match');
         }
-
-        const matchQuestions = questions
-            .sort(() => Math.random() - 0.5)
+        const matchQuestions = filterAndShuffle(questions, [], 20, { minQualityScore: MIN_QUALITY_SCORE })
             .slice(0, 20);
+        if (matchQuestions.length < 20) {
+            throw new Error('Insufficient quality questions available for match');
+        }
 
         // Create the match
         const { data: match, error: matchError } = await supabase

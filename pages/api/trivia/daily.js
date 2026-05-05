@@ -148,11 +148,14 @@ export default async function handler(req, res) {
       try {
           const today = getTodayCST();
 
-          // Try to fetch today's questions from database
+          // Phase 55: enforce gameplay quality floor (qs >= 6) so reported-bad
+          // (qs=2 via 3-strike auto-demote) and unclear-English (qs=4 via Flesch
+          // check in audit cron) questions never land on the public daily roster.
           const { data: questions, error } = await getSupabase()
               .from('trivia_questions')
               .select('id, category, difficulty, question, options, correct_index, explanation')
               .eq('daily_date', today)
+              .gte('quality_score', 6)
               .order('order_index', { ascending: true })
                   .limit(100);
 

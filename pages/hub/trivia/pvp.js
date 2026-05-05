@@ -21,7 +21,7 @@ import {
     submitMatchScore,
     processMatchReward
 } from '../../../src/services/pvpMatchmaking';
-import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -394,10 +394,10 @@ export default function PvPPage() {
         // Load questions for horse match with 60-day exclusion using shared utility
         const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'pvp'); // specify 'pvp' mode to only exclude pvp-seen questions, maintaining isolation
 
-        const { data: questions } = await supabase
-            .from('trivia_questions')
-            .select('*')
-            .limit(100);
+        // Phase 55: random-offset fetch instead of "first 100" — was always
+        // pulling the same 100 rows by Postgres-internal order, so PvP horse
+        // matches recycled the same questions across all of a user's matches.
+        const questions = await fetchRandomQuestionPool(supabase, { pageSize: 100 });
 
         let matchQuestions = [];
         if (questions && questions.length > 0) {
