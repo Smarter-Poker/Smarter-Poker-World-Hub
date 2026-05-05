@@ -61,6 +61,21 @@ class LiveStreamService {
         // NOTE: _giftChannel is intentionally absent — gift broadcast channels are
         // managed by React component refs (GoLiveModal / LiveStreamViewer) to tie
         // their lifecycle to the component, not the singleton service.
+
+        // BUG FIX: Global beforeunload listener to guarantee cleanup on tab close.
+        // Because LiveStreamViewer no longer unmounts on navigation (due to Global PiP),
+        // we MUST intercept tab closures globally to prevent zombie viewers and stranded streams.
+        if (typeof window !== 'undefined') {
+            window.addEventListener('beforeunload', () => {
+                if (this.currentStreamId) {
+                    if (this.isBroadcaster) {
+                        this.endBroadcast();
+                    } else {
+                        this.leaveStream();
+                    }
+                }
+            });
+        }
     }
 
     // ═══════════════════════════════════════════════════
@@ -320,7 +335,7 @@ class LiveStreamService {
             const { token, url } = await this._getToken(this.currentStreamId, this.isBroadcaster, this.guestInviteCode);
             // FIX: disconnect the old Room before creating a new one to prevent room leak
             if (this.room) {
-                try { await this.room.disconnect(); } catch (_) {}
+                this.room.disconnect().catch(() => {});
                 this.room = null;
             }
             // FIX: reset stream guard so TrackSubscribed can deliver the new remote stream
@@ -448,15 +463,15 @@ class LiveStreamService {
             body: JSON.stringify({ stream_id: streamIdForEnd, action: 'force_end' }),
         }).catch(() => {}); // Non-fatal
 
-        // Update Supabase stream status (this will likely be cancelled by the browser if during beforeunload)
-        await supabase
+        // Update Supabase stream status (fire-and-forget to prevent UI blocking if network is degraded)
+        supabase
             .from('live_streams')
             .update({ status: 'ended', ended_at: new Date().toISOString() })
             .eq('id', this.currentStreamId).catch(() => {});
 
-        // Disconnect LiveKit room
+        // Disconnect LiveKit room (fire-and-forget)
         if (this.room) {
-            try { await this.room.disconnect(); } catch (_) {}
+            this.room.disconnect().catch(() => {});
             this.room = null;
         }
 
@@ -622,7 +637,7 @@ class LiveStreamService {
         }
 
         if (this.room) {
-            await this.room.disconnect();
+            this.room.disconnect().catch(() => {});
             this.room = null;
         }
 
