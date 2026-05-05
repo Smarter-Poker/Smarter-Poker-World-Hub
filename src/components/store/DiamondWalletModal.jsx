@@ -1435,7 +1435,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     fontFeatureSettings: '"zero" 0',
                                     textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,180,255,0.6)',
                                 }}>
-                                    {isVipActive ? `Expires: ${daysLeftText} Days` : 'Inactive'}
+                                    {isVipActive ? (
+                                        <>Expires:<br/>{daysLeftText} Days</>
+                                    ) : (
+                                        'Inactive'
+                                    )}
                                 </div>
                             );
                         })()}
