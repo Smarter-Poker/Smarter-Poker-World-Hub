@@ -145,33 +145,44 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
               {o.id === 'diamonds' ? (
                 <>
                   <div style={{
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontSize: o.fontSize,
-                    fontWeight: 900,
-                    color: o.color,
-                    lineHeight: 1,
-                    textShadow: '0 0 12px rgba(0,200,255,0.9)',
-                  }}>485</div>
+                      fontFamily: '"Orbitron", sans-serif',
+                      fontSize: '32px', // static size for editor
+                      fontWeight: 900,
+                      letterSpacing: '1px',
+                      background: 'linear-gradient(180deg, #ffffff 0%, #c0e0ff 40%, #0099ff 80%, #005bb5 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.9)) drop-shadow(0 0 12px rgba(0,200,255,0.7))',
+                      textTransform: 'uppercase',
+                      lineHeight: 1,
+                      marginBottom: 4,
+                  }}>
+                      485
+                  </div>
                   <div style={{
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontSize: o.subFontSize,
-                    fontWeight: 700,
-                    color: o.subColor,
-                    letterSpacing: '1.5px',
-                    marginTop: 2,
-                    textTransform: 'uppercase',
-                  }}>DIAMONDS</div>
+                      fontFamily: '"Orbitron", sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: '#e0f0ff',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1.5px',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,180,255,0.6)',
+                  }}>Diamonds</div>
                 </>
               ) : (
                 <div style={{
-                  fontFamily: "'Orbitron', sans-serif",
-                  fontSize: o.fontSize,
-                  fontWeight: 800,
-                  color: o.color,
-                  letterSpacing: '1px',
-                  textTransform: 'uppercase',
-                  textShadow: '0 0 10px rgba(0,180,255,0.6)',
-                }}>EXPIRES: 30 DAYS</div>
+                    fontFamily: '"Orbitron", sans-serif',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    letterSpacing: '1px',
+                    color: '#e0f0ff',
+                    textTransform: 'uppercase',
+                    fontVariantNumeric: 'normal',
+                    fontFeatureSettings: '"zero" 0',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,180,255,0.6)',
+                }}>
+                    Expires:<br/>30 Days
+                </div>
               )}
               {/* Position badge */}
               <div style={{
