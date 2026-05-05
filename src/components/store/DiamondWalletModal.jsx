@@ -1395,7 +1395,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     {/* VIP Expiration Overlay */}
                     <div style={{
                         position: 'absolute',
-                        top: '63%', 
+                        top: '60%', 
                         left: '72%',
                         transform: 'translate(-50%, -50%)',
                         width: '40%',
