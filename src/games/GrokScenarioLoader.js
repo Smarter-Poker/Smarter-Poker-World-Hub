@@ -1,25 +1,37 @@
 /**
- * 🤖 Grok Scenario Loader
- * 
- * Client-side module for fetching Grok-generated scenarios.
- * Handles caching, fallback to static scenarios, and loading states.
+ * 🎯 Deterministic Scenario Loader (Operation Grok-Sweep — 2026-05)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Client-side module for fetching Memory-Matrix preflop training scenarios.
+ * Despite the legacy filename (kept for backward-compat with imports), this
+ * module no longer talks to Grok. The /api/gto/generate-scenario endpoint
+ * is now backed by real solver-derived range tables in
+ * src/config/solverRanges.js — same shape, same exports, NO LLM hallucinations.
+ *
+ * Public API kept identical:
+ *   • fetchGrokScenario(level, filters) — name kept; pulls deterministic
+ *   • getGrokScenario(level, filters)
+ *   • preFetchScenarios(currentLevel, count)
+ *   • clearCache()
+ *   • getCacheStats()
+ *
+ * Optional new alias: fetchScenario / getScenario (recommended for new code).
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// API endpoint for live Grok generation
-const GROK_API = '/api/gto/generate-scenario';
+const SCENARIO_API = '/api/gto/generate-scenario';
 
-// Cache for generated scenarios
+// Cache for fetched scenarios
 let scenarioCache = new Map();
 
 /**
- * Fetch a fresh scenario from Grok API
+ * Fetch a fresh scenario from the deterministic solver-range API.
  * @param {number} level - The level (1-10)
- * @param {Object} filters - Optional filters (position, stackDepth, format)
- * @returns {Promise<Object|null>} - The generated scenario or null on failure
+ * @param {Object} filters - Optional filters (position, stackDepth, format, scenarioType)
+ * @returns {Promise<Object|null>} - The scenario or null on failure
  */
-export async function fetchGrokScenario(level, filters = {}) {
+export async function fetchScenario(level, filters = {}) {
     try {
-        const response = await fetch(GROK_API, {
+        const response = await fetch(SCENARIO_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -27,87 +39,82 @@ export async function fetchGrokScenario(level, filters = {}) {
                 position: filters.position || undefined,
                 stackDepth: filters.stackDepth || undefined,
                 format: filters.format || undefined,
+                scenarioType: filters.scenarioType || undefined,
             }),
         });
 
         const result = await response.json();
 
         if (result.success && result.scenario) {
-            // Cache the scenario
-            const cacheKey = `grok-${level}-${Date.now()}`;
+            // Cache the scenario for one-shot retrieval
+            const cacheKey = `det-${level}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
             scenarioCache.set(cacheKey, result.scenario);
-
-            console.debug('[GrokLoader] Generated scenario:', result.scenario.title);
+            console.debug('[ScenarioLoader] Fetched scenario:', result.scenario.title);
             return result.scenario;
-        } else {
-            console.warn('[GrokLoader] API error:', result.error);
-            return null;
         }
+
+        console.warn('[ScenarioLoader] API error:', result.error);
+        return null;
     } catch (error) {
-        console.warn('[GrokLoader] Fetch error:', error);
+        console.warn('[ScenarioLoader] Fetch error:', error);
         return null;
     }
 }
 
+// Legacy alias — same behavior, kept so existing imports keep working.
+export const fetchGrokScenario = fetchScenario;
+
 /**
- * Pre-fetch scenarios for upcoming levels
- * @param {number} currentLevel - The current level
- * @param {number} count - Number of scenarios to pre-fetch per level
+ * Pre-fetch scenarios for upcoming levels (fire-and-forget).
  */
 export async function preFetchScenarios(currentLevel, count = 2) {
     const levelsToFetch = [currentLevel, currentLevel + 1].filter(l => l <= 10);
-
     for (const level of levelsToFetch) {
         for (let i = 0; i < count; i++) {
-            // Fire and forget - don't await
-            fetchGrokScenario(level).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            fetchScenario(level).catch(e =>
+                console.warn('[ScenarioLoader] Pre-fetch failed:', e?.message || e));
         }
     }
 }
 
 /**
- * Get a cached scenario or fetch a new one
- * @param {number} level - The level (1-10)
- * @param {Object} filters - Optional filters
- * @returns {Promise<Object|null>} - The scenario
+ * Get a cached scenario or fetch a new one.
  */
-export async function getGrokScenario(level, filters = {}) {
-    // Check cache first for quick retrieval
+export async function getScenario(level, filters = {}) {
     for (const [key, scenario] of scenarioCache.entries()) {
         if (scenario.level === level) {
-            // Remove from cache (one-time use)
-            scenarioCache.delete(key);
+            scenarioCache.delete(key); // one-time use
             return scenario;
         }
     }
-
-    // No cached scenario, fetch fresh
-    return fetchGrokScenario(level, filters);
+    return fetchScenario(level, filters);
 }
 
+// Legacy alias
+export const getGrokScenario = getScenario;
+
 /**
- * Clear the scenario cache
+ * Clear the scenario cache.
  */
 export function clearCache() {
     scenarioCache.clear();
 }
 
 /**
- * Get cache stats
+ * Get cache stats.
  */
 export function getCacheStats() {
     const byLevel = {};
     for (const scenario of scenarioCache.values()) {
         byLevel[scenario.level] = (byLevel[scenario.level] || 0) + 1;
     }
-    return {
-        total: scenarioCache.size,
-        byLevel,
-    };
+    return { total: scenarioCache.size, byLevel };
 }
 
 export default {
+    fetchScenario,
     fetchGrokScenario,
+    getScenario,
     getGrokScenario,
     preFetchScenarios,
     clearCache,

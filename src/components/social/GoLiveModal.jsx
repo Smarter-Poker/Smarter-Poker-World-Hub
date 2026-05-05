@@ -62,6 +62,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
 
     const videoRef = useRef(null);
     const streamRef = useRef(null);
+    const [participants, setParticipants] = useState([]); // FEATURE 6: Split-screen state
     const timerRef = useRef(null);
     const mediaRecorderRef = useRef(null);
     const recordedChunksRef = useRef([]);
@@ -84,6 +85,8 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         if (isOpen) { requestMediaAccess(); }
         return () => {
             mediaAccessMountedRef.current = false;
+            liveStreamService.onViewerCountChange = null;
+            liveStreamService.onParticipantsUpdate = null; // FEATURE 6
             streamRef.current?.getTracks().forEach(t => t.stop());
             if (timerRef.current) clearInterval(timerRef.current);
             if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
@@ -318,10 +321,10 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const startBroadcast = async (thumbUrl) => {
         try {
             liveStreamService.onViewerCountChange = (c) => setViewerCount(c);
-            // Wire reconnect handlers
             liveStreamService.onReconnecting = () => setIsReconnecting(true);
             liveStreamService.onReconnected = () => setIsReconnecting(false);
             liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
+            liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
 
             if (guestMode && initialRoomId && initialInviteCode) {
                 await liveStreamService.joinAsGuest(user.id, initialRoomId, initialInviteCode, streamRef.current);
@@ -685,8 +688,41 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         style={{ height:'100%', width:'100%', position:'relative', background:'#000', cursor:'pointer', touchAction:'none', overflow:'hidden' }}
                         onClick={handleScreenTap}
                     >
-                        {/* Broadcaster Video */}
-                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain', transform:'scaleX(-1)' }} />
+                        {/* Broadcaster/Local Video + Remote Participants */}
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#000' }}>
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'contain', transform: 'scaleX(-1)', transition: 'all 0.3s ease' }} />
+                            
+                            {/* Secondary Participants (Guest) */}
+                            {participants.map((p, idx) => {
+                                const pubs = Array.from(p.videoTrackPublications.values());
+                                const videoPub = pubs.find(pub => pub.track);
+                                if (!videoPub) return null;
+
+                                return (
+                                    <div key={p.identity} style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>
+                                        <video
+                                            autoPlay
+                                            playsInline
+                                            muted
+                                            ref={el => {
+                                                if (el && videoPub.track) {
+                                                    try { videoPub.track.attach(el); } catch(e){}
+                                                }
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'contain',
+                                                transform: 'scaleX(-1)'
+                                            }}
+                                        />
+                                        <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
+                                            Guest
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
 
                         {/* Reconnect overlay */}
                         {isReconnecting && (

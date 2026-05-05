@@ -60,8 +60,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const pinChannelRef = useRef(null); // #18: pinned comment subscription
     // Feature 3: Clip It
     const mediaRecorderRef = useRef(null);
-    const recordedChunksRef = useRef([]);
     const [isClipping, setIsClipping] = useState(false);
+    const [participants, setParticipants] = useState([]); // FEATURE 6: Split-screen state
     // BUG FIX (L7): track the active giftFlash timer so a new gift arrival
     // cancels the previous one instead of racing to clear the display.
     const giftFlashTimerRef = useRef(null);
@@ -91,6 +91,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 liveStreamService.onReconnecting = () => setIsReconnecting(true);
                 liveStreamService.onReconnected = () => setIsReconnecting(false);
                 liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
+                liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
 
                 // Join the stream — joinStream returns the full DB row with broadcaster join
                 const freshStream = await liveStreamService.joinStream(stream.id, userId, (remoteMediaStream) => {
@@ -474,21 +475,57 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         }}>
             <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Video Container */}
-            <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    // User specifically requested to NOT crop out edges, so they don't have to "pinch to fit"
-                    objectFit: 'contain',
-                }}
-            />
+            {/* Video Container - Split Screen Logic */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: isTheaterMode ? 'row' : 'column', background: '#000' }}>
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{
+                        flex: 1,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        transform: 'scaleX(-1)', // mirror selfie camera
+                        transition: 'all 0.3s ease'
+                    }}
+                />
+                
+                {/* Secondary Participants (Guest) */}
+                {participants.map((p, idx) => {
+                    // Skip if it's the main broadcaster's track
+                    if (p.identity === stream?.broadcaster_id || idx === 0) return null;
+                    
+                    const pubs = Array.from(p.videoTrackPublications.values());
+                    const videoPub = pubs.find(pub => pub.track);
+                    if (!videoPub) return null;
+
+                    return (
+                        <div key={p.identity} style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>
+                            <video
+                                autoPlay
+                                playsInline
+                                muted
+                                ref={el => {
+                                    if (el && videoPub.track) {
+                                        try { videoPub.track.attach(el); } catch(e){}
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain',
+                                    transform: 'scaleX(-1)'
+                                }}
+                            />
+                            <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
+                                Guest
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
 
             {/* Loading/Connecting Overlay */}
             {isConnecting && !error && (

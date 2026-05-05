@@ -215,7 +215,12 @@ export default async function handler(req, res) {
 
         // IP Fingerprinting & Clustering
         const forwarded = req.headers['x-forwarded-for'];
-        const clientIp = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : req.socket?.remoteAddress || 'unknown';
+        let clientIp = req.socket?.remoteAddress || 'unknown';
+        if (typeof forwarded === 'string') {
+            clientIp = forwarded.split(',')[0].trim();
+        } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+            clientIp = forwarded[0].split(',')[0].trim();
+        }
 
         // ── Parse body ──
         const { recipientId, amount: rawAmount } = req.body || {};

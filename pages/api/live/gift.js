@@ -147,7 +147,13 @@ export default async function handler(req, res) {
     const isGraduated = senderAgeDays >= GRADUATION_DAYS;
     if (!isGraduated) {
         // IP Fingerprinting & Clustering
-        const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        const forwarded = req.headers['x-forwarded-for'];
+        let clientIp = req.socket?.remoteAddress || 'unknown';
+        if (typeof forwarded === 'string') {
+            clientIp = forwarded.split(',')[0].trim();
+        } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+            clientIp = forwarded[0].split(',')[0].trim();
+        }
 
         const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
         
@@ -185,7 +191,13 @@ export default async function handler(req, res) {
         }
     } else {
         // ── Graduated accounts: rely on velocity detectors ──
-        const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        const forwarded = req.headers['x-forwarded-for'];
+        let clientIp = req.socket?.remoteAddress || 'unknown';
+        if (typeof forwarded === 'string') {
+            clientIp = forwarded.split(',')[0].trim();
+        } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+            clientIp = forwarded[0].split(',')[0].trim();
+        }
         await checkVelocity(user.id, clientIp);
     }
 
@@ -290,7 +302,13 @@ export default async function handler(req, res) {
         }).select().maybeSingle();
 
         // Record the IP cluster action
-        const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        const forwarded = req.headers['x-forwarded-for'];
+        let clientIp = req.socket?.remoteAddress || 'unknown';
+        if (typeof forwarded === 'string') {
+            clientIp = forwarded.split(',')[0].trim();
+        } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+            clientIp = forwarded[0].split(',')[0].trim();
+        }
         await supabase.from('anti_farming_ips').insert({
             user_id: user.id,
             ip_address: clientIp,
