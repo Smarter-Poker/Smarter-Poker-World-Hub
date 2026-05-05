@@ -28,6 +28,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { randomUUID } from 'crypto';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 const { requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -476,9 +477,13 @@ export default async function handler(req, res) {
         }
 
         // Per-transfer UUID generated up front to ensure idempotency across both RPCs
-        const transferId = require('crypto').randomUUID();
+        const transferId = randomUUID();
         const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
         const senderName = senderProfile.display_name || senderProfile.username || 'friend';
+
+        // Initialized to null; assigned after the deduct commits so the catch
+        // block can invoke it if an uncaught throw occurs between deduct and credit.
+        let refundSender = null;
 
         // ═══ EXECUTE ATOMIC TRANSFER ═══
         const { data: deductResult, error: deductErr } = await getSupabase()
@@ -501,8 +506,9 @@ export default async function handler(req, res) {
         
         const actualSenderBalance = deductResult?.balance ?? 0;
 
-        // Compensating refund helper in case the credit fails
-        const refundSender = async (reason) => {
+        // Compensating refund helper in case the credit fails.
+        // Hoisted to outer let so the catch block can also call it.
+        refundSender = async (reason) => {
             try {
                 await getSupabase().rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
