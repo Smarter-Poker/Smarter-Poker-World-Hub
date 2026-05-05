@@ -73,10 +73,30 @@ export async function getServerSideProps({ req }) {
     const nullSourceFetch = adm.from('trivia_questions').select('id', { count: 'exact', head: true }).is('source', null)
         .then(r => ({ src: 'null', count: r.count || 0 }));
 
-    const [counts, sources] = await Promise.all([
+    // Phase 52: audit pipeline state
+    const auditPromises = [
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3']),
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3']).not('last_audited_at', 'is', null),
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('audit_verified', true),
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('audit_verified', false),
+        adm.from('trivia_quality_audits').select('id', { count: 'exact', head: true }).gte('audited_at', new Date(Date.now() - 24*60*60*1000).toISOString()),
+        adm.from('trivia_quality_audits').select('question_id, audited_at, confidence, reasoning, corrected_answer_text, new_quality_score').eq('verified', false).gte('confidence', 0.7).order('audited_at', { ascending: false }).limit(8),
+    ];
+
+    const [counts, sources, auditResults] = await Promise.all([
         Promise.all(fetches),
         Promise.all([...sourceFetches, nullSourceFetch]),
+        Promise.all(auditPromises),
     ]);
+
+    const audit = {
+        grokTotal: auditResults[0].count || 0,
+        grokAudited: auditResults[1].count || 0,
+        verifiedTrue: auditResults[2].count || 0,
+        verifiedFalse: auditResults[3].count || 0,
+        auditedLast24h: auditResults[4].count || 0,
+        recentFlagged: auditResults[5].data || [],
+    };
 
     // Pivot per-cat counts
     const byCat = {};
@@ -90,6 +110,7 @@ export async function getServerSideProps({ req }) {
         props: {
             byCat,
             sources,
+            audit,
             generatedAt: new Date().toISOString(),
         },
     };
@@ -135,7 +156,7 @@ function CatRow({ catId, counts, track }) {
     );
 }
 
-export default function TriviaPoolDashboard({ byCat, sources, generatedAt, error }) {
+export default function TriviaPoolDashboard({ byCat, sources, audit, generatedAt, error }) {
     if (error) {
         return <div style={{ padding: 40, color: '#ef4444', background: '#0a0a15', minHeight: '100vh', fontFamily: 'system-ui' }}>Error: {error}</div>;
     }
@@ -198,6 +219,42 @@ export default function TriviaPoolDashboard({ byCat, sources, generatedAt, error
                         ))}
                     </div>
                 </div>
+
+                {/* Phase 52: fact-check audit panel */}
+                {audit && (
+                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B only)</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
+                            <Card title="Grok questions" value={audit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
+                            <Card title="Audited" value={`${audit.grokAudited.toLocaleString()} / ${audit.grokTotal.toLocaleString()}`} subtitle={`${audit.grokTotal > 0 ? Math.round((audit.grokAudited / audit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
+                            <Card title="Verified ✓" value={audit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
+                            <Card title="Flagged ✗" value={audit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
+                            <Card title="Last 24h" value={audit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#a855f7" />
+                        </div>
+                        {audit.recentFlagged.length > 0 && (
+                            <>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED — needs human review</div>
+                                <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
+                                    {audit.recentFlagged.map((f, i) => (
+                                        <div key={i} style={{ padding: '10px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
+                                            <div style={{ display: 'flex', gap: 12, marginBottom: 4 }}>
+                                                <span style={{ color: '#ef4444', fontWeight: 600 }}>conf {Math.round(f.confidence * 100)}%</span>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>{new Date(f.audited_at).toLocaleString()}</span>
+                                                <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{f.question_id.slice(0, 8)}</code>
+                                            </div>
+                                            <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{f.reasoning}</div>
+                                            {f.corrected_answer_text && (
+                                                <div style={{ marginTop: 4, color: '#22c55e', fontSize: 11 }}>
+                                                    suggested correct answer: <strong>{f.corrected_answer_text}</strong>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {/* Operational hints */}
                 <div style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12, padding: 16, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>

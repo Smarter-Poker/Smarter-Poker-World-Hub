@@ -173,6 +173,16 @@ ALL_CRONS = [
     # if any category drops below 60-day floor (1,200) or any difficulty
     # bucket below 60% of target.
     ('/api/cron/trivia-pool-monitor',       dict(hour=6, minute=15)),
+    # ── Phase 52 (2026-05-05) — daily Grok question quality audit ────────
+    # Audits up to 200 un-verified Grok-generated questions per run using
+    # Grok-3 (full model) as the fact-checker. Bumps quality_score for
+    # verified-correct (→ 9), soft-excludes incorrect (→ 2, below the
+    # minQualityScore=6 gameplay floor), surfaces uncertain (→ 5) for
+    # human review via /admin/trivia-pool. Cost ~$0.50/day. Schedule:
+    # daily 09:00 UTC — runs after 4 ticks of generate-trivia-questions
+    # (00:30, 04:30, 08:30) so the freshly-inserted batch is reviewed
+    # before peak user hours.
+    ('/api/cron/trivia-quality-audit',      dict(hour=9, minute=0)),
     # ── 2026-04-24 — restored from orphan audit ──────────────────────────
     # hard-stop auto-closes commander_tables at each venue's hard_stop_time.
     # Has 1 opted-in venue (id=1996, 02:00 UTC) with 34 in_use tables at
@@ -455,6 +465,7 @@ WORKERS_PREFERRED = {
     # cron exception — pages/api/cron/ is now empty.
     '/api/cron/generate-trivia-questions':     '/cron/generate-trivia-questions',
     '/api/cron/trivia-pool-monitor':           '/cron/trivia-pool-monitor',
+    '/api/cron/trivia-quality-audit':          '/cron/trivia-quality-audit',
     '/api/cron/deploy-error-poll':             '/cron/deploy-error-poll',
     # ─── WAVE 5 — Club Arena platform crons (Round 23, 2026-04-29) ──────────
     # Workers repo has src/routes/{bbj-detect,tournament-bounty-detect,
