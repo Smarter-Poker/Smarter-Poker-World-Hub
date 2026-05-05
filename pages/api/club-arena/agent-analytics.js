@@ -56,17 +56,12 @@ export default async function handler(req, res) {
       if (action === 'pulse') {
           try {
               // Total commissions earned in the window
-              const { data: commissions } = await getSupabase()
-                  .from('commission_history')
-                  .select('amount, created_at, status')
-                  .eq('agent_id', targetAgent)
-                  .eq('club_id', clubId)
-                  .gte('created_at', daysAgo)
-                  .limit(10000);
-
-              const totalCommissions = (commissions || []).reduce((s, c) => s + (c.amount || 0), 0);
-              const paidCommissions = (commissions || []).filter(c => c.status === 'paid')
-                  .reduce((s, c) => s + (c.amount || 0), 0);
+              const { data: commsData } = await getSupabase().rpc('sum_agent_commissions', {
+                  p_club_id: clubId, p_agent_id: targetAgent, p_start: daysAgo
+              });
+              
+              const totalCommissions = commsData?.total || 0;
+              const paidCommissions = commsData?.paid || 0;
               const pendingCommissions = totalCommissions - paidCommissions;
 
               // Player count under this agent
@@ -88,15 +83,9 @@ export default async function handler(req, res) {
               }
 
               // Transaction volume
-              const { data: txns } = await getSupabase()
-                  .from('action_audit_logs')
-                  .select('amount')
-                  .eq('user_id', targetAgent)
-                  .eq('club_id', clubId)
-                  .gte('created_at', daysAgo)
-                  .limit(10000);
-
-              const totalVolume = (txns || []).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+              const { data: totalVolume } = await getSupabase().rpc('sum_agent_volume', {
+                  p_club_id: clubId, p_agent_id: targetAgent, p_start: daysAgo
+              });
 
               return res.status(200).json({
                   success: true,
@@ -108,7 +97,7 @@ export default async function handler(req, res) {
                       activeCount,
                       atRiskCount,
                       churnedCount,
-                      totalVolume,
+                      totalVolume: totalVolume || 0,
                       periodDays: days,
                   },
               });
@@ -228,31 +217,16 @@ export default async function handler(req, res) {
       // ─── TRENDS: Daily commission data for sparklines ─────────
       if (action === 'trends') {
           try {
-              const { data: commissions } = await getSupabase()
-                  .from('commission_history')
-                  .select('amount, created_at')
-                  .eq('agent_id', targetAgent)
-                  .eq('club_id', clubId)
-                  .gte('created_at', daysAgo)
-                  .order('created_at', { ascending: true })
-                  .limit(10000);
+              const { data: dailyBuckets } = await getSupabase().rpc('get_daily_commission_summary', {
+                  p_club_id: clubId, p_agent_id: targetAgent, p_days: days
+              });
 
-              // Bucket by day
-              const dailyBuckets = {};
-              for (let d = 0; d < days; d++) {
-                  const date = new Date(Date.now() - (days - 1 - d) * 24 * 60 * 60 * 1000);
-                  const key = date.toISOString().split('T')[0];
-                  dailyBuckets[key] = 0;
+              // Ensure all days are present
+              const trendData = [];
+              for (let d = days - 1; d >= 0; d--) {
+                  const date = new Date(Date.now() - d * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                  trendData.push({ date, amount: dailyBuckets?.[date] || 0 });
               }
-
-              for (const c of (commissions || [])) {
-                  const key = new Date(c.created_at).toISOString().split('T')[0];
-                  if (dailyBuckets[key] !== undefined) {
-                      dailyBuckets[key] += c.amount || 0;
-                  }
-              }
-
-              const trendData = Object.entries(dailyBuckets || {}).map(([date, amount]) => ({ date, amount }));
 
               return res.status(200).json({ success: true, trends: trendData });
           } catch (err) {
@@ -296,14 +270,10 @@ export default async function handler(req, res) {
 
               // Commissions earned last 30 days
               const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-              const { data: commissions } = await getSupabase()
-                  .from('commission_history')
-                  .select('amount')
-                  .eq('agent_id', targetAgent)
-                  .eq('club_id', clubId)
-                  .gte('created_at', thirtyDaysAgo)
-                  .limit(10000);
-              const totalCommissions = (commissions || []).reduce((s, c) => s + (c.amount || 0), 0);
+              const { data: commsData } = await getSupabase().rpc('sum_agent_commissions', {
+                  p_club_id: clubId, p_agent_id: targetAgent, p_start: thirtyDaysAgo
+              });
+              const totalCommissions = commsData?.total || 0;
 
               // Cashouts processed last 30 days
               const { data: cashouts } = await getSupabase()

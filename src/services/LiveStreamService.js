@@ -177,7 +177,9 @@ class LiveStreamService {
         this.guestInviteCode = guestInviteCode;
 
         // Get LiveKit token and connect
-        const { token, url } = await this._getToken(streamId, true, guestInviteCode);
+        // BUG FIX: isBroadcaster must be false so the server recognizes them as a guest,
+        // otherwise the server checks for broadcaster_id and throws a 403.
+        const { token, url } = await this._getToken(streamId, false, guestInviteCode);
         await this._connectRoom(url, token, true, mediaStream);
         
         console.debug('👥 Joined as guest co-broadcaster:', streamId);

@@ -22,6 +22,92 @@ const C = {
     blue: '#0066FF',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GUEST INVITE MODAL — Select a friend and send them an invite via DM
+// ═══════════════════════════════════════════════════════════════════════════
+function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }) {
+    const [friends, setFriends] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [sendingId, setSendingId] = useState(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const fetchFriends = async () => {
+            try {
+                const { getAccessToken } = await import('../../lib/authUtils');
+                const token = getAccessToken();
+                const res = await fetch('/api/friends?action=list', {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                const json = await res.json();
+                if (json.success) setFriends(json.data?.friends || []);
+            } catch (err) {}
+            setLoading(false);
+        };
+        fetchFriends();
+    }, [isOpen]);
+
+    const sendInvite = async (friendId) => {
+        setSendingId(friendId);
+        try {
+            const { getAccessToken } = await import('../../lib/authUtils');
+            const token = getAccessToken();
+            const { data: convId } = await supabase.rpc('fn_get_or_create_conversation', {
+                user1_id: currentUser.id,
+                user2_id: friendId,
+            });
+            if (!convId) throw new Error('No conversation');
+
+            const inviteUrl = `${window.location.origin}/hub/live/guest?room=${streamId}&invite=${inviteCode}`;
+            const res = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    conversationId: convId,
+                    content: `Join my live stream as a guest!\n\n${inviteUrl}`,
+                    message_type: 'text'
+                })
+            });
+            if (!res.ok) throw new Error('Send failed');
+            toast.success('Invite sent!');
+        } catch (err) {
+            toast.error('Failed to send invite');
+        }
+        setSendingId(null);
+    };
+
+    if (!isOpen) return null;
+    
+    return (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+            <div style={{ background: '#1C1E21', padding: 20, borderRadius: 12, width: '90%', maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 600 }}>Invite Guest via Messenger</h3>
+                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer' }}>✕</button>
+                </div>
+                {loading ? <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>Loading friends...</div> : (
+                    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                        {friends.length === 0 ? <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>No friends found.</div> : (
+                            friends.map(f => (
+                                <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #333' }}>
+                                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 500 }}>{f.display_name || f.username}</div>
+                                    <button 
+                                        onClick={() => sendInvite(f.id)} 
+                                        disabled={sendingId === f.id}
+                                        style={{ background: sendingId === f.id ? '#444' : '#1877F2', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 600, cursor: sendingId === f.id ? 'default' : 'pointer', fontSize: 13 }}
+                                    >
+                                        {sendingId === f.id ? 'Sending...' : 'Invite'}
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialRoomId = null, initialInviteCode = null }) {
     const [stage, setStage] = useState('preview'); // preview | countdown | live | ended
     const [title, setTitle] = useState('');
@@ -51,6 +137,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
     const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
+    const [guestInviteModalOpen, setGuestInviteModalOpen] = useState(false); // New: invite guest via messenger
     // BUG FIX (GLM-3): separate toast state for share link (not reusing error)
     const [shareToast, setShareToast] = useState('');
 
@@ -820,6 +907,15 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         {/* Emoji reactions */}
                         <LiveReactions streamId={streamId} userId={user?.id} isBroadcaster />
 
+                        {/* New feature: Guest Invite Modal overlay */}
+                        <GuestInviteModal 
+                            isOpen={guestInviteModalOpen} 
+                            onClose={() => setGuestInviteModalOpen(false)}
+                            streamId={streamId}
+                            inviteCode={guestInviteCode}
+                            currentUser={user}
+                        />
+
                         {/* #18: PINNED COMMENT */}
                         {pinnedComment && (
                             <div style={{ position:'absolute', bottom:320, left:12, right:80, zIndex:10, background:'rgba(0,0,0,0.7)', borderRadius:10, padding:'8px 12px', border:'1px solid rgba(255,215,0,0.3)' }}>
@@ -934,11 +1030,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                 <button
                                     onClick={e => { 
                                         e.stopPropagation(); 
-                                        const url = `${window.location.origin}/hub/live/guest?room=${streamId}&invite=${guestInviteCode}`;
-                                        navigator.clipboard.writeText(url);
-                                        if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
-                                        setShareToast('Guest link copied! Send to your friend.');
-                                        shareToastTimerRef.current = setTimeout(() => setShareToast(''), 3500);
+                                        setGuestInviteModalOpen(true);
                                     }}
                                     title="Invite Guest to Stream"
                                     style={{

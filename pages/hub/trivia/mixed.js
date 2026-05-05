@@ -21,7 +21,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
@@ -197,16 +197,13 @@ export default function MixedModePage() {
             const excludeIds = await getRecentlySeenIds(supabase, uid, 200, 'mixed');
 
 
-            // Load all categories in parallel (~5x faster than sequential)
+            // Phase 55: random-offset fetch per category instead of "first 50"
+            // — was always pulling the same 50 rows per category every game.
             const categoryResults = await Promise.all(
                 CATEGORIES.map(cat =>
-                    supabase
-                        .from('trivia_questions')
-                        .select('*')
-                        .in('category', cat.dbCategories)
-                        .limit(50)
-                        .then(({ data }) => {
-                            if (!data) return [];
+                    fetchRandomQuestionPool(supabase, { category: cat.dbCategories, pageSize: 50 })
+                        .then(data => {
+                            if (!data || data.length === 0) return [];
                             // Phase 51: prefer high-quality questions in mixed/daily mode
                             const available = filterAndShuffle(data, excludeIds, 5, { minQualityScore: 6, preferHighQuality: true });
                             available.forEach(q => { q.displayCategory = cat.id; });

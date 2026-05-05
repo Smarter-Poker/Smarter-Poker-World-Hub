@@ -131,8 +131,8 @@ export default async function handler(req, res) {
               membersRes,
               todayRakeRes,
               yesterdayRakeRes,
-              weekRakeRes,
-              recentSessionsRes,
+              sparklineRes,
+              uniquePlayersRes,
               activePlayersRes,
           ] = await Promise.allSettled([
               // Active tables
@@ -142,25 +142,21 @@ export default async function handler(req, res) {
               getSupabase().from('club_members').select('id', { count: 'exact', head: true })
                   .eq('club_id', clubId).eq('status', 'active'),
               // Today's rake
-              getSupabase().from('chip_transactions').select('amount')
-                  .eq('club_id', clubId).eq('transaction_type', 'rake')
-                  .gte('created_at', `${today}T00:00:00Z`)
-                  .limit(50000),
+              getSupabase().rpc('sum_chip_transactions', {
+                  p_club_id: clubId, p_type: 'rake', p_start: `${today}T00:00:00Z`
+              }),
               // Yesterday's rake
-              getSupabase().from('chip_transactions').select('amount')
-                  .eq('club_id', clubId).eq('transaction_type', 'rake')
-                  .gte('created_at', `${yesterday}T00:00:00Z`)
-                  .lt('created_at', `${today}T00:00:00Z`)
-                  .limit(50000),
+              getSupabase().rpc('sum_chip_transactions', {
+                  p_club_id: clubId, p_type: 'rake', p_start: `${yesterday}T00:00:00Z`, p_end: `${today}T00:00:00Z`
+              }),
               // Last 7 days rake (for sparkline)
-              getSupabase().from('chip_transactions').select('amount, created_at')
-                  .eq('club_id', clubId).eq('transaction_type', 'rake')
-                  .gte('created_at', new Date(now - 7 * 86400000).toISOString())
-                  .order('created_at', { ascending: true }).limit(2000),
-              // Recent sessions (last 24h unique players)
-              getSupabase().from('chip_transactions').select('from_user_id, to_user_id')
-                  .eq('club_id', clubId).in('transaction_type', ['table_win', 'table_loss', 'rake'])
-                  .gte('created_at', new Date(now - 86400000).toISOString()).limit(500),
+              getSupabase().rpc('get_daily_chip_summary', {
+                  p_club_id: clubId, p_type: 'rake', p_days: 7
+              }),
+              // Unique active players (last 24h)
+              getSupabase().rpc('get_unique_players_24h', {
+                  p_club_id: clubId
+              }),
               // Currently seated players
               getSupabase().from('tables').select('current_players')
                   .eq('club_id', clubId).in('status', ['active', 'playing']),
@@ -169,19 +165,11 @@ export default async function handler(req, res) {
           // Process results
           const tables = tablesRes.status === 'fulfilled' ? (tablesRes.value?.data || []) : [];
           const totalMembers = membersRes.status === 'fulfilled' ? (membersRes.value?.count || 0) : 0;
-          const todayRake = todayRakeRes.status === 'fulfilled'
-              ? (todayRakeRes.value?.data || []).reduce((s, r) => s + (r.amount || 0), 0) : 0;
-          const yesterdayRake = yesterdayRakeRes.status === 'fulfilled'
-              ? (yesterdayRakeRes.value?.data || []).reduce((s, r) => s + (r.amount || 0), 0) : 0;
+          const todayRake = todayRakeRes.status === 'fulfilled' ? (todayRakeRes.value?.data || 0) : 0;
+          const yesterdayRake = yesterdayRakeRes.status === 'fulfilled' ? (yesterdayRakeRes.value?.data || 0) : 0;
 
           // Sparkline: rake per day for last 7 days
-          const sparklineData = {};
-          if (weekRakeRes.status === 'fulfilled') {
-              (weekRakeRes.value?.data || []).forEach(r => {
-                  const day = new Date(r.created_at).toISOString().split('T')[0];
-                  sparklineData[day] = (sparklineData[day] || 0) + (r.amount || 0);
-              });
-          }
+          const sparklineData = sparklineRes.status === 'fulfilled' ? (sparklineRes.value?.data || {}) : {};
           const sparkline = [];
           for (let d = 6; d >= 0; d--) {
               const date = new Date(now - d * 86400000).toISOString().split('T')[0];
@@ -189,13 +177,7 @@ export default async function handler(req, res) {
           }
 
           // Unique active players (last 24h)
-          const playerIds = new Set();
-          if (recentSessionsRes.status === 'fulfilled') {
-              (recentSessionsRes.value?.data || []).forEach(r => {
-                  if (r.from_user_id) playerIds.add(r.from_user_id);
-                  if (r.to_user_id) playerIds.add(r.to_user_id);
-              });
-          }
+          const uniquePlayers24h = uniquePlayersRes.status === 'fulfilled' ? (uniquePlayersRes.value?.data || 0) : 0;
 
           // Currently seated
           const seatedNow = activePlayersRes.status === 'fulfilled'
@@ -210,7 +192,7 @@ export default async function handler(req, res) {
                   totalTables: tables.length,
                   totalMembers,
                   seatedNow,
-                  uniquePlayers24h: playerIds.size,
+                  uniquePlayers24h,
                   todayRake,
                   yesterdayRake,
                   rakeChange, // % change from yesterday

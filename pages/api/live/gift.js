@@ -33,26 +33,6 @@ const FREE_EARNED_30DAY_LIMIT = 100;
 const PURCHASED_WON_30DAY_LIMIT = 500;
 const RECEIVER_30DAY_RECEIVE_LIMIT = 1000; // per broadcaster per 30-day rolling window
 
-/**
- * Helper to safely sum all matching transactions in 1000-row chunks
- * to avoid Supabase/PostgREST row-drop-off limits.
- */
-async function sumPaginatedTransactions(supabase, queryBuilderFn) {
-    let total = 0;
-    let page = 0;
-    const pageSize = 1000;
-    while (true) {
-        const { data, error } = await queryBuilderFn()
-            .order('created_at', { ascending: false })
-            .order('id')
-            .range(page * pageSize, (page + 1) * pageSize - 1);
-        if (error || !data || data.length === 0) break;
-        total += data.reduce((sum, r) => sum + Math.abs(r.amount), 0);
-        if (data.length < pageSize) break;
-        page++;
-    }
-    return total;
-}
 
 const PURCHASED_WON_TYPES = new Set([
     'purchase', 'stripe_purchase', 'diamond_purchase',
@@ -157,22 +137,19 @@ export default async function handler(req, res) {
     const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     if (!isGraduated) {
-        // Use paginated helpers to avoid PostgREST's default 1000-row cap silently
-        // truncating ledger history for heavy users, which would allow cap bypass.
-        const alreadySent = await sumPaginatedTransactions(supabase, () => supabase
-            .from('diamond_transactions')
-            .select('amount')
-            .eq('user_id', user.id)
-            .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
-            .gte('created_at', rolling30Start));
+        // BUG FIX (Pass 4): Use direct RPCs for aggregations instead of paginated HTTP fetching
+        const { data: alreadySent } = await supabase.rpc('sum_diamond_transactions', {
+            p_user_id: user.id,
+            p_types: ['diamond_gift_sent', 'live_gift_sent'],
+            p_start: rolling30Start
+        });
 
-        const ipAlreadySent = await sumPaginatedTransactions(supabase, () => supabase
-            .from('anti_farming_ips')
-            .select('amount')
-            .eq('ip_address', clientIp)
-            .gte('created_at', rolling30Start));
+        const { data: ipAlreadySent } = await supabase.rpc('sum_anti_farming_ips', {
+            p_ip: clientIp,
+            p_start: rolling30Start
+        });
 
-        const effectiveAlreadySent = Math.max(alreadySent, ipAlreadySent);
+        const effectiveAlreadySent = Math.max(alreadySent || 0, ipAlreadySent || 0);
 
         const purchasedWonAvailable = await getLiveGiftSourceCapAvailable(user.id);
         const activeCap = purchasedWonAvailable >= parsedAmount ? PURCHASED_WON_30DAY_LIMIT : FREE_EARNED_30DAY_LIMIT;
@@ -195,14 +172,13 @@ export default async function handler(req, res) {
 
     // ── GUARD: Per-broadcaster rolling 30-day receive cap ──
     const rolling30StartReceive = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const broadcasterReceiveTotal = await sumPaginatedTransactions(supabase, () => supabase
-        .from('diamond_transactions')
-        .select('amount')
-        .eq('user_id', receiver_id)
-        .eq('transaction_type', 'live_gift_received')
-        .gte('created_at', rolling30StartReceive));
+    const { data: broadcasterReceiveTotal } = await supabase.rpc('sum_diamond_transactions', {
+        p_user_id: receiver_id,
+        p_types: ['live_gift_received'],
+        p_start: rolling30StartReceive
+    });
 
-    if (broadcasterReceiveTotal + parsedAmount > RECEIVER_30DAY_RECEIVE_LIMIT) {
+    if ((broadcasterReceiveTotal || 0) + parsedAmount > RECEIVER_30DAY_RECEIVE_LIMIT) {
         return res.status(429).json({
             error: `This broadcaster has reached their 30-day gift receive limit (${RECEIVER_30DAY_RECEIVE_LIMIT} diamonds/30 days)`,
             gateType: 'broadcaster_receive_cap',
@@ -229,7 +205,6 @@ export default async function handler(req, res) {
             p_transaction_type: 'live_gift_sent',
             p_metadata:         { recipient_id: receiver_id },
             p_reference_id:     `live_gift_deduct_${giftId}`,
-            p_cooldown_seconds: 1,
             p_cooldown_seconds: 1,
         });
 

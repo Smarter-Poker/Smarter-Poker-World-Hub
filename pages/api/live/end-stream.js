@@ -123,32 +123,59 @@ export default async function handler(req, res) {
         }
 
         if (action === 'post') {
-            // Mark live feed post as ended — replay video URL replaces thumbnail in media_urls
-            await markFeedPostEnded(stream_id, stream.video_url || null);
+            // BUG FIX: Prevent duplicate posts by mutating the existing "live" post into a "video" post.
+            const { data: streamRow } = await supabase.from('live_streams')
+                .select('feed_post_id')
+                .eq('id', stream_id)
+                .maybeSingle();
 
-            // Update stream record — also keep as draft so it appears in live history
+            let postId = streamRow?.feed_post_id;
+            let existingPost = null;
+
+            if (postId) {
+                const { data } = await supabase.from('social_posts').select('id, metadata').eq('id', postId).maybeSingle();
+                existingPost = data;
+            } else {
+                const { data } = await supabase.from('social_posts').select('id, metadata').eq('content_type', 'live').contains('metadata', { stream_id }).maybeSingle();
+                existingPost = data;
+                if (existingPost) postId = existingPost.id;
+            }
+
+            if (existingPost) {
+                const mergedMetadata = { ...(existingPost.metadata || {}), ended: true, source: 'live_replay', lives_id: stream_id };
+                await supabase.from('social_posts').update({
+                    content: caption || `🔴 Live replay: ${stream.title || 'Stream'}`,
+                    content_type: 'video', // Convert to video so it renders with video player
+                    media_urls: stream.video_url ? [stream.video_url] : [],
+                    thumbnail_url: stream.thumbnail_url || null,
+                    metadata: mergedMetadata
+                }).eq('id', postId);
+            } else {
+                // Fallback: create new if no live post was found
+                const { data: post, error: postErr } = await supabase.from('social_posts').insert({
+                    author_id: user.id,
+                    content: caption || `🔴 Live replay: ${stream.title || 'Stream'}`,
+                    content_type: 'video',
+                    media_urls: stream.video_url ? [stream.video_url] : [],
+                    thumbnail_url: stream.thumbnail_url || null,
+                    visibility: 'public',
+                    metadata: { stream_id, ended: true, source: 'live_replay', lives_id: stream_id },
+                }).select('id').maybeSingle();
+
+                if (postErr) {
+                    console.warn('[end-stream] social_posts insert error:', postErr.message);
+                    return res.status(500).json({ error: 'Failed to create social post' });
+                }
+                postId = post?.id;
+            }
+
+            // Update stream record
             await supabase.from('live_streams').update({
                 is_posted: true,
                 is_draft: true,
             }).eq('id', stream_id);
 
-            // Create replay social post via service role (bypasses RLS reliably)
-            const { data: post, error: postErr } = await supabase.from('social_posts').insert({
-                author_id: user.id,
-                content: caption || `🔴 Live replay: ${stream.title || 'Stream'}`,
-                content_type: 'video',
-                media_urls: stream.video_url ? [stream.video_url] : [],
-                thumbnail_url: stream.thumbnail_url || null,
-                visibility: 'public',
-                metadata: { stream_id, source: 'live_replay', lives_id: stream_id },
-            }).select('id').maybeSingle();
-
-            if (postErr) {
-                console.warn('[end-stream] social_posts insert error:', postErr.message);
-                return res.status(500).json({ error: 'Failed to create social post' });
-            }
-
-            return res.json({ success: true, action: 'posted', postId: post?.id });
+            return res.json({ success: true, action: 'posted', postId });
         }
 
         if (action === 'force_end') {

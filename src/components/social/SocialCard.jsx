@@ -161,7 +161,22 @@ export const SocialCard = ({
           <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
             {post.mediaUrls.slice(0, 4).map((url, i) => (
               <div key={i} className="media-item">
-                <img src={url} alt={`Media ${i + 1}`} loading="lazy" />
+                {post.contentType === 'video' && i === 0 ? (
+                  <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                    <video
+                        src={url}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        muted playsInline preload="metadata"
+                    />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="white" style={{ marginLeft: 4 }}><polygon points="5,3 19,12 5,21"/></svg>
+                        </div>
+                    </div>
+                  </div>
+                ) : (
+                  <img src={url} alt={`Media ${i + 1}`} loading="lazy" />
+                )}
                 {i === 3 && post.mediaUrls.length > 4 && (
                   <div className="media-overflow">+{post.mediaUrls.length - 4}</div>
                 )}
