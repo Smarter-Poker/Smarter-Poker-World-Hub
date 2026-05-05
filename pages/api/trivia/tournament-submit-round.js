@@ -142,9 +142,29 @@ export default async function handler(req, res) {
             round.started_at ? Math.floor((Date.now() - new Date(round.started_at).getTime()) / 1000) : 0
         );
 
-        // Idempotency: if entry.completed_at is already set for this round, return existing.
-        // We use eliminated_round/completed_at as the "already submitted this round" marker.
-        // (More robust: a separate trivia_tournament_round_submissions table — out of scope today.)
+        // ─── 4b. IDEMPOTENCY (Phase 55 fix) ─────────────────────────────
+        // The matchups array already encodes per-round submission state via
+        // playerN_score being null or filled. If this user's slot is already
+        // populated for this round, a second submit would double-credit their
+        // score (entry.score += scoreAdded twice). Reject as duplicate and
+        // return the existing state.
+        const _existingMatchups = Array.isArray(round.matchups) ? round.matchups : [];
+        for (const m of _existingMatchups) {
+            if (!m) continue;
+            const alreadySubmitted =
+                (m.player1_id === userId && m.player1_score != null) ||
+                (m.player2_id === userId && m.player2_score != null);
+            if (alreadySubmitted) {
+                return res.status(200).json({
+                    success: true,
+                    deduped: true,
+                    score: entry.score,
+                    score_added: 0,
+                    time_spent: entry.time_spent,
+                    matchup: m,
+                });
+            }
+        }
 
         // ─── 5. UPDATE ENTRY ────────────────────────────────────────────
         const newScore = (entry.score || 0) + scoreAdded;
