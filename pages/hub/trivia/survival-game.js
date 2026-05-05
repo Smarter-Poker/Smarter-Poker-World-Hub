@@ -317,14 +317,20 @@ export default function SurvivalGamePage() {
                     // Take exactly what we need
                     setQuestions(shuffleOptions(available.slice(0, QUESTIONS_PER_LEVEL)));
                 } else {
-                    // Ultimate fallback: get any questions
+                    // Ultimate fallback: get any questions.
+                    // Phase 58: was bypassing the quality floor (filterAndShuffle
+                    // called without { minQualityScore: 6 }) — meant low-quality
+                    // questions could leak into survival when the user's pool
+                    // was exhausted. Apply the same quality bar as the primary
+                    // path so survival never serves qs<6 to a paying player.
                     const { data: fallbackData } = await supabase
                         .from('trivia_questions')
                         .select('*')
+                        .gte('quality_score', 6)
                         .limit(QUESTIONS_PER_LEVEL);
 
                     if (fallbackData) {
-                        const fallbackAvailable = filterAndShuffle(fallbackData, [], 0);
+                        const fallbackAvailable = filterAndShuffle(fallbackData, [], 0, { minQualityScore: 6 });
                         setQuestions(shuffleOptions(fallbackAvailable.slice(0, QUESTIONS_PER_LEVEL)));
                     }
                 }
@@ -447,9 +453,16 @@ export default function SurvivalGamePage() {
             .map((_, idx) => idx)
             .filter(idx => idx !== currentQuestion.correct_index);
 
-        // Randomly select 2 to eliminate
-        const shuffled = wrongIndices.sort(() => Math.random() - 0.5);
-        const toEliminate = shuffled.slice(0, 2);
+        // Randomly select 2 to eliminate.
+        // Phase 58: was using sort(() => Math.random() - 0.5) which is
+        // mathematically biased (some permutations 2x more likely than
+        // others — visible to dedicated players over many runs). Use
+        // Fisher-Yates for a truly uniform shuffle.
+        for (let i = wrongIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+        }
+        const toEliminate = wrongIndices.slice(0, 2);
         setEliminatedOptions(toEliminate);
     }
 
@@ -662,7 +675,12 @@ export default function SurvivalGamePage() {
                         p_description: `Survival Level ${level} — ${cappedDiamonds}💎`,
                         p_reference_id: getIdempotencyKey(`level_${level}_reward`)
                     });
-                    if (rpcErr) console.warn('[Survival] Reward RPC error:', rpcErr.message);
+                    // Phase 58: was warning-only — caused silent money loss when
+                    // RPC failed (user saw "+10💎" toast but balance unchanged
+                    // and trivia_scores recorded false diamonds_earned). Throw so
+                    // the catch block surfaces a Retry UI; idempotency key is
+                    // stable across retries so the second attempt is safe.
+                    if (rpcErr) throw rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, `Survival Level ${level}`);
@@ -674,13 +692,17 @@ export default function SurvivalGamePage() {
 
             // Phase 2: Upsert survival progress (only if not already updated)
             if (savePhaseRef.current < 2) {
-                await supabase
+                // Phase 58: capture upsert error — was silently swallowed,
+                // so a failed progress write still advanced savePhaseRef and
+                // claimed success in the UI. Throw to trigger Retry flow.
+                const { error: progressErr } = await supabase
                     .from('survival_progress')
                     .upsert({
                         user_id: userId,
                         highest_level: Math.max(level, userProgress.highestLevel),
                         last_played: new Date().toISOString()
                     }, { onConflict: 'user_id' });
+                if (progressErr) throw progressErr;
 
                 setUserProgress(prev => ({
                     ...prev,
@@ -693,20 +715,34 @@ export default function SurvivalGamePage() {
             if (savePhaseRef.current < 3) {
                 if (questions && questions.length > 0 && answersRef.current.length > 0) {
                     const answeredQuestions = questions.slice(0, answersRef.current.length);
-                    const historyRecords = answeredQuestions.map((q, idx) => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: answersRef.current[idx] || false,
-                        seen_at: new Date().toISOString(),
-                        mode: 'survival'
-                    }));
+                    const historyRecords = answeredQuestions
+                        .filter(q => q && q.id != null) // skip rows with no id (would FK-violate)
+                        .map((q, idx) => ({
+                            user_id: userId,
+                            question_id: q.id,
+                            was_correct: answersRef.current[idx] || false,
+                            seen_at: new Date().toISOString(),
+                            mode: 'survival'
+                        }));
 
-                    await supabase
-                        .from('trivia_user_question_history')
-                        .upsert(historyRecords, {
-                            onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
-                        });
+                    if (historyRecords.length > 0) {
+                        // Phase 58: capture upsert error — silently swallowed
+                        // history failures meant the 60-day no-repeat exclusion
+                        // could miss this run, putting the same Qs back into
+                        // the user's pool tomorrow. Non-critical per-run, but
+                        // surfaces real DB outages.
+                        const { error: historyErr } = await supabase
+                            .from('trivia_user_question_history')
+                            .upsert(historyRecords, {
+                                onConflict: 'user_id,question_id',
+                                ignoreDuplicates: false
+                            });
+                        if (historyErr) {
+                            console.warn('[Survival] History upsert failed (non-fatal):', historyErr.message);
+                            // Don't throw — history is non-critical. Phase 4
+                            // still records score so the run isn't lost.
+                        }
+                    }
                 }
                 savePhaseRef.current = 3;
             }
