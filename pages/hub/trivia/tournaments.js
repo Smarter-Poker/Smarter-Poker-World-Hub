@@ -486,14 +486,30 @@ export default function TournamentsPage() {
             const submitOnce = async () => {
                 const token = getAccessToken();
                 if (!token) throw new Error('No session token — cannot submit round');
+                // Phase 58 fix: shuffleOptions rewrites q.correct_index to the
+                // SHUFFLED position (e.g. correct option moved to index 2).
+                // The server's correctMap is built from tournament.questions
+                // which is UNSHUFFLED (correct_index still 0). Sending the
+                // shuffled q.correct_index made all tournament rounds score
+                // ~25% (random alignment only). Look up the ORIGINAL correct
+                // index from activeTournament.questions (the source-of-truth
+                // before shuffling) when reporting "correct" — server then
+                // matches its own correctMap entry.
+                const originalCorrectMap = new Map();
+                for (const oq of (activeTournament?.questions || [])) {
+                    if (oq?.id != null) originalCorrectMap.set(oq.id, oq.correct_index);
+                }
                 // Build { question_id, selected } per question. selected is
-                // the user's actual answer index (correct_index when correct,
-                // -1 sentinel otherwise — server treats -1 as wrong).
+                // the user's authoritative answer index in ORIGINAL option
+                // coordinates: original correct_index when user got it right,
+                // -1 sentinel otherwise (server treats -1 as wrong).
                 const answersPayload = questions
                     .filter(q => q.id != null)
                     .map((q, idx) => ({
                         question_id: q.id,
-                        selected: answersRef.current[idx] === true ? q.correct_index : -1
+                        selected: answersRef.current[idx] === true
+                            ? (originalCorrectMap.has(q.id) ? originalCorrectMap.get(q.id) : -1)
+                            : -1
                     }));
                 const resp = await fetch('/api/trivia/tournament-submit-round', {
                     method: 'POST',
