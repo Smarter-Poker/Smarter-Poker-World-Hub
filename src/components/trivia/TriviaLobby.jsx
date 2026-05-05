@@ -326,7 +326,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         }
 
         setIsDeducting(true);
-        const success = await deductDiamonds();
+        const success = await deductDiamonds(modeId);
         setIsDeducting(false);
         if (success) {
             // Signal downstream pages that payment was already made
