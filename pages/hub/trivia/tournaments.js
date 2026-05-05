@@ -382,7 +382,9 @@ export default function TournamentsPage() {
                     // Idempotent — re-load to surface the existing entry
                     await loadData();
                 } else {
+                    // Surface to user (was previously silent)
                     console.warn('[Tournaments] Entry failed:', json.error || resp.status);
+                    setRegisterError(json.error || `Entry failed (HTTP ${resp.status})`);
                 }
                 return;
             }
@@ -391,6 +393,7 @@ export default function TournamentsPage() {
             busEmit.diamondsSpent(tournament.entry_fee, 'Tournament Entry');
         } catch (e) {
             console.warn('[Tournaments] Entry RPC failed:', e?.message || e);
+            setRegisterError('Network error — please try again');
             return;
         }
 
@@ -465,6 +468,7 @@ export default function TournamentsPage() {
 
     async function finishRoundPlay() {
         setIsTimerRunning(false);
+        setSubmitError(null);
 
         // Server-side score submission via /api/trivia/tournament-submit-round.
         // Replaces direct anon-key writes that let users DevTools-edit their
@@ -472,12 +476,9 @@ export default function TournamentsPage() {
         // tournament.questions[i].correct_index and writes the authoritative
         // score to trivia_tournament_entries + trivia_tournament_rounds.
         if (currentRoundData && myMatchup) {
-            try {
+            const submitOnce = async () => {
                 const token = getAccessToken();
-                if (!token) {
-                    console.warn('[Tournaments] No session token — cannot submit round');
-                    return;
-                }
+                if (!token) throw new Error('No session token — cannot submit round');
                 // Build { question_id, selected } per question. selected is
                 // the user's actual answer index (correct_index when correct,
                 // -1 sentinel otherwise — server treats -1 as wrong).
@@ -494,10 +495,29 @@ export default function TournamentsPage() {
                 });
                 const json = await resp.json().catch(() => ({}));
                 if (!resp.ok || !json.success) {
-                    console.warn('[Tournaments] Round submit failed:', json.error || resp.status);
+                    throw new Error(json.error || `submit_failed_${resp.status}`);
                 }
-            } catch (e) {
-                console.warn('[Tournaments] Failed to submit round results:', e);
+                return json;
+            };
+
+            // Retry once on transient failure (network blip / 500), then surface to user.
+            // Was previously silent — user saw "Round Complete" but server had no record.
+            let lastErr = null;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    await submitOnce();
+                    lastErr = null;
+                    break;
+                } catch (e) {
+                    lastErr = e;
+                    if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+                }
+            }
+            if (lastErr) {
+                console.warn('[Tournaments] Round submit failed after retry:', lastErr?.message || lastErr);
+                setSubmitError(lastErr?.message || 'Failed to save round score');
+                // Don't proceed to "complete" UI — let user see error + retry button
+                return;
             }
         }
 
@@ -588,6 +608,24 @@ export default function TournamentsPage() {
             <div className="tournaments-page">
                 <div className="bg-overlay" />
                 <UniversalHeader pageDepth={2} />
+
+                {/* Save-failure banner — surfaces previously-silent errors */}
+                {(submitError || registerError) && (
+                    <div role="alert" style={{ position: 'fixed', top: 16, left: 16, right: 16, zIndex: 10000, background: '#7f1d1d', border: '1px solid #ef4444', borderRadius: 12, padding: 14, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {submitError ? `Round score didn't save: ${submitError}` : `Tournament entry failed: ${registerError}`}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                            {submitError && (
+                                <button onClick={() => { setSubmitError(null); finishRoundPlay(); }} style={{ padding: '6px 12px', background: '#ef4444', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}>Retry</button>
+                            )}
+                            <button onClick={() => { setSubmitError(null); setRegisterError(null); }} style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 12 }}>Dismiss</button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Out of Diamonds Modal */}
                 {showOutOfDiamonds && (
