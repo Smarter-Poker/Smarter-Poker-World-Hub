@@ -68,9 +68,13 @@ export default async function handler(req, res) {
         }
 
         // ─── 3. LOAD TOURNAMENT ─────────────────────────────────────────
+        // NOTE: trivia_tournaments has NO max_entries / current_entries columns
+        // (verified against schema 2026-05-05). The prior cap-check on those
+        // columns was silently dead. If a cap is needed in the future, add
+        // proper columns + this handler can re-introduce the check.
         const { data: tournament, error: tournErr } = await sb()
             .from('trivia_tournaments')
-            .select('id, name, entry_fee, prize_pool, status, max_entries, current_entries')
+            .select('id, name, entry_fee, prize_pool, status')
             .eq('id', tournament_id)
             .maybeSingle();
 
@@ -83,9 +87,6 @@ export default async function handler(req, res) {
         }
         if (!['upcoming', 'active'].includes(tournament.status)) {
             return res.status(400).json({ success: false, error: 'Tournament not registerable' });
-        }
-        if (tournament.max_entries != null && tournament.current_entries >= tournament.max_entries) {
-            return res.status(400).json({ success: false, error: 'Tournament full' });
         }
 
         const entryFee = Number(tournament.entry_fee) || 0;
@@ -172,16 +173,23 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'entry_create_failed' });
         }
 
-        // Step 6c: Update prize pool (10% house rake)
+        // Step 6c: Atomic prize pool increment (10% house rake).
+        // Was previously a read-then-write update which lost concurrent
+        // entries' fee contributions. Now uses fn_trivia_tournament_increment_prize_pool
+        // SECDEF RPC for a transactional UPDATE prize_pool = prize_pool + N.
         const netEntryFee = entryFee - Math.floor(entryFee * 0.1);
-        const newPrizePool = (Number(tournament.prize_pool) || 0) + netEntryFee;
-        const { error: poolErr } = await sb()
-            .from('trivia_tournaments')
-            .update({ prize_pool: newPrizePool })
-            .eq('id', tournament_id);
-        if (poolErr) {
-            // Non-fatal — entry exists; surface for monitoring
-            console.error('[tournament-enter] prize pool update failed:', poolErr);
+        let newPrizePool = Number(tournament.prize_pool) || 0;
+        if (netEntryFee > 0) {
+            const { data: poolResult, error: poolErr } = await sb().rpc(
+                'fn_trivia_tournament_increment_prize_pool',
+                { p_tournament_id: tournament_id, p_amount: netEntryFee }
+            );
+            if (poolErr) {
+                // Non-fatal — entry exists; surface for monitoring
+                console.error('[tournament-enter] prize pool RPC failed:', poolErr);
+            } else if (typeof poolResult === 'number') {
+                newPrizePool = poolResult;
+            }
         }
 
         return res.status(200).json({

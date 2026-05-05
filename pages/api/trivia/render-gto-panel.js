@@ -274,8 +274,8 @@ async function checkCachedImage(cacheKey) {
             return data.publicUrl;
         }
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        // Not cached
+        // Not cached — log without referencing `req` (out of scope here)
+        try { reportApiError(error, { route: '/api/trivia/render-gto-panel', stage: 'cache_check' }); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     }
     return null;
 }

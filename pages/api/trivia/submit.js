@@ -41,50 +41,72 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { score, correctCount, xpEarned, totalQuestions } = req.body;
+          const { score, correctCount, xpEarned, totalQuestions, mode } = req.body || {};
 
-          if (typeof score !== 'number' || typeof correctCount !== 'number') {
-              return res.status(400).json({ success: false, error: 'Invalid score data' });
+          // ─── INPUT VALIDATION (was missing — anyone could post score=999999) ─
+          if (!Number.isFinite(score) || !Number.isInteger(score) || score < 0 || score > 100000) {
+              return res.status(400).json({ success: false, error: 'invalid_score' });
           }
+          if (!Number.isFinite(correctCount) || !Number.isInteger(correctCount) || correctCount < 0 || correctCount > 1000) {
+              return res.status(400).json({ success: false, error: 'invalid_correct_count' });
+          }
+          if (totalQuestions != null && (!Number.isInteger(totalQuestions) || totalQuestions < 0 || totalQuestions > 1000)) {
+              return res.status(400).json({ success: false, error: 'invalid_total_questions' });
+          }
+          if (totalQuestions != null && correctCount > totalQuestions) {
+              return res.status(400).json({ success: false, error: 'correct_exceeds_total' });
+          }
+          if (xpEarned != null && (!Number.isFinite(xpEarned) || xpEarned < 0 || xpEarned > 1_000_000)) {
+              return res.status(400).json({ success: false, error: 'invalid_xp' });
+          }
+
+          // ─── AUTH REQUIRED (was optional — anon submissions polluted leaderboard) ─
+          const authHeader = req.headers.authorization;
+          if (!authHeader?.startsWith('Bearer ')) {
+              return res.status(401).json({ success: false, error: 'authentication_required' });
+          }
+          const token = authHeader.slice(7).trim();
+          if (!token) {
+              return res.status(401).json({ success: false, error: 'authentication_required' });
+          }
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          if (authErr || !authData?.user) {
+              return res.status(401).json({ success: false, error: 'invalid_token' });
+          }
+          const userId = authData.user.id;
+
+          // Resolve username (NEVER fall back to email prefix — was PII leak to public leaderboard)
+          const { data: profile } = await getSupabase()
+              .from('profiles')
+              .select('username, full_name')
+              .eq('id', userId)
+              .maybeSingle();
+          const username = profile?.username || profile?.full_name || 'Player';
 
           const today = getTodayCST();
 
-          // Use authenticated user's username if JWT present; otherwise anonymous
-          let username = 'Guest_' + Math.random().toString(36).substring(2, 8);
-          const authHeader = req.headers.authorization;
-          if (authHeader?.startsWith('Bearer ')) {
-              try {
-                  const token = authHeader.replace('Bearer ', '');
-                  const { data: authData } = await getSupabase().auth.getUser(token);
-                  const user = authData?.user;
-                  if (user) {
-                      // Try to get their profile username
-                      const { data: profile } = await getSupabase()
-                          .from('profiles')
-                          .select('username, full_name')
-                          .eq('id', user.id)
-                          .maybeSingle();
-                      username = profile?.username || profile?.full_name || user.email?.split('@')[0] || username;
-                  }
-              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-          }
-
-          // Save score to leaderboard
+          // Save score with user_id (RLS policy on trivia_scores requires auth.uid()=user_id OR null).
+          // NOTE: trivia_scores.mode/total_questions/diamonds_earned are NOT NULL — provide defaults.
+          // The original handler was silently failing on every insert due to missing `mode` column.
+          const safeMode = (typeof mode === 'string' && mode.length > 0 && mode.length <= 32) ? mode : 'unknown';
           const { error: insertError } = await getSupabase()
               .from('trivia_scores')
               .insert({
+                  user_id: userId,
                   username,
+                  mode: safeMode,
                   score,
                   correct_count: correctCount,
-                  total_questions: totalQuestions,
-                  xp_earned: xpEarned,
+                  total_questions: totalQuestions ?? correctCount,
+                  diamonds_earned: 0,
                   play_date: today,
                   created_at: new Date().toISOString()
               });
 
           if (insertError) {
               console.warn('[Trivia Submit] Insert error:', insertError);
-              // Don't fail - the table might not exist yet
+              // Surface real failures (was silently swallowed before)
+              return res.status(500).json({ success: false, error: 'score_persist_failed' });
           }
 
           // Get updated leaderboard
@@ -99,7 +121,7 @@ export default async function handler(req, res) {
               success: true,
               message: 'Score saved successfully',
               score,
-              xpEarned,
+              xpEarned: xpEarned ?? 0,
               leaderboard: leaderboard || []
           });
 

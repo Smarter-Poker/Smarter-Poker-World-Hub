@@ -160,12 +160,48 @@ export default async function handler(req, res) {
               console.warn('[Trivia API] Database error:', error);
           }
 
-          // Get user stats if authenticated (placeholder - would use auth)
-          const userStats = {
-              totalPlayed: 0,
-              bestScore: 0,
-              currentStreak: 0
-          };
+          // Real user stats if Bearer JWT present (was a hardcoded zero-stub before).
+          let userStats = { totalPlayed: 0, bestScore: 0, currentStreak: 0 };
+          let hasPlayedToday = false;
+          let todayScore = null;
+          const authHeader = req.headers.authorization;
+          if (authHeader?.startsWith('Bearer ')) {
+              try {
+                  const token = authHeader.slice(7).trim();
+                  const { data: authData } = await getSupabase().auth.getUser(token);
+                  const userId = authData?.user?.id;
+                  if (userId) {
+                      // Has the user already played today? (daily_trivia_plays is RLS-locked to own rows)
+                      const { data: todayPlay } = await getSupabase()
+                          .from('daily_trivia_plays')
+                          .select('id, score')
+                          .eq('user_id', userId)
+                          .eq('played_date', today)
+                          .maybeSingle();
+                      if (todayPlay) {
+                          hasPlayedToday = true;
+                          todayScore = todayPlay.score ?? null;
+                      }
+                      // Best/total stats from trivia_streaks aggregate row
+                      const { data: streak } = await getSupabase()
+                          .from('trivia_streaks')
+                          .select('current_streak, best_streak, total_games_played, total_correct')
+                          .eq('user_id', userId)
+                          .maybeSingle();
+                      if (streak) {
+                          userStats = {
+                              totalPlayed: streak.total_games_played || 0,
+                              bestScore: streak.best_streak || 0,
+                              currentStreak: streak.current_streak || 0,
+                              totalCorrect: streak.total_correct || 0
+                          };
+                      }
+                  }
+              } catch (e) {
+                  console.warn('[Trivia API] auth/stats lookup failed:', e?.message || e);
+                  // Fall through with default zero-stats — non-fatal
+              }
+          }
 
           // Get today's leaderboard
           const { data: leaderboard } = await getSupabase()
@@ -180,13 +216,18 @@ export default async function handler(req, res) {
               ? questions
               : shuffleArray([...FALLBACK_QUESTIONS]).slice(0, 10);
 
-          res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+          // CRITICAL: do not s-maxage cache personalized data. Drop CDN cache when auth header was used.
+          if (!authHeader) {
+              res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+          } else {
+              res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+          }
           return res.status(200).json({
               success: true,
               date: today,
               questions: finalQuestions,
-              hasPlayedToday: false, // Would check auth
-              todayScore: null,
+              hasPlayedToday,
+              todayScore,
               leaderboard: leaderboard || [],
               userStats
           });
