@@ -21,12 +21,12 @@ const C = {
     blue: '#0066FF',
 };
 
-export function GoLiveModal({ isOpen, onClose, user }) {
+export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialRoomId = null, initialInviteCode = null }) {
     const [stage, setStage] = useState('preview'); // preview | countdown | live | ended
     const [title, setTitle] = useState('');
     const [error, setError] = useState('');
     const [viewerCount, setViewerCount] = useState(0);
-    const [streamId, setStreamId] = useState(null);
+    const [streamId, setStreamId] = useState(initialRoomId || null);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [countdown, setCountdown] = useState(5);
     const [showControls, setShowControls] = useState(false); // tap-to-reveal
@@ -47,7 +47,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [description, setDescription] = useState(''); // #9: stream description
     const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters
     const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
-    const [guestInviteCode, setGuestInviteCode] = useState(null); // #6: guest invite
+    const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
     const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
     // BUG FIX (GLM-3): separate toast state for share link (not reusing error)
@@ -323,16 +323,23 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             liveStreamService.onReconnected = () => setIsReconnecting(false);
             liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
 
-            const { streamId: newId, guestInviteCode: newInviteCode } = await liveStreamService.startBroadcast(
-                user.id,
-                title || `${user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Live'}'s Live`,
-                streamRef.current,
-                thumbUrl,
-                category,
-                description
-            );
-            setStreamId(newId);
-            setGuestInviteCode(newInviteCode);
+            if (guestMode && initialRoomId && initialInviteCode) {
+                await liveStreamService.joinAsGuest(user.id, initialRoomId, initialInviteCode, streamRef.current);
+                setStreamId(initialRoomId);
+                setGuestInviteCode(initialInviteCode);
+            } else {
+                const { streamId: newId, guestInviteCode: newInviteCode } = await liveStreamService.startBroadcast(
+                    user.id,
+                    title || `${user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Live'}'s Live`,
+                    streamRef.current,
+                    thumbUrl,
+                    category,
+                    description
+                );
+                setStreamId(newId);
+                setGuestInviteCode(newInviteCode);
+            }
+            
             setStage('live');
             setElapsedTime(0);
             startRecording();
@@ -557,14 +564,16 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 {stage === 'preview' && (
                     <div>
                         <div style={{ padding:'16px 20px', borderBottom:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                            <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:C.text }}>Go Live</h2>
+                            <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:C.text }}>{guestMode ? 'Join Stream' : 'Go Live'}</h2>
                             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                                <button
-                                    onClick={() => setShowSchedule(true)}
-                                    style={{ background:'none', border:`1px solid ${C.border}`, borderRadius:8, padding:'6px 12px', fontSize:13, color:C.textSec, cursor:'pointer' }}
-                                >
-                                    Schedule
-                                </button>
+                                {!guestMode && (
+                                    <button
+                                        onClick={() => setShowSchedule(true)}
+                                        style={{ background:'none', border:`1px solid ${C.border}`, borderRadius:8, padding:'6px 12px', fontSize:13, color:C.textSec, cursor:'pointer' }}
+                                    >
+                                        Schedule
+                                    </button>
+                                )}
                                 <button onClick={onClose} style={{ background:'none', border:'none', fontSize:24, cursor:'pointer', color:C.textSec }}>✕</button>
                             </div>
                         </div>
@@ -576,65 +585,69 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         </div>
 
                         <div style={{ padding:20 }}>
-                            {/* Thumbnail upload */}
-                            <div style={{ marginBottom:16 }}>
-                                <label style={{ display:'block', marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>
-                                    Stream Thumbnail
-                                </label>
-                                <div
-                                    onClick={() => thumbnailInputRef.current?.click()}
-                                    style={{ border:`2px dashed ${thumbnailPreview ? C.red : C.border}`, borderRadius:10, padding:thumbnailPreview ? 0 : 20, textAlign:'center', cursor:'pointer', overflow:'hidden', position:'relative', minHeight:80 }}
-                                >
-                                    {thumbnailPreview ? (
-                                        <img src={thumbnailPreview} alt="Thumbnail" style={{ width:'100%', maxHeight:160, objectFit:'cover', display:'block' }} />
-                                    ) : (
-                                        <div>
-                                            <div style={{ fontSize:28, marginBottom:6 }}>🖼️</div>
-                                            <div style={{ fontSize:13, color:C.textSec }}>Tap to upload a thumbnail <br/><span style={{ fontSize:11 }}>JPG, PNG — recommended 1280×720</span></div>
+                            {!guestMode && (
+                                <>
+                                    {/* Thumbnail upload */}
+                                    <div style={{ marginBottom:16 }}>
+                                        <label style={{ display:'block', marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>
+                                            Stream Thumbnail
+                                        </label>
+                                        <div
+                                            onClick={() => thumbnailInputRef.current?.click()}
+                                            style={{ border:`2px dashed ${thumbnailPreview ? C.red : C.border}`, borderRadius:10, padding:thumbnailPreview ? 0 : 20, textAlign:'center', cursor:'pointer', overflow:'hidden', position:'relative', minHeight:80 }}
+                                        >
+                                            {thumbnailPreview ? (
+                                                <img src={thumbnailPreview} alt="Thumbnail" style={{ width:'100%', maxHeight:160, objectFit:'cover', display:'block' }} />
+                                            ) : (
+                                                <div>
+                                                    <div style={{ fontSize:28, marginBottom:6 }}>🖼️</div>
+                                                    <div style={{ fontSize:13, color:C.textSec }}>Tap to upload a thumbnail <br/><span style={{ fontSize:11 }}>JPG, PNG — recommended 1280×720</span></div>
+                                                </div>
+                                            )}
+                                            {thumbnailPreview && (
+                                                <div style={{ position:'absolute', top:6, right:8, background:'rgba(0,0,0,.6)', color:'white', borderRadius:'50%', width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, cursor:'pointer' }}
+                                                    onClick={(e) => { e.stopPropagation(); if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview); setThumbnailPreview(null); setThumbnailFile(null); }}>✕</div>
+                                            )}
                                         </div>
-                                    )}
-                                    {thumbnailPreview && (
-                                        <div style={{ position:'absolute', top:6, right:8, background:'rgba(0,0,0,.6)', color:'white', borderRadius:'50%', width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, cursor:'pointer' }}
-                                            onClick={(e) => { e.stopPropagation(); if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview); setThumbnailPreview(null); setThumbnailFile(null); }}>✕</div>
-                                    )}
-                                </div>
-                                <input ref={thumbnailInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleThumbnailSelect} />
-                            </div>
+                                        <input ref={thumbnailInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleThumbnailSelect} />
+                                    </div>
 
-                            {/* Stream title */}
-                            <label style={{ display:'block', marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Stream Title</label>
-                            <input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder={`${user?.full_name || user?.user_metadata?.full_name || 'Your'}'s Live Stream`}
-                                style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text }}
-                            />
+                                    {/* Stream title */}
+                                    <label style={{ display:'block', marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Stream Title</label>
+                                    <input
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder={`${user?.full_name || user?.user_metadata?.full_name || 'Your'}'s Live Stream`}
+                                        style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text }}
+                                    />
 
-                            {/* #9: Description field */}
-                            <label style={{ display:'block', marginTop:14, marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Description</label>
-                            <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="What will you be playing or talking about?"
-                                rows={2}
-                                maxLength={200}
-                                style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:14, outline:'none', boxSizing:'border-box', color:C.text, resize:'none', fontFamily:'inherit' }}
-                            />
+                                    {/* Description field */}
+                                    <label style={{ display:'block', marginTop:14, marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Description</label>
+                                    <textarea
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder="What will you be playing or talking about?"
+                                        rows={2}
+                                        maxLength={200}
+                                        style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:14, outline:'none', boxSizing:'border-box', color:C.text, resize:'none', fontFamily:'inherit' }}
+                                    />
 
-                            {/* Category selector */}
-                            <label style={{ display:'block', marginTop:14, marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Category</label>
-                            <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text, background:'white', appearance:'auto' }}
-                            >
-                                <option value="general">General</option>
-                                <option value="cash_game">Cash Game</option>
-                                <option value="tournament">Tournament</option>
-                                <option value="strategy">Strategy Talk</option>
-                                <option value="hand_review">Hand Review</option>
-                                <option value="just_chatting">Just Chatting</option>
-                            </select>
+                                    {/* Category selector */}
+                                    <label style={{ display:'block', marginTop:14, marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Category</label>
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text, background:'white', appearance:'auto' }}
+                                    >
+                                        <option value="general">General</option>
+                                        <option value="cash_game">Cash Game</option>
+                                        <option value="tournament">Tournament</option>
+                                        <option value="strategy">Strategy Talk</option>
+                                        <option value="hand_review">Hand Review</option>
+                                        <option value="just_chatting">Just Chatting</option>
+                                    </select>
+                                </>
+                            )}
 
                             {error && <div style={{ color:C.red, marginTop:10, fontSize:14 }}>{error}</div>}
 
@@ -645,7 +658,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     disabled={isStarting}
                                     style={{ flex:1, padding:'13px 20px', borderRadius:8, border:'none', background:C.red, color:'white', fontSize:15, fontWeight:700, cursor: isStarting ? 'not-allowed' : 'pointer', opacity: isStarting ? 0.6 : 1 }}
                                 >
-                                    {isStarting ? 'Starting...' : 'Go Live'}
+                                    {isStarting ? 'Starting...' : (guestMode ? 'Join as Guest' : 'Go Live')}
                                 </button>
                             </div>
                         </div>
@@ -855,18 +868,17 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     opacity: isCameraFlipping ? 0.5 : 1,
                                 }}
                             >🔄</button>
-                            {stage === 'setup' && (
-                                <button
-                                    onClick={e => { e.stopPropagation(); handleShare(); }}
-                                    title="Share stream link"
-                                    style={{
-                                        width:44, height:44, borderRadius:'50%', border:'none',
-                                        background:'rgba(0,0,0,0.6)', backdropFilter:'blur(8px)',
-                                        color:'white', fontSize:20, cursor:'pointer', display:'flex',
-                                        alignItems:'center', justifyContent:'center',
-                                    }}
-                                >📤</button>
-                            )}
+                            {/* Share button */}
+                            <button
+                                onClick={e => { e.stopPropagation(); handleShare(); }}
+                                title="Share stream link"
+                                style={{
+                                    width:44, height:44, borderRadius:'50%', border:'none',
+                                    background:'rgba(0,0,0,0.6)', backdropFilter:'blur(8px)',
+                                    color:'white', fontSize:20, cursor:'pointer', display:'flex',
+                                    alignItems:'center', justifyContent:'center',
+                                }}
+                            >📤</button>
                             {guestInviteCode && (
                                 <button
                                     onClick={e => { 
@@ -885,6 +897,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                         alignItems:'center', justifyContent:'center',
                                     }}
                                 >👥</button>
+                            )}
                             {/* Mic mute/unmute */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleToggleMute(); }}
@@ -929,7 +942,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         <p style={{ color:C.textSec, margin:'0 0 20px', fontSize:14 }}>Allow camera and microphone to go live.</p>
                         {error && <div style={{ color:C.red, marginBottom:16, fontSize:14 }}>⚠️ {error}</div>}
                         <button onClick={requestMediaAccess} style={{ background:C.red, color:'white', border:'none', padding:'12px 28px', borderRadius:8, fontSize:16, fontWeight:700, cursor:'pointer' }}>
-                            Allow Camera Access
+                            {guestMode ? 'Join as Guest' : 'Start Live Stream'}
                         </button>
                     </div>
                 )}
