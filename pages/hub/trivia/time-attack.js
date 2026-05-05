@@ -21,7 +21,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
@@ -143,12 +143,9 @@ export default function TimeAttackPage() {
         // 60-day non-repeat: Get user's recently seen question IDs using shared utility
         const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'time-attack');
 
-        const { data } = await supabase
-            .from('trivia_questions')
-            .select('*')
-            .limit(200);
-
-        if (data) {
+        // Phase 55: random offset fetch instead of "first 200"
+        const data = await fetchRandomQuestionPool(supabase, { pageSize: 200 });
+        if (data && data.length > 0) {
             // Filter and shuffle questions using shared utility
             // minFallback=30: if fewer than 30 unseen questions remain, use full pool
             const shuffled = filterAndShuffle(data, excludeIds, 30, { minQualityScore: 6 }); // Phase 51: drop low-quality

@@ -25,7 +25,7 @@ import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
-import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
@@ -135,13 +135,9 @@ export default function SurvivalModePage() {
         // 60-day non-repeat: exclude recently seen questions
         const excludeIds = userId ? await getRecentlySeenIds(supabase, userId, 200, 'survival') : [];
 
-        const { data, error } = await supabase
-            .from('trivia_questions')
-            .select('*')
-            .order('id', { ascending: false })
-            .limit(100);
-
-        if (data) {
+        // Phase 55: random offset fetch instead of "newest 100"
+        const data = await fetchRandomQuestionPool(supabase, { pageSize: 100 });
+        if (data && data.length > 0) {
             const filtered = filterAndShuffle(data, excludeIds, 50, { minQualityScore: 6 }); // Phase 51: drop low-quality
             setQuestions(shuffleOptions(filtered));
             return filtered;
@@ -151,12 +147,10 @@ export default function SurvivalModePage() {
     }
 
     async function loadMoreQuestions() {
-        const { data } = await supabase
-            .from('trivia_questions')
-            .select('*')
-            .order('id', { ascending: false })
-            .limit(50)
-            .range(questions.length, questions.length + 50);
+        // Phase 55: was using .limit(50).range() which is broken — .range overrides .limit
+        // and the offset based on `questions.length` is meaningless after shuffle.
+        const data = await fetchRandomQuestionPool(supabase, { pageSize: 50 });
+        const _phase55 = false; // marker
 
         if (data) {
             setQuestions(prev => [...prev, ...shuffleOptions(data.sort(() => Math.random() - 0.5))]);

@@ -23,7 +23,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
@@ -199,14 +199,11 @@ export default function EndlessModePage() {
             // 60-day non-repeat: Get user's recently seen question IDs using shared utility
             const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'endless');
 
-            // Get ALL questions from ALL categories
-            const { data, error } = await supabase
-                .from('trivia_questions')
-                .select('*')
-                .order('id', { ascending: false })
-                .limit(200);
-
-            if (!error && data) {
+            // Phase 55: random offset fetch — was always pulling the same 200
+            // newest rows, so users in long sessions cycled through the same window
+            // while 8400+ other questions never appeared.
+            const data = await fetchRandomQuestionPool(supabase, { pageSize: 200 });
+            if (data && data.length > 0) {
                 // Filter out recently seen questions and shuffle using shared utility (unbiased)
                 // Phase 51: prefer high-quality questions for casual endless play
                 const available = filterAndShuffle(data, excludeIds, 20, { minQualityScore: 6, preferHighQuality: true });

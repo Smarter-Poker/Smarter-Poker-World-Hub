@@ -45,6 +45,60 @@ export async function getRecentlySeenIds(supabase, userId, limit = 200, mode = n
 }
 
 /**
+ * Phase 55 — randomized pool fetcher. Replaces inline queries that always
+ * fetched the same .order('id desc').limit(200) window, which caused users
+ * in long sessions to cycle through the same ~200 newest questions while
+ * 8,400+ others were never reached.
+ *
+ * Strategy: count the matching pool, pick a random offset, fetch that page.
+ * Each call hits a different slice of the pool.
+ *
+ * @param {object} supabase - client
+ * @param {object} [opts]
+ * @param {string|string[]} [opts.category] - eq or in filter
+ * @param {string|string[]} [opts.difficulty] - eq or in filter
+ * @param {number} [opts.pageSize=200] - rows to fetch
+ * @returns {Promise<object[]>} array of trivia_questions rows
+ */
+export async function fetchRandomQuestionPool(supabase, opts = {}) {
+    const { category, difficulty, pageSize = 200 } = opts;
+
+    // Count first
+    let countQ = supabase.from('trivia_questions').select('id', { count: 'exact', head: true });
+    if (Array.isArray(category)) countQ = countQ.in('category', category);
+    else if (category) countQ = countQ.eq('category', category);
+    if (Array.isArray(difficulty)) countQ = countQ.in('difficulty', difficulty);
+    else if (difficulty) countQ = countQ.eq('difficulty', difficulty);
+
+    const { count: total, error: cErr } = await countQ;
+    if (cErr) {
+        console.warn('[triviaQuestionLoader] count query failed:', cErr.message);
+        return [];
+    }
+    const totalCount = total || 0;
+    if (totalCount === 0) return [];
+
+    // Random offset
+    const maxOffset = Math.max(0, totalCount - pageSize);
+    const offset = Math.floor(Math.random() * (maxOffset + 1));
+
+    // Fetch
+    let dataQ = supabase.from('trivia_questions').select('*');
+    if (Array.isArray(category)) dataQ = dataQ.in('category', category);
+    else if (category) dataQ = dataQ.eq('category', category);
+    if (Array.isArray(difficulty)) dataQ = dataQ.in('difficulty', difficulty);
+    else if (difficulty) dataQ = dataQ.eq('difficulty', difficulty);
+    dataQ = dataQ.range(offset, offset + pageSize - 1);
+
+    const { data, error } = await dataQ;
+    if (error) {
+        console.warn('[triviaQuestionLoader] data fetch failed:', error.message);
+        return [];
+    }
+    return data || [];
+}
+
+/**
  * Filter out recently seen questions and shuffle the result.
  * Falls back to unfiltered pool if too few remain after filtering.
  * @param {object[]} questions - Full question array from Supabase
@@ -58,21 +112,32 @@ export async function getRecentlySeenIds(supabase, userId, limit = 200, mode = n
 export function filterAndShuffle(questions, excludeIds, minFallback = 10, opts = {}) {
     if (!questions || questions.length === 0) return [];
 
+    // Phase 55 — apply quality floor BEFORE the seen-exclusion filter so
+    // reported-bad / clarity-flagged questions (qs <= 5) never reach gameplay,
+    // even via the small-pool fallback path. The previous fallback reset to
+    // [...questions] which let qs=2 (auto-demoted via 3-strike report) and
+    // qs=4 (unclear English) leak back in when the filtered set was thin.
+    const qualityFloor = opts.minQualityScore && Number.isFinite(opts.minQualityScore) ? opts.minQualityScore : null;
+    const qualityPool = qualityFloor != null
+        ? questions.filter(q => typeof q.quality_score !== 'number' || q.quality_score >= qualityFloor)
+        : questions;
+
+    // Now apply the recently-seen exclusion within the quality-safe pool
     let available = excludeIds.length > 0
-        ? questions.filter(q => !excludeIds.includes(q.id))
-        : [...questions]; // Clone to prevent mutating the caller's original array
+        ? qualityPool.filter(q => !excludeIds.includes(q.id))
+        : [...qualityPool];
 
-    // Quality-score floor: drop low-quality rows when caller provides minQualityScore.
-    // Phase 49 — questions are now tagged with quality_score 0-10 (deterministic engine
-    // assigns 6/8/10 based on clarity-of-best-action; Grok-generated rows default to 7).
-    if (opts.minQualityScore && Number.isFinite(opts.minQualityScore)) {
-        const qualityFiltered = available.filter(
-            q => typeof q.quality_score !== 'number' || q.quality_score >= opts.minQualityScore,
-        );
-        if (qualityFiltered.length >= minFallback) available = qualityFiltered;
-    }
+    // Tier-1 fallback: if too few unseen-AND-quality questions remain, drop the
+    // seen-exclusion (allow recently-seen questions back in) but KEEP the
+    // quality floor in place. This prevents the auto-demoted reported-bad
+    // questions from ever appearing in gameplay.
+    if (available.length < minFallback) available = [...qualityPool];
 
-    // Fallback to full pool if too few unseen questions remain
+    // Tier-2 fallback (last resort): if even the full quality-safe pool is too
+    // small, then and only then return the unfiltered set so the game can run.
+    // This only happens when fewer than minFallback questions exist with
+    // quality_score >= floor for the given category — a pool-health emergency
+    // surfaced via /admin/trivia-pool, not a routine fallback.
     if (available.length < minFallback) available = [...questions];
 
     // Fisher-Yates shuffle (unbiased, unlike sort(() => Math.random() - 0.5))

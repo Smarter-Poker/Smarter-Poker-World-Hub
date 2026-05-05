@@ -27,7 +27,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
@@ -302,29 +302,14 @@ export default function SurvivalGamePage() {
             // 60-day non-repeat: Get user's recently seen question IDs using shared utility
             const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'survival');
 
-            // Get questions with appropriate difficulty based on level
-            let query = supabase
-                .from('trivia_questions')
-                .select('*')
-                .limit(500) // question pool
-            // Strict difficulty filtering for proper level progression
-            // Levels 1-2 (easy): Only easy questions
-            // Levels 3-5 (medium): Primarily medium, some easy fallback
-            // Levels 6-10 (hard): Only hard questions
-            if (config.difficulty === 'easy') {
-                query = query.eq('difficulty', 'easy');
-            } else if (config.difficulty === 'medium') {
-                // Medium levels: prioritize medium, allow easy as fallback
-                query = query.in('difficulty', ['medium', 'easy']);
-            } else if (config.difficulty === 'hard') {
-                // Hard levels: only hard questions for maximum challenge
-                query = query.eq('difficulty', 'hard');
-            }
-
-            // Fetch more questions to allow for exclusion filtering
-            const { data, error } = await query.limit(200);
-
-            if (!error && data) {
+            // Phase 55: random offset fetch instead of "first 200" — keeps the
+            // difficulty gating from before but pulls a random page each time.
+            let difficulty;
+            if (config.difficulty === 'easy') difficulty = 'easy';
+            else if (config.difficulty === 'medium') difficulty = ['medium', 'easy'];
+            else if (config.difficulty === 'hard') difficulty = 'hard';
+            const data = await fetchRandomQuestionPool(supabase, { difficulty, pageSize: 200 });
+            if (data && data.length > 0) {
                 // Filter out recently seen questions and shuffle using shared utility (unbiased)
                 const available = filterAndShuffle(data, excludeIds, QUESTIONS_PER_LEVEL, { minQualityScore: 6 }); // Phase 51: drop low-quality
                 

@@ -830,7 +830,11 @@ class LiveStreamService {
                 if (payload.new) {
                     this.onViewerCountChange?.(payload.new.viewer_count);
                     if (payload.new.status === 'ended' && !this.isBroadcaster) {
-                        this.onStreamEnded?.();
+                        if (this.onStreamEnded) {
+                            this.onStreamEnded();
+                        } else {
+                            this.leaveStream();
+                        }
                     }
                 }
             })
