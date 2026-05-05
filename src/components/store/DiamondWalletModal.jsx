@@ -1353,14 +1353,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 }}>
                     <img src="/images/diamond-wallet-bg.jpg" alt="Diamond Wallet" style={{ width: '100%', height: 'auto', display: 'block' }} />
                     
-                    {/* Diamond Balance Overlay
-                       Phase X tweak: shifted left so the middle digit of the balance
-                       (e.g. the "8" in "485") sits directly under the bottom point
-                       of the diamond illustration, not offset to the right. */}
+                    {/* Diamond Balance Overlay */}
                     <div style={{
                         position: 'absolute',
-                        top: '65.3%',
-                        left: '27%',
+                        top: '65.3%', 
+                        left: '28.5%', 
                         transform: 'translate(-50%, -50%)',
                         width: '100%',
                         textAlign: 'center',
@@ -1396,16 +1393,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         }}>Diamonds</div>
                     </div>
 
-                    {/* VIP Expiration Overlay
-                       Phase X tweak: switched font from Orbitron → Inter so the digit "0"
-                       renders as a true round zero (Orbitron uses a slashed zero in its
-                       700/800 weights and the OpenType "zero" 0 feature toggle doesn't
-                       override it). +20% font size, lifted 3px. */}
+                    {/* VIP Expiration Overlay */}
                     <div style={{
                         position: 'absolute',
-                        top: '66.6%',
+                        top: '66.6%', 
                         left: '69.7%',
-                        transform: 'translate(-50%, calc(-50% - 3px))',
+                        transform: 'translate(-50%, -50%)',
                         width: '100%',
                         textAlign: 'center',
                         display: 'flex',
@@ -1428,14 +1421,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             }
                             return (
                                 <div style={{
-                                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                    fontSize: 'clamp(13px, 3.6vw, 18px)',
+                                    fontFamily: '"Orbitron", sans-serif',
+                                    fontSize: 'clamp(11px, 3vw, 15px)',
                                     fontWeight: 800,
                                     letterSpacing: '1px',
                                     color: isVipActive ? '#e0f0ff' : '#a0aab5',
                                     textTransform: 'uppercase',
-                                    fontVariantNumeric: 'lining-nums proportional-nums',
-                                    fontFeatureSettings: '"zero" 0, "ss01" 0, "ss02" 0',
+                                    fontVariantNumeric: 'normal',
+                                    fontFeatureSettings: '"zero" 0',
                                     textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,180,255,0.6)',
                                 }}>
                                     {isVipActive ? `Expires: ${daysLeftText} Days` : 'Inactive'}
