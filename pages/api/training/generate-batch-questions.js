@@ -289,7 +289,7 @@ IMPORTANT: Make the scenario realistic for ${gameTypeDisplay} with ${playerCount
         }
 
         const response = await grok.chat.completions.create({
-            model: 'grok-3',
+            model: 'grok-3-mini',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.9, // High variety
             max_tokens: 1000,

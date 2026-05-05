@@ -160,7 +160,7 @@ Generate a question in this EXACT JSON format (no markdown, no code blocks):
 }`;
 
         const response = await grok.chat.completions.create({
-            model: 'grok-3',
+            model: 'grok-3-mini',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.9,
             max_tokens: 1000,
