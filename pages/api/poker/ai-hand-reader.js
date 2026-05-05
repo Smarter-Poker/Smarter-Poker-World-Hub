@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 
 // Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
 let _supabase = null;
@@ -71,10 +72,7 @@ export default async function handler(req, res) {
     }
 
     // Auth
-    const token = (req.headers.authorization || '').replace('Bearer ', '');
-    const supabase = getSupabase();
-    const { data: authData, error: authError } = await supabase.auth.getUser(token);
-    const user = authData?.user;
+    const { user, error: authError } = await getServerUserWithFallback(req, res);
     if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -124,14 +122,8 @@ export default async function handler(req, res) {
             }
         }
         
-        // Optionally log transaction
-        await supabase.from('diamond_transactions').insert({
-            user_id: user.id,
-            amount: -5,
-            transaction_type: 'feature_unlock',
-            description: 'AI Hand Scanner Use',
-            balance_after: (profile.diamonds || 0) - 5
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        // Both deduct_diamonds and add_diamonds_to_balance log their own ledger
+        // entries internally. No manual insert needed.
     }
 
     try {
