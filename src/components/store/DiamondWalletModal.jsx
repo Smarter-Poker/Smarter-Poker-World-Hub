@@ -1357,17 +1357,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <div style={{
                         position: 'absolute',
                         top: '59%', 
-                        left: '28%', 
+                        left: '50%', 
                         transform: 'translate(-50%, -50%)',
-                        width: '40%',
+                        width: '100%',
+                        maxWidth: '260px',
+                        marginLeft: '-22%', 
                         textAlign: 'center',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         pointerEvents: 'none',
                     }}>
                         <div style={{
-                            fontFamily: '"Orbitron", sans-serif',
+                            fontFamily: "'Orbitron', sans-serif",
                             fontSize: 'clamp(24px, 6vw, 36px)',
                             fontWeight: 900,
                             letterSpacing: '1px',
@@ -1396,13 +1399,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <div style={{
                         position: 'absolute',
                         top: '60%', 
-                        left: '72%',
+                        left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: '40%',
+                        width: '100%',
+                        maxWidth: '260px',
+                        marginLeft: '22%',
                         textAlign: 'center',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         pointerEvents: 'none',
                     }}>
                         {(() => {
@@ -1425,6 +1431,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     letterSpacing: '1px',
                                     color: isVipActive ? '#e0f0ff' : '#a0aab5',
                                     textTransform: 'uppercase',
+                                    fontVariantNumeric: 'normal',
+                                    fontFeatureSettings: '"zero" 0',
                                     textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,180,255,0.6)',
                                 }}>
                                     {isVipActive ? `Expires: ${daysLeftText} Days` : 'Inactive'}

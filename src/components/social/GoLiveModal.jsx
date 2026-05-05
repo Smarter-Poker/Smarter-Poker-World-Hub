@@ -12,6 +12,7 @@ import { LiveReactions } from './LiveReactions';
 import { ScheduleLiveModal } from './ScheduleLiveModal';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
+import { busEmit } from '../../engine/EventBus';
 import Lottie from 'lottie-react';
 import diamondAnimation from '../../../public/diamond-animation.json';
 
@@ -360,6 +361,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             timerRef.current = setInterval(() => setElapsedTime(p => p + 1), 1000);
             // Success toast — let broadcaster know they're live
             toast.success('You Are Now Live!');
+            busEmit.dataMutated?.('live_streams');
         } catch (err) {
             setError(err.message || 'Failed to start broadcast.');
             setStage('preview');
@@ -391,6 +393,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             setStage('ended');
             // Show analytics BEFORE end stream modal
             setShowAnalytics(true);
+            busEmit.dataMutated?.('live_streams');
         } catch (err) {
             setError(err.message);
         }
