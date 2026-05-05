@@ -63,6 +63,7 @@
     "leaflet.markercluster": "^1.5.3",
     "livekit-client": "^2.17.0",
     "livekit-server-sdk": "^2.15.0",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.562.0",
     "lz-string": "^1.5.0",
     "next": "16.2.4",

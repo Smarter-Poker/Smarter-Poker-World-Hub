@@ -154,7 +154,7 @@ class LiveStreamService {
             adaptiveStream: true,
             dynacast: true,             // Automatically adjust quality
             publishDefaults: {
-                simulcast: false,       // Fix #1: Disable simulcast to prevent initial blurriness
+                simulcast: true,        // Feature 4: Enable simulcast for manual resolution control
                 videoResolution: VideoPresets.h720,
             },
         });
@@ -260,7 +260,7 @@ class LiveStreamService {
                 if (videoTrack) {
                     await this.room.localParticipant.publishTrack(videoTrack, {
                         name: 'camera',
-                        simulcast: false, // Fix #1: Disable simulcast
+                        simulcast: true, // Feature 4: Enable simulcast
                         videoResolution: VideoPresets.h720,
                     });
                 }
@@ -347,7 +347,7 @@ class LiveStreamService {
 
             await localParticipant.publishTrack(newVideoTrack, {
                 name: 'camera',
-                simulcast: false,
+                simulcast: true,
                 videoResolution: VideoPresets.h720,
             });
 

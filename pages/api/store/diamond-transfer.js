@@ -135,20 +135,39 @@ async function getSourceTierAvailable(supabase, userId) {
  * Non-blocking — we log but do not currently hard-block 90+ day accounts.
  * The return value `flagged` can be used for future auto-suspension logic.
  */
-async function checkVelocity(supabase, userId) {
+async function checkVelocity(supabase, userId, clientIp) {
     const now = new Date();
-    const oneHourAgo = new Date(now - 60 * 60 * 1000).toISOString();
-    const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-    // Transactions in last 1h
+    // 1. Transaction frequency (account)
     const { data: recentHour } = await supabase
         .from('diamond_transactions')
         .select('id')
         .eq('user_id', userId)
         .eq('transaction_type', 'diamond_gift_sent')
         .gte('created_at', oneHourAgo);
+    
+    // 2. IP frequency (device)
+    const { data: ipRecentHour } = await supabase
+        .from('anti_farming_ips')
+        .select('id')
+        .eq('ip_address', clientIp)
+        .eq('action_type', 'diamond_gift_sent')
+        .gte('created_at', oneHourAgo);
 
     const txIn1h = (recentHour || []).length;
+    const ipTxIn1h = (ipRecentHour || []).length;
+
+    let flagged = false;
+    if (txIn1h >= VELOCITY_TRANSACTIONS_1H) {
+        flagged = true;
+        console.warn(`[VELOCITY:FARMING] User ${userId} sent ${txIn1h} gifts in 1h — threshold ${VELOCITY_TRANSACTIONS_1H}`);
+    }
+    if (ipTxIn1h >= VELOCITY_TRANSACTIONS_1H) {
+        flagged = true;
+        console.warn(`[VELOCITY:FARMING] IP ${clientIp} sent ${ipTxIn1h} gifts in 1h`);
+    }
 
     // Unique recipient count in last 24h (via description pattern [<uuid>])
     const { data: recentDay } = await supabase
@@ -165,12 +184,7 @@ async function checkVelocity(supabase, userId) {
     }
 
     const uniqueRecipients24h = recipientIds.size;
-    let flagged = false;
 
-    if (txIn1h >= VELOCITY_TRANSACTIONS_1H) {
-        flagged = true;
-        console.warn(`[VELOCITY:FARMING] User ${userId} sent ${txIn1h} gifts in 1h — threshold ${VELOCITY_TRANSACTIONS_1H}`);
-    }
     if (uniqueRecipients24h >= VELOCITY_UNIQUE_RECIPIENTS_24H) {
         flagged = true;
         console.warn(`[VELOCITY:SPAM] User ${userId} sent to ${uniqueRecipients24h} unique recipients in 24h — threshold ${VELOCITY_UNIQUE_RECIPIENTS_24H}`);
@@ -198,6 +212,9 @@ export default async function handler(req, res) {
         // [Phase 6.1.12] Email must be verified before diamond transfers
         const emailGate = await requireEmailVerifiedByUserId(getSupabase(), userId);
         if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+        // IP Fingerprinting & Clustering
+        const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
 
         // ── Parse body ──
         const { recipientId, amount: rawAmount } = req.body || {};
@@ -302,37 +319,44 @@ export default async function handler(req, res) {
         // ════════════════════════════════════════════════════════════════════
         // PHASE 2: SOURCE-TIERED ROLLING 30-DAY LIMITS (accounts 30–89 days)
         // ════════════════════════════════════════════════════════════════════
+        const rolling30Start = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+        
+        // Rolling 30-day window for outbound gifts
+        const { data: outboundLast30 } = await getSupabase()
+            .from('diamond_transactions')
+            .select('amount')
+            .eq('user_id', userId)
+            .eq('transaction_type', 'diamond_gift_sent')
+            .gte('created_at', rolling30Start);
+
+        const alreadySent30Day = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+        // Get 30-day rolling aggregate for this exact IP
+        const { data: ipRows } = await getSupabase()
+            .from('anti_farming_ips')
+            .select('amount')
+            .eq('ip_address', clientIp)
+            .gte('created_at', rolling30Start);
+        
+        const ipAlreadySent30Day = (ipRows || []).reduce((sum, r) => sum + r.amount, 0);
+        const effectiveAlreadySent = Math.max(alreadySent30Day, ipAlreadySent30Day);
+
+        const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
         const isGraduated = senderAgeDays >= GRADUATION_DAYS;
 
         if (!isGraduated) {
-            // Rolling 30-day window for outbound gifts
-            const rolling30DayStart = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-            const { data: outboundLast30 } = await getSupabase()
-                .from('diamond_transactions')
-                .select('amount')
-                .eq('user_id', userId)
-                .eq('transaction_type', 'diamond_gift_sent')
-                .gte('created_at', rolling30DayStart);
-
-            const alreadySent30Day = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
             // Determine which pool the sender qualifies for
-            const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
-
-            // If they have purchased/won diamonds available, they get the 500 cap
-            // Otherwise, they get the 100 (free/earned) cap
             const activeCap = purchasedWonAvailable >= amount
                 ? PURCHASED_WON_30DAY_LIMIT
                 : FREE_EARNED_30DAY_LIMIT;
             const capLabel = purchasedWonAvailable >= amount ? 'purchased/won' : 'free/earned';
 
-            if (alreadySent30Day + amount > activeCap) {
-                console.warn(`[VELOCITY] User ${userId} (${Math.floor(senderAgeDays)}d old) hit 30-day ${capLabel} cap: ${alreadySent30Day}/${activeCap}`);
+            if (effectiveAlreadySent + amount > activeCap) {
+                console.warn(`[VELOCITY] User ${userId} (IP: ${clientIp}) hit 30-day ${capLabel} cap: ${effectiveAlreadySent}/${activeCap}`);
                 return res.status(429).json({
                     success: false,
-                    error: `30-day send limit reached for ${capLabel} diamonds (${activeCap} diamonds/30 days). You've sent ${alreadySent30Day} diamonds in the last 30 days. Accounts unlock higher limits after 90 days.`,
-                    alreadySent: alreadySent30Day,
+                    error: `30-day send limit reached for ${capLabel} diamonds (${activeCap} diamonds/30 days). You've sent ${effectiveAlreadySent} diamonds from this account/device recently.`,
+                    alreadySent: effectiveAlreadySent,
                     cap: activeCap,
                     capType: capLabel,
                     gateType: 'source_tier_cap',
@@ -360,11 +384,10 @@ export default async function handler(req, res) {
             }
 
             // Velocity detection — non-blocking flag for 90+ day accounts
-            await checkVelocity(getSupabase(), userId);
+            await checkVelocity(getSupabase(), userId, clientIp);
         }
 
         // ── Guard 10: Per-recipient rolling 30-day limit ──
-        const rolling30Start = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
         const { data: recipientDailyTransfers } = await getSupabase()
             .from('diamond_transactions')
             .select('amount, description')
@@ -465,6 +488,14 @@ export default async function handler(req, res) {
                 balance_after: actualSenderBalance,
                 created_at: now.toISOString(),
             });
+
+        // Record the IP cluster action
+        await getSupabase().from('anti_farming_ips').insert({
+            user_id: userId,
+            ip_address: clientIp,
+            action_type: 'diamond_gift_sent',
+            amount: amount
+        });
 
         // Log recipient transaction
         const senderName = senderProfile.display_name || senderProfile.username || 'friend';

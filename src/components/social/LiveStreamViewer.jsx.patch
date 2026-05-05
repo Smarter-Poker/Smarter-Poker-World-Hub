@@ -1,0 +1,75 @@
+--- src/components/social/LiveStreamViewer.jsx
++++ src/components/social/LiveStreamViewer.jsx
+@@ -8,7 +8,7 @@
+ 
+ import { useState, useRef, useEffect } from 'react';
+ import { liveStreamService } from '../../services/LiveStreamService';
+-import { LiveReactions } from './LiveReactions';
++import { LiveReactions } from './LiveReactions';
+ import { LiveViewerList } from './LiveViewerList';
+ import { LiveDiamondGift } from './LiveDiamondGift';
+ import { supabase } from '../../lib/supabase';
+@@ -29,6 +29,9 @@
+     const [error, setError] = useState('');
+     const [commentError, setCommentError] = useState('');
+     const [comments, setComments] = useState([]);
++    const [isTheaterMode, setIsTheaterMode] = useState(false);
++    const [isPiP, setIsPiP] = useState(false);
++    const [showQualityMenu, setShowQualityMenu] = useState(false);
+     const [commentInput, setCommentInput] = useState('');
+     const [showViewerList, setShowViewerList] = useState(false);
+     const [showGifts, setShowGifts] = useState(false);
+@@ -107,6 +110,21 @@
+         }
+     }, [isConnecting]);
+ 
++    // Feature 1: PiP Mode Handler
++    const togglePiP = async () => {
++        if (!videoRef.current) return;
++        try {
++            if (document.pictureInPictureElement) {
++                await document.exitPictureInPicture();
++                setIsPiP(false);
++            } else if (document.pictureInPictureEnabled) {
++                await videoRef.current.requestPictureInPicture();
++                setIsPiP(true);
++            }
++        } catch (err) {
++            console.warn('[PiP] Error:', err);
++        }
++    };
++
+     // Fetch comments
+     const fetchComments = async (reset = false) => {
+         if (!stream?.id || loadingMoreComments) return;
+@@ -481,10 +499,10 @@
+ 
+     return (
+         <div style={{
+-            position: 'fixed', inset: 0, background: '#000', zIndex: 9999,
++            position: isTheaterMode ? 'fixed' : 'fixed', inset: 0, background: '#000', zIndex: 9999,
+             display: 'flex', flexDirection: 'column', overflow: 'hidden'
+         }}>
+-            <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
++            <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: isTheaterMode ? 'row' : 'column' }}>
+                 
+                 {/* ── VIDEO CONTAINER ── */}
+                 <div style={{
+                     flex: 1, position: 'relative', background: '#000', overflow: 'hidden',
+@@ -522,6 +540,16 @@
+                             </button>
+                             <button onClick={onClose} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                         </div>
++
++                        {/* Theater & PiP Controls */}
++                        <div style={{ position: 'absolute', top: 70, right: 16, display: 'flex', gap: 8, zIndex: 20 }}>
++                            <button onClick={togglePiP} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
++                                PiP
++                            </button>
++                            <button onClick={() => setIsTheaterMode(!isTheaterMode)} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
++                                {isTheaterMode ? 'Default' : 'Theater'}
++                            </button>
++                        </div>
+                     </div>
+ 
+                     {/* Stream description */}

@@ -12,6 +12,8 @@ import { LiveReactions } from './LiveReactions';
 import { ScheduleLiveModal } from './ScheduleLiveModal';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
+import Lottie from 'lottie-react';
+import diamondAnimation from '../../../public/diamond-animation.json';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505',
@@ -43,7 +45,9 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [isStarting, setIsStarting] = useState(false);       // #3/#11: prevents double-tap on Go Live
     const [recordingFailed, setRecordingFailed] = useState(false); // #12: warns when recording unavailable
     const [description, setDescription] = useState(''); // #9: stream description
+    const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters
     const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
+    const [guestInviteCode, setGuestInviteCode] = useState(null); // #6: guest invite
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
     const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
     // BUG FIX (GLM-3): separate toast state for share link (not reusing error)
@@ -152,6 +156,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                     giftFlashTimerRef.current = null;
                     setGiftFlash(null);
                 }, 4000);
+
+                // Feature 5: Update Top Gifters Leaderboard
+                setTopGifters(prev => {
+                    const currentAmount = prev[payload.sender_name] || 0;
+                    return { ...prev, [payload.sender_name]: currentAmount + payload.amount };
+                });
             }
         }).subscribe();
         return () => {
@@ -313,7 +323,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             liveStreamService.onReconnected = () => setIsReconnecting(false);
             liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
 
-            const { streamId: newId } = await liveStreamService.startBroadcast(
+            const { streamId: newId, guestInviteCode: newInviteCode } = await liveStreamService.startBroadcast(
                 user.id,
                 title || `${user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Live'}'s Live`,
                 streamRef.current,
@@ -322,6 +332,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 description
             );
             setStreamId(newId);
+            setGuestInviteCode(newInviteCode);
             setStage('live');
             setElapsedTime(0);
             startRecording();
@@ -478,6 +489,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         setRecordingFailed(false);
         setDescription('');
         setPinnedComment(null);
+        setGuestInviteCode(null);
         setCommentMenu(null);
         setIsMuted(false);
         onClose(action);
@@ -672,14 +684,16 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             </div>
                         )}
 
-                        {/* Gift flash animation */}
+                        {/* Feature 2: Gift flash animation with Lottie */}
                         {giftFlash && (
                             <div style={{
                                 position:'absolute', top:'35%', left:'50%', transform:'translate(-50%,-50%)',
                                 zIndex:25, animation:'cdPop 0.5s ease-out',
                                 textAlign:'center', pointerEvents:'none',
                             }}>
-                                <div style={{ fontSize:48, marginBottom:8 }}>💎</div>
+                                <div style={{ width: 150, height: 150, margin: '0 auto' }}>
+                                    <Lottie animationData={diamondAnimation} loop={false} />
+                                </div>
                                 <div style={{ color:'white', fontSize:20, fontWeight:800, textShadow:'0 2px 12px rgba(0,0,0,.8)' }}>
                                     {giftFlash.name} Sent {giftFlash.amount} Diamonds!
                                 </div>
@@ -751,6 +765,24 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                 </div>
                                 <span style={{ color:'#00CFFF', fontWeight:700, fontSize:12, marginRight:6 }}>{pinnedComment.author_name}</span>
                                 <span style={{ color:'white', fontSize:12 }}>{pinnedComment.text}</span>
+                            </div>
+                        )}
+
+                        {/* Feature 5: Top Supporters Leaderboard */}
+                        {Object.keys(topGifters).length > 0 && (
+                            <div style={{ position: 'absolute', top: 120, right: 16, background: 'rgba(0,0,0,0.5)', padding: '10px 14px', borderRadius: 12, zIndex: 15, backdropFilter: 'blur(8px)', minWidth: 140 }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Top Supporters</div>
+                                {Object.entries(topGifters)
+                                    .sort(([, a], [, b]) => b - a)
+                                    .slice(0, 3)
+                                    .map(([name, amount], idx) => (
+                                        <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
+                                            <span style={{ opacity: 0.9, display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                <span style={{ fontSize: 11, opacity: 0.7 }}>#{idx + 1}</span> {name}
+                                            </span>
+                                            <span style={{ fontWeight: 700, color: '#00CFFF' }}>{amount} 💎</span>
+                                        </div>
+                                    ))}
                             </div>
                         )}
 
@@ -833,6 +865,27 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                         color:'white', fontSize:20, cursor:'pointer', display:'flex',
                                         alignItems:'center', justifyContent:'center',
                                     }}
+                                >📤</button>
+                            )}
+                            {guestInviteCode && (
+                                <button
+                                    onClick={e => { 
+                                        e.stopPropagation(); 
+                                        const url = `${window.location.origin}/hub/live/guest?room=${streamId}&invite=${guestInviteCode}`;
+                                        navigator.clipboard.writeText(url);
+                                        if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                                        setShareToast('Guest link copied! Send to your friend.');
+                                        shareToastTimerRef.current = setTimeout(() => setShareToast(''), 3500);
+                                    }}
+                                    title="Invite Guest to Stream"
+                                    style={{
+                                        width:44, height:44, borderRadius:'50%', border:'1px solid rgba(0, 102, 255, 0.5)',
+                                        background:'rgba(0,102,255,0.2)', backdropFilter:'blur(8px)',
+                                        color:'#00CFFF', fontSize:20, cursor:'pointer', display:'flex',
+                                        alignItems:'center', justifyContent:'center',
+                                    }}
+                                >👥</button>
+                            )}
                                 >🔗</button>
                             )}
                             {/* Mic mute/unmute */}

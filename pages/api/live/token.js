@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         const { user } = await getServerUserWithFallback(req, supabase);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-        const { room, identity, name, broadcaster: clientClaimsBroadcaster = false } = req.body;
+        const { room, identity, name, broadcaster: clientClaimsBroadcaster = false, guestInviteCode = null } = req.body;
         if (!room || !identity) return res.status(400).json({ error: 'room and identity required' });
 
         // BUG FIX (#15): SECURITY — Never trust the client-supplied broadcaster flag.
@@ -42,16 +42,25 @@ export default async function handler(req, res) {
         // lets them publish their own video/audio into someone else's live stream room.
         // Server-side verify: the caller must be the actual broadcaster_id of the stream.
         let isVerifiedBroadcaster = false;
+        let isVerifiedGuest = false;
+
+        const { data: streamRow } = await supabase
+            .from('live_streams')
+            .select('broadcaster_id, guest_invite_code')
+            .eq('id', room)
+            .maybeSingle();
+
         if (clientClaimsBroadcaster) {
-            const { data: streamRow } = await supabase
-                .from('live_streams')
-                .select('broadcaster_id')
-                .eq('id', room)
-                .maybeSingle();
             // Grant broadcast if the stream row exists and the user IS the broadcaster.
             isVerifiedBroadcaster = streamRow && streamRow.broadcaster_id === user.id;
             if (!isVerifiedBroadcaster) {
                 return res.status(403).json({ error: 'Not the broadcaster of this stream' });
+            }
+        } else if (guestInviteCode) {
+            // Verify guest invite code
+            isVerifiedGuest = streamRow && streamRow.guest_invite_code === guestInviteCode;
+            if (!isVerifiedGuest) {
+                return res.status(403).json({ error: 'Invalid guest invite code' });
             }
         }
 
@@ -78,7 +87,7 @@ export default async function handler(req, res) {
         at.addGrant({
             roomJoin: true,
             room: String(room),
-            canPublish: isVerifiedBroadcaster,
+            canPublish: isVerifiedBroadcaster || isVerifiedGuest,
             canSubscribe: true,
             canPublishData: true,
             roomCreate: isVerifiedBroadcaster,

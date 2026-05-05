@@ -414,16 +414,16 @@ function getCachedTransactions() {
     try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (!raw) return null;
-        const { transactions, balance, total, ts } = JSON.parse(raw);
+        const { transactions, balance, total, vip_expiration_date, ts } = JSON.parse(raw);
         if (Date.now() - ts > CACHE_TTL_MS) return null; // stale
-        return { transactions, balance, total };
+        return { transactions, balance, total, vip_expiration_date };
     } catch (_) { return null; }
 }
 
-function setCachedTransactions(transactions, balance, total) {
+function setCachedTransactions(transactions, balance, total, vip_expiration_date) {
     try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
-            transactions, balance, total, ts: Date.now()
+            transactions, balance, total, vip_expiration_date, ts: Date.now()
         }));
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
@@ -829,7 +829,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 fetchedRef.current = true;
                 // ── PERF-2: Cache first page for instant re-opens ──
                 if (offset === 0) {
-                    setCachedTransactions(txns, bal, tot);
+                    setCachedTransactions(txns, bal, tot, data.vip_expiration_date || null);
                 }
             } else {
                 throw new Error(`Server error ${res.status}`);
@@ -1049,6 +1049,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setTransactions(cached.transactions);
             setBalance(cached.balance ?? getCachedBalance());
             setTotal(cached.total);
+            if (cached.vip_expiration_date) setVipExpirationDate(cached.vip_expiration_date);
             setLoading(false);
             // Still refresh in background for freshness
             fetchTransactions();
@@ -1407,12 +1408,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     src="/images/wallet-diamond.png"
                                     alt="Diamond"
                                     style={{
-                                        width: 100, height: 100, objectFit: 'contain',
+                                        width: 110, height: 110, objectFit: 'contain',
                                         filter: 'drop-shadow(0 0 25px rgba(0,180,255,0.8)) brightness(1.2)',
-                                        marginBottom: 8,
+                                        marginBottom: 4, marginTop: -4,
                                         animation: 'walletDiamondFloat 3s ease-in-out infinite',
                                         mixBlendMode: 'screen',
-                                        transform: 'scale(1.1) translateY(-4px)',
                                     }}
                                 />
                                 <div style={{

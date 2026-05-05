@@ -14,6 +14,8 @@ import { LiveDiamondGift } from './LiveDiamondGift';
 import { supabase } from '../../lib/supabase';
 import { busEmit } from '../../engine/EventBus';
 import { getAccessToken } from '../../lib/authUtils';
+import Lottie from 'lottie-react';
+import diamondAnimation from '../../../public/diamond-animation.json';
 
 const C = {
     red: '#FA383E',
@@ -35,11 +37,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [error, setError] = useState('');
     const [commentError, setCommentError] = useState('');
     const [comments, setComments] = useState([]);
+    const [isTheaterMode, setIsTheaterMode] = useState(false);
+    const [isPiP, setIsPiP] = useState(false);
+    const [showQualityMenu, setShowQualityMenu] = useState(false);
     const [commentInput, setCommentInput] = useState('');
     const [showViewerList, setShowViewerList] = useState(false);
     const [showGifts, setShowGifts] = useState(false);
     const [userDiamondBalance, setUserDiamondBalance] = useState(0);
     const [giftFlash, setGiftFlash] = useState(null);
+    const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false); // #7: follow broadcaster
@@ -52,6 +58,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const giftChannelRef = useRef(null);
     const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
     const pinChannelRef = useRef(null); // #18: pinned comment subscription
+    // Feature 3: Clip It
+    const mediaRecorderRef = useRef(null);
+    const recordedChunksRef = useRef([]);
+    const [isClipping, setIsClipping] = useState(false);
     // BUG FIX (L7): track the active giftFlash timer so a new gift arrival
     // cancels the previous one instead of racing to clear the display.
     const giftFlashTimerRef = useRef(null);
@@ -207,6 +217,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         giftFlashTimerRef.current = null;
                         setGiftFlash(null);
                     }, 4000);
+
+                    // Feature 5: Update Top Gifters Leaderboard
+                    setTopGifters(prev => {
+                        const currentAmount = prev[payload.sender_name] || 0;
+                        return { ...prev, [payload.sender_name]: currentAmount + payload.amount };
+                    });
                 }
             }).subscribe();
             giftChannelRef.current = giftCh;
@@ -282,9 +298,82 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     useEffect(() => {
         if (!isConnecting && pendingStreamRef.current && videoRef.current) {
             videoRef.current.srcObject = pendingStreamRef.current;
+            
+            // Feature 3: Start background recording for Clip It (last 60s)
+            try {
+                recordedChunksRef.current = [];
+                const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+                const mr = new MediaRecorder(pendingStreamRef.current, { mimeType: mime });
+                mr.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        recordedChunksRef.current.push(e.data);
+                        // Keep only approx last 60 chunks (assuming 1 chunk per second)
+                        if (recordedChunksRef.current.length > 60) {
+                            recordedChunksRef.current.shift();
+                        }
+                    }
+                };
+                mr.start(1000); // 1 second chunks
+                mediaRecorderRef.current = mr;
+            } catch (err) {
+                console.warn('[ClipIt] Failed to start MediaRecorder:', err);
+            }
+
             pendingStreamRef.current = null;
         }
     }, [isConnecting]);
+
+    // Cleanup MediaRecorder on unmount
+    useEffect(() => {
+        return () => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
+        };
+    }, []);
+
+    // Feature 3: Handle Clip It
+    const handleClipIt = async () => {
+        if (!mediaRecorderRef.current || recordedChunksRef.current.length === 0 || isClipping) return;
+        setIsClipping(true);
+        try {
+            const blob = new Blob(recordedChunksRef.current, { type: mediaRecorderRef.current.mimeType });
+            const ext = mediaRecorderRef.current.mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const path = `clips/${userId}/${Date.now()}.${ext}`;
+            const { error: uploadErr } = await supabase.storage
+                .from('live-recordings')
+                .upload(path, blob, { contentType: blob.type });
+            
+            if (uploadErr) throw uploadErr;
+            
+            const { data } = supabase.storage.from('live-recordings').getPublicUrl(path);
+            
+            // Draft social feed post (pass via URL or event bus)
+            const draftUrl = `/hub/social-media?clipUrl=${encodeURIComponent(data.publicUrl)}&title=${encodeURIComponent(`Clipped from ${streamData?.broadcaster?.username || 'Live Stream'}`)}`;
+            window.open(draftUrl, '_blank');
+        } catch (err) {
+            console.error('Clip It Error:', err);
+            alert('Failed to create clip.');
+        } finally {
+            setIsClipping(false);
+        }
+    };
+
+    // Feature 1: PiP Mode Handler
+    const togglePiP = async () => {
+        if (!videoRef.current) return;
+        try {
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+                setIsPiP(false);
+            } else if (document.pictureInPictureEnabled) {
+                await videoRef.current.requestPictureInPicture();
+                setIsPiP(true);
+            }
+        } catch (err) {
+            console.warn('[PiP] Error:', err);
+        }
+    };
 
     // Auto-scroll comments
     useEffect(() => {
@@ -379,20 +468,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         ? '#42B72A' : connectionQuality === 'poor' ? '#FFA500' : '#FA383E';
 
     return (
-        <div
-            style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: '#000',
-                zIndex: 10000,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-            }}
-        >
+        <div style={{
+            position: 'fixed', inset: 0, background: '#000', zIndex: 9999,
+            display: 'flex', flexDirection: isTheaterMode ? 'row' : 'column', overflow: 'hidden'
+        }}>
+            <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+
             {/* Video Container */}
             <video
                 ref={videoRef}
@@ -445,15 +526,17 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 </div>
             )}
 
-            {/* Gift flash animation — visible to ALL viewers */}
+            {/* Feature 2: Gift flash animation with Lottie */}
             {giftFlash && (
                 <div style={{
-                    position:'absolute', top:'30%', left:'50%', transform:'translate(-50%,-50%)',
-                    zIndex:45, animation:'giftPop 0.5s ease-out',
-                    textAlign:'center', pointerEvents:'none',
+                    position: 'absolute', top: '35%', left: '50%', transform: 'translate(-50%,-50%)',
+                    zIndex: 25, animation: 'cdPop 0.5s ease-out',
+                    textAlign: 'center', pointerEvents: 'none',
                 }}>
-                    <div style={{ fontSize:56, marginBottom:8 }}>💎</div>
-                    <div style={{ color:'white', fontSize:22, fontWeight:800, textShadow:'0 2px 16px rgba(0,0,0,.9)' }}>
+                    <div style={{ width: 150, height: 150, margin: '0 auto' }}>
+                        <Lottie animationData={diamondAnimation} loop={false} />
+                    </div>
+                    <div style={{ color: 'white', fontSize: 20, fontWeight: 800, textShadow: '0 2px 12px rgba(0,0,0,.8)' }}>
                         {giftFlash.name} Sent {giftFlash.amount} Diamonds!
                     </div>
                 </div>
@@ -493,6 +576,48 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 >
                     ✕
                 </button>
+
+                {/* Feature 3: Clip It */}
+                <div style={{ position: 'absolute', bottom: 120, right: 16, zIndex: 20 }}>
+                    <button
+                        onClick={handleClipIt}
+                        disabled={isClipping}
+                        style={{
+                            background: 'rgba(250,56,62,0.85)', border: 'none', color: 'white',
+                            padding: '8px 14px', borderRadius: 8, cursor: isClipping ? 'not-allowed' : 'pointer',
+                            fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
+                            boxShadow: '0 4px 12px rgba(250,56,62,0.4)', opacity: isClipping ? 0.7 : 1
+                        }}
+                    >
+                        ✂️ {isClipping ? 'Clipping...' : 'Clip It'}
+                    </button>
+                </div>
+
+                {/* Feature 4: Quality controls */}
+                <div style={{ position: 'absolute', top: 70, right: 16, display: 'flex', gap: 8, zIndex: 20 }}>
+                    <div style={{ position: 'relative' }}>
+                        <button onClick={() => setShowQualityMenu(!showQualityMenu)} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                            Quality
+                        </button>
+                        {showQualityMenu && (
+                            <div style={{ position: 'absolute', top: 32, right: 0, background: 'rgba(0,0,0,0.8)', borderRadius: 8, overflow: 'hidden', minWidth: 100 }}>
+                                {['auto', 'high', 'medium', 'low'].map(q => (
+                                    <div key={q} onClick={() => { liveStreamService.setVideoQuality(q); setShowQualityMenu(false); }} style={{ padding: '8px 12px', color: 'white', fontSize: 13, cursor: 'pointer', textTransform: 'capitalize', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                        {q}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <button onClick={togglePiP} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                        PiP
+                    </button>
+                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                        {isTheaterMode ? 'Default' : 'Theater'}
+                    </button>
+                </div>
+
+
 
                 {/* Live Badge + Connection Quality + Viewer Count */}
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -702,6 +827,25 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
             {/* Emoji reactions */}
             <LiveReactions streamId={stream?.id} userId={userId} />
+
+            {/* Feature 5: Top Supporters Leaderboard */}
+            {Object.keys(topGifters).length > 0 && (
+                <div style={{ position: 'absolute', top: 120, right: 16, background: 'rgba(0,0,0,0.5)', padding: '10px 14px', borderRadius: 12, zIndex: 15, backdropFilter: 'blur(8px)', minWidth: 140 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Top Supporters</div>
+                    {Object.entries(topGifters)
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 3)
+                        .map(([name, amount], idx) => (
+                            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
+                                <span style={{ opacity: 0.9, display: 'flex', gap: 6, alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, opacity: 0.7 }}>#{idx + 1}</span> {name}
+                                </span>
+                                <span style={{ fontWeight: 700, color: '#00CFFF' }}>{amount} 💎</span>
+                            </div>
+                        ))}
+                </div>
+            )}
+            </div>
 
             {/* Gift panel */}
             {showGifts && (

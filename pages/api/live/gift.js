@@ -38,7 +38,7 @@ const PURCHASED_WON_TYPES = new Set([
     'tournament_prize', 'tournament_win', 'prize_pool', 'promo_purchased',
 ]);
 
-async function checkVelocity(userId) {
+async function checkVelocity(userId, clientIp) {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
@@ -50,10 +50,21 @@ async function checkVelocity(userId) {
         .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
         .gte('created_at', oneHourAgo);
     
+    const { data: ipRecentHour } = await supabase
+        .from('anti_farming_ips')
+        .select('id')
+        .eq('ip_address', clientIp)
+        .in('action_type', ['diamond_gift_sent', 'live_gift_sent'])
+        .gte('created_at', oneHourAgo);
+
     const txIn1h = (recentHour || []).length;
+    const ipTxIn1h = (ipRecentHour || []).length;
 
     if (txIn1h >= 20) {
         console.warn(`[VELOCITY:FARMING] User ${userId} sent ${txIn1h} live gifts in 1h`);
+    }
+    if (ipTxIn1h >= 20) {
+        console.warn(`[VELOCITY:FARMING] IP ${clientIp} sent ${ipTxIn1h} live gifts in 1h`);
     }
 }
 
@@ -135,7 +146,11 @@ export default async function handler(req, res) {
     // ── GUARD: Source-tier rolling 30-day cap (accounts 31–89 days) ──
     const isGraduated = senderAgeDays >= GRADUATION_DAYS;
     if (!isGraduated) {
+        // IP Fingerprinting & Clustering
+        const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+
         const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        
         const { data: outboundLast30 } = await supabase
             .from('diamond_transactions')
             .select('amount')
@@ -144,15 +159,25 @@ export default async function handler(req, res) {
             .gte('created_at', rolling30Start);
 
         const alreadySent = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+        const { data: ipRows } = await supabase
+            .from('anti_farming_ips')
+            .select('amount')
+            .eq('ip_address', clientIp)
+            .gte('created_at', rolling30Start);
+
+        const ipAlreadySent = (ipRows || []).reduce((sum, r) => sum + r.amount, 0);
+        const effectiveAlreadySent = Math.max(alreadySent, ipAlreadySent);
+
         const purchasedWonAvailable = await getLiveGiftSourceCapAvailable(user.id);
         const activeCap = purchasedWonAvailable >= parsedAmount ? PURCHASED_WON_30DAY_LIMIT : FREE_EARNED_30DAY_LIMIT;
         const capLabel = purchasedWonAvailable >= parsedAmount ? 'purchased/won' : 'free/earned';
 
-        if (alreadySent + parsedAmount > activeCap) {
-            console.warn(`[VELOCITY:LIVE_GIFT] User ${user.id} (${Math.floor(senderAgeDays)}d) hit 30-day ${capLabel} cap: ${alreadySent}/${activeCap}`);
+        if (effectiveAlreadySent + parsedAmount > activeCap) {
+            console.warn(`[VELOCITY:LIVE_GIFT] User ${user.id} (IP: ${clientIp}) hit 30-day ${capLabel} cap: ${effectiveAlreadySent}/${activeCap}`);
             return res.status(429).json({
-                error: `30-day live gift limit reached for ${capLabel} diamonds (${activeCap}/30 days). You've sent ${alreadySent} diamonds recently.`,
-                alreadySent,
+                error: `30-day live gift limit reached for ${capLabel} diamonds (${activeCap}/30 days). You've sent ${effectiveAlreadySent} diamonds recently.`,
+                alreadySent: effectiveAlreadySent,
                 cap: activeCap,
                 capType: capLabel,
                 gateType: 'source_tier_cap',
@@ -160,7 +185,8 @@ export default async function handler(req, res) {
         }
     } else {
         // ── Graduated accounts: rely on velocity detectors ──
-        await checkVelocity(user.id);
+        const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        await checkVelocity(user.id, clientIp);
     }
 
     // ── GUARD: Per-broadcaster rolling 30-day receive cap ──
@@ -262,6 +288,15 @@ export default async function handler(req, res) {
             amount: parsedAmount,
             message: message || null,
         }).select().maybeSingle();
+
+        // Record the IP cluster action
+        const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        await supabase.from('anti_farming_ips').insert({
+            user_id: user.id,
+            ip_address: clientIp,
+            action_type: 'live_gift_sent',
+            amount: parsedAmount
+        });
 
         // Broadcast gift event to all viewers via Supabase Realtime
         // FIX: wait for SUBSCRIBED status before sending — otherwise send() silently drops
