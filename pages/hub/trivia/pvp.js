@@ -109,16 +109,23 @@ export default function PvPPage() {
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
 
-    // Visibility-based timer pause (when user leaves tab/app)
+    // Visibility-based timer pause + auto-resume on tab-return.
+    // Phase 57: PvP cheating vector — previously, switching tabs paused the
+    // timer indefinitely. Player could look up the answer offline, return,
+    // answer correctly. In a real-money-stake PvP match, this is exploitative
+    // (the opponent's clock is server-driven, but the local timer wasn't
+    // resuming). Now auto-resumes when game is in 'battle' state.
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden && isTimerRunning) {
                 setIsTimerRunning(false);
+            } else if (!document.hidden && !isTimerRunning && gameState === 'battle' && !showResult) {
+                setIsTimerRunning(true);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning]);
+    }, [isTimerRunning, gameState, showResult]);
 
     // Timer effect
     useEffect(() => {

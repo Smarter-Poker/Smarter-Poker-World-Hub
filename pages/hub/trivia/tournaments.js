@@ -79,16 +79,23 @@ export default function TournamentsPage() {
         };
     }, [avatarUser?.id, authLoading]);
 
-    // Visibility-based timer pause (when user leaves tab/app)
+    // Visibility-based timer pause + auto-resume on tab-return.
+    // Phase 57: previously paused timer on tab-switch but never resumed —
+    // user could leave tab open, look up answer, return, click. In a
+    // tournament round (24h deadline + bracket scoring), tab-switching for
+    // unlimited time was a cheating vector. Now auto-resumes when game is
+    // in 'playing' state.
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden && isTimerRunning) {
                 setIsTimerRunning(false);
+            } else if (!document.hidden && !isTimerRunning && gameState === 'playing' && !showResult) {
+                setIsTimerRunning(true);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning]);
+    }, [isTimerRunning, gameState, showResult]);
 
     // Timer effect
     useEffect(() => {

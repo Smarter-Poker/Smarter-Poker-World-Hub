@@ -151,16 +151,21 @@ export default function MixedModePage() {
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
 
-    // Visibility-based timer pause (when user leaves tab/app)
+    // Visibility-based timer pause + auto-resume on tab-return.
+    // Phase 57: previously paused on tab-switch but never resumed → user stuck
+    // forever on the question with no countdown. Now auto-resumes if game is
+    // still in 'playing' state and showResult hasn't fired.
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden && isTimerRunning) {
                 setIsTimerRunning(false);
+            } else if (!document.hidden && !isTimerRunning && gameState === 'playing' && !showResult) {
+                setIsTimerRunning(true);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning]);
+    }, [isTimerRunning, gameState, showResult]);
 
     // Shot clock effect
     useEffect(() => {
