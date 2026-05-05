@@ -446,54 +446,60 @@ export default async function handler(req, res) {
             });
         }
 
+        // Per-transfer UUID generated up front to ensure idempotency across both RPCs
+        const transferId = require('crypto').randomUUID();
+        const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
+        const senderName = senderProfile.display_name || senderProfile.username || 'friend';
+
         // ═══ EXECUTE ATOMIC TRANSFER ═══
         const { data: deductResult, error: deductErr } = await getSupabase()
-            .rpc('transfer_diamonds_deduct', {
-                sender_id: userId,
-                deduct_amount: amount,
+            .rpc('deduct_diamonds', {
+                p_user_id: userId,
+                p_amount: amount,
+                p_description: `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
+                p_transaction_type: 'diamond_gift_sent',
             });
 
         if (deductErr) {
             console.warn('Transfer deduct error:', deductErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
         }
-
-        if (deductResult === null || deductResult === undefined) {
-            return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
+        if (deductResult && !deductResult.success) {
+            return res.status(400).json({ success: false, error: deductResult.error || 'Insufficient diamond balance' });
         }
-        const actualSenderBalance = deductResult;
+        
+        const actualSenderBalance = deductResult?.balance ?? 0;
+
+        // Compensating refund helper in case the credit fails
+        const refundSender = async (reason) => {
+            try {
+                await getSupabase().rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: amount,
+                    p_type: 'diamond_gift_refund',
+                    p_description: `Transfer refund — ${reason}`,
+                    p_reference_id: `transfer_refund_${transferId}`,
+                });
+            } catch (err) {
+                console.warn('[Diamond Transfer] Refund threw:', err);
+            }
+        };
 
         const { data: creditResult, error: creditErr } = await getSupabase()
-            .rpc('transfer_diamonds_credit', {
-                recipient_id: recipientId,
-                credit_amount: amount,
+            .rpc('add_diamonds_to_balance', {
+                p_user_id: recipientId,
+                p_amount: amount,
+                p_type: 'diamond_gift_received',
+                p_description: `Received ${amount} diamonds from ${senderName} [${userId}]`,
+                p_reference_id: `transfer_${transferId}`,
             });
 
-        if (creditErr) {
-            // ROLLBACK: Restore sender's balance
-            await getSupabase().rpc('transfer_diamonds_credit', {
-                recipient_id: userId,
-                credit_amount: amount,
-            });
-            console.warn('Transfer credit error (rolled back):', creditErr);
+        if (creditErr || (creditResult && creditResult.success === false)) {
+            // ROLLBACK: Restore sender's balance using atomic refund
+            await refundSender(creditErr?.message || creditResult?.error || 'credit failed');
+            console.warn('Transfer credit error (rolled back):', creditErr || creditResult);
             return res.status(500).json({ success: false, error: 'Transfer failed — your diamonds have been restored' });
         }
-
-        const actualRecipientBalance = creditResult ?? ((recipientProfile.diamonds ?? 0) + amount);
-
-        // Log sender transaction
-        const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
-        await getSupabase()
-            .from('diamond_transactions')
-            .insert({
-                user_id: userId,
-                amount: -amount,
-                type: 'spend',
-                transaction_type: 'diamond_gift_sent',
-                description: `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
-                balance_after: actualSenderBalance,
-                created_at: now.toISOString(),
-            });
 
         // Record the IP cluster action
         await getSupabase().from('anti_farming_ips').insert({
@@ -502,20 +508,6 @@ export default async function handler(req, res) {
             action_type: 'diamond_gift_sent',
             amount: amount
         });
-
-        // Log recipient transaction
-        const senderName = senderProfile.display_name || senderProfile.username || 'friend';
-        await getSupabase()
-            .from('diamond_transactions')
-            .insert({
-                user_id: recipientId,
-                amount: amount,
-                type: 'earn',
-                transaction_type: 'diamond_gift_received',
-                description: `Received ${amount} diamonds from ${senderName} [${userId}]`,
-                balance_after: actualRecipientBalance,
-                created_at: now.toISOString(),
-            });
 
         // ── #13: Admin audit trail ──
         console.info(`[DiamondTransfer] ✓ ${amount}💎 | sender_age=${Math.floor(senderAgeDays)}d | graduated=${isGraduated} | tier=${isVipTier ? 'vip' : 'standard'}`);
