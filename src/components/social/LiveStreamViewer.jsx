@@ -291,6 +291,21 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         };
     }, [stream?.id, userId]);
 
+    // Host video binding from LiveKit participants
+    useEffect(() => {
+        if (!videoRef.current || !stream?.broadcaster_id) return;
+        const hostParticipant = participants.find(p => String(p.identity) === String(stream.broadcaster_id));
+        if (hostParticipant) {
+            const pubs = Array.from(hostParticipant.videoTrackPublications.values());
+            const videoPub = pubs.find(pub => pub.track);
+            if (videoPub?.track) {
+                try {
+                    videoPub.track.attach(videoRef.current);
+                } catch(e) {}
+            }
+        }
+    }, [participants, stream?.broadcaster_id]);
+
 
     // BUG FIX (LSV-1): Assign srcObject after both the video element AND the stream are ready.
     // We use the pendingStreamRef so we never miss a stream that arrived before the video mounted.
@@ -520,13 +535,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     const videoPub = pubs.find(pub => pub.track);
                     if (!videoPub?.track) return null;
 
-                    // If it's the host, bind their track explicitly to the main videoRef
-                    if (isHost) {
-                        if (videoRef.current) {
-                            try { videoPub.track.attach(videoRef.current); } catch(e){}
-                        }
-                        return null;
-                    }
+                    // Host video is handled by a separate useEffect to prevent render loop spam
+                    if (isHost) return null;
 
                     return (
                         <div key={p.identity} style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>

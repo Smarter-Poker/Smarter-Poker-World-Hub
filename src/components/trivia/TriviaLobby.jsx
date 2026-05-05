@@ -3,7 +3,7 @@
  * Skeuomorphic Sci-Fi design with metal frames, neon accents, and industrial aesthetic
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
@@ -193,38 +193,72 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         router.push(standaloneRoutes[modeId] || `/hub/trivia/${modeId}`);
     };
 
+    // Phase 56 fix: synchronous re-entry guard via ref. setIsDeducting() is
+    // async and does not block subsequent calls before React re-renders, so a
+    // user double-clicking the start button (or routing handler firing twice
+    // from a race) could trigger two simultaneous deductDiamonds() calls.
+    const _deductInFlightRef = useRef(false);
+    // Phase 56 fix: per-(user, mode) idempotency token cached in a ref so all
+    // retries during this component's lifecycle use the SAME reference_id.
+    // The DB's idempotency table will dedup any double-fire. Was previously
+    // generating a fresh UUID + Date.now() on every call, which deliberately
+    // defeated DB idempotency — a double-click that snuck past the in-flight
+    // guard would charge the user TWICE for one game.
+    const _idempotencyTokens = useRef({});
+    const _getIdempotencyToken = (mode) => {
+        if (!_idempotencyTokens.current[mode]) {
+            _idempotencyTokens.current[mode] = `trivia_entry_${mode}_${crypto.randomUUID()}`;
+        }
+        return _idempotencyTokens.current[mode];
+    };
+    const _clearIdempotencyToken = (mode) => {
+        delete _idempotencyTokens.current[mode];
+    };
+
     // Deduct diamonds via Supabase
-    const deductDiamonds = async () => {
-        const user = getAuthUser();
-        if (!user) return false;
+    const deductDiamonds = async (modeId = null) => {
+        if (_deductInFlightRef.current) {
+            console.warn('[TriviaLobby] deductDiamonds already in-flight — ignored duplicate');
+            return false;
+        }
+        _deductInFlightRef.current = true;
         try {
+            const user = getAuthUser();
+            if (!user) return false;
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', user.id)
                 .maybeSingle();
             if (!profile || (profile.diamonds || 0) < GAME_COST) return false;
+            const refId = _getIdempotencyToken(modeId || 'unknown');
             const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: user.id,
                 p_amount: -GAME_COST,
                 p_type: 'game_cost',
                 p_description: `Trivia game entry — ${GAME_COST}diamonds`,
-                p_reference_id: `trivia_entry_${user.id}_${Date.now()}_${crypto.randomUUID()}`
+                p_reference_id: refId,
             });
             if (__rpcErr) throw __rpcErr;
+            // Successful charge — invalidate the token so the NEXT game generates
+            // a fresh one (otherwise the user couldn't play the same mode twice
+            // in one component lifecycle, since the second call would dedup).
+            _clearIdempotencyToken(modeId || 'unknown');
             onDiamondsChange?.(-GAME_COST);
             busEmit.diamondsSpent(GAME_COST, 'Trivia Game Entry');
             return true;
         } catch (err) {
             console.warn('Diamond deduction failed:', err);
             return false;
+        } finally {
+            _deductInFlightRef.current = false;
         }
     };
 
     // Handle charge popup acceptance
     const handleChargeAccept = async () => {
         setIsDeducting(true);
-        const success = await deductDiamonds();
+        const success = await deductDiamonds(pendingMode);
         setIsDeducting(false);
         if (success) {
             // Mark as acknowledged — popup never shows again

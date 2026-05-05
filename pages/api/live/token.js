@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         const at = new AccessToken(apiKey, apiSecret, {
             identity: String(identity),
             name: String(displayName),
-            ttl: 3600,
+            ttl: 28800, // BUG FIX: Increase from 3600 (1 hour) to 28800 (8 hours) to prevent unexpected stream drops
         });
 
         at.addGrant({

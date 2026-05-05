@@ -96,7 +96,8 @@ export function EndStreamModal({
         const safetyRevoke = setTimeout(() => { URL.revokeObjectURL(blobUrl); }, 30000);
         vidEl.src = blobUrl;
         vidEl.onloadedmetadata = () => {
-            vidEl.currentTime = Math.min(3.5, (vidEl.duration || 10) / 2);
+            const safeDur = (vidEl.duration === Infinity || !vidEl.duration) ? 10 : vidEl.duration;
+            vidEl.currentTime = Math.min(3.5, safeDur / 2);
         };
         vidEl.onseeked = async () => {
             clearTimeout(safetyRevoke);

@@ -1,0 +1,36 @@
+-- ═══════════════════════════════════════════════════════════════════════
+-- 20260505221113_populate_memory_charts_from_solver_ranges.sql
+-- ═══════════════════════════════════════════════════════════════════════
+-- TIER:         2   (UPDATE 12 of 48 memory_charts_gold rows)
+-- AUTHOR:       claude (Phase 9 fix)
+--
+-- WHY:
+--   Audit found memory_charts_gold had 48 row shells (game_type ×
+--   stack_depth × hero_position) but every hand_matrix was an empty {}.
+--   Result: the deterministicEngine.generateFromCharts path always missed
+--   and fell through to local solverRanges. Cache was filled correctly
+--   because get-question.js queries the cache before generateFromCharts —
+--   so this is a data-quality issue, not a user-facing bug.
+--
+--   Migration extracts SHOVE_FOLD ranges from src/config/solverRanges.js
+--   and populates 12 of the 48 shells (the subset where solverRanges has
+--   actual data: 2 stack depths {10BB, 15BB} × 4-6 positions × 2 game
+--   types). The remaining 36 shells stay empty until source data is
+--   expanded — content gap, not bug.
+--
+-- HOW:
+--   Per-shell UPDATE statement with the hand_matrix JSON inlined. Format:
+--   { "AA": "shove", "K9o": "shove90", "T8s": "shove85", ... }
+--   where pure actions emit just "shove" or "fold", mixed strategies
+--   emit "shove50" / "shove72" etc. Frontend parses both formats.
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- See the full SQL in
+-- supabase_migrations.schema_migrations (version 20260505221113).
+-- 12 UPDATE statements, each with a ~2-4KB JSON hand_matrix payload
+-- covering the BTN, SB, CO, UTG positions at 10BB and 15BB for both
+-- Cash and Tournament game types.
+--
+-- Idempotency: re-running is harmless; the shells aren't recreated and
+-- UPDATE is set-based.
+SELECT 'see-supabase_migrations.schema_migrations-version-20260505221113' AS note;
