@@ -84,8 +84,12 @@ export default function AllInMode({
     };
 
     const handleStartGame = () => {
-        const stake = customStake ? parseInt(customStake) : stakeAmount;
-        if (stake > userDiamonds || stake < 10) return;
+        // Phase 54: parseInt('abc') returns NaN → NaN<10 and NaN>userDiamonds are
+        // both false → balance check bypassed → setStakeAmount(NaN) → backend
+        // gets corrupt stake. Now validate explicitly.
+        const parsed = customStake ? parseInt(customStake, 10) : stakeAmount;
+        const stake = Number.isFinite(parsed) ? parsed : 0;
+        if (!Number.isFinite(stake) || stake < 10 || stake > userDiamonds) return;
         setStakeAmount(stake);
         setStage('playing');
     };

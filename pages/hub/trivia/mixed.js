@@ -205,6 +205,7 @@ export default function MixedModePage() {
                             available.forEach(q => { q.displayCategory = cat.id; });
                             return available;
                         })
+                        .catch(e => { console.warn('[Mixed] cat fetch failed:', cat.id, e); return []; })
                 )
             );
             const allQuestions = categoryResults.flat();

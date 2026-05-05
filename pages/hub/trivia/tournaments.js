@@ -1788,7 +1788,8 @@ function BracketPlayerName({ playerId, userId }) {
             .maybeSingle()
             .then(({ data }) => {
                 setName(data?.username || 'Player');
-            });
+            })
+            .catch(e => { console.warn('[Tournaments] BracketName fetch failed:', e); setName('Player'); });
     }, [playerId, userId]);
 
     return <span className={playerId === userId ? 'bracket-you' : ''}>{name || '...'}</span>;

@@ -396,6 +396,14 @@ export default function PvPPage() {
             matchQuestions = filterAndShuffle(questions, excludeIds, 20); // Get 20 random questions
         }
 
+        // Phase 54: empty-questions guard. Without this, an empty trivia_questions
+        // table or query failure would set questions=[] and proceed to 'battle'
+        // state, where currentQuestion is undefined and the user is stuck on a
+        // broken battle UI with their stake gone (no refund triggered).
+        if (matchQuestions.length === 0) {
+            throw new Error('No questions available for this match');
+        }
+
         // Shuffle options FIRST so correct_index is updated before horse answer calc
         const shuffledQuestions = shuffleOptions(matchQuestions);
 

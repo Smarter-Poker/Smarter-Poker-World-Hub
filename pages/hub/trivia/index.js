@@ -38,7 +38,9 @@ export default function TriviaHubPage() {
     // Load preferences from localStorage on mount
     useEffect(() => {
         if (userId) {
-            getTriviaPreferences(userId).then(setPreferences);
+            getTriviaPreferences(userId)
+                .then(setPreferences)
+                .catch(e => console.warn('[TriviaHub] Failed to load prefs:', e));
         }
     }, [userId]);
 
