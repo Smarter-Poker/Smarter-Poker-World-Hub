@@ -73,7 +73,6 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
-        let hasLeft = false;
 
         // Fetch historical gifts for leaderboard
         fetch(`/api/live/gifts?stream_id=${stream.id}`)
@@ -274,10 +273,6 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         }
 
         return () => {
-            if (!hasLeft) {
-                hasLeft = true;
-                liveStreamService.leaveStream();
-            }
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
             if (giftChannelRef.current) supabase.removeChannel(giftChannelRef.current);
             if (pinChannelRef.current) supabase.removeChannel(pinChannelRef.current);

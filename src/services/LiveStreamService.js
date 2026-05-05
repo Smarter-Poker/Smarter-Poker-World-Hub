@@ -493,6 +493,22 @@ class LiveStreamService {
      * Join a live stream as a viewer
      */
     async joinStream(streamId, userId, onRemoteStream) {
+        if (this.room && this.currentStreamId === streamId && this.room.state === 'connected') {
+            this.onRemoteStream = onRemoteStream;
+            if (this._remoteMediaStream && this._remoteMediaStream.getTracks().length > 0) {
+                this.onRemoteStream?.(this._remoteMediaStream);
+            }
+            try { await supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 }); } catch (_) {}
+            const { data: stream } = await supabase.from('live_streams')
+                .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
+                .eq('id', streamId).maybeSingle();
+            return stream;
+        }
+
+        if (this.room) {
+            await this.leaveStream();
+        }
+
         this.currentStreamId = streamId;
         this.currentUserId = userId;
         this.isBroadcaster = false;
