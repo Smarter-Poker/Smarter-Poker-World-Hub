@@ -43,6 +43,10 @@ export default function TournamentsPage() {
     const [myMatchup, setMyMatchup] = useState(null);
     const [opponentInfo, setOpponentInfo] = useState(null);
 
+    // Save-error UI state (was silently swallowed, now surfaced)
+    const [submitError, setSubmitError] = useState(null);
+    const [registerError, setRegisterError] = useState(null);
+
     // Playing state
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
