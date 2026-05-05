@@ -4,8 +4,7 @@
    ─ Falls back to thumbnail if unavailable
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useRef, useState, useCallback } from 'react';
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 const C = {
     card: '#FFFFFF',
@@ -17,20 +16,33 @@ const C = {
 
 /**
  * Lightweight LiveKit preview connection.
- * Subscribes video-only (no audio) for the feed card hover preview.
+ * Dynamically imports livekit-client so it NEVER runs server-side.
+ * Accepts an AbortSignal so the caller can cancel mid-connect.
  */
-async function connectPreview(streamId, videoEl) {
+async function connectPreview(streamId, videoEl, signal) {
+    // Dynamic import — livekit-client uses browser APIs (RTCPeerConnection, etc.)
+    // that don't exist on the server. Static import causes `window is not defined`
+    // errors during Next.js SSR. This ensures it's only evaluated in the browser.
+    const { Room, RoomEvent, Track } = await import('livekit-client');
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
     const resp = await fetch(`/api/live/preview-token?room=${encodeURIComponent(streamId)}`);
     if (!resp.ok) throw new Error('Token unavailable');
     const { token, url } = await resp.json();
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
     const room = new Room({ adaptiveStream: true, dynacast: false });
 
     await room.connect(url, token, { autoSubscribe: true });
+    if (signal?.aborted) {
+        await room.disconnect().catch(() => {});
+        throw new DOMException('Aborted', 'AbortError');
+    }
 
     // Deliver first video track to the video element
     const assignTrack = (track) => {
         if (track.kind !== Track.Kind.Video) return;
+        if (!track.mediaStreamTrack) return;
         const ms = new MediaStream([track.mediaStreamTrack]);
         videoEl.srcObject = ms;
         videoEl.play().catch(() => {});
@@ -41,7 +53,7 @@ async function connectPreview(streamId, videoEl) {
         for (const [, pub] of participant.trackPublications) {
             if (pub.isSubscribed && pub.track?.kind === Track.Kind.Video && pub.track.mediaStreamTrack) {
                 assignTrack(pub.track);
-                return room; // done
+                return room;
             }
         }
     }
@@ -59,31 +71,54 @@ export function LiveStreamCard({ stream, onClick }) {
     const videoRef = useRef(null);
     const roomRef = useRef(null);
     const hoverTimerRef = useRef(null); // debounce — don't connect on quick brush
-
-    const startPreview = useCallback(async () => {
-        if (roomRef.current || previewFailed) return; // already connected or permanently failed
-        const videoEl = videoRef.current;
-        if (!videoEl) return;
-        try {
-            roomRef.current = await connectPreview(stream.id, videoEl);
-            setPreviewActive(true);
-        } catch (err) {
-            console.warn('[LiveStreamCard] Preview failed:', err.message);
-            setPreviewFailed(true);
-        }
-    }, [stream.id, previewFailed]);
+    const abortControllerRef = useRef(null); // to cancel mid-flight connection
 
     const stopPreview = useCallback(async () => {
-        if (!roomRef.current) return;
-        try {
-            await roomRef.current.disconnect();
-        } catch (_) {}
-        roomRef.current = null;
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        if (roomRef.current) {
+            try {
+                await roomRef.current.disconnect();
+            } catch (_) {}
+            roomRef.current = null;
+        }
         if (videoRef.current) {
             videoRef.current.srcObject = null;
         }
         setPreviewActive(false);
     }, []);
+
+    const startPreview = useCallback(async () => {
+        if (roomRef.current || previewFailed) return; // already connected or permanently failed
+        const videoEl = videoRef.current;
+        if (!videoEl) return;
+
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
+        try {
+            const room = await connectPreview(stream.id, videoEl, signal);
+            if (!signal.aborted) {
+                roomRef.current = room;
+                setPreviewActive(true);
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') return; // ignore cancellations
+            console.warn('[LiveStreamCard] Preview failed:', err.message);
+            if (!signal.aborted) {
+                setPreviewFailed(true);
+            }
+        }
+    }, [stream.id, previewFailed]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            stopPreview();
+        };
+    }, [stopPreview]);
 
     const handleMouseEnter = useCallback(() => {
         setIsHovered(true);
