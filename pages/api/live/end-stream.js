@@ -152,6 +152,15 @@ export default async function handler(req, res) {
             // Ensures the live feed post badge transitions from "LIVE NOW" → "STREAM ENDED"
             // so it doesn't stay in a ghost-live state indefinitely.
             await markFeedPostEnded(stream_id);
+            
+            // BUG FIX (Sweep 3): Ensure the stream itself is marked ended in the DB.
+            // Since the browser cancels the `await supabase.update` inside endBroadcast() during beforeunload,
+            // this keepalive endpoint MUST handle the DB state change to prevent zombie live streams.
+            await supabase.from('live_streams').update({
+                status: 'ended',
+                ended_at: new Date().toISOString(),
+            }).eq('id', stream_id);
+            
             return res.json({ success: true, action: 'force_ended' });
         }
 

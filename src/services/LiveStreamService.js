@@ -407,15 +407,10 @@ class LiveStreamService {
         if (!this.currentStreamId) return;
         this.isManualDisconnect = true;
 
-        // Update Supabase stream status
-        await supabase
-            .from('live_streams')
-            .update({ status: 'ended', ended_at: new Date().toISOString() })
-            .eq('id', this.currentStreamId);
-
-        // BUG FIX (#11): Fire-and-forget call to mark the live feed post as ended immediately.
-        // Without this, if the broadcaster force-closes (tab close, modal dismiss during live)
-        // without going through EndStreamModal, the feed post stays with "LIVE NOW" badge forever.
+        // BUG FIX (#11, #13, #15): Fire-and-forget call to mark the live feed post as ended immediately.
+        // During a beforeunload event (tab close), any `await` yields execution and the browser
+        // destroys the execution context, meaning subsequent lines NEVER RUN. We MUST fire the 
+        // fetch with `keepalive: true` BEFORE the first `await`.
         const streamIdForEnd = this.currentStreamId;
         const token = getAccessToken();
         fetch('/api/live/end-stream', {
@@ -425,12 +420,15 @@ class LiveStreamService {
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             credentials: 'same-origin',
-            // BUG FIX (#13): keepalive: true is MANDATORY for requests fired during
-            // beforeunload / page teardown. Without it, the browser cancels the fetch
-            // as the page unloads, so force_end never reaches the server.
-            keepalive: true,
+            keepalive: true, // MANDATORY for requests fired during page teardown
             body: JSON.stringify({ stream_id: streamIdForEnd, action: 'force_end' }),
-        }).catch(() => {}); // Non-fatal — EndStreamModal will also call markFeedPostEnded
+        }).catch(() => {}); // Non-fatal
+
+        // Update Supabase stream status (this will likely be cancelled by the browser if during beforeunload)
+        await supabase
+            .from('live_streams')
+            .update({ status: 'ended', ended_at: new Date().toISOString() })
+            .eq('id', this.currentStreamId).catch(() => {});
 
         // Disconnect LiveKit room
         if (this.room) {

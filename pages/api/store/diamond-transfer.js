@@ -4,20 +4,25 @@
  *  Transfer diamonds from authenticated user to a friend
  *
  *  ANTI-ABUSE SAFEGUARDS:
- *  1. Friendship verification (must be accepted friends)
- *  2. Balance check (sender must have enough diamonds)
- *  3. Daily transfer limit (tiered: 500diamonds standard, 2000diamonds for 60-day friends)
- *  4. Per-transfer limit (tiered: 10-100diamonds standard, 10-500diamonds for 60-day friends)
- *  5. Account age gate (both users must be >7 days old)
- *  6. Cooldown (60s global between transfers)
- *  7. Self-transfer block
- *  8. Rate limiting (20 req/min)
- *  9. Friendship age tier (60+ day friends get VIP transfer limits)
- *  10. Per-recipient daily limit (200diamonds/day to same friend)
+ *  1.  Friendship verification (must be accepted friends)
+ *  2.  Balance check (sender must have enough diamonds)
+ *  3.  Rolling 30-day transfer limit (source-tiered — see SOURCE TIER logic)
+ *  4.  Per-transfer limit (source-tiered)
+ *  5.  Account age gate — HARD BLOCK for accounts < 30 days (VIP card window)
+ *  6.  Cooldown (60s global between transfers)
+ *  7.  Self-transfer block
+ *  8.  Rate limiting (20 req/min)
+ *  9.  Friendship age tier (60+ day friends unlock higher per-transfer cap)
+ *  10. Per-recipient rolling 30-day limit
  *  11. Per-recipient cooldown (5min between transfers to same friend)
- *  12. Recipient daily receive cap (1000diamonds/day inbound)
+ *  12. Recipient rolling 30-day receive cap
  *  13. Admin audit trail (structured console logging)
  *  14. Velocity detection (flags accounts hitting limits repeatedly)
+ *  15. SOURCE TIER:
+ *       - Accounts 30–89 days: "free/earned" diamonds cap = 100/30 days;
+ *                              "purchased/won" diamonds cap = 500/30 days
+ *       - Accounts 90+ days: caps lifted; velocity detector active instead
+ *  16. New-user hard block: accounts < 30 days CANNOT send ANY diamonds
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -39,16 +44,132 @@ function getSupabase() {
 
 // ── Anti-abuse constants ──
 const MIN_TRANSFER = 10;
+
+// Phase 1: Account age tiers (days)
+const NEW_USER_BLOCK_DAYS = 30;        // Hard block — no outbound diamonds until day 31
+const GRADUATION_DAYS = 90;            // After 90 days, source caps are lifted
+
+// Phase 2: Source-tiered rolling 30-day outbound caps (days 31–89)
+const FREE_EARNED_30DAY_LIMIT = 100;   // Max sendable from free/earned diamonds in rolling 30 days
+const PURCHASED_WON_30DAY_LIMIT = 500; // Max sendable from purchased/won diamonds in rolling 30 days
+
+// Transaction types that qualify as "purchased or won" (real-value origin)
+const PURCHASED_WON_TYPES = new Set([
+    'purchase',
+    'stripe_purchase',
+    'diamond_purchase',
+    'tournament_prize',
+    'tournament_win',
+    'prize_pool',
+    'promo_purchased',   // manually granted by admin for a paid promotion
+]);
+
+// Legacy/standard limits (retained for 90-day+ accounts falling through velocity check)
 const MAX_TRANSFER_STANDARD = 100;
 const MAX_TRANSFER_VIP = 500;
 const DAILY_LIMIT_STANDARD = 500;
 const DAILY_LIMIT_VIP = 2000;
 const COOLDOWN_SECONDS = 60;
-const MIN_ACCOUNT_AGE_DAYS = 7;
+const MIN_ACCOUNT_AGE_DAYS = 30; // updated from 7 → 30
 const VIP_FRIENDSHIP_DAYS = 60;
-const PER_RECIPIENT_DAILY_LIMIT = 200;  // #10: Max 200diamonds/day to same friend
-const PER_RECIPIENT_COOLDOWN_SECONDS = 300; // #11: 5min between transfers to same friend
-const RECIPIENT_DAILY_RECEIVE_LIMIT = 1000; // #12: Max 1000diamonds/day inbound per account
+const PER_RECIPIENT_DAILY_LIMIT = 200;   // Max 200 diamonds/30 days to same friend
+const PER_RECIPIENT_COOLDOWN_SECONDS = 300; // 5min between transfers to same friend
+const RECIPIENT_DAILY_RECEIVE_LIMIT = 1000; // Max 1000 diamonds/30 days inbound
+
+// Velocity thresholds — flag for admin review
+const VELOCITY_UNIQUE_RECIPIENTS_24H = 5;   // Flagged if sending to 5+ unique users in 24h
+const VELOCITY_TRANSACTIONS_1H = 10;         // Flagged if 10+ transfer attempts in 1 hour
+
+/**
+ * Calculates the sender's purchased/won diamond total from their all-time ledger.
+ * This is used to determine which source tier applies to days 31–89 accounts.
+ *
+ * We sum all INBOUND purchased/won transactions and subtract all outbound gifts to
+ * get a conservative "real-value" available balance. If this is >= amount being sent,
+ * the PURCHASED_WON cap applies; otherwise FREE_EARNED cap applies.
+ */
+async function getSourceTierAvailable(supabase, userId) {
+    // Sum all lifetime inbound transactions by type
+    const { data: inboundRows } = await supabase
+        .from('diamond_transactions')
+        .select('amount, transaction_type')
+        .eq('user_id', userId)
+        .gt('amount', 0); // positive = earned/received
+
+    let purchasedWonTotal = 0;
+    let freeEarnedTotal = 0;
+
+    for (const row of inboundRows || []) {
+        if (PURCHASED_WON_TYPES.has(row.transaction_type)) {
+            purchasedWonTotal += Math.abs(row.amount);
+        } else {
+            freeEarnedTotal += Math.abs(row.amount);
+        }
+    }
+
+    // Sum all lifetime outbound gifts already sent (they reduce the available pool)
+    const { data: outboundRows } = await supabase
+        .from('diamond_transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .in('transaction_type', ['diamond_gift_sent']);
+
+    const totalSent = (outboundRows || []).reduce((sum, r) => sum + Math.abs(r.amount), 0);
+
+    // Conservative: subtract all gifts from purchased/won first, then free/earned
+    const purchasedWonAvailable = Math.max(0, purchasedWonTotal - totalSent);
+
+    return { purchasedWonTotal, freeEarnedTotal, purchasedWonAvailable };
+}
+
+/**
+ * Check velocity flags and log if thresholds are breached.
+ * Non-blocking — we log but do not currently hard-block 90+ day accounts.
+ * The return value `flagged` can be used for future auto-suspension logic.
+ */
+async function checkVelocity(supabase, userId) {
+    const now = new Date();
+    const oneHourAgo = new Date(now - 60 * 60 * 1000).toISOString();
+    const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+
+    // Transactions in last 1h
+    const { data: recentHour } = await supabase
+        .from('diamond_transactions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('transaction_type', 'diamond_gift_sent')
+        .gte('created_at', oneHourAgo);
+
+    const txIn1h = (recentHour || []).length;
+
+    // Unique recipient count in last 24h (via description pattern [<uuid>])
+    const { data: recentDay } = await supabase
+        .from('diamond_transactions')
+        .select('description')
+        .eq('user_id', userId)
+        .eq('transaction_type', 'diamond_gift_sent')
+        .gte('created_at', oneDayAgo);
+
+    const recipientIds = new Set();
+    for (const row of recentDay || []) {
+        const match = row.description?.match(/\[([a-f0-9-]{36})\]/);
+        if (match) recipientIds.add(match[1]);
+    }
+
+    const uniqueRecipients24h = recipientIds.size;
+    let flagged = false;
+
+    if (txIn1h >= VELOCITY_TRANSACTIONS_1H) {
+        flagged = true;
+        console.warn(`[VELOCITY:FARMING] User ${userId} sent ${txIn1h} gifts in 1h — threshold ${VELOCITY_TRANSACTIONS_1H}`);
+    }
+    if (uniqueRecipients24h >= VELOCITY_UNIQUE_RECIPIENTS_24H) {
+        flagged = true;
+        console.warn(`[VELOCITY:SPAM] User ${userId} sent to ${uniqueRecipients24h} unique recipients in 24h — threshold ${VELOCITY_UNIQUE_RECIPIENTS_24H}`);
+    }
+
+    return { flagged, txIn1h, uniqueRecipients24h };
+}
 
 export default async function handler(req, res) {
     try {
@@ -60,7 +181,6 @@ export default async function handler(req, res) {
         if (!applyRateLimit(req, res, LIMITS.financial || LIMITS.write)) return;
 
         // ── Auth ──
-        // Auth: local HMAC verify first, GoTrue network fallback if JWT secret missing
         const { user: localUser } = await getServerUserWithFallback(req, getSupabase());
         if (!localUser) {
             return res.status(401).json({ success: false, error: 'Authorization required' });
@@ -73,7 +193,7 @@ export default async function handler(req, res) {
 
         // ── Parse body ──
         const { recipientId, amount: rawAmount } = req.body || {};
-        const amount = parseInt(rawAmount);
+        const amount = parseInt(rawAmount, 10);
 
         if (!recipientId) {
             return res.status(400).json({ success: false, error: 'Recipient is required' });
@@ -81,17 +201,13 @@ export default async function handler(req, res) {
         if (isNaN(amount) || amount < MIN_TRANSFER) {
             return res.status(400).json({ success: false, error: `Minimum transfer is ${MIN_TRANSFER} diamonds` });
         }
-        // Per-transfer max is checked after friendship tier is determined (below)
 
         // ── Guard 7: Self-transfer block ──
         if (userId === recipientId) {
             return res.status(400).json({ success: false, error: 'Cannot transfer diamonds to yourself' });
         }
 
-        // ── Guard 1: Friendship verification + age for tier ──
-        // BUG-FIX: Use .limit(1) before .maybeSingle() because duplicate friendship
-        // rows (both A→B and B→A as 'accepted') cause PGRST116 error with .maybeSingle()
-        // which silently returns null, blocking all transfers between confirmed friends.
+        // ── Guard 1: Friendship verification ──
         const { data: friendshipRows } = await getSupabase()
             .from('friendships')
             .select('id, status, created_at')
@@ -104,13 +220,13 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: 'You can only send diamonds to accepted friends' });
         }
 
-        // ── Guard 9: Determine friendship tier ──
+        // ── Guard 9: Friendship tier ──
         const friendshipAgeDays = friendship.created_at
             ? (new Date() - new Date(friendship.created_at)) / (1000 * 60 * 60 * 24)
             : 0;
         const isVipTier = friendshipAgeDays >= VIP_FRIENDSHIP_DAYS;
-        const maxTransfer = isVipTier ? MAX_TRANSFER_VIP : MAX_TRANSFER_STANDARD;
-        const dailyLimit = isVipTier ? DAILY_LIMIT_VIP : DAILY_LIMIT_STANDARD;
+        const maxTransferVip = isVipTier ? MAX_TRANSFER_VIP : MAX_TRANSFER_STANDARD;
+        const dailyLimitTier = isVipTier ? DAILY_LIMIT_VIP : DAILY_LIMIT_STANDARD;
 
         // ── Guard 5: Account age check (both users) ──
         const { data: profiles } = await getSupabase()
@@ -126,18 +242,27 @@ export default async function handler(req, res) {
         }
 
         const now = new Date();
-        const senderAge = (now - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24);
-        const recipientAge = (now - new Date(recipientProfile.created_at)) / (1000 * 60 * 60 * 24);
+        const senderAgeDays = (now - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24);
+        const recipientAgeDays = (now - new Date(recipientProfile.created_at)) / (1000 * 60 * 60 * 24);
 
-        if (senderAge < MIN_ACCOUNT_AGE_DAYS) {
-            return res.status(403).json({ success: false, error: `Account must be at least ${MIN_ACCOUNT_AGE_DAYS} days old to send diamonds` });
+        // ── GUARD 16: Hard block — new users (< 30 days) CANNOT send any diamonds ──
+        if (senderAgeDays < NEW_USER_BLOCK_DAYS) {
+            const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
+            return res.status(403).json({
+                success: false,
+                error: `New accounts cannot send diamonds until your 30-Day VIP Card expires. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`,
+                daysRemaining,
+                gateType: 'new_user_block',
+            });
         }
-        if (recipientAge < MIN_ACCOUNT_AGE_DAYS) {
-            return res.status(403).json({ success: false, error: `Recipient account must be at least ${MIN_ACCOUNT_AGE_DAYS} days old to receive diamonds` });
+
+        // Recipient must be at least 7 days old (prevents instant alt-account siphoning)
+        if (recipientAgeDays < 7) {
+            return res.status(403).json({ success: false, error: 'Recipient account must be at least 7 days old to receive diamonds' });
         }
 
         // ── Guard 4: Per-transfer max (tier-aware) ──
-        if (amount > maxTransfer) {
+        if (amount > maxTransferVip) {
             return res.status(400).json({
                 success: false,
                 error: isVipTier
@@ -163,37 +288,81 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (recentTransfer) {
-            // Calculate exact seconds remaining for client countdown timer
-            return res.status(429).json({ success: false, error: `Please wait ${COOLDOWN_SECONDS} seconds between transfers (cooldown remaining)` });
+            return res.status(429).json({ success: false, error: `Please wait ${COOLDOWN_SECONDS} seconds between transfers` });
         }
 
-        // ── Guard 3: Daily limit check (tier-aware) ──
-        const dayStart = new Date(now);
-        dayStart.setHours(0, 0, 0, 0);
-        const { data: dailyTransfers } = await getSupabase()
-            .from('diamond_transactions')
-            .select('amount')
-            .eq('user_id', userId)
-            .eq('transaction_type', 'diamond_gift_sent')
-            .gte('created_at', dayStart.toISOString());
+        // ════════════════════════════════════════════════════════════════════
+        // PHASE 2: SOURCE-TIERED ROLLING 30-DAY LIMITS (accounts 30–89 days)
+        // ════════════════════════════════════════════════════════════════════
+        const isGraduated = senderAgeDays >= GRADUATION_DAYS;
 
-        const dailyTotal = (dailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-        if (dailyTotal + amount > dailyLimit) {
-            // #14: Velocity detection — flag if hitting limit
-            console.warn(`[VELOCITY] User ${userId} hit daily limit: ${dailyTotal}/${dailyLimit}`);
-            return res.status(429).json({
-                success: false,
-                error: `Daily transfer limit reached (${dailyLimit}diamonds/day${isVipTier ? ' VIP tier' : ''}). You've sent ${dailyTotal}diamonds today.`
-            });
+        if (!isGraduated) {
+            // Rolling 30-day window for outbound gifts
+            const rolling30DayStart = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+            const { data: outboundLast30 } = await getSupabase()
+                .from('diamond_transactions')
+                .select('amount')
+                .eq('user_id', userId)
+                .eq('transaction_type', 'diamond_gift_sent')
+                .gte('created_at', rolling30DayStart);
+
+            const alreadySent30Day = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+            // Determine which pool the sender qualifies for
+            const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
+
+            // If they have purchased/won diamonds available, they get the 500 cap
+            // Otherwise, they get the 100 (free/earned) cap
+            const activeCap = purchasedWonAvailable >= amount
+                ? PURCHASED_WON_30DAY_LIMIT
+                : FREE_EARNED_30DAY_LIMIT;
+            const capLabel = purchasedWonAvailable >= amount ? 'purchased/won' : 'free/earned';
+
+            if (alreadySent30Day + amount > activeCap) {
+                console.warn(`[VELOCITY] User ${userId} (${Math.floor(senderAgeDays)}d old) hit 30-day ${capLabel} cap: ${alreadySent30Day}/${activeCap}`);
+                return res.status(429).json({
+                    success: false,
+                    error: `30-day send limit reached for ${capLabel} diamonds (${activeCap} diamonds/30 days). You've sent ${alreadySent30Day} diamonds in the last 30 days. Accounts unlock higher limits after 90 days.`,
+                    alreadySent: alreadySent30Day,
+                    cap: activeCap,
+                    capType: capLabel,
+                    gateType: 'source_tier_cap',
+                });
+            }
+        } else {
+            // ── GRADUATED (90+ day) accounts: standard daily limits + velocity detection ──
+            const dayStart = new Date(now);
+            dayStart.setHours(0, 0, 0, 0);
+            const { data: dailyTransfers } = await getSupabase()
+                .from('diamond_transactions')
+                .select('amount')
+                .eq('user_id', userId)
+                .eq('transaction_type', 'diamond_gift_sent')
+                .gte('created_at', dayStart.toISOString());
+
+            const dailyTotal = (dailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+            if (dailyTotal + amount > dailyLimitTier) {
+                console.warn(`[VELOCITY] Graduated user ${userId} hit daily limit: ${dailyTotal}/${dailyLimitTier}`);
+                return res.status(429).json({
+                    success: false,
+                    error: `Daily transfer limit reached (${dailyLimitTier} diamonds/day${isVipTier ? ' VIP tier' : ''}). You've sent ${dailyTotal} diamonds today.`
+                });
+            }
+
+            // Velocity detection — non-blocking flag for 90+ day accounts
+            await checkVelocity(getSupabase(), userId);
         }
 
-        // ── Guard 10: Per-recipient daily limit (200diamonds/day to same friend) ──
+        // ── Guard 10: Per-recipient rolling 30-day limit ──
+        const rolling30Start = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
         const { data: recipientDailyTransfers } = await getSupabase()
             .from('diamond_transactions')
             .select('amount, description')
             .eq('user_id', userId)
             .eq('transaction_type', 'diamond_gift_sent')
-            .gte('created_at', dayStart.toISOString())
+            .gte('created_at', rolling30Start)
             .ilike('description', `%[${recipientId}]%`);
 
         const recipientDailyTotal = (recipientDailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -201,7 +370,7 @@ export default async function handler(req, res) {
             console.warn(`[VELOCITY] User ${userId} hit per-recipient limit for ${recipientId}: ${recipientDailyTotal}/${PER_RECIPIENT_DAILY_LIMIT}`);
             return res.status(429).json({
                 success: false,
-                error: `You can only send ${PER_RECIPIENT_DAILY_LIMIT}diamonds per day to the same friend. Sent ${recipientDailyTotal}diamonds to them today.`
+                error: `You can only send ${PER_RECIPIENT_DAILY_LIMIT} diamonds per 30 days to the same friend. Sent ${recipientDailyTotal} diamonds to them recently.`
             });
         }
 
@@ -220,29 +389,27 @@ export default async function handler(req, res) {
         if (recentRecipientTransfer) {
             return res.status(429).json({
                 success: false,
-                error: `Please wait ${PER_RECIPIENT_COOLDOWN_SECONDS} seconds between transfers to the same friend`
+                error: `Please wait ${PER_RECIPIENT_COOLDOWN_SECONDS / 60} minutes between transfers to the same friend`
             });
         }
 
-        // ── Guard 12: Recipient daily receive limit (1000diamonds/day inbound) ──
+        // ── Guard 12: Recipient rolling 30-day receive limit ──
         const { data: recipientInbound } = await getSupabase()
             .from('diamond_transactions')
             .select('amount')
             .eq('user_id', recipientId)
             .eq('transaction_type', 'diamond_gift_received')
-            .gte('created_at', dayStart.toISOString());
+            .gte('created_at', rolling30Start);
 
         const recipientReceiveTotal = (recipientInbound || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
         if (recipientReceiveTotal + amount > RECIPIENT_DAILY_RECEIVE_LIMIT) {
             return res.status(429).json({
                 success: false,
-                error: `This friend has reached their daily receive limit (${RECIPIENT_DAILY_RECEIVE_LIMIT}diamonds/day)`
+                error: `This friend has reached their 30-day receive limit (${RECIPIENT_DAILY_RECEIVE_LIMIT} diamonds/30 days)`
             });
         }
 
         // ═══ EXECUTE ATOMIC TRANSFER ═══
-        // Step 1: Deduct from sender using atomic RPC (diamonds = diamonds - amount WHERE diamonds >= amount)
-        // This prevents race conditions — no stale snapshot arithmetic
         const { data: deductResult, error: deductErr } = await getSupabase()
             .rpc('transfer_diamonds_deduct', {
                 sender_id: userId,
@@ -254,13 +421,11 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
         }
 
-        // RPC returns NULL if insufficient funds (WHERE diamonds >= amount matched 0 rows)
         if (deductResult === null || deductResult === undefined) {
             return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
         }
         const actualSenderBalance = deductResult;
 
-        // Step 2: Credit recipient using atomic RPC (diamonds = diamonds + amount)
         const { data: creditResult, error: creditErr } = await getSupabase()
             .rpc('transfer_diamonds_credit', {
                 recipient_id: recipientId,
@@ -268,7 +433,7 @@ export default async function handler(req, res) {
             });
 
         if (creditErr) {
-            // ROLLBACK: Restore sender's balance atomically
+            // ROLLBACK: Restore sender's balance
             await getSupabase().rpc('transfer_diamonds_credit', {
                 recipient_id: userId,
                 credit_amount: amount,
@@ -279,7 +444,7 @@ export default async function handler(req, res) {
 
         const actualRecipientBalance = creditResult ?? ((recipientProfile.diamonds ?? 0) + amount);
 
-        // Step 3: Log sender transaction (using actual post-deduct balance)
+        // Log sender transaction
         const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
         await getSupabase()
             .from('diamond_transactions')
@@ -293,7 +458,7 @@ export default async function handler(req, res) {
                 created_at: now.toISOString(),
             });
 
-        // Step 4: Log recipient transaction (using actual post-credit balance)
+        // Log recipient transaction
         const senderName = senderProfile.display_name || senderProfile.username || 'friend';
         await getSupabase()
             .from('diamond_transactions')
@@ -307,17 +472,15 @@ export default async function handler(req, res) {
                 created_at: now.toISOString(),
             });
 
-        // ── #13: Admin audit trail — PII-safe summary ──
-        console.info(`[DiamondTransfer] ✓ ${amount} diamonds transferred (tier: ${isVipTier ? 'vip' : 'standard'})`);
+        // ── #13: Admin audit trail ──
+        console.info(`[DiamondTransfer] ✓ ${amount}💎 | sender_age=${Math.floor(senderAgeDays)}d | graduated=${isGraduated} | tier=${isVipTier ? 'vip' : 'standard'}`);
 
         return res.status(200).json({
             success: true,
             transferred: amount,
             newBalance: actualSenderBalance,
             tier: isVipTier ? 'vip' : 'standard',
-            dailyRemaining: dailyLimit - dailyTotal - amount,
-            dailySent: dailyTotal + amount,
-            dailyLimit,
+            graduated: isGraduated,
             recipientName,
         });
 

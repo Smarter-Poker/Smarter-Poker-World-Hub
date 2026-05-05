@@ -226,14 +226,36 @@ function topMix(freqsPct, limit = 2) {
         .slice(0, limit);
 }
 
+/**
+ * Build the mixed-strategy banner string.
+ *
+ * Spec (Operation Grok-Sweep):
+ *   • If the optimal action's frequency is ≥ 95% → return "" (pure strategy,
+ *     banner hidden in the UI).
+ *   • Otherwise, return the explicit form:
+ *     "This is a mixed strategy spot. The solver mixes between
+ *      [Action 1] (X%) and [Action 2] (Y%)."
+ *
+ * Two-action form is chosen because that's what fits the UI banner cleanly.
+ * If only one action has ≥1% frequency we still return the banner (degraded
+ * form) rather than going silent — gives the user explicit signal that the
+ * spot was scored as mixed.
+ */
 function buildMixedStrategyNote(freqsPct, correctAnswer) {
     const optimalFreq = freqsPct?.[correctAnswer];
     if (typeof optimalFreq !== 'number') return '';
-    if (optimalFreq >= 95) return '';
+    if (optimalFreq >= 95) return ''; // pure strategy — banner hidden
+
     const top = topMix(freqsPct, 2);
     if (top.length === 0) return '';
-    const parts = top.map(([a, p]) => `${actionLabel(a)} ${Math.round(p)}%`);
-    return `Mixed spot — solver mixes ${parts.join(' / ')}.`;
+
+    if (top.length === 1) {
+        const [a, p] = top[0];
+        return `This is a mixed strategy spot. The solver plays ${actionLabel(a)} (${Math.round(p)}%).`;
+    }
+
+    const [[a1, p1], [a2, p2]] = top;
+    return `This is a mixed strategy spot. The solver mixes between ${actionLabel(a1)} (${Math.round(p1)}%) and ${actionLabel(a2)} (${Math.round(p2)}%).`;
 }
 
 // ── Headline / short / takeaway / similar ────────────────────────────────────
@@ -512,9 +534,9 @@ function buildGtoAnalysisStrings({
             synthesized[code] = f > 1.001 ? f : f * 100;
         });
         mixedStrategy = buildMixedStrategyNote(synthesized, optimalActionCode) ||
-            `Mixed spot — solver plays ${optimalReadable} ${optimalPct}.`;
+            `This is a mixed strategy spot. The solver plays ${actionLabel(optimalActionCode)} (${optimalPct}).`;
     } else {
-        mixedStrategy = `Pure strategy — solver always ${actionVerb(optimalActionCode)} ${handLabel} at this node.`;
+        mixedStrategy = `Pure strategy — solver always plays ${actionLabel(optimalActionCode)} (${optimalPct}) with ${handLabel} at this node.`;
     }
 
     return { explanation, gtoApproach, mixedStrategy };

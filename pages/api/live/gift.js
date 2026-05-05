@@ -39,22 +39,78 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Cannot gift yourself' });
     }
 
+    // ── GUARD: Fetch sender profile for age gate ──
+    const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('id, created_at, username, full_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    const senderAgeDays = senderProfile?.created_at
+        ? (new Date() - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24)
+        : 0;
+
+    // ── GUARD: Hard block — new users (< 30 days) cannot send live gifts ──
+    if (senderAgeDays < NEW_USER_BLOCK_DAYS) {
+        const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
+        return res.status(403).json({
+            error: `New accounts cannot send live gifts until your 30-Day VIP Card expires. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`,
+            daysRemaining,
+            gateType: 'new_user_block',
+        });
+    }
+
+    // ── GUARD: Source-tier rolling 30-day cap (accounts 31–89 days) ──
+    const isGraduated = senderAgeDays >= GRADUATION_DAYS;
+    if (!isGraduated) {
+        const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: outboundLast30 } = await supabase
+            .from('diamond_transactions')
+            .select('amount')
+            .eq('user_id', user.id)
+            .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
+            .gte('created_at', rolling30Start);
+
+        const alreadySent = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const purchasedWonAvailable = await getLiveGiftSourceCapAvailable(user.id);
+        const activeCap = purchasedWonAvailable >= parsedAmount ? PURCHASED_WON_30DAY_LIMIT : FREE_EARNED_30DAY_LIMIT;
+        const capLabel = purchasedWonAvailable >= parsedAmount ? 'purchased/won' : 'free/earned';
+
+        if (alreadySent + parsedAmount > activeCap) {
+            console.warn(`[VELOCITY:LIVE_GIFT] User ${user.id} (${Math.floor(senderAgeDays)}d) hit 30-day ${capLabel} cap: ${alreadySent}/${activeCap}`);
+            return res.status(429).json({
+                error: `30-day live gift limit reached for ${capLabel} diamonds (${activeCap}/30 days). You've sent ${alreadySent} diamonds recently.`,
+                alreadySent,
+                cap: activeCap,
+                capType: capLabel,
+                gateType: 'source_tier_cap',
+            });
+        }
+    }
+
+    // ── GUARD: Per-broadcaster rolling 30-day receive cap ──
+    const rolling30StartReceive = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: broadcasterInbound } = await supabase
+        .from('diamond_transactions')
+        .select('amount')
+        .eq('user_id', receiver_id)
+        .eq('transaction_type', 'live_gift_received')
+        .gte('created_at', rolling30StartReceive);
+
+    const broadcasterReceiveTotal = (broadcasterInbound || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    if (broadcasterReceiveTotal + parsedAmount > RECEIVER_30DAY_RECEIVE_LIMIT) {
+        return res.status(429).json({
+            error: `This broadcaster has reached their 30-day gift receive limit (${RECEIVER_30DAY_RECEIVE_LIMIT} diamonds/30 days)`,
+            gateType: 'broadcaster_receive_cap',
+        });
+    }
+
     // Per-gift UUID generated up front. Used as the reference_id for both the
-    // credit and (if needed) the compensating refund. Previously this used
-    // stream_id as reference_id, which collided across multiple gifts to the
-    // same stream — the second add_diamonds_to_balance call hit the unique
-    // index, returned {success:false, duplicate:true}, and the receiver got
-    // NO diamonds while the sender stayed deducted.
+    // credit and (if needed) the compensating refund.
     const giftId = randomUUID();
 
     try {
-        // Get sender info
-        const { data: senderProfile } = await supabase
-            .from('profiles')
-            .select('username, full_name, avatar_url')
-            .eq('id', user.id)
-            .maybeSingle();
-
+        // senderProfile already fetched above for age gate — reuse it
         const senderName = senderProfile?.username || senderProfile?.full_name || 'A fan';
 
         // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)

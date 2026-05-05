@@ -48,9 +48,8 @@ export default async function handler(req, res) {
                 .select('broadcaster_id')
                 .eq('id', room)
                 .maybeSingle();
-            // Grant broadcast if the stream row exists and the user IS the broadcaster,
-            // OR if no stream row exists yet (broadcaster is creating the room for the first time).
-            isVerifiedBroadcaster = !streamRow || streamRow.broadcaster_id === user.id;
+            // Grant broadcast if the stream row exists and the user IS the broadcaster.
+            isVerifiedBroadcaster = streamRow && streamRow.broadcaster_id === user.id;
             if (!isVerifiedBroadcaster) {
                 return res.status(403).json({ error: 'Not the broadcaster of this stream' });
             }
