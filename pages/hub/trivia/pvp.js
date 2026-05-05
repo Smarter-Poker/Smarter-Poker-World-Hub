@@ -53,6 +53,9 @@ export default function PvPPage() {
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
     const [matchId, setMatchId] = useState(null);
     const [isPlayer1, setIsPlayer1] = useState(false);
+    // Error/refund-failure UI state — was previously silent
+    const [pvpError, setPvpError] = useState(null);
+    const [refundFailed, setRefundFailed] = useState(false);
 
     // Battle state
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -342,6 +345,11 @@ export default function PvPPage() {
 
         if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
 
+        // Wrap entire flow — if any supabase call throws (network blip,
+        // RLS issue, etc.), refund the stake and surface a banner instead
+        // of leaving the user stuck on 'searching' with stake gone.
+        try {
+
         // Get random AI horse from profiles
         const { data: horses } = await supabase
             .from('profiles')
@@ -423,6 +431,26 @@ export default function PvPPage() {
             setTimeLeft(40);
             setIsTimerRunning(true);
         }, 2000);
+
+        } catch (e) {
+            console.warn('[PVP] handleHorseMatch threw — refunding stake:', e);
+            try {
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: stake,
+                    p_type: 'pvp_refund',
+                    p_description: `PvP horse-match setup failed — ${stake}💎 refund`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+            } catch (refundErr) {
+                console.warn('[PVP] Refund also failed — user owed manual refund:', refundErr);
+                setRefundFailed(true);
+            }
+            setPvpError('Could not start match — your stake has been refunded.');
+            setGameState('lobby');
+        }
     }
 
     function handleMatchFound(matchData) {
@@ -486,17 +514,20 @@ export default function PvPPage() {
             clearTimeout(searchTimeout.current);
         }
 
-        leaveMatchmakingQueue(userId);
+        try { await leaveMatchmakingQueue(userId); } catch (e) { console.warn('[PVP] leaveQueue failed:', e); }
 
-        // Refund stake via audit-safe RPC
+        // Refund stake via audit-safe RPC. Was previously silent on RPC error
+        // — user clicked Cancel, returned to lobby thinking they got refund,
+        // but RPC may have failed. Now surface refund-failure to user.
         try {
-            await supabase.rpc('add_diamonds_to_balance', {
+            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: userId,
                 p_amount: stakeAmount,
                 p_type: 'pvp_refund',
                 p_description: `PvP cancelled — ${stakeAmount}💎 refund`,
                 p_reference_id: null
             });
+            if (rpcErr) throw rpcErr;
             // Refresh balance from DB
             const { data: profile } = await supabase
                 .from('profiles')
@@ -506,6 +537,8 @@ export default function PvPPage() {
             if (profile) setUserDiamonds(profile.diamonds || 0);
         } catch (e) {
             console.warn('[PVP] Cancel refund failed:', e);
+            setRefundFailed(true);
+            setPvpError(`Refund of ${stakeAmount}💎 may have failed — please verify balance or contact support.`);
         }
 
         setGameState('lobby');

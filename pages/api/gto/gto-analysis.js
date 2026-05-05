@@ -19,6 +19,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { buildGtoAnalysisStrings } from '../../../src/lib/explanationTemplates';
 
 let _supabase = null;
 function getSupabase() {
@@ -149,12 +150,13 @@ export default async function handler(req, res) {
               analysis = await generateAnalysisWithGrok(cacheParams);
           }
 
-          // Always enhance with Grok explanations if explanation is short
-          if (!analysis.explanation || analysis.explanation.length < 100) {
-              const grokEnhancement = await generateGrokExplanation(cacheParams, analysis.optimalAction);
-              analysis.explanation = grokEnhancement.explanation || analysis.explanation;
-              analysis.gtoApproach = grokEnhancement.gtoApproach || analysis.gtoApproach;
-          }
+          // ═══ Operation Grok-Sweep (2026-05) ═══════════════════════════════
+          // Removed: redundant grok-3 "fluff" pass that fired on every PIO
+          // analysis because buildAnalysisFromPio() returned ~80-char strings.
+          // The deterministic generator below now produces rich, multi-sentence
+          // explanations directly from solver data — no LLM enhancement needed.
+          // See src/lib/explanationTemplates.js → buildGtoAnalysisStrings().
+          // ══════════════════════════════════════════════════════════════════
 
           const response = {
               success: true,
@@ -305,6 +307,26 @@ function buildAnalysisFromPio(pioData, params) {
             });
     }
 
+    // ═══ Operation Grok-Sweep — deterministic rich strings ════════════════
+    // Replaces the prior ~80-char placeholders that triggered a redundant
+    // grok-3 "fluff" call. Now generated entirely from solver data.
+    const { explanation, gtoApproach, mixedStrategy } = buildGtoAnalysisStrings({
+        hand,
+        optimalActionCode: optimalAction,
+        optimalReadable: readableAction,
+        optimalFreq01: optimalFreq, // 0..1
+        isMixed,
+        handEv,
+        alternateLines,
+        scenario: {
+            board: params.board,
+            street: params.street,
+            heroPosition: params.position,
+            villainPosition: params.villainPosition,
+            potType: params.potType,
+        },
+    });
+
     return {
         optimalAction: readableAction,
         actionCode: optimalAction,
@@ -312,14 +334,15 @@ function buildAnalysisFromPio(pioData, params) {
         frequency: optimalFreq,
         frequencyPct: `${(optimalFreq * 100).toFixed(0)}%`,
         isMixed,
-        explanation: isMixed
-            ? `GTO recommends ${readableAction} ${(optimalFreq * 100).toFixed(0)}% of the time with ${hand}. This is a mixed strategy spot.`
-            : `This is a pure ${readableAction} with ${hand} (${(optimalFreq * 100).toFixed(0)}% frequency).`,
-        gtoApproach: `${readableAction} is the primary action based on solver frequencies.`,
+        explanation,
+        gtoApproach,
+        mixedStrategy,
         evAnalysis: {
             ev: handEv,
             evDisplay: handEv >= 0 ? `+${handEv.toFixed(2)}bb` : `${handEv.toFixed(2)}bb`,
-            description: `Expected value of ${handEv >= 0 ? '+' : ''}${handEv.toFixed(2)}bb for this hand.`,
+            description: `Hand EV at this node: ${handEv >= 0 ? '+' : ''}${handEv.toFixed(2)}bb${
+                isMixed ? ` (${(optimalFreq * 100).toFixed(0)}% frequency on ${readableAction}).` : '.'
+            }`,
         },
         alternateLines,
     };
@@ -379,7 +402,9 @@ IMPORTANT:
 - Only include alternateLines if isMixed is true`;
 
         const response = await grok.chat.completions.create({
-            model: 'grok-3',
+            // ═══ Operation Grok-Sweep — downgraded from grok-3 → grok-3-mini.
+            // Only fires when solved_spots_gold has no match for this node.
+            model: 'grok-3-mini',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.6,
             max_tokens: 800,
@@ -422,48 +447,18 @@ IMPORTANT:
     };
 }
 
-/**
- * Generate enhanced explanation with Grok
- */
-async function generateGrokExplanation(params, optimalAction) {
-    const { hand, position, stackDepth, board, street } = params;
-
-    try {
-        const grok = getGrokClient();
-
-        const prompt = `As a GTO poker coach, provide a detailed explanation and strategic approach for this spot:
-
-SCENARIO:
-- Hand: ${hand}
-- Position: ${position}
-- Stack: ${stackDepth}bb
-- Board: ${board || 'Preflop'}
-- Street: ${street}
-- Optimal Action: ${optimalAction}
-
-Return ONLY JSON (no markdown):
-{
-  "explanation": "3-4 sentences explaining the strategic reasoning, equity considerations, and why this action is optimal",
-  "gtoApproach": "2-3 sentences on the solver-based approach, including range construction and balance considerations"
-}`;
-
-        const response = await grok.chat.completions.create({
-            model: 'grok-3',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.6,
-            max_tokens: 400,
-        });
-
-        const content = response.choices[0]?.message?.content || '';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-    } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.warn('[GTO-Analysis] Grok explanation error:', error.message);
-    }
-
-    return { explanation: null, gtoApproach: null };
-}
+// ═══ Operation Grok-Sweep (2026-05) ═════════════════════════════════════════
+// Removed: async function generateGrokExplanation(params, optimalAction)
+//
+// This was the redundant grok-3 "fluff" pass that fired on virtually every
+// PIO analysis request because buildAnalysisFromPio() returned ~80-char
+// explanation strings. The deterministic generator in
+// src/lib/explanationTemplates.js (buildGtoAnalysisStrings) now produces
+// rich, multi-sentence explanations directly from solver data.
+//
+// If you find yourself wanting to re-add an LLM enhancement pass here, stop:
+// (a) the deterministic strings are richer than what grok-3 was producing,
+// (b) the call cost ~$0.005–$0.012 per cold cache miss = ~$90/month at scale,
+// (c) the cache layer (jarvis_response_cache, 30-day TTL) means even the rare
+//     fallback path rarely re-fires.
+// ════════════════════════════════════════════════════════════════════════════
