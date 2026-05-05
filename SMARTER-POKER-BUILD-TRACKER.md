@@ -1084,10 +1084,46 @@ went READY at 2026-05-05 12:33 UTC.
 
 ---
 
+## PHASE 48 — Deeper Trivia Audit (2026-05-05)
+
+User pushback on Phase 47 ("not even close — there are so many gaps still") triggered
+a second, more thorough pass. Phase 47 had focused on the 5 API handlers but
+failed to systematically cross-check every page-level write/sub against the
+live schema. This pass did exactly that and caught 2 critical silent-failure
+bugs that had been live for an unknown duration.
+
+**Method:** extracted EVERY `.from()`, `.rpc()`, and `.channel()` call across
+the entire trivia surface (19 pages + 24 components + 5 API handlers + helpers),
+cross-referenced every column referenced against `information_schema.columns`,
+verified every `onConflict` against `pg_constraint`, verified every realtime
+subscription's table is in `pg_publication_tables` for `supabase_realtime`.
+
+**2 critical silent-failure bugs found and fixed:**
+
+| # | Defect | Impact |
+|---|--------|--------|
+| 1 | `endless_high_scores` schema-vs-code mismatch. The page (`pages/hub/trivia/endless.js`) writes `mode` and `achieved_at` columns and uses `onConflict: 'user_id,mode'`. The actual table had NEITHER column AND NO matching unique constraint, AND was not in the realtime publication. Every endless game upsert failed silently. Verified empty (0 rows) on production prior to fix. **No high score had ever persisted across the platform's lifetime.** | Migration `20260505_phase48_fix_endless_high_scores_schema.sql` — adds both columns NOT NULL with defaults, adds `endless_high_scores_user_id_mode_key UNIQUE (user_id, mode)`, adds table to `supabase_realtime` publication. Verified live: all 3 changes applied. |
+| 2 | `survival.js` line 220 wrote `time_survived: 0` into `trivia_survival_runs`. The table has columns (`id, user_id, level_reached, correct_count, incorrect_count, diamonds_earned, run_data, created_at`) — `time_survived` does NOT exist. Every regular `/hub/trivia/survival` completion's run-record insert silently failed. (The `/hub/trivia/survival-game.js` path didn't have this bug.) | Edit dropped the phantom field. Now writes only real columns. |
+
+Both shipped as commit `082c4dea48` on `origin/main`. Vercel READY.
+
+**Verification matrix (all green after Phase 48):**
+
+- ✅ All `.from()` inserts/upserts cross-checked against live schema. NN columns either have DEFAULTs or are provided by every caller. No phantom column writes remain.
+- ✅ All `onConflict` patterns map to actual UNIQUE constraints (`daily_trivia_plays_user_id_played_date_key`, `survival_progress_user_id_key`, `trivia_pvp_stats_pkey`, `trivia_streaks_user_id_key`, `trivia_user_question_history_user_id_question_id_key`, `endless_high_scores_user_id_mode_key`).
+- ✅ All `.rpc()` callers match the live `add_diamonds_to_balance(uuid, integer, text, text, text)` signature including all DEFAULT-valued args.
+- ✅ Every realtime subscription's target table is in the `supabase_realtime` publication AND has SELECT-permitting RLS for authenticated subscribers (`trivia_scores`, `trivia_streaks`, `trivia_survival_runs`, `daily_trivia_plays`, `trivia_tournament_rounds`, `trivia_tournaments`, `endless_high_scores`, `profiles`).
+- ✅ Pure-logic helpers (`triviaEngine.ts`, `triviaQuestionLoader.js`, `triviaValidator.js`, `triviaPreferences.js`) — no DB calls in engine or validator; loader uses correct schema; preferences use localStorage only. Clean.
+- ✅ Component DB writes (`StrategyTrivia.jsx`, `TriviaLobby.jsx`) all schema-correct.
+- ✅ No TODO/FIXME/STUB comments in trivia logic (only CSS `placeholder=` props).
+
+---
+
 ## CURRENT STATE — 2026-05-05
 
 Production is green. Latest deploy READY. Postgres clean. Worker queues healthy.
 Welcome-popup flow verified self-healing top-to-bottom. Trivia API surface
-audited line-by-line and 5 verified bugs fixed (Phase 47). No active incidents.
-No actionable backlog (per `FUTURE PHASES` section above — App Router migration
-is the only deferred item, parked Q3 2026+).
+audited line-by-line (Phase 47) PLUS deeper schema-mismatch audit completed
+(Phase 48 — caught + fixed 2 silent INSERT/UPSERT failures the first pass
+missed). No active incidents. No actionable backlog (per `FUTURE PHASES`
+section above — App Router migration is the only deferred item, parked Q3 2026+).
