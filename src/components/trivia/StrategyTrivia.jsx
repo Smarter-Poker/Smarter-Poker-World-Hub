@@ -276,27 +276,41 @@ export default function StrategyTrivia({ mode }) {
     async function preloadQuestions() {
         try {
             const categories = config.categories;
+            // Phase 58: was missing quality_score filter — low-quality
+            // questions could leak into MTT/Cash/ICM/GTO. Apply qs>=6
+            // floor consistent with survival/endless/etc.
             const { data, error } = await supabase
                 .from('trivia_questions')
                 .select('*')
-                .in('category', categories);
+                .in('category', categories)
+                .gte('quality_score', 6);
 
             if (!error && data && data.length > 0) {
                 let available = data;
-                // Try to exclude recently seen questions
+                // Phase 58: was fetching the user's COMPLETE history with no
+                // time window — long-time users would exhaust the unseen pool
+                // forever. Now bounds to last 60 days, matching loadQuestions.
                 if (userId) {
+                    const sixtyDaysAgo = new Date();
+                    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
                     const { data: history } = await supabase
                         .from('trivia_user_question_history')
                         .select('question_id')
-                        .eq('user_id', userId);
+                        .eq('user_id', userId)
+                        .gte('seen_at', sixtyDaysAgo.toISOString());
                     if (history && history.length > 0) {
                         const seenIds = new Set(history.map(h => h.question_id));
                         const unseen = data.filter(q => !seenIds.has(q.id));
                         if (unseen.length >= 10) available = unseen;
                     }
                 }
-                const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 20);
-                setPreloadedQuestions(shuffled);
+                // Phase 58: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+                const _shufArr = [...available];
+                for (let i = _shufArr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [_shufArr[i], _shufArr[j]] = [_shufArr[j], _shufArr[i]];
+                }
+                setPreloadedQuestions(_shufArr.slice(0, 20));
             } else {
                 setPreloadedQuestions(getFallbackQuestions(mode));
             }
@@ -369,11 +383,13 @@ export default function StrategyTrivia({ mode }) {
             const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }))
                 .toISOString().split('T')[0];
 
+            // Phase 58: apply qs>=6 quality floor on both daily + pool paths.
             let dailyQuery = supabase
                 .from('trivia_questions')
                 .select('*')
                 .in('category', config.categories)
-                .eq('daily_date', today);
+                .eq('daily_date', today)
+                .gte('quality_score', 6);
 
             const { data: dailyData } = await dailyQuery;
 
@@ -390,11 +406,12 @@ export default function StrategyTrivia({ mode }) {
                     setQuestions(dailyData.slice(0, 20));
                 }
             } else {
-                // Fallback: fetch from full pool
+                // Fallback: fetch from full pool (still quality-floored).
                 let query = supabase
                     .from('trivia_questions')
                     .select('*')
-                    .in('category', config.categories);
+                    .in('category', config.categories)
+                    .gte('quality_score', 6);
 
                 const { data } = await query;
 
@@ -409,9 +426,13 @@ export default function StrategyTrivia({ mode }) {
                         available = data;
                     }
 
-                    // Shuffle and take 20
-                    const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 20);
-                    setQuestions(shuffled);
+                    // Phase 58: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+                    const _arr = [...available];
+                    for (let i = _arr.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [_arr[i], _arr[j]] = [_arr[j], _arr[i]];
+                    }
+                    setQuestions(_arr.slice(0, 20));
                 } else {
                     setQuestions(getFallbackQuestions(mode));
                 }
@@ -731,12 +752,18 @@ export default function StrategyTrivia({ mode }) {
             }
         }
 
-        // Eliminate 2 wrong answers
+        // Eliminate 2 wrong answers.
+        // Phase 58: was using sort(()=>Math.random()-0.5) which is mathematically
+        // biased; some permutations are 2x more likely. Fisher-Yates is uniform.
         const correctIdx = currentQuestion.correct_index;
         const wrongIndices = currentQuestion.options
             .map((_, i) => i)
             .filter(i => i !== correctIdx);
-        const toEliminate = wrongIndices.sort(() => Math.random() - 0.5).slice(0, 2);
+        for (let i = wrongIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+        }
+        const toEliminate = wrongIndices.slice(0, 2);
 
         setEliminatedOptions(toEliminate);
         setFiftyFiftyUsed(true);
