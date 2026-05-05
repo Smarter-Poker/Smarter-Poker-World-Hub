@@ -544,6 +544,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
     useEffect(() => {
         let debounceTimer = null;
         const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+        const unsub1_refresh = eventBus.on(EventType.SOCIAL_FEED_REFRESHED, () => {
             // Debounce: clear any pending timer before setting a new one
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -580,6 +581,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
         });
         return () => {
             unsub1(); unsub2(); unsub3();
+            unsub1_refresh(); unsub2(); unsub3();
             if (debounceTimer) clearTimeout(debounceTimer);
         };
     }, [loadClubData, currentUser?.id]);

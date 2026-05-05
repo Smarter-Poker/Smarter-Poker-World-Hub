@@ -156,6 +156,7 @@ export const SpatialFeed = ({
     };
 
     const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, debouncedRefetch);
+    const unsub1_refresh = eventBus.on(EventType.SOCIAL_FEED_REFRESHED, debouncedRefetch);
 
     // Update like counts locally without full refetch
     // Skip events from current user — SocialCard already handled optimistic update

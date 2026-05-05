@@ -287,7 +287,7 @@ export function EndStreamModal({
             toast.success('Stream saved to your Lives!', 3000);
 
             // BUG FIX: Refetch feed so the post vanishes locally
-            busEmit.socialPostCreated?.();
+            busEmit.socialFeedRefreshed?.();
 
             onClose('saved');
         } catch (err) {
@@ -305,7 +305,7 @@ export function EndStreamModal({
             await callEndStream('delete');
             
             // BUG FIX: Refetch feed so ghost post vanishes locally
-            busEmit.socialPostCreated?.();
+            busEmit.socialFeedRefreshed?.();
 
             onClose('deleted');
         } catch (err) {

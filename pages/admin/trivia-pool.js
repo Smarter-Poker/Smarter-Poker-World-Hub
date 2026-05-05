@@ -141,6 +141,7 @@ export async function getServerSideProps({ req }) {
             byCat,
             sources,
             audit,
+            phase54,
             generatedAt: new Date().toISOString(),
         },
     };
@@ -186,7 +187,7 @@ function CatRow({ catId, counts, track }) {
     );
 }
 
-export default function TriviaPoolDashboard({ byCat, sources, audit, generatedAt, error }) {
+export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, generatedAt, error }) {
     if (error) {
         return <div style={{ padding: 40, color: '#ef4444', background: '#0a0a15', minHeight: '100vh', fontFamily: 'system-ui' }}>Error: {error}</div>;
     }
@@ -282,6 +283,77 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, generatedAt
                                     ))}
                                 </div>
                             </>
+                        )}
+                    </div>
+                )}
+
+                {/* Phase 54: quality systems panel */}
+                {phase54 && (
+                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>QUALITY SYSTEMS (Phase 54)</h3>
+
+                        {/* Top tile row */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
+                            <Card title="Paused categories" value={phase54.pausedCategories.length.toString()} subtitle={phase54.pausedCategories.length === 0 ? 'all generating' : phase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={phase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
+                            <Card title="Open reports" value={phase54.unresolvedReportCount.toString()} subtitle="users flagged" color={phase54.unresolvedReportCount > 0 ? '#fbbf24' : '#22c55e'} />
+                            <Card title="Regression failures" value={phase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={phase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
+                            <Card title="Embedding backlog" value={phase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#a855f7" />
+                            <Card title="Theme backlog" value={phase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#a855f7" />
+                        </div>
+
+                        {/* Circuit breaker / category health */}
+                        {phase54.categoryHealth.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER — per-category audit pass rate</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
+                                    {phase54.categoryHealth.map(h => (
+                                        <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
+                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{h.category}</div>
+                                            <div style={{ fontSize: 14, fontWeight: 600, color: h.generation_paused ? '#ef4444' : '#22c55e' }}>
+                                                {h.pass_rate !== null ? Math.round(h.pass_rate * 100) + '%' : 'no data'}
+                                                {h.generation_paused && <span style={{ marginLeft: 6, fontSize: 10, color: '#ef4444' }}>PAUSED</span>}
+                                            </div>
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>n={h.audited_count}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recent user reports */}
+                        {phase54.recentReports.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>RECENT USER REPORTS</div>
+                                <div style={{ background: 'rgba(251,191,36,0.04)', borderRadius: 8, overflow: 'hidden' }}>
+                                    {phase54.recentReports.map((r, i) => (
+                                        <div key={r.id} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
+                                            <div style={{ display: 'flex', gap: 12 }}>
+                                                <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: 100 }}>{r.reason}</span>
+                                                <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{r.question_id.slice(0, 8)}</code>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 'auto' }}>{new Date(r.created_at).toLocaleString()}</span>
+                                            </div>
+                                            {r.note && <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.7)' }}>"{r.note}"</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recent regression failures */}
+                        {phase54.recentRegressionFailures.length > 0 && (
+                            <div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES — last 48h</div>
+                                <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
+                                    {phase54.recentRegressionFailures.map((f, i) => (
+                                        <div key={i} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
+                                            <span style={{ color: '#ef4444', fontWeight: 600 }}>{f.test_name}</span>
+                                            {f.category && <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.5)' }}>{f.category}</span>}
+                                            <span style={{ marginLeft: 8 }}>metric {f.metric} (threshold {f.threshold})</span>
+                                            <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{new Date(f.ran_at).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}

@@ -399,6 +399,7 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         });
         const unsub2 = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+        const unsub2_refresh = eventBus.on(EventType.SOCIAL_FEED_REFRESHED, () => {
             // A new post was created — could generate notifications for followers
             // Re-fetch notifications after a short delay
             if (authUser?.id) {
@@ -428,6 +429,7 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
         return () => {
             if (unsub1) unsub1();
             if (unsub2) unsub2();
+            if (unsub2) unsub2_refresh();
         };
     }, [authUser?.id]);
 

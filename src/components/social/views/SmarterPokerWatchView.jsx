@@ -394,6 +394,7 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
             }, 3000);
         };
         const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, debouncedRefetch);
+        const unsub1_refresh = eventBus.on(EventType.SOCIAL_FEED_REFRESHED, debouncedRefetch);
         const unsub2 = eventBus.on(EventType.SOCIAL_POST_LIKED, debouncedRefetch);
         const unsub3 = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, debouncedRefetch);
         return () => {
