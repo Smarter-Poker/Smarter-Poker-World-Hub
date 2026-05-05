@@ -60,7 +60,7 @@ export default async function handler(req, res) {
           // Also get current balance
           const { data: profile } = await getSupabase()
               .from('profiles')
-              .select('diamonds, vip_expiration_date')
+              .select('diamonds, vip_expires_at')
               .eq('id', userId)
               .maybeSingle();
 
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
               transactions: data || [],
               total: count || 0,
               balance: profile?.diamonds ?? 0,
-              vip_expiration_date: profile?.vip_expiration_date || null,
+              vip_expiration_date: profile?.vip_expires_at || null,
               limit,
               offset,
           });

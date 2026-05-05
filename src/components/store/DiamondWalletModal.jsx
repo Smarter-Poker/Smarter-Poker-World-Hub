@@ -1366,20 +1366,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             boxShadow: '0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.9), inset 0 0 0 2px rgba(255,255,255,0.15)',
                             zIndex: 2,
                         }}>
-                            <img src="/images/wallet-crown.png" alt="Crown" style={{ width: 65, height: 65, objectFit: 'contain', filter: 'drop-shadow(0 0 12px rgba(0,160,255,0.6))', animation: 'walletDiamondFloat 4s ease-in-out infinite' }} />
+                            <img src="/images/wallet-crown.png" alt="Crown" style={{ width: 80, height: 80, objectFit: 'contain', filter: 'drop-shadow(0 0 12px rgba(0,160,255,0.6))', animation: 'walletDiamondFloat 4s ease-in-out infinite', mixBlendMode: 'screen' }} />
                         </div>
 
                         {/* Welcome Text */}
                         <div style={{ textAlign: 'center', marginBottom: 20 }}>
                             <div style={{
                                 fontFamily: "'Orbitron', sans-serif",
-                                fontSize: 24, fontWeight: 900,
+                                fontSize: 32, fontWeight: 900,
                                 background: 'linear-gradient(180deg, #ffffff 0%, #a0c8ff 40%, #5088d8 100%)',
                                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                                 letterSpacing: '1px', lineHeight: 1.2,
                                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(80,160,255,0.4))',
                             }}>
-                                Diamond<br/>Wallet
+                                Diamond Wallet
                             </div>
                         </div>
 
@@ -1407,10 +1407,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     src="/images/wallet-diamond.png"
                                     alt="Diamond"
                                     style={{
-                                        width: 85, height: 85, objectFit: 'contain',
+                                        width: 100, height: 100, objectFit: 'contain',
                                         filter: 'drop-shadow(0 0 25px rgba(0,180,255,0.8)) brightness(1.2)',
                                         marginBottom: 8,
                                         animation: 'walletDiamondFloat 3s ease-in-out infinite',
+                                        mixBlendMode: 'screen',
+                                        transform: 'scale(1.1) translateY(-4px)',
                                     }}
                                 />
                                 <div style={{

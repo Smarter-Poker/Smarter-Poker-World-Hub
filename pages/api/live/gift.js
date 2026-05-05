@@ -60,13 +60,22 @@ async function checkVelocity(userId) {
 async function getLiveGiftSourceCapAvailable(userId) {
     const { data: inbound } = await supabase
         .from('diamond_transactions')
-        .select('amount, transaction_type')
+        .select('amount, transaction_type, created_at')
         .eq('user_id', userId)
         .gt('amount', 0);
 
     let purchasedWonTotal = 0;
+    const now = new Date();
+    const escrowThreshold = new Date(now.getTime() - 72 * 60 * 60 * 1000); // 72-hour escrow
+
     for (const row of inbound || []) {
-        if (PURCHASED_WON_TYPES.has(row.transaction_type)) purchasedWonTotal += Math.abs(row.amount);
+        if (PURCHASED_WON_TYPES.has(row.transaction_type)) {
+            if (row.transaction_type.includes('purchase') && new Date(row.created_at) > escrowThreshold) {
+                // In escrow - do not unlock the high-tier 500-diamond cap yet
+                continue;
+            }
+            purchasedWonTotal += Math.abs(row.amount);
+        }
     }
 
     const { data: outbound } = await supabase

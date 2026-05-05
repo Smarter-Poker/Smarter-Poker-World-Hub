@@ -92,16 +92,24 @@ async function getSourceTierAvailable(supabase, userId) {
     // Sum all lifetime inbound transactions by type
     const { data: inboundRows } = await supabase
         .from('diamond_transactions')
-        .select('amount, transaction_type')
+        .select('amount, transaction_type, created_at')
         .eq('user_id', userId)
         .gt('amount', 0); // positive = earned/received
 
     let purchasedWonTotal = 0;
     let freeEarnedTotal = 0;
 
+    const now = new Date();
+    const escrowThreshold = new Date(now.getTime() - 72 * 60 * 60 * 1000); // 72-hour escrow
+
     for (const row of inboundRows || []) {
         if (PURCHASED_WON_TYPES.has(row.transaction_type)) {
-            purchasedWonTotal += Math.abs(row.amount);
+            // 72-Hour Fraud Escrow: Purchased diamonds do not count towards the 500 cap for 72 hours
+            if (row.transaction_type.includes('purchase') && new Date(row.created_at) > escrowThreshold) {
+                freeEarnedTotal += Math.abs(row.amount);
+            } else {
+                purchasedWonTotal += Math.abs(row.amount);
+            }
         } else {
             freeEarnedTotal += Math.abs(row.amount);
         }
