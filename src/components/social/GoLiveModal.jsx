@@ -537,6 +537,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 overflow: (stage === 'live' || stage === 'countdown') ? 'hidden' : 'auto',
                 WebkitOverflowScrolling: 'touch',
                 position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
             }}>
 
                 {/* ── PREVIEW STAGE ── */}
@@ -640,7 +642,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
                 {/* ── COUNTDOWN STAGE ── */}
                 {stage === 'countdown' && (
-                    <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', minHeight:'100dvh', touchAction:'manipulation', overflow:'hidden' }}>
+                    <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', touchAction:'none', overflow:'hidden' }}>
                         <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)', opacity:.4 }} />
                         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
                             <div style={{ fontSize:16, color:'white', fontWeight:700, letterSpacing:3, marginBottom:16, textTransform:'uppercase', opacity:.85 }}>Get Ready</div>
@@ -655,11 +657,11 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 {/* ── LIVE STAGE ── */}
                 {stage === 'live' && (
                     <div
-                        style={{ height:'100%', width:'100%', position:'relative', background:'#000', cursor:'pointer', minHeight:'100dvh', touchAction:'manipulation', overflow:'hidden' }}
+                        style={{ height:'100%', width:'100%', position:'relative', background:'#000', cursor:'pointer', touchAction:'none', overflow:'hidden' }}
                         onClick={handleScreenTap}
                     >
-                        {/* Video feed */}
-                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
+                        {/* Broadcaster Video */}
+                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain', transform:'scaleX(-1)' }} />
 
                         {/* Reconnect overlay */}
                         {isReconnecting && (

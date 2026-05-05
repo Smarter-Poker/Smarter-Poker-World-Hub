@@ -46,8 +46,15 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                 credentials: 'same-origin',
                 body: JSON.stringify({ stream_id: streamId, receiver_id: receiverId, amount: selected }),
             });
-            const data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'Gift failed');
+            let data;
+            try {
+                data = await resp.json();
+            } catch (parseErr) {
+                // If the API crashes (500) and returns an HTML error page, json() will throw.
+                // We catch it so the user sees a helpful error instead of "Unexpected token <"
+                throw new Error(`Server error: ${resp.status} ${resp.statusText}`);
+            }
+            if (!resp.ok) throw new Error(data?.error || 'Gift failed');
             setSuccess(true);
             successTimerRef.current = setTimeout(() => {
                 successTimerRef.current = null;

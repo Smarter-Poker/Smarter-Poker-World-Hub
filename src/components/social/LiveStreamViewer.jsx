@@ -404,10 +404,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     inset: 0,
                     width: '100%',
                     height: '100%',
-                    // BUG FIX (LSV-3): Use 'cover' so video fills the entire screen
-                    // without the user having to manually shrink/zoom. 'contain' added
-                    // black bars and made the stream look like it didn't fill the screen.
-                    objectFit: 'cover',
+                    // User specifically requested to NOT crop out edges, so they don't have to "pinch to fit"
+                    objectFit: 'contain',
                 }}
             />
 

@@ -85,33 +85,35 @@ try {
         }
 
         // Auto-create social post for check-in
-        try {
-          // Look up venue name
-          let venueName = 'a poker venue';
-          const venueIdInt = parseInt(venue_id, 10);
-          if (!isNaN(venueIdInt) && venueIdInt > 0) {
-            const { data: venueRow } = await getSupabase()
-              .from('poker_venues')
-              .select('name, city, state')
-              .eq('id', venueIdInt)
-              .maybeSingle();
-            if (venueRow && venueRow.name) {
-              venueName = venueRow.name;
-              if (venueRow.city) venueName += ' in ' + venueRow.city;
+        if (!req.body.skip_post) {
+          try {
+            // Look up venue name
+            let venueName = 'a poker venue';
+            const venueIdInt = parseInt(venue_id, 10);
+            if (!isNaN(venueIdInt) && venueIdInt > 0) {
+              const { data: venueRow } = await getSupabase()
+                .from('poker_venues')
+                .select('name, city, state')
+                .eq('id', venueIdInt)
+                .maybeSingle();
+              if (venueRow && venueRow.name) {
+                venueName = venueRow.name;
+                if (venueRow.city) venueName += ' in ' + venueRow.city;
+              }
             }
-          }
-          const postContent = 'Just checked in at ' + venueName + '! #PokerLife';
-          await getSupabase()
-            .from('social_posts')
-            .insert({
-              author_id: authUser.id,
-              content: postContent,
-              content_type: 'text',
-              visibility: 'public',
-              metadata: { type: 'checkin', venue_id: venueIdNum },
-              created_at: new Date().toISOString(),
-            });
-        } catch (postErr) { console.warn('[App] Handled exception:', postErr?.message || postErr); }
+            const postContent = 'Just checked in at ' + venueName + '! #PokerLife';
+            await getSupabase()
+              .from('social_posts')
+              .insert({
+                author_id: authUser.id,
+                content: postContent,
+                content_type: 'text',
+                visibility: 'public',
+                metadata: { type: 'checkin', venue_id: venueIdNum },
+                created_at: new Date().toISOString(),
+              });
+          } catch (postErr) { console.warn('[App] Handled exception:', postErr?.message || postErr); }
+        }
 
         return res.status(201).json({ success: true, checkin: data });
       }

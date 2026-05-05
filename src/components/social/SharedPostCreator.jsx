@@ -1041,6 +1041,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             mentions.push(match[1]);
         }
         
+        let finalContent = cleanContent;
+        if (checkInVenue) {
+            const prefix = `Checked in at ${checkInVenue.name}`;
+            finalContent = cleanContent ? `${prefix} — ${cleanContent}` : prefix;
+        }
+
         // If posting as a home group, route through /api/social/pages/posts with the group's social_page_id
         let ok;
         if (activeHomeGroup?.social_page_id) {
@@ -1053,23 +1059,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     body: JSON.stringify({
                         page_id: activeHomeGroup.social_page_id,
                         author_id: user?.id,
-                        content: cleanContent,
+                        content: finalContent,
                         content_type: urls.length > 0 ? 'media' : 'text',
                         visibility: postVisibility,
                         post_type: 'regular',
-                        // AUDIT-4 FIX (2026-04-30): include thumbnail_url and
-                        // link_preview in the home-group payload. Both fields
-                        // were silently dropped before this fix:
-                        //   • thumbnail_url=null → every home-group video
-                        //     post saved with NO preview frame, so the feed
-                        //     showed a black box until the video loaded.
-                        //   • link_preview=null → home-group link posts lost
-                        //     their card; only the URL string remained.
-                        // /api/social/pages/posts already accepts both fields
-                        // in its destructure (line 123-124) and writes them
-                        // to social_page_posts AND mirrors them to social_posts
-                        // for the global feed — the client just wasn't sending
-                        // them on this branch.
                         ...(persistedThumbnailUrl ? { thumbnail_url: persistedThumbnailUrl } : {}),
                         ...(linkPreview ? { link_preview: linkPreview } : {}),
                         ...(urls.length > 0 ? { media_urls: urls } : {}),
@@ -1084,7 +1077,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 ok = false;
             }
         } else {
-            ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility, persistedThumbnailUrl);
+            ok = await onPost(finalContent, urls, type, mentions, linkPreview, postVisibility, persistedThumbnailUrl);
         }
         if (ok) {
             if (checkInVenue) {
@@ -1097,26 +1090,19 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             body: JSON.stringify({
                                 venue_id: checkInVenue.id,
                                 user_name: authorOverride ? authorOverride.name : (user?.name || 'Player'),
-                                message: cleanContent || null,
+                                message: finalContent || null,
+                                skip_post: true,
                             }),
                         });
                         if (checkinRes.ok) {
-                            const venueName = checkInVenue.name;
-                            const venueId = checkInVenue.id;
-                            setCheckInVenue(null);
-                            toast.success(`Checked in at ${venueName}`);
-                            busEmit.venueCheckinCreated(venueId, venueName, user?.id);
-                        } else if (checkinRes.status === 429) {
-                            setCheckInVenue(null);
-                        } else {
-                            setCheckInVenue(null);
+                            busEmit.venueCheckinCreated(checkInVenue.id, checkInVenue.name, user?.id);
                         }
-                    } else {
-                        setCheckInVenue(null);
+                        // Ignore 429 and others here to avoid double toasts, the post was already created.
                     }
                 } catch (e) {
-                    setCheckInVenue(null);
+                    console.warn('[SharedPostCreator] checkin API threw:', e);
                 }
+                setCheckInVenue(null);
             }
             if (mountedRef.current) {
                 setContent(''); setMedia([]); setLinkPreview(null);
