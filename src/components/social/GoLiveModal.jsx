@@ -104,6 +104,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             // FIX: if modal is force-closed during live broadcast, end the broadcast to prevent zombie room
             if (liveStreamService.room && liveStreamService.isBroadcaster) {
                 liveStreamService.endBroadcast().catch(() => {});
+                busEmit.dataMutated?.('live_streams');
             }
             // FIX: null stale singleton callbacks
             liveStreamService.onViewerCountChange = null;

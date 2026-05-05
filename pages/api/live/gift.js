@@ -42,7 +42,10 @@ async function sumPaginatedTransactions(supabase, queryBuilderFn) {
     let page = 0;
     const pageSize = 1000;
     while (true) {
-        const { data, error } = await queryBuilderFn().range(page * pageSize, (page + 1) * pageSize - 1);
+        const { data, error } = await queryBuilderFn()
+            .order('created_at', { ascending: false })
+            .order('id')
+            .range(page * pageSize, (page + 1) * pageSize - 1);
         if (error || !data || data.length === 0) break;
         total += data.reduce((sum, r) => sum + Math.abs(r.amount), 0);
         if (data.length < pageSize) break;
@@ -87,58 +90,12 @@ async function checkVelocity(userId, clientIp) {
 }
 
 async function getLiveGiftSourceCapAvailable(userId) {
-    let purchasedWonTotal = 0;
-    const now = new Date();
-    const escrowThreshold = new Date(now.getTime() - 72 * 60 * 60 * 1000); // 72-hour escrow
-
-    let inPage = 0;
-    const pageSize = 1000;
-    
-    // Sum all lifetime inbound transactions by type (paginated)
-    while (true) {
-        const { data: inboundRows } = await supabase
-            .from('diamond_transactions')
-            .select('amount, transaction_type, created_at')
-            .eq('user_id', userId)
-            .gt('amount', 0)
-            .range(inPage * pageSize, (inPage + 1) * pageSize - 1);
-
-        if (!inboundRows || inboundRows.length === 0) break;
-
-        for (const row of inboundRows) {
-            if (PURCHASED_WON_TYPES.has(row.transaction_type)) {
-                if (row.transaction_type.includes('purchase') && new Date(row.created_at) > escrowThreshold) {
-                    // In escrow - do not unlock the high-tier 500-diamond cap yet
-                    continue;
-                }
-                purchasedWonTotal += Math.abs(row.amount);
-            }
-        }
-        if (inboundRows.length < pageSize) break;
-        inPage++;
+    const { data, error } = await supabase.rpc('get_source_tier_available', { p_user_id: userId });
+    if (error || !data) {
+        console.warn('[getLiveGiftSourceCapAvailable] RPC failed:', error);
+        return 0;
     }
-
-    let totalSent = 0;
-    let outPage = 0;
-
-    // Sum all lifetime outbound gifts (paginated)
-    while (true) {
-        const { data: outboundRows } = await supabase
-            .from('diamond_transactions')
-            .select('amount')
-            .eq('user_id', userId)
-            .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
-            .range(outPage * pageSize, (outPage + 1) * pageSize - 1);
-
-        if (!outboundRows || outboundRows.length === 0) break;
-        
-        totalSent += outboundRows.reduce((sum, r) => sum + Math.abs(r.amount), 0);
-        
-        if (outboundRows.length < pageSize) break;
-        outPage++;
-    }
-
-    return Math.max(0, purchasedWonTotal - totalSent);
+    return data.purchasedWonAvailable || 0;
 }
 
 export default async function handler(req, res) {

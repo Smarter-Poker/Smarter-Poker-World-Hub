@@ -90,7 +90,10 @@ async function sumPaginatedTransactions(supabase, queryBuilderFn) {
     let page = 0;
     const pageSize = 1000;
     while (true) {
-        const { data, error } = await queryBuilderFn().range(page * pageSize, (page + 1) * pageSize - 1);
+        const { data, error } = await queryBuilderFn()
+            .order('created_at', { ascending: false })
+            .order('id')
+            .range(page * pageSize, (page + 1) * pageSize - 1);
         if (error || !data || data.length === 0) break;
         total += data.reduce((sum, r) => sum + Math.abs(r.amount), 0);
         if (data.length < pageSize) break;
@@ -100,73 +103,15 @@ async function sumPaginatedTransactions(supabase, queryBuilderFn) {
 }
 
 /**
- * Calculates the sender's purchased/won diamond total from their all-time ledger.
- * This is used to determine which source tier applies to days 31–89 accounts.
- *
- * We sum all INBOUND purchased/won transactions and subtract all outbound gifts to
- * get a conservative "real-value" available balance. If this is >= amount being sent,
- * the PURCHASED_WON cap applies; otherwise FREE_EARNED cap applies.
+ * Calculates the sender's purchased/won diamond total using the high-performance RPC.
  */
 async function getSourceTierAvailable(supabase, userId) {
-    let purchasedWonTotal = 0;
-    let freeEarnedTotal = 0;
-    const now = new Date();
-    const escrowThreshold = new Date(now.getTime() - 72 * 60 * 60 * 1000); // 72-hour escrow
-
-    let inPage = 0;
-    const pageSize = 1000;
-    
-    // Sum all lifetime inbound transactions by type (paginated)
-    while (true) {
-        const { data: inboundRows } = await supabase
-            .from('diamond_transactions')
-            .select('amount, transaction_type, created_at')
-            .eq('user_id', userId)
-            .gt('amount', 0) // positive = earned/received
-            .range(inPage * pageSize, (inPage + 1) * pageSize - 1);
-
-        if (!inboundRows || inboundRows.length === 0) break;
-
-        for (const row of inboundRows) {
-            if (PURCHASED_WON_TYPES.has(row.transaction_type)) {
-                // 72-Hour Fraud Escrow: Purchased diamonds do not count towards the 500 cap for 72 hours
-                if (row.transaction_type.includes('purchase') && new Date(row.created_at) > escrowThreshold) {
-                    freeEarnedTotal += Math.abs(row.amount);
-                } else {
-                    purchasedWonTotal += Math.abs(row.amount);
-                }
-            } else {
-                freeEarnedTotal += Math.abs(row.amount);
-            }
-        }
-        if (inboundRows.length < pageSize) break;
-        inPage++;
+    const { data, error } = await supabase.rpc('get_source_tier_available', { p_user_id: userId });
+    if (error || !data) {
+        console.warn('[getSourceTierAvailable] RPC failed:', error);
+        return { purchasedWonTotal: 0, freeEarnedTotal: 0, purchasedWonAvailable: 0 };
     }
-
-    let totalSent = 0;
-    let outPage = 0;
-
-    // Sum all lifetime outbound gifts already sent (paginated)
-    while (true) {
-        const { data: outboundRows } = await supabase
-            .from('diamond_transactions')
-            .select('amount')
-            .eq('user_id', userId)
-            .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
-            .range(outPage * pageSize, (outPage + 1) * pageSize - 1);
-
-        if (!outboundRows || outboundRows.length === 0) break;
-        
-        totalSent += outboundRows.reduce((sum, r) => sum + Math.abs(r.amount), 0);
-        
-        if (outboundRows.length < pageSize) break;
-        outPage++;
-    }
-
-    // Conservative: subtract all gifts from purchased/won first, then free/earned
-    const purchasedWonAvailable = Math.max(0, purchasedWonTotal - totalSent);
-
-    return { purchasedWonTotal, freeEarnedTotal, purchasedWonAvailable };
+    return data;
 }
 
 /**

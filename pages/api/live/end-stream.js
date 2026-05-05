@@ -96,8 +96,13 @@ export default async function handler(req, res) {
         if (stream.broadcaster_id !== user.id) return res.status(403).json({ error: 'Not your stream' });
 
         if (action === 'delete') {
-            // Mark live feed post as ended before deleting stream record
-            await markFeedPostEnded(stream_id);
+            // Delete live feed post instead of marking it ended to prevent ghost posts
+            const { data: streamRow } = await supabase.from('live_streams').select('feed_post_id').eq('id', stream_id).maybeSingle();
+            if (streamRow?.feed_post_id) {
+                await supabase.from('social_posts').delete().eq('id', streamRow.feed_post_id);
+            } else {
+                await supabase.from('social_posts').delete().eq('content_type', 'live').contains('metadata', { stream_id });
+            }
             // Delete the stream record and any associated storage files
             if (stream.video_url) {
                 const path = stream.video_url.split('/live-recordings/')[1];
