@@ -53,13 +53,32 @@ const HEADERS = {
     'Content-Type': 'application/json',
 };
 
-async function supabaseQuery(table, params = '') {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, { headers: HEADERS });
+async function supabaseQuery(table, params = '', extraHeaders = {}) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
+        headers: { ...HEADERS, ...extraHeaders },
+    });
     if (!res.ok) {
         const t = await res.text();
         throw new Error(`Query ${table} ${res.status}: ${t.slice(0, 200)}`);
     }
     return res.json();
+}
+
+/**
+ * Paginate through a filter to fetch up to maxRows scenarios.
+ * PostgREST has a default max of 1000 per request; we paginate via offset.
+ */
+async function supabaseQueryPaginated(table, baseParams, maxRows = 5000) {
+    const all = [];
+    const PAGE = 1000;
+    for (let offset = 0; all.length < maxRows; offset += PAGE) {
+        const params = `${baseParams}${baseParams.includes('?') ? '&' : '?'}limit=${PAGE}&offset=${offset}`;
+        const page = await supabaseQuery(table, params);
+        if (!page || page.length === 0) break;
+        all.push(...page);
+        if (page.length < PAGE) break;
+    }
+    return all.slice(0, maxRows);
 }
 
 async function supabaseInsert(table, rows) {
@@ -326,36 +345,54 @@ function buildQuestionFromChart(chart, questionIndex) {
 
 // ─── CATEGORY ROUTING ─────────────────────────────────────────────────────
 
+// Each category has a list of (table, filter) sources scanned in order.
+// Mix street types to get a healthy spread of easy (clear-action), medium, hard (mixed-strategy) scenarios.
+// River and turn data tend to have more close-spot (hard) scenarios; flop has more pure-action (easy).
 const CATEGORY_CONFIG = {
     gto_theory: {
         sources: [
-            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.flop' },
             { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.flop' },
             { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.river' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.flop' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.river' },
         ],
     },
     gto_scenarios: {
         sources: [
             { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.river' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.turn' },
             { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.river' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.flop' },
         ],
     },
     cash_game_situations: {
         sources: [
-            { table: 'solved_spots_gold', filter: '&game_type=eq.cash' },
-            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.flop' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.cash&street=eq.river' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.flop' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.9max_cash&street=eq.river' },
         ],
     },
     mtt_situations: {
         sources: [
-            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_chipev' },
-            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_9max_chipev' },
-            { table: 'memory_charts_gold', filter: '' }, // short-stack push/fold for tournament
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_chipev&street=eq.river' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_chipev&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_chipev&street=eq.flop' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_9max_chipev&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_9max_chipev&street=eq.flop' },
+            { table: 'memory_charts_gold', filter: '' },
         ],
     },
     icm_chip_ev: {
         sources: [
-            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_icm' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_icm&street=eq.river' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_icm&street=eq.turn' },
+            { table: 'solved_spots_gold', filter: '&game_type=eq.mtt_icm&street=eq.flop' },
             { table: 'memory_charts_gold', filter: '' },
         ],
     },
@@ -475,14 +512,14 @@ async function seedCategory(category, target) {
             generated.medium.length >= need.medium &&
             generated.hard.length >= need.hard) break;
 
-        const POOL_SIZE = 2000;
+        const POOL_SIZE = 5000;
         let pool;
         try {
             const select = source.table === 'memory_charts_gold'
                 ? 'chart_id,game_type,stack_depth,hero_position,villain_action,hand_matrix'
                 : 'id,scenario_hash,street,stack_depth,game_type,strategy_matrix';
-            pool = await supabaseQuery(source.table,
-                `?select=${select}${source.filter}&limit=${POOL_SIZE}`);
+            pool = await supabaseQueryPaginated(source.table,
+                `?select=${select}${source.filter}`, POOL_SIZE);
             console.log(`   pool from ${source.table}${source.filter}: ${pool.length} rows`);
         } catch (e) {
             console.warn(`   pool fetch failed: ${e.message}`);

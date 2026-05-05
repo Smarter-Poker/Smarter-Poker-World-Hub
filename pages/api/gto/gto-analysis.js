@@ -193,47 +193,146 @@ export default async function handler(req, res) {
 }
 
 /**
- * Query PioSolver data from solved_spots_gold
+ * Query PioSolver data from solved_spots_gold with proper board matching.
+ *
+ * Operation Grok-Sweep (2026-05): the prior implementation simply did
+ *   .eq('game_type', X).eq('street', Y).limit(10)
+ * and returned the first row regardless of the user's hand or board. That
+ * meant every cash-flop request got one of the same ~10 random spots dressed
+ * up by the templates as if it were the user's actual hand — a critical
+ * correctness bug masking as "deterministic analysis".
+ *
+ * The fix: mirror the search pattern from
+ * src/engines/DeterministicGTOEngine.queryNextStreet():
+ *   1. Map gameType + format hint to the right pioGameType (real ones in
+ *      solved_spots_gold, not the legacy 'turn_spin'/'turn_mtt_icm' tags
+ *      with only 50–100 rows).
+ *   2. Filter by stack_depth + scenario_hash ILIKE board for exact match.
+ *   3. Fall back to flop-prefix match for turn/river requests where the
+ *      exact runout isn't in the corpus yet.
+ *   4. Only as last resort, accept any spot in the same game_type+street
+ *      pool — but tag the result so the caller can surface "approximate"
+ *      to the UI.
+ *   5. Return null if every tier misses → outer handler falls through to
+ *      generateAnalysisWithGrok (grok-3-mini, also tagged GROK_FALLBACK).
  */
-async function queryPioSolverData(params) {
-    const { street, stackDepth, board, gameType } = params;
+const PIO_GAME_TYPE_DISPATCH = {
+    // Single-table format mapping, by gameType (lowercase) and player count.
+    // Pulled from actual game_type distribution in solved_spots_gold so we
+    // hit the largest, most-diverse pools by default.
+    cash:         { default: 'cash',           hu: 'hu_cash',    six: '6max_cash',  nine: '9max_cash' },
+    tournament:   { default: 'mtt_chipev',     hu: 'mtt_hu_chipev', six: 'mtt_6max_chipev', nine: 'mtt_9max_chipev' },
+    mtt:          { default: 'mtt_chipev',     hu: 'mtt_hu_chipev', six: 'mtt_6max_chipev', nine: 'mtt_9max_chipev' },
+    icm:          { default: 'mtt_icm',        hu: 'mtt_hu_icm',    six: 'mtt_6max_icm',    nine: 'mtt_9max_icm'    },
+    spin:         { default: 'spin',           hu: 'spin_hu_chipev', three: 'spin_3max_chipev' },
+    sng:          { default: 'sng_6max_chipev', hu: 'sng_hu',         six: 'sng_6max_chipev', nine: 'sng_9max_chipev' },
+};
 
-    // Determine game_type based on format
-    let pioGameType = 'hu_cash';
-    if (gameType === 'mtt' || gameType === 'tournament') {
-        pioGameType = street === 'river' ? 'river_mtt_icm' : 'turn_mtt_icm';
-    } else if (gameType === 'spin' || gameType === 'sng') {
-        pioGameType = 'turn_spin';
-    } else if (street === 'turn' || street === 'river') {
-        pioGameType = 'postflop_complete';
+function selectPioGameType(gameType, players) {
+    const key = (gameType || 'cash').toLowerCase();
+    const dispatch = PIO_GAME_TYPE_DISPATCH[key] || PIO_GAME_TYPE_DISPATCH.cash;
+    if (players === 2 && dispatch.hu) return dispatch.hu;
+    if (players === 3 && dispatch.three) return dispatch.three;
+    if (players === 6 && dispatch.six) return dispatch.six;
+    if (players === 9 && dispatch.nine) return dispatch.nine;
+    return dispatch.default;
+}
+
+function normalizeBoardForHash(board) {
+    if (!board) return '';
+    const str = Array.isArray(board) ? board.join('') : String(board);
+    return str.replace(/\s+/g, '').toLowerCase();
+}
+
+async function queryPioSolverData(params) {
+    const { street, stackDepth, board, gameType, players } = params;
+    const pioGameType = selectPioGameType(gameType, players);
+    const boardStr = normalizeBoardForHash(board);
+
+    // Tier 1: exact board match (full runout in scenario_hash)
+    if (boardStr.length >= 6) {
+        const tier1 = await getSupabase()
+            .from('solved_spots_gold')
+            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, macro_metrics')
+            .eq('game_type', pioGameType)
+            .eq('street', street)
+            .ilike('scenario_hash', `%${boardStr}%`)
+            .limit(5);
+
+        if (!tier1.error && tier1.data && tier1.data.length > 0) {
+            const scenario = pickFirstWithMatrix(tier1.data);
+            if (scenario) {
+                return {
+                    scenario,
+                    strategyMatrix: scenario.strategy_matrix,
+                    macroMetrics: scenario.macro_metrics,
+                    matchQuality: 'EXACT',
+                };
+            }
+        }
     }
 
-    // Query solved_spots_gold
-    const { data, error } = await getSupabase()
+    // Tier 2: flop-prefix match (turn/river queries where the exact runout
+    // isn't in the corpus, but the flop portion is). Lets us return analysis
+    // for the right starting board even if the turn/river card differs.
+    if (boardStr.length >= 6) {
+        const flopStr = boardStr.slice(0, 6);
+        const tier2 = await getSupabase()
+            .from('solved_spots_gold')
+            .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, macro_metrics')
+            .eq('game_type', pioGameType)
+            .eq('street', street)
+            .ilike('scenario_hash', `%${flopStr}%`)
+            .limit(20);
+
+        if (!tier2.error && tier2.data && tier2.data.length > 0) {
+            const scenario = pickFirstWithMatrix(tier2.data);
+            if (scenario) {
+                return {
+                    scenario,
+                    strategyMatrix: scenario.strategy_matrix,
+                    macroMetrics: scenario.macro_metrics,
+                    matchQuality: 'FLOP_PREFIX',
+                };
+            }
+        }
+    }
+
+    // Tier 3: any spot in the same game_type + street + stack_depth bucket.
+    // Quality is "APPROXIMATE" — the response will be flagged so the UI can
+    // surface that this isn't an exact-board match.
+    let tier3Query = getSupabase()
         .from('solved_spots_gold')
-        .select('*')
+        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, macro_metrics')
         .eq('game_type', pioGameType)
         .eq('street', street)
         .limit(10);
 
-    if (error || !data || data.length === 0) {
-        return null;
+    if (typeof stackDepth === 'number' && stackDepth > 0) {
+        tier3Query = tier3Query.eq('stack_depth', stackDepth);
     }
 
-    // Find a matching scenario (fuzzy match on board texture)
-    for (const scenario of data) {
-        const scenarioBoard = extractBoardFromHash(scenario.scenario_hash);
-        // For now, accept any scenario from the same street/game type
-        // In production, you'd match board textures more precisely
-        if (scenario.strategy_matrix) {
+    const tier3 = await tier3Query;
+    if (!tier3.error && tier3.data && tier3.data.length > 0) {
+        const scenario = pickFirstWithMatrix(tier3.data);
+        if (scenario) {
             return {
                 scenario,
                 strategyMatrix: scenario.strategy_matrix,
                 macroMetrics: scenario.macro_metrics,
+                matchQuality: 'APPROXIMATE',
             };
         }
     }
 
+    return null;
+}
+
+function pickFirstWithMatrix(rows) {
+    if (!rows || rows.length === 0) return null;
+    for (const r of rows) {
+        if (r.strategy_matrix) return r;
+    }
     return null;
 }
 
