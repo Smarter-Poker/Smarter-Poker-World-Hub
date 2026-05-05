@@ -1,11 +1,21 @@
 /**
- * POST /api/live/gift
- * Send a diamond gift to a live broadcaster.
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *  POST /api/live/gift
+ *  Send a diamond gift to a live broadcaster.
  *
  * Flow: atomic deduct from sender → atomic credit to receiver → record gift → broadcast to viewers → notify
  *
  * Uses deduct_diamonds (now with FOR UPDATE row lock) and add_diamonds_to_balance RPCs
  * for fully atomic balance operations.
+ *
+ * ANTI-FARMING SAFEGUARDS (live gifts):
+ *  - Hard block: accounts < 30 days cannot send ANY live gifts
+ *  - Source-tier rolling 30-day cap (days 31–89):
+ *      free/earned diamonds: 100 diamonds/30 days
+ *      purchased/won diamonds: 500 diamonds/30 days
+ *  - Accounts 90+ days: standard max-per-gift cap (10,000) + velocity detection
+ *  - Per-broadcaster rolling 30-day receive cap: 1,000 diamonds
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 import { randomUUID } from 'crypto';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
@@ -15,6 +25,59 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// ── Anti-farming constants (live gifts) ──
+const NEW_USER_BLOCK_DAYS = 30;
+const GRADUATION_DAYS = 90;
+const FREE_EARNED_30DAY_LIMIT = 100;
+const PURCHASED_WON_30DAY_LIMIT = 500;
+const RECEIVER_30DAY_RECEIVE_LIMIT = 1000; // per broadcaster per 30-day rolling window
+
+const PURCHASED_WON_TYPES = new Set([
+    'purchase', 'stripe_purchase', 'diamond_purchase',
+    'tournament_prize', 'tournament_win', 'prize_pool', 'promo_purchased',
+]);
+
+async function checkVelocity(userId) {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: recentHour } = await supabase
+        .from('diamond_transactions')
+        .select('id')
+        .eq('user_id', userId)
+        .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
+        .gte('created_at', oneHourAgo);
+    
+    const txIn1h = (recentHour || []).length;
+
+    if (txIn1h >= 20) {
+        console.warn(`[VELOCITY:FARMING] User ${userId} sent ${txIn1h} live gifts in 1h`);
+    }
+}
+
+async function getLiveGiftSourceCapAvailable(userId) {
+    const { data: inbound } = await supabase
+        .from('diamond_transactions')
+        .select('amount, transaction_type')
+        .eq('user_id', userId)
+        .gt('amount', 0);
+
+    let purchasedWonTotal = 0;
+    for (const row of inbound || []) {
+        if (PURCHASED_WON_TYPES.has(row.transaction_type)) purchasedWonTotal += Math.abs(row.amount);
+    }
+
+    const { data: outbound } = await supabase
+        .from('diamond_transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent']);
+
+    const totalSent = (outbound || []).reduce((sum, r) => sum + Math.abs(r.amount), 0);
+    return Math.max(0, purchasedWonTotal - totalSent);
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -86,6 +149,9 @@ export default async function handler(req, res) {
                 gateType: 'source_tier_cap',
             });
         }
+    } else {
+        // ── Graduated accounts: rely on velocity detectors ──
+        await checkVelocity(user.id);
     }
 
     // ── GUARD: Per-broadcaster rolling 30-day receive cap ──
