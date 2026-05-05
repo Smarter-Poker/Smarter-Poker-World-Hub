@@ -204,13 +204,14 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 .eq('id', user.id)
                 .maybeSingle();
             if (!profile || (profile.diamonds || 0) < GAME_COST) return false;
-            await supabase.rpc('add_diamonds_to_balance', {
+            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: user.id,
                 p_amount: -GAME_COST,
                 p_type: 'game_cost',
                 p_description: `Trivia game entry — ${GAME_COST}diamonds`,
                 p_reference_id: null
             });
+            if (__rpcErr) throw __rpcErr;
             onDiamondsChange?.(-GAME_COST);
             busEmit.diamondsSpent(GAME_COST, 'Trivia Game Entry');
             return true;

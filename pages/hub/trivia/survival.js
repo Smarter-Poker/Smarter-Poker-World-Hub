@@ -230,13 +230,14 @@ export default function SurvivalModePage() {
                     const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'survival');
                     const cappedDiamonds = clampToCap(earnedToday, gameResult.diamondsEarned, DAILY_DIAMOND_CAP);
                     if (cappedDiamonds > 0) {
-                        await supabase.rpc('add_diamonds_to_balance', {
+                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: userId,
                             p_amount: cappedDiamonds,
                             p_type: 'survival_reward',
                             p_description: `Survival mode — ${cappedDiamonds}💎 (${gameResult.correctCount} survived)`,
                             p_reference_id: null
                         });
+                        if (__rpcErr) throw __rpcErr;
                         busEmit.diamondsEarned(cappedDiamonds, 'Survival Mode');
                         busEmit.celebration('confetti');
                     }

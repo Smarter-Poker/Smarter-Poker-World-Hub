@@ -370,13 +370,14 @@ export default function EndlessModePage() {
             // Deduct diamonds via RPC
             if (userId) {
                 try {
-                    await supabase.rpc('add_diamonds_to_balance', {
+                    const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: -5,
                         p_type: 'endless_lifeline',
                         p_description: 'Endless 50/50 lifeline — 5💎',
                         p_reference_id: null
                     });
+                    if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsSpent(5, '50/50 Lifeline');
@@ -414,13 +415,14 @@ export default function EndlessModePage() {
 
         if (userId) {
             try {
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: -LIFELINE_COST,
                     p_type: 'endless_lifeline',
                     p_description: `Endless skip question — ${LIFELINE_COST}💎`,
                     p_reference_id: null
                 });
+                if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
@@ -460,13 +462,14 @@ export default function EndlessModePage() {
 
         if (userId) {
             try {
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: -LIFELINE_COST,
                     p_type: 'endless_lifeline',
                     p_description: `Endless double chance — ${LIFELINE_COST}💎`,
                     p_reference_id: null
                 });
+                if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, 'Double Chance');
@@ -565,13 +568,14 @@ export default function EndlessModePage() {
                 const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'endless');
                 const cappedDiamonds = clampToCap(earnedToday, finalDiamonds, DAILY_DIAMOND_CAP);
                 if (cappedDiamonds > 0) {
-                    await supabase.rpc('add_diamonds_to_balance', {
+                    const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: cappedDiamonds,
                         p_type: 'endless_reward',
                         p_description: `Endless mode — ${cappedDiamonds}💎 (${finalStreak} streak)`,
                         p_reference_id: null
                     });
+                    if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, 'Endless Mode');

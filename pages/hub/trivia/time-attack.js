@@ -234,13 +234,14 @@ export default function TimeAttackPage() {
                 // Phase 2: Award diamonds (only if not already awarded)
                 if (savePhaseRef.current < 2) {
                     if (gameResult.diamondsEarned > 0) {
-                        await supabase.rpc('add_diamonds_to_balance', {
+                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: userId,
                             p_amount: gameResult.diamondsEarned,
                             p_type: 'time_attack_reward',
                             p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
                             p_reference_id: null
                         });
+                        if (__rpcErr) throw __rpcErr;
                         busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');
                     }
                     savePhaseRef.current = 2;

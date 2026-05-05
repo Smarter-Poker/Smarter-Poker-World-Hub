@@ -372,13 +372,14 @@ export default function MixedModePage() {
                 const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'mixed');
                 const cappedDiamonds = clampToCap(earnedToday, actualDiamonds, DAILY_DIAMOND_CAP);
                 if (cappedDiamonds > 0) {
-                    await supabase.rpc('add_diamonds_to_balance', {
+                    const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: cappedDiamonds,
                         p_type: 'mixed_reward',
                         p_description: `Mixed mode — ${cappedDiamonds}💎`,
                         p_reference_id: null
                     });
+                    if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, 'Mixed Mode');

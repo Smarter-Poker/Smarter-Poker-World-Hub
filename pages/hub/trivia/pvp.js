@@ -435,13 +435,14 @@ export default function PvPPage() {
         } catch (e) {
             console.warn('[PVP] handleHorseMatch threw — refunding stake:', e);
             try {
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: stake,
                     p_type: 'pvp_refund',
                     p_description: `PvP horse-match setup failed — ${stake}💎 refund`,
                     p_reference_id: null
                 });
+                if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
             } catch (refundErr) {
@@ -485,13 +486,14 @@ export default function PvPPage() {
         // This is now only called if horse match also fails
         // Refund stake via audit-safe RPC
         try {
-            await supabase.rpc('add_diamonds_to_balance', {
+            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: userId,
                 p_amount: stakeAmount,
                 p_type: 'pvp_refund',
                 p_description: `PvP match failed — ${stakeAmount}💎 refund`,
                 p_reference_id: null
             });
+            if (__rpcErr) throw __rpcErr;
             // Refresh balance from DB
             const { data: profile } = await supabase
                 .from('profiles')
@@ -636,13 +638,14 @@ export default function PvPPage() {
             winnings = totalPot - rakeAmount;
             // Award winnings via audit-safe RPC
             try {
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: winnings,
                     p_type: 'pvp_win',
                     p_description: `PvP win — ${winnings}💎 payout`,
                     p_reference_id: matchId
                 });
+                if (__rpcErr) throw __rpcErr;
                 // Refresh balance from DB
                 const { data: winProfile } = await supabase
                     .from('profiles')
@@ -659,13 +662,14 @@ export default function PvPPage() {
         } else if (tied) {
             // Refund stake on tie via audit-safe RPC
             try {
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
                     p_amount: stakeAmount,
                     p_type: 'pvp_refund',
                     p_description: `PvP tie — ${stakeAmount}💎 refund`,
                     p_reference_id: matchId
                 });
+                if (__rpcErr) throw __rpcErr;
                 const { data: tieProfile } = await supabase
                     .from('profiles')
                     .select('diamonds')

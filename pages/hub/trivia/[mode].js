@@ -602,13 +602,14 @@ export default function TriviaModePage() {
                 if (savePhaseRef.current < 2) {
                     const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
                     if (totalDiamondsToAward > 0) {
-                        await supabase.rpc('add_diamonds_to_balance', {
+                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: userId,
                             p_amount: totalDiamondsToAward,
                             p_type: 'trivia_reward',
                             p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
                             p_reference_id: null
                         });
+                        if (__rpcErr) throw __rpcErr;
                         // Refresh balance from DB
                         const { data: profile } = await supabase
                             .from('profiles')
@@ -934,13 +935,14 @@ export default function TriviaModePage() {
                             onDiamondsChange={async (delta) => {
                                 if (!userId) return;
                                 try {
-                                    await supabase.rpc('add_diamonds_to_balance', {
+                                    const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                                         p_user_id: userId,
                                         p_amount: delta,
                                         p_type: delta > 0 ? 'trivia_reward' : 'trivia_cost',
                                         p_description: `Trivia ${mode} — ${Math.abs(delta)}💎 ${delta > 0 ? 'earned' : 'spent'}`,
                                         p_reference_id: null
                                     });
+                                    if (__rpcErr) throw __rpcErr;
                                     const { data: profile } = await supabase
                                         .from('profiles')
                                         .select('diamonds')
@@ -1028,13 +1030,14 @@ export default function TriviaModePage() {
                                         // Award the extra diamonds via RPC
                                         const bonus = finalAmount - (result?.diamondsEarned || 0);
                                         if (bonus > 0) {
-                                            await supabase.rpc('add_diamonds_to_balance', {
+                                            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                                                 p_user_id: userId,
                                                 p_amount: bonus,
                                                 p_type: 'trivia_double_win',
                                                 p_description: `Double or Nothing win — ${bonus}💎 bonus`,
                                                 p_reference_id: null
                                             });
+                                            if (__rpcErr) throw __rpcErr;
                                             const { data: profile } = await supabase
                                                 .from('profiles')
                                                 .select('diamonds')
@@ -1048,13 +1051,14 @@ export default function TriviaModePage() {
                                         // Deduct the original winnings (they lost) via RPC
                                         const loss = result?.diamondsEarned || 0;
                                         if (loss > 0) {
-                                            await supabase.rpc('add_diamonds_to_balance', {
+                                            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                                                 p_user_id: userId,
                                                 p_amount: -loss,
                                                 p_type: 'trivia_double_loss',
                                                 p_description: `Double or Nothing loss — ${loss}💎 deducted`,
                                                 p_reference_id: null
                                             });
+                                            if (__rpcErr) throw __rpcErr;
                                             const { data: profile } = await supabase
                                                 .from('profiles')
                                                 .select('diamonds')
@@ -1082,13 +1086,14 @@ export default function TriviaModePage() {
                                 // Award the prize via audit-safe RPC
                                 try {
                                     if (reward.type === 'diamonds' && userId) {
-                                        await supabase.rpc('add_diamonds_to_balance', {
+                                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                                             p_user_id: userId,
                                             p_amount: reward.amount,
                                             p_type: 'trivia_prize_wheel',
                                             p_description: `Prize Wheel — ${reward.amount}💎`,
                                             p_reference_id: null
                                         });
+                                        if (__rpcErr) throw __rpcErr;
                                         const { data: profile } = await supabase
                                             .from('profiles')
                                             .select('diamonds')
