@@ -91,7 +91,7 @@ const COST_PER_M_INPUT = MODEL.includes('mini') ? 0.30 : 2.00;
 const COST_PER_M_OUTPUT = MODEL.includes('mini') ? 0.50 : 10.00;
 
 async function grokCall(systemPrompt, userPrompt, opts = {}) {
-    const body = JSON.stringify({
+    const payload = {
         model: MODEL,
         messages: [
             { role: 'system', content: systemPrompt },
@@ -99,8 +99,11 @@ async function grokCall(systemPrompt, userPrompt, opts = {}) {
         ],
         max_tokens: opts.maxTokens || 4000,
         temperature: opts.temperature ?? 0.4,
-        response_format: opts.json ? { type: 'json_object' } : undefined,
-    });
+    };
+    // grok-3-mini variants support reasoning_effort to skip thinking tokens
+    if (MODEL.includes('mini')) payload.reasoning_effort = 'low';
+    if (opts.json) payload.response_format = { type: 'json_object' };
+    const body = JSON.stringify(payload);
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), opts.timeoutMs || 60000);
     try {

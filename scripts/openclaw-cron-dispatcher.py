@@ -161,12 +161,18 @@ ALL_CRONS = [
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
     ('/api/cron/deploy-error-poll',         dict(minute='*/2')),       # every 2 min — autopilot build error detector
-    # ── 2B.3 Option B (2026-04-27) — generate-trivia-questions ──────────────
-    # Was monolith-only (admin manual trigger). Ported to workers; now scheduled
-    # daily at 04:30 UTC. Generates up to 3 batches of 30 questions each per
-    # run (90 questions/day max), with 5-layer QA validation gate. Idempotent:
-    # short-circuits if all 18,000 target questions exist.
-    ('/api/cron/generate-trivia-questions', dict(hour=4, minute=30)),
+    # ── Phase 49 (2026-05-05) — two-track trivia refill ───────────────────
+    # Track A (deterministic engine, $0 cost): generates strategy-category
+    # questions from solved_spots_gold + memory_charts_gold via the same
+    # engine training games use. Track B (Grok-3-mini + 5-layer validator):
+    # generates fact-category questions with reasoning_effort=low. Each run
+    # picks the most-undertarget category. Target: 1,500/cat × 10 = 15,000.
+    # Frequency bumped from daily → every 4 hours so refill keeps up.
+    ('/api/cron/generate-trivia-questions', dict(hour='*/4', minute=30)),
+    # Pool health watchdog — reports counts vs 1500 target, raises alerts
+    # if any category drops below 60-day floor (1,200) or any difficulty
+    # bucket below 60% of target.
+    ('/api/cron/trivia-pool-monitor',       dict(hour=6, minute=15)),
     # ── 2026-04-24 — restored from orphan audit ──────────────────────────
     # hard-stop auto-closes commander_tables at each venue's hard_stop_time.
     # Has 1 opted-in venue (id=1996, 02:00 UTC) with 34 in_use tables at
@@ -448,6 +454,7 @@ WORKERS_PREFERRED = {
     # 5-layer QA gate). Scheduled daily at 04:30 UTC. Closes the last monolith
     # cron exception — pages/api/cron/ is now empty.
     '/api/cron/generate-trivia-questions':     '/cron/generate-trivia-questions',
+    '/api/cron/trivia-pool-monitor':           '/cron/trivia-pool-monitor',
     '/api/cron/deploy-error-poll':             '/cron/deploy-error-poll',
     # ─── WAVE 5 — Club Arena platform crons (Round 23, 2026-04-29) ──────────
     # Workers repo has src/routes/{bbj-detect,tournament-bounty-detect,
