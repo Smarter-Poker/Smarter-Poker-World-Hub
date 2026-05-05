@@ -6,7 +6,7 @@
        real-time diamond balance updates
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';
 import { LiveReactions } from './LiveReactions';
 import { LiveViewerList } from './LiveViewerList';
