@@ -22,6 +22,7 @@
 import { Room, RoomEvent, Track, VideoPresets } from 'livekit-client';
 import { supabase } from '../lib/supabase';
 import { getAccessToken } from '../lib/authUtils';
+import { busEmit } from '../engine/EventBus';
 
 const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
 
@@ -805,7 +806,7 @@ class LiveStreamService {
     async _createLiveFeedPost(streamId, title) {
         try {
             const token = getAccessToken();
-            await fetch('/api/live/create-live-post', {
+            const res = await fetch('/api/live/create-live-post', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -814,6 +815,11 @@ class LiveStreamService {
                 body: JSON.stringify({ stream_id: streamId, title }),
                 credentials: 'same-origin',
             });
+            const data = await res.json();
+            if (data.success && data.postId) {
+                // BUG FIX: Emit event so the broadcaster's own feed updates instantly
+                busEmit.socialPostCreated?.(data.postId, this.currentUserId);
+            }
         } catch (err) { logError('createLiveFeedPost', err); }
     }
 
