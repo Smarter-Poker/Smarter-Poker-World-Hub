@@ -454,7 +454,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 }}>
                     <div style={{ fontSize:56, marginBottom:8 }}>💎</div>
                     <div style={{ color:'white', fontSize:22, fontWeight:800, textShadow:'0 2px 16px rgba(0,0,0,.9)' }}>
-                        {giftFlash.name} sent {giftFlash.amount} diamonds!
+                        {giftFlash.name} Sent {giftFlash.amount} Diamonds!
                     </div>
                 </div>
             )}
@@ -654,8 +654,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 )}
                 {comments.map((c, i) => (
                     <div key={c.id || i} style={{ marginBottom:6, display:'flex', alignItems:'flex-start', gap:6 }}>
-                        <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap' }}>{c.author_name || 'User'}</span>
-                        <span style={{ color:'white', fontSize:13, lineHeight:1.4 }}>{c.text}</span>
+                        <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap', flexShrink:0 }}>{c.author_name || 'User'}</span>
+                        <span style={{ color:'white', fontSize:13, lineHeight:1.4, wordBreak:'break-word', overflowWrap:'anywhere' }}>{c.text}</span>
                     </div>
                 ))}
                 <div ref={commentsEndRef} />

@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
@@ -18,6 +19,11 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 export default function TriviaStats() {
     useTrainingBus('trivia-stats');
     const router = useRouter();
+    // Reactive user from AvatarContext so the realtime channel effect below
+    // re-runs when auth resolves after first render. Previously used
+    // getAuthUser() inside an empty-deps useEffect — if user wasn't loaded
+    // on mount, the realtime sub never registered.
+    const { user: avatarUser, loading: avatarLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -46,9 +52,11 @@ export default function TriviaStats() {
     };
 
     useEffect(() => {
+        // Wait for auth resolution before issuing queries
+        if (avatarLoading) return;
         async function loadStats() {
             try {
-                const user = getAuthUser();
+                const user = avatarUser || getAuthUser();
 
                 if (!user) {
                     setIsLoading(false);
@@ -114,14 +122,14 @@ export default function TriviaStats() {
         loadStats();
 
         // Realtime subscription — live updates (same scope as loadStats)
-        const user = getAuthUser();
+        const user = avatarUser || getAuthUser();
         if (!user) return;
         const _ch = supabase
             .channel(`trivia-stats:${user.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadStats(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, []);
+    }, [avatarUser?.id, avatarLoading]);
 
     const StatCard = ({ label, value, color }) => (
         <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '24px' }}>

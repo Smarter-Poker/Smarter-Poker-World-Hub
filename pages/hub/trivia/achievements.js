@@ -10,6 +10,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
@@ -36,15 +37,21 @@ const ACHIEVEMENTS = [
 export default function TriviaAchievements() {
     useTrainingBus('trivia-achievements');
     const router = useRouter();
+    // Reactive user from AvatarContext — required so the realtime channel
+    // effect re-runs once auth resolves. Previously the empty-deps useEffect
+    // captured a getAuthUser() return value at mount time; if auth wasn't
+    // hydrated yet, the channel never registered.
+    const { user: avatarUser, loading: avatarLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [achievements, setAchievements] = useState([]);
     const [unlockedCount, setUnlockedCount] = useState(0);
 
     useEffect(() => {
+        if (avatarLoading) return;
         async function loadAchievements() {
             try {
-                const user = getAuthUser();
+                const user = avatarUser || getAuthUser();
 
                 if (!user) {
                     // Show all achievements as locked for guests
@@ -101,14 +108,14 @@ export default function TriviaAchievements() {
         loadAchievements();
 
         // Realtime subscription — live updates (same scope as loadAchievements)
-        const user = getAuthUser();
+        const user = avatarUser || getAuthUser();
         if (!user) return;
         const _ch = supabase
             .channel(`trivia-ach:${user.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadAchievements(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, []);
+    }, [avatarUser?.id, avatarLoading]);
 
     return (
         <TriviaErrorBoundary pageName="Achievements">
