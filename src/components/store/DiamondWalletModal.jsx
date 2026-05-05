@@ -1340,22 +1340,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     flexDirection: 'column',
                     alignItems: 'center',
                 }}>
-                    {/* Floating particle diamonds & stars */}
-                    <div style={{ position: 'absolute', left: 10, top: '25%', animation: 'walletFloat 4s ease-in-out infinite' }}>
-                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 10px rgba(0,180,255,0.9))', opacity: 0.9 }} />
-                    </div>
-                    <div style={{ position: 'absolute', right: 10, top: '45%', animation: 'walletFloat 5s ease-in-out infinite 1s' }}>
-                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 12px rgba(0,180,255,1))', opacity: 0.95 }} />
-                    </div>
-                    <div style={{ position: 'absolute', left: 20, top: '65%', animation: 'walletPulse 3s ease-in-out infinite 0.5s', width: 6, height: 6, background: '#fff', borderRadius: '50%', boxShadow: '0 0 15px 5px #00d4ff' }} />
-                    <div style={{ position: 'absolute', right: 20, top: '15%', animation: 'walletPulse 4s ease-in-out infinite', width: 4, height: 4, background: '#fff', borderRadius: '50%', boxShadow: '0 0 10px 3px #00d4ff' }} />
-
                     {/* The Outer Metallic Tube Frame */}
                     <div style={{
                         position: 'relative',
                         marginTop: 45,
                         width: '100%',
-                        maxWidth: 400,
                         border: '3px solid #6b8ebc',
                         borderRadius: 16,
                         boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8), 0 0 25px rgba(0,160,255,0.2), inset 0 0 0 1px rgba(255,255,255,0.2)',
@@ -1469,9 +1458,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     letterSpacing: '2px', lineHeight: 1, marginBottom: 8,
                                     filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(80,160,255,0.4))',
                                 }}>VIP</div>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: '#ffffff', textAlign: 'center', lineHeight: 1.4, marginBottom: 6, letterSpacing: '0.2px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', textAlign: 'center', lineHeight: 1.4, marginBottom: 6, letterSpacing: '0.2px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
                                     30-Day VIP Card<br/>
-                                    <span style={{ color: '#a0c0e0', fontSize: 10, letterSpacing: '0.5px' }}>Free Membership</span>
+                                    <span style={{ color: '#a0c0e0', fontSize: 12, letterSpacing: '0.5px' }}>Expires: 30 Days</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: 4 }}>
                                     {[...Array(5)].map((_, i) => (
@@ -1553,9 +1542,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             </button>
                         </div>
                         
-                        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#ffffff', opacity: 0.8, letterSpacing: '0.5px' }}>
-                            Your VIP Membership Unlocks All Premium Features For 30 Days
-                        </div>
                     </div>
                 </div>
 
@@ -2328,16 +2314,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             {/* Details */}
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div style={{
-                                                    fontSize: 13,
+                                                    fontSize: 16,
                                                     fontWeight: 600,
                                                     color: '#e2e8f0',
-                                                    marginBottom: 2,
+                                                    marginBottom: 4,
                                                 }}>
                                                     {config.label}
                                                 </div>
                                                 <div style={{
-                                                    fontSize: 11,
-                                                    color: 'rgba(255, 255, 255, 0.35)',
+                                                    fontSize: 13,
+                                                    color: 'rgba(255, 255, 255, 0.45)',
                                                     overflow: 'hidden',
                                                     textOverflow: 'ellipsis',
                                                     whiteSpace: 'nowrap',
@@ -2355,7 +2341,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             }}>
                                                 <span style={{
                                                     fontFamily: 'Orbitron, monospace',
-                                                    fontSize: 14,
+                                                    fontSize: 18,
                                                     fontWeight: 700,
                                                     color: isPositive ? '#4ade80' : '#f87171',
                                                 }}>
@@ -2363,16 +2349,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 </span>
                                                 {tx.balance_after != null && (
                                                     <span style={{
-                                                        fontSize: 10,
-                                                        color: 'rgba(255, 255, 255, 0.25)',
+                                                        fontSize: 12,
+                                                        color: 'rgba(255, 255, 255, 0.35)',
                                                     }}>
                                                         Bal: {tx.balance_after.toLocaleString()}
                                                     </span>
                                                 )}
                                                 <span style={{
-                                                    fontSize: 10,
-                                                    color: 'rgba(255, 255, 255, 0.2)',
-                                                    marginTop: 2,
+                                                    fontSize: 12,
+                                                    color: 'rgba(255, 255, 255, 0.3)',
+                                                    marginTop: 4,
                                                 }}>
                                                     {dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                                     {' '}
