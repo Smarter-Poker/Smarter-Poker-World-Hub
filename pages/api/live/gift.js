@@ -256,6 +256,10 @@ export default async function handler(req, res) {
     // credit and (if needed) the compensating refund.
     const giftId = randomUUID();
 
+    // Initialized to null; assigned after the deduct commits so the catch block
+    // can safely call it if something throws between deduct and credit.
+    let refundSender = null;
+
     try {
         // senderProfile already fetched above for age gate — reuse it
         const senderName = senderProfile?.username || senderProfile?.full_name || 'A fan';
@@ -281,11 +285,11 @@ export default async function handler(req, res) {
 
         const senderNewBalance = deductResult?.balance ?? 0;
 
-        // Compensating refund helper — runs when the deduct already committed
-        // but a downstream step fails. Without this, the sender's diamonds
-        // simply disappear. Uses a stable refund-reference_id so a retry
-        // doesn't double-refund.
-        const refundSender = async (reason) => {
+        // Compensating refund helper — hoisted to outer scope so the catch block
+        // can invoke it if something throws after the deduct commits but before
+        // we return a success response. Uses a stable reference_id to prevent
+        // double-refunds on repeated invocations.
+        refundSender = async (reason) => {
             try {
                 const { error: refundErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: user.id,
