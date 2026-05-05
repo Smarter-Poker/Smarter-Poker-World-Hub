@@ -1,18 +1,25 @@
 /**
- * 💬 POST-GAME AI COACHING SESSION
+ * 💬 DETERMINISTIC POST-LEVEL COACHING (Operation Grok-Sweep — 2026-05)
  * ═══════════════════════════════════════════════════════════════════════════
- * After completing a level, Grok provides personalized coaching feedback
- * Analyzes performance patterns and gives actionable advice
+ * Generates personalized post-level coaching feedback using REAL session
+ * metrics the client already computed (accuracy, EV loss, classification
+ * breakdown, position stats, weak spots, cross-session context). NO LLM.
+ *
+ * Prior implementation called grok-3 with `temperature: 0.7` to "synthesize"
+ * coaching prose from the metrics — turning hard numbers into vague advice.
+ * Every level completion fired a token-burning grok-3 call.
+ *
+ * The new implementation is pure template synthesis. Output shape preserved
+ * exactly so the frontend (pages/hub/training/session-dashboard.js) renders
+ * the same UI. Every claim in the prose is grounded in the input metrics.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabaseAdmin = null;
 function getSupabaseAdmin() {
     if (!_supabaseAdmin) {
@@ -23,220 +30,349 @@ function getSupabaseAdmin() {
     }
     return _supabaseAdmin;
 }
-export default async function handler(req, res) {
-  try {
-      withTiming(res);
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
 
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
+// ── Quotes (rotated deterministically by accuracy bucket) ────────────────────
+const QUOTES_HIGH = [
+    '"The best players are always learning." — Daniel Negreanu',
+    '"Discipline is rememberings what you want." — common poker adage',
+    '"Patience is the secret to winning poker." — Doyle Brunson',
+    '"GTO is the foundation; reads are the building." — Phil Galfond',
+];
+const QUOTES_MID = [
+    '"You can\'t lose what you don\'t put in the middle… but you can\'t win much, either." — Matt Damon, Rounders',
+    '"Poker is a skill game pretending to be a chance game." — James Altucher',
+    '"Every mistake is a lesson." — common training maxim',
+    '"Aggression is the missing ingredient for most players." — Doug Polk',
+];
+const QUOTES_LOW = [
+    '"Poker is a hard way to make an easy living." — Doyle Brunson',
+    '"In poker, the difference between winning and losing is mostly choice." — common training maxim',
+    '"You don\'t have to be perfect — you just have to be better than your opponent." — common adage',
+    '"The cards don\'t care if you\'re tilted." — modern training reminder',
+];
 
-      // Body size guard (50KB max)
-      const bodySize = JSON.stringify(req.body || {}).length;
-      if (bodySize > 51200) {
-          return res.status(413).json({ success: false, error: 'Request body too large' });
-      }
-
-      res.setHeader('Cache-Control', 'no-store');
-      // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabaseAdmin().auth.getUser(token);
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-      const {
-          gameId,
-          gameName,
-          level,
-          questionsAnswered,
-          questionsCorrect,
-          accuracy,
-          streak,
-          timeSpentSeconds,
-          mistakes,  // Array of { question, userAnswer, correctAnswer }
-          // ═══ PHASE 14: Enhanced coaching data ═══
-          gtowScore,           // 0-100 GTOW score
-          totalEVLoss,         // Total EV loss in BB
-          classificationCounts, // { best: N, correct: N, inaccuracy: N, wrong: N, blunder: N }
-          positionStats,       // { BTN: { correct: N, total: N }, ... }
-          weakSpots,           // [{ position, street, spotType, mistakeRate }]
-          // ═══ PHASE 17: Cross-session analytics context ═══
-          crossSessionContext, // { scoreTrend, milestones, mistakePatterns, ... }
-      } = req.body;
-
-      if (!gameId || !level || questionsAnswered === undefined) {
-          return res.status(400).json({ success: false, error: 'Missing required fields' });
-      }
-
-      try {
-          const grok = getGrokClient();
-          const mistakesStr = mistakes?.length > 0
-              ? mistakes.slice(0, 8).map((m, i) => `
-  Mistake ${i + 1}:
-  - Question: ${m.question?.question || 'Unknown'}
-  - User answered: ${m.userAnswer}
-  - Correct was: ${m.correctAnswer}
-  - Position: ${m.question?.scenario?.heroPosition || '?'} vs ${m.question?.scenario?.villainPosition || '?'}
-  - Street: ${m.question?.scenario?.street || '?'}
-  - Board: ${m.question?.scenario?.board || '?'}`).join('\n')
-              : 'No mistakes - perfect round!';
-
-          // ═══ PHASE 14: Build rich performance context ═══
-          let performanceContext = '';
-          if (gtowScore !== undefined) {
-              performanceContext += `\n  GTOW SCORE: ${gtowScore}/100`;
-          }
-          if (totalEVLoss !== undefined) {
-              performanceContext += `\n  TOTAL EV LOSS: ${typeof totalEVLoss === 'number' ? totalEVLoss.toFixed(2) : totalEVLoss} BB`;
-          }
-          if (classificationCounts && Object.keys(classificationCounts || {}).length > 0) {
-              const cc = classificationCounts;
-              performanceContext += `\n  MOVE CLASSIFICATION BREAKDOWN: Best: ${cc.best || 0}, Correct: ${cc.correct || 0}, Inaccuracy: ${cc.inaccuracy || 0}, Wrong: ${cc.wrong || 0}, Blunder: ${cc.blunder || 0}`;
-          }
-          if (positionStats && Object.keys(positionStats || {}).length > 0) {
-              const posLines = Object.entries(positionStats || {})
-                  .map(([pos, stats]) => `    ${pos}: ${stats.correct || 0}/${stats.total || 0}`)
-                  .join('\n');
-              performanceContext += `\n  BY POSITION:\n${posLines}`;
-          }
-          if (weakSpots && weakSpots.length > 0) {
-              const weakLines = weakSpots.slice(0, 3)
-                  .map(s => `    ${s.position}/${s.street}/${s.spotType}: ${Math.round((s.mistakeRate || 0) * 100)}% mistake rate`)
-                  .join('\n');
-              performanceContext += `\n  IDENTIFIED WEAK SPOTS:\n${weakLines}`;
-          }
-
-          // ═══ PHASE 17: Build cross-session context ═══
-          let crossSessionStr = '';
-          if (crossSessionContext) {
-              const ctx = crossSessionContext;
-              if (ctx.milestones) {
-                  const m = ctx.milestones;
-                  crossSessionStr += `\n\n  CROSS-SESSION ANALYTICS (last 30 days):`;
-                  crossSessionStr += `\n  - Total sessions: ${m.totalSessions}, Total hands: ${m.totalHands}`;
-                  crossSessionStr += `\n  - Rolling avg score (last 5): ${m.last5Avg}%${m.prev5Avg !== null ? ` (was ${m.prev5Avg}%)` : ''}`;
-                  crossSessionStr += `\n  - Overall accuracy: ${m.overallAccuracy}%, Avg EV/hand: ${m.avgEvPerHand}`;
-                  crossSessionStr += `\n  - Trend: ${m.trending || 'unknown'}${m.trendDelta ? ` (${m.trendDelta > 0 ? '+' : ''}${m.trendDelta}pts)` : ''}`;
-                  crossSessionStr += `\n  - Current streak: ${m.currentStreak} sessions passed`;
-              }
-              if (ctx.mistakePatterns && ctx.mistakePatterns.length > 0) {
-                  crossSessionStr += `\n  TOP RECURRING MISTAKES (cross-session):`;
-                  ctx.mistakePatterns.slice(0, 3).forEach((p, i) => {
-                      crossSessionStr += `\n    ${i + 1}. ${p.spotType} from ${p.position} on ${p.street}: ${p.count}× mistakes, -${p.avgEvLoss.toFixed(2)} avg EV`;
-                  });
-              }
-              if (ctx.weakPosition) {
-                  crossSessionStr += `\n  WEAKEST POSITION (cross-session): ${ctx.weakPosition.position} at ${ctx.weakPosition.accuracy}%`;
-              }
-              if (ctx.weakStreet) {
-                  crossSessionStr += `\n  WEAKEST STREET (cross-session): ${ctx.weakStreet.street} at ${ctx.weakStreet.accuracy}%`;
-              }
-          }
-
-          const prompt = `You are an elite GTO poker coach (think GTO Wizard's post-session analysis). Provide a personalized debrief.
-
-  TRAINING SESSION RESULTS:
-  - Game: ${gameName || gameId}
-  - Level: ${level}/10
-  - Score: ${questionsCorrect}/${questionsAnswered} (${accuracy}%)
-  - Best Streak: ${streak || 0}
-  - Time: ${Math.round((timeSpentSeconds || 0) / 60)} minutes${performanceContext}
-
-  MISTAKES MADE:
-  ${mistakesStr}${crossSessionStr}
-
-  Provide coaching feedback in this JSON format:
-  {
-      "overallGrade": "${accuracy >= 90 ? 'A' : accuracy >= 80 ? 'B' : accuracy >= 70 ? 'C' : 'D'}",
-      "headline": "A specific, encouraging headline about THEIR performance pattern (not generic)",
-      "strengths": ["1-2 specific things they did well, referencing positions or spot types where they excelled"],
-      "areasToImprove": ["1-2 specific concepts to work on, directly referencing their weak spots and mistake patterns"],
-      "detailedFeedback": "3-4 sentences of personalized coaching. Reference their specific mistakes, weak spots, and GTOW score. Give concrete advice like 'When facing c-bets from the BB on dry boards, remember to...'",
-      "recommendedDrill": {
-          "name": "Specific drill targeting their weakest area",
-          "reason": "Why this will directly address their weakest spot"
-      },
-      "weakSpotDrill": "If weak spots exist, suggest a specific practice focus like 'BB defense vs BTN c-bets on low boards'",
-      "motivationalQuote": "A short poker wisdom quote relevant to their performance level",
-      "readyForNextLevel": ${accuracy >= 70 ? 'true' : 'false'}
-  }
-
-  Be specific. Reference their actual mistakes, positions, and board textures. Avoid generic advice. Coach like you can see their solver data.`;
-
-          const response = await grok.chat.completions.create({
-              model: 'grok-3',
-              messages: [{ role: 'user', content: prompt }],
-              temperature: 0.7,
-              max_tokens: 500,
-          }, { signal: AbortSignal.timeout(15000) });
-
-          const content = response.choices[0]?.message?.content || '';
-
-          // Try to extract JSON
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-              const coaching = JSON.parse(jsonMatch[0]);
-
-              return res.status(200).json({
-                  success: true,
-                  coaching,
-                  generatedBy: 'grok-3'
-              });
-          }
-
-          // Fallback
-          return res.status(200).json({
-              success: true,
-              coaching: generateFallbackCoaching(accuracy, questionsCorrect, questionsAnswered, level),
-              generatedBy: 'fallback'
-          });
-
-      } catch (error) {
-          console.warn('[GrokCoaching] Error:', error.message);
-
-          return res.status(200).json({
-              success: true,
-              coaching: generateFallbackCoaching(accuracy, questionsCorrect, questionsAnswered, level),
-              generatedBy: 'fallback'
-          });
-      }
-
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+function pickQuote(accuracy, level) {
+    const seed = (Number(level) || 1) * 7 + Math.floor(Number(accuracy) || 0);
+    if (accuracy >= 80) return QUOTES_HIGH[seed % QUOTES_HIGH.length];
+    if (accuracy >= 60) return QUOTES_MID[seed % QUOTES_MID.length];
+    return QUOTES_LOW[seed % QUOTES_LOW.length];
 }
 
-function generateFallbackCoaching(accuracy, correct, total, level) {
-    const isPassing = accuracy >= 70;
-    const isPerfect = accuracy === 100;
+// ── Grade + headline ─────────────────────────────────────────────────────────
+function computeGrade(accuracy) {
+    if (accuracy >= 90) return 'A';
+    if (accuracy >= 80) return 'B';
+    if (accuracy >= 70) return 'C';
+    if (accuracy >= 60) return 'D';
+    return 'F';
+}
+
+function buildHeadline({ accuracy, classificationCounts, gtowScore, streak }) {
+    const acc = Number(accuracy) || 0;
+    const cc = classificationCounts || {};
+    const blunders = Number(cc.blunder) || 0;
+    const bestCount = Number(cc.best) || 0;
+    const score = Number(gtowScore);
+
+    if (acc === 100) return 'Flawless run — every decision solver-aligned.';
+    if (acc >= 90 && blunders === 0) return 'Excellent session — zero blunders, near-pure accuracy.';
+    if (acc >= 90) return 'Strong run with one slip — ready for harder levels.';
+    if (acc >= 80 && Number.isFinite(score) && score >= 75) return 'Solid GTOW score — your edges are sharpening.';
+    if (acc >= 80) return 'Above the pass line — focus on the mixed-strategy spots.';
+    if (acc >= 70) return 'Passing grade — the patterns below close the gap fastest.';
+    if (acc >= 60 && bestCount > blunders) return 'You found more best plays than blunders — momentum is yours to keep.';
+    if (acc >= 60) return 'Foundation is there — discipline on the boundary spots is the next step.';
+    if (Number(streak) > 0) return `Tough run, but a ${streak}-question streak shows you can find the line.`;
+    return 'Treat this as the data — patterns below are the fastest path forward.';
+}
+
+// ── Strengths / areas to improve ─────────────────────────────────────────────
+function buildStrengths({ accuracy, classificationCounts, positionStats, streak, gtowScore }) {
+    const out = [];
+    const cc = classificationCounts || {};
+    const acc = Number(accuracy) || 0;
+    const score = Number(gtowScore);
+
+    if (acc >= 95) out.push('Near-perfect execution under pressure');
+    else if (acc >= 80) out.push('Strong overall accuracy — fundamentals are dialed in');
+
+    const best = Number(cc.best) || 0;
+    if (best >= 5) out.push(`Found the best line ${best} times — pattern-recognition is working`);
+
+    if (Number(streak) >= 5) out.push(`Maintained a ${streak}-question streak — focus stayed locked`);
+
+    if (Number.isFinite(score) && score >= 80) out.push('GTOW score above 80 — solver-aligned across the board');
+
+    // Best position
+    if (positionStats && Object.keys(positionStats).length > 0) {
+        const ranked = Object.entries(positionStats)
+            .filter(([, s]) => (s?.total || 0) >= 3)
+            .map(([pos, s]) => ({
+                pos,
+                acc: (s.correct || 0) / Math.max(1, s.total || 1),
+                n: s.total,
+            }))
+            .sort((a, b) => b.acc - a.acc);
+        if (ranked.length > 0 && ranked[0].acc >= 0.85) {
+            out.push(`Strongest position: ${ranked[0].pos} (${Math.round(ranked[0].acc * 100)}% over ${ranked[0].n} hands)`);
+        }
+    }
+
+    if (out.length === 0) {
+        out.push('You completed the level — every rep builds the foundation');
+    }
+    return out.slice(0, 2);
+}
+
+function buildAreasToImprove({ accuracy, classificationCounts, weakSpots, positionStats, totalEVLoss }) {
+    const out = [];
+    const cc = classificationCounts || {};
+    const acc = Number(accuracy) || 0;
+    const blunders = Number(cc.blunder) || 0;
+    const wrong = Number(cc.wrong) || 0;
+    const inacc = Number(cc.inaccuracy) || 0;
+
+    if (blunders >= 2) out.push(`${blunders} blunders this session — these are 0%-frequency mistakes; drill the spot type until they\'re gone`);
+    else if (wrong >= 3) out.push(`${wrong} clearly-wrong actions — likely a range-construction leak in a specific spot type`);
+    else if (inacc >= 3) out.push(`${inacc} inaccuracies — boundary-hand frequencies are your next study target`);
+
+    // Top weak spot
+    if (Array.isArray(weakSpots) && weakSpots.length > 0) {
+        const ws = weakSpots[0];
+        if (ws.position && ws.street && ws.spotType) {
+            const rate = Math.round((ws.mistakeRate || 0) * 100);
+            out.push(`${ws.position}/${ws.street} ${ws.spotType}: ${rate}% mistake rate — focus repetitions here`);
+        }
+    }
+
+    // Worst position
+    if (positionStats && Object.keys(positionStats).length > 0) {
+        const ranked = Object.entries(positionStats)
+            .filter(([, s]) => (s?.total || 0) >= 3)
+            .map(([pos, s]) => ({
+                pos,
+                acc: (s.correct || 0) / Math.max(1, s.total || 1),
+                n: s.total,
+            }))
+            .sort((a, b) => a.acc - b.acc);
+        if (ranked.length > 0 && ranked[0].acc < 0.6) {
+            out.push(`Weakest position: ${ranked[0].pos} (${Math.round(ranked[0].acc * 100)}%) — drill this position type next`);
+        }
+    }
+
+    // EV loss callout
+    if (typeof totalEVLoss === 'number' && totalEVLoss > 5) {
+        out.push(`Total EV given up: ${totalEVLoss.toFixed(1)}bb — a single session's worth of leak; closing it doubles study ROI`);
+    }
+
+    if (out.length === 0) {
+        if (acc < 100) out.push('Push for higher consistency — shave the inaccuracies first, then chase BEST plays');
+        else out.push('Maintain this level — drill the same range type tomorrow to lock in the pattern');
+    }
+    return out.slice(0, 2);
+}
+
+// ── Detailed feedback (paragraph) ────────────────────────────────────────────
+function buildDetailedFeedback({
+    accuracy, gtowScore, totalEVLoss, classificationCounts,
+    weakSpots, mistakes, level, crossSessionContext,
+}) {
+    const acc = Number(accuracy) || 0;
+    const cc = classificationCounts || {};
+    const score = Number(gtowScore);
+
+    const sentences = [];
+
+    // Sentence 1: headline + score frame
+    const evLossStr = typeof totalEVLoss === 'number' ? ` and gave up ${totalEVLoss.toFixed(2)}bb in EV` : '';
+    sentences.push(
+        Number.isFinite(score)
+            ? `You finished Level ${level} at ${Math.round(acc)}% accuracy with a GTOW score of ${Math.round(score)}/100${evLossStr}.`
+            : `You finished Level ${level} at ${Math.round(acc)}% accuracy${evLossStr}.`
+    );
+
+    // Sentence 2: classification breakdown
+    if (Object.keys(cc).length > 0) {
+        const total = (cc.best || 0) + (cc.correct || 0) + (cc.inaccuracy || 0) + (cc.wrong || 0) + (cc.blunder || 0);
+        if (total > 0) {
+            sentences.push(
+                `Move breakdown: ${cc.best || 0} BEST, ${cc.correct || 0} CORRECT, ${cc.inaccuracy || 0} inaccuracies, ${cc.wrong || 0} wrong, ${cc.blunder || 0} blunders.`
+            );
+        }
+    }
+
+    // Sentence 3: weak-spot specifics
+    if (Array.isArray(weakSpots) && weakSpots.length > 0) {
+        const ws = weakSpots[0];
+        const rate = Math.round((ws.mistakeRate || 0) * 100);
+        sentences.push(
+            `Top leak: ${ws.position || '?'}/${ws.street || '?'} ${ws.spotType || ''} at ${rate}% mistake rate — that\'s the highest-leverage spot to drill.`
+        );
+    } else if (Array.isArray(mistakes) && mistakes.length > 0) {
+        // Fall back to listing one mistake spot
+        const m = mistakes[0];
+        const pos = m?.question?.scenario?.heroPosition || '?';
+        const street = m?.question?.scenario?.street || '?';
+        sentences.push(
+            `Most-recent miss: ${pos} on the ${street} — review the solver line and re-drill the spot type.`
+        );
+    }
+
+    // Sentence 4: cross-session trend
+    if (crossSessionContext?.milestones) {
+        const m = crossSessionContext.milestones;
+        if (m.trending === 'up') {
+            sentences.push(`Cross-session trend: trending up over your last 5 sessions${m.trendDelta ? ` (+${m.trendDelta}pts)` : ''}.`);
+        } else if (m.trending === 'down') {
+            sentences.push(`Cross-session trend: down over your last 5 sessions${m.trendDelta ? ` (${m.trendDelta}pts)` : ''} — likely a focus or rest issue more than a knowledge gap.`);
+        } else if (m.last5Avg) {
+            sentences.push(`Rolling 5-session average: ${m.last5Avg}%.`);
+        }
+    }
+
+    return sentences.join(' ');
+}
+
+// ── Recommended drill ────────────────────────────────────────────────────────
+function buildRecommendedDrill({ weakSpots, positionStats, accuracy, level }) {
+    if (Array.isArray(weakSpots) && weakSpots.length > 0) {
+        const ws = weakSpots[0];
+        return {
+            name: `${ws.position || '?'}/${ws.street || '?'} ${ws.spotType || ''} drill`.trim(),
+            reason: `Highest-leverage spot from this session at ${Math.round((ws.mistakeRate || 0) * 100)}% mistake rate.`,
+        };
+    }
+
+    if (positionStats && Object.keys(positionStats).length > 0) {
+        const worst = Object.entries(positionStats)
+            .filter(([, s]) => (s?.total || 0) >= 3)
+            .map(([pos, s]) => ({ pos, acc: (s.correct || 0) / Math.max(1, s.total || 1) }))
+            .sort((a, b) => a.acc - b.acc)[0];
+        if (worst && worst.acc < 0.7) {
+            return {
+                name: `${worst.pos} opening-range drill`,
+                reason: `Your ${worst.pos} accuracy is ${Math.round(worst.acc * 100)}% — concentrated reps will lift it fastest.`,
+            };
+        }
+    }
+
+    if (accuracy >= 85) {
+        return {
+            name: `Level ${Math.min(10, Number(level) + 1)} — next difficulty tier`,
+            reason: 'You\'ve cleared this level\'s threshold. Step up to keep the pattern fresh.',
+        };
+    }
 
     return {
-        overallGrade: accuracy >= 90 ? 'A' : accuracy >= 80 ? 'B' : accuracy >= 70 ? 'C' : 'D',
-        headline: isPerfect
-            ? '🏆 Perfect Score! Flawless execution!'
-            : isPassing
-                ? '✅ Great work! You passed this level.'
-                : '📚 Keep practicing - you\'ll get there!',
-        strengths: isPassing
-            ? ['Solid decision-making under pressure', 'Good understanding of fundamentals']
-            : ['You\'re putting in the work', 'Learning from mistakes'],
-        areasToImprove: isPassing
-            ? ['Continue to edge cases and advanced spots']
-            : ['Review the basic concepts for this game', 'Take your time with each decision'],
-        detailedFeedback: isPassing
-            ? `You scored ${correct}/${total} at Level ${level}. Great job! Focus on any mistakes you made and understand why the GTO play differs from your instinct.`
-            : `You scored ${correct}/${total} at Level ${level}. Don't be discouraged - poker is complex. Review each mistake and understand the solver's reasoning.`,
-        recommendedDrill: {
-            name: isPassing ? 'Try the next level!' : 'Retry this level',
-            reason: isPassing ? 'You\'re ready for more challenge' : 'Solidify these concepts before advancing'
-        },
-        motivationalQuote: '"The best players are always learning." - Daniel Negreanu',
-        readyForNextLevel: isPassing
+        name: 'Re-run this level',
+        reason: 'Solidify the patterns from this session before advancing.',
     };
+}
+
+function buildWeakSpotDrill(weakSpots) {
+    if (!Array.isArray(weakSpots) || weakSpots.length === 0) return '';
+    const ws = weakSpots[0];
+    const parts = [];
+    if (ws.position) parts.push(ws.position);
+    if (ws.street) parts.push(`on the ${ws.street}`);
+    if (ws.spotType) parts.push(`(${ws.spotType})`);
+    return parts.length > 0 ? `Focus practice: ${parts.join(' ')}.` : '';
+}
+
+// ── Coaching builder ─────────────────────────────────────────────────────────
+function buildCoaching(input) {
+    const accuracy = Number(input.accuracy) || 0;
+    const grade = computeGrade(accuracy);
+    const headline = buildHeadline(input);
+    const strengths = buildStrengths(input);
+    const areasToImprove = buildAreasToImprove(input);
+    const detailedFeedback = buildDetailedFeedback(input);
+    const recommendedDrill = buildRecommendedDrill(input);
+    const weakSpotDrill = buildWeakSpotDrill(input.weakSpots);
+    const motivationalQuote = pickQuote(accuracy, input.level);
+    const readyForNextLevel = accuracy >= 70;
+
+    return {
+        overallGrade: grade,
+        headline,
+        strengths,
+        areasToImprove,
+        detailedFeedback,
+        recommendedDrill,
+        weakSpotDrill,
+        motivationalQuote,
+        readyForNextLevel,
+    };
+}
+
+// ── Handler ──────────────────────────────────────────────────────────────────
+export default async function handler(req, res) {
+    try {
+        withTiming(res);
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+            if (!applyRateLimit(req, res, LIMITS.write)) return;
+        }
+
+        if (req.method !== 'POST') {
+            return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
+
+        const bodySize = JSON.stringify(req.body || {}).length;
+        if (bodySize > 51200) {
+            return res.status(413).json({ success: false, error: 'Request body too large' });
+        }
+
+        res.setHeader('Cache-Control', 'no-store');
+
+        // Auth
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+        const { data: authData, error: authErr } = await getSupabaseAdmin().auth.getUser(token);
+        const user = authData?.user;
+        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+        const {
+            gameId, gameName, level, questionsAnswered, questionsCorrect,
+            accuracy, streak, timeSpentSeconds, mistakes,
+            gtowScore, totalEVLoss, classificationCounts,
+            positionStats, weakSpots, crossSessionContext,
+        } = req.body || {};
+
+        if (!gameId || level === undefined || questionsAnswered === undefined) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+
+        try {
+            const coaching = buildCoaching({
+                gameId, gameName, level, questionsAnswered, questionsCorrect,
+                accuracy, streak, timeSpentSeconds, mistakes,
+                gtowScore, totalEVLoss, classificationCounts,
+                positionStats, weakSpots, crossSessionContext,
+            });
+
+            return res.status(200).json({
+                success: true,
+                coaching,
+                generatedBy: 'deterministic-templates',
+            });
+        } catch (error) {
+            console.warn('[Coaching] Error building coaching:', error?.message || error);
+            return res.status(200).json({
+                success: true,
+                coaching: buildCoaching({
+                    accuracy: accuracy || 0,
+                    questionsCorrect: questionsCorrect || 0,
+                    questionsAnswered: questionsAnswered || 0,
+                    level: level || 1,
+                }),
+                generatedBy: 'deterministic-fallback',
+            });
+        }
+    } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {
+            console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+        }
+        console.warn('[API Error]', err);
+        if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
 }

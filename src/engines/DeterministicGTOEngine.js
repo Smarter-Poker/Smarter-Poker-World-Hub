@@ -15712,19 +15712,29 @@ export class DeterministicGTOEngine {
             const villainChildren = [];
             if (!isTerminal) {
                 if (meta.type === 'bet' || meta.type === 'raise' || meta.type === 'overbet' || meta.type === 'allin') {
-                    // After hero bet/raise: villain can fold, call, or raise
+                    // After hero bet/raise: villain can fold, call, or raise.
+                    //
+                    // Operation Grok-Sweep (2026-05): the prior implementation
+                    // used Math.random() to jitter these "default" frequencies
+                    // 0–10 points on each render — making the EV-tree numbers
+                    // change every time the user re-rendered the view. Worse,
+                    // the values were presented to the user as solver
+                    // frequencies. They are NOT solver-derived; they are
+                    // reasonable static defaults until per-node solver-defense
+                    // data is wired through. Stable values stop the jiggle and
+                    // preserve user trust.
                     villainChildren.push(
-                        { id: `v-fold-${key}`, type: 'terminal', action: 'fold', label: `${villainPosition || 'V'} Fold`, abbr: 'F', frequency: 30 + Math.round(Math.random() * 10), color: '#64748b', children: [], depth: 2 },
-                        { id: `v-call-${key}`, type: 'decision', action: 'call', label: `${villainPosition || 'V'} Call`, abbr: 'C', frequency: 45 + Math.round(Math.random() * 10), color: '#22c55e', children: [
+                        { id: `v-fold-${key}`, type: 'terminal', action: 'fold', label: `${villainPosition || 'V'} Fold`, abbr: 'F', frequency: 35, isApprox: true, color: '#64748b', children: [], depth: 2 },
+                        { id: `v-call-${key}`, type: 'decision', action: 'call', label: `${villainPosition || 'V'} Call`, abbr: 'C', frequency: 50, isApprox: true, color: '#22c55e', children: [
                             // Level 3: Next street or showdown
                             ...(street === 'river' ? [
                                 { id: `sd-${key}`, type: 'terminal', action: 'showdown', label: 'Showdown', abbr: 'SD', frequency: 100, color: '#eab308', children: [], depth: 3 },
                             ] : [
-                                { id: `ns-chk-${key}`, type: 'decision', action: 'check', label: 'Check', abbr: 'X', frequency: 45, color: '#3b82f6', children: [], depth: 3 },
-                                { id: `ns-bet-${key}`, type: 'decision', action: 'bet', label: 'Bet', abbr: 'B', frequency: 55, color: '#ef4444', children: [], depth: 3 },
+                                { id: `ns-chk-${key}`, type: 'decision', action: 'check', label: 'Check', abbr: 'X', frequency: 45, isApprox: true, color: '#3b82f6', children: [], depth: 3 },
+                                { id: `ns-bet-${key}`, type: 'decision', action: 'bet', label: 'Bet', abbr: 'B', frequency: 55, isApprox: true, color: '#ef4444', children: [], depth: 3 },
                             ]),
                         ], depth: 2 },
-                        { id: `v-raise-${key}`, type: 'decision', action: 'raise', label: `${villainPosition || 'V'} Raise`, abbr: 'R', frequency: 10 + Math.round(Math.random() * 8), color: '#ef4444', children: [
+                        { id: `v-raise-${key}`, type: 'decision', action: 'raise', label: `${villainPosition || 'V'} Raise`, abbr: 'R', frequency: 15, isApprox: true, color: '#ef4444', children: [
                             { id: `h-fold-${key}`, type: 'terminal', action: 'fold', label: 'Fold', abbr: 'F', frequency: 40, color: '#64748b', children: [], depth: 3 },
                             { id: `h-call-${key}`, type: 'decision', action: 'call', label: 'Call', abbr: 'C', frequency: 45, color: '#22c55e', children: [], depth: 3 },
                             { id: `h-4bet-${key}`, type: 'decision', action: 'raise', label: 'Re-raise', abbr: 'RR', frequency: 15, color: '#a855f7', children: [], depth: 3 },

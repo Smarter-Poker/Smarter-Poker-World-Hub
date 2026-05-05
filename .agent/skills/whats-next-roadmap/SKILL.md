@@ -396,15 +396,15 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ---
 
-### 4.3 — Live Session Broadcasting `[ ]`
+### 4.3 — Live Session Broadcasting `[x]`
 
 **What to build** (LiveKit is already installed):
-1. `[ ]` "I'm at the table" status toggle
-2. `[ ]` Friends can see who's currently playing and where
-3. `[ ]` Optional live stream from the rail (LiveKit video)
-4. `[ ]` Live chat for spectators ("sweat my session")
-5. `[ ]` Session stats overlay: current profit, hours played
-6. `[ ]` Privacy controls: friends-only, public, or invisible
+1. `[x]` "I'm at the table" status toggle
+2. `[x]` Friends can see who's currently playing and where
+3. `[x]` Optional live stream from the rail (LiveKit video)
+4. `[x]` Live chat for spectators ("sweat my session")
+5. `[x]` Session stats overlay: current profit, hours played
+6. `[x]` Privacy controls: friends-only, public, or invisible
 
 **RISK LEVEL**: MEDIUM — LiveKit integration complexity, needs thorough testing
 
