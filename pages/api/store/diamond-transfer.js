@@ -483,11 +483,12 @@ export default async function handler(req, res) {
         // ═══ EXECUTE ATOMIC TRANSFER ═══
         const { data: deductResult, error: deductErr } = await getSupabase()
             .rpc('deduct_diamonds', {
-                p_user_id: userId,
-                p_amount: amount,
-                p_description: `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
+                p_user_id:          userId,
+                p_amount:           amount,
+                p_description:      `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
                 p_transaction_type: 'diamond_gift_sent',
-                p_metadata: { recipient_id: recipientId },
+                p_metadata:         { recipient_id: recipientId },
+                p_reference_id:     `transfer_deduct_${transferId}`,
             });
 
         if (deductErr) {

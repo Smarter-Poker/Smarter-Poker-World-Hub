@@ -147,6 +147,16 @@ export default async function handler(req, res) {
     const { user } = await getServerUserWithFallback(req, supabase);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+    // ── IP parsing — hoisted here so it is available across all guards and the
+    //    anti_farming_ips insert without being re-derived 3 separate times.
+    const forwarded = req.headers['x-forwarded-for'];
+    let clientIp = req.socket?.remoteAddress || 'unknown';
+    if (typeof forwarded === 'string') {
+        clientIp = forwarded.split(',')[0].trim();
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+        clientIp = forwarded[0].split(',')[0].trim();
+    }
+
     const { stream_id, receiver_id, amount, message } = req.body;
     
     // SECURITY: Strictly parse amount to an integer. If amount is NaN, a string 
@@ -187,34 +197,24 @@ export default async function handler(req, res) {
 
     // ── GUARD: Source-tier rolling 30-day cap (accounts 31–89 days) ──
     const isGraduated = senderAgeDays >= GRADUATION_DAYS;
-    if (!isGraduated) {
-        // IP Fingerprinting & Clustering
-        const forwarded = req.headers['x-forwarded-for'];
-        let clientIp = req.socket?.remoteAddress || 'unknown';
-        if (typeof forwarded === 'string') {
-            clientIp = forwarded.split(',')[0].trim();
-        } else if (Array.isArray(forwarded) && forwarded.length > 0) {
-            clientIp = forwarded[0].split(',')[0].trim();
-        }
+    const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        
-        const { data: outboundLast30 } = await supabase
+    if (!isGraduated) {
+        // Use paginated helpers to avoid PostgREST's default 1000-row cap silently
+        // truncating ledger history for heavy users, which would allow cap bypass.
+        const alreadySent = await sumPaginatedTransactions(supabase, () => supabase
             .from('diamond_transactions')
             .select('amount')
             .eq('user_id', user.id)
             .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
-            .gte('created_at', rolling30Start);
+            .gte('created_at', rolling30Start));
 
-        const alreadySent = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-        const { data: ipRows } = await supabase
+        const ipAlreadySent = await sumPaginatedTransactions(supabase, () => supabase
             .from('anti_farming_ips')
             .select('amount')
             .eq('ip_address', clientIp)
-            .gte('created_at', rolling30Start);
+            .gte('created_at', rolling30Start));
 
-        const ipAlreadySent = (ipRows || []).reduce((sum, r) => sum + r.amount, 0);
         const effectiveAlreadySent = Math.max(alreadySent, ipAlreadySent);
 
         const purchasedWonAvailable = await getLiveGiftSourceCapAvailable(user.id);
@@ -233,13 +233,6 @@ export default async function handler(req, res) {
         }
     } else {
         // ── Graduated accounts: rely on velocity detectors ──
-        const forwarded = req.headers['x-forwarded-for'];
-        let clientIp = req.socket?.remoteAddress || 'unknown';
-        if (typeof forwarded === 'string') {
-            clientIp = forwarded.split(',')[0].trim();
-        } else if (Array.isArray(forwarded) && forwarded.length > 0) {
-            clientIp = forwarded[0].split(',')[0].trim();
-        }
         await checkVelocity(user.id, clientIp);
     }
 
@@ -269,11 +262,12 @@ export default async function handler(req, res) {
 
         // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)
         const { data: deductResult, error: deductErr } = await supabase.rpc('deduct_diamonds', {
-            p_user_id: user.id,
-            p_amount: parsedAmount,
-            p_description: `Live gift to broadcaster`,
+            p_user_id:          user.id,
+            p_amount:           parsedAmount,
+            p_description:      `Live gift to broadcaster`,
             p_transaction_type: 'live_gift_sent',
-            p_metadata: { recipient_id: receiver_id },
+            p_metadata:         { recipient_id: receiver_id },
+            p_reference_id:     `live_gift_deduct_${giftId}`,
         });
 
         // deduct_diamonds returns jsonb with success field
@@ -343,14 +337,7 @@ export default async function handler(req, res) {
             message: message || null,
         }).select().maybeSingle();
 
-        // Record the IP cluster action
-        const forwarded = req.headers['x-forwarded-for'];
-        let clientIp = req.socket?.remoteAddress || 'unknown';
-        if (typeof forwarded === 'string') {
-            clientIp = forwarded.split(',')[0].trim();
-        } else if (Array.isArray(forwarded) && forwarded.length > 0) {
-            clientIp = forwarded[0].split(',')[0].trim();
-        }
+        // Record the IP cluster action — clientIp was parsed once at top of handler
         await supabase.from('anti_farming_ips').insert({
             user_id: user.id,
             ip_address: clientIp,
@@ -401,7 +388,13 @@ export default async function handler(req, res) {
             newBalance: senderNewBalance,
         });
     } catch (err) {
-        console.warn('[live/gift] error:', err.message);
-        return res.status(500).json({ error: err.message });
+        // If we are here and the deduction already committed but the credit
+        // RPC network-threw before returning, attempt a compensating refund.
+        // refundSender is only defined after the deduct succeeds so check first.
+        if (typeof refundSender === 'function') {
+            await refundSender(`uncaught handler error: ${err.message}`);
+        }
+        console.warn('[live/gift] error (refund attempted):', err.message);
+        return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
     }
 }
