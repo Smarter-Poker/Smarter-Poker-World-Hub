@@ -531,11 +531,15 @@ export default async function handler(req, res) {
                 p_reference_id: `transfer_${transferId}`,
             });
 
-        if (creditErr || (creditResult && creditResult.success === false)) {
+        if (creditErr || (creditResult && creditResult.success === false && !creditResult.duplicate)) {
             // ROLLBACK: Restore sender's balance using atomic refund
             await refundSender(creditErr?.message || creditResult?.error || 'credit failed');
             console.warn('Transfer credit error (rolled back):', creditErr || creditResult);
             return res.status(500).json({ success: false, error: 'Transfer failed — your diamonds have been restored' });
+        }
+
+        if (creditResult && creditResult.duplicate) {
+            console.info(`[DiamondTransfer] Idempotent retry detected for transfer ${transferId} — skipping refund`);
         }
 
         // Record the IP cluster action

@@ -322,13 +322,14 @@ export default async function handler(req, res) {
             console.warn('[live/gift] Credit RPC failed (refunded sender):', creditErr?.message || creditErr);
             return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
         }
-        // The RPC may also return data.success=false (e.g. duplicate
-        // reference_id) without setting `error`. With a per-gift UUID this
-        // shouldn't happen on the first attempt, but be defensive.
-        if (creditResult && creditResult.success === false) {
+        if (creditResult && creditResult.success === false && !creditResult.duplicate) {
             await refundSender(`credit returned ${creditResult.error || 'success:false'}`);
             console.warn('[live/gift] Credit returned success:false (refunded sender):', creditResult);
             return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
+        }
+
+        if (creditResult && creditResult.duplicate) {
+            console.info(`[live/gift] Idempotent retry detected for gift ${giftId} — skipping refund`);
         }
 
         // Record the gift
