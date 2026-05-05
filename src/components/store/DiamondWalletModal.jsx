@@ -1329,223 +1329,233 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 </div>
 
                 {/* ═══════════════════════════════════════════════
-                     PREMIUM HEADER — Sci-Fi Neon Vault
+                     PREMIUM HEADER — Exact Reference Match
                 ═══════════════════════════════════════════════ */}
                 <div style={{
                     position: 'relative',
-                    padding: '0 14px 16px',
-                    borderBottom: '1px solid rgba(0,180,255,0.15)',
-                    background: 'linear-gradient(180deg, rgba(0,50,140,0.3) 0%, rgba(0,20,60,0.1) 60%, transparent 100%)',
+                    padding: '0 16px 20px',
+                    background: 'linear-gradient(180deg, rgba(15,25,45,1) 0%, rgba(5,10,25,1) 100%)',
                     overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
                 }}>
-                    {/* Animated neon border sweep — top edge */}
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent 0%, #00d4ff 40%, #60e0ff 50%, #00d4ff 60%, transparent 100%)', animation: 'walletBorderSweep 3s linear infinite', opacity: 0.9 }} />
-
-                    {/* Floating particle diamonds — left side */}
-                    <div style={{ position: 'absolute', left: -4, top: '18%', animation: 'walletFloat 4s ease-in-out infinite' }}>
-                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 8px rgba(0,160,255,0.9)) brightness(1.2)', opacity: 0.85 }} />
+                    {/* Floating particle diamonds & stars */}
+                    <div style={{ position: 'absolute', left: 10, top: '25%', animation: 'walletFloat 4s ease-in-out infinite' }}>
+                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 10px rgba(0,180,255,0.9))', opacity: 0.9 }} />
                     </div>
-                    <div style={{ position: 'absolute', left: 2, top: '58%', animation: 'walletFloat 5s ease-in-out infinite 1s' }}>
-                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 18, height: 18, filter: 'drop-shadow(0 0 6px rgba(0,180,255,0.8)) brightness(1.1)', opacity: 0.7 }} />
+                    <div style={{ position: 'absolute', right: 10, top: '45%', animation: 'walletFloat 5s ease-in-out infinite 1s' }}>
+                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 12px rgba(0,180,255,1))', opacity: 0.95 }} />
                     </div>
+                    <div style={{ position: 'absolute', left: 20, top: '65%', animation: 'walletPulse 3s ease-in-out infinite 0.5s', width: 6, height: 6, background: '#fff', borderRadius: '50%', boxShadow: '0 0 15px 5px #00d4ff' }} />
+                    <div style={{ position: 'absolute', right: 20, top: '15%', animation: 'walletPulse 4s ease-in-out infinite', width: 4, height: 4, background: '#fff', borderRadius: '50%', boxShadow: '0 0 10px 3px #00d4ff' }} />
 
-                    {/* Floating particle diamonds — right side */}
-                    <div style={{ position: 'absolute', right: -4, top: '25%', animation: 'walletFloat 4.5s ease-in-out infinite 0.5s' }}>
-                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 26, height: 26, filter: 'drop-shadow(0 0 8px rgba(0,160,255,0.9)) brightness(1.2)', opacity: 0.85 }} />
-                    </div>
-                    <div style={{ position: 'absolute', right: 0, top: '65%', animation: 'walletFloat 3.8s ease-in-out infinite 1.5s' }}>
-                        <img src="/images/wallet-diamond.png" alt="" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 5px rgba(0,180,255,0.8))', opacity: 0.65 }} />
-                    </div>
-
-                    {/* Ambient glow nodes */}
-                    <div style={{ position: 'absolute', top: 20, left: 18, width: 5, height: 5, borderRadius: '50%', background: '#00d4ff', boxShadow: '0 0 14px 5px rgba(0,212,255,0.8)', animation: 'walletPulse 2.2s ease-in-out infinite' }} />
-                    <div style={{ position: 'absolute', top: 20, right: 18, width: 5, height: 5, borderRadius: '50%', background: '#00d4ff', boxShadow: '0 0 14px 5px rgba(0,212,255,0.8)', animation: 'walletPulse 2.8s ease-in-out infinite 0.6s' }} />
-
-                    {/* Crown badge — real image in chrome ring */}
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4, marginBottom: 6 }}>
+                    {/* The Outer Metallic Tube Frame */}
+                    <div style={{
+                        position: 'relative',
+                        marginTop: 45,
+                        width: '100%',
+                        maxWidth: 400,
+                        border: '3px solid #6b8ebc',
+                        borderRadius: 16,
+                        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8), 0 0 25px rgba(0,160,255,0.2), inset 0 0 0 1px rgba(255,255,255,0.2)',
+                        padding: '40px 14px 20px',
+                        background: 'radial-gradient(ellipse at 50% 0%, rgba(20,40,75,0.4) 0%, rgba(5,15,35,0.6) 100%)',
+                    }}>
+                        
+                        {/* Crown Badge — Overlapping Top Border */}
                         <div style={{
-                            width: 72, height: 72, borderRadius: '50%',
-                            background: 'radial-gradient(circle at 40% 30%, #2a3a5a, #0d1828)',
-                            border: '2px solid rgba(120,170,240,0.5)',
-                            boxShadow: '0 0 30px rgba(0,140,255,0.5), 0 0 60px rgba(0,80,200,0.2), inset 0 1px 0 rgba(255,255,255,0.12)',
+                            position: 'absolute',
+                            top: -45, left: '50%', transform: 'translateX(-50%)',
+                            width: 90, height: 90,
+                            borderRadius: '50%',
+                            border: '4px solid #6b8ebc',
+                            background: 'radial-gradient(circle at 30% 30%, #2a3a5a, #0a1222)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: 8,
-                            animation: 'walletCrownGlow 3s ease-in-out infinite',
+                            boxShadow: '0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.9), inset 0 0 0 2px rgba(255,255,255,0.15)',
+                            zIndex: 2,
                         }}>
-                            <img src="/images/wallet-crown.png" alt="Crown" style={{ width: 52, height: 52, objectFit: 'contain', filter: 'drop-shadow(0 0 8px rgba(0,160,255,0.7))' }} />
+                            <img src="/images/wallet-crown.png" alt="Crown" style={{ width: 65, height: 65, objectFit: 'contain', filter: 'drop-shadow(0 0 12px rgba(0,160,255,0.6))', animation: 'walletDiamondFloat 4s ease-in-out infinite' }} />
                         </div>
-                    </div>
 
-                    {/* Title — chrome gradient */}
-                    <div style={{ textAlign: 'center', marginBottom: 14 }}>
-                        <div style={{
-                            fontSize: 24, fontWeight: 900,
-                            background: 'linear-gradient(180deg, #ffffff 0%, #a0c8ff 40%, #5090e0 100%)',
-                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                            letterSpacing: '2px',
-                            fontFamily: "'Inter', sans-serif",
-                            textShadow: 'none',
-                            lineHeight: 1,
-                            filter: 'drop-shadow(0 0 12px rgba(80,160,255,0.5))',
-                        }}>
-                            Diamond Wallet
-                        </div>
-                    </div>
-
-                    {/* ── Two-card row ── */}
-                    <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-
-                        {/* DIAMOND BALANCE CARD */}
-                        <div style={{
-                            flex: 1,
-                            background: 'linear-gradient(160deg, rgba(5,18,48,0.97) 0%, rgba(2,10,30,0.99) 100%)',
-                            border: '1px solid rgba(0,180,255,0.3)',
-                            borderRadius: 14,
-                            padding: '16px 10px 12px',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            position: 'relative',
-                            boxShadow: '0 0 0 1px rgba(0,100,200,0.15), inset 0 0 40px rgba(0,60,180,0.15), 0 8px 32px rgba(0,0,0,0.6)',
-                            overflow: 'hidden',
-                        }}>
-                            {/* Neon top edge glow on card */}
-                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.8) 50%, transparent)' }} />
-                            {/* Bracket corners */}
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: 14, height: 14, borderTop: '2px solid #00d4ff', borderLeft: '2px solid #00d4ff', borderRadius: '4px 0 0 0', boxShadow: '0 0 6px rgba(0,212,255,0.5)' }}/>
-                            <div style={{ position: 'absolute', top: 0, right: 0, width: 14, height: 14, borderTop: '2px solid #00d4ff', borderRight: '2px solid #00d4ff', borderRadius: '0 4px 0 0', boxShadow: '0 0 6px rgba(0,212,255,0.5)' }}/>
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 14, height: 14, borderBottom: '2px solid #00d4ff', borderLeft: '2px solid #00d4ff', borderRadius: '0 0 0 4px', boxShadow: '0 0 6px rgba(0,212,255,0.5)' }}/>
-                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderBottom: '2px solid #00d4ff', borderRight: '2px solid #00d4ff', borderRadius: '0 0 4px 0', boxShadow: '0 0 6px rgba(0,212,255,0.5)' }}/>
-
-                            {/* Real diamond image */}
-                            <img
-                                src="/images/wallet-diamond.png"
-                                alt="Diamond"
-                                style={{
-                                    width: 80, height: 80,
-                                    objectFit: 'contain',
-                                    filter: 'drop-shadow(0 0 20px rgba(0,140,255,1)) drop-shadow(0 0 40px rgba(0,80,255,0.6)) brightness(1.15)',
-                                    marginBottom: 6,
-                                    animation: 'walletDiamondFloat 3s ease-in-out infinite',
-                                }}
-                            />
-
-                            {/* Balance */}
+                        {/* Welcome Text */}
+                        <div style={{ textAlign: 'center', marginBottom: 20 }}>
                             <div style={{
-                                fontFamily: 'Orbitron, monospace',
-                                fontSize: 30, fontWeight: 900,
-                                color: '#00d4ff',
-                                textShadow: '0 0 20px rgba(0,212,255,0.9), 0 0 40px rgba(0,140,255,0.5)',
-                                lineHeight: 1, marginBottom: 3,
-                                letterSpacing: '1px',
-                            }}>
-                                {(animatedBalance ?? 0).toLocaleString()}
-                            </div>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: '#5ad4ff', marginBottom: 2, letterSpacing: '1px' }}>Diamonds</div>
-                            <div style={{ fontSize: 10, color: 'rgba(150,200,255,0.5)', letterSpacing: '0.5px' }}>In Your Account</div>
-                            <BalanceSparkline transactions={transactions} />
-                        </div>
-
-                        {/* VIP CARD */}
-                        <div style={{
-                            flex: 1,
-                            background: 'linear-gradient(160deg, rgba(4,12,30,0.98) 0%, rgba(2,8,22,0.99) 100%)',
-                            border: '1px solid rgba(100,150,220,0.25)',
-                            borderRadius: 14,
-                            padding: '16px 10px 12px',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            position: 'relative',
-                            boxShadow: '0 0 0 1px rgba(60,100,180,0.1), inset 0 0 40px rgba(0,30,100,0.2), 0 8px 32px rgba(0,0,0,0.6)',
-                            overflow: 'hidden',
-                        }}>
-                            {/* Neon top edge on card */}
-                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(100,160,255,0.6) 50%, transparent)' }} />
-                            {/* Bracket corners */}
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: 14, height: 14, borderTop: '2px solid rgba(100,160,255,0.7)', borderLeft: '2px solid rgba(100,160,255,0.7)', borderRadius: '4px 0 0 0', boxShadow: '0 0 5px rgba(100,160,255,0.4)' }}/>
-                            <div style={{ position: 'absolute', top: 0, right: 0, width: 14, height: 14, borderTop: '2px solid rgba(100,160,255,0.7)', borderRight: '2px solid rgba(100,160,255,0.7)', borderRadius: '0 4px 0 0', boxShadow: '0 0 5px rgba(100,160,255,0.4)' }}/>
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 14, height: 14, borderBottom: '2px solid rgba(100,160,255,0.7)', borderLeft: '2px solid rgba(100,160,255,0.7)', borderRadius: '0 0 0 4px', boxShadow: '0 0 5px rgba(100,160,255,0.4)' }}/>
-                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderBottom: '2px solid rgba(100,160,255,0.7)', borderRight: '2px solid rgba(100,160,255,0.7)', borderRadius: '0 0 4px 0', boxShadow: '0 0 5px rgba(100,160,255,0.4)' }}/>
-
-                            {/* Real crown image */}
-                            <img
-                                src="/images/wallet-crown.png"
-                                alt="VIP Crown"
-                                style={{
-                                    width: 70, height: 56,
-                                    objectFit: 'contain',
-                                    filter: 'drop-shadow(0 0 14px rgba(60,140,255,0.8)) drop-shadow(0 0 28px rgba(0,80,255,0.4)) brightness(1.1)',
-                                    marginBottom: 6,
-                                    animation: 'walletDiamondFloat 3.5s ease-in-out infinite 0.5s',
-                                }}
-                            />
-
-                            <div style={{
-                                fontFamily: 'Orbitron, monospace',
-                                fontSize: 30, fontWeight: 900,
-                                background: 'linear-gradient(180deg, #e0ecff 0%, #90b8f0 50%, #5070c0 100%)',
+                                fontFamily: "'Orbitron', sans-serif",
+                                fontSize: 24, fontWeight: 900,
+                                background: 'linear-gradient(180deg, #ffffff 0%, #a0c8ff 40%, #5088d8 100%)',
                                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                                letterSpacing: '4px', lineHeight: 1, marginBottom: 6,
-                                filter: 'drop-shadow(0 0 10px rgba(80,140,255,0.6))',
-                            }}>VIP</div>
-
-                            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(160,200,255,0.85)', textAlign: 'center', lineHeight: 1.4, marginBottom: 8, letterSpacing: '0.2px' }}>
-                                30-Day VIP Card<br/>
-                                <span style={{ color: 'rgba(120,160,220,0.6)', fontSize: 10, letterSpacing: '0.5px' }}>Free Membership</span>
-                            </div>
-
-                            {/* Stars */}
-                            <div style={{ display: 'flex', gap: 4 }}>
-                                {[...Array(5)].map((_, i) => (
-                                    <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                        <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="rgba(140,180,240,0.6)" stroke="rgba(160,200,255,0.4)" strokeWidth="0.5"/>
-                                    </svg>
-                                ))}
+                                letterSpacing: '1px', lineHeight: 1.2,
+                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(80,160,255,0.4))',
+                            }}>
+                                Welcome To<br/>Smarter.Poker
                             </div>
                         </div>
-                    </div>
 
-                    {/* Action Buttons — NO ORANGE */}
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                        <button
-                            onClick={() => { onClose(); onBuyClick?.(); }}
-                            style={{
-                                flex: 1, maxWidth: 210,
-                                padding: '11px 20px',
-                                background: 'linear-gradient(135deg, rgba(0,100,220,0.55) 0%, rgba(0,60,170,0.65) 100%)',
-                                border: '1px solid rgba(0,180,255,0.7)',
-                                borderRadius: 28,
-                                color: '#60d8ff',
-                                fontSize: 13, fontWeight: 800,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: '0 0 20px rgba(0,160,255,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-                                letterSpacing: '0.5px',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 32px rgba(0,200,255,0.6), inset 0 1px 0 rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 20px rgba(0,160,255,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; }}
-                        >
-                            + Buy Diamonds
-                        </button>
-                        <button
-                            onClick={() => { setShowTransfer(v => !v); if (!showTransfer) fetchFriends(); }}
-                            style={{
-                                flex: 1, maxWidth: 210,
-                                padding: '11px 20px',
-                                background: showTransfer
-                                    ? 'linear-gradient(135deg, rgba(80,100,140,0.55) 0%, rgba(50,70,110,0.65) 100%)'
-                                    : 'linear-gradient(135deg, rgba(30,40,65,0.7) 0%, rgba(20,28,50,0.8) 100%)',
-                                border: `1px solid ${showTransfer ? 'rgba(140,170,220,0.7)' : 'rgba(80,110,170,0.35)'}`,
-                                borderRadius: 28,
-                                color: showTransfer ? '#c0d4f0' : '#8aaccc',
-                                fontSize: 13, fontWeight: 800,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: showTransfer ? '0 0 20px rgba(100,140,220,0.3), inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
-                                letterSpacing: '0.5px',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(120,160,240,0.35), inset 0 1px 0 rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.boxShadow = showTransfer ? '0 0 20px rgba(100,140,220,0.3), inset 0 1px 0 rgba(255,255,255,0.08)' : 'none'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; }}
-                        >
-                            Send Diamonds
-                        </button>
+                        {/* Two Cards Row */}
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+                            
+                            {/* DIAMOND CARD */}
+                            <div style={{
+                                flex: 1,
+                                background: 'linear-gradient(180deg, #101c30 0%, #050a15 100%)',
+                                border: '3px solid #6b8ebc',
+                                borderRadius: 12,
+                                padding: '16px 8px 12px',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), 0 10px 20px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1)',
+                                position: 'relative',
+                            }}>
+                                {/* Corner chamfer illusion accents */}
+                                <div style={{ position: 'absolute', top: -3, left: -3, width: 12, height: 12, borderTop: '3px solid #8baee0', borderLeft: '3px solid #8baee0', borderRadius: '12px 0 0 0' }}/>
+                                <div style={{ position: 'absolute', top: -3, right: -3, width: 12, height: 12, borderTop: '3px solid #8baee0', borderRight: '3px solid #8baee0', borderRadius: '0 12px 0 0' }}/>
+                                <div style={{ position: 'absolute', bottom: -3, left: -3, width: 12, height: 12, borderBottom: '3px solid #8baee0', borderLeft: '3px solid #8baee0', borderRadius: '0 0 0 12px' }}/>
+                                <div style={{ position: 'absolute', bottom: -3, right: -3, width: 12, height: 12, borderBottom: '3px solid #8baee0', borderRight: '3px solid #8baee0', borderRadius: '0 0 12px 0' }}/>
+
+                                <img
+                                    src="/images/wallet-diamond.png"
+                                    alt="Diamond"
+                                    style={{
+                                        width: 85, height: 85, objectFit: 'contain',
+                                        filter: 'drop-shadow(0 0 25px rgba(0,180,255,0.8)) brightness(1.2)',
+                                        marginBottom: 8,
+                                        animation: 'walletDiamondFloat 3s ease-in-out infinite',
+                                    }}
+                                />
+                                <div style={{
+                                    fontFamily: 'Orbitron, monospace', fontSize: 26, fontWeight: 900,
+                                    background: 'linear-gradient(180deg, #ffffff 0%, #80c0ff 100%)',
+                                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 12px rgba(0,180,255,0.6))',
+                                    lineHeight: 1, marginBottom: 4, letterSpacing: '1px'
+                                }}>
+                                    {(animatedBalance ?? 0).toLocaleString()}
+                                </div>
+                                <div style={{ fontSize: 16, fontWeight: 900, color: '#80c0ff', marginBottom: 4, letterSpacing: '1px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>Diamonds</div>
+                                <div style={{ fontSize: 11, color: '#ffffff', opacity: 0.8, letterSpacing: '0.5px' }}>In Your Account</div>
+                            </div>
+
+                            {/* VIP CARD */}
+                            <div style={{
+                                flex: 1,
+                                background: 'linear-gradient(180deg, #121212 0%, #050505 100%)',
+                                border: '3px solid #6b8ebc',
+                                borderRadius: 12,
+                                padding: '16px 8px 12px',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), 0 10px 20px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1)',
+                                position: 'relative',
+                            }}>
+                                {/* Corner chamfer illusion accents */}
+                                <div style={{ position: 'absolute', top: -3, left: -3, width: 12, height: 12, borderTop: '3px solid #8baee0', borderLeft: '3px solid #8baee0', borderRadius: '12px 0 0 0' }}/>
+                                <div style={{ position: 'absolute', top: -3, right: -3, width: 12, height: 12, borderTop: '3px solid #8baee0', borderRight: '3px solid #8baee0', borderRadius: '0 12px 0 0' }}/>
+                                <div style={{ position: 'absolute', bottom: -3, left: -3, width: 12, height: 12, borderBottom: '3px solid #8baee0', borderLeft: '3px solid #8baee0', borderRadius: '0 0 0 12px' }}/>
+                                <div style={{ position: 'absolute', bottom: -3, right: -3, width: 12, height: 12, borderBottom: '3px solid #8baee0', borderRight: '3px solid #8baee0', borderRadius: '0 0 12px 0' }}/>
+
+                                <img
+                                    src="/images/wallet-crown.png"
+                                    alt="VIP Crown"
+                                    style={{
+                                        width: 65, height: 55, objectFit: 'contain',
+                                        filter: 'drop-shadow(0 0 15px rgba(0,160,255,0.6)) brightness(1.1)',
+                                        marginBottom: 6,
+                                        animation: 'walletDiamondFloat 3.5s ease-in-out infinite 0.5s',
+                                    }}
+                                />
+                                <div style={{
+                                    fontFamily: 'Orbitron, monospace', fontSize: 32, fontWeight: 900,
+                                    background: 'linear-gradient(180deg, #ffffff 0%, #90b8f0 50%, #5070c0 100%)',
+                                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                                    letterSpacing: '2px', lineHeight: 1, marginBottom: 8,
+                                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(80,160,255,0.4))',
+                                }}>VIP</div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#ffffff', textAlign: 'center', lineHeight: 1.4, marginBottom: 6, letterSpacing: '0.2px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                                    30-Day VIP Card<br/>
+                                    <span style={{ color: '#a0c0e0', fontSize: 10, letterSpacing: '0.5px' }}>Free Membership</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                    {[...Array(5)].map((_, i) => (
+                                        <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="url(#starGrad)" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.8))' }}>
+                                            <defs>
+                                                <linearGradient id="starGrad" x1="0" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse">
+                                                    <stop offset="0%" stopColor="#ffffff" />
+                                                    <stop offset="100%" stopColor="#8090b0" />
+                                                </linearGradient>
+                                            </defs>
+                                            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                                        </svg>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Let's Go Styled Action Buttons */}
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                            <button
+                                onClick={() => { onClose(); onBuyClick?.(); }}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px 10px',
+                                    background: 'linear-gradient(180deg, #1a3055 0%, #0a1835 100%)',
+                                    border: '2px solid #6b8ebc',
+                                    borderRadius: 8,
+                                    position: 'relative',
+                                    boxShadow: 'inset 0 0 15px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.1)',
+                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
+                                onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px #00d4ff)' }}>
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="#fff" />
+                                </svg>
+                                <span style={{
+                                    fontFamily: 'Orbitron, sans-serif', fontSize: 16, fontWeight: 900,
+                                    color: '#ffffff', letterSpacing: '1px',
+                                    textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 10px #00d4ff',
+                                }}>Buy Now</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px #00d4ff)' }}>
+                                    <polyline points="13 17 18 12 13 7"></polyline>
+                                    <polyline points="6 17 11 12 6 7"></polyline>
+                                </svg>
+                            </button>
+                            
+                            <button
+                                onClick={() => { setShowTransfer(v => !v); if (!showTransfer) fetchFriends(); }}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px 10px',
+                                    background: 'linear-gradient(180deg, #1a3055 0%, #0a1835 100%)',
+                                    border: '2px solid #6b8ebc',
+                                    borderRadius: 8,
+                                    position: 'relative',
+                                    boxShadow: 'inset 0 0 15px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.1)',
+                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
+                                onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px #00d4ff)' }}>
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                                <span style={{
+                                    fontFamily: 'Orbitron, sans-serif', fontSize: 16, fontWeight: 900,
+                                    color: '#ffffff', letterSpacing: '1px',
+                                    textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 10px #00d4ff',
+                                }}>Send</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px #00d4ff)' }}>
+                                    <polyline points="13 17 18 12 13 7"></polyline>
+                                    <polyline points="6 17 11 12 6 7"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#ffffff', opacity: 0.8, letterSpacing: '0.5px' }}>
+                            Your VIP Membership Unlocks All Premium Features For 30 Days
+                        </div>
                     </div>
                 </div>
 

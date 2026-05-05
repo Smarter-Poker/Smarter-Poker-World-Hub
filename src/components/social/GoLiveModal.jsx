@@ -762,7 +762,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     style={{ animation:'slideUp .25s ease-out', marginBottom:6, display:'flex', alignItems:'flex-start', gap:6, position:'relative' }}
                                     onClick={(e) => { e.stopPropagation(); setCommentMenu(commentMenu === c.id ? null : c.id); }}
                                 >
-                                    <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap', flexShrink:0 }}>{c.author_name}</span>
+                                    <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap', flexShrink:0, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis' }}>{c.author_name}</span>
                                     <span style={{ color:'white', fontSize:13, lineHeight:1.4, flex:1, wordBreak:'break-word', overflowWrap:'anywhere' }}>{c.text}</span>
                                     {/* #18/#19: Comment actions (broadcaster only) */}
                                     {commentMenu === c.id && (

@@ -654,8 +654,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 )}
                 {comments.map((c, i) => (
                     <div key={c.id || i} style={{ marginBottom:6, display:'flex', alignItems:'flex-start', gap:6 }}>
-                        <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap', flexShrink:0 }}>{c.author_name || 'User'}</span>
-                        <span style={{ color:'white', fontSize:13, lineHeight:1.4, wordBreak:'break-word', overflowWrap:'anywhere' }}>{c.text}</span>
+                        <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap', flexShrink:0, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis' }}>{c.author_name || 'User'}</span>
+                        <span style={{ color:'white', fontSize:13, lineHeight:1.4, wordBreak:'break-word', overflowWrap:'anywhere', flex:1 }}>{c.text}</span>
                     </div>
                 ))}
                 <div ref={commentsEndRef} />

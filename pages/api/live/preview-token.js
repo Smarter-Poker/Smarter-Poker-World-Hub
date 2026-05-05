@@ -1,9 +1,17 @@
 /**
  * GET /api/live/preview-token?room=<streamId>
  * Returns an anonymous, short-lived LiveKit subscriber-only token for
- * live preview thumbnails in the social feed. No authentication required.
+ * live preview thumbnails in the social feed. No authentication required,
+ * but validates the room exists and is currently live.
  * Token is read-only (canPublish: false) with a 5-minute TTL.
  */
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -19,6 +27,22 @@ export default async function handler(req, res) {
     }
 
     try {
+        // SECURITY (Adversarial Pass 3): Validate the room exists and is actually live
+        // Without this, attackers could spam the endpoint with arbitrary room IDs
+        // and drain our LiveKit token quotas or join unlisted private rooms.
+        const { data: stream, error: dbErr } = await supabase
+            .from('live_streams')
+            .select('status')
+            .eq('id', room)
+            .maybeSingle();
+            
+        if (dbErr || !stream) {
+            return res.status(404).json({ error: 'Stream not found' });
+        }
+        if (stream.status !== 'live') {
+            return res.status(400).json({ error: 'Stream is not live' });
+        }
+
         const { AccessToken } = await import('livekit-server-sdk');
 
         // Anonymous preview identity — random suffix prevents collisions
