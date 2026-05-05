@@ -232,7 +232,7 @@ class LiveStreamService {
                 this._remoteStreamDelivered = true;
                 this.onRemoteStream?.(this._remoteMediaStream);
             }
-            this.onParticipantsUpdate?.(Array.from(this.room.participants.values()));
+            this.onParticipantsUpdate?.(Array.from(this.room.remoteParticipants.values()));
 
             // BUG FIX (V-VIDEO-1): Many mobile browsers (iOS Safari, Chrome Android)
             // do NOT render video tracks dynamically added to an already-assigned
@@ -556,7 +556,7 @@ class LiveStreamService {
         }
         // FIX: store a flag so TrackSubscribed handler won't double-fire if loop already delivered
         this._remoteStreamDelivered = remoteStreamDelivered;
-        this.onParticipantsUpdate?.(Array.from(this.room.participants.values()));
+        this.onParticipantsUpdate?.(Array.from(this.room.remoteParticipants.values()));
 
         // Subscribe to viewer count
         this._subscribeToViewers(streamId);

@@ -387,6 +387,20 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         }
     };
 
+    // BUG FIX (PiP-1): Keep isPiP state in sync when user closes PiP via browser native UI
+    // (the ✕ button on the floating PiP window) rather than through our button.
+    // Without this listener, isPiP stays true permanently, preventing re-entry.
+    useEffect(() => {
+        const onLeave = () => setIsPiP(false);
+        const onEnter = () => setIsPiP(true);
+        document.addEventListener('leavepictureinpicture', onLeave);
+        document.addEventListener('enterpictureinpicture', onEnter);
+        return () => {
+            document.removeEventListener('leavepictureinpicture', onLeave);
+            document.removeEventListener('enterpictureinpicture', onEnter);
+        };
+    }, []);
+
     // Auto-scroll comments
     useEffect(() => {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
