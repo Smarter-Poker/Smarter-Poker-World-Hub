@@ -1037,9 +1037,57 @@ race conditions in the welcome-popup pipeline.
 
 ---
 
+## PHASE 47 — Trivia Line-by-Line Audit (2026-05-05)
+
+Full sweep of all trivia files: 19 page files (5 of them >45KB), 5 API
+handlers, 24 React components, 8 lib/services, 3 migrations. Read every API
+handler line-by-line, fanned subagents on the 5 huge page files, cross-checked
+all RPC calls against `pg_proc` and all column references against
+`information_schema.columns`. Verified subagent findings before action — the
+subagents over-reported in places, so **only confirmed bugs were shipped**.
+
+**5 verified bugs fixed and live:**
+
+| # | File | Bug | Fix |
+|---|------|-----|-----|
+| 1 | `pages/api/trivia/render-gto-panel.js` line 277 | `reportApiError(error, req)` referenced `req` from inside `checkCachedImage` helper where `req` is out of scope → `ReferenceError` on every cache miss. | Replaced `req` with `{route, stage}` tag object. |
+| 2 | `pages/api/trivia/daily.js` lines 163-189 | `userStats` and `hasPlayedToday` were HARDCODED `{0,0,0}` / `false` — comment admitted "placeholder, would use auth". Front-end consumers showed stale zeros regardless of activity. | Reads `Authorization: Bearer` header, calls `auth.getUser`, queries `daily_trivia_plays` (today's play) + `trivia_streaks` (totals) for real values. Switches `Cache-Control` to `private, no-cache` when auth header present so personalized data isn't CDN-cached. |
+| 3 | `pages/api/trivia/submit.js` (whole handler) | (a) unauthenticated — any anon could post `Guest_xxx` scores polluting leaderboard; (b) email-prefix PII leak via `user.email.split('@')[0]` username fallback; (c) NO input validation (score=999999, negative, etc.); (d) insert was silently failing on EVERY call because `trivia_scores.mode` is NOT NULL but the handler never set it (comment misdiagnosed it as "table might not exist yet"); (e) phantom `xp_earned` column write (column doesn't exist). | Hardened: requires Bearer JWT (401 otherwise); drops PII fallback (uses 'Player'); validates score (0-100k), correct_count (0-1k), totalQuestions, correct≤total; provides NOT NULL defaults (mode='unknown', diamonds_earned=0, total_questions falls back to correct_count); drops phantom xp_earned write; surfaces real insert errors as 500 instead of swallowing. |
+| 4 | `pages/api/trivia/tournament-enter.js` line 73 | Selected `max_entries` + `current_entries` columns that DO NOT EXIST on `trivia_tournaments` (verified vs live schema). Cap check at lines 87-89 was silently dead — no tournament could ever be "full". | Removed dead select. Added comment that if a cap is needed in the future, add the columns first. |
+| 5 | `pages/api/trivia/tournament-enter.js` lines 178-185 | Prize-pool update was read-then-write: `newPrizePool = (current\|\|0) + net; UPDATE prize_pool=newPrizePool`. Two simultaneous entries both read same start, both wrote start+net, second clobbered first → entry fee silently absorbed by house on every concurrent entry. | Shipped `fn_trivia_tournament_increment_prize_pool(p_tournament_id, p_amount)` SECDEF RPC (atomic `UPDATE prize_pool = COALESCE(prize_pool,0) + p_amount`, service-role only). Handler now calls the RPC. |
+
+**Live smoke test verified all 5:**
+
+- `POST /api/trivia/submit` no auth → `401 authentication_required` ✓
+- `POST /api/trivia/submit` bogus bearer → `401 invalid_token` ✓
+- `POST /api/trivia/submit` invalid score → `400 invalid_score` ✓
+- `POST /api/trivia/tournament-enter` no auth → `401 Authentication required` ✓
+- `POST /api/trivia/render-gto-panel` no auth → `401 Authentication required` ✓
+- `GET /api/trivia/daily` no auth → `200`, real questions, zero stats (no token) ✓
+- `GET /api/trivia/daily` bogus auth → `200`, zero stats (token rejected) ✓
+
+**Subagent claims reviewed and disproven (not real bugs, no fix needed):**
+
+- Survival-game.js lifelines (50/50, skip, double-chance) at lines 437-498: agent claimed "RPC deducts but state-change already fired = repeatable money-loss exploit." Actually false — read the code: every block has `if (rpcErr) { ...; return; }` BEFORE any state-change or lifeline effect runs. Early return on RPC error correctly aborts the entire lifeline use. Not a bug.
+- Multiple subagent flags of "anon-key writes to RLS-locked tables" across `[mode].js`, `survival.js`, `survival-game.js`, `endless.js`, `pvp.js`, `tournaments.js`. Cross-checked vs `pg_policies`: `trivia_scores` (`auth.uid()=user_id OR user_id IS NULL`), `trivia_streaks` (`auth.uid()=user_id`), `trivia_survival_runs` (per-row `auth.uid()=user_id`), `daily_trivia_plays` (per-row `auth.uid()=user_id`), `trivia_user_question_history` (per-row), `trivia_category_mastery`, `trivia_tournament_entries` (UPDATE-self-only). All have proper user-scoped policies. Authenticated client writes ARE safe by design — RLS only allows users to write their own rows. Not bugs.
+
+**Migration on disk:**
+`supabase/migrations/20260505_phase47_atomic_trivia_prize_pool_increment.sql`
+
+**Commit-history note:** the two commits on `origin/main` containing this work
+(`a4f6e17cfa` and `0726af8742`) accidentally inherited the previous commit's
+message ("Fix duplicate NewUserWelcomeModal mount") via a git pull --rebase
+quirk during push. The CONTENT is correct (verified via `git show --stat`):
+`a4f6e17cfa` carries the 4 trivia API file changes, `0726af8742` carries the
+phase47 SQL migration file. Production deploy `dpl_4Nx2eU76ETip2wZP6SnHhWJJMg1D`
+went READY at 2026-05-05 12:33 UTC.
+
+---
+
 ## CURRENT STATE — 2026-05-05
 
 Production is green. Latest deploy READY. Postgres clean. Worker queues healthy.
-Welcome-popup flow verified self-healing top-to-bottom. No active incidents.
+Welcome-popup flow verified self-healing top-to-bottom. Trivia API surface
+audited line-by-line and 5 verified bugs fixed (Phase 47). No active incidents.
 No actionable backlog (per `FUTURE PHASES` section above — App Router migration
 is the only deferred item, parked Q3 2026+).
