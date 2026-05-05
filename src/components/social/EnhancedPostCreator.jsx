@@ -278,8 +278,16 @@ export const EnhancedPostCreator = ({
     }
     if (isOpen) {
       try {
-        const saved = localStorage.getItem('sp-enhanced-post-draft');
-        if (saved) setContent(saved);
+        const urlParams = new URLSearchParams(window.location.search);
+        const clipUrl = urlParams.get('clipUrl');
+        const clipTitle = urlParams.get('title');
+
+        if (clipUrl) {
+           setContent(`${clipTitle || 'Check out my stream clip!'} \n\n${clipUrl}`);
+        } else {
+           const saved = localStorage.getItem('sp-enhanced-post-draft');
+           if (saved) setContent(saved);
+        }
       } catch (e) { /* ignore */ }
     }
   }, [isOpen]);

@@ -885,9 +885,6 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                         alignItems:'center', justifyContent:'center',
                                     }}
                                 >👥</button>
-                            )}
-                                >🔗</button>
-                            )}
                             {/* Mic mute/unmute */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleToggleMute(); }}

@@ -65,7 +65,7 @@ class LiveStreamService {
     // TOKEN
     // ═══════════════════════════════════════════════════
 
-    async _getToken(streamId, broadcaster) {
+    async _getToken(streamId, broadcaster, guestInviteCode = null) {
         const token = getAccessToken();
         const resp = await fetch('/api/live/token', {
             method: 'POST',
@@ -78,6 +78,7 @@ class LiveStreamService {
                 room: streamId,
                 identity: this.currentUserId,
                 broadcaster,
+                guestInviteCode,
             }),
         });
         if (!resp.ok) throw new Error(`Token fetch failed: ${resp.status}`);
@@ -143,7 +144,27 @@ class LiveStreamService {
         this._createLiveFeedPost(stream.id, title || 'Live Stream');
 
         console.debug('🔴 LiveKit broadcast started:', stream.id);
-        return { streamId: stream.id, stream };
+        return { streamId: stream.id, stream, guestInviteCode: stream.guest_invite_code };
+    }
+
+    /**
+     * Join as Guest Co-Broadcaster
+     */
+    async joinAsGuest(userId, streamId, guestInviteCode, mediaStream) {
+        this.currentUserId = userId;
+        this.localStream = mediaStream;
+        this.isBroadcaster = true;
+        this.isManualDisconnect = false;
+        this.reconnectAttempts = 0;
+        this.currentStreamId = streamId;
+        this.guestInviteCode = guestInviteCode;
+
+        // Get LiveKit token and connect
+        const { token, url } = await this._getToken(streamId, true, guestInviteCode);
+        await this._connectRoom(url, token, true, mediaStream);
+        
+        console.debug('👥 Joined as guest co-broadcaster:', streamId);
+        return { streamId };
     }
 
     /**
@@ -293,7 +314,7 @@ class LiveStreamService {
         await new Promise(r => setTimeout(r, RECONNECT_DELAY_MS * this.reconnectAttempts));
 
         try {
-            const { token, url } = await this._getToken(this.currentStreamId, this.isBroadcaster);
+            const { token, url } = await this._getToken(this.currentStreamId, this.isBroadcaster, this.guestInviteCode);
             // FIX: disconnect the old Room before creating a new one to prevent room leak
             if (this.room) {
                 try { await this.room.disconnect(); } catch (_) {}
