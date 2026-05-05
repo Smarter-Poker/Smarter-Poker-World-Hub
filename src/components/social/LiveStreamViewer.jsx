@@ -513,13 +513,20 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 />
                 
                 {/* Secondary Participants (Guest) */}
-                {participants.map((p, idx) => {
-                    // Skip if it's the main broadcaster's track
-                    if (p.identity === stream?.broadcaster_id || idx === 0) return null;
+                {participants.map((p) => {
+                    const isHost = String(p.identity) === String(stream?.broadcaster_id);
                     
                     const pubs = Array.from(p.videoTrackPublications.values());
                     const videoPub = pubs.find(pub => pub.track);
-                    if (!videoPub) return null;
+                    if (!videoPub?.track) return null;
+
+                    // If it's the host, bind their track explicitly to the main videoRef
+                    if (isHost) {
+                        if (videoRef.current) {
+                            try { videoPub.track.attach(videoRef.current); } catch(e){}
+                        }
+                        return null;
+                    }
 
                     return (
                         <div key={p.identity} style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>
@@ -528,7 +535,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 playsInline
                                 muted
                                 ref={el => {
-                                    if (el && videoPub.track) {
+                                    if (el) {
                                         try { videoPub.track.attach(el); } catch(e){}
                                     }
                                 }}
@@ -540,7 +547,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 }}
                             />
                             <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
-                                Guest
+                                {p.name || 'Guest'}
                             </div>
                         </div>
                     );

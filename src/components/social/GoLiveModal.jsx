@@ -819,7 +819,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                             }}
                                         />
                                         <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
-                                            Guest
+                                            {p.name || 'Guest'}
                                         </div>
                                     </div>
                                 );

@@ -290,26 +290,37 @@ export async function submitMatchScore(matchId, playerId, score, isPlayer1) {
  * @param {string} winnerId - Winner's user ID
  * @param {string} loserId - Loser's user ID
  * @param {number} stakeAmount - The stake amount
+ * @param {string} [matchId] - The PvP match ID. Used as p_reference_id so
+ *                              double-fires (realtime retry, double-click,
+ *                              network retry) credit the winner only once.
  */
-export async function processMatchReward(winnerId, loserId, stakeAmount) {
+export async function processMatchReward(winnerId, loserId, stakeAmount, matchId = null) {
     try {
         // 10% house rake on total pot (both stakes combined)
         const totalPot = stakeAmount * 2;
         const rakeAmount = Math.floor(totalPot * 0.1);
         const winnerPayout = totalPot - rakeAmount;
 
+        // Phase 55 (money-loss fix): stable reference_id for both RPCs so
+        // upstream retries can't double-credit. Fall back to a deterministic
+        // composite if matchId wasn't passed (legacy callers).
+        const referenceId = matchId
+            ? `pvp_match_win_${matchId}`
+            : `pvp_match_win_${winnerId}_${loserId}_${stakeAmount}`;
+
         // Use RPC for atomic operation (avoids race conditions)
-        // This assumes an 'award_diamonds_pvp' RPC exists that handles atomicity
         const { data: rpcResult, error: rpcError } = await supabase.rpc('award_diamonds', {
             p_user_id: winnerId,
             p_amount: winnerPayout,
             p_type: 'pvp_match_win',
-            p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}diamonds, Rake: ${rakeAmount}diamonds`
+            p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}diamonds, Rake: ${rakeAmount}diamonds`,
+            p_reference_id: referenceId,
         });
 
         if (rpcError) {
             console.warn('[PvP Matchmaking] RPC error awarding winner:', rpcError);
-            // Fallback: use add_diamonds_to_balance RPC (less ideal but still audit-safe)
+            // Fallback: use add_diamonds_to_balance with same reference_id so
+            // it dedupes against the primary attempt if both somehow ran.
             const { data: winner } = await supabase
                 .from('profiles')
                 .select('diamonds')
@@ -317,13 +328,20 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
                 .maybeSingle();
 
             if (!winner) { console.warn('[PvP] Winner profile not found:', winnerId); return { success: false, error: 'Winner profile not found' }; }
-            await supabase.rpc('add_diamonds_to_balance', {
+
+            // Phase 55 (money-loss fix): was awaiting silently; if the fallback
+            // also failed, the winner got nothing and no error surfaced.
+            const { error: fallbackErr } = await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: winnerId,
                 p_amount: winnerPayout,
                 p_type: 'pvp_win',
                 p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}diamonds, Rake: ${rakeAmount}diamonds (fallback)`,
-                p_reference_id: null
+                p_reference_id: referenceId,
             });
+            if (fallbackErr) {
+                console.warn('[PvP Matchmaking] FALLBACK ALSO FAILED — winner not credited:', fallbackErr);
+                return { success: false, error: 'reward_fallback_failed', detail: fallbackErr.message };
+            }
         }
 
         // Log the transaction for audit trail

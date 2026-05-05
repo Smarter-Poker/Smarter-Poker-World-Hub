@@ -764,7 +764,8 @@ export default function PvPPage() {
         // Process rewards if we won
         if (won) {
             const loserId = isPlayer1 ? match.player2_id : match.player1_id;
-            await processMatchReward(userId, loserId, stakeAmount);
+            // Phase 55: pass matchId for stable RPC idempotency reference_id
+            await processMatchReward(userId, loserId, stakeAmount, matchId);
 
             // Reload diamonds
             const { data: profile } = await supabase
