@@ -494,6 +494,7 @@ export default async function handler(req, res) {
                 p_transaction_type: 'diamond_gift_sent',
                 p_metadata:         { recipient_id: recipientId },
                 p_reference_id:     `transfer_deduct_${transferId}`,
+                p_cooldown_seconds: COOLDOWN_SECONDS,
             });
 
         if (deductErr) {
@@ -563,6 +564,9 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
+        if (typeof refundSender === 'function') {
+            await refundSender(`uncaught handler error: ${err?.message || 'unknown'}`);
+        }
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[Diamond Transfer Error]', err);
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
