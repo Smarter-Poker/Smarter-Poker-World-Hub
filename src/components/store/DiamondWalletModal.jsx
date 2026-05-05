@@ -1348,12 +1348,18 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         position: 'relative',
                         marginTop: 45,
                         width: '100%',
-                        border: '3px solid #6b8ebc',
+                        border: '4px solid #8baee0',
                         borderRadius: 16,
-                        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8), 0 0 25px rgba(0,160,255,0.2), inset 0 0 0 1px rgba(255,255,255,0.2)',
+                        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.9), inset 0 0 0 4px #2a3a5a, 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(0,180,255,0.3), 0 0 0 2px rgba(255,255,255,0.2)',
                         padding: '40px 14px 20px',
-                        background: 'radial-gradient(ellipse at 50% 0%, rgba(20,40,75,0.4) 0%, rgba(5,15,35,0.6) 100%)',
+                        background: 'radial-gradient(ellipse at 50% 0%, rgba(20,40,75,0.6) 0%, rgba(5,15,35,0.8) 100%)',
                     }}>
+                        {/* Floating ambient diamonds around the metal frame */}
+                        <img src="/images/wallet-diamond.png" alt="" style={{ position: 'absolute', top: 20, left: -20, width: 45, height: 45, opacity: 0.9, filter: 'drop-shadow(0 0 15px rgba(0,160,255,0.8))', animation: 'walletDiamondFloat 5s ease-in-out infinite', mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 10 }} />
+                        <img src="/images/wallet-diamond.png" alt="" style={{ position: 'absolute', top: 180, right: -15, width: 35, height: 35, opacity: 0.75, filter: 'drop-shadow(0 0 10px rgba(0,160,255,0.6))', animation: 'walletDiamondFloat 4s ease-in-out infinite 1s', mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 10 }} />
+                        <img src="/images/wallet-diamond.png" alt="" style={{ position: 'absolute', bottom: 120, left: -10, width: 28, height: 28, opacity: 0.85, filter: 'drop-shadow(0 0 8px rgba(0,160,255,0.7))', animation: 'walletDiamondFloat 6s ease-in-out infinite 0.5s', mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 10 }} />
+                        <img src="/images/wallet-diamond.png" alt="" style={{ position: 'absolute', bottom: 40, right: -25, width: 50, height: 50, opacity: 0.95, filter: 'drop-shadow(0 0 20px rgba(0,160,255,0.9))', animation: 'walletDiamondFloat 4.5s ease-in-out infinite 0.2s', mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 10 }} />
+                        <img src="/images/wallet-diamond.png" alt="" style={{ position: 'absolute', top: -10, right: 30, width: 20, height: 20, opacity: 0.6, filter: 'drop-shadow(0 0 5px rgba(0,160,255,0.5))', animation: 'walletDiamondFloat 3.5s ease-in-out infinite 1.5s', mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 10 }} />
                         
                         {/* Crown Badge — Overlapping Top Border */}
                         <div style={{
@@ -1391,11 +1397,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             <div style={{
                                 flex: 1,
                                 background: 'linear-gradient(180deg, #101c30 0%, #050a15 100%)',
-                                border: '3px solid #6b8ebc',
+                                border: '4px solid #8baee0',
                                 borderRadius: 12,
                                 padding: '16px 8px 12px',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), 0 10px 20px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1)',
+                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), inset 0 0 0 3px #2a3a5a, 0 10px 20px rgba(0,0,0,0.8), 0 0 10px rgba(0,180,255,0.4)',
                                 position: 'relative',
                             }}>
                                 {/* Corner chamfer illusion accents */}
@@ -1432,11 +1438,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             <div style={{
                                 flex: 1,
                                 background: 'linear-gradient(180deg, #121212 0%, #050505 100%)',
-                                border: '3px solid #6b8ebc',
+                                border: '4px solid #8baee0',
                                 borderRadius: 12,
                                 padding: '16px 8px 12px',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), 0 10px 20px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1)',
+                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), inset 0 0 0 3px #2a3a5a, 0 10px 20px rgba(0,0,0,0.8), 0 0 10px rgba(0,180,255,0.4)',
                                 position: 'relative',
                             }}>
                                 {/* Corner chamfer illusion accents */}
@@ -1446,23 +1452,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 <div style={{ position: 'absolute', bottom: -3, right: -3, width: 12, height: 12, borderBottom: '3px solid #8baee0', borderRight: '3px solid #8baee0', borderRadius: '0 0 12px 0' }}/>
 
                                 <img
-                                    src="/images/wallet-vip-crown.png"
-                                    alt="VIP Crown"
+                                    src="/images/vip-card-black.jpg"
+                                    alt="VIP Card"
                                     style={{
-                                        width: 70, height: 70, objectFit: 'contain',
-                                        filter: 'drop-shadow(0 0 15px rgba(0,160,255,0.6)) brightness(1.1)',
-                                        marginBottom: 0,
-                                        animation: 'walletDiamondFloat 3.5s ease-in-out infinite 0.5s',
-                                        mixBlendMode: 'screen'
+                                        width: '100%', maxWidth: 140, height: 'auto', objectFit: 'contain', borderRadius: 8,
+                                        filter: 'drop-shadow(0 0 15px rgba(0,160,255,0.4))',
+                                        marginBottom: 16,
+                                        border: '1px solid rgba(255,255,255,0.2)'
                                     }}
                                 />
-                                <div style={{
-                                    fontFamily: 'Orbitron, monospace', fontSize: 32, fontWeight: 900,
-                                    background: 'linear-gradient(180deg, #ffffff 0%, #90b8f0 50%, #5070c0 100%)',
-                                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                                    letterSpacing: '2px', lineHeight: 1, marginBottom: 8,
-                                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(80,160,255,0.4))',
-                                }}>VIP</div>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', textAlign: 'center', lineHeight: 1.4, marginBottom: 6, letterSpacing: '0.2px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
                                     {(() => {
                                         let daysLeftText = '--';
@@ -1477,27 +1475,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             }
                                         }
                                         return (
-                                            <>
-                                                {isVipActive ? 'VIP Member' : '30-Day VIP Card'}<br/>
-                                                <span style={{ color: '#a0c0e0', fontSize: 12, letterSpacing: '0.5px' }}>
-                                                    {isVipActive ? `Expires: ${daysLeftText} Days` : 'Inactive'}
-                                                </span>
-                                            </>
+                                            <span style={{ color: '#a0c0e0', fontSize: 13, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                                {isVipActive ? `Expires: ${daysLeftText} Days` : 'Inactive'}
+                                            </span>
                                         );
                                     })()}
-                                </div>
-                                <div style={{ display: 'flex', gap: 4 }}>
-                                    {[...Array(5)].map((_, i) => (
-                                        <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="url(#starGrad)" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.8))' }}>
-                                            <defs>
-                                                <linearGradient id="starGrad" x1="0" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse">
-                                                    <stop offset="0%" stopColor="#ffffff" />
-                                                    <stop offset="100%" stopColor="#8090b0" />
-                                                </linearGradient>
-                                            </defs>
-                                            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-                                        </svg>
-                                    ))}
                                 </div>
                             </div>
                         </div>
