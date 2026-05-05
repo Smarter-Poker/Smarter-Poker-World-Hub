@@ -48,6 +48,7 @@ export default async function handler(req, res) {
               .select('*', { count: 'exact' })
               .eq('user_id', userId)
               .order('created_at', { ascending: false })
+              .order('id')
               .range(offset, offset + limit - 1);
 
           const { data, count, error } = await query;
