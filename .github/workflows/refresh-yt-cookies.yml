@@ -1,0 +1,106 @@
+name: Refresh YT Cookies (camoufox/scrapling)
+
+# One-shot workflow that:
+#   1. Re-enables the sp-yt-cookie-refresh.timer (was disabled)
+#   2. Runs refresh-yt-cookies.py --test once manually (camoufox harvest +
+#      yt-dlp verification)
+#   3. Tails logs so we can see whether the harvested cookies work
+#
+# The cookies are harvested ON the Hetzner IP itself, so Google won't rotate
+# them as suspicious (no IP mismatch).
+#
+# Secrets (already configured per deploy-yt-worker.yml):
+#   HETZNER_SSH_PRIVATE_KEY, HETZNER_HOST, HETZNER_SSH_USER (default openclaw)
+#   YT_GOOGLE_EMAIL / YT_GOOGLE_PASS — optional, for authenticated harvest
+
+on:
+  workflow_dispatch:
+    inputs:
+      use_credentials:
+        description: 'Pass YT_GOOGLE_EMAIL/PASS env to the harvest (authenticated cookies)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: refresh-yt-cookies
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+
+      - name: Trust Hetzner host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Re-enable sp-yt-cookie-refresh.timer
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" '
+            echo "--- before ---"
+            sudo systemctl is-enabled sp-yt-cookie-refresh.timer 2>&1 || true
+            sudo systemctl is-active sp-yt-cookie-refresh.timer 2>&1 || true
+            echo "--- enable + start ---"
+            sudo systemctl enable sp-yt-cookie-refresh.timer
+            sudo systemctl start sp-yt-cookie-refresh.timer
+            echo "--- after ---"
+            sudo systemctl is-enabled sp-yt-cookie-refresh.timer
+            sudo systemctl is-active sp-yt-cookie-refresh.timer
+            echo "--- list timers ---"
+            sudo systemctl list-timers sp-yt-cookie-refresh.timer --no-pager
+          '
+
+      - name: Manual run — harvest cookies right now
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          USE_CREDS: ${{ inputs.use_credentials }}
+          YT_EMAIL: ${{ secrets.YT_GOOGLE_EMAIL }}
+          YT_PASS: ${{ secrets.YT_GOOGLE_PASS }}
+        run: |
+          if [ "$USE_CREDS" = "true" ]; then
+            echo "::notice::Running with authenticated harvest (YT_GOOGLE_EMAIL set)"
+            ssh "$USER@$HOST" "sudo -u openclaw env YT_GOOGLE_EMAIL='$YT_EMAIL' YT_GOOGLE_PASS='$YT_PASS' python3 /opt/smarter-poker/yt-transcode-worker/refresh-yt-cookies.py --test 2>&1 | tail -50"
+          else
+            echo "::notice::Running ANONYMOUS harvest (no Google login)"
+            ssh "$USER@$HOST" "sudo -u openclaw python3 /opt/smarter-poker/yt-transcode-worker/refresh-yt-cookies.py --test 2>&1 | tail -50"
+          fi
+
+      - name: Independent yt-dlp probe (Me at the zoo public video)
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" '
+            echo "--- file stat ---"
+            sudo ls -la /opt/smarter-poker/yt-transcode-worker/cookies.txt
+            echo "lines: $(sudo wc -l < /opt/smarter-poker/yt-transcode-worker/cookies.txt)"
+            echo "yt-entries: $(sudo grep -c "\.youtube\.com" /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
+            echo "has LOGIN_INFO: $(sudo grep -cw LOGIN_INFO /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
+            echo "--- yt-dlp probe (public video) ---"
+            yt-dlp --cookies /opt/smarter-poker/yt-transcode-worker/cookies.txt \
+                   --skip-download \
+                   --print "%(title)s | %(uploader)s | %(duration)s" \
+                   "https://www.youtube.com/watch?v=jNQXAC9IVRw" 2>&1 | tail -10 || true
+          '
+
+      - name: Tail worker logs (worker auto-restarted by service)
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" '
+            echo "service-active: $(sudo systemctl is-active sp-yt-transcode)"
+            echo "--- last 25 worker log lines ---"
+            sudo journalctl -u sp-yt-transcode -n 25 --no-pager
+          '
