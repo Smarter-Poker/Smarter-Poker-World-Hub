@@ -1244,11 +1244,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     position: 'fixed',
                     top: 0, left: 0, right: 0, bottom: 0,
                     zIndex: 9999,
-                    background: 'linear-gradient(180deg, rgba(8, 20, 40, 0.99) 0%, rgba(4, 10, 24, 1) 100%)',
+                    background: 'radial-gradient(ellipse at 50% 0%, rgba(0, 60, 120, 0.6) 0%, rgba(4, 12, 28, 1) 60%)',
                     display: 'flex',
                     flexDirection: 'column',
                     animation: 'walletFadeScale 0.25s ease',
                     fontFamily: "'Inter', -apple-system, sans-serif",
+                    overflow: 'hidden',
                 }}
             >
                 {/* Close button + Export button */}
@@ -1327,99 +1328,218 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </button>
                 </div>
 
-                {/* Header — Balance Display + Sparkline */}
+                {/* ═══ PREMIUM HEADER — Sci-Fi Metal Frame ═══ */}
                 <div style={{
-                    padding: '12px 20px 16px',
-                    borderBottom: '1px solid rgba(0, 212, 255, 0.12)',
-                    textAlign: 'center',
+                    position: 'relative',
+                    padding: '0 16px 16px',
+                    borderBottom: '1px solid rgba(0, 180, 255, 0.2)',
+                    background: 'linear-gradient(180deg, rgba(0, 40, 100, 0.25) 0%, transparent 100%)',
+                    overflow: 'hidden',
                 }}>
-                    <div style={{
-                        fontSize: 14, fontWeight: 600,
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1.5px',
-                        marginBottom: 6,
-                    }}>
-                        Diamond Wallet
-                    </div>
+                    {/* Ambient corner sparkles */}
+                    <div style={{ position: 'absolute', top: 16, left: 16, width: 6, height: 6, borderRadius: '50%', background: '#00d4ff', boxShadow: '0 0 12px 4px rgba(0,212,255,0.7)', animation: 'walletPulse 2s ease-in-out infinite' }} />
+                    <div style={{ position: 'absolute', top: 16, right: 16, width: 5, height: 5, borderRadius: '50%', background: '#00d4ff', boxShadow: '0 0 10px 3px rgba(0,212,255,0.6)', animation: 'walletPulse 2.4s ease-in-out infinite 0.4s' }} />
+                    <div style={{ position: 'absolute', bottom: 20, left: 24, width: 4, height: 4, borderRadius: '50%', background: '#4af', boxShadow: '0 0 8px 3px rgba(0,180,255,0.5)', animation: 'walletPulse 3s ease-in-out infinite 0.8s' }} />
+                    <div style={{ position: 'absolute', bottom: 28, right: 28, width: 5, height: 5, borderRadius: '50%', background: '#00d4ff', boxShadow: '0 0 10px 3px rgba(0,212,255,0.5)', animation: 'walletPulse 2.6s ease-in-out infinite 1.2s' }} />
 
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 10,
-                    }}>
-                        <img
-                            src="/images/diamond.png"
-                            alt="Diamond"
-                            style={{ width: 32, height: 32 }}
-                        />
-                        <span style={{
-                            fontFamily: 'Orbitron, monospace',
-                            fontSize: 36,
-                            fontWeight: 700,
-                            color: '#00d4ff',
-                            textShadow: '0 0 20px rgba(0, 212, 255, 0.4)',
+                    {/* Crown badge — centered top */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: -2, marginBottom: 4 }}>
+                        <div style={{
+                            width: 56, height: 56, borderRadius: '50%',
+                            background: 'radial-gradient(circle at 40% 35%, #3a4a6a, #1a2a4a)',
+                            border: '2px solid rgba(150,180,220,0.5)',
+                            boxShadow: '0 0 20px rgba(0,120,255,0.4), inset 0 1px 0 rgba(255,255,255,0.15)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                            {/* ── ENH-A: Animated counter display ── */}
-                            {(animatedBalance ?? 0).toLocaleString()}
-                        </span>
+                            <svg width="32" height="26" viewBox="0 0 32 26" fill="none">
+                                <defs>
+                                    <linearGradient id="crownGrad" x1="0" y1="0" x2="32" y2="26" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0%" stopColor="#c8d8f0" />
+                                        <stop offset="50%" stopColor="#8aaad8" />
+                                        <stop offset="100%" stopColor="#5070a8" />
+                                    </linearGradient>
+                                </defs>
+                                <path d="M2 20 L6 8 L12 14 L16 4 L20 14 L26 8 L30 20 Z" fill="url(#crownGrad)" stroke="rgba(200,220,255,0.4)" strokeWidth="0.5"/>
+                                <rect x="2" y="20" width="28" height="4" rx="1" fill="url(#crownGrad)"/>
+                                <circle cx="16" cy="6" r="2" fill="#3a8fff" opacity="0.9"/>
+                                <circle cx="6" cy="10" r="1.5" fill="#3a8fff" opacity="0.8"/>
+                                <circle cx="26" cy="10" r="1.5" fill="#3a8fff" opacity="0.8"/>
+                            </svg>
+                        </div>
                     </div>
 
-                    {/* ENH-6: Balance sparkline */}
-                    <BalanceSparkline transactions={transactions} />
+                    {/* Title */}
+                    <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                        <div style={{
+                            fontSize: 22, fontWeight: 800,
+                            background: 'linear-gradient(135deg, #c8daf0 0%, #7aaeff 50%, #c8daf0 100%)',
+                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                            textShadow: 'none',
+                            letterSpacing: '1px',
+                            fontFamily: "'Inter', sans-serif",
+                            lineHeight: 1.1,
+                        }}>
+                            Diamond Wallet
+                        </div>
+                    </div>
 
-                    <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }}>
+                    {/* Two-card row: Diamond Balance + VIP */}
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+
+                        {/* Diamond Balance Card */}
+                        <div style={{
+                            flex: 1,
+                            background: 'linear-gradient(135deg, rgba(10,25,55,0.95) 0%, rgba(5,15,40,0.98) 100%)',
+                            border: '1px solid rgba(80,140,220,0.4)',
+                            borderRadius: 12,
+                            padding: '14px 12px',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            position: 'relative',
+                            boxShadow: 'inset 0 0 30px rgba(0,80,200,0.12), 0 4px 20px rgba(0,0,0,0.5)',
+                        }}>
+                            {/* Corner accents */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, borderTop: '2px solid rgba(0,212,255,0.6)', borderLeft: '2px solid rgba(0,212,255,0.6)', borderRadius: '2px 0 0 0' }}/>
+                            <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, borderTop: '2px solid rgba(0,212,255,0.6)', borderRight: '2px solid rgba(0,212,255,0.6)', borderRadius: '0 2px 0 0' }}/>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, borderBottom: '2px solid rgba(0,212,255,0.6)', borderLeft: '2px solid rgba(0,212,255,0.6)', borderRadius: '0 0 0 2px' }}/>
+                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderBottom: '2px solid rgba(0,212,255,0.6)', borderRight: '2px solid rgba(0,212,255,0.6)', borderRadius: '0 0 2px 0' }}/>
+
+                            {/* Blue diamond SVG */}
+                            <svg width="52" height="52" viewBox="0 0 80 80" fill="none" style={{ filter: 'drop-shadow(0 0 14px rgba(0,160,255,0.8))', marginBottom: 6 }}>
+                                <defs>
+                                    <linearGradient id="bDiamond" x1="15" y1="0" x2="65" y2="80" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0%" stopColor="#60c8ff"/>
+                                        <stop offset="40%" stopColor="#1a80ff"/>
+                                        <stop offset="100%" stopColor="#0040c0"/>
+                                    </linearGradient>
+                                    <linearGradient id="bDiamondHL" x1="30" y1="8" x2="50" y2="35" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0%" stopColor="rgba(255,255,255,0.65)"/>
+                                        <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+                                    </linearGradient>
+                                </defs>
+                                <polygon points="40,6 70,30 40,74 10,30" fill="url(#bDiamond)" stroke="rgba(100,200,255,0.5)" strokeWidth="1"/>
+                                <polygon points="40,6 27,30 40,30" fill="rgba(255,255,255,0.18)"/>
+                                <polygon points="40,6 53,30 40,30" fill="rgba(255,255,255,0.08)"/>
+                                <polygon points="40,6 10,30 27,30" fill="rgba(0,0,0,0.08)"/>
+                                <polygon points="40,6 70,30 53,30" fill="rgba(0,0,0,0.04)"/>
+                                <polygon points="27,30 40,74 40,30" fill="rgba(0,0,0,0.18)"/>
+                                <polygon points="53,30 40,74 40,30" fill="rgba(0,0,0,0.1)"/>
+                                <polygon points="40,6 27,30 40,30" fill="url(#bDiamondHL)"/>
+                            </svg>
+
+                            {/* Balance number */}
+                            <div style={{
+                                fontFamily: 'Orbitron, monospace',
+                                fontSize: 26, fontWeight: 900,
+                                color: '#00d4ff',
+                                textShadow: '0 0 16px rgba(0,212,255,0.7)',
+                                lineHeight: 1,
+                                marginBottom: 2,
+                            }}>
+                                {(animatedBalance ?? 0).toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#5ac8ff', marginBottom: 2 }}>Diamonds</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>In Your Account</div>
+
+                            {/* Sparkline */}
+                            <BalanceSparkline transactions={transactions} />
+                        </div>
+
+                        {/* VIP Card */}
+                        <div style={{
+                            flex: 1,
+                            background: 'linear-gradient(135deg, rgba(8,18,40,0.98) 0%, rgba(4,10,25,0.99) 100%)',
+                            border: '1px solid rgba(100,140,200,0.35)',
+                            borderRadius: 12,
+                            padding: '14px 12px',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            position: 'relative',
+                            boxShadow: 'inset 0 0 30px rgba(0,40,120,0.15), 0 4px 20px rgba(0,0,0,0.5)',
+                        }}>
+                            {/* Corner accents */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, borderTop: '2px solid rgba(100,160,255,0.5)', borderLeft: '2px solid rgba(100,160,255,0.5)', borderRadius: '2px 0 0 0' }}/>
+                            <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, borderTop: '2px solid rgba(100,160,255,0.5)', borderRight: '2px solid rgba(100,160,255,0.5)', borderRadius: '0 2px 0 0' }}/>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, borderBottom: '2px solid rgba(100,160,255,0.5)', borderLeft: '2px solid rgba(100,160,255,0.5)', borderRadius: '0 0 0 2px' }}/>
+                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderBottom: '2px solid rgba(100,160,255,0.5)', borderRight: '2px solid rgba(100,160,255,0.5)', borderRadius: '0 0 2px 0' }}/>
+
+                            {/* Mini crown */}
+                            <svg width="30" height="24" viewBox="0 0 32 26" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(80,140,255,0.6))', marginBottom: 4 }}>
+                                <defs>
+                                    <linearGradient id="vipCrown" x1="0" y1="0" x2="32" y2="26" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0%" stopColor="#c8d8f0"/>
+                                        <stop offset="100%" stopColor="#5070a8"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M2 20 L6 8 L12 14 L16 4 L20 14 L26 8 L30 20 Z" fill="url(#vipCrown)" stroke="rgba(180,210,255,0.4)" strokeWidth="0.5"/>
+                                <rect x="2" y="20" width="28" height="4" rx="1" fill="url(#vipCrown)"/>
+                                <circle cx="16" cy="6" r="2" fill="#3a8fff" opacity="0.9"/>
+                            </svg>
+
+                            <div style={{
+                                fontFamily: 'Orbitron, monospace',
+                                fontSize: 28, fontWeight: 900,
+                                background: 'linear-gradient(135deg, #c8d8f0, #7aaeff)',
+                                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                                letterSpacing: '2px',
+                                lineHeight: 1, marginBottom: 4,
+                            }}>VIP</div>
+
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(180,210,255,0.8)', textAlign: 'center', lineHeight: 1.3, marginBottom: 6 }}>
+                                30-Day VIP Card<br/>
+                                <span style={{ color: 'rgba(150,180,220,0.6)', fontSize: 10 }}>Free Membership</span>
+                            </div>
+
+                            {/* Stars */}
+                            <div style={{ display: 'flex', gap: 3 }}>
+                                {[...Array(5)].map((_, i) => (
+                                    <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill="rgba(150,180,220,0.7)">
+                                        <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                                    </svg>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                         <button
                             onClick={() => { onClose(); onBuyClick?.(); }}
                             style={{
-                                padding: '8px 20px',
-                                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2))',
-                                border: '1px solid rgba(0, 212, 255, 0.5)',
-                                borderRadius: 20,
-                                color: '#00d4ff',
-                                fontSize: 13,
-                                fontWeight: 600,
+                                flex: 1, maxWidth: 200,
+                                padding: '10px 20px',
+                                background: 'linear-gradient(135deg, rgba(0,100,200,0.5), rgba(0,60,160,0.6))',
+                                border: '1px solid rgba(0,180,255,0.6)',
+                                borderRadius: 24,
+                                color: '#5ad4ff',
+                                fontSize: 13, fontWeight: 700,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
+                                boxShadow: '0 0 16px rgba(0,150,255,0.25)',
+                                letterSpacing: '0.3px',
                             }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.35), rgba(0, 150, 255, 0.35))';
-                                e.currentTarget.style.transform = 'scale(1.03)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2))';
-                                e.currentTarget.style.transform = 'scale(1)';
-                            }}
+                            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(0,180,255,0.5)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 16px rgba(0,150,255,0.25)'; e.currentTarget.style.transform = 'scale(1)'; }}
                         >
                             + Buy Diamonds
                         </button>
-                        {/* H7: Send Diamonds button */}
                         <button
                             onClick={() => { setShowTransfer(v => !v); if (!showTransfer) fetchFriends(); }}
                             style={{
-                                padding: '8px 20px',
+                                flex: 1, maxWidth: 200,
+                                padding: '10px 20px',
                                 background: showTransfer
-                                    ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.25))'
-                                    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.12))',
-                                border: `1px solid ${showTransfer ? 'rgba(249, 115, 22, 0.6)' : 'rgba(249, 115, 22, 0.35)'}`,
-                                borderRadius: 20,
+                                    ? 'linear-gradient(135deg, rgba(249,115,22,0.35), rgba(234,88,12,0.4))'
+                                    : 'linear-gradient(135deg, rgba(60,30,10,0.6), rgba(40,20,5,0.7))',
+                                border: `1px solid ${showTransfer ? 'rgba(249,115,22,0.7)' : 'rgba(180,100,30,0.4)'}`,
+                                borderRadius: 24,
                                 color: '#f97316',
-                                fontSize: 13,
-                                fontWeight: 600,
+                                fontSize: 13, fontWeight: 700,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
+                                boxShadow: showTransfer ? '0 0 20px rgba(249,115,22,0.3)' : 'none',
+                                letterSpacing: '0.3px',
                             }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))';
-                                e.currentTarget.style.transform = 'scale(1.03)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.background = showTransfer
-                                    ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.25))'
-                                    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.12))';
-                                e.currentTarget.style.transform = 'scale(1)';
-                            }}
+                            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 20px rgba(249,115,22,0.35)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.boxShadow = showTransfer ? '0 0 20px rgba(249,115,22,0.3)' : 'none'; e.currentTarget.style.transform = 'scale(1)'; }}
                         >
                             Send Diamonds
                         </button>
@@ -2356,7 +2476,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             {/* Keyframe animations */}
             <style>{`
                 @keyframes walletFadeScale {
-                    from { opacity: 0; transform: scale(0.95); }
+                    from { opacity: 0; transform: scale(0.97); }
                     to { opacity: 1; transform: scale(1); }
                 }
                 @keyframes walletFadeIn {
@@ -2371,6 +2491,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 @keyframes confettiFall {
                     0% { transform: translateY(0) rotate(0deg); opacity: 1; }
                     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+                }
+                @keyframes walletPulse {
+                    0%, 100% { opacity: 0.4; transform: scale(1); }
+                    50% { opacity: 1; transform: scale(1.5); }
                 }
             `}</style>
         </>
