@@ -400,6 +400,7 @@ export default function SurvivalGamePage() {
         setSelectedAnswer(null);
         setShowResult(false);
         answersRef.current = []; // Reset per-question tracking for new level
+        idempotencyRefs.current = {}; // Reset idempotency keys for new level
         setFiftyFiftyUsedFree(false);
         setEliminatedOptions([]);
         setLifelinesUsedThisLevel(0); // Reset lifeline counter
@@ -439,7 +440,7 @@ export default function SurvivalGamePage() {
                         p_amount: -5,
                         p_type: 'survival_lifeline',
                         p_description: 'Survival 50/50 lifeline — 5💎',
-                        p_reference_id: null
+                        p_reference_id: getIdempotencyKey(`fifty_fifty_${currentLevel}_${currentQuestionIndex}`)
                     });
                     if (rpcErr) { console.warn('[Survival] 50/50 deduct RPC error:', rpcErr.message); return; }
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -485,7 +486,7 @@ export default function SurvivalGamePage() {
                     p_amount: -LIFELINE_COST,
                     p_type: 'survival_lifeline',
                     p_description: `Survival skip question — ${LIFELINE_COST}💎`,
-                    p_reference_id: null
+                    p_reference_id: getIdempotencyKey(`skip_${currentLevel}_${currentQuestionIndex}`)
                 });
                 if (rpcErr) { console.warn('[Survival] Skip deduct RPC error:', rpcErr.message); return; }
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -533,7 +534,7 @@ export default function SurvivalGamePage() {
                     p_amount: -LIFELINE_COST,
                     p_type: 'survival_lifeline',
                     p_description: `Survival double chance — ${LIFELINE_COST}💎`,
-                    p_reference_id: null
+                    p_reference_id: getIdempotencyKey(`double_${currentLevel}_${currentQuestionIndex}`)
                 });
                 if (rpcErr) { console.warn('[Survival] Double chance deduct RPC error:', rpcErr.message); return; }
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -628,6 +629,14 @@ export default function SurvivalGamePage() {
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
     const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=progress, 3=history
 
+    const idempotencyRefs = useRef({});
+    const getIdempotencyKey = (actionType) => {
+        if (!idempotencyRefs.current[actionType]) {
+            idempotencyRefs.current[actionType] = `survival_${actionType}_${crypto.randomUUID()}`;
+        }
+        return idempotencyRefs.current[actionType];
+    };
+
     function evaluateLevelResult(finalCorrect) {
         const config = LEVEL_CONFIG[currentLevel - 1];
         const passed = finalCorrect >= config.minCorrect;
@@ -665,7 +674,7 @@ export default function SurvivalGamePage() {
                         p_amount: cappedDiamonds,
                         p_type: 'survival_reward',
                         p_description: `Survival Level ${level} — ${cappedDiamonds}💎`,
-                        p_reference_id: null
+                        p_reference_id: getIdempotencyKey(`level_${level}_reward`)
                     });
                     if (rpcErr) console.warn('[Survival] Reward RPC error:', rpcErr.message);
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();

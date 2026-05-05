@@ -209,7 +209,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 p_amount: -GAME_COST,
                 p_type: 'game_cost',
                 p_description: `Trivia game entry — ${GAME_COST}diamonds`,
-                p_reference_id: null
+                p_reference_id: `trivia_entry_${user.id}_${Date.now()}_${crypto.randomUUID()}`
             });
             if (__rpcErr) throw __rpcErr;
             onDiamondsChange?.(-GAME_COST);

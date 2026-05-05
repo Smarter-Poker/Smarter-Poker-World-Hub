@@ -209,6 +209,20 @@ export default function TimeAttackPage() {
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
     const savePhaseRef = useRef(0); // Tracks which save steps completed: 0=none, 1=score, 2=diamonds, 3=history
 
+    const idempotencyRefs = useRef({});
+    const getIdempotencyKey = (actionType) => {
+        if (!idempotencyRefs.current[actionType]) {
+            idempotencyRefs.current[actionType] = `time_attack_${actionType}_${crypto.randomUUID()}`;
+        }
+        return idempotencyRefs.current[actionType];
+    };
+
+    async function handlePlayAgain() {
+        setResult(null);
+        idempotencyRefs.current = {}; // Reset idempotency keys for new game
+        setGameState('ready');
+    }
+
     async function handleComplete(gameResult) {
         setResult(gameResult);
         setGameState('saving');
@@ -242,7 +256,7 @@ export default function TimeAttackPage() {
                             p_amount: gameResult.diamondsEarned,
                             p_type: 'time_attack_reward',
                             p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
-                            p_reference_id: null
+                            p_reference_id: getIdempotencyKey('game_complete')
                         });
                         if (__rpcErr) throw __rpcErr;
                         busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');

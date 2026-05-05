@@ -383,7 +383,7 @@ export default function MixedModePage() {
                         p_amount: cappedDiamonds,
                         p_type: 'mixed_reward',
                         p_description: `Mixed mode — ${cappedDiamonds}💎`,
-                        p_reference_id: null
+                        p_reference_id: `mixed_reward_${userId}_${Date.now()}_${crypto.randomUUID()}`
                     });
                     if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();

@@ -645,7 +645,7 @@ export default function StrategyTrivia({ mode }) {
                         p_amount: diamondsEarned,
                         p_type: 'trivia_reward',
                         p_description: `${config.title} reward — ${diamondsEarned}diamonds`,
-                        p_reference_id: null
+                        p_reference_id: `strategy_${userId}_${Date.now()}_${crypto.randomUUID()}`
                     });
                     if (__rpcErr) throw __rpcErr;
                     const { data: freshProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -719,7 +719,7 @@ export default function StrategyTrivia({ mode }) {
                     p_amount: -LIFELINE_COST,
                     p_type: 'strategy_lifeline',
                     p_description: `${config.title} 50/50 lifeline — ${LIFELINE_COST}diamonds`,
-                    p_reference_id: null
+                    p_reference_id: `strategy_fifty_${userId}_${currentQuestionIndex}_${crypto.randomUUID()}`
                 });
                 if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -759,7 +759,7 @@ export default function StrategyTrivia({ mode }) {
                     p_amount: -LIFELINE_COST,
                     p_type: 'strategy_lifeline',
                     p_description: `${config.title} skip question — ${LIFELINE_COST}diamonds`,
-                    p_reference_id: null
+                    p_reference_id: `strategy_skip_${userId}_${currentQuestionIndex}_${crypto.randomUUID()}`
                 });
                 if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();

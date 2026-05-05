@@ -238,7 +238,7 @@ export default function SurvivalModePage() {
                             p_amount: cappedDiamonds,
                             p_type: 'survival_reward',
                             p_description: `Survival mode — ${cappedDiamonds}💎 (${gameResult.correctCount} survived)`,
-                            p_reference_id: null
+                            p_reference_id: `survival_${userId}_${Date.now()}_${crypto.randomUUID()}`
                         });
                         if (__rpcErr) throw __rpcErr;
                         busEmit.diamondsEarned(cappedDiamonds, 'Survival Mode');

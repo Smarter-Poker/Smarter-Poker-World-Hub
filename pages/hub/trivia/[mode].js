@@ -97,6 +97,15 @@ export default function TriviaModePage() {
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
     const savePhaseRef = useRef(0); // 0=none, 1=score, 2=diamonds, 3=history, 4=mastery, 5=daily
 
+    const idempotencyRefs = useRef({});
+    const getIdempotencyKey = (actionType) => {
+        if (!idempotencyRefs.current[actionType]) {
+            idempotencyRefs.current[actionType] = `trivia_${mode}_${actionType}_${crypto.randomUUID()}`;
+        }
+        return idempotencyRefs.current[actionType];
+    };
+    const masteryCacheRef = useRef(null);
+
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
 
@@ -607,7 +616,7 @@ export default function TriviaModePage() {
                             p_amount: totalDiamondsToAward,
                             p_type: 'trivia_reward',
                             p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
-                            p_reference_id: null
+                            p_reference_id: getIdempotencyKey('game_complete')
                         });
                         if (__rpcErr) throw __rpcErr;
                         // Refresh balance from DB
@@ -658,16 +667,21 @@ export default function TriviaModePage() {
                         }
                     });
 
-                    // Batch-read existing mastery for all categories
                     const categoryKeys = Object.keys(categoryStats || {});
-                    const { data: existingMastery } = await supabase
-                        .from('trivia_category_mastery')
-                        .select('category, total_answered, correct_count')
-                        .eq('user_id', userId)
-                        .in('category', categoryKeys);
+                    
+                    let existingMap = masteryCacheRef.current;
+                    if (!existingMap) {
+                        // Batch-read existing mastery for all categories only once per completion
+                        const { data: existingMastery } = await supabase
+                            .from('trivia_category_mastery')
+                            .select('category, total_answered, correct_count')
+                            .eq('user_id', userId)
+                            .in('category', categoryKeys);
 
-                    const existingMap = {};
-                    (existingMastery || []).forEach(m => { existingMap[m.category] = m; });
+                        existingMap = {};
+                        (existingMastery || []).forEach(m => { existingMap[m.category] = m; });
+                        masteryCacheRef.current = existingMap; // Cache it for idempotency on retries
+                    }
 
                     // Build batch upsert records
                     const masteryRecords = categoryKeys.map(category => {
@@ -773,6 +787,8 @@ export default function TriviaModePage() {
             return;
         }
         setResult(null);
+        idempotencyRefs.current = {}; // Reset idempotency keys for new game
+        masteryCacheRef.current = null; // Reset mastery cache
         setGameState('ready');
     };
 
@@ -940,7 +956,7 @@ export default function TriviaModePage() {
                                         p_amount: delta,
                                         p_type: delta > 0 ? 'trivia_reward' : 'trivia_cost',
                                         p_description: `Trivia ${mode} — ${Math.abs(delta)}💎 ${delta > 0 ? 'earned' : 'spent'}`,
-                                        p_reference_id: null
+                                        p_reference_id: getIdempotencyKey('stakes_delta')
                                     });
                                     if (__rpcErr) throw __rpcErr;
                                     const { data: profile } = await supabase
@@ -1035,7 +1051,7 @@ export default function TriviaModePage() {
                                                 p_amount: bonus,
                                                 p_type: 'trivia_double_win',
                                                 p_description: `Double or Nothing win — ${bonus}💎 bonus`,
-                                                p_reference_id: null
+                                                p_reference_id: getIdempotencyKey('double_win')
                                             });
                                             if (__rpcErr) throw __rpcErr;
                                             const { data: profile } = await supabase
@@ -1056,7 +1072,7 @@ export default function TriviaModePage() {
                                                 p_amount: -loss,
                                                 p_type: 'trivia_double_loss',
                                                 p_description: `Double or Nothing loss — ${loss}💎 deducted`,
-                                                p_reference_id: null
+                                                p_reference_id: getIdempotencyKey('double_loss')
                                             });
                                             if (__rpcErr) throw __rpcErr;
                                             const { data: profile } = await supabase
@@ -1091,7 +1107,7 @@ export default function TriviaModePage() {
                                             p_amount: reward.amount,
                                             p_type: 'trivia_prize_wheel',
                                             p_description: `Prize Wheel — ${reward.amount}💎`,
-                                            p_reference_id: null
+                                            p_reference_id: getIdempotencyKey('prize_wheel')
                                         });
                                         if (__rpcErr) throw __rpcErr;
                                         const { data: profile } = await supabase
