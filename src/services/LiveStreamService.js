@@ -53,6 +53,7 @@ class LiveStreamService {
         this.onReconnecting = null;
         this.onReconnected = null;
         this.onParticipantListChange = null;
+        this.onParticipantsUpdate = null; // FEATURE 6: Expose participant map for split-screen
         this.onConnectionQualityChange = null;
         this.onGiftReceived = null;
         this._viewerCountDebounceTimer = null;
@@ -231,6 +232,7 @@ class LiveStreamService {
                 this._remoteStreamDelivered = true;
                 this.onRemoteStream?.(this._remoteMediaStream);
             }
+            this.onParticipantsUpdate?.(Array.from(this.room.participants.values()));
 
             // BUG FIX (V-VIDEO-1): Many mobile browsers (iOS Safari, Chrome Android)
             // do NOT render video tracks dynamically added to an already-assigned
@@ -554,6 +556,7 @@ class LiveStreamService {
         }
         // FIX: store a flag so TrackSubscribed handler won't double-fire if loop already delivered
         this._remoteStreamDelivered = remoteStreamDelivered;
+        this.onParticipantsUpdate?.(Array.from(this.room.participants.values()));
 
         // Subscribe to viewer count
         this._subscribeToViewers(streamId);

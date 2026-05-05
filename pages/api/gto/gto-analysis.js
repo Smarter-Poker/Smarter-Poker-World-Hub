@@ -95,7 +95,8 @@ export default async function handler(req, res) {
               street,         // e.g., "flop"
               villainPosition,// e.g., "BB"
               action,         // e.g., "facing bet"
-              gameType,       // e.g., "cash", "mtt"
+              gameType,       // e.g., "cash", "mtt", "spin"
+              players,        // e.g., 2/3/6/9 — used for HU/3max/6max/9max routing
           } = req.body;
 
           if (!hand) {
@@ -115,6 +116,7 @@ export default async function handler(req, res) {
               villainPosition: (villainPosition || 'BB').toUpperCase(),
               action: (action || '').toLowerCase(),
               gameType: (gameType || 'cash').toLowerCase(),
+              players: typeof players === 'number' ? players : undefined,
           };
 
           // Check cache first
@@ -128,12 +130,19 @@ export default async function handler(req, res) {
 
           // Query PioSolver data
           let pioData = null;
-          let source = 'GROK_AI';
+          // Source tags consumed by GTOAnalysisPanel.jsx for the data-quality badge:
+          //   'PIO_SOLVER'      → exact-board match, real solver data
+          //   'PIO_SOLVER_NEAR' → flop-prefix or approximate, real solver but
+          //                       not the exact runout
+          //   'GROK_FALLBACK'   → no solver match available, grok-3-mini fallback
+          let source = 'GROK_FALLBACK';
 
           try {
               pioData = await queryPioSolverData(cacheParams);
               if (pioData) {
-                  source = 'PIO_SOLVER';
+                  source = pioData.matchQuality === 'EXACT'
+                      ? 'PIO_SOLVER'
+                      : 'PIO_SOLVER_NEAR';
               }
           } catch (pioError) {
               console.warn('[GTO-Analysis] PioSolver query failed:', pioError.message);
@@ -145,8 +154,16 @@ export default async function handler(req, res) {
           if (pioData) {
               // Use PioSolver data
               analysis = buildAnalysisFromPio(pioData, cacheParams);
+
+              // If the matrix didn't cover the user's specific hand,
+              // buildAnalysisFromPio returns null → fall through to grok-3-mini
+              // and re-tag the source.
+              if (!analysis) {
+                  source = 'GROK_FALLBACK';
+                  analysis = await generateAnalysisWithGrok(cacheParams);
+              }
           } else {
-              // Fallback to Grok AI
+              // No PIO match at any quality tier → grok-3-mini fallback.
               analysis = await generateAnalysisWithGrok(cacheParams);
           }
 
@@ -377,6 +394,17 @@ function buildAnalysisFromPio(pioData, params) {
             }
         }
     });
+
+    // Operation Grok-Sweep hand-coverage guard: if the matrix has no entry for
+    // this exact hand (every action returned 0), the analysis would silently
+    // default to "CHECK 0%". Better to return null and let the outer handler
+    // fall through to the grok-3-mini fallback (clearly tagged GROK_FALLBACK
+    // for the UI badge) than to confidently render meaningless numbers.
+    const totalFreq = Object.values(handFrequencies).reduce((s, v) => s + v, 0);
+    if (totalFreq < 0.01) {
+        console.warn(`[GTO-Analysis] PIO matrix has no coverage for hand=${hand} on this node — returning null to trigger LLM fallback.`);
+        return null;
+    }
 
     // Get EV for this hand
     const handEv = handEvs[normalizedHand] || handEvs[hand] || handEvs[hand.toLowerCase()] || 0;

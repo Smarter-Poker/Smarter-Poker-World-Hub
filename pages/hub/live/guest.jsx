@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useSupabase } from '../../../src/providers/SupabaseProvider';
-import { GoLiveModal } from '../../../src/components/social/GoLiveModal';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { getAuthUser } from '../../../src/lib/authUtils';
+import GoLiveModal from '../../../src/components/social/GoLiveModal';
 
 export default function GuestJoinPage() {
     const router = useRouter();
     const { room, invite } = router.query;
-    const { user, loading } = useSupabase();
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
+        const authUser = getAuthUser();
+        setUser(authUser);
+        setLoading(false);
     }, []);
 
     if (!isClient || loading) {
@@ -36,12 +39,11 @@ export default function GuestJoinPage() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: '#050505', display: 'flex', flexDirection: 'column' }}>
+        <>
             <Head>
                 <title>Join as Guest | Smarter.Poker</title>
             </Head>
-            <UniversalHeader title="Join Stream" showBack={true} />
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div style={{ minHeight: '100vh', background: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
                 <GoLiveModal 
                     isOpen={true} 
                     onClose={() => router.push('/hub')} 
@@ -51,6 +53,6 @@ export default function GuestJoinPage() {
                     initialInviteCode={invite} 
                 />
             </div>
-        </div>
+        </>
     );
 }
