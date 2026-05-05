@@ -1,0 +1,114 @@
+name: Deploy YT Cookies (Hetzner)
+
+# One-shot workflow for refreshing the YouTube auth cookies on the
+# reels-transcode-worker Hetzner box. Triggered via workflow_dispatch
+# with the cookies content as a base64-encoded input — nothing sensitive
+# is stored in the repo.
+#
+# Required repo secrets (already configured for sibling deploy workflow):
+#   HETZNER_SSH_PRIVATE_KEY
+#   HETZNER_HOST
+#   HETZNER_SSH_USER (defaults to 'openclaw')
+
+on:
+  workflow_dispatch:
+    inputs:
+      cookies_b64:
+        description: 'Base64-encoded cookies.txt content (Netscape format)'
+        required: true
+        type: string
+      run_yt_dlp_test:
+        description: 'Run a yt-dlp probe against a known-public video to verify auth'
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-yt-cookies
+  cancel-in-progress: false
+
+jobs:
+  deploy-cookies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Decode + length check
+        id: decode
+        env:
+          B64: ${{ inputs.cookies_b64 }}
+        run: |
+          set -e
+          mkdir -p /tmp/cookie-deploy
+          echo "$B64" | base64 -d > /tmp/cookie-deploy/cookies.txt
+          echo "size=$(wc -c < /tmp/cookie-deploy/cookies.txt)" >> $GITHUB_OUTPUT
+          echo "lines=$(wc -l < /tmp/cookie-deploy/cookies.txt)" >> $GITHUB_OUTPUT
+          echo "yt_entries=$(grep -c '\.youtube\.com' /tmp/cookie-deploy/cookies.txt || echo 0)" >> $GITHUB_OUTPUT
+          echo "has_login_info=$(grep -cw LOGIN_INFO /tmp/cookie-deploy/cookies.txt || echo 0)" >> $GITHUB_OUTPUT
+          echo "has_sapisid=$(grep -cw SAPISID /tmp/cookie-deploy/cookies.txt || echo 0)" >> $GITHUB_OUTPUT
+          echo "has_hsid=$(grep -cw HSID /tmp/cookie-deploy/cookies.txt || echo 0)" >> $GITHUB_OUTPUT
+          # Sanity check — first non-comment line must be Netscape format
+          head -3 /tmp/cookie-deploy/cookies.txt | head -1
+          # Refuse if obviously malformed
+          if [ "$(grep -c '\.youtube\.com' /tmp/cookie-deploy/cookies.txt || echo 0)" -lt 5 ]; then
+            echo "::error::cookies file has fewer than 5 youtube.com entries — refusing to deploy"
+            exit 1
+          fi
+          if [ "$(grep -cw LOGIN_INFO /tmp/cookie-deploy/cookies.txt || echo 0)" -lt 1 ]; then
+            echo "::error::cookies file missing LOGIN_INFO — Safari export? — refusing to deploy"
+            exit 1
+          fi
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+
+      - name: Trust Hetzner host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: scp cookies + permissions
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          scp /tmp/cookie-deploy/cookies.txt "$USER@$HOST:/tmp/cookies.txt"
+          ssh "$USER@$HOST" '
+            sudo mv /tmp/cookies.txt /opt/smarter-poker/yt-transcode-worker/cookies.txt
+            sudo chown openclaw:openclaw /opt/smarter-poker/yt-transcode-worker/cookies.txt
+            sudo chmod 600 /opt/smarter-poker/yt-transcode-worker/cookies.txt
+            echo "deployed:"
+            sudo ls -la /opt/smarter-poker/yt-transcode-worker/cookies.txt
+            echo "lines: $(sudo wc -l < /opt/smarter-poker/yt-transcode-worker/cookies.txt)"
+            echo "yt-entries: $(sudo grep -c '\.youtube\.com' /opt/smarter-poker/yt-transcode-worker/cookies.txt)"
+            echo "has LOGIN_INFO: $(sudo grep -cw LOGIN_INFO /opt/smarter-poker/yt-transcode-worker/cookies.txt)"
+          '
+
+      - name: yt-dlp probe (verify auth on the box)
+        if: ${{ inputs.run_yt_dlp_test }}
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" '
+            yt-dlp --version
+            echo "--- probe: Me at the zoo (jNQXAC9IVRw, 19s public) ---"
+            yt-dlp --cookies /opt/smarter-poker/yt-transcode-worker/cookies.txt \
+                   --skip-download \
+                   --print "%(title)s | %(uploader)s | %(duration)s" \
+                   "https://www.youtube.com/watch?v=jNQXAC9IVRw" 2>&1 | tail -10 || true
+          '
+
+      - name: Restart worker + tail logs
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" '
+            sudo systemctl restart sp-yt-transcode
+            sleep 3
+            echo "service-active: $(sudo systemctl is-active sp-yt-transcode)"
+            echo "--- last 25 log lines ---"
+            sudo journalctl -u sp-yt-transcode -n 25 --no-pager
+          '
