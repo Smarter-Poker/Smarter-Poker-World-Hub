@@ -60,6 +60,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const pinChannelRef = useRef(null); // #18: pinned comment subscription
     // Feature 3: Clip It
     const mediaRecorderRef = useRef(null);
+    const recordedChunksRef = useRef([]); // BUG FIX: was missing, caused "recordedChunksRef is not defined" crash
     const [isClipping, setIsClipping] = useState(false);
     const [participants, setParticipants] = useState([]); // FEATURE 6: Split-screen state
     // BUG FIX (L7): track the active giftFlash timer so a new gift arrival

@@ -818,6 +818,46 @@ class LiveStreamService {
     }
 
     // ═══════════════════════════════════════════════════
+    // FEATURE 4: ADAPTIVE BITRATE (ABR) QUALITY CONTROL
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * Set viewer preferred video quality tier.
+     * LiveKit ABR adapts automatically; this allows viewers to override
+     * to a lower tier to conserve bandwidth on cellular connections.
+     * @param {'auto'|'high'|'medium'|'low'} quality
+     */
+    setVideoQuality(quality) {
+        if (!this.room) {
+            console.warn('[LiveKit] setVideoQuality called with no active room');
+            return;
+        }
+        this._preferredQuality = quality;
+
+        // Map named tiers to LiveKit VideoQuality enum values where available
+        try {
+            // LiveKit client exposes VideoQuality on the room's remote participants
+            // We iterate all subscribed video tracks and call setVideoQuality
+            for (const [, participant] of this.room.remoteParticipants) {
+                for (const [, publication] of participant.trackPublications) {
+                    if (publication.kind === 'video' && publication.isSubscribed && publication.track) {
+                        // VideoQuality: LOW=0, MEDIUM=1, HIGH=2, OFF=3
+                        const qualityMap = { auto: undefined, high: 2, medium: 1, low: 0 };
+                        const qValue = qualityMap[quality];
+                        if (qValue !== undefined && publication.setVideoQuality) {
+                            publication.setVideoQuality(qValue);
+                        }
+                    }
+                }
+            }
+            console.debug(`[LiveKit] Video quality set to: ${quality}`);
+        } catch (err) {
+            // Non-fatal — ABR will still adapt automatically
+            console.warn('[LiveKit] setVideoQuality error:', err?.message || err);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════
     // STATIC
     // ═══════════════════════════════════════════════════
 
