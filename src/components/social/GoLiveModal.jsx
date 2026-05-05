@@ -147,6 +147,17 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     // Subscribe to gift events for gift animations
     useEffect(() => {
         if (!streamId) return;
+
+        // Fetch historical gifts for leaderboard
+        fetch(`/api/live/gifts?stream_id=${streamId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.topGifters) {
+                    setTopGifters(data.topGifters);
+                }
+            })
+            .catch(err => console.error('Failed to load gifts', err));
+
         const giftCh = supabase.channel(`live-gifts-${streamId}`, {
             config: { broadcast: { self: false } },
         });
