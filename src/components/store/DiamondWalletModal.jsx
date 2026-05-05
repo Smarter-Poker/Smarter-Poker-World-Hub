@@ -622,6 +622,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [transactions, setTransactions] = useState([]);
     // ── PERF-4: Initialize balance from prop (header cache) or localStorage ──
     const [balance, setBalance] = useState(() => initialBalance ?? getCachedBalance());
+    const [vipExpirationDate, setVipExpirationDate] = useState(null);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
@@ -824,6 +825,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 }
                 setBalance(bal);
                 setTotal(tot);
+                setVipExpirationDate(data.vip_expiration_date || null);
                 fetchedRef.current = true;
                 // ── PERF-2: Cache first page for instant re-opens ──
                 if (offset === 0) {
@@ -1377,7 +1379,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 letterSpacing: '1px', lineHeight: 1.2,
                                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(80,160,255,0.4))',
                             }}>
-                                Welcome To<br/>Smarter.Poker
+                                Diamond<br/>Wallet
                             </div>
                         </div>
 
@@ -1460,8 +1462,27 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(80,160,255,0.4))',
                                 }}>VIP</div>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', textAlign: 'center', lineHeight: 1.4, marginBottom: 6, letterSpacing: '0.2px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                                    30-Day VIP Card<br/>
-                                    <span style={{ color: '#a0c0e0', fontSize: 12, letterSpacing: '0.5px' }}>Expires: 30 Days</span>
+                                    {(() => {
+                                        let daysLeftText = '--';
+                                        let isVipActive = false;
+                                        if (vipExpirationDate) {
+                                            const diff = new Date(vipExpirationDate).getTime() - new Date().getTime();
+                                            if (diff > 0) {
+                                                daysLeftText = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                                isVipActive = true;
+                                            } else {
+                                                daysLeftText = '0';
+                                            }
+                                        }
+                                        return (
+                                            <>
+                                                {isVipActive ? 'VIP Member' : '30-Day VIP Card'}<br/>
+                                                <span style={{ color: '#a0c0e0', fontSize: 12, letterSpacing: '0.5px' }}>
+                                                    {isVipActive ? `Expires: ${daysLeftText} Days` : 'Inactive'}
+                                                </span>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                                 <div style={{ display: 'flex', gap: 4 }}>
                                     {[...Array(5)].map((_, i) => (
