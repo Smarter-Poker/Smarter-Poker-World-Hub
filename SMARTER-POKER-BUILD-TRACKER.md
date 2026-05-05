@@ -941,3 +941,18 @@ Triggered by: WH deploy cascade (15-min hung builds, heap OOMs). Fix landed on c
 | training-project | READY | |
 
 **Known side-finding:** GITHUB_TOKEN in `/Users/smarter.poker/Documents/.env` returns `401 Bad credentials` on both raw REST and the github MCP. Rotation required before any future github-api automation (Git Data API pushes, PR creation, repo inspection).
+
+## PHASE 44 — Hetzner Production Footprint (Verified 2026-05-04)
+
+4 servers, all production, all labeled per RULE 10:
+
+| Server | Type | DC | Role |
+|---|---|---|---|
+| club-arena-engine (125093929) | CPX11 | ash | Live poker engine + Prometheus stack |
+| openclaw-dispatcher (127861894) | CX23 | nbg1 | Cron scheduler + HEVC transcoder |
+| workers-dispatcher (127930016) | CX23 | fsn1 | Cron job handlers (Hono Docker) |
+| reels-transcode-worker (128782737) | CPX21 | ash | YouTube → native MP4 |
+
+Approx run rate: ~$31/mo (was $67 before April orphan deletion).
+4 × CAX41 orphans (`126910918`, `126910920`, `126910922`, `126910923`)
+existed Apr 1–24 and have been deleted. Do not re-create without §10.1 justification.

@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 
-const REACTION_EMOJIS = ['❤️', '🔥', '♠️', '🃏', '💎', '🤑', '👏', '😮'];
+const REACTION_EMOJIS = ['❤️', '🔥', '♠️', '🃏', '🤑', '👏', '😮'];
 
 function FloatingEmoji({ emoji, id, left, duration }) {
     // FIX: left and duration pre-computed by parent — stable across re-renders

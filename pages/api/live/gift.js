@@ -152,7 +152,7 @@ export default async function handler(req, res) {
         supabase.removeChannel(channel);
 
         // Notify broadcaster (non-fatal)
-        await supabase.from('notifications').insert({
+        const { error: notifErr } = await supabase.from('notifications').insert({
             user_id: receiver_id,
             type: 'live_gift',
             title: 'Diamond Gift Received',
@@ -160,7 +160,8 @@ export default async function handler(req, res) {
             actor_id: user.id,
             link: `/hub/social-media?stream=${stream_id}`,
             read: false,
-        }).catch(() => {});
+        });
+        if (notifErr) console.warn('Notification insert failed:', notifErr.message);
 
         return res.json({
             success: true,

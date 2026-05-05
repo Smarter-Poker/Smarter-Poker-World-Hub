@@ -7,7 +7,10 @@
  * transcodes to H.264/AAC MP4 via ffmpeg, uploads the result to Supabase
  * Storage, and updates both social_posts and social_reels.
  *
- * Runs as a systemd service on Hetzner (same VM as Open Claw cron).
+ * Runs as a systemd service on the openclaw-dispatcher Hetzner VM
+ * (server id 127861894, nbg1). The YouTube/MP4 sibling worker
+ * (sp-yt-transcode.service) lives on the dedicated reels-transcode-worker
+ * VM (server id 128782737, ash) — not on this box.
  *
  * Environment:
  *   SUPABASE_SERVICE_ROLE_KEY — required

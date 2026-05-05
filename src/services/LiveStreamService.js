@@ -326,8 +326,9 @@ class LiveStreamService {
 
         try {
             // Get new stream with opposite camera
+            const isMobile = window.innerWidth < 768;
             const newStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: this.cameraMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                video: { facingMode: this.cameraMode, width: { ideal: isMobile ? 720 : 1280 }, height: { ideal: isMobile ? 1280 : 720 } },
                 audio: false,
             });
 

@@ -178,8 +178,9 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         // camera/mic for the duration of the user session.
         let stream;
         try {
+            const isMobile = window.innerWidth < 768;
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+                video: { facingMode: 'user', width: { ideal: isMobile ? 720 : 1280 }, height: { ideal: isMobile ? 1280 : 720 } },
                 audio: true,
             });
             // If the modal was closed while getUserMedia was pending, stop immediately
@@ -335,9 +336,16 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     };
 
     const handleScreenTap = useCallback(() => {
-        setShowControls(true);
-        if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
-        hideControlsRef.current = setTimeout(() => setShowControls(false), 4000);
+        setShowControls(prev => {
+            if (prev) {
+                if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
+                return false;
+            } else {
+                if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
+                hideControlsRef.current = setTimeout(() => setShowControls(false), 4000);
+                return true;
+            }
+        });
     }, []);
 
     const handleEndStream = async () => {
@@ -549,7 +557,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
                         {/* Camera preview */}
                         <div style={{ position:'relative', background:'#000', aspectRatio:'16/9' }}>
-                            <video ref={videoRef} autoPlay muted playsInline style={{ width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
                             <div style={{ position:'absolute', top:10, left:10, background:'rgba(0,0,0,.55)', color:'white', padding:'4px 10px', borderRadius:6, fontSize:13, fontWeight:600 }}>Preview</div>
                         </div>
 
@@ -633,7 +641,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 {/* ── COUNTDOWN STAGE ── */}
                 {stage === 'countdown' && (
                     <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', minHeight:'100dvh', touchAction:'manipulation', overflow:'hidden' }}>
-                        <video ref={videoRef} autoPlay muted playsInline style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)', opacity:.4 }} />
+                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)', opacity:.4 }} />
                         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
                             <div style={{ fontSize:16, color:'white', fontWeight:700, letterSpacing:3, marginBottom:16, textTransform:'uppercase', opacity:.85 }}>Get Ready</div>
                             <div style={{ fontSize:140, fontWeight:900, color:'white', lineHeight:1, animation:'cdPop .5s ease-out', textShadow:'0 0 60px rgba(0,120,255,.8)' }} key={countdown}>
@@ -651,7 +659,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         onClick={handleScreenTap}
                     >
                         {/* Video feed */}
-                        <video ref={videoRef} autoPlay muted playsInline style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
+                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
 
                         {/* Reconnect overlay */}
                         {isReconnecting && (
@@ -813,29 +821,18 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     opacity: isCameraFlipping ? 0.5 : 1,
                                 }}
                             >🔄</button>
-                            {/* Share */}
-                            <button
-                                onClick={e => { e.stopPropagation(); handleShare(); }}
-                                title="Share stream link"
-                                style={{
-                                    width:44, height:44, borderRadius:'50%', border:'none',
-                                    background:'rgba(0,0,0,0.6)', backdropFilter:'blur(8px)',
-                                    color:'white', fontSize:20, cursor:'pointer', display:'flex',
-                                    alignItems:'center', justifyContent:'center',
-                                }}
-                            >🔗</button>
-                            {/* Slow mode */}
-                            <button
-                                onClick={e => { e.stopPropagation(); handleToggleSlowMode(); }}
-                                title={slowMode ? 'Disable slow mode' : 'Enable slow mode'}
-                                style={{
-                                    width:44, height:44, borderRadius:'50%', border:'none',
-                                    background: slowMode ? 'rgba(255,165,0,0.7)' : 'rgba(0,0,0,0.6)',
-                                    backdropFilter:'blur(8px)',
-                                    color:'white', fontSize:18, cursor:'pointer', display:'flex',
-                                    alignItems:'center', justifyContent:'center',
-                                }}
-                            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+                            {stage === 'setup' && (
+                                <button
+                                    onClick={e => { e.stopPropagation(); handleShare(); }}
+                                    title="Share stream link"
+                                    style={{
+                                        width:44, height:44, borderRadius:'50%', border:'none',
+                                        background:'rgba(0,0,0,0.6)', backdropFilter:'blur(8px)',
+                                        color:'white', fontSize:20, cursor:'pointer', display:'flex',
+                                        alignItems:'center', justifyContent:'center',
+                                    }}
+                                >🔗</button>
+                            )}
                             {/* Mic mute/unmute */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleToggleMute(); }}
