@@ -20,21 +20,30 @@ const LIMIT = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] |
 const MODEL = args.find(a => a.startsWith('--model='))?.split('=')[1] || 'grok-3-mini'; // mini works, full = better
 const DRY_RUN = args.includes('--dry-run');
 
-const SYSTEM_PROMPT = `You are a fact-checker for a poker trivia game. You will be given a multiple-choice question, its options, the marked-correct answer, and the explanation. Your job is to verify whether the marked-correct answer is FACTUALLY CORRECT.
+const SYSTEM_PROMPT = `You are a quality-assurance reviewer for a poker trivia game. For each multiple-choice question you receive, you must verify FOUR things and reject the question if ANY fail.
 
-Guidelines:
-- Only verify FACTS that are publicly verifiable (dates, names, records, rule definitions, established mathematical relationships).
-- Reject if the marked answer is wrong, the question references a fictional event, or the explanation contradicts the answer.
-- Be especially strict about: WSOP/EPT/WPT records, player career stats, dollar amounts, dates.
-- "Confidence" should reflect how sure YOU are about the correct answer.
-- If you cannot verify due to insufficient public information, set verified=false and confidence ≤ 0.5.
+CHECK 1 — FACTUAL ACCURACY (most important):
+- Is the marked-correct answer actually correct? Verify against publicly known facts.
+- If the explanation contradicts the marked answer, reject.
+
+CHECK 2 — NO ANSWER-REVEALING TEXT:
+- The question must NOT contain words or phrases that give away the answer.
+- If the question text leaks the answer, reject (verified=false, confidence ≥ 0.8).
+
+CHECK 3 — DISTRACTOR PARITY:
+- All four options must be in the same category and roughly the same length.
+- Joke distractors that obviously aren't real answers → reject.
+
+CHECK 4 — DIFFICULTY HONESTY:
+- If marked "hard" but only one option could plausibly be the answer → reject.
 
 Output ONLY valid JSON in this exact shape (no markdown):
 {
   "verified": true | false,
   "confidence": 0.00 to 1.00,
-  "reasoning": "1-2 sentences explaining your verdict, citing the actual fact",
-  "corrected_answer_text": "if verified=false and you know the right answer, put it here; otherwise null"
+  "reasoning": "1-2 sentences. Cite the fact AND/OR which check failed",
+  "failure_modes": ["factual"|"reveals_answer"|"distractor_quality"|"difficulty_mismatch"],
+  "corrected_answer_text": "if verified=false and you know the right answer; else null"
 }`;
 
 function buildPrompt(q) {
@@ -143,12 +152,16 @@ async function main() {
       }
       else { newQS = 5; uncertain++; }
 
+      const failureModes = Array.isArray(parsed.failure_modes)
+        ? parsed.failure_modes.filter(f => typeof f === 'string').map(f => f.slice(0,30))
+        : [];
+
       if (!DRY_RUN) {
         await c.query(
           `INSERT INTO trivia_quality_audits
-           (question_id, verifier_model, verified, confidence, reasoning, corrected_answer_text, previous_quality_score, new_quality_score, cost_usd)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [q.id, MODEL, verified, confidence, reasoning, correctedAns, q.quality_score, newQS, result.costUsd]
+           (question_id, verifier_model, verified, confidence, reasoning, failure_modes, corrected_answer_text, previous_quality_score, new_quality_score, cost_usd)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [q.id, MODEL, verified, confidence, reasoning, failureModes, correctedAns, q.quality_score, newQS, result.costUsd]
         );
         await c.query(
           `UPDATE trivia_questions SET quality_score = $1, last_audited_at = NOW(), audit_verified = $2, audit_confidence = $3 WHERE id = $4`,

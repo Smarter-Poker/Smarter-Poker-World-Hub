@@ -456,7 +456,7 @@ class LiveStreamService {
 
         // Disconnect LiveKit room
         if (this.room) {
-            await this.room.disconnect();
+            try { await this.room.disconnect(); } catch (_) {}
             this.room = null;
         }
 
@@ -581,10 +581,28 @@ class LiveStreamService {
         const leavingUserId = this.currentUserId;
 
         if (leavingUserId) {
-            await supabase.from('live_viewers')
+            // BUG FIX (S2): Fire-and-forget call with keepalive to ensure viewer removal.
+            // During a beforeunload event (tab close), any `await` yields execution and the browser
+            // destroys the execution context, meaning subsequent lines NEVER RUN. We MUST fire the 
+            // fetch with `keepalive: true` to prevent ghost viewers.
+            const token = getAccessToken();
+            fetch('/api/live/leave-stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: 'same-origin',
+                keepalive: true, // MANDATORY for requests fired during page teardown
+                body: JSON.stringify({ stream_id: leavingStreamId }),
+            }).catch(() => {});
+
+            // Still do the direct update if we are not unloading
+            supabase.from('live_viewers')
                 .delete()
                 .eq('stream_id', leavingStreamId)
-                .eq('viewer_id', leavingUserId);
+                .eq('viewer_id', leavingUserId)
+                .catch(() => {});
         }
 
         if (this.room) {

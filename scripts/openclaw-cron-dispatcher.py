@@ -183,6 +183,21 @@ ALL_CRONS = [
     # (00:30, 04:30, 08:30) so the freshly-inserted batch is reviewed
     # before peak user hours.
     ('/api/cron/trivia-quality-audit',      dict(hour=9, minute=0)),
+    # ── Phase 54 (2026-05-05) — quality-hardening cron set ──────────────
+    # Embedding backfill: every 2 hours, embed up to 100 un-embedded
+    # questions for pgvector dup detection.
+    ('/api/cron/trivia-embed-backfill',     dict(hour='*/2', minute=15)),
+    # Theme tag backfill: every 2 hours, tag up to 50 un-themed questions
+    # via grok-3-mini for diversity tracking.
+    ('/api/cron/trivia-theme-backfill',     dict(hour='*/2', minute=45)),
+    # Player-success retag: daily 11:00 UTC. Retags difficulty + demotes
+    # questions whose times_correct/times_shown signal mislabeling or
+    # high skip rate.
+    ('/api/cron/trivia-player-retag',       dict(hour=11, minute=0)),
+    # Regression tests: daily 11:30 UTC. Position bias, length parity,
+    # theme density. Writes to trivia_regression_runs; admin dashboard
+    # surfaces failures.
+    ('/api/cron/trivia-regression-tests',   dict(hour=11, minute=30)),
     # ── 2026-04-24 — restored from orphan audit ──────────────────────────
     # hard-stop auto-closes commander_tables at each venue's hard_stop_time.
     # Has 1 opted-in venue (id=1996, 02:00 UTC) with 34 in_use tables at
@@ -466,6 +481,10 @@ WORKERS_PREFERRED = {
     '/api/cron/generate-trivia-questions':     '/cron/generate-trivia-questions',
     '/api/cron/trivia-pool-monitor':           '/cron/trivia-pool-monitor',
     '/api/cron/trivia-quality-audit':          '/cron/trivia-quality-audit',
+    '/api/cron/trivia-embed-backfill':         '/cron/trivia-embed-backfill',
+    '/api/cron/trivia-theme-backfill':         '/cron/trivia-theme-backfill',
+    '/api/cron/trivia-player-retag':           '/cron/trivia-player-retag',
+    '/api/cron/trivia-regression-tests':       '/cron/trivia-regression-tests',
     '/api/cron/deploy-error-poll':             '/cron/deploy-error-poll',
     # ─── WAVE 5 — Club Arena platform crons (Round 23, 2026-04-29) ──────────
     # Workers repo has src/routes/{bbj-detect,tournament-bounty-detect,

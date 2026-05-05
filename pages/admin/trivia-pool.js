@@ -83,10 +83,25 @@ export async function getServerSideProps({ req }) {
         adm.from('trivia_quality_audits').select('question_id, audited_at, confidence, reasoning, corrected_answer_text, new_quality_score').eq('verified', false).gte('confidence', 0.7).order('audited_at', { ascending: false }).limit(8),
     ];
 
-    const [counts, sources, auditResults] = await Promise.all([
+    // Phase 54: quality-system state
+    const phase54Promises = [
+        // Latest health snapshot per category
+        adm.from('trivia_category_health').select('category, pass_rate, generation_paused, pause_reason, snapshot_at, audited_count').order('snapshot_at', { ascending: false }).limit(50),
+        // Unresolved reports
+        adm.from('trivia_question_reports').select('id', { count: 'exact', head: true }).is('resolved_at', null),
+        adm.from('trivia_question_reports').select('id, question_id, reason, note, created_at').is('resolved_at', null).order('created_at', { ascending: false }).limit(8),
+        // Latest regression test failures
+        adm.from('trivia_regression_runs').select('test_name, category, passed, metric, threshold, ran_at, details').gte('ran_at', new Date(Date.now() - 48*60*60*1000).toISOString()).eq('passed', false).order('ran_at', { ascending: false }).limit(10),
+        // Embed/theme backfill progress
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).is('embedding', null),
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).is('theme', null),
+    ];
+
+    const [counts, sources, auditResults, p54Results] = await Promise.all([
         Promise.all(fetches),
         Promise.all([...sourceFetches, nullSourceFetch]),
         Promise.all(auditPromises),
+        Promise.all(phase54Promises),
     ]);
 
     const audit = {
@@ -96,6 +111,21 @@ export async function getServerSideProps({ req }) {
         verifiedFalse: auditResults[3].count || 0,
         auditedLast24h: auditResults[4].count || 0,
         recentFlagged: auditResults[5].data || [],
+    };
+
+    // Pivot health: latest snapshot per category
+    const healthByCategory = {};
+    for (const row of p54Results[0].data || []) {
+        if (!healthByCategory[row.category]) healthByCategory[row.category] = row;
+    }
+    const phase54 = {
+        categoryHealth: Object.values(healthByCategory),
+        pausedCategories: Object.values(healthByCategory).filter(h => h.generation_paused),
+        unresolvedReportCount: p54Results[1].count || 0,
+        recentReports: p54Results[2].data || [],
+        recentRegressionFailures: p54Results[3].data || [],
+        embeddingBacklog: p54Results[4].count || 0,
+        themeBacklog: p54Results[5].count || 0,
     };
 
     // Pivot per-cat counts

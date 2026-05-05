@@ -1356,12 +1356,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     {/* Diamond Balance Overlay */}
                     <div style={{
                         position: 'absolute',
-                        top: '59%', 
-                        left: '50%', 
+                        top: '65.3%', 
+                        left: '31.4%', 
                         transform: 'translate(-50%, -50%)',
                         width: '100%',
-                        maxWidth: '260px',
-                        marginLeft: '-22%', 
                         textAlign: 'center',
                         display: 'flex',
                         flexDirection: 'column',
@@ -1398,12 +1396,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     {/* VIP Expiration Overlay */}
                     <div style={{
                         position: 'absolute',
-                        top: '60%', 
-                        left: '50%',
+                        top: '66.6%', 
+                        left: '69.7%',
                         transform: 'translate(-50%, -50%)',
                         width: '100%',
-                        maxWidth: '260px',
-                        marginLeft: '22%',
                         textAlign: 'center',
                         display: 'flex',
                         flexDirection: 'column',
