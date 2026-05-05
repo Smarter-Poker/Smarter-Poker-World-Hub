@@ -48,7 +48,10 @@ export default function TimeAttackPage() {
 
     useEffect(() => {
         if (authLoading) return;
+        // Phase 56: was missing .catch — if either promise rejected, unhandled
+        // rejection propagated up. Now caught + logged with finally still firing.
         Promise.all([loadUserData(), loadLeaderboard()])
+            .catch(e => console.warn('[TimeAttack] init load failed:', e))
             .finally(() => setPageLoading(false));
     }, [avatarUser?.id, authLoading]);
     // Realtime subscription — live updates
