@@ -150,7 +150,7 @@ export default function TimeAttackPage() {
         if (data) {
             // Filter and shuffle questions using shared utility
             // minFallback=30: if fewer than 30 unseen questions remain, use full pool
-            const shuffled = filterAndShuffle(data, excludeIds, 30);
+            const shuffled = filterAndShuffle(data, excludeIds, 30, { minQualityScore: 6 }); // Phase 51: drop low-quality
             // also shuffle options
             const finalized = shuffleOptions(shuffled);
             setQuestions(finalized);

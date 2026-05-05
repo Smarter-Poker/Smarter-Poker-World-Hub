@@ -35,7 +35,12 @@ const CATEGORIES = [
     { id: 'gto_scenarios', name: 'GTO Scenarios' }
 ];
 
-const TARGET_PER_CATEGORY = 3000;
+// Phase 49 (2026-05-05): bumped down from 3000 → 1500. Plan v3 target:
+// 5 strategy categories at 1500 each (deterministic engine) + 5 fact categories
+// at 1500 each (Grok refill) = 15,000 total at 60-day rotation capacity.
+const TARGET_PER_CATEGORY = 1500;
+const SIXTY_DAY_FLOOR = 1200;
+const TRACK_A_CATEGORIES = new Set(['gto_theory', 'gto_scenarios', 'cash_game_situations', 'mtt_situations', 'icm_chip_ev']);
 
 export default async function handler(req, res) {
   // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
@@ -85,16 +90,30 @@ export default async function handler(req, res) {
             const catTotal = total || 0;
             totalQuestions += catTotal;
 
+            // Phase 49: per-difficulty targets follow 20/50/30 split (300/750/450 of 1500)
+            const targetEasy = Math.floor(TARGET_PER_CATEGORY * 0.20);
+            const targetMedium = Math.floor(TARGET_PER_CATEGORY * 0.50);
+            const targetHard = Math.floor(TARGET_PER_CATEGORY * 0.30);
+
             stats[cat.id] = {
                 name: cat.name,
+                track: TRACK_A_CATEGORIES.has(cat.id) ? 'A' : 'B',
                 total: catTotal,
                 easy: easy || 0,
                 medium: medium || 0,
                 hard: hard || 0,
-                available: available || catTotal, // If tracking not set up, assume all available
+                target_easy: targetEasy,
+                target_medium: targetMedium,
+                target_hard: targetHard,
+                gap_easy: Math.max(0, targetEasy - (easy || 0)),
+                gap_medium: Math.max(0, targetMedium - (medium || 0)),
+                gap_hard: Math.max(0, targetHard - (hard || 0)),
+                available: available || catTotal,
                 target: TARGET_PER_CATEGORY,
                 progress: `${Math.round((catTotal / TARGET_PER_CATEGORY) * 100)}%`,
-                needed: Math.max(0, TARGET_PER_CATEGORY - catTotal)
+                progress_pct: Math.round((catTotal / TARGET_PER_CATEGORY) * 100),
+                needed: Math.max(0, TARGET_PER_CATEGORY - catTotal),
+                below_60day_floor: catTotal < SIXTY_DAY_FLOOR,
             };
         }
 

@@ -141,7 +141,7 @@ export default function SurvivalModePage() {
             .limit(100);
 
         if (data) {
-            const filtered = filterAndShuffle(data, excludeIds, 50);
+            const filtered = filterAndShuffle(data, excludeIds, 50, { minQualityScore: 6 }); // Phase 51: drop low-quality
             setQuestions(shuffleOptions(filtered));
             return filtered;
         }

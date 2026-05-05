@@ -206,7 +206,8 @@ export default function MixedModePage() {
                         .limit(50)
                         .then(({ data }) => {
                             if (!data) return [];
-                            const available = filterAndShuffle(data, excludeIds, 5);
+                            // Phase 51: prefer high-quality questions in mixed/daily mode
+                            const available = filterAndShuffle(data, excludeIds, 5, { minQualityScore: 6, preferHighQuality: true });
                             available.forEach(q => { q.displayCategory = cat.id; });
                             return available;
                         })

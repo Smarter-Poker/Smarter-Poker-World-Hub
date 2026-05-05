@@ -81,6 +81,24 @@ const VELOCITY_UNIQUE_RECIPIENTS_24H = 5;   // Flagged if sending to 5+ unique u
 const VELOCITY_TRANSACTIONS_1H = 10;         // Flagged if 10+ transfer attempts in 1 hour
 
 /**
+ * Helper to safely sum all matching transactions in 1000-row chunks
+ * to avoid Supabase/PostgREST row-drop-off limits.
+ */
+async function sumPaginatedTransactions(supabase, queryBuilderFn) {
+    let total = 0;
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+        const { data, error } = await queryBuilderFn().range(page * pageSize, (page + 1) * pageSize - 1);
+        if (error || !data || data.length === 0) break;
+        total += data.reduce((sum, r) => sum + Math.abs(r.amount), 0);
+        if (data.length < pageSize) break;
+        page++;
+    }
+    return total;
+}
+
+/**
  * Calculates the sender's purchased/won diamond total from their all-time ledger.
  * This is used to determine which source tier applies to days 31–89 accounts.
  *

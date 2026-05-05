@@ -207,7 +207,8 @@ export default function EndlessModePage() {
 
             if (!error && data) {
                 // Filter out recently seen questions and shuffle using shared utility (unbiased)
-                const available = filterAndShuffle(data, excludeIds, 20);
+                // Phase 51: prefer high-quality questions for casual endless play
+                const available = filterAndShuffle(data, excludeIds, 20, { minQualityScore: 6, preferHighQuality: true });
                 const toAdd = available.slice(0, 50);
                 
                 setQuestions(prev => [...prev, ...shuffleOptions(toAdd)]);

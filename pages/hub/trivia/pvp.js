@@ -400,7 +400,7 @@ export default function PvPPage() {
 
         let matchQuestions = [];
         if (questions && questions.length > 0) {
-            matchQuestions = filterAndShuffle(questions, excludeIds, 20); // Get 20 random questions
+            matchQuestions = filterAndShuffle(questions, excludeIds, 20, { minQualityScore: 6 }); // Phase 51: drop low-quality (<=5)
         }
 
         // Phase 54: empty-questions guard. Without this, an empty trivia_questions

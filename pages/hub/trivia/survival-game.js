@@ -325,7 +325,7 @@ export default function SurvivalGamePage() {
 
             if (!error && data) {
                 // Filter out recently seen questions and shuffle using shared utility (unbiased)
-                const available = filterAndShuffle(data, excludeIds, QUESTIONS_PER_LEVEL);
+                const available = filterAndShuffle(data, excludeIds, QUESTIONS_PER_LEVEL, { minQualityScore: 6 }); // Phase 51: drop low-quality
                 
                 if (available.length >= QUESTIONS_PER_LEVEL) {
                     // Take exactly what we need

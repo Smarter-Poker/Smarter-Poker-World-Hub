@@ -33,6 +33,24 @@ const FREE_EARNED_30DAY_LIMIT = 100;
 const PURCHASED_WON_30DAY_LIMIT = 500;
 const RECEIVER_30DAY_RECEIVE_LIMIT = 1000; // per broadcaster per 30-day rolling window
 
+/**
+ * Helper to safely sum all matching transactions in 1000-row chunks
+ * to avoid Supabase/PostgREST row-drop-off limits.
+ */
+async function sumPaginatedTransactions(supabase, queryBuilderFn) {
+    let total = 0;
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+        const { data, error } = await queryBuilderFn().range(page * pageSize, (page + 1) * pageSize - 1);
+        if (error || !data || data.length === 0) break;
+        total += data.reduce((sum, r) => sum + Math.abs(r.amount), 0);
+        if (data.length < pageSize) break;
+        page++;
+    }
+    return total;
+}
+
 const PURCHASED_WON_TYPES = new Set([
     'purchase', 'stripe_purchase', 'diamond_purchase',
     'tournament_prize', 'tournament_win', 'prize_pool', 'promo_purchased',
@@ -227,14 +245,13 @@ export default async function handler(req, res) {
 
     // ── GUARD: Per-broadcaster rolling 30-day receive cap ──
     const rolling30StartReceive = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: broadcasterInbound } = await supabase
+    const broadcasterReceiveTotal = await sumPaginatedTransactions(supabase, () => supabase
         .from('diamond_transactions')
         .select('amount')
         .eq('user_id', receiver_id)
         .eq('transaction_type', 'live_gift_received')
-        .gte('created_at', rolling30StartReceive);
+        .gte('created_at', rolling30StartReceive));
 
-    const broadcasterReceiveTotal = (broadcasterInbound || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
     if (broadcasterReceiveTotal + parsedAmount > RECEIVER_30DAY_RECEIVE_LIMIT) {
         return res.status(429).json({
             error: `This broadcaster has reached their 30-day gift receive limit (${RECEIVER_30DAY_RECEIVE_LIMIT} diamonds/30 days)`,
