@@ -120,7 +120,7 @@ async function getSourceTierAvailable(supabase, userId) {
         .from('diamond_transactions')
         .select('amount')
         .eq('user_id', userId)
-        .in('transaction_type', ['diamond_gift_sent']);
+        .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent']);
 
     const totalSent = (outboundRows || []).reduce((sum, r) => sum + Math.abs(r.amount), 0);
 
@@ -145,7 +145,7 @@ async function checkVelocity(supabase, userId, clientIp) {
         .from('diamond_transactions')
         .select('id')
         .eq('user_id', userId)
-        .eq('transaction_type', 'diamond_gift_sent')
+        .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
         .gte('created_at', oneHourAgo);
     
     // 2. IP frequency (device)
@@ -313,7 +313,7 @@ export default async function handler(req, res) {
             .from('diamond_transactions')
             .select('id')
             .eq('user_id', userId)
-            .eq('transaction_type', 'diamond_gift_sent')
+            .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
             .gte('created_at', cooldownCutoff)
             .limit(1)
             .maybeSingle();
@@ -332,7 +332,7 @@ export default async function handler(req, res) {
             .from('diamond_transactions')
             .select('amount')
             .eq('user_id', userId)
-            .eq('transaction_type', 'diamond_gift_sent')
+            .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
             .gte('created_at', rolling30Start);
 
         const alreadySent30Day = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -376,7 +376,7 @@ export default async function handler(req, res) {
                 .from('diamond_transactions')
                 .select('amount')
                 .eq('user_id', userId)
-                .eq('transaction_type', 'diamond_gift_sent')
+                .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
                 .gte('created_at', dayStart.toISOString());
 
             const dailyTotal = (dailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);

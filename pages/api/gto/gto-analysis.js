@@ -131,10 +131,11 @@ export default async function handler(req, res) {
           // Query PioSolver data
           let pioData = null;
           // Source tags consumed by GTOAnalysisPanel.jsx for the data-quality badge:
-          //   'PIO_SOLVER'      → exact-board match, real solver data
-          //   'PIO_SOLVER_NEAR' → flop-prefix or approximate, real solver but
-          //                       not the exact runout
+          //   'PIO_SOLVER'      → exact-board match, real solver data (green badge)
+          //   'PIO_SOLVER_NEAR' → flop-prefix or approximate match, real solver
+          //                       but not the exact runout (yellow badge)
           //   'GROK_FALLBACK'   → no solver match available, grok-3-mini fallback
+          //                       (orange "AI Generated" badge — already in panel)
           let source = 'GROK_FALLBACK';
 
           try {
@@ -164,6 +165,7 @@ export default async function handler(req, res) {
               }
           } else {
               // No PIO match at any quality tier → grok-3-mini fallback.
+              // Already tagged GROK_FALLBACK above.
               analysis = await generateAnalysisWithGrok(cacheParams);
           }
 

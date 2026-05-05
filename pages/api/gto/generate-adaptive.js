@@ -1,18 +1,35 @@
 /**
- * Jarvis Adaptive Scenario Generation API
- * 
- * Generates personalized training scenarios targeting user's weaknesses.
- * 
+ * 🎯 DETERMINISTIC Adaptive Scenario Generation API (Operation Grok-Sweep — 2026-05)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Generates personalized training scenarios targeting the user's weakest
+ * positions, using REAL solver-derived ranges from src/config/solverRanges.js.
+ * NO LLM. NO hallucination.
+ *
+ * "Personalization" here means: which position to drill (based on past
+ * mistakes) — the scenario CONTENT itself is always real solver data, not a
+ * fabricated grok-3 output.
+ *
+ * Prior implementation used grok-3 with `temperature: 0.7` to "generate" the
+ * scenario, then fell back to hardcoded raise-only solutions when that failed.
+ * The hardcoded fallbacks were also incomplete (missing folds, no mixed
+ * frequencies). The new implementation always returns the full mixed-strategy
+ * solver range for the targeted position.
+ *
  * POST /api/gto/generate-adaptive
- * Body: { userId }
+ * (auth via JWT — userId derived from token, never trusted from body)
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getGrokClient } from '../../../src/lib/grokClient';
 import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import {
+    RFI, RFI_20BB, RFI_50BB, RFI_200BB,
+    BB_DEFENSE, THREE_BET,
+} from '../../../src/config/solverRanges';
 
+// ── Lazy Supabase getter ─────────────────────────────────────────────────────
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -23,73 +40,46 @@ function getSupabase() {
     return _supabase;
 }
 
-export default async function handler(req, res) {
-  try {
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+// ── Solver-range helpers (mirrored from generate-scenario.js for isolation) ──
+const ACTION_NORMALIZE = { shove: 'allin', jam: 'allin', complete: 'call' };
 
-    // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-    const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: authData, error: _authErr } = await _authSupa.auth.getUser(_token);
-    const _authUser = authData?.user;
-    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
-
-      try {
-          const userId = _authUser.id; // Trust JWT, not client-supplied body
-
-          // First, get the user's weak spots
-          const weakSpots = await fetchWeakSpots(userId);
-
-          if (!weakSpots || weakSpots.length === 0) {
-              // No weakness data - return a general scenario
-              return res.status(200).json({
-                  success: true,
-                  scenario: getDefaultScenario(),
-                  targetedArea: null,
-                  message: 'Play more games for personalized training!'
-              });
-          }
-
-          // Pick the top weakness to target
-          const targetWeakness = weakSpots[0];
-
-          // Generate scenario targeting this weakness
-          const scenario = await generateTargetedScenario(targetWeakness);
-
-          return res.status(200).json({
-              success: true,
-              scenario,
-              targetedArea: targetWeakness.area,
-              weakSpots,
-              message: `Targeting your ${targetWeakness.area} weakness`
-          });
-
-      } catch (error) {
-          console.warn('[GenerateAdaptive] Error:', error);
-          return res.status(200).json({
-              success: true,
-              scenario: getDefaultScenario(),
-              targetedArea: null,
-              fallback: true
-          });
-      }
-
-  } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+function topAction(freqs) {
+    if (!freqs) return null;
+    const e = Object.entries(freqs).filter(([, v]) =>
+        typeof v === 'number' && Number.isFinite(v) && v > 0);
+    if (e.length === 0) return null;
+    e.sort((a, b) => b[1] - a[1]);
+    return e[0];
 }
 
+function freqsToSolutionEntry(freqs) {
+    const top = topAction(freqs);
+    if (!top) return 'fold';
+    const [raw, freq] = top;
+    const action = ACTION_NORMALIZE[raw] || raw;
+    if (freq >= 0.95) return action;
+    return `${action}${Math.round(freq * 100)}`;
+}
+
+function rangeToSolution(range) {
+    if (!range) return {};
+    const out = {};
+    for (const [hand, freqs] of Object.entries(range)) {
+        out[hand] = freqsToSolutionEntry(freqs);
+    }
+    return out;
+}
+
+function pickRfiTable(stackDepth) {
+    const sd = Number(stackDepth) || 100;
+    if (sd <= 35) return RFI_20BB;
+    if (sd <= 75) return RFI_50BB;
+    if (sd >= 175) return RFI_200BB;
+    return RFI;
+}
+
+// ── Weakness analysis (deterministic — analyzes real session history) ────────
 async function fetchWeakSpots(userId) {
-    // Get recent sessions
     const { data: sessions, error } = await getSupabase()
         .from('jarvis_training_sessions')
         .select('answers_data, leaks_detected, accuracy')
@@ -97,13 +87,9 @@ async function fetchWeakSpots(userId) {
         .order('created_at', { ascending: false })
         .limit(15);
 
-    if (error || !sessions?.length) {
-        return [];
-    }
+    if (error || !sessions?.length) return [];
 
-    // Quick analysis for top weakness
     const patterns = {};
-
     sessions.forEach(session => {
         const answers = session.answers_data || [];
         answers.forEach(answer => {
@@ -120,193 +106,129 @@ async function fetchWeakSpots(userId) {
             area: `${area} Play`,
             type: 'position',
             value: area,
-            errorCount: count
+            errorCount: count,
         }));
 }
 
-async function generateTargetedScenario(weakness) {
-    const position = weakness.value || 'CO';
+// ── Deterministic scenario builder for a given position ──────────────────────
+function buildAdaptiveScenario(weakness) {
+    const position = (weakness?.value || 'CO').toUpperCase();
+    const stackDepth = 100;
+    const rfiTable = pickRfiTable(stackDepth);
+    const range = (rfiTable && rfiTable[position]) || (rfiTable && rfiTable.BTN) || {};
+    const solution = rangeToSolution(range);
 
-    // Check cache first - cache by position so multiple users can benefit
-    const cacheParams = { position, type: 'adaptive-scenario' };
-    const cached = await getCachedResponse('generate-adaptive', cacheParams);
-
-    if (cached) {
-        // Return cached scenario with fresh ID
-        return {
-            ...cached,
-            id: `adaptive_${position}_${Date.now()}`,
-            fromCache: true
-        };
-    }
-
-    const grok = getGrokClient();
-    const prompt = buildAdaptivePrompt(weakness);
-
-    try {
-        const completion = await grok.chat.completions.create({
-            model: 'grok-3',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a GTO poker coach generating training scenarios.
-                    Create scenarios in JSON format with: id, title, description, position, stackDepth, villainPosition, action, solution (object mapping hands to actions).
-                    Focus on the player's specific weakness area. Return ONLY valid JSON.`
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 1500,
-        });
-
-        const responseText = completion.choices[0]?.message?.content;
-
-        // Parse JSON response
-        const cleanedResponse = responseText
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .trim();
-
-        const scenario = JSON.parse(cleanedResponse);
-        scenario.isAdaptive = true;
-        scenario.targetedWeakness = weakness.area;
-
-        // Cache the scenario by position
-        await setCachedResponse('generate-adaptive', cacheParams, scenario, 14); // 14 day TTL
-
-        return scenario;
-
-    } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.warn('[GenerateAdaptive] Jarvis error:', error);
-        return getFallbackScenario(weakness);
-    }
-}
-
-function buildAdaptivePrompt(weakness) {
-    const position = weakness.value || 'CO';
-
-    return `Generate a GTO preflop training scenario specifically targeting ${weakness.area} weakness.
-
-REQUIREMENTS:
-- Position: ${position} (the player's weak spot)
-- Stack Depth: 100BB (standard)
-- Include 15-25 hands in the solution
-- Mix of raises, calls, and folds appropriate for the position
-- Make it challenging but educational
-
-Return JSON format:
-{
-    "id": "adaptive_${Date.now()}",
-    "title": "${position} Training - Targeted Practice",
-    "description": "Practice your ${position} opening range to fill this gap in your game.",
-    "position": "${position}",
-    "stackDepth": 100,
-    "villainPosition": null,
-    "action": "open",
-    "solution": {
-        "AA": "raise",
-        "KK": "raise",
-        ... (include full range for position)
-    }
-}`;
-}
-
-function getFallbackScenario(weakness) {
-    const position = weakness?.value || 'CO';
-
-    // Return a pre-built scenario for common positions
-    const scenarios = {
-        'UTG': {
-            id: `adaptive_utg_${Date.now()}`,
-            title: 'UTG Opening Range',
-            description: 'Practice tight UTG opens to improve early position play.',
-            position: 'UTG',
-            stackDepth: 100,
-            action: 'open',
-            isAdaptive: true,
-            solution: {
-                'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-                '99': 'raise', '88': 'raise', '77': 'raise',
-                'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
-                'KQs': 'raise', 'KJs': 'raise',
-                'QJs': 'raise',
-                'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise'
-            }
-        },
-        'CO': {
-            id: `adaptive_co_${Date.now()}`,
-            title: 'CO Opening Range',
-            description: 'Practice cutoff steals to improve late position aggression.',
-            position: 'CO',
-            stackDepth: 100,
-            action: 'open',
-            isAdaptive: true,
-            solution: {
-                'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-                '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
-                'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-                'A8s': 'raise', 'A7s': 'raise', 'A6s': 'raise', 'A5s': 'raise', 'A4s': 'raise',
-                'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise',
-                'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise',
-                'JTs': 'raise', 'J9s': 'raise',
-                'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise',
-                'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-                'KQo': 'raise', 'KJo': 'raise', 'QJo': 'raise'
-            }
-        },
-        'BTN': {
-            id: `adaptive_btn_${Date.now()}`,
-            title: 'Button Opening Range',
-            description: 'Practice wide button opens for maximum position value.',
-            position: 'BTN',
-            stackDepth: 100,
-            action: 'open',
-            isAdaptive: true,
-            solution: {
-                'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-                '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
-                '44': 'raise', '33': 'raise', '22': 'raise',
-                'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-                'A8s': 'raise', 'A7s': 'raise', 'A6s': 'raise', 'A5s': 'raise', 'A4s': 'raise',
-                'A3s': 'raise', 'A2s': 'raise',
-                'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise',
-                'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'Q8s': 'raise',
-                'JTs': 'raise', 'J9s': 'raise', 'J8s': 'raise',
-                'T9s': 'raise', 'T8s': 'raise',
-                '98s': 'raise', '97s': 'raise', '87s': 'raise', '86s': 'raise',
-                '76s': 'raise', '75s': 'raise', '65s': 'raise', '54s': 'raise',
-                'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
-                'KQo': 'raise', 'KJo': 'raise', 'KTo': 'raise',
-                'QJo': 'raise', 'QTo': 'raise', 'JTo': 'raise'
-            }
-        }
-    };
-
-    return scenarios[position] || scenarios['CO'];
-}
-
-function getDefaultScenario() {
     return {
-        id: `default_${Date.now()}`,
+        id: `adaptive-${position}-${Date.now()}`,
+        title: `${position} Opening Range — Targeted Drill`,
+        description: `Practice your ${position} open-raise frequencies at ${stackDepth}bb. ` +
+            `This range was flagged as your weakest spot — the solver-equilibrium ` +
+            `frequencies below close that gap fastest.`,
+        position,
+        stackDepth,
+        villainPosition: null,
+        action: 'open',
+        solution,
+        source: 'DETERMINISTIC_SOLVER',
+        rangeSource: 'RFI_100BB',
+        isAdaptive: true,
+        targetedWeakness: weakness?.area || `${position} Play`,
+    };
+}
+
+function buildDefaultScenario() {
+    // Untargeted scenario for users with no session history yet.
+    const position = 'CO';
+    const range = (RFI && RFI[position]) || {};
+    const solution = rangeToSolution(range);
+
+    return {
+        id: `default-CO-${Date.now()}`,
         title: 'CO Opening Range',
-        description: 'Standard cutoff opening range training.',
-        position: 'CO',
+        description: 'Standard cutoff opening range training at 100bb. ' +
+            'Play more sessions to unlock personalized weakness-targeted drills.',
+        position,
         stackDepth: 100,
         action: 'open',
-        isAdaptive: false,
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise',
-            'QJs': 'raise', 'QTs': 'raise',
-            'JTs': 'raise', 'T9s': 'raise', '98s': 'raise', '87s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
-            'KQo': 'raise'
-        }
+        solution,
+        source: 'DETERMINISTIC_SOLVER',
+        rangeSource: 'RFI_100BB',
     };
+}
+
+// ── Handler ──────────────────────────────────────────────────────────────────
+export default async function handler(req, res) {
+    try {
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+            if (!applyRateLimit(req, res, LIMITS.write)) return;
+        }
+
+        // Auth (preserved)
+        const _authSupa = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+        const _token = req.headers.authorization?.replace('Bearer ', '');
+        if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+        const { data: authData, error: _authErr } = await _authSupa.auth.getUser(_token);
+        const _authUser = authData?.user;
+        if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+        if (req.method !== 'POST') {
+            return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
+
+        try {
+            const userId = _authUser.id; // Trust JWT, not body
+
+            const weakSpots = await fetchWeakSpots(userId);
+
+            if (!weakSpots || weakSpots.length === 0) {
+                return res.status(200).json({
+                    success: true,
+                    scenario: buildDefaultScenario(),
+                    targetedArea: null,
+                    message: 'Play more games for personalized weakness-targeted training!',
+                });
+            }
+
+            const targetWeakness = weakSpots[0];
+
+            // Cache by position (multiple users with the same weakness benefit)
+            const cacheParams = {
+                position: (targetWeakness.value || 'CO').toUpperCase(),
+                type: 'adaptive-scenario-deterministic',
+            };
+            const cached = await getCachedResponse('generate-adaptive', cacheParams);
+            let scenario;
+            if (cached) {
+                scenario = { ...cached, id: `adaptive-${cacheParams.position}-${Date.now()}`, fromCache: true };
+            } else {
+                scenario = buildAdaptiveScenario(targetWeakness);
+                await setCachedResponse('generate-adaptive', cacheParams, scenario, 14);
+            }
+
+            return res.status(200).json({
+                success: true,
+                scenario,
+                targetedArea: targetWeakness.area,
+                weakSpots,
+                message: `Targeting your ${targetWeakness.area} weakness`,
+            });
+        } catch (error) {
+            console.warn('[GenerateAdaptive] Error:', error);
+            return res.status(200).json({
+                success: true,
+                scenario: buildDefaultScenario(),
+                targetedArea: null,
+                fallback: true,
+            });
+        }
+    } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {
+            console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+        }
+        console.warn('[API Error]', err);
+        if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
 }
