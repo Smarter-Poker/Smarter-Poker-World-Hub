@@ -1442,13 +1442,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 <div style={{ position: 'absolute', bottom: -3, right: -3, width: 12, height: 12, borderBottom: '3px solid #8baee0', borderRight: '3px solid #8baee0', borderRadius: '0 0 12px 0' }}/>
 
                                 <img
-                                    src="/images/wallet-crown.png"
+                                    src="/images/wallet-vip-crown.png"
                                     alt="VIP Crown"
                                     style={{
-                                        width: 65, height: 55, objectFit: 'contain',
+                                        width: 70, height: 70, objectFit: 'contain',
                                         filter: 'drop-shadow(0 0 15px rgba(0,160,255,0.6)) brightness(1.1)',
-                                        marginBottom: 6,
+                                        marginBottom: 0,
                                         animation: 'walletDiamondFloat 3.5s ease-in-out infinite 0.5s',
+                                        mixBlendMode: 'screen'
                                     }}
                                 />
                                 <div style={{
