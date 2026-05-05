@@ -292,7 +292,7 @@ export default function PvPPage() {
                 p_amount: -stake,
                 p_type: 'pvp_stake',
                 p_description: `PvP stake — ${stake}💎 entry`,
-                p_reference_id: `pvp_stake_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                p_reference_id: `pvp_stake_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket, DB dedups within window
             });
             if (rpcErr) throw rpcErr;
             // Refresh balance from DB after deduction
@@ -456,7 +456,7 @@ export default function PvPPage() {
                     p_amount: stake,
                     p_type: 'pvp_refund',
                     p_description: `PvP horse-match setup failed — ${stake}💎 refund`,
-                    p_reference_id: `pvp_refund_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                    p_reference_id: `pvp_refund_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
                 });
                 if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -507,7 +507,7 @@ export default function PvPPage() {
                 p_amount: stakeAmount,
                 p_type: 'pvp_refund',
                 p_description: `PvP match failed — ${stakeAmount}💎 refund`,
-                p_reference_id: `pvp_refund_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                p_reference_id: `pvp_refund_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
             });
             if (__rpcErr) throw __rpcErr;
             // Refresh balance from DB
@@ -543,7 +543,7 @@ export default function PvPPage() {
                 p_amount: stakeAmount,
                 p_type: 'pvp_refund',
                 p_description: `PvP cancelled — ${stakeAmount}💎 refund`,
-                p_reference_id: `pvp_refund_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                p_reference_id: `pvp_refund_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
             });
             if (rpcErr) throw rpcErr;
             // Refresh balance from DB

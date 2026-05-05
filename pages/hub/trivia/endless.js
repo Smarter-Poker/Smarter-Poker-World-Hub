@@ -374,7 +374,7 @@ export default function EndlessModePage() {
                         p_amount: -5,
                         p_type: 'endless_lifeline',
                         p_description: 'Endless 50/50 lifeline — 5💎',
-                        p_reference_id: `endless_fifty_${userId}_${currentQuestionIndex}_${crypto.randomUUID()}`
+                        p_reference_id: `endless_fifty_${userId}_${currentQuestionIndex}`  // Phase 56: stable per question
                     });
                     if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -419,7 +419,7 @@ export default function EndlessModePage() {
                     p_amount: -LIFELINE_COST,
                     p_type: 'endless_lifeline',
                     p_description: `Endless skip question — ${LIFELINE_COST}💎`,
-                    p_reference_id: `endless_skip_${userId}_${currentQuestionIndex}_${crypto.randomUUID()}`
+                    p_reference_id: `endless_skip_${userId}_${currentQuestionIndex}`  // Phase 56: stable per question
                 });
                 if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -466,7 +466,7 @@ export default function EndlessModePage() {
                     p_amount: -LIFELINE_COST,
                     p_type: 'endless_lifeline',
                     p_description: `Endless double chance — ${LIFELINE_COST}💎`,
-                    p_reference_id: `endless_double_${userId}_${currentQuestionIndex}_${crypto.randomUUID()}`
+                    p_reference_id: `endless_double_${userId}_${currentQuestionIndex}`  // Phase 56: stable per question
                 });
                 if (__rpcErr) throw __rpcErr;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -572,7 +572,7 @@ export default function EndlessModePage() {
                         p_amount: cappedDiamonds,
                         p_type: 'endless_reward',
                         p_description: `Endless mode — ${cappedDiamonds}💎 (${finalStreak} streak)`,
-                        p_reference_id: `endless_reward_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                        p_reference_id: `endless_reward_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
                     });
                     if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();

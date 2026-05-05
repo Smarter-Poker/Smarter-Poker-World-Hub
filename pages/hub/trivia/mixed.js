@@ -382,7 +382,7 @@ export default function MixedModePage() {
                         p_amount: cappedDiamonds,
                         p_type: 'mixed_reward',
                         p_description: `Mixed mode — ${cappedDiamonds}💎`,
-                        p_reference_id: `mixed_reward_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                        p_reference_id: `mixed_reward_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
                     });
                     if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
