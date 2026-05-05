@@ -348,23 +348,20 @@ export default async function handler(req, res) {
         const rolling30Start = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
         
         // Rolling 30-day window for outbound gifts
-        const { data: outboundLast30 } = await getSupabase()
+        const alreadySent30Day = await sumPaginatedTransactions(getSupabase(), () => getSupabase()
             .from('diamond_transactions')
             .select('amount')
             .eq('user_id', userId)
             .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
-            .gte('created_at', rolling30Start);
-
-        const alreadySent30Day = (outboundLast30 || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            .gte('created_at', rolling30Start));
 
         // Get 30-day rolling aggregate for this exact IP
-        const { data: ipRows } = await getSupabase()
+        const ipAlreadySent30Day = await sumPaginatedTransactions(getSupabase(), () => getSupabase()
             .from('anti_farming_ips')
             .select('amount')
             .eq('ip_address', clientIp)
-            .gte('created_at', rolling30Start);
+            .gte('created_at', rolling30Start));
         
-        const ipAlreadySent30Day = (ipRows || []).reduce((sum, r) => sum + r.amount, 0);
         const effectiveAlreadySent = Math.max(alreadySent30Day, ipAlreadySent30Day);
 
         const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
@@ -392,14 +389,12 @@ export default async function handler(req, res) {
             // ── GRADUATED (90+ day) accounts: standard daily limits + velocity detection ──
             const dayStart = new Date(now);
             dayStart.setHours(0, 0, 0, 0);
-            const { data: dailyTransfers } = await getSupabase()
+            const dailyTotal = await sumPaginatedTransactions(getSupabase(), () => getSupabase()
                 .from('diamond_transactions')
                 .select('amount')
                 .eq('user_id', userId)
                 .in('transaction_type', ['diamond_gift_sent', 'live_gift_sent'])
-                .gte('created_at', dayStart.toISOString());
-
-            const dailyTotal = (dailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+                .gte('created_at', dayStart.toISOString()));
 
             if (dailyTotal + amount > dailyLimitTier) {
                 console.warn(`[VELOCITY] Graduated user ${userId} hit daily limit: ${dailyTotal}/${dailyLimitTier}`);
@@ -414,15 +409,13 @@ export default async function handler(req, res) {
         }
 
         // ── Guard 10: Per-recipient rolling 30-day limit ──
-        const { data: recipientDailyTransfers } = await getSupabase()
+        const recipientDailyTotal = await sumPaginatedTransactions(getSupabase(), () => getSupabase()
             .from('diamond_transactions')
-            .select('amount, description')
+            .select('amount')
             .eq('user_id', userId)
             .eq('transaction_type', 'diamond_gift_sent')
             .gte('created_at', rolling30Start)
-            .ilike('description', `%[${recipientId}]%`);
-
-        const recipientDailyTotal = (recipientDailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            .ilike('description', `%[${recipientId}]%`));
         if (recipientDailyTotal + amount > PER_RECIPIENT_DAILY_LIMIT) {
             console.warn(`[VELOCITY] User ${userId} hit per-recipient limit for ${recipientId}: ${recipientDailyTotal}/${PER_RECIPIENT_DAILY_LIMIT}`);
             return res.status(429).json({
@@ -451,14 +444,12 @@ export default async function handler(req, res) {
         }
 
         // ── Guard 12: Recipient rolling 30-day receive limit ──
-        const { data: recipientInbound } = await getSupabase()
+        const recipientReceiveTotal = await sumPaginatedTransactions(getSupabase(), () => getSupabase()
             .from('diamond_transactions')
             .select('amount')
             .eq('user_id', recipientId)
             .eq('transaction_type', 'diamond_gift_received')
-            .gte('created_at', rolling30Start);
-
-        const recipientReceiveTotal = (recipientInbound || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            .gte('created_at', rolling30Start));
         if (recipientReceiveTotal + amount > RECIPIENT_DAILY_RECEIVE_LIMIT) {
             return res.status(429).json({
                 success: false,
@@ -478,6 +469,7 @@ export default async function handler(req, res) {
                 p_amount: amount,
                 p_description: `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
                 p_transaction_type: 'diamond_gift_sent',
+                p_metadata: { recipient_id: recipientId },
             });
 
         if (deductErr) {

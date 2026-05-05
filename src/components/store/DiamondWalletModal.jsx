@@ -1331,6 +1331,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </button>
                 </div>
 
+                {/* Scrollable Modal Content */}
+                <div 
+                    ref={scrollContainerRef}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                >
                 {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER — Image-Backed Layout
                 ═══════════════════════════════════════════════ */}
@@ -1348,7 +1356,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     {/* Diamond Balance Overlay */}
                     <div style={{
                         position: 'absolute',
-                        top: '62%', 
+                        top: '70%', 
                         left: '27.5%', 
                         transform: 'translate(-50%, -50%)',
                         width: '40%',
@@ -1387,7 +1395,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     {/* VIP Expiration Overlay */}
                     <div style={{
                         position: 'absolute',
-                        top: '73%', 
+                        top: '80%', 
                         left: '72.5%',
                         transform: 'translate(-50%, -50%)',
                         width: '40%',
@@ -2044,17 +2052,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
                 {/* Transaction List */}
                 <div
-                    ref={scrollContainerRef}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
                     role="list"
                     aria-label="Diamond transactions"
                     style={{
-                        flex: 1,
-                        overflowY: 'auto',
-                        padding: '4px 0',
-                        WebkitOverflowScrolling: 'touch',
+                        padding: '4px 0 24px 0',
                     }}>
                     {/* ── BUG-3: Error state with retry button ── */}
                     {error ? (
@@ -2362,6 +2363,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         </>
                     )}
                 </div>
+                </div> {/* End Scrollable Modal Content */}
 
                 {/* Footer */}
                 {!loading && total > 0 && (

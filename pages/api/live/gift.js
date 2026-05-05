@@ -256,6 +256,7 @@ export default async function handler(req, res) {
             p_amount: parsedAmount,
             p_description: `Live gift to broadcaster`,
             p_transaction_type: 'live_gift_sent',
+            p_metadata: { recipient_id: receiver_id },
         });
 
         // deduct_diamonds returns jsonb with success field

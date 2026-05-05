@@ -906,7 +906,7 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
             })()}
             {/* Media Grid - supports up to 10 images/videos.
                 Live-type posts always render their card even with empty media_urls (thumbnail may be missing). */}
-            {(post.mediaUrls?.length > 0 || post.contentType === 'live') && (
+            {(post.mediaUrls?.length > 0 || post.contentType === 'live' || post.contentType?.startsWith('live_session')) && (
                 <div style={{ padding: (post.mediaUrls?.length ?? 0) > 1 ? '0 2px 2px' : 0 }}>
                     {/* Double-tap to like + heart animation overlay */}
                     <div onClick={handleDoubleTap} style={{ position: 'relative', cursor: 'pointer' }}>
@@ -969,8 +969,46 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                                     </div>
                                 );
                             })()
-                        ) :
-                        post.contentType === 'video' ? (
+                        ) : post.contentType?.startsWith('live_session') ? (
+                            // LIVE SESSION ("I'm at the table")
+                            (() => {
+                                const isEnded = post.contentType === 'live_session_ended';
+                                return (
+                                    <div style={{ background: 'linear-gradient(135deg, #182848, #4b6cb7)', padding: '24px 20px', color: 'white', borderRadius: 8, margin: '8px 12px 16px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                                        {/* Glowing orb effect */}
+                                        {!isEnded && <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, background: 'radial-gradient(circle, rgba(0,255,136,0.2) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%' }} />}
+                                        
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: isEnded ? '#65676B' : '#00E676', boxShadow: isEnded ? 'none' : '0 0 10px #00E676', animation: isEnded ? 'none' : 'sp-pulse-green 2s infinite' }} />
+                                            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: isEnded ? '#B0B3B8' : '#00E676' }}>
+                                                {isEnded ? 'SESSION ENDED' : 'AT THE TABLE NOW'}
+                                            </div>
+                                        </div>
+                                        
+                                        <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                                            {post.metadata?.venue_name || 'Live Poker'}
+                                        </div>
+                                        <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', marginBottom: 16 }}>
+                                            {post.metadata?.game_type || 'NLH'} • {post.metadata?.stakes || '$1/$2'}
+                                        </div>
+                                        
+                                        {(post.metadata?.current_profit !== undefined && post.metadata?.current_profit !== 0) && (
+                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: 20, fontSize: 14, fontWeight: 600, color: post.metadata.current_profit > 0 ? '#00E676' : '#FF5252' }}>
+                                                <span>Session {post.metadata.current_profit > 0 ? 'Win' : 'Loss'}:</span>
+                                                <span>{post.metadata.current_profit > 0 ? '+' : '-'}${Math.abs(post.metadata.current_profit)}</span>
+                                            </div>
+                                        )}
+                                        
+                                        {post.metadata?.notes && (
+                                            <div style={{ marginTop: 12, fontSize: 14, fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', borderLeft: '3px solid rgba(255,255,255,0.2)', paddingLeft: 12 }}>
+                                                "{post.metadata.notes}"
+                                            </div>
+                                        )}
+                                        <style>{`@keyframes sp-pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 230, 118, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); } }`}</style>
+                                    </div>
+                                );
+                            })()
+                        ) : post.contentType === 'video' ? (
                             // VIDEO: Use VideoPostWrapper to handle broken video detection
                             // Click routes to immersive Reels equivalent
                             <VideoPostWrapper
