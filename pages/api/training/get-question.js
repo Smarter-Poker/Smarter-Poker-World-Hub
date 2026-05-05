@@ -164,7 +164,7 @@ export default async function handler(req, res) {
               if (cachedQuestions && cachedQuestions.length > 0) {
                   const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
                   // Enrich cached questions that were generated before GTO fields were added
-                  question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level, 10), gameType);
+                  question = enrichLegacyCachedQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level, 10), gameType);
 
                   // Increment times_used (getSupabase().raw() doesn't exist in JS SDK v2)
                   const questionId = cachedQuestions[randomIndex].question_id;
@@ -455,202 +455,32 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
 
 
 
-/**
- * Grok AI Fallback: Generate question when database is exhausted
- * Routes to different prompts based on engine type:
- * - SCENARIO: Psychology/Mental Game questions (no GTO math)
- * - PIO/CHART: GTO solver-based poker questions
- */
-async function generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig) {
-    try {
-        const grok = getGrokClient();
-
-        const gameName = game?.name || 'Training Game';
-        const gameCategory = game?.category || 'CASH';
-        const gameFocus = game?.focus || 'poker training';
-
-        // ═══════════════════════════════════════════════════════════════════
-        // SCENARIO ENGINE: Psychology/Mental Game Questions
-        // ═══════════════════════════════════════════════════════════════════
-        if (engineType === 'SCENARIO' || gameCategory === 'PSYCHOLOGY') {
-
-            const psychologyPrompt = `You are an elite poker mental game coach. Generate a PSYCHOLOGY / MENTAL GAME training question for "${gameName}" focusing on: ${gameFocus}.
-
-CRITICAL: This is NOT about GTO strategy or poker math. This is about:
-- Emotional control and tilt management
-- Decision-making under pressure
-- Mindset and psychological resilience
-- Focus, discipline, and mental stamina
-- Handling variance and bad beats
-- Table presence and composure
-
-Game Context:
-- Training Game: ${gameName}
-- Focus Area: ${gameFocus}
-- Difficulty: ${level}/10 (1=beginner, 10=master)
-
-Generate a realistic poker MENTAL GAME scenario. The question should test the player's psychological response, NOT their GTO knowledge.
-
-Generate in this EXACT JSON format (no markdown, no code blocks):
-{
-  "id": "grok_${gameId}_${Date.now()}",
-  "type": "SCENARIO",
-  "question": "How would you handle this situation?",
-  "scenario": {
-    "title": "${gameName}",
-    "context": "Describe a realistic poker scenario that tests mental game...",
-    "isPsychology": true
-  },
-  "options": [
-    {"id": "a", "text": "First option (typically impulsive/tilted response)"},
-    {"id": "b", "text": "Second option (optimal mental game response)"},
-    {"id": "c", "text": "Third option (passive/avoidant response)"},
-    {"id": "d", "text": "Fourth option (aggressive overreaction)"}
-  ],
-  "correctAnswer": "b",
-  "explanation": "The optimal response is [b] because... (explain the psychology)"
-}
-
-EXAMPLES OF GOOD PSYCHOLOGY QUESTIONS:
-- "You just lost a huge pot with AA vs 72o all-in preflop. What do you do next?"
-- "An opponent is deliberately tanking on every decision. How do you maintain focus?"
-- "You're on a 10 buy-in downswing over 3 sessions. What's your approach?"
-- "A recreational player berated you in chat after a bad beat. How do you respond?"
-- "You've been card dead for 2 hours in a tournament. How do you stay sharp?"
-
-Make the scenario realistic and the options psychologically distinct.`;
-
-            const response = await Promise.race([
-                grok.chat.completions.create({
-                    model: 'grok-3',
-                    messages: [{ role: 'user', content: psychologyPrompt }],
-                    temperature: 0.9, // Higher creativity for varied scenarios
-                    max_tokens: 800,
-                }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Grok timeout (25s)')), 25000)),
-            ]);
-
-            const content = response.choices[0]?.message?.content || '';
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-            if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
-                // Ensure isPsychology flag is set
-                if (parsed.scenario) {
-                    parsed.scenario.isPsychology = true;
-                }
-                return parsed;
-            }
-
-            // Psychology fallback
-            return getHardcodedQuestion('SCENARIO', level, gameType);
-        }
-
-        // ═══════════════════════════════════════════════════════════════════
-        // PIO/CHART ENGINE: GTO Solver-Based Questions  
-        // ═══════════════════════════════════════════════════════════════════
-
-        // Get player count and format from game config
-        const playerCount = gameConfig?.players || 6;
-        const gameFormat = gameConfig?.format || '6-Max Cash';
-        const stackDepth = gameConfig?.stackDepth || '100BB';
-
-        // Map game type to readable format with accurate player count
-        const gameTypeDisplay = gameType === 'tournament'
-            ? `${playerCount === 9 ? '9-Max' : playerCount === 3 ? '3-Max' : playerCount === 2 ? 'Heads-Up' : '6-Max'} Tournament (MTT)`
-            : gameType === 'sng'
-                ? `${playerCount === 2 ? 'Heads-Up' : '3-Max'} Spin & Go`
-                : `${playerCount === 2 ? 'Heads-Up' : '6-Max'} Cash Game`;
-
-
-        const gtoPrompt = `You are a GTO poker solver expert. Generate a realistic poker training question for "${gameName}" at difficulty level ${level}/10.
-
-CRITICAL REQUIREMENTS:
-- Game Format: ${gameFormat} (${playerCount} players)
-- Stack Depth: ${stackDepth}
-- Game Type: ${gameTypeDisplay}
-${playerCount === 2 ? '- HEADS-UP: Only 2 players (BTN/SB vs BB)' : ''}
-${playerCount === 3 ? '- 3-MAX: Only 3 players (BTN, SB, BB)' : ''}
-${playerCount === 9 ? '- 9-MAX: Full ring with UTG, MP, HJ, CO, BTN, SB, BB' : ''}
-- ${gameType === 'tournament' ? 'Include ICM considerations and stack depths in BB' : ''}
-- ${gameType === 'cash' ? 'Focus on postflop play and pot geometry' : ''}
-- ${gameType === 'sng' ? 'Use hyper-turbo stack depths and aggression' : ''}
-- USE SPECIFIC REAL CARDS (e.g. "Ah", "Kd", "Ts" — not abstract notation)
-- Include a board texture with 3-5 cards (flop/turn/river)
-- Provide GTO-accurate solver-style answers with frequencies
-
-Game Context: ${gameName} | ${gameFormat} | ${playerCount}p | ${stackDepth} | Level ${level}/10
-
-Generate in this EXACT JSON format (no markdown, no code blocks):
-{
-  "id": "grok_${gameId}_${Date.now()}",
-  "type": "PIO",
-  "source": "GROK_GTO",
-  "heroCards": ["Ah", "Ks"],
-  "boardCards": ["Jh", "7s", "2d"],
-  "question": "You hold AhKs on Jh7s2d. BTN opens, BB calls. Pot is 12BB. What is the GTO play?",
-  "scenario": {
-    "heroPosition": "BTN",
-    "heroStack": 100,
-    "gameType": "${gameTypeDisplay}",
-    "heroHand": "AhKs",
-    "board": "Jh 7s 2d",
-    "street": "flop",
-    "pot": 12,
-    "villainPosition": "BB",
-    "villainStack": 100,
-    "action": "Villain checks"
-  },
-  "options": [
-    {"id": "a", "text": "Check"},
-    {"id": "b", "text": "Bet 33% pot"},
-    {"id": "c", "text": "Bet 66% pot"},
-    {"id": "d", "text": "Bet 100% pot"}
-  ],
-  "gtoFrequencies": {"a": 15, "b": 55, "c": 25, "d": 5},
-  "correctAnswer": "b",
-  "explanation": "Bet 33% is optimal: (1) Range advantage on dry board, (2) Small sizing keeps villain wide, (3) Solver c-bets 55% at this sizing."
-}
-
-IMPORTANT RULES:
-1. heroCards MUST be an array of exactly 2 card strings like ["Ah", "Ks"]
-2. boardCards MUST be an array of 3-5 card strings like ["Jh", "7s", "2d"]
-3. gtoFrequencies MUST map each option id to a percentage (totaling ~100)
-4. Use REAL card notation: rank (2-9,T,J,Q,K,A) + suit (h,d,c,s)
-5. Make it realistic for ${gameFormat}. ${playerCount === 2 ? 'HEADS-UP only BTN/SB and BB.' : ''}`;
-
-        const response = await Promise.race([
-            grok.chat.completions.create({
-                model: 'grok-3',
-                messages: [{ role: 'user', content: gtoPrompt }],
-                temperature: 0.8,
-                max_tokens: 800,
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Grok timeout (25s)')), 25000)),
-        ]);
-
-        const content = response.choices[0]?.message?.content || '';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-        if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            return enrichGrokQuestion(parsed, gameConfig, level, gameType);
-        }
-    } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.warn('[Training] ❌ Grok question generation failed:', error.message);
-    }
-
-    // Return hardcoded fallback question if Grok fails
-    return getHardcodedQuestion(engineType, level, gameType);
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// Operation Grok-Sweep (2026-05): generateQuestionWithGrok() removed.
+//
+// This was a ~180-line LLM-fallback that hallucinated training questions when
+// the deterministic engine and Supabase question cache both missed. The main
+// handler stopped calling it months ago (see Step 4 — strict engine-only
+// policy: 404 instead of synthesizing). The function had no in-tree callers
+// and its `getGrokClient` import was already commented out at the top of the
+// file, so it would have errored at runtime if ever reached.
+//
+// We are now committed to the rule: no AI hallucinations for GTO math. The
+// SCENARIO/psychology branch in /api/training/explain-answer.js is the ONLY
+// remaining LLM call for the training pipeline, and it uses grok-3-mini.
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Enrich a Grok-generated question with all GTO Wizard-level fields.
+ * Enrich a legacy cached question with all GTO Wizard-level fields.
  * Ensures heroCards, boardCards, gtoFrequencies, evData always exist.
  * This makes every question render full GTO feedback UI.
+ *
+ * NOTE (Operation Grok-Sweep, 2026-05): renamed from enrichGrokQuestion.
+ * The function does NOT call any LLM — it deterministically backfills missing
+ * fields on cached question rows that were authored before the GTO-Wizard UI
+ * fields existed. New questions never need this; only legacy cache entries do.
  */
-function enrichGrokQuestion(q, gameConfig, level, gameType) {
+function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
     if (!q) return q;
 
     const scenario = q.scenario || {};
@@ -776,7 +606,10 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
     q.scenario = scenario;
 
     // 6. Ensure source is set
-    if (!q.source) q.source = 'GROK_GTO';
+    // Operation Grok-Sweep: default tag is now CACHED_LEGACY (was GROK_GTO).
+    // Older rows already in the cache may still have q.source === 'GROK_GTO',
+    // which is fine — we don't overwrite an existing tag.
+    if (!q.source) q.source = 'CACHED_LEGACY';
 
     return q;
 }
@@ -805,112 +638,5 @@ function _getDeterministicCards(seed, count, exclude = []) {
     return available.slice(0, count);
 }
 
-/**
- * Hardcoded fallback questions when all else fails
- */
-function getHardcodedQuestion(engineType, level, gameType) {
-    const questions = {
-        PIO: [
-            {
-                id: `fallback_pio_${Date.now()}`,
-                type: 'PIO',
-                scenario: {
-                    heroPosition: 'BTN',
-                    heroStack: 100,
-                    villainPosition: 'UTG',
-                    villainStack: 100,
-                    pot: 4.5,
-                    board: '',
-                    action: 'UTG raises to 3BB',
-                    gameType: '6-Max Cash'
-                },
-                heroCards: ['Ac', 'Ks'],
-                question: 'You are on the Button with AcKs. UTG raises to 3BB. What is the optimal play?',
-                options: [
-                    { id: 'a', text: 'Fold' },
-                    { id: 'b', text: 'Call' },
-                    { id: 'c', text: '3-bet to 9BB' },
-                    { id: 'd', text: 'All-In' },
-                ],
-                correctAnswer: 'c',
-                explanation: 'AKs is a premium hand that should be 3-bet for value from the Button against a UTG open.',
-            },
-            {
-                id: `fallback_pio2_${Date.now()}`,
-                type: 'PIO',
-                scenario: {
-                    heroPosition: 'BB',
-                    heroStack: 25,
-                    villainPosition: 'BTN',
-                    villainStack: 30,
-                    pot: 4,
-                    board: '',
-                    action: 'BTN raises to 2.5BB',
-                    gameType: 'MTT'
-                },
-                heroCards: ['Qh', 'Jd'],
-                question: 'You are in the BB with 25BB. BTN opens to 2.5BB. SB folds. You have QJo. What is your play?',
-                options: [
-                    { id: 'a', text: 'Fold' },
-                    { id: 'b', text: 'Call' },
-                    { id: 'c', text: '3-bet to 8BB' },
-                    { id: 'd', text: 'All-In' },
-                ],
-                correctAnswer: 'b',
-                explanation: 'With QJo and 25BB, calling is preferred to close the action. 3-betting leaves you committed.',
-            },
-        ],
-        CHART: [
-            {
-                id: `fallback_chart_${Date.now()}`,
-                type: 'CHART',
-                scenario: {
-                    heroPosition: 'SB',
-                    heroStack: 10,
-                    villainPosition: 'BB',
-                    villainStack: 12,
-                    pot: 1.5,
-                    board: '',
-                    action: 'Folded to you',
-                    position: 'SB',
-                    stackBB: 10
-                },
-                heroCards: ['As', '5s'],
-                question: 'You have 10BB in the SB with A5s. It folds to you. Should you push or fold?',
-                options: [
-                    { id: 'a', text: 'Push' },
-                    { id: 'b', text: 'Fold' },
-                    { id: 'c', text: 'Limp' },
-                    { id: 'd', text: 'Min-raise' },
-                ],
-                correctAnswer: 'a',
-                explanation: 'A5s is a clear push from SB with 10BB according to push/fold charts.',
-            },
-        ],
-        SCENARIO: [
-            {
-                id: `fallback_scenario_${Date.now()}`,
-                type: 'SCENARIO',
-                scenario: {
-                    title: 'Tilt Management',
-                    isPsychology: true // Flag for specialized UI
-                },
-                question: 'You just lost a big pot with AA vs 72o all-in preflop. What should you do?',
-                options: [
-                    { id: 'a', text: 'Play faster to win it back' },
-                    { id: 'b', text: 'Take a 5-minute break' },
-                    { id: 'c', text: 'Move up stakes for easier games' },
-                    { id: 'd', text: 'Review the hand right now' },
-                ],
-                correctAnswer: 'b',
-                explanation: 'Taking a short break helps reset your mental state and prevents tilt-driven decisions.',
-            },
-        ],
-    };
-
-    const engineQuestions = questions[engineType] || questions.PIO;
-    const index = Math.floor(Math.random() * engineQuestions.length);
-    return engineQuestions[index];
-}
 
 // Deploy trigger Wed Jan 28 23:02:33 CST 2026

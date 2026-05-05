@@ -1,4 +1,8 @@
 
+# Editor / sandbox backup files
+*.bak
+*.orig
+
 !.venv/.gitkeep
 !.vscode/extensions.json
 !data/bravo-logs/.gitkeep
