@@ -221,3 +221,11 @@ table (or the table has been updated in a labeled commit).
 Hetzner billing alerts: configured by Dan in
 `https://console.hetzner.cloud` Billing → Usage Alerts. Agents must not
 rotate or modify alert thresholds without approval.
+
+## RULE 11 — Antigravity Auto-Reset Risk
+
+Antigravity (and potentially other auto-sync background agents) periodically runs `git reset --hard origin/main`. Any uncommitted edits OR local-only commits at the moment of that reset are silently discarded. Work is recoverable from the reflog (`git reflog`, `git stash list`, `git cherry-pick <orphan-sha>`) but only briefly. 
+
+**Run `bash scripts/git-safe-push.sh` after every meaningful change, not at end of session.** 
+
+The reflog signature of an active reset loop is repeated `reset: moving to origin/main` entries — `scripts/git-safe-push.sh` Phase 0.7 warns when ≥2 are seen in the last 50 ops.
