@@ -225,7 +225,17 @@ export function middleware(request: NextRequest) {
         '/api/poker-brain/',
     ];
 
-    const needsAuth = requiresAuthPrefix.some(prefix => pathname.startsWith(prefix));
+    // Tombstoned endpoints (Operation Grok-Sweep, 2026-05) — return 410 Gone
+    // unconditionally. Skip the JWT gate so the helpful "endpoint removed" message
+    // reaches every caller, not just authenticated ones.
+    const TOMBSTONED_PATHS = new Set<string>([
+        '/api/gto/session-recommendations',
+        '/api/gto/generate-batch',
+        '/api/gto/generate-alternate-lines',
+    ]);
+    const isTombstoned = TOMBSTONED_PATHS.has(pathname);
+
+    const needsAuth = !isTombstoned && requiresAuthPrefix.some(prefix => pathname.startsWith(prefix));
 
     if (needsAuth) {
         const authHeader = request.headers.get('authorization');
