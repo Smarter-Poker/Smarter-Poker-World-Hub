@@ -1,6 +1,22 @@
 /**
  * PVP BATTLE — Real-time 1v1 trivia battle
  * Same questions, fastest correct answer wins each round
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
+ * ╠══════════════════════════════════════════════════════════════════════════╣
+ * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. The simulated   ║
+ * ║ opponent logic below (lines 78-86: Math.random() < 0.4 to fake an        ║
+ * ║ opponent's answer) is a leftover prototype. The real production PvP      ║
+ * ║ battle runs inline in pages/hub/trivia/pvp.js, which uses Supabase       ║
+ * ║ realtime to receive the actual opponent's score. Importing this          ║
+ * ║ component would silently substitute fake opponents into the user's      ║
+ * ║ stake-bearing battles — money bug.                                       ║
+ * ║                                                                          ║
+ * ║ If you need the PvP UI, edit pages/hub/trivia/pvp.js. If you want to     ║
+ * ║ delete this file, verify with grep -rn 'PvPBattle' first; safe as of    ║
+ * ║ Phase 69.                                                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
 import React, { useState, useEffect, useRef } from 'react';

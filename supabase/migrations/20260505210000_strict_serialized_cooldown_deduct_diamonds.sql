@@ -102,9 +102,9 @@ BEGIN
 
   -- ── Ledger entry ───────────────────────────────────────────────────────
   INSERT INTO diamond_transactions
-    (user_id, amount, transaction_type, description, balance_after, metadata, reference_id, created_at)
+    (user_id, amount, transaction_type, type, description, balance_after, metadata, reference_id, created_at)
   VALUES
-    (p_user_id, -p_amount, v_effective_type, p_description, v_new_balance, p_metadata, p_reference_id, now());
+    (p_user_id, -p_amount, v_effective_type, v_effective_type, p_description, v_new_balance, p_metadata, p_reference_id, now());
 
   RETURN jsonb_build_object('success', true, 'balance', v_new_balance, 'charged', p_amount);
 END;
