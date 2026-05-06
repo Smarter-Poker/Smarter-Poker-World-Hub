@@ -59,6 +59,7 @@ import LiveStreamService from '../../../src/services/LiveStreamService';
 import ArticleCard from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
+import { SocialProfileGateForCurrentUser } from '../../../src/components/gates/SocialProfileCompletionGate';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
@@ -7164,6 +7165,7 @@ function SocialMediaPage() {
 export default function SocialMediaPageWithBoundary() {
     return (
         <HubErrorBoundary name="SocialMedia">
+            <SocialProfileGateForCurrentUser />
             <SocialMediaPage />
         </HubErrorBoundary>
     );

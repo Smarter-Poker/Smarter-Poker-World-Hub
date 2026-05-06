@@ -145,6 +145,15 @@ export default async function handler(req, res) {
               email?.split('@')[0] ||
               `Player${nextPlayerNumber}`;
 
+          // ── SOCIAL PROFILE COMPLETION GATE ──
+          // New OAuth signups (no explicit poker_alias in metadata) need to
+          // confirm name, choose a unique alias, and add a phone before
+          // entering Social Media. Email signups via /auth/signup explicitly
+          // set metadata.poker_alias and a phone, so they're complete out of the gate.
+          const hadExplicitAlias = !!(metadata?.poker_alias || metadata?.preferred_username);
+          const hadPhone         = !!(metadata?.phone || metadata?.phone_number);
+          const socialProfileCompleted = hadExplicitAlias && hadPhone;
+
           // Create the profile with all the defaults
           const { data: newProfile, error: insertError } = await getSupabase()
               .from('profiles')
@@ -154,6 +163,8 @@ export default async function handler(req, res) {
                   username: finalUsername,
                   full_name: full_name || metadata?.full_name || metadata?.poker_alias || null,
                   avatar_url: avatar_url || metadata?.avatar_url || null,
+                  phone: metadata?.phone || metadata?.phone_number || null,
+                  social_profile_completed: socialProfileCompleted,
                   player_number: nextPlayerNumber,
                   streak_count: 0,
                   diamonds: 500,        // Welcome bonus (Updated from 300 to 500)
