@@ -235,6 +235,13 @@ export default function StrategyTrivia({ mode }) {
     const MAX_LIFELINES = 3;
     const LIFELINE_COST = 5;
 
+    // Phase 68: actually-awarded amount + error message, surfaced from
+    // finishGame to the results screen so the displayed diamonds match
+    // reality when the diamond RPC fails (was always showing the
+    // calculated amount even when the balance never moved).
+    const [resultActualAwarded, setResultActualAwarded] = useState(null);
+    const [resultAwardError, setResultAwardError] = useState(null);
+
     // User data — userId from useVIP, fallback to getAuthUser
     const [localUserId, setLocalUserId] = useState(null);
     const userId = vipUserId || localUserId;
@@ -612,6 +619,11 @@ export default function StrategyTrivia({ mode }) {
         } else {
             loadQuestions();
         }
+        // Phase 68: clear last-game's award-result state so a Play Again from
+        // a previous failed-award run doesn't show the stale error banner
+        // on the next results screen.
+        setResultActualAwarded(null);
+        setResultAwardError(null);
         setGameState('playing');
         setCurrentQuestionIndex(0);
         setCorrectCount(0);
@@ -679,6 +691,7 @@ export default function StrategyTrivia({ mode }) {
         // Phase 68: track what actually got awarded so trivia_scores doesn't
         // record a false diamonds_earned and the results UI doesn't lie.
         let actualAwarded = 0;
+        let awardError = null;
         if (userId) {
             // Save score and award diamonds
             if (diamondsEarned > 0) {
@@ -702,6 +715,7 @@ export default function StrategyTrivia({ mode }) {
                     // but balance never moved. Log loudly + record 0 awarded
                     // so the score table doesn't lie.
                     console.warn('[StrategyTrivia] CRITICAL: Diamond reward RPC failed — user owed', diamondsEarned, 'diamonds:', e?.message || e);
+                    awardError = e?.message || 'Diamond award failed';
                 }
             }
 
@@ -769,6 +783,10 @@ export default function StrategyTrivia({ mode }) {
             }
         }
 
+        // Phase 68: surface actualAwarded + awardError to results screen
+        // so it shows reality, not the calculated-but-failed amount.
+        setResultActualAwarded(actualAwarded);
+        setResultAwardError(awardError);
         setGameState('results');
     }
 
@@ -1165,9 +1183,29 @@ export default function StrategyTrivia({ mode }) {
                             <div className="reward-card">
                                 <Gem size={24} />
                                 <span className="diamonds-earned">
-                                    +{calculateDiamonds(mode, correctCount, questions.length, 0)} Diamonds
+                                    {/* Phase 68: show actualAwarded if known (reality),
+                                        falls back to calculated value only if state hasn't
+                                        propagated yet (impossible after gameState=results
+                                        but defensive). */}
+                                    +{resultActualAwarded != null ? resultActualAwarded : calculateDiamonds(mode, correctCount, questions.length, 0)} Diamonds
                                 </span>
                             </div>
+                            {resultAwardError && (
+                                <div style={{
+                                    marginTop: 12,
+                                    padding: '10px 14px',
+                                    background: 'rgba(239, 68, 68, 0.12)',
+                                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                                    borderRadius: 8,
+                                    color: '#fca5a5',
+                                    fontSize: 13,
+                                    textAlign: 'center',
+                                    maxWidth: 400,
+                                    margin: '12px auto 0',
+                                }} role="alert">
+                                    Diamond reward failed to apply ({resultAwardError}). Your balance may not reflect the reward — please contact support if this persists.
+                                </div>
+                            )}
 
                             <div className="action-buttons">
                                 <button className="play-again" onClick={startGame} style={{ background: config.color }}>
