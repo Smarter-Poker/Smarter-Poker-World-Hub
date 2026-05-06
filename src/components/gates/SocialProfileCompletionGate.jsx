@@ -46,13 +46,14 @@ const COUNTRIES = [
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_.]{2,19}$/;
 
-// Format phone digits as (xxx) xxx-xxxx for +1, otherwise leave digits with spaces
+// Format phone digits as xxx-xxx-xxxx for +1 (Dan's preferred display format),
+// otherwise leave digits with spaces every 3 chars.
 function formatPhone(digits, countryCode) {
     const d = (digits || '').replace(/\D/g, '');
     if (countryCode === '+1') {
         if (d.length <= 3) return d;
-        if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
-        return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6, 10)}`;
+        if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
+        return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6, 10)}`;
     }
     return d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
 }
@@ -351,7 +352,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                     type="tel"
                                     inputMode="numeric"
                                     autoComplete="tel"
-                                    placeholder={country === '+1' ? '(555) 123-4567' : '5551234567'}
+                                    placeholder={country === '+1' ? '555-123-4567' : '5551234567'}
                                     value={formatPhone(phoneDigits, country)}
                                     onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, '').slice(0, 15))}
                                     maxLength={20}

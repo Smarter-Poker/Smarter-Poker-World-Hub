@@ -171,13 +171,14 @@ function ProfileCompletionBar({ profile }) {
     return (
         <div style={{
             background: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 16,
-            border: '1px solid #DADDE1'
+            border: '1px solid #DADDE1',
+            width: '100%', boxSizing: 'border-box'
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#050505' }}>Profile Strength</span>
                 <span style={{ fontSize: 14, fontWeight: 800, color: barColor }}>{percent}%</span>
             </div>
-            <div style={{ height: 8, background: '#E4E6EB', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: 8, background: '#E4E6EB', borderRadius: 4, overflow: 'hidden', width: '100%' }}>
                 <div style={{
                     height: '100%', width: `${percent}%`, borderRadius: 4,
                     background: `linear-gradient(90deg, ${barColor}, ${barColor}aa)`,
@@ -2037,7 +2038,7 @@ export default function ProfilePage() {
                     <CollapsibleSection id="sec-social" title="Contact & Social" icon="🔗">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Email" value={profile.email} onChange={updateField('email')} type="email" placeholder="you@example.com" icon="✉️" maxLength={100} />
-                            <ProfileField label="Phone" value={profile.phone} onChange={updateField('phone')} type="tel" placeholder="+1 555 123 4567" icon="📱" maxLength={20} />
+                            <ProfileField label="Phone" value={profile.phone} onChange={updateField('phone')} type="tel" placeholder="555-123-4567" icon="📱" maxLength={20} />
                             <ProfileField label="Website" value={profile.website} onChange={updateField('website')} placeholder="https://yoursite.com" icon="🌐" maxLength={200} />
                             <ProfileField label="Twitter/X" value={profile.twitter} onChange={updateField('twitter')} placeholder="Username" icon="𝕏" maxLength={100} />
                             <ProfileField label="Instagram" value={profile.instagram} onChange={updateField('instagram')} placeholder="Username" icon="📸" maxLength={100} />
