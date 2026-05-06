@@ -255,26 +255,40 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         }
     };
 
-    // Handle charge popup acceptance
+    // Handle charge popup acceptance.
+    // Phase 70: was missing a synchronous re-entry guard at the handler
+    // boundary — `disabled={isDeducting}` on the button doesn't help during
+    // the same React batch, and `_deductInFlightRef` blocks the SECOND
+    // deductDiamonds call (correct), but causes the second handleChargeAccept
+    // to see success=false and trigger the top-up popup, falsely telling
+    // the user they're out of diamonds AFTER a successful charge. A
+    // dedicated ref at the handler level avoids the misleading UX.
+    const _chargeAcceptInFlightRef = useRef(false);
     const handleChargeAccept = async () => {
+        if (_chargeAcceptInFlightRef.current) return;
+        _chargeAcceptInFlightRef.current = true;
         setIsDeducting(true);
-        const success = await deductDiamonds(pendingMode);
-        setIsDeducting(false);
-        if (success) {
-            // Mark as acknowledged — popup never shows again
-            try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            // Signal downstream pages that payment was already made
-            try {
-                sessionStorage.setItem('trivia_paid', 'true');
-                sessionStorage.setItem('trivia_mode', pendingMode);
-            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            setShowChargePopup(false);
-            routeToMode(pendingMode);
-            setPendingMode(null);
-        } else {
-            // Deduction failed (insufficient) — show top-up
-            setShowChargePopup(false);
-            setShowTopUpPopup(true);
+        try {
+            const success = await deductDiamonds(pendingMode);
+            if (success) {
+                // Mark as acknowledged — popup never shows again
+                try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                // Signal downstream pages that payment was already made
+                try {
+                    sessionStorage.setItem('trivia_paid', 'true');
+                    sessionStorage.setItem('trivia_mode', pendingMode);
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                setShowChargePopup(false);
+                routeToMode(pendingMode);
+                setPendingMode(null);
+            } else {
+                // Deduction failed (insufficient) — show top-up
+                setShowChargePopup(false);
+                setShowTopUpPopup(true);
+            }
+        } finally {
+            setIsDeducting(false);
+            _chargeAcceptInFlightRef.current = false;
         }
     };
 
