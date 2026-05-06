@@ -1,4 +1,5 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -7,6 +8,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
     
     const { stream_id } = req.query;
     if (!stream_id) return res.status(400).json({ error: 'stream_id required' });

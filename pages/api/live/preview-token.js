@@ -6,6 +6,7 @@
  * Token is read-only (canPublish: false) with a 5-minute TTL.
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,6 +15,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     const { room } = req.query;
     if (!room) return res.status(400).json({ error: 'room required' });

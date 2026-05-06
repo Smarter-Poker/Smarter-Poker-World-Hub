@@ -34,7 +34,8 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      const { user_id, email, full_name, username, avatar_url, metadata } = req.body;
+      let { email } = req.body;
+      const { user_id, full_name, username, avatar_url, metadata } = req.body;
 
       if (!user_id) {
           return res.status(400).json({ error: 'Missing user_id' });
