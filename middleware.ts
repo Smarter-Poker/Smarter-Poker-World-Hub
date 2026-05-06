@@ -232,6 +232,9 @@ export function middleware(request: NextRequest) {
         '/api/gto/session-recommendations',
         '/api/gto/generate-batch',
         '/api/gto/generate-alternate-lines',
+        '/api/training/generate-batch-questions',
+        '/api/training/test-generate',
+        '/api/training/generate-infinite',
     ]);
     const isTombstoned = TOMBSTONED_PATHS.has(pathname);
 
