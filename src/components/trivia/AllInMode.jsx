@@ -3,7 +3,7 @@
  * Stake your diamonds, 10-question quiz, 2x payout on 80%+
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Gem, AlertTriangle, Check, X, Zap, Target } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
@@ -31,6 +31,29 @@ export default function AllInMode({
     const [gameOver, setGameOver] = useState(false);
     const [answers, setAnswers] = useState([]);
 
+    // Phase 69: track pending setTimeouts so unmount cancels them. Without
+    // this the 1-second reveal-and-advance setTimeout fired setState on
+    // an unmounted component if the user navigated away mid-question.
+    // Also a completedRef guard so the Continue button can't double-fire
+    // onComplete on a fast double-click (which would double-credit /
+    // double-deduct via the parent's handler).
+    const _pendingTimeoutsRef = useRef(new Set());
+    const _isMountedRef = useRef(true);
+    const _completedRef = useRef(false);
+    const safeSetTimeout = (fn, delay) => {
+        const id = setTimeout(() => {
+            _pendingTimeoutsRef.current.delete(id);
+            if (_isMountedRef.current) fn();
+        }, delay);
+        _pendingTimeoutsRef.current.add(id);
+        return id;
+    };
+    useEffect(() => () => {
+        _isMountedRef.current = false;
+        for (const id of _pendingTimeoutsRef.current) clearTimeout(id);
+        _pendingTimeoutsRef.current.clear();
+    }, []);
+
     const currentQuestion = questions[currentIndex];
     const progress = (currentIndex / QUESTIONS_COUNT) * 100;
     const needCorrect = Math.ceil(QUESTIONS_COUNT * WIN_THRESHOLD);
@@ -47,7 +70,10 @@ export default function AllInMode({
         const isCorrect = answerIndex === currentQuestion.correct_index;
         setAnswers(prev => [...prev, { questionIndex: currentIndex, correct: isCorrect }]);
 
-        setTimeout(() => {
+        // Phase 69: safeSetTimeout instead of setTimeout — was firing
+        // setState/stage transitions on an unmounted component when user
+        // navigated away mid-question.
+        safeSetTimeout(() => {
             if (isCorrect) {
                 setCorrectCount(prev => prev + 1);
             }
@@ -55,7 +81,6 @@ export default function AllInMode({
             // Check if game should end
             const newWrongCount = wrongCount + (isCorrect ? 0 : 1);
             const newCorrectCount = correctCount + (isCorrect ? 1 : 0);
-            const questionsRemaining = QUESTIONS_COUNT - currentIndex - 1;
 
             // Can't possibly win anymore
             if (newWrongCount > maxWrong) {
@@ -95,6 +120,13 @@ export default function AllInMode({
     };
 
     const handleComplete = () => {
+        // Phase 69: completedRef guard prevents double-fire of onComplete
+        // on a fast double-click of the Continue button. Parent's
+        // onComplete may credit/deduct diamonds; firing twice could
+        // double-credit on win or double-deduct on bust.
+        if (_completedRef.current) return;
+        _completedRef.current = true;
+
         const won = correctCount >= needCorrect;
         const payout = won
             ? Math.floor(stakeAmount * PAYOUT_MULTIPLIER * (1 - HOUSE_EDGE))
