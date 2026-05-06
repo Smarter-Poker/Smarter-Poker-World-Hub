@@ -1183,8 +1183,13 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         const mistakes = mistakeQuestionsRef.current;
         if (!mistakes || mistakes.length === 0) return;
 
-        // Shuffle mistake questions for varied practice
-        const shuffled = [...mistakes].sort(() => Math.random() - 0.5);
+        // Shuffle mistake questions for varied practice.
+        // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+        const shuffled = [...mistakes];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
 
         setQuestionNumber(1);
         setCorrectCount(0);

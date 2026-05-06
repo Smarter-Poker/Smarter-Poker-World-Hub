@@ -63,7 +63,13 @@ export default function QuizModeEngine() {
 
   // Start quiz
   const startQuiz = useCallback(() => {
-    const shuffled = [...QUESTION_BANK].sort(() => Math.random() - 0.5).slice(0, difficulty.questions);
+    // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+    const _bank = [...QUESTION_BANK];
+    for (let i = _bank.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [_bank[i], _bank[j]] = [_bank[j], _bank[i]];
+    }
+    const shuffled = _bank.slice(0, difficulty.questions);
     setQuestions(shuffled);
     setCurrentQ(0);
     setSelected(null);

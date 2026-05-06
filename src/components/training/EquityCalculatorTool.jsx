@@ -96,8 +96,15 @@ function runEquitySim(playerHands, boardCards, iterations = 5000) {
   const cardsNeeded = 5 - boardCards.length;
 
   for (let i = 0; i < iterations; i++) {
-    // Random remaining board cards
-    const shuffled = [...deck].sort(() => Math.random() - 0.5);
+    // Random remaining board cards.
+    // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5) —
+    // this is a Monte Carlo equity simulation; biased shuffles tilted the
+    // sampled runouts toward certain card orderings, skewing the equity %.
+    const shuffled = [...deck];
+    for (let k = shuffled.length - 1; k > 0; k--) {
+      const j = Math.floor(Math.random() * (k + 1));
+      [shuffled[k], shuffled[j]] = [shuffled[j], shuffled[k]];
+    }
     const runout = [...boardCards, ...shuffled.slice(0, cardsNeeded)];
 
     // Evaluate each player

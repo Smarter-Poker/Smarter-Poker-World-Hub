@@ -781,9 +781,14 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
             continue;
         }
 
-        // Pick 1-3 random posts for this horse to like
+        // Pick 1-3 random posts for this horse to like.
+        // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
         const numToLike = 1 + Math.floor(Math.random() * 3);
-        const shuffledPosts = posts.filter(p => p.author_id !== horse.profile_id).sort(() => Math.random() - 0.5);
+        const shuffledPosts = posts.filter(p => p.author_id !== horse.profile_id);
+        for (let i = shuffledPosts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledPosts[i], shuffledPosts[j]] = [shuffledPosts[j], shuffledPosts[i]];
+        }
 
         for (let i = 0; i < numToLike && liked < maxLikes; i++) {
             const post = shuffledPosts[i];

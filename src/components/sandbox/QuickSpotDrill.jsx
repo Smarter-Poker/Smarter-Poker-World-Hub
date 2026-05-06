@@ -58,9 +58,13 @@ export default function QuickSpotDrill({ onClose, customParams }) {
                 const json = await res.json();
                 // If we get pool data, use it — otherwise generate mock scenarios
                 if (json.pool && json.pool.length > 0) {
-                    // Shuffle and take 10
-                    const shuffled = [...json.pool].sort(() => Math.random() - 0.5).slice(0, 10);
-                    setQuestions(shuffled);
+                    // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+                    const _arr = [...json.pool];
+                    for (let i = _arr.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [_arr[i], _arr[j]] = [_arr[j], _arr[i]];
+                    }
+                    setQuestions(_arr.slice(0, 10));
                 } else if (json.question) {
                     setQuestions([json.question]);
                 }

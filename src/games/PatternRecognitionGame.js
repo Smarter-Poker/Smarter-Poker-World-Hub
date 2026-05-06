@@ -42,7 +42,12 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         const solution = scenario.solution || {};
         const hands = Object.keys(solution || {});
         const visibleCount = Math.floor(hands.length * 0.7);
-        const shuffled = hands.sort(() => Math.random() - 0.5);
+        // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+        const shuffled = [...hands];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
         const visibleHands = shuffled.slice(0, visibleCount);
         const actionCounts = { raise: 0, call: 0, fold: 0 };
         Object.values(solution || {}).forEach(action => { if (actionCounts[action] !== undefined) actionCounts[action]++; });

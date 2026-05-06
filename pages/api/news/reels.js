@@ -103,9 +103,14 @@ export default async function handler(req, res) {
               };
           });
 
-          // Shuffle if random sort requested
+          // Shuffle if random sort requested.
+          // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5)
+          // (some permutations 2x more likely; visible in feed-rank skew over time).
           if (sort === 'random') {
-              result = result.sort(() => Math.random() - 0.5);
+              for (let i = result.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [result[i], result[j]] = [result[j], result[i]];
+              }
           }
 
           res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
