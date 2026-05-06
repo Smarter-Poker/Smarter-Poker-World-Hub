@@ -54,7 +54,12 @@ export default function GhostOpponent({
     // Use real community accuracy if available, otherwise 55% default
     const accuracy = realAccuracy != null ? Math.max(0.35, Math.min(0.75, realAccuracy)) : 0.55;
 
-    // Simulate opponent answering each question
+    // Simulate opponent answering each question.
+    // Phase 69: track inner reaction-hide setTimeout so it gets cleared
+    // alongside the outer timer on unmount/dep-change. Was previously
+    // firing setShowReaction(false) on an unmounted component when user
+    // navigated away mid-reaction-flash.
+    const reactionHideTimerRef = useRef(null);
     useEffect(() => {
         if (!isGameActive || answeredQuestionsRef.current.has(currentQuestionIndex)) return;
 
@@ -74,11 +79,15 @@ export default function GhostOpponent({
             setOpponentAnswered(true);
             setShowReaction(true);
 
-            // Hide reaction after 1.5s
-            setTimeout(() => setShowReaction(false), 1500);
+            // Hide reaction after 1.5s — tracked in ref so cleanup can clear.
+            if (reactionHideTimerRef.current) clearTimeout(reactionHideTimerRef.current);
+            reactionHideTimerRef.current = setTimeout(() => setShowReaction(false), 1500);
         }, delay);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            if (reactionHideTimerRef.current) clearTimeout(reactionHideTimerRef.current);
+        };
     }, [currentQuestionIndex, isGameActive]);
 
     // Report final score + name when game ends
