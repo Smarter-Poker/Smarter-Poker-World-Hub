@@ -539,6 +539,128 @@ async function resetStaleProcessing(reason = 'periodic_stale_reset') {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// Cookie-recovery self-healer — runs once every COOKIE_RECOVERY_INTERVAL.
+//
+// Problem: cookie/auth failures are classified PERMANENT (M7.6) so the worker
+// broadcasts iframe-forever to siblings to clear the queue. But cookies are
+// recoverable — when a fresh authenticated cookies.txt arrives on the box
+// (via deploy-yt-cookies.yml or the local launchd refresh), the previously-
+// flagged-permanent reels can convert successfully. They just need someone
+// to put them back in the queue.
+//
+// This function does that automatically:
+//   1. Confirm cookies are healthy NOW: a successful conversion has happened
+//      MORE RECENTLY than the latest cookie-auth failure.
+//   2. Find reels that were broadcast iframe-forever during the broken
+//      window AND have an `original_youtube_url` (i.e., came through the
+//      YouTube pipeline, are convertible).
+//   3. Reset them: video_url ← original_youtube_url, source_type='youtube',
+//      media_status='queued', thumbnail_url=NULL.
+//   4. INSERT new transcode jobs for distinct URLs (deduped against any
+//      live job).
+//
+// Throttled to once per COOKIE_RECOVERY_INTERVAL_MS (15 min) so it doesn't
+// hammer DB. Idempotent — re-running is safe.
+// ════════════════════════════════════════════════════════════════════════════
+const COOKIE_RECOVERY_INTERVAL_MS = 15 * 60 * 1000;
+let lastCookieRecoveryAt = 0;
+
+async function cookieRecoverySweep() {
+  if (Date.now() - lastCookieRecoveryAt < COOKIE_RECOVERY_INTERVAL_MS) return;
+  lastCookieRecoveryAt = Date.now();
+
+  // 1. Confirm cookies are healthy: latest success > latest cookie failure
+  const { data: lastSuccess } = await supa.from('video_transcode_jobs')
+    .select('completed_at')
+    .eq('status', 'completed').eq('source_type', 'youtube')
+    .order('completed_at', { ascending: false }).limit(1).maybeSingle();
+  if (!lastSuccess?.completed_at) return; // No conversions yet, nothing to compare
+
+  const { data: lastCookieFail } = await supa.from('video_transcode_jobs')
+    .select('completed_at')
+    .eq('status', 'failed').eq('source_type', 'youtube')
+    .or('error_message.ilike.%cookies-from-browser%,error_message.ilike.%cookies for the authentication%,error_message.ilike.%Sign in to confirm%')
+    .order('completed_at', { ascending: false }).limit(1).maybeSingle();
+
+  // No cookie failures ever, or last failure pre-dates last success → cookies healthy
+  if (lastCookieFail?.completed_at && new Date(lastCookieFail.completed_at) >= new Date(lastSuccess.completed_at)) {
+    // Cookies are still broken (most-recent failure is newer than most-recent success)
+    return;
+  }
+
+  // 2. Find candidate reels: in 'ready' state, video_url is YouTube, has
+  // original_youtube_url. NOT a member-only / private / region-locked
+  // permanent — to detect those we'd need failure history per URL, but a
+  // benign retry is cheap (worst case it fails permanent again).
+  const { data: candidates } = await supa.from('social_reels')
+    .select('id, author_id, original_youtube_url')
+    .eq('media_status', 'ready')
+    .ilike('video_url', '%youtube%')
+    .not('original_youtube_url', 'is', null)
+    .limit(500);
+  if (!candidates?.length) return;
+
+  // 3. Reset eligible reels back to 'queued'. Only the ones whose latest
+  // failure was a cookie-auth failure — others (members-only / private /
+  // region) should stay iframe-forever.
+  const recoverable = [];
+  for (const r of candidates) {
+    const { data: job } = await supa.from('video_transcode_jobs')
+      .select('error_message,status')
+      .or(`youtube_url.eq.${r.original_youtube_url},source_url.eq.${r.original_youtube_url}`)
+      .order('completed_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
+    if (!job) continue;
+    const wasCookieFail = job.status === 'failed' && /cookies-from-browser|cookies for the authentication|Sign in to confirm/i.test(job.error_message || '');
+    if (wasCookieFail) recoverable.push(r);
+  }
+
+  if (!recoverable.length) return;
+  log(`cookie-recovery: ${recoverable.length} reel(s) eligible — re-queueing`);
+
+  // Reset reel state
+  await supa.from('social_reels').update({
+    media_status: 'queued',
+    source_type: 'youtube',
+  }).in('id', recoverable.map((r) => r.id));
+
+  // We need to also revert video_url. supabase-js doesn't allow per-row
+  // updates in a single .update() call, so set video_url=original_youtube_url
+  // for each reel via a small batched loop.
+  for (const r of recoverable) {
+    await supa.from('social_reels').update({
+      video_url: r.original_youtube_url,
+      thumbnail_url: null,
+    }).eq('id', r.id);
+  }
+
+  // INSERT one job per distinct URL (the trigger only fires on INSERT not UPDATE)
+  const seen = new Set();
+  let inserted = 0;
+  for (const r of recoverable) {
+    if (seen.has(r.original_youtube_url)) continue;
+    seen.add(r.original_youtube_url);
+
+    // Skip if a live job already exists for this URL (race safety — the
+    // partial unique index also enforces this at row-level)
+    const { data: existing } = await supa.from('video_transcode_jobs')
+      .select('id').eq('source_type', 'youtube')
+      .or(`youtube_url.eq.${r.original_youtube_url},source_url.eq.${r.original_youtube_url}`)
+      .in('status', ['queued', 'processing']).limit(1).maybeSingle();
+    if (existing) continue;
+
+    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
+      reel_id: r.id, user_id: r.author_id,
+      source_url: r.original_youtube_url,
+      youtube_url: r.original_youtube_url,
+      source_type: 'youtube', status: 'queued',
+      target_format: 'h264_1080p', target_bitrate: 2500000,
+    });
+    if (!insErr) inserted++;
+  }
+  log(`cookie-recovery: enqueued ${inserted} new job(s) across ${seen.size} distinct URL(s)`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Main loop — adaptive polling. Fast (5s) when jobs are flowing, slow (60s)
 // when the queue is idle. Saves wasted DB roundtrips during quiet hours.
 // ════════════════════════════════════════════════════════════════════════════
@@ -553,6 +675,10 @@ await resetStaleProcessing('worker_startup');
 async function pollLoop() {
   try {
     await resetStaleProcessing();   // periodic: every tick, catches cross-worker orphans
+    // Cookie-recovery sweep — throttled internally to once / 15 min. Only
+    // mutates state when latest successful conversion is more recent than
+    // latest cookie-auth failure (i.e., cookies have been refreshed).
+    cookieRecoverySweep().catch((e) => warn('cookie-recovery error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
