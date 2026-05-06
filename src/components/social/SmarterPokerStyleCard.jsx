@@ -168,10 +168,20 @@ export const CreatePostBox = ({ user, onPost }) => (
 // we auto-play the video ONLY when it's >50% visible, and pause it when scrolled
 // away. This exactly matches the Reels playback behavior (which the user confirmed
 // works) AND prevents the OOM crashes that happen if 20 videos play simultaneously.
+// CHUNK-BUST-2026-05-06-A: bumping a literal string here so Vercel's build
+// cache stops reusing the pre-fix bundle and ships the first-frame fallback
+// + thumb-fallback chain that DID land in source but never reached the wire.
+// (When FeedVideoPlayer mounts in dev only this logs once; production minifies
+// the if-block away because process.env.NODE_ENV is inlined.)
+const _FEED_VIDEO_PLAYER_BUILD_TAG = 'sp-feed-video-2026-05-06A';
 export const FeedVideoPlayer = ({ src }) => {
     const videoRef = useRef(null);
 
     useEffect(() => {
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+            // eslint-disable-next-line no-console
+            console.debug('[FeedVideoPlayer]', _FEED_VIDEO_PLAYER_BUILD_TAG, 'mounted', src?.slice(0, 60));
+        }
         const video = videoRef.current;
         if (!video) return;
 
