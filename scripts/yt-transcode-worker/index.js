@@ -539,6 +539,83 @@ async function resetStaleProcessing(reason = 'periodic_stale_reset') {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// Orphaned-queued sweep — finds reels stuck in media_status='queued' for
+// over 5 minutes with no live transcode job. This happens when:
+//   - A bulk SQL UPDATE moved reels to 'queued' but the queue trigger only
+//     fires on INSERT, so no jobs were created.
+//   - A previous job's permanent-failure broadcast went stale.
+//   - Manual ops re-queues that didn't go through the INSERT path.
+//
+// One-shot recovery: INSERT a fresh transcode job per distinct URL
+// (deduped via the partial unique index). The worker picks them up on
+// the next claim cycle.
+//
+// Throttled to once / ORPHAN_SWEEP_INTERVAL_MS (5 min). Cheap query;
+// safe to run every tick if needed.
+// ════════════════════════════════════════════════════════════════════════════
+const ORPHAN_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+let lastOrphanSweepAt = 0;
+
+async function orphanedQueuedSweep() {
+  if (Date.now() - lastOrphanSweepAt < ORPHAN_SWEEP_INTERVAL_MS) return;
+  lastOrphanSweepAt = Date.now();
+
+  // Find reels that have been 'queued' >5 min but have no live job for
+  // their video_url (delay prevents thrashing on legitimate insert races).
+  const minAgeIso = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data: orphans } = await supa.from('social_reels')
+    .select('id, author_id, video_url, updated_at')
+    .eq('media_status', 'queued')
+    .eq('source_type', 'youtube')
+    .ilike('video_url', '%youtube%')
+    .lt('updated_at', minAgeIso)
+    .limit(500);
+  if (!orphans?.length) return;
+
+  // Batch-fetch live jobs for those URLs in one query
+  const urls = Array.from(new Set(orphans.map((o) => o.video_url)));
+  const { data: liveJobs } = await supa.from('video_transcode_jobs')
+    .select('youtube_url')
+    .eq('source_type', 'youtube')
+    .in('youtube_url', urls)
+    .in('status', ['queued', 'processing', 'completed']);
+  const haveLiveJob = new Set((liveJobs || []).map((j) => j.youtube_url));
+
+  // Filter to actual orphans (no live job for their URL)
+  const trulyOrphaned = orphans.filter((o) => !haveLiveJob.has(o.video_url));
+  if (!trulyOrphaned.length) {
+    log(`orphan-sweep: ${orphans.length} candidates checked, all have live jobs (no action)`);
+    return;
+  }
+
+  log(`orphan-sweep: ${trulyOrphaned.length} reel(s) without live job — inserting jobs`);
+
+  // INSERT one job per distinct URL, tolerate unique-violation races
+  const seen = new Set();
+  let inserted = 0;
+  let skipped = 0;
+  for (const o of trulyOrphaned) {
+    if (seen.has(o.video_url)) continue;
+    seen.add(o.video_url);
+
+    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
+      reel_id: o.id, user_id: o.author_id,
+      source_url: o.video_url,
+      youtube_url: o.video_url,
+      source_type: 'youtube', status: 'queued',
+      target_format: 'h264_1080p', target_bitrate: 2500000,
+    });
+    if (insErr) {
+      if (insErr.code === '23505') skipped++;       // race against another insert
+      else warn(`orphan-sweep: insert failed for ${o.video_url}: ${insErr.message}`);
+    } else {
+      inserted++;
+    }
+  }
+  log(`orphan-sweep: enqueued ${inserted} job(s); skipped ${skipped} (race)`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Cookie-recovery self-healer — runs once every COOKIE_RECOVERY_INTERVAL.
 //
 // Problem: cookie/auth failures are classified PERMANENT (M7.6) so the worker
@@ -699,10 +776,14 @@ await resetStaleProcessing('worker_startup');
 async function pollLoop() {
   try {
     await resetStaleProcessing();   // periodic: every tick, catches cross-worker orphans
-    // Cookie-recovery sweep — throttled internally to once / 15 min. Only
-    // mutates state when latest successful conversion is more recent than
-    // latest cookie-auth failure (i.e., cookies have been refreshed).
+    // Self-healing sweeps — both throttled internally:
+    //   - cookieRecoverySweep: once / 15 min, only mutates when cookies have
+    //     recovered since the last cookie-auth failure cluster.
+    //   - orphanedQueuedSweep: once / 5 min, INSERTs jobs for reels stuck
+    //     in 'queued' state with no live transcode job (typically from bulk
+    //     SQL updates that bypassed the INSERT trigger).
     cookieRecoverySweep().catch((e) => warn('cookie-recovery error:', e?.message));
+    orphanedQueuedSweep().catch((e) => warn('orphan-sweep error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
