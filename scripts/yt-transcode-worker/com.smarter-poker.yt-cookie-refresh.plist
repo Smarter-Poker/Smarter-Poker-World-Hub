@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Smarter Poker — YouTube Cookie Refresh launchd plist
+  ====================================================
+
+  Runs the LOCAL cookie-refresh script every 3 hours from the user's mac.
+  This is REQUIRED because Google blocks automated login from datacenter
+  IPs (the GitHub Actions runner pool, the Hetzner worker box). The mac's
+  residential IP passes Google's trust checks, so camoufox/scrapling can
+  successfully log in here, harvest authenticated cookies, scp them to
+  Hetzner, restart the worker, and re-queue any reels that failed during
+  the previous outage.
+
+  Install with:
+      bash scripts/yt-transcode-worker/install-cookie-refresh-launchd.sh
+
+  Verify it loaded:
+      launchctl list | grep yt-cookie
+
+  Inspect runs:
+      tail -f scripts/yt-transcode-worker/cookie-refresh.log
+
+  Trigger a one-off refresh on demand:
+      launchctl kickstart -k gui/$(id -u)/com.smarter-poker.yt-cookie-refresh
+
+  Uninstall:
+      launchctl unload ~/Library/LaunchAgents/com.smarter-poker.yt-cookie-refresh.plist
+      rm ~/Library/LaunchAgents/com.smarter-poker.yt-cookie-refresh.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.smarter-poker.yt-cookie-refresh</string>
+
+  <!-- Bash + the in-repo refresh script -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>cd "$HOME/Documents/Smarter-Poker-World-Hub" &amp;&amp; bash scripts/yt-transcode-worker/refresh-cookies-local.sh</string>
+  </array>
+
+  <!-- 10800 = 3 hours (matches the 24h YouTube session expiry comfortably) -->
+  <key>StartInterval</key>
+  <integer>10800</integer>
+
+  <!-- Run once at load (so a fresh login / mac reboot pushes auth to Hetzner immediately) -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Don't burn battery / wake the mac on AC if it's asleep — defer until next wake -->
+  <key>StandardOutPath</key>
+  <string>/tmp/sp-yt-cookie-refresh.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/sp-yt-cookie-refresh.stderr.log</string>
+
+  <!-- Make sure the script can find Homebrew binaries (python3, scp, ssh) -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+</dict>
+</plist>

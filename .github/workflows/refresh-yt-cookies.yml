@@ -81,17 +81,34 @@ jobs:
           HOST: ${{ secrets.HETZNER_HOST }}
           USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
         run: |
+          # 2026-05-06: dropped the trailing `|| true` from yt-dlp probe.
+          # Today's incident was caused by THIS exact silent-success: the
+          # camoufox harvest produced anonymous cookies (no LOGIN_INFO),
+          # the probe failed with "Sign in to confirm you're not a bot",
+          # but `|| true` swallowed the error and the workflow reported
+          # success — masking the broken cookies for hours and dropping
+          # 2,344 reels into iframe-forever via the broadcast logic.
+          #
+          # Now: probe failure (no formats found / sign-in required /
+          # any non-zero exit) fails the workflow loudly. Also explicitly
+          # check `has LOGIN_INFO: 1` and fail early if anonymous-only.
           ssh "$USER@$HOST" '
+            set -e
             echo "--- file stat ---"
             sudo ls -la /opt/smarter-poker/yt-transcode-worker/cookies.txt
             echo "lines: $(sudo wc -l < /opt/smarter-poker/yt-transcode-worker/cookies.txt)"
             echo "yt-entries: $(sudo grep -c "\.youtube\.com" /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
-            echo "has LOGIN_INFO: $(sudo grep -cw LOGIN_INFO /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
-            echo "--- yt-dlp probe (public video) ---"
+            LOGIN_INFO_COUNT=$(sudo grep -cw LOGIN_INFO /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)
+            echo "has LOGIN_INFO: $LOGIN_INFO_COUNT"
+            if [ "$LOGIN_INFO_COUNT" -lt 1 ]; then
+              echo "::error::cookies.txt missing LOGIN_INFO — anonymous-only harvest. Refusing."
+              exit 2
+            fi
+            echo "--- yt-dlp probe (public video, must succeed) ---"
             yt-dlp --cookies /opt/smarter-poker/yt-transcode-worker/cookies.txt \
                    --skip-download \
                    --print "%(title)s | %(uploader)s | %(duration)s" \
-                   "https://www.youtube.com/watch?v=jNQXAC9IVRw" 2>&1 | tail -10 || true
+                   "https://www.youtube.com/watch?v=jNQXAC9IVRw"
           '
 
       - name: Tail worker logs (worker auto-restarted by service)
