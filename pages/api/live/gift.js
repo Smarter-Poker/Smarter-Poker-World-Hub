@@ -216,24 +216,6 @@ export default async function handler(req, res) {
             console.warn('[live/gift] Deduction failed:', deductErr.message);
             return res.status(500).json({ error: 'Gift failed due to a network error. Please try again.' });
         }
-        let refundSender = null;
-        let creditSuccess = false;
-
-        // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)
-        const { data: deductResult, error: deductErr } = await supabase.rpc('deduct_diamonds', {
-            p_user_id:          user.id,
-            p_amount:           parsedAmount,
-            p_description:      `Live gift to broadcaster`,
-            p_transaction_type: 'live_gift_sent',
-            p_metadata:         { recipient_id: receiver_id },
-            p_reference_id:     `live_gift_deduct_${giftId}`,
-            p_cooldown_seconds: 1,
-        });
-
-        if (deductErr) {
-            console.warn('[live/gift] Deduction RPC network error:', deductErr.message);
-            return res.status(500).json({ error: 'Gift failed due to network error. Please try again.' });
-        }
         if (deductResult && !deductResult.success) {
             return res.status(400).json({
                 error: deductResult.error || 'Insufficient diamonds',
@@ -282,8 +264,6 @@ export default async function handler(req, res) {
             console.warn('[live/gift] Credit returned success:false (refunded sender):', creditResult);
             return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
         }
-
-        creditSuccess = true;
 
         creditSuccess = true;
 
