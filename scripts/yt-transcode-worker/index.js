@@ -228,51 +228,36 @@ async function processJob(job) {
     }
     log(`  Downloaded ${(rawStat.size / 1_048_576).toFixed(1)} MB`);
 
-    // ── 2. Lossless remux first; fall back to high-quality re-encode ────────
+    // ── 2. Always re-encode at HQ to H.264 ─────────────────────────────────
     //
-    // Quality root cause (caught 2026-05-06): the previous step did a full
-    // libx264 re-encode at preset=fast / crf=23 / profile=main, which on
-    // 1080p vertical content produced ~1 Mbps output — well below TikTok/IG
-    // baselines (4-6 Mbps) and a visible quality regression vs. YouTube's
-    // own ~3-5 Mbps source.
+    // History: prior versions tried stream-copy first to avoid double-encoding,
+    // but the codec-agnostic format selector picks AV1 1080p (most efficient
+    // codec). Stream-copying AV1 at YouTube's native ~0.5-0.75 Mbps gives
+    // outputs that (a) are below browser playback compatibility for some
+    // devices, (b) look low-res to viewers despite AV1's bitrate efficiency.
     //
-    // Strategy:
-    //   1. Stream-copy (-c copy + faststart). Lossless. Runs in <1s. Works
-    //      whenever yt-dlp delivered avc1 video + aac audio in an MP4
-    //      container (which is what our format selector now prefers).
-    //   2. If copy fails (codec is VP9/AV1, container quirks, etc.), fall
-    //      back to a HIGH-quality re-encode: preset=slow, crf=18, high
-    //      profile, level 4.1, 192k AAC. Visually lossless on YouTube
-    //      sources, still web-safe.
-    let usedRemux = false;
-    try {
-      await runProcess('ffmpeg', [
-        '-y', '-hide_banner', '-loglevel', 'error',
-        '-i', rawFile,
-        '-c', 'copy',
-        '-movflags', '+faststart',
-        outFile,
-      ], 60_000);
-      usedRemux = true;
-    } catch (copyErr) {
-      // Stream copy failed — fall through to a quality re-encode.
-      warn(`  stream-copy failed (${copyErr.message?.slice(0, 80)}) — re-encoding`);
-      const SCALE_1080P =
-        "scale='if(gt(iw,ih), min(1920,iw), -2)':'if(gt(iw,ih), -2, min(1920,ih))'";
-      await runProcess('ffmpeg', [
-        '-y', '-hide_banner', '-loglevel', 'error',
-        '-i', rawFile,
-        '-vf', SCALE_1080P,
-        '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
-        '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
-        '-c:a', 'aac', '-b:a', '192k',
-        '-movflags', '+faststart',
-        outFile,
-      ], FFMPEG_TIMEOUT);
-    }
+    // Always re-encoding at preset=slow / crf=18 / profile=high / level=4.1
+    // / 192k AAC produces ~5-8 Mbps H.264 1080p output — universally
+    // browser-playable, visually high quality, and consistent regardless
+    // of source codec (H.264 / VP9 / AV1).
+    //
+    // Cost: ~10-30s per video on Hetzner CPU. Worker concurrency 3 + 600s
+    // ffmpeg timeout per job → comfortable headroom even for outliers.
+    const SCALE_1080P =
+      "scale='if(gt(iw,ih), min(1920,iw), -2)':'if(gt(iw,ih), -2, min(1920,ih))'";
+    await runProcess('ffmpeg', [
+      '-y', '-hide_banner', '-loglevel', 'error',
+      '-i', rawFile,
+      '-vf', SCALE_1080P,
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+      '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
+      '-c:a', 'aac', '-b:a', '192k',
+      '-movflags', '+faststart',
+      outFile,
+    ], FFMPEG_TIMEOUT);
 
     const outStat = await stat(outFile);
-    log(`  ${usedRemux ? 'Remuxed (lossless)' : 'Re-encoded (HQ)'} → ${(outStat.size / 1_048_576).toFixed(1)} MB`);
+    log(`  Re-encoded HQ → ${(outStat.size / 1_048_576).toFixed(1)} MB`);
 
     // ── 3. Extract thumbnail (1s frame) ─────────────────────────────────────
     // Pull from rawFile (yt-dlp's pristine source) NOT outFile — avoids
