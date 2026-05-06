@@ -394,9 +394,12 @@ export default function EndlessModePage() {
             .map((_, idx) => idx)
             .filter(idx => idx !== currentQ.correct_index);
 
-        // Randomly select 2 to eliminate
-        const shuffled = wrongIndices.sort(() => Math.random() - 0.5);
-        const toEliminate = shuffled.slice(0, 2);
+        // Phase 59: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+        for (let i = wrongIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+        }
+        const toEliminate = wrongIndices.slice(0, 2);
         setEliminatedOptions(toEliminate);
     }
 
@@ -583,10 +586,12 @@ export default function EndlessModePage() {
                 savePhaseRef.current = 1;
             }
 
-            // Phase 2: Update high score (only if not already updated)
+            // Phase 2: Update high score (only if not already updated).
+            // Phase 59: was silently swallowing upsert errors — high-score
+            // updates could fail without retry. Now throws to Retry UI.
             if (savePhaseRef.current < 2) {
                 if (finalStreak > highScore) {
-                    await supabase
+                    const { error: hsErr } = await supabase
                         .from('endless_high_scores')
                         .upsert({
                             user_id: userId,
@@ -594,24 +599,29 @@ export default function EndlessModePage() {
                             high_score: finalStreak,
                             achieved_at: new Date().toISOString()
                         }, { onConflict: 'user_id,mode' });
+                    if (hsErr) throw hsErr;
                     setHighScore(finalStreak);
                 }
                 savePhaseRef.current = 2;
             }
 
-            // Phase 3: Record question history (only if not already recorded)
+            // Phase 3: Record question history (only if not already recorded).
+            // Phase 59: filter null question_id (FK violation guard) +
+            // capture upsert errors that were silently swallowed.
             if (savePhaseRef.current < 3) {
                 const correctQuestions = questions.slice(0, finalIndex);
                 const wrongQuestion = questions[finalIndex];
                 const historyRecords = [
-                    ...correctQuestions.map(q => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: true,
-                        seen_at: new Date().toISOString(),
-                        mode: 'endless'
-                    })),
-                    ...(wrongQuestion ? [{
+                    ...correctQuestions
+                        .filter(q => q && q.id != null)
+                        .map(q => ({
+                            user_id: userId,
+                            question_id: q.id,
+                            was_correct: true,
+                            seen_at: new Date().toISOString(),
+                            mode: 'endless'
+                        })),
+                    ...(wrongQuestion && wrongQuestion.id != null ? [{
                         user_id: userId,
                         question_id: wrongQuestion.id,
                         was_correct: false,
@@ -620,11 +630,16 @@ export default function EndlessModePage() {
                     }] : [])
                 ];
                 if (historyRecords.length > 0) {
-                    await supabase.from('trivia_user_question_history')
+                    const { error: historyErr } = await supabase
+                        .from('trivia_user_question_history')
                         .upsert(historyRecords, {
                             onConflict: 'user_id,question_id',
                             ignoreDuplicates: false
                         });
+                    if (historyErr) {
+                        // Non-fatal: Phase 4 still records the score.
+                        console.warn('[Endless] History upsert failed (non-fatal):', historyErr.message);
+                    }
                 }
                 savePhaseRef.current = 3;
             }
@@ -667,7 +682,15 @@ export default function EndlessModePage() {
     };
 
     function playAgain() {
-        setQuestions(prev => shuffleOptions(prev.slice(currentIndex).sort(() => Math.random() - 0.5)));
+        // Phase 59: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+        setQuestions(prev => {
+            const remaining = prev.slice(currentIndex);
+            for (let i = remaining.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+            }
+            return shuffleOptions(remaining);
+        });
         setCurrentIndex(0);
         currentIndexRef.current = 0;
         setSelectedAnswer(null);

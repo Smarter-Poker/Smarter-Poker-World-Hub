@@ -409,12 +409,20 @@ export default function MixedModePage() {
                 for (const [category, stats] of Object.entries(actualCategoryStats || {})) {
                     if (stats.answered === 0) continue;
 
-                    const { data: existing } = await supabase
+                    // Phase 59: capture errors on the 3 mastery DB calls — were
+                    // silently swallowed, so failures advanced savePhaseRef and
+                    // claimed success. Mastery mistakes are non-critical (will
+                    // self-heal on next game), so we warn rather than throw.
+                    const { data: existing, error: selErr } = await supabase
                         .from('trivia_category_mastery')
                         .select('*')
                         .eq('user_id', userId)
                         .eq('category', category)
                         .maybeSingle();
+                    if (selErr) {
+                        console.warn('[Mixed] mastery select failed (skip cat):', selErr.message);
+                        continue;
+                    }
 
                     if (existing) {
                         const newTotal = existing.total_answered + stats.answered;
@@ -422,7 +430,7 @@ export default function MixedModePage() {
                         const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
                         const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
 
-                        await supabase
+                        const { error: updErr } = await supabase
                             .from('trivia_category_mastery')
                             .update({
                                 total_answered: newTotal,
@@ -432,8 +440,9 @@ export default function MixedModePage() {
                             })
                             .eq('user_id', userId)
                             .eq('category', category);
+                        if (updErr) console.warn('[Mixed] mastery update failed:', updErr.message);
                     } else {
-                        await supabase
+                        const { error: insErr } = await supabase
                             .from('trivia_category_mastery')
                             .insert({
                                 user_id: userId,
@@ -442,30 +451,40 @@ export default function MixedModePage() {
                                 correct_count: stats.correct,
                                 mastery_level: 1
                             });
+                        if (insErr) console.warn('[Mixed] mastery insert failed:', insErr.message);
                     }
                 }
                 savePhaseRef.current = 2;
             }
 
-            // Phase 3: Record question history (only if not already recorded)
+            // Phase 3: Record question history (only if not already recorded).
+            // Phase 59: filter null question_id (FK violation guard) + capture
+            // upsert errors that were silently swallowed.
             if (savePhaseRef.current < 3) {
                 const answeredCount = answersRef.current.length;
                 if (answeredCount > 0) {
                     const answeredQuestions = questions.slice(0, answeredCount);
-                    const historyRecords = answeredQuestions.map((q, idx) => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: answersRef.current[idx] || false,
-                        seen_at: new Date().toISOString(),
-                        mode: 'mixed'
-                    }));
+                    const historyRecords = answeredQuestions
+                        .filter(q => q && q.id != null)
+                        .map((q, idx) => ({
+                            user_id: userId,
+                            question_id: q.id,
+                            was_correct: answersRef.current[idx] || false,
+                            seen_at: new Date().toISOString(),
+                            mode: 'mixed'
+                        }));
 
-                    await supabase
-                        .from('trivia_user_question_history')
-                        .upsert(historyRecords, {
-                            onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
-                        });
+                    if (historyRecords.length > 0) {
+                        const { error: historyErr } = await supabase
+                            .from('trivia_user_question_history')
+                            .upsert(historyRecords, {
+                                onConflict: 'user_id,question_id',
+                                ignoreDuplicates: false
+                            });
+                        if (historyErr) {
+                            console.warn('[Mixed] History upsert failed (non-fatal):', historyErr.message);
+                        }
+                    }
                 }
                 savePhaseRef.current = 3;
             }
