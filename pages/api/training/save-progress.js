@@ -216,18 +216,35 @@ export default async function handler(req, res) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
 
-              // 4. Award diamonds to profile balance
+              // 4. Award diamonds to profile balance.
+              // Phase 63: was using try/await without { error } destructure —
+              // supabase-js does NOT throw on DB errors, so RPC failures
+              // (insufficient permissions, constraint violations, etc.)
+              // were silently swallowed and `diamondsAwarded` claimed in the
+              // response was a lie. Now captures rpcErr and reports
+              // diamondsAwarded:0 + diamondsAwardError to the client.
+              // Also drops Date.now() from reference_id — it made every
+              // retry credit again instead of dedup-ing at the DB.
+              let _diamondsActuallyAwarded = 0;
+              let _diamondsAwardError = null;
               if (diamondsEarned > 0) {
                   try {
-                      await getSupabase().rpc('add_diamonds_to_balance', {
+                      const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                           p_user_id: userId,
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
                           p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
-                          p_reference_id: `progress_${userId}_${gameId}_${level}_${Date.now()}`
+                          p_reference_id: `progress_${userId}_${gameId}_${level}`
                       });
+                      if (rpcErr) {
+                          console.warn('[SaveProgress] Diamond RPC error:', rpcErr.message);
+                          _diamondsAwardError = rpcErr.message;
+                      } else {
+                          _diamondsActuallyAwarded = diamondsEarned;
+                      }
                   } catch (e) {
-                      console.warn('[SaveProgress] Diamond award failed:', e.message);
+                      console.warn('[SaveProgress] Diamond award threw:', e.message);
+                      _diamondsAwardError = e.message;
                   }
               }
 
@@ -235,7 +252,8 @@ export default async function handler(req, res) {
                   success: true,
                   progress: updatedProgress,
                   levelHistory: levelHistory,
-                  diamondsAwarded: diamondsEarned,
+                  diamondsAwarded: _diamondsActuallyAwarded,
+                  ...(_diamondsAwardError && { diamondsAwardError: _diamondsAwardError }),
                   mastery: {
                       passed: serverVerifiedPassed,
                       status: masteryResult.status,
@@ -281,18 +299,28 @@ export default async function handler(req, res) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
 
-              // 4. Award diamonds to profile balance
+              // 4. Award diamonds to profile balance.
+              // Phase 63: same fix as the existing-progress branch above.
+              let _diamondsActuallyAwarded2 = 0;
+              let _diamondsAwardError2 = null;
               if (diamondsEarned > 0) {
                   try {
-                      await getSupabase().rpc('add_diamonds_to_balance', {
+                      const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                           p_user_id: userId,
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
                           p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
-                          p_reference_id: `progress_${userId}_${gameId}_${level}_${Date.now()}`
+                          p_reference_id: `progress_${userId}_${gameId}_${level}`
                       });
+                      if (rpcErr) {
+                          console.warn('[SaveProgress] Diamond RPC error:', rpcErr.message);
+                          _diamondsAwardError2 = rpcErr.message;
+                      } else {
+                          _diamondsActuallyAwarded2 = diamondsEarned;
+                      }
                   } catch (e) {
-                      console.warn('[SaveProgress] Diamond award failed:', e.message);
+                      console.warn('[SaveProgress] Diamond award threw:', e.message);
+                      _diamondsAwardError2 = e.message;
                   }
               }
 
@@ -300,7 +328,8 @@ export default async function handler(req, res) {
                   success: true,
                   progress: newProgress,
                   levelHistory: levelHistory,
-                  diamondsAwarded: diamondsEarned,
+                  diamondsAwarded: _diamondsActuallyAwarded2,
+                  ...(_diamondsAwardError2 && { diamondsAwardError: _diamondsAwardError2 }),
                   mastery: {
                       passed: serverVerifiedPassed,
                       status: masteryResult.status,
