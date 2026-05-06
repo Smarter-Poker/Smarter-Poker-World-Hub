@@ -383,6 +383,31 @@ fi
 echo "✅ Destructive change detection passed"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 0.7: AUTO-RESET LOOP DETECTION
+# ═══════════════════════════════════════════════════════════════════════════════
+# Catches the failure mode learned 2026-05-06: an external agent (Antigravity
+# in that case, but any IDE/automation that runs `git reset --hard origin/main`
+# on a timer) silently destroys uncommitted edits AND local-only commits.
+# When this script sees ≥2 `reset: moving to origin/main` entries in the last
+# 50 reflog ops, it warns loudly so future agents notice before losing work.
+# The check is a warning (not a block) — sometimes operators legitimately
+# reset to origin during recovery, and we don't want to block those paths.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "🔭 Phase 0.7: Reflog auto-reset loop detection..."
+RESET_COUNT=$(git reflog -50 2>/dev/null | grep -c 'reset: moving to origin/' || echo 0)
+if [ "$RESET_COUNT" -ge 2 ]; then
+  echo "⚠️  WARNING: $RESET_COUNT 'reset: moving to origin/...' entries in last 50 reflog ops."
+  echo "   This is the signature of an external auto-sync agent (Antigravity, IDE,"
+  echo "   git daemon) that may be silently discarding local commits + uncommitted"
+  echo "   edits. If this isn't intentional, kill that agent before further work."
+  echo "   (To inspect: git reflog -20 | grep -E 'reset|pull')"
+  echo "   This is a WARNING only — push will continue."
+fi
+echo "✅ Reflog scan complete (found $RESET_COUNT auto-reset events; ≥2 triggers warning)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 1: CLEAN THE ENVIRONMENT
 # ═══════════════════════════════════════════════════════════════════════════════
 

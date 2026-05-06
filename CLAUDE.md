@@ -398,6 +398,15 @@ User logs into smarter.poker, all sub-apps share the session.
 10. Write it down. Read `.memory/` at session start, update at session end.
 11. No exceptions. Every rule, every task, every session.
 12. Never ask "should I?" -- just do it. Only stop for genuine forks.
+13. **Commit + push small, often.** Antigravity (and any other auto-sync agent
+    on Dan's Mac) periodically runs `git reset --hard origin/main`. Any
+    uncommitted edits OR local-only commits at the moment of that reset are
+    silently discarded — work is recoverable from the reflog (`git reflog`,
+    `git stash list`, `git cherry-pick <orphan-sha>`) but only briefly. Run
+    `bash scripts/git-safe-push.sh` after every meaningful change, not at
+    end of session. The reflog signature of an active reset loop is
+    repeated `reset: moving to origin/main` entries — `scripts/git-safe-push.sh`
+    Phase 0.7 warns when ≥2 are seen in the last 50 ops.
 
 ---
 
