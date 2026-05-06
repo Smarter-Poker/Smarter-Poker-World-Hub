@@ -1388,7 +1388,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 sendYTCmd('unMute');
                 sendYTCmd('setVolume', [100]);
                 setMuted(false);
-                setUserWantsSound(true);
+                userWantsSoundRef.current = true;
             }
             goPrev();
             return;
@@ -1399,7 +1399,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 sendYTCmd('unMute');
                 sendYTCmd('setVolume', [100]);
                 setMuted(false);
-                setUserWantsSound(true);
+                userWantsSoundRef.current = true;
             }
             goNext();
             return;
@@ -1488,7 +1488,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             sendYTCmd('unMute');
                             sendYTCmd('setVolume', [100]);
                             setMuted(false);
-                            setUserWantsSound(true);
+                            userWantsSoundRef.current = true;
                         }
                         if (delta < 0) goNext();
                         else goPrev();

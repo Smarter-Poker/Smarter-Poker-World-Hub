@@ -150,10 +150,15 @@ export default function SurvivalModePage() {
         // Phase 55: was using .limit(50).range() which is broken — .range overrides .limit
         // and the offset based on `questions.length` is meaningless after shuffle.
         const data = await fetchRandomQuestionPool(supabase, { pageSize: 50 });
-        const _phase55 = false; // marker
 
         if (data) {
-            setQuestions(prev => [...prev, ...shuffleOptions(data.sort(() => Math.random() - 0.5))]);
+            // Phase 60: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
+            const _arr = [...data];
+            for (let i = _arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [_arr[i], _arr[j]] = [_arr[j], _arr[i]];
+            }
+            setQuestions(prev => [...prev, ...shuffleOptions(_arr)]);
         }
     }
 
@@ -223,17 +228,25 @@ export default function SurvivalModePage() {
                 });
                 if (runErr) throw runErr;
 
-                // Award diamonds via audit-safe RPC (capped to daily limit)
+                // Award diamonds via audit-safe RPC (capped to daily limit).
+                // Phase 60: was using `survival_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                // which is ALWAYS unique = zero idempotency = double-credit on
+                // any retry/double-submit (user could re-trigger handleComplete
+                // by reload/back-button). Use a stable per-(user, day, correctCount)
+                // reference so the DB dedups identical retries within the same
+                // calendar day. Different runs naturally have different
+                // correctCount/diamondsEarned so they don't collide.
                 if (gameResult.diamondsEarned > 0) {
                     const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'survival');
                     const cappedDiamonds = clampToCap(earnedToday, gameResult.diamondsEarned, DAILY_DIAMOND_CAP);
                     if (cappedDiamonds > 0) {
+                        const _today = new Date().toISOString().split('T')[0];
                         const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: userId,
                             p_amount: cappedDiamonds,
                             p_type: 'survival_reward',
                             p_description: `Survival mode — ${cappedDiamonds}💎 (${gameResult.correctCount} survived)`,
-                            p_reference_id: `survival_${userId}_${Date.now()}_${crypto.randomUUID()}`
+                            p_reference_id: `survival_${userId}_${_today}_${gameResult.correctCount}_${cappedDiamonds}`
                         });
                         if (__rpcErr) throw __rpcErr;
                         busEmit.diamondsEarned(cappedDiamonds, 'Survival Mode');
@@ -241,19 +254,23 @@ export default function SurvivalModePage() {
                     }
                 }
 
-                // Record question history for 60-day non-repeat
+                // Record question history for 60-day non-repeat.
+                // Phase 60: filter null question_id (FK guard) + capture upsert
+                // error that was previously silently swallowed.
                 if (questions.length > 0) {
                     const correctQs = questions.slice(0, gameResult.correctCount);
                     const wrongQ = questions[gameResult.correctCount]; // the question they got wrong
                     const historyRecords = [
-                        ...correctQs.map(q => ({
-                            user_id: userId,
-                            question_id: q.id,
-                            was_correct: true,
-                            seen_at: new Date().toISOString(),
-                            mode: 'survival'
-                        })),
-                        ...(wrongQ ? [{
+                        ...correctQs
+                            .filter(q => q && q.id != null)
+                            .map(q => ({
+                                user_id: userId,
+                                question_id: q.id,
+                                was_correct: true,
+                                seen_at: new Date().toISOString(),
+                                mode: 'survival'
+                            })),
+                        ...(wrongQ && wrongQ.id != null ? [{
                             user_id: userId,
                             question_id: wrongQ.id,
                             was_correct: false,
@@ -261,8 +278,14 @@ export default function SurvivalModePage() {
                             mode: 'survival'
                         }] : [])
                     ];
-                    await supabase.from('trivia_user_question_history')
-                        .upsert(historyRecords, { onConflict: 'user_id,question_id', ignoreDuplicates: false });
+                    if (historyRecords.length > 0) {
+                        const { error: historyErr } = await supabase
+                            .from('trivia_user_question_history')
+                            .upsert(historyRecords, { onConflict: 'user_id,question_id', ignoreDuplicates: false });
+                        if (historyErr) {
+                            console.warn('[Survival] History upsert failed (non-fatal):', historyErr.message);
+                        }
+                    }
                 }
             } catch (e) {
                 console.warn('[Survival] Save/reward failed:', e);

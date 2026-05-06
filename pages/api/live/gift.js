@@ -192,6 +192,7 @@ export default async function handler(req, res) {
     // Initialized to null; assigned after the deduct commits so the catch block
     // can safely call it if something throws between deduct and credit.
     let refundSender = null;
+    let creditSuccess = false;
 
     try {
         // senderProfile already fetched above for age gate — reuse it
@@ -209,7 +210,10 @@ export default async function handler(req, res) {
         });
 
         // deduct_diamonds returns jsonb with success field
-        if (deductErr) throw new Error(`Deduction failed: ${deductErr.message}`);
+        if (deductErr) {
+            console.warn('[live/gift] Deduction failed:', deductErr.message);
+            return res.status(500).json({ error: 'Gift failed due to a network error. Please try again.' });
+        }
         if (deductResult && !deductResult.success) {
             return res.status(400).json({
                 error: deductResult.error || 'Insufficient diamonds',
@@ -261,6 +265,8 @@ export default async function handler(req, res) {
             console.warn('[live/gift] Credit returned success:false (refunded sender):', creditResult);
             return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
         }
+
+        creditSuccess = true;
 
         if (creditResult && creditResult.duplicate) {
             console.info(`[live/gift] Idempotent retry detected for gift ${giftId} — skipping refund`);
@@ -330,10 +336,11 @@ export default async function handler(req, res) {
         // If we are here and the deduction already committed but the credit
         // RPC network-threw before returning, attempt a compensating refund.
         // refundSender is only defined after the deduct succeeds so check first.
-        if (typeof refundSender === 'function') {
+        console.warn('[live/gift] unhandled error:', err.message);
+        if (typeof refundSender === 'function' && !creditSuccess) {
             await refundSender(`uncaught handler error: ${err.message}`);
+            return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
         }
-        console.warn('[live/gift] error (refund attempted):', err.message);
-        return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
+        return res.status(500).json({ error: 'Gift failed — please try again.' });
     }
 }

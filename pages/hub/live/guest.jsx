@@ -18,7 +18,7 @@ export default function GuestJoinPage() {
         setLoading(false);
     }, []);
 
-    if (!isClient || loading) {
+    if (!isClient || loading || !router.isReady) {
         return <div style={{ background: '#000', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>Loading...</div>;
     }
 
