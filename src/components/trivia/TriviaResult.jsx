@@ -96,13 +96,21 @@ export default function TriviaResult({
                 colors: isPerfect ? ['#fbbf24', '#f59e0b', '#f02849', '#31a24c'] : undefined,
             });
         }
+        // Phase 69: track FLAWLESS-banner setTimeout so it gets cleared on
+        // unmount. Was firing setShowFlawless(true) on an unmounted
+        // component when the user navigated away within 800ms of seeing
+        // a perfect score.
+        let flawlessTimer = null;
         if (isPerfect) {
             audio.victoryFanfare();
-            setTimeout(() => {
+            flawlessTimer = setTimeout(() => {
                 setShowFlawless(true);
                 fireConfetti({ particleCount: 100, spread: 100, origin: { y: 0.4 } });
             }, 800);
         }
+        return () => {
+            if (flawlessTimer) clearTimeout(flawlessTimer);
+        };
     }, []);
 
     // Animate ring + numbers
@@ -317,13 +325,18 @@ export default function TriviaResult({
                                 >
                                     {questions.map((q, idx) => {
                                         const userAnswer = answers[idx];
-                                        const isCorrect = userAnswer === q.correct_index;
-                                        const wasSkipped = userAnswer === -1 || userAnswer === undefined;
+                                        // Phase 69: was treating skipped questions (sentinels -1
+                                        // for skip-hint and -2 for skip-lifeline) as plain
+                                        // 'incorrect' in the review screen. Now renders them
+                                        // as a distinct 'skipped' state with a neutral icon.
+                                        const wasSkipped = userAnswer === -1 || userAnswer === -2 || userAnswer === undefined;
+                                        const isCorrect = !wasSkipped && userAnswer === q.correct_index;
+                                        const reviewClass = wasSkipped ? 'skipped' : (isCorrect ? 'correct' : 'incorrect');
                                         return (
-                                            <div key={idx} className={`review-item ${isCorrect ? 'correct' : 'incorrect'}`}>
+                                            <div key={idx} className={`review-item ${reviewClass}`}>
                                                 <div className="review-q-header">
-                                                    <span className="review-q-num">Q{idx + 1}</span>
-                                                    {isCorrect ? <CheckCircle size={16} className="review-icon correct" /> : <XCircle size={16} className="review-icon incorrect" />}
+                                                    <span className="review-q-num">Q{idx + 1}{wasSkipped ? ' · Skipped' : ''}</span>
+                                                    {wasSkipped ? null : (isCorrect ? <CheckCircle size={16} className="review-icon correct" /> : <XCircle size={16} className="review-icon incorrect" />)}
                                                 </div>
                                                 <p className="review-question">{q.question}</p>
                                                 <div className="review-options">
