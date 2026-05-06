@@ -35,16 +35,24 @@ export default function TriviaHubPage() {
         showHints: true
     });
 
-    // Load preferences from localStorage on mount
+    // Load preferences from localStorage on mount.
+    // Phase 71: track unmount via ref so the resolved-after-unmount setState
+    // doesn't fire on a dead component (React 18 warning).
     useEffect(() => {
+        let cancelled = false;
         if (userId) {
             getTriviaPreferences(userId)
-                .then(setPreferences)
+                .then(p => { if (!cancelled) setPreferences(p); })
                 .catch(e => console.warn('[TriviaHub] Failed to load prefs:', e));
         }
+        return () => { cancelled = true; };
     }, [userId]);
 
+    // Phase 71: rollback on save failure so local state doesn't drift from
+    // server. User toggling a preference shouldn't see it 'stick' locally
+    // while the server actually has the old value (next page load reverts).
     const updatePreference = useCallback(async (key, value) => {
+        const previousValue = preferences[key];
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
@@ -52,7 +60,8 @@ export default function TriviaHubPage() {
             try {
                 await updateTriviaPreferences(userId, { [key]: value });
             } catch (error) {
-                console.warn('Failed to save preference:', error);
+                console.warn('Failed to save preference, reverting:', error);
+                setPreferences(prev => ({ ...prev, [key]: previousValue }));
             }
         }
     }, [preferences, userId]);
