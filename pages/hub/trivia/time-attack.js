@@ -272,19 +272,33 @@ export default function TimeAttackPage() {
                     const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
                     const answeredQuestions = questions.slice(0, answeredCount);
                     if (answeredQuestions.length > 0) {
-                        const historyRecords = answeredQuestions.map((q, idx) => ({
-                            user_id: userId,
-                            question_id: q.id,
-                            was_correct: gameResult.answerResults ? (gameResult.answerResults[idx] || false) : idx < gameResult.correctCount,
-                            seen_at: new Date().toISOString(),
-                            mode: 'time-attack'
-                        }));
+                        // Phase 59: filter out rows with no question_id (would
+                        // FK-violate on trivia_user_question_history.question_id
+                        // → trivia_questions.id) and capture upsert errors that
+                        // were previously silently swallowed.
+                        const historyRecords = answeredQuestions
+                            .filter(q => q && q.id != null)
+                            .map((q, idx) => ({
+                                user_id: userId,
+                                question_id: q.id,
+                                was_correct: gameResult.answerResults ? (gameResult.answerResults[idx] || false) : idx < gameResult.correctCount,
+                                seen_at: new Date().toISOString(),
+                                mode: 'time-attack'
+                            }));
 
-                        await supabase.from('trivia_user_question_history')
-                            .upsert(historyRecords, {
-                                onConflict: 'user_id,question_id',
-                                ignoreDuplicates: false
-                            });
+                        if (historyRecords.length > 0) {
+                            const { error: historyErr } = await supabase
+                                .from('trivia_user_question_history')
+                                .upsert(historyRecords, {
+                                    onConflict: 'user_id,question_id',
+                                    ignoreDuplicates: false
+                                });
+                            if (historyErr) {
+                                // Non-fatal: score + diamonds already saved at
+                                // this point, history is best-effort.
+                                console.warn('[TimeAttack] History upsert failed (non-fatal):', historyErr.message);
+                            }
+                        }
                     }
                     savePhaseRef.current = 3;
                 }

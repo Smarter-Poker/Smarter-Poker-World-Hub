@@ -650,6 +650,12 @@ export default function PvPPage() {
         const rakeAmount = Math.floor(totalPot * 0.1);
         let winnings = 0;
 
+        // Phase 59: track payout failures so UI shows accurate winnings.
+        // Was previously: RPC failed → console.warn only → busEmit/setResult
+        // claimed full winnings → user saw "+60💎 payout" toast but balance
+        // unchanged. Now we set winnings=0 on payout failure and surface an
+        // error to the user via setRefundFailed/pvpError state.
+        let _payoutFailed = false;
         if (won) {
             winnings = totalPot - rakeAmount;
             // Award winnings via audit-safe RPC
@@ -669,12 +675,14 @@ export default function PvPPage() {
                     .eq('id', userId)
                     .maybeSingle();
                 if (winProfile) setUserDiamonds(winProfile.diamonds || 0);
+                busEmit.diamondsEarned(winnings, 'PvP Victory');
+                busEmit.celebration('confetti');
             } catch (e) {
                 console.warn('[PVP] Win payout failed:', e);
+                _payoutFailed = true;
+                try { setRefundFailed(true); } catch {}
+                try { setPvpError(`Payout of ${winnings}💎 may have failed — please verify your balance.`); } catch {}
             }
-
-            busEmit.diamondsEarned(winnings, 'PvP Victory');
-            busEmit.celebration('confetti');
         } else if (tied) {
             // Refund stake on tie via audit-safe RPC
             try {
@@ -694,6 +702,9 @@ export default function PvPPage() {
                 if (tieProfile) setUserDiamonds(tieProfile.diamonds || 0);
             } catch (e) {
                 console.warn('[PVP] Tie refund failed:', e);
+                _payoutFailed = true;
+                try { setRefundFailed(true); } catch {}
+                try { setPvpError(`Tie refund of ${stakeAmount}💎 may have failed — please verify your balance.`); } catch {}
             }
             winnings = stakeAmount;
         } else {
@@ -715,27 +726,41 @@ export default function PvPPage() {
             tied,
             playerScore: playerFinalScore,
             opponentScore: horseScore,
-            winnings: won ? winnings : (tied ? stakeAmount : 0),
+            // Phase 59: if payout RPC failed, show 0 winnings so the result
+            // panel doesn't lie about money the user didn't actually receive.
+            // The error banner from setPvpError above tells them what happened.
+            winnings: _payoutFailed ? 0 : (won ? winnings : (tied ? stakeAmount : 0)),
             opponent,
-            isHorseMatch: true
+            isHorseMatch: true,
+            payoutFailed: _payoutFailed
         });
 
-        // Record question history for 60-day non-repeat (with actual accuracy)
+        // Record question history for 60-day non-repeat (with actual accuracy).
+        // Phase 59: filter null question_id (FK violation guard) + capture
+        // upsert errors that were silently swallowed.
         if (userId && questions && questions.length > 0) {
             try {
-                const historyRecords = questions.map((q, idx) => ({
-                    user_id: userId,
-                    question_id: q.id,
-                    was_correct: playerAnswersRef.current[idx] === true,
-                    seen_at: new Date().toISOString(),
-                    mode: 'pvp'
-                }));
+                const historyRecords = questions
+                    .filter(q => q && q.id != null)
+                    .map((q, idx) => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: playerAnswersRef.current[idx] === true,
+                        seen_at: new Date().toISOString(),
+                        mode: 'pvp'
+                    }));
 
-                await supabase.from('trivia_user_question_history')
-                    .upsert(historyRecords, {
-                        onConflict: 'user_id,question_id',
-                        ignoreDuplicates: false
-                    });
+                if (historyRecords.length > 0) {
+                    const { error: historyErr } = await supabase
+                        .from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                    if (historyErr) {
+                        console.warn('[PVP] History upsert failed (non-fatal):', historyErr.message);
+                    }
+                }
             } catch (e) {
                 console.warn('[PVP] Error recording history:', e);
             }
@@ -798,22 +823,31 @@ export default function PvPPage() {
             await updatePvpStats('tie', 0);
         }
 
-        // Record question history for 60-day non-repeat (with actual accuracy)
+        // Record question history for 60-day non-repeat (with actual accuracy).
+        // Phase 59: filter null question_id + capture upsert errors.
         if (userId && questions && questions.length > 0) {
             try {
-                const historyRecords = questions.map((q, idx) => ({
-                    user_id: userId,
-                    question_id: q.id,
-                    was_correct: playerAnswersRef.current[idx] === true,
-                    seen_at: new Date().toISOString(),
-                    mode: 'pvp'
-                }));
+                const historyRecords = questions
+                    .filter(q => q && q.id != null)
+                    .map((q, idx) => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: playerAnswersRef.current[idx] === true,
+                        seen_at: new Date().toISOString(),
+                        mode: 'pvp'
+                    }));
 
-                await supabase.from('trivia_user_question_history')
-                    .upsert(historyRecords, {
-                        onConflict: 'user_id,question_id',
-                        ignoreDuplicates: false
-                    });
+                if (historyRecords.length > 0) {
+                    const { error: historyErr } = await supabase
+                        .from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                    if (historyErr) {
+                        console.warn('[PVP] History upsert failed (non-fatal):', historyErr.message);
+                    }
+                }
             } catch (e) {
                 console.warn('[PVP] Error recording history:', e);
             }
