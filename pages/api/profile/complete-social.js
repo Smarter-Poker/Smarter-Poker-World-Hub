@@ -68,9 +68,12 @@ export default async function handler(req, res) {
 
         // RPC returns either { success:true, profile } or { success:false, error, message }
         if (!data?.success) {
-            // 409 for username_taken; 400 for validation; 500 for unexpected
+            // 409 for username_taken; 400 for any client-fixable validation error
             const status =
                 data?.error === 'username_taken' ? 409 :
+                data?.error === 'username_reserved' ? 400 :
+                data?.error === 'profile_missing' ? 404 :
+                data?.error === 'unauthenticated' ? 401 :
                 data?.error?.startsWith('invalid_') ? 400 : 500;
             return res.status(status).json(data || { success: false, error: 'unknown' });
         }

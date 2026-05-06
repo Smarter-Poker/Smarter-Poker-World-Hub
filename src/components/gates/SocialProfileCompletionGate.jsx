@@ -72,6 +72,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
     const [checking, setChecking] = useState(false);
     const checkTimerRef = useRef(null);
     const lastCheckedRef = useRef('');
+    const fetchIdRef = useRef(0);  // monotonic id — out-of-order fetches discard themselves
 
     // ── Initialize from profile (Google metadata flowed through ensure-profile) ──
     useEffect(() => {
@@ -112,6 +113,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
 
         setChecking(true);
         checkTimerRef.current = setTimeout(async () => {
+            const myId = ++fetchIdRef.current;
             try {
                 const token = await getAccessToken();
                 const resp = await fetch('/api/profile/check-username', {
@@ -123,12 +125,15 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                     body: JSON.stringify({ username: u }),
                 });
                 const data = await resp.json();
+                // Drop result if a newer fetch has started or the input changed
+                if (myId !== fetchIdRef.current) return;
                 lastCheckedRef.current = u;
                 setAvailability(data);
             } catch (_e) {
+                if (myId !== fetchIdRef.current) return;
                 setAvailability({ available: false, message: 'Could not verify — try again.', suggestions: [] });
             } finally {
-                setChecking(false);
+                if (myId === fetchIdRef.current) setChecking(false);
             }
         }, 350);
 
@@ -162,11 +167,18 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             });
             const data = await resp.json();
             if (!resp.ok || !data?.success) {
-                if (data?.error === 'username_taken') {
-                    setSubmitError(data.message || 'Someone just claimed that username — pick another.');
+                // Any username-related error returns user to the username step
+                if (data?.error === 'username_taken' || data?.error === 'username_reserved' || data?.error === 'invalid_username') {
+                    setSubmitError(data.message || 'Pick a different username.');
                     setStep(2);
                     setAvailability({ available: false, suggestions: [] });
                     lastCheckedRef.current = '';
+                } else if (data?.error === 'invalid_name') {
+                    setSubmitError(data.message || 'Please enter a valid name.');
+                    setStep(1);
+                } else if (data?.error === 'invalid_phone') {
+                    setSubmitError(data.message || 'Please enter a valid phone number.');
+                    // Already on step 3
                 } else {
                     setSubmitError(data?.message || 'Could not save your profile. Try again.');
                 }
