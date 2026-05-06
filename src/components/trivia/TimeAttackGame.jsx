@@ -34,6 +34,29 @@ export default function TimeAttackGame({
     const currentQuestion = questions[currentIndex];
     const remainingCap = Math.max(0, DAILY_DIAMOND_CAP - dailyDiamondsEarned);
 
+    // Phase 69: track the 400ms reveal-and-advance setTimeouts so unmount
+    // cancels them. Without this, navigating away mid-question fired
+    // setState (correct count, advance, etc.) on an unmounted component.
+    // Plus _completedRef so handleGameOver doesn't double-fire onComplete
+    // if both the timer and the last-question handler set gameOver=true
+    // in the same tick.
+    const _pendingTimeoutsRef = useRef(new Set());
+    const _isMountedRef = useRef(true);
+    const _completedRef = useRef(false);
+    const safeSetTimeout = (fn, delay) => {
+        const id = setTimeout(() => {
+            _pendingTimeoutsRef.current.delete(id);
+            if (_isMountedRef.current) fn();
+        }, delay);
+        _pendingTimeoutsRef.current.add(id);
+        return id;
+    };
+    useEffect(() => () => {
+        _isMountedRef.current = false;
+        for (const id of _pendingTimeoutsRef.current) clearTimeout(id);
+        _pendingTimeoutsRef.current.clear();
+    }, []);
+
     // Main timer
     useEffect(() => {
         if (gameOver) return;
@@ -65,8 +88,10 @@ export default function TimeAttackGame({
 
         const isCorrect = answerIndex === currentQuestion.correct_index;
 
-        // Quick reveal for speed
-        setTimeout(() => {
+        // Quick reveal for speed.
+        // Phase 69: safeSetTimeout instead of setTimeout — was firing
+        // setState on unmounted parent.
+        safeSetTimeout(() => {
             if (isCorrect) {
                 const newCorrect = correctCount + 1;
                 setCorrectCount(newCorrect);
