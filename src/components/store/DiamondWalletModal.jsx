@@ -55,8 +55,8 @@ import {
     Trophy, Zap, Medal, Swords, Target, Brain,
     PenLine, UserPlus, Heart, MessageCircle, Link2, Users,
     CheckCircle, Camera, Video, Star, MapPin, Ticket,
-    Send, Download as DownloadIcon, RotateCcw, Settings,
-    Search, X, BarChart3, ChevronDown, Copy, FileText,
+    Send, RotateCcw, Settings,
+    Search, X, BarChart3, ChevronDown, Copy,
     Clock, Filter as FilterIcon, ArrowUpRight, ArrowDownRight,
     ChevronsUpDown, Sparkles, Eye,
 } from 'lucide-react';
@@ -324,85 +324,6 @@ const DonutChart = ({ data }) => {
     );
 };
 
-// ── R8-I9: PDF receipt export ──
-async function exportTransactionsPDF(filteredTx, balance, stats) {
-    try {
-        const { default: jsPDF } = await import('jspdf');
-        const { default: autoTable } = await import('jspdf-autotable');
-        const doc = new jsPDF();
-
-        // Header
-        doc.setFillColor(8, 20, 40);
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setTextColor(0, 212, 255);
-        doc.setFontSize(20);
-        doc.text('Smarter.Poker', 14, 18);
-        doc.setFontSize(12);
-        doc.setTextColor(255, 255, 255);
-        doc.text('Diamond Wallet Statement', 14, 28);
-        doc.setFontSize(9);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
-        doc.text(`Current Balance: ${(balance ?? 0).toLocaleString()} Diamonds`, 120, 35);
-
-        // Summary
-        if (stats) {
-            doc.setFontSize(10);
-            doc.setTextColor(74, 222, 128);
-            doc.text(`Total Earned: +${stats.totalEarned.toLocaleString()}`, 14, 48);
-            doc.setTextColor(248, 113, 113);
-            doc.text(`Total Spent: -${stats.totalSpent.toLocaleString()}`, 100, 48);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Net: ${(stats.totalEarned - stats.totalSpent) >= 0 ? '+' : ''}${(stats.totalEarned - stats.totalSpent).toLocaleString()}`, 14, 55);
-        }
-
-        // Transactions table
-        const rows = filteredTx.map(tx => {
-            const txType = tx.transaction_type || tx.type;
-            const config = TX_TYPES[txType] || TX_TYPES.adjustment;
-            const dt = new Date(tx.created_at);
-            return [
-                dt.toLocaleDateString(),
-                dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                config.label,
-                tx.description || config.label,
-                `${tx.amount >= 0 ? '+' : ''}${tx.amount}`,
-                tx.balance_after != null ? tx.balance_after.toString() : '',
-            ];
-        });
-
-        autoTable(doc, {
-            startY: stats ? 62 : 48,
-            head: [['Date', 'Time', 'Type', 'Description', 'Amount', 'Balance']],
-            body: rows,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [0, 40, 80], textColor: [0, 212, 255] },
-            alternateRowStyles: { fillColor: [245, 248, 252] },
-            columnStyles: {
-                4: { halign: 'right', fontStyle: 'bold' },
-                5: { halign: 'right' },
-            },
-        });
-
-        // Footer
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(7);
-            doc.setTextColor(150);
-            doc.text(`Smarter.Poker Diamond Statement — Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-        }
-
-        doc.save(`diamond-wallet-${new Date().toISOString().slice(0, 10)}.pdf`);
-        showStoreToast('success', 'PDF statement exported successfully');
-        return true;
-    } catch (err) {
-        console.warn('PDF export failed:', err);
-        showStoreToast('error', 'PDF export failed. Try CSV instead.');
-        return false;
-    }
-}
-
 // ── PERF-2: localStorage cache key for instant modal re-opens ──
 const CACHE_KEY = 'sp-cached-wallet-txns';
 const CACHE_TTL_MS = 60_000; // 60 seconds
@@ -454,31 +375,6 @@ function getDateGroup(dateStr) {
     if (dt >= yesterday) return 'Yesterday';
     if (dt >= weekAgo) return 'This Week';
     return 'Earlier';
-}
-
-// ── ENH-7: Export CSV helper ──
-function exportTransactionsCSV(filteredTx) {
-    const headers = ['Date', 'Type', 'Description', 'Amount', 'Balance After'];
-    const rows = filteredTx.map(tx => {
-        const txType = tx.transaction_type || tx.type;
-        const config = TX_TYPES[txType] || TX_TYPES.adjustment;
-        const dt = new Date(tx.created_at);
-        return [
-            dt.toISOString().slice(0, 19).replace('T', ' '),
-            config.label,
-            (tx.description || config.label).replace(/,/g, ';'),
-            tx.amount ?? 0,
-            tx.balance_after ?? ''
-        ].join(',');
-    });
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `diamond-wallet-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
 }
 
 // ── ENH-6: Sparkline SVG component ──
@@ -669,9 +565,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── R8-I3: Transfer cooldown countdown ──
     const [cooldownSeconds, setCooldownSeconds] = useState(0);
     const cooldownTimerRef = useRef(null);
-
-    // ── R8-I9: PDF export loading ──
-    const [pdfExporting, setPdfExporting] = useState(false);
 
     // ── R8-I11: Swipe-to-copy gesture refs ──
     const swipeStartX = useRef(0);
@@ -1255,59 +1148,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     overflow: 'hidden',
                 }}
             >
-                {/* Close button + Export button */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px 0' }}>
-                    {/* R8-I9 + ENH-7: Export buttons (CSV + PDF) */}
-                    <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                            onClick={() => exportTransactionsCSV(filteredTx)}
-                            disabled={filteredTx.length === 0}
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.06)',
-                                border: '1px solid rgba(255, 255, 255, 0.08)',
-                                borderRadius: 8,
-                                color: filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                padding: '6px 10px',
-                                cursor: filteredTx.length > 0 ? 'pointer' : 'default',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                transition: 'all 0.15s',
-                            }}
-                            onMouseEnter={e => { if (filteredTx.length > 0) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
-                        >
-                            <DownloadIcon size={12} /> CSV
-                        </button>
-                        <button
-                            onClick={async () => {
-                                setPdfExporting(true);
-                                await exportTransactionsPDF(filteredTx, balance, stats);
-                                setPdfExporting(false);
-                            }}
-                            disabled={filteredTx.length === 0 || pdfExporting}
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.06)',
-                                border: '1px solid rgba(255, 255, 255, 0.08)',
-                                borderRadius: 8,
-                                color: filteredTx.length > 0 && !pdfExporting ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                padding: '6px 10px',
-                                cursor: filteredTx.length > 0 && !pdfExporting ? 'pointer' : 'default',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                transition: 'all 0.15s',
-                            }}
-                            onMouseEnter={e => { if (filteredTx.length > 0 && !pdfExporting) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = filteredTx.length > 0 && !pdfExporting ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
-                        >
-                            <FileText size={12} /> {pdfExporting ? 'Exporting...' : 'PDF'}
-                        </button>
-                    </div>
+                {/* Close button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
                     {/* Close button */}
                     <button
                         onClick={onClose}
@@ -1379,6 +1221,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             textTransform: 'uppercase',
                             lineHeight: 1,
                             marginBottom: 4,
+                            transform: 'translateX(2px)',
                         }}>
                             {(animatedBalance ?? 0).toLocaleString()}
                         </div>
