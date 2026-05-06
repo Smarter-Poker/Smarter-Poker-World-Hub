@@ -10,6 +10,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -45,7 +46,9 @@ export default async function handler(req, res) {
           res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
           // GET: Return today's daily challenge hand from training_question_cache
           try {
-              const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+              // Phase 76 — Hand of the Day rotates at America/Chicago midnight.
+              // Old UTC anchor caused a 6h drift in user-facing rotation.
+              const today = getTodayCST(); // YYYY-MM-DD in America/Chicago
               const dailyId = `daily-${today}`;
 
               // ═══════════════════════════════════════════════════════════════
@@ -164,16 +167,26 @@ export default async function handler(req, res) {
                   scenario: scenario,
               };
 
-              // Calculate expiry (midnight UTC tomorrow)
-              const tomorrow = new Date();
-              tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-              tomorrow.setUTCHours(0, 0, 0, 0);
+              // Phase 76 — expiry is CST midnight tomorrow, matching the dailyId
+              // rotation. Auto-detects -05:00 (CDT) vs -06:00 (CST) via Intl.
+              const cstNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+              cstNow.setDate(cstNow.getDate() + 1);
+              const tYear = cstNow.getFullYear();
+              const tMonth = String(cstNow.getMonth() + 1).padStart(2, '0');
+              const tDate = String(cstNow.getDate()).padStart(2, '0');
+              const tzParts = new Intl.DateTimeFormat('en-US', {
+                  timeZone: 'America/Chicago',
+                  timeZoneName: 'short'
+              }).formatToParts(new Date());
+              const tzAbbr = tzParts.find(p => p.type === 'timeZoneName')?.value || 'CST';
+              const tzOffset = tzAbbr === 'CDT' ? '-05:00' : '-06:00';
+              const tomorrowMidnightCST = new Date(`${tYear}-${tMonth}-${tDate}T00:00:00${tzOffset}`);
 
               return res.status(200).json({
                   success: true,
                   dailyId,
                   question,
-                  expiresAt: tomorrow.toISOString(),
+                  expiresAt: tomorrowMidnightCST.toISOString(),
               });
 
           } catch (error) {

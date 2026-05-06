@@ -12,6 +12,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -124,7 +125,7 @@ export default async function handler(req, res) {
             streakData = {
                 streak_length: streakAward.streak_days,
                 diamonds_awarded: streakAward.diamonds,
-                reward_day: new Date().toISOString().split('T')[0],
+                reward_day: getTodayCST(), // Phase 76 — match RPC's CST anchor
                 tier: streakAward.tier,
             };
         } else {

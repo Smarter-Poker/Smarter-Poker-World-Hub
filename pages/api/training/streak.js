@@ -10,6 +10,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -116,7 +117,12 @@ export default async function handler(req, res) {
           // userId from JWT (set at top of handler)
 
           try {
-              const today = new Date().toISOString().split('T')[0];
+              // Phase 76 — anchor streak day to America/Chicago, not UTC.
+              // Without CST anchor: train at 5:59pm CST then 6:01pm CST →
+              // two UTC days but ONE CST day → streak bumps twice for one
+              // real day. Also fixes the inverse where Mon 11pm CST + Wed
+              // 1am CST resolves daysDiff=1 in UTC math instead of 2.
+              const today = getTodayCST();
 
               // Get current streak
               const { data: existing } = await supabase

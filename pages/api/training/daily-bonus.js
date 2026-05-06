@@ -10,6 +10,7 @@ import { notifyDailyBonus } from '../../../src/utils/trainingNotifications';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -42,7 +43,11 @@ export default async function handler(req, res) {
     }
 
       const supabase = getSupabase();
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      // Phase 76 — anchor "today" to America/Chicago, not UTC. Without this, a CST
+      // user could claim the daily bonus at 5:59pm CST (UTC day N) and again at
+      // 6:01pm CST (UTC day N+1) — two free claims in 3 minutes of wall-clock
+      // time, because UTC ticks over at 6pm CST. Same drift class as Phase 73.
+      const today = getTodayCST(); // YYYY-MM-DD in America/Chicago
 
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
