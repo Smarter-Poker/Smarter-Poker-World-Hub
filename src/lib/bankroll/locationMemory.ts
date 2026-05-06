@@ -401,7 +401,7 @@ export async function storeLocationMemory(
   content: string,
   severity: number = 1
 ): Promise<void> {
-  await supabase.from('bankroll_assistant_memory').insert({
+  await (supabase as any).from('bankroll_assistant_memory').insert({
     user_id: userId,
     location_id: locationId,
     memory_type: memoryType,

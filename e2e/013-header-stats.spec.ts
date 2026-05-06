@@ -86,7 +86,7 @@ test.describe.skip('Header Profile Data (requires seeded fixture user)', () => {
             const supabaseKey = keys.find(k => k.includes('auth-token'));
             if (!supabaseKey) return { error: 'No session' };
 
-            const session = JSON.parse(localStorage.getItem(supabaseKey));
+            const session = JSON.parse((localStorage.getItem(supabaseKey) || '{}') as string);
             const userId = session?.user?.id;
             if (!userId) return { error: 'No userId' };
 

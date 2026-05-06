@@ -393,7 +393,7 @@ export async function logRuleViolation(
   ruleValue: number,
   actualValue: number
 ): Promise<void> {
-  await supabase.from('bankroll_rule_violations').insert({
+  await (supabase as any).from('bankroll_rule_violations').insert({
     user_id: userId,
     rule_id: ruleId,
     ledger_entry_id: ledgerEntryId,

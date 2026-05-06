@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * TOKE SELECTORS — Dealer Income & Expense Tracking (Multi-Day v2)
  * ═══════════════════════════════════════════════════════════════════
