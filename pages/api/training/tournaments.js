@@ -230,16 +230,25 @@ export default async function handler(req, res) {
                       // would prevent a duplicate retry-charge, but it does NOT refund the
                       // current one. Compensate explicitly so the user isn't left short.
                       if (chargedFee) {
-                          try {
-                              await supabase.rpc('add_diamonds_to_balance', {
-                                  p_user_id: userId,
-                                  p_amount: tournament.entry_fee_diamonds,
-                                  p_type: 'arcade_entry_refund',
-                                  p_description: `Tournament entry refund — registration failed`,
-                                  p_reference_id: `tourney_entry_refund_${tournamentId}_${userId}_${Date.now()}`,
-                              });
-                          } catch (refundErr) {
-                              console.warn('[Tournaments] Refund after reg failure failed:', refundErr?.message || refundErr);
+                          // Phase 63: was using Date.now() in refund reference_id —
+                          // every client retry that hit this refund path would credit
+                          // AGAIN with a new Date.now(), giving the user a free double
+                          // refund. Stable ref now mirrors the charge ref so DB dedups.
+                          // Also captures rpcErr destructure — supabase-js doesn't
+                          // throw on DB errors so the prior try/catch missed silent
+                          // refund failures (user lost entire entry fee).
+                          const { error: refundRpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                              p_user_id: userId,
+                              p_amount: tournament.entry_fee_diamonds,
+                              p_type: 'arcade_entry_refund',
+                              p_description: `Tournament entry refund — registration failed`,
+                              p_reference_id: `tourney_entry_refund_${tournamentId}_${userId}`,
+                          }).catch(refundErr => {
+                              console.warn('[Tournaments] Refund threw:', refundErr?.message || refundErr);
+                              return { error: { message: 'refund_threw' } };
+                          });
+                          if (refundRpcErr) {
+                              console.warn('[Tournaments] Refund RPC error — user may need manual refund:', refundRpcErr.message);
                           }
                       }
                       return res.status(500).json({ success: false, error: 'Registration failed' });
