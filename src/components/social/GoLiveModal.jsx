@@ -58,13 +58,13 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
             });
             if (!convId) throw new Error('No conversation');
 
-            const inviteUrl = `${window.location.origin}/hub/live/guest?room=${streamId}&invite=${inviteCode}`;
+            const inviteQs = `room=${streamId}&invite=${inviteCode}`;
             const res = await fetch('/api/messenger/send-message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     conversationId: convId,
-                    content: `Join my live stream as a guest!\n\n${inviteUrl}`,
+                    content: `[LIVE_INVITE]${inviteQs}`,
                     message_type: 'text'
                 })
             });

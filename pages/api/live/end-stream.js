@@ -12,6 +12,7 @@
  */
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -77,6 +78,7 @@ async function markFeedPostEnded(stream_id, videoUrl = null) {
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     const { user } = await getServerUserWithFallback(req, supabase);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -169,10 +171,10 @@ export default async function handler(req, res) {
                 postId = post?.id;
             }
 
-            // Update stream record
+            // Update stream record — is_draft must be FALSE when posting publicly
             await supabase.from('live_streams').update({
                 is_posted: true,
-                is_draft: true,
+                is_draft: false,
             }).eq('id', stream_id);
 
             return res.json({ success: true, action: 'posted', postId });

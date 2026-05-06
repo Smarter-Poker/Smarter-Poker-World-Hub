@@ -331,6 +331,40 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             );
                         }
 
+                        // Check for live invite: [LIVE_INVITE]room=...&invite=...
+                        if (content.startsWith('[LIVE_INVITE]')) {
+                            const qs = content.replace('[LIVE_INVITE]', '');
+                            const joinUrl = `/hub/live/guest?${qs}`;
+                            return (
+                                <div style={{
+                                    background: isOwn ? 'rgba(255,255,255,0.1)' : 'rgba(0,132,255,0.1)',
+                                    borderRadius: 12,
+                                    padding: 16,
+                                    textAlign: 'center',
+                                    border: `1px solid ${isOwn ? 'rgba(255,255,255,0.2)' : 'rgba(0,132,255,0.3)'}`,
+                                }}>
+                                    <div style={{ fontSize: 24, marginBottom: 8 }}>🎥</div>
+                                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Live Stream Invite</div>
+                                    <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 12 }}>You have been invited to join as a guest co-host.</div>
+                                    <button 
+                                        onClick={() => window.location.href = joinUrl}
+                                        style={{
+                                            background: '#FA383E',
+                                            color: '#fff',
+                                            border: 'none',
+                                            padding: '8px 16px',
+                                            borderRadius: 8,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            width: '100%',
+                                        }}
+                                    >
+                                        Join Stream
+                                    </button>
+                                </div>
+                            );
+                        }
+
 
                         // Check for image markdown: [Image](url) or 📷 [Image](url) - support both
                         const imageMatch = content.match(/(?:📷\s*)?\[Image\]\(([^)]+)\)/);

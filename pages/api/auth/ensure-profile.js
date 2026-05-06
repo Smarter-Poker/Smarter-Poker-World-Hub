@@ -108,28 +108,24 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (emailMatch && !emailCheckError) {
-                  console.info('[ANTIGRAVITY] Duplicate profile prevented — existing account linked via email match.');
+                  console.info('[ANTIGRAVITY] Duplicate email found — nullifying email for new profile to prevent constraint violation and orphaning.');
 
-                  // Update the existing profile to reflect the latest login
-                  // but DO NOT change the profile's id — it stays linked to the ORIGINAL auth user
+                  // Update the existing profile to reflect the latest login just in case
                   await getSupabase()
                       .from('profiles')
                       .update({
                           last_login: new Date().toISOString(),
                           last_active: new Date().toISOString(),
                           is_online: true,
-                          // Optionally update metadata from the new auth provider
                           ...(full_name && !emailMatch.full_name ? { full_name } : {}),
                           ...(metadata?.avatar_url && !emailMatch.avatar_url ? { avatar_url: metadata.avatar_url } : {}),
                       })
                       .eq('id', emailMatch.id);
 
-                  return res.json({
-                      status: 'LINKED',
-                      profile: emailMatch,
-                      created: false,
-                      message: `Account linked — existing profile found for ${email}. Sign in with your original credentials or use the same email.`
-                  });
+                  // FIX: DO NOT RETURN 'LINKED'. If we return here, the new auth user (user_id)
+                  // NEVER gets a profile, permanently breaking the app for them.
+                  // Instead, we nullify the email so the new profile creation succeeds.
+                  email = null;
               }
           }
 
@@ -182,7 +178,7 @@ export default async function handler(req, res) {
                   .from('profiles')
                   .insert({
                       id: user_id,
-                      email: email || null,
+                      email: null, // Always use null on fallback to bypass email unique constraints
                       username: `Player${Date.now()}`,
                       created_at: new Date().toISOString()
                   })

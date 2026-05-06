@@ -20,6 +20,7 @@
 import { randomUUID } from 'crypto';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -80,6 +81,7 @@ async function getLiveGiftSourceCapAvailable(userId) {
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     const { user } = await getServerUserWithFallback(req, supabase);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -214,6 +216,24 @@ export default async function handler(req, res) {
             console.warn('[live/gift] Deduction failed:', deductErr.message);
             return res.status(500).json({ error: 'Gift failed due to a network error. Please try again.' });
         }
+        let refundSender = null;
+        let creditSuccess = false;
+
+        // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)
+        const { data: deductResult, error: deductErr } = await supabase.rpc('deduct_diamonds', {
+            p_user_id:          user.id,
+            p_amount:           parsedAmount,
+            p_description:      `Live gift to broadcaster`,
+            p_transaction_type: 'live_gift_sent',
+            p_metadata:         { recipient_id: receiver_id },
+            p_reference_id:     `live_gift_deduct_${giftId}`,
+            p_cooldown_seconds: 1,
+        });
+
+        if (deductErr) {
+            console.warn('[live/gift] Deduction RPC network error:', deductErr.message);
+            return res.status(500).json({ error: 'Gift failed due to network error. Please try again.' });
+        }
         if (deductResult && !deductResult.success) {
             return res.status(400).json({
                 error: deductResult.error || 'Insufficient diamonds',
@@ -223,10 +243,7 @@ export default async function handler(req, res) {
 
         const senderNewBalance = deductResult?.balance ?? 0;
 
-        // Compensating refund helper — hoisted to outer scope so the catch block
-        // can invoke it if something throws after the deduct commits but before
-        // we return a success response. Uses a stable reference_id to prevent
-        // double-refunds on repeated invocations.
+        // Compensating refund helper
         refundSender = async (reason) => {
             try {
                 const { error: refundErr } = await supabase.rpc('add_diamonds_to_balance', {
@@ -237,13 +254,14 @@ export default async function handler(req, res) {
                     p_reference_id: `live_gift_refund_${giftId}`,
                 });
                 if (refundErr) {
-                    console.warn('[live/gift] Refund RPC failed:', refundErr?.message || refundErr);
+                    console.error('[live/gift] CRITICAL: Failed to refund sender after credit failure:', refundErr);
+                } else {
+                    console.info(`[live/gift] Compensating refund applied for ${user.id}`);
                 }
-            } catch (rfErr) {
-                console.warn('[live/gift] Refund threw:', rfErr?.message || rfErr);
+            } catch (err) {
+                console.error('[live/gift] CRITICAL: Network error during refund:', err);
             }
         };
-
         // ATOMIC credit to receiver. Use the per-gift UUID as reference_id so
         // multiple gifts to the same stream don't collide on dedup.
         const { data: creditResult, error: creditErr } = await supabase.rpc('add_diamonds_to_balance', {
@@ -253,9 +271,8 @@ export default async function handler(req, res) {
             p_description: `${senderName} sent ${parsedAmount} diamonds during your live`,
             p_reference_id: `live_gift_${giftId}`,
         });
+
         if (creditErr) {
-            // Compensate the sender — we already deducted. Without this the
-            // sender's money simply disappears.
             await refundSender('credit RPC failed');
             console.warn('[live/gift] Credit RPC failed (refunded sender):', creditErr?.message || creditErr);
             return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
@@ -265,6 +282,8 @@ export default async function handler(req, res) {
             console.warn('[live/gift] Credit returned success:false (refunded sender):', creditResult);
             return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
         }
+
+        creditSuccess = true;
 
         creditSuccess = true;
 
