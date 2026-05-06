@@ -23,6 +23,28 @@ export default function SurvivalModeGame({
     const startTimeRef = useRef(Date.now());
     const currentQuestion = questions?.[currentIndex];
 
+    // Phase 69: track pending setTimeouts so unmount cancels them. Without
+    // this the 1s correct-advance and 2s game-over→onComplete timers fired
+    // setState/onComplete on an unmounted parent. Plus a _completedRef
+    // guard so onComplete can't double-fire (gameOver setTimeout +
+    // user-triggered re-completion).
+    const _pendingTimeoutsRef = useRef(new Set());
+    const _isMountedRef = useRef(true);
+    const _completedRef = useRef(false);
+    const safeSetTimeout = (fn, delay) => {
+        const id = setTimeout(() => {
+            _pendingTimeoutsRef.current.delete(id);
+            if (_isMountedRef.current) fn();
+        }, delay);
+        _pendingTimeoutsRef.current.add(id);
+        return id;
+    };
+    useEffect(() => () => {
+        _isMountedRef.current = false;
+        for (const id of _pendingTimeoutsRef.current) clearTimeout(id);
+        _pendingTimeoutsRef.current.clear();
+    }, []);
+
     // Inline diamond calculation
     const calculateSurvivalDiamonds = (streak) => {
         if (streak === 0) return 0;
@@ -57,7 +79,8 @@ export default function SurvivalModeGame({
             setDiamondsEarned(prev => prev + multiplier);
             setStreak(prev => prev + 1);
 
-            setTimeout(() => {
+            // Phase 69: safeSetTimeout + isMounted guard.
+            safeSetTimeout(() => {
                 setCurrentIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
@@ -65,7 +88,11 @@ export default function SurvivalModeGame({
         } else {
             setIsGameOver(true);
 
-            setTimeout(() => {
+            // Phase 69: safeSetTimeout + completedRef guard prevents
+            // onComplete from firing on unmounted parent or double-firing.
+            safeSetTimeout(() => {
+                if (_completedRef.current) return;
+                _completedRef.current = true;
                 const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
                 onComplete({
                     answers: newAnswers,
