@@ -20,6 +20,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
+import { busEmit } from '../../engine/EventBus';
 
 const ANIM = `
 @keyframes spcgFadeIn  { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
@@ -91,9 +92,18 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             .replace(/[^a-z0-9_.]/g, '')
             .slice(0, 20);
         setUsername(cleanedAlias);
-        // Pre-fill phone if we somehow already have it
-        const existingPhone = (profile.phone || '').replace(/\D/g, '');
-        if (existingPhone) setPhoneDigits(existingPhone);
+        // Pre-fill phone if we somehow already have it. Stored format may be
+        // "+1 5551234567" (this gate's format), "+15551234567" (E.164), or any
+        // user-typed string from profile-edit. Without country-code stripping
+        // the modal would render a stored "+15551234567" as "155-123-4567" —
+        // an invalid area code starting with 1.
+        const rawDigits = (profile.phone || '').replace(/\D/g, '');
+        if (rawDigits.length === 11 && rawDigits.startsWith('1')) {
+            setCountry('+1');
+            setPhoneDigits(rawDigits.slice(1));
+        } else if (rawDigits) {
+            setPhoneDigits(rawDigits);
+        }
     }, [profile]);
 
     // ── Username availability checker (used by the debounce effect AND by
@@ -209,8 +219,11 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                 }
                 return;
             }
-            // Success — fire onComplete with the new profile
+            // Success — fire onComplete with the new profile, then notify the
+            // event bus so any other open tab/page (profile-edit header, hub
+            // shell, etc.) refreshes its cached profile data immediately.
             onComplete?.(data.profile);
+            try { busEmit.dataMutated('profile'); } catch (_e) { /* bus is best-effort */ }
         } catch (err) {
             console.warn('[social-gate] submit error:', err);
             setSubmitError('Network error — please try again.');
