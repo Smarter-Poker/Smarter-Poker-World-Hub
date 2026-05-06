@@ -27,6 +27,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
@@ -500,7 +501,9 @@ export default function MixedModePage() {
                     correct_count: actualCorrect,
                     total_questions: questions.length,
                     diamonds_earned: actualAwarded,
-                    play_date: new Date().toISOString().split('T')[0]
+                    // Phase 73: CST-anchored play_date so leaderboard.js (which
+                    // queries by CST today) finds same-day rows.
+                    play_date: getTodayCST()
                 });
                 if (scoreErr) throw scoreErr;
                 savePhaseRef.current = 4;

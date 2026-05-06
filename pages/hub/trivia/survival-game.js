@@ -31,6 +31,7 @@ import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '.
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
@@ -750,7 +751,10 @@ export default function SurvivalGamePage() {
             // Phase 4: Record to unified trivia_scores (for leaderboard).
             // Capture insert error — supabase-js does NOT throw on DB errors.
             if (savePhaseRef.current < 4) {
-                const today = new Date().toISOString().split('T')[0];
+                // Phase 73: CST-anchored play_date so leaderboard.js (which
+                // queries by CST today) finds same-day rows. Was UTC date —
+                // 6pm-midnight CST scores were attributed to next day.
+                const today = getTodayCST();
                 const levelCorrect = answersRef.current.filter(Boolean).length;
                 const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                     user_id: userId,

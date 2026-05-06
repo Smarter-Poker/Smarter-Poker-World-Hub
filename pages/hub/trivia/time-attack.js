@@ -25,6 +25,7 @@ import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '.
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import { getTodayCST, getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
@@ -76,14 +77,17 @@ export default function TimeAttackPage() {
         const vipStatus = await DiamondEngine.isVIP();
         setIsVip(vipStatus);
 
-        // Get today's time attack diamonds
-        const today = new Date().toISOString().split('T')[0];
+        // Get today's time attack diamonds.
+        // Phase 73: was UTC date — same 6-hour drift as diamondCap.
+        // Use CST start-of-day so the displayed daily total is accurate
+        // for users in the CST timezone window.
+        const todayStartCST = getTodayStartCST();
         const { data: scores } = await supabase
             .from('trivia_scores')
             .select('diamonds_earned')
             .eq('user_id', user.id)
             .eq('mode', 'time-attack')
-            .gte('created_at', today)
+            .gte('created_at', todayStartCST)
             .limit(50) // time attack scores
 
         if (scores) {
@@ -226,7 +230,11 @@ export default function TimeAttackPage() {
         setGameState('saving');
 
         if (userId) {
-            const today = new Date().toISOString().split('T')[0];
+            // Phase 73: play_date is anchored to CST so leaderboard.js
+            // (which queries play_date with CST today) finds rows from
+            // games played in the same CST day. Was UTC date — score
+            // rows from 6pm-midnight CST were attributed to next day.
+            const today = getTodayCST();
 
             try {
                 // Phase 1: Save score (only if not already saved).

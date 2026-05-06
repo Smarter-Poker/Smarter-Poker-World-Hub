@@ -27,6 +27,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import { getTodayCST, getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
@@ -79,13 +80,17 @@ export default function SurvivalModePage() {
             const vipStatus = await DiamondEngine.isVIP();
             setIsVip(vipStatus);
 
-            // Get today's survival diamonds
-            const today = new Date().toISOString().split('T')[0];
+            // Get today's survival diamonds.
+            // Phase 73: was UTC date — for CST users between 6pm-midnight
+            // CST, today's UTC date had rolled over so earlier-same-day
+            // runs were filtered OUT and the displayed "today's diamonds"
+            // count looked low. Use CST-anchored start-of-day.
+            const todayStartCST = getTodayStartCST();
             const { data: runs } = await supabase
                 .from('trivia_survival_runs')
                 .select('diamonds_earned')
                 .eq('user_id', user.id)
-                .gte('created_at', today)
+                .gte('created_at', todayStartCST)
                 .limit(50) // survival runs
 
             if (runs) {
@@ -240,7 +245,11 @@ export default function SurvivalModePage() {
                     const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'survival');
                     const cappedDiamonds = clampToCap(earnedToday, gameResult.diamondsEarned, DAILY_DIAMOND_CAP);
                     if (cappedDiamonds > 0) {
-                        const _today = new Date().toISOString().split('T')[0];
+                        // Phase 73: anchor reference_id day to CST so the
+                        // dedup window matches the CST day boundary used by
+                        // the cap query above. Was UTC date, which created
+                        // a mismatch between the cap-day and the dedup-day.
+                        const _today = getTodayCST();
                         const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: userId,
                             p_amount: cappedDiamonds,
