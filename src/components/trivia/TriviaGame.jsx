@@ -82,6 +82,30 @@ export default function TriviaGame({
     const answersRef = useRef([]); // Ref mirror of answers — avoids stale closure in auto-complete
     const streakRef = useRef(0); // Ref mirror of streak
 
+    // Phase 67: track all pending setTimeouts so unmount can cancel them.
+    // Without this, the 8+ ephemeral timeouts (correct-flash, combo-popup,
+    // wrong-shake, streak-lost, bust, floating-diamond cleanup, auto-advance,
+    // cash-out completion) would fire on an unmounted component, causing
+    // React 'setState on unmounted' warnings AND potential double-onComplete
+    // calls if the user navigated away mid-cash-out (the 2-second cash-out
+    // setTimeout would still fire onComplete on the dead parent).
+    const pendingTimeoutsRef = useRef(new Set());
+    const isMountedRef = useRef(true);
+    const completedRef = useRef(false); // guards onComplete from double-firing
+    const safeSetTimeout = (fn, delay) => {
+        const id = setTimeout(() => {
+            pendingTimeoutsRef.current.delete(id);
+            if (isMountedRef.current) fn();
+        }, delay);
+        pendingTimeoutsRef.current.add(id);
+        return id;
+    };
+    useEffect(() => () => {
+        isMountedRef.current = false;
+        for (const id of pendingTimeoutsRef.current) clearTimeout(id);
+        pendingTimeoutsRef.current.clear();
+    }, []);
+
     // Lazy-load confetti on first use (reduces initial bundle)
     const fireConfetti = async (opts) => {
         try {
@@ -141,9 +165,17 @@ export default function TriviaGame({
     useEffect(() => { answersRef.current = answers; }, [answers]);
     useEffect(() => { streakRef.current = streak; }, [streak]);
 
-    // Auto-complete game when timer expires (arcade mode)
+    // Auto-complete game when timer expires (arcade mode).
+    // Phase 67: completedRef guard prevents double-onComplete race. Race
+    // scenario: user clicks answer at 1s left → selectAnswer auto-advances
+    // (800ms setTimeout → onComplete) → simultaneously timer ticks to 0
+    // → setIsGameActive(false) + setTimeRemaining(0) → this effect ALSO
+    // fires onComplete. Parent would record the score / award diamonds
+    // twice. The ref ensures onComplete fires at most once per mount.
     useEffect(() => {
         if (!timeLimit || timeRemaining > 0 || isGameActive) return;
+        if (completedRef.current) return;
+        completedRef.current = true;
         audio.bustDrop();
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
         const a = answersRef.current;
@@ -164,7 +196,10 @@ export default function TriviaGame({
     const spawnFloatingDiamond = (value) => {
         const id = Date.now() + Math.random();
         setFloatingDiamonds(prev => [...prev, { id, value }]);
-        setTimeout(() => {
+        // Phase 67: safeSetTimeout instead of setTimeout — was leaking the
+        // setFloatingDiamonds call onto unmounted parents when the user
+        // navigated away during the 1.2s animation window.
+        safeSetTimeout(() => {
             setFloatingDiamonds(prev => prev.filter(d => d.id !== id));
         }, 1200);
     };
@@ -185,7 +220,7 @@ export default function TriviaGame({
             // ── CORRECT ──
             audio.correctChime();
             setShowCorrectFlash(true);
-            setTimeout(() => setShowCorrectFlash(false), 500);
+            safeSetTimeout(() => setShowCorrectFlash(false), 500);
             busEmit.decisionCorrect(streak + 1);
 
             const newStreak = streak + 1;
@@ -202,7 +237,7 @@ export default function TriviaGame({
             if (newStreak >= 2) {
                 audio.streakDing(newStreak);
                 setShowCombo(true);
-                setTimeout(() => setShowCombo(false), 1500);
+                safeSetTimeout(() => setShowCombo(false), 1500);
             }
 
             // Stakes pot
@@ -231,14 +266,14 @@ export default function TriviaGame({
             // ── WRONG ──
             audio.wrongBuzz();
             setShowWrongShake(true);
-            setTimeout(() => setShowWrongShake(false), 400);
+            safeSetTimeout(() => setShowWrongShake(false), 400);
             busEmit.decisionIncorrect(streak);
             busEmit.screenShake('light');
 
             // Break streak
             if (streak >= 2) {
                 setShowStreakLost(true);
-                setTimeout(() => setShowStreakLost(false), 1500);
+                safeSetTimeout(() => setShowStreakLost(false), 1500);
             }
             setStreak(0);
             setIsFireMode(false);
@@ -247,7 +282,7 @@ export default function TriviaGame({
             if (enableStakes && stakePot > 0) {
                 audio.bustDrop();
                 setShowBust(true);
-                setTimeout(() => setShowBust(false), 2000);
+                safeSetTimeout(() => setShowBust(false), 2000);
                 setStakePot(0);
                 stakePotRef.current = 0;
             }
@@ -259,13 +294,18 @@ export default function TriviaGame({
 
         // Auto-advance in arcade mode
         if (isArcadeMode) {
-            setTimeout(() => advanceQuestion(newAnswers), 800);
+            safeSetTimeout(() => advanceQuestion(newAnswers), 800);
         }
     };
 
     // ══ ADVANCE ══
     const advanceQuestion = (currentAnswers = answers) => {
         if (currentIndex >= questions.length - 1) {
+            // Phase 67: guard against the timer-expiry useEffect ALSO firing
+            // onComplete in the same tick when the user finishes the last
+            // question right as time hits 0 in arcade mode.
+            if (completedRef.current) return;
+            completedRef.current = true;
             clearInterval(timerRef.current);
             setIsGameActive(false);
             const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -293,6 +333,11 @@ export default function TriviaGame({
     // ══ CASH OUT (stakes mode) ══
     const handleCashOut = () => {
         if (!enableStakes || stakePot <= 0) return;
+        // Phase 67: guard against double-trigger if user double-clicks
+        // Cash Out, AND against onComplete also firing from auto-advance
+        // / timer-expiry paths during the 2-second cash-out animation.
+        if (completedRef.current) return;
+        completedRef.current = true;
         audio.cashOutKaChing();
         setCashedOut(true);
         setIsGameActive(false);
@@ -312,7 +357,7 @@ export default function TriviaGame({
         const cashOutStreak = streakRef.current;
         const cashOutStakePot = stakePotRef.current;
         const cashOutTimeRemaining = timeRemaining || 0;
-        setTimeout(() => {
+        safeSetTimeout(() => {
             onComplete({
                 answers: cashOutAnswers, correctCount: cashOutCC, totalQuestions: questions.length,
                 timeSpent, timeRemaining: cashOutTimeRemaining,
@@ -555,8 +600,22 @@ export default function TriviaGame({
                                     const result = applyHint(hint.id, currentQuestion, { eliminatedOptions, timeRemaining });
                                     if (result.hiddenOptions) setEliminatedOptions(result.hiddenOptions);
                                     if (result.addTime) setTimeRemaining(prev => (prev || 0) + result.addTime);
-                                    if (result.skipQuestion) advanceQuestion([...answers, -1]);
-                                    
+                                    // Phase 67 fix: was passing [...answers, -1] only to
+                                    // advanceQuestion as a parameter, but for non-last
+                                    // questions advanceQuestion ignores the param and just
+                                    // bumps the UI. The React `answers` state never got the
+                                    // -1, so the next selectAnswer's `setAnswers([...answers, index])`
+                                    // missed the skipped slot — array indices were off-by-one
+                                    // vs the questions[] array, causing misaligned scoring at
+                                    // game end (filter compared answer N to question N-1).
+                                    // Always update React state AND pass the same array to
+                                    // advanceQuestion for the last-question case.
+                                    if (result.skipQuestion) {
+                                        const newAnswers = [...answers, -1];
+                                        setAnswers(newAnswers);
+                                        advanceQuestion(newAnswers);
+                                    }
+
                                     if (!isVip) {
                                         setDiamonds(prev => prev - hint.cost);
                                         onDiamondsChange?.(-hint.cost);
