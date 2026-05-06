@@ -166,17 +166,26 @@ export class PIOQueryService {
     }
 
     /**
-     * Transform chart data into usable format
+     * Transform chart data into usable format.
+     *
+     * Phase 36 (2026-05-06): rewritten to match the actual
+     * memory_charts_gold schema (chart_id, game_type, stack_depth,
+     * hero_position, villain_action, hand_matrix) — the previous
+     * implementation queried chart_name / chart_grid / category /
+     * topology / position columns that don't exist on this table,
+     * silently returning all-undefined objects to ICMIZER-source
+     * callers. After Phase 34's normalization, every hand_matrix entry
+     * is in canonical {push: x, fold: y} object form.
      */
     transformChartData(rawData) {
         return rawData.map(chart => ({
-            id: chart.id,
-            chartName: chart.chart_name,
-            category: chart.category,
-            chartGrid: chart.chart_grid,
+            id: chart.chart_id,
+            chartName: `${chart.game_type} ${chart.hero_position} ${chart.stack_depth}bb`,
+            gameType: chart.game_type,
             stackDepth: chart.stack_depth,
-            topology: chart.topology,
-            position: chart.position
+            heroPosition: chart.hero_position,
+            villainAction: chart.villain_action,
+            handMatrix: chart.hand_matrix || {},
         }));
     }
 

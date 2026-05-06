@@ -118,29 +118,56 @@ function formatHand(card1, card2) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Get preflop range from memory_charts_gold
- * @param {string} chartName - e.g., "BTN_Open_100bb_6Max"
- * @returns {Object} Chart grid with hand actions
+ * Get preflop range from memory_charts_gold.
+ *
+ * Phase 36 (2026-05-06): the original signature took a single chartName
+ * string and queried chart_name + chart_grid columns that DON'T EXIST
+ * in the actual memory_charts_gold schema (real cols: chart_id,
+ * game_type, stack_depth, hero_position, villain_action, hand_matrix).
+ * Every call silently returned null. Rewritten to take the schema's
+ * real key fields and return the hand_matrix in canonical
+ * {push: x, fold: y} object form (Phase 34 normalized format).
+ *
+ * @param {string|Object} keyOrParams - either legacy chartName string
+ *        (parsed as "{position}_Open_{stack}bb_{topology}") or an
+ *        object {gameType, heroPosition, stackDepth, villainAction?}.
+ * @returns {Object|null} hand_matrix keyed by hand notation, or null
+ *        if no matching shell exists.
  */
-export async function getPreflopRange(chartName) {
-    // Check cache first (Phase 3A #9)
-    const cacheKey = `preflop:${chartName}`;
+export async function getPreflopRange(keyOrParams) {
+    // Accept legacy string form by best-effort parsing for backwards compat
+    let gameType, heroPosition, stackDepth, villainAction;
+    if (typeof keyOrParams === 'string') {
+        // e.g., "BTN_Open_100bb_6Max" → BTN, 100, 6Max-ish (treated as Cash)
+        const m = keyOrParams.match(/^([A-Z]+)_[A-Za-z]+_(\d+)bb/);
+        if (!m) return null;
+        heroPosition = m[1];
+        stackDepth = parseInt(m[2], 10);
+        gameType = keyOrParams.includes('Tournament') ? 'Tournament' : 'Cash';
+    } else {
+        ({ gameType, heroPosition, stackDepth, villainAction } = keyOrParams || {});
+    }
+
+    const cacheKey = `preflop:${gameType}:${heroPosition}:${stackDepth}:${villainAction || '*'}`;
     const cached = cacheGet(cacheKey);
     if (cached !== undefined) return cached;
 
     const sb = getSupabase();
     if (!sb) return null;
 
-    const { data, error } = await sb
-        .from('memory_charts_gold')
-        .select('chart_grid')
-        .eq('chart_name', chartName)
-        .maybeSingle();
+    let q = sb.from('memory_charts_gold')
+        .select('hand_matrix')
+        .eq('game_type', gameType)
+        .eq('hero_position', heroPosition)
+        .eq('stack_depth', stackDepth);
+    if (villainAction) q = q.eq('villain_action', villainAction);
 
+    const { data, error } = await q.limit(1).maybeSingle();
     if (error || !data) return null;
 
-    cacheSet(cacheKey, data.chart_grid);
-    return data.chart_grid;
+    const matrix = data.hand_matrix || null;
+    cacheSet(cacheKey, matrix);
+    return matrix;
 }
 
 /**
