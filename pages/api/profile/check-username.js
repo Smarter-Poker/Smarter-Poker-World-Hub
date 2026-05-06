@@ -17,15 +17,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const ANON_KEY     = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
     try {
@@ -48,7 +41,21 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Auth token required' });
         }
         const token = auth.slice(7);
-        const sb = getSupabase();
+
+        // Phase 79 BUG-1 FIX: per-user client (anon key + Bearer header) so the
+        // RPC's auth.uid() resolves to the caller. The previous service-role
+        // client made auth.uid() return NULL inside the RPC, which neutralized
+        // the self-exclusion logic added by the 6-bug fix (commit ba8bb37658):
+        // every OAuth signup whose username was pre-filled by ensure-profile.js
+        // (e.g. 'danbekavac' from Google email prefix) saw their own pre-filled
+        // username reported as 'taken'. The RPC's `(v_self IS NULL OR id <> v_self)`
+        // self-exclusion was dead code while the API called via service-role.
+        // Mirror the per-user-client pattern complete-social.js already uses.
+        const sb = createClient(SUPABASE_URL, ANON_KEY, {
+            global: { headers: { Authorization: `Bearer ${token}` } },
+            auth: { persistSession: false, autoRefreshToken: false },
+        });
+
         const { data: u, error: uErr } = await sb.auth.getUser(token);
         if (uErr || !u?.user) {
             return res.status(401).json({ error: 'Invalid token' });
