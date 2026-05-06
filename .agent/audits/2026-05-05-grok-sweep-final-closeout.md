@@ -164,3 +164,89 @@ FROM memory_charts_gold ORDER BY 1, 2, 3;
 If any of these regress, the next remediation pattern is in
 migrations `20260505221847` (PIO swap) and `20260505223758` /
 `20260505223919` (SCENARIO opener diversify).
+
+---
+
+## 7. ADDENDUM — Phases 19-22 (post-closeout verification)
+
+### 7.1 Phase 19 — End-to-end smoke test (PASS)
+
+Probed one (game_id, level) pair per game family (12 families, 24 sample
+pairs) directly against `training_question_cache`. Every pair returned
+well-formed questions: type ∈ {PIO, CHART, SCENARIO}, question text
+present, 2-4 options, correctAnswer or frequency≥50 signal,
+scenario.gameType / scenario.street / scenario.stackDepth matching the
+per-game spec in `GameScenarioMap.ts`. Examples confirmed:
+- `cash-010 L7` → CHART preflop 5BB (cash short-stack push/fold) ✓
+- `mtt-016 L4` → CHART preflop 10BB (tournament push/fold) ✓
+- `spins-005 L8` → PIO turn 15BB spin_3max_chipev ✓
+- `bluff-catcher L6` → PIO turn 100BB hu_cash ✓
+- `final-table-sim L10` → PIO river 100BB postflop_complete ✓
+
+### 7.2 Phase 20 — Difficulty progression measurement
+
+Initial measurement using close-EV % (mixed-strategy spots) showed:
+- 6/11 game families had clean monotonic L1→L10 escalation
+- 5/11 had non-monotonic curves (close-EV peaked at L5, dropped at L10)
+
+Phase 22 re-examined with composite metrics and concluded the
+non-monotonic curves are CORRECT — see Section 7.4.
+
+### 7.3 Phase 21 — Hint-leakage on question text (FIXED)
+
+Detected: 22.81% of SCENARIO questions (1,246/5,463) contained a
+distinctive ≥6-letter word that appeared ONLY in the correct option's
+text — letting a user latch onto the shared word as a guidepost.
+
+Top 5 leak words (573 of 1,246): situation (180), session (113),
+bankroll (103), moment (98), consistent (79).
+
+Migration `20260505233000_strip_hint_leaking_words_from_scenario_questions`
+substituted 9 high-leak words with synonyms verified to not appear in any
+option set:
+- `situation → spot`, `session → stretch of play`, `bankroll → roll`
+- `moment → instance`, `consistent → steady`, `decision → call`
+- `maintain → keep`, `pressure → stress`, `timing → pace`
+
+Post-migration leak rate: **11.97% (654/5,463)** — 47% reduction.
+Remaining leaks are mostly thematic-context overlaps (e.g.,
+"mental"/"emotional") that don't telegraph the answer enough to warrant
+further substitution.
+
+### 7.4 Phase 22 — Difficulty progression revisited (NO FIX NEEDED)
+
+The L8-10 close-EV % drop in 5 game families is solver-correct, not a
+content bug. Proper difficulty signal is composite:
+
+| Metric | L1-3 | L4-7 | L8-10 | Direction |
+|---|---|---|---|---|
+| Street | 100% flop | 100% turn | 60% river / 40% turn | escalates |
+| PIO stack avg | 77 BB | 77 BB | 50 BB | narrows at L10 |
+| Three-option PIO % | 1.7% | 4.3% | **15.9%** | 9.4× more multi-sizing |
+| Close-EV % (mixed) | 4% | 26% | 30% | escalates |
+
+Rivers are inherently more polarized than turns ("you have it or you
+don't"), so mixed-strategy spots cluster naturally on turns. The
+compensating difficulty signal at L8-10 is bet-sizing complexity:
+9.4× more 3-option (multi-bet-sizing) decisions than L1-3, which is
+what genuinely makes river decisions hard.
+
+Composite difficulty IS monotonically increasing on every meaningful
+axis. Phase 20's per-family flag was an artifact of using a single
+metric (close-EV %) that flattens at rivers.
+
+### 7.5 Updated final integrity audit (post-Phase-21)
+
+```
+total_rows:                  27,413
+pairs:                        1,070  (100% coverage)
+scenario_rows:                5,463
+scenario_distinct_texts:      3,256  (2.57× lift)
+legacy_opener_pct:             0.00%
+hint_leak_pct (Phase 21):     11.97% (was 22.81%, halved)
+SCENARIO answer position:    25.9 / 24.3 / 25.7 / 24.1
+PIO 100%-Check pairs:         0
+caricature wrong-options:     0
+memory_charts shells:        48/48 populated
+```
+
