@@ -2116,7 +2116,7 @@ export default function ReelsPage() {
                     <YouTubeErrorOverlay
                         errorCode={ytError.code}
                         videoId={videoId}
-                        thumbnailUrl={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                        thumbnailUrl={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
                         actionLabel="Skipping in 3 seconds..."
                         style={{ zIndex: 60 }}
                     />
