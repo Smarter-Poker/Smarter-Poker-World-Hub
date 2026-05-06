@@ -28,7 +28,14 @@ const ACTION_VERBS = {
 
 const ACTION_LABELS = {
     f: 'Fold', fold: 'Fold',
-    c: 'Call', call: 'Call',
+    // Phase 48 (2026-05-06): in the PIO cache schema, option-id 'c' is
+    // ALWAYS the check action (cache verified: 20,950/20,950 rows have
+    // {id:'c', text:'Check'}). Previous mapping `c → 'Call'` produced
+    // wrong prose for ~88% of PIO questions ("Solver Call 83% of the
+    // time" instead of "Solver Check"). 'call' and 'x' kept as legacy
+    // aliases for engines that emit those codes; 'c' specifically
+    // means CHECK in solver-derived rows.
+    c: 'Check', call: 'Call',
     x: 'Check', check: 'Check',
     r: 'Raise', raise: 'Raise',
     b: 'Bet', bet: 'Bet',
@@ -41,7 +48,10 @@ const ACTION_LABELS = {
 
 const READABLE_FOR_ANALYSIS_PANEL = {
     f: 'FOLD', fold: 'FOLD',
-    c: 'CALL', call: 'CALL',
+    // Phase 48 (2026-05-06): see comment in ACTION_VERBS — `c` is
+    // CHECK in the PIO cache, not CALL. The GTOAnalysisPanel labels
+    // were wrong on every check-correct PIO question.
+    c: 'CHECK', call: 'CALL',
     x: 'CHECK', check: 'CHECK',
     r: 'RAISE', raise: 'RAISE',
     b: 'BET', bet: 'BET',
