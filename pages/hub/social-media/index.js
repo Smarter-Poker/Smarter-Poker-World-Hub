@@ -916,56 +916,80 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                     {(post.mediaUrls?.length ?? 0) <= 1 ? (
                         // Single media or no-media live card - full width
                         post.contentType === 'live' ? (
-                            // LIVE STREAM: Show prominent live card — handles both active and ended states
+                            // BUG-FIX-LIVE-2 (per Dan: "VIDEO IS NOT PLAYING ON THE
+                            // SOCIAL FEED, ITS STILL JUST A STATIC IMAGE INSTEAD OF
+                            // THE LIVE VIDEO FOR USERS TO CLICK AND WATCH"):
+                            // delegates to LiveStreamCard with `inlineAutoplay`
+                            // so the LiveKit preview track mounts immediately
+                            // (no hover required — hover doesn't fire on touch).
+                            // The Watch Now overlay is preserved. Ended streams
+                            // keep the static tile (no live track to subscribe).
                             (() => {
                                 const isEnded = post.metadata?.ended === true;
+                                const streamId = post.metadata?.stream_id;
+                                const handleOpen = () => {
+                                    if (!streamId) return;
+                                    if (isEnded) {
+                                        toast.info('This stream has ended');
+                                        return;
+                                    }
+                                    router.push(`/hub/social-media?stream=${streamId}`);
+                                };
+                                if (isEnded || !streamId) {
+                                    return (
+                                        <div
+                                            onClick={handleOpen}
+                                            style={{ position: 'relative', cursor: 'default', background: '#000', borderRadius: 8, overflow: 'hidden', aspectRatio: '16/9' }}
+                                        >
+                                            {post.mediaUrls?.[0] && (
+                                                <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} onError={e => { e.target.style.display = 'none'; }} />
+                                            )}
+                                            <div style={{ position: 'absolute', top: 12, left: 12, background: '#65676B', color: 'white', padding: '4px 12px', borderRadius: 6, fontSize: 13, fontWeight: 800, letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'white', display: 'inline-block' }} />
+                                                STREAM ENDED
+                                            </div>
+                                        </div>
+                                    );
+                                }
                                 return (
-                                    <div
-                                        onClick={() => {
-                                            const streamId = post.metadata?.stream_id;
-                                            if (!streamId) return;
-                                            if (isEnded) {
-                                                // Stream is over — show toast, don't navigate to dead stream URL
-                                                toast.info('This stream has ended');
-                                                return;
-                                            }
-                                            router.push(`/hub/social-media?stream=${streamId}`);
-                                        }}
-                                        style={{ position: 'relative', cursor: isEnded ? 'default' : 'pointer', background: '#000', borderRadius: 8, overflow: 'hidden', aspectRatio: '16/9' }}
-                                    >
-                                        {post.mediaUrls?.[0] && (
-                                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: isEnded ? 0.4 : 0.7 }} onError={e => { e.target.style.display = 'none'; }} />
-                                        )}
-                                        {/* LIVE or ENDED badge */}
+                                    <div style={{ position: 'relative' }}>
+                                        <LiveStreamCard
+                                            stream={{
+                                                id: streamId,
+                                                thumbnail_url: post.mediaUrls?.[0] || null,
+                                                title: post.content || '',
+                                            }}
+                                            inlineAutoplay
+                                            onClick={handleOpen}
+                                        />
                                         <div style={{
                                             position: 'absolute', top: 12, left: 12,
-                                            background: isEnded ? '#65676B' : '#FF0000', color: 'white',
+                                            background: '#FF0000', color: 'white',
                                             padding: '4px 12px', borderRadius: 6,
                                             fontSize: 13, fontWeight: 800, letterSpacing: 1,
-                                            animation: isEnded ? 'none' : 'sp-live-pulse 1.5s ease-in-out infinite',
+                                            animation: 'sp-live-pulse 1.5s ease-in-out infinite',
                                             display: 'flex', alignItems: 'center', gap: 6,
+                                            pointerEvents: 'none',
                                         }}>
                                             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'white', display: 'inline-block' }} />
-                                            {isEnded ? 'STREAM ENDED' : 'LIVE NOW'}
+                                            LIVE NOW
                                         </div>
-                                        {/* Watch Now CTA — only shown for active streams */}
-                                        {!isEnded && (
+                                        <div style={{
+                                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                                            background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                                            padding: '32px 16px 16px',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            pointerEvents: 'none',
+                                        }}>
                                             <div style={{
-                                                position: 'absolute', bottom: 0, left: 0, right: 0,
-                                                background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
-                                                padding: '32px 16px 16px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: C.blue, color: 'white',
+                                                padding: '10px 28px', borderRadius: 24,
+                                                fontSize: 15, fontWeight: 700,
+                                                boxShadow: '0 4px 12px rgba(24,119,242,0.4)',
                                             }}>
-                                                <div style={{
-                                                    background: C.blue, color: 'white',
-                                                    padding: '10px 28px', borderRadius: 24,
-                                                    fontSize: 15, fontWeight: 700,
-                                                    boxShadow: '0 4px 12px rgba(24,119,242,0.4)',
-                                                }}>
-                                                    Watch Now
-                                                </div>
+                                                Watch Now
                                             </div>
-                                        )}
+                                        </div>
                                         <style>{`@keyframes sp-live-pulse { 0%, 100% { box-shadow: 0 0 8px rgba(255,0,0,0.4); } 50% { box-shadow: 0 0 20px rgba(255,0,0,0.8); } }`}</style>
                                     </div>
                                 );
@@ -1010,19 +1034,33 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                                 );
                             })()
                         ) : post.contentType === 'video' ? (
-                            // VIDEO: Use VideoPostWrapper to handle broken video detection
-                            // Click routes to immersive Reels equivalent
+                            // FEED-VIDEO-THUMBNAIL-FIX-2026-05-06 (per Dan: "JUST POSTED A
+                            // 17 SECOND VIDEO AND STILL POSTING THE BLACK SCREEN WITH PLAY
+                            // BUTTON, EVEN WHEN I SELECTED A THUMBNAIL"). Render the
+                            // thumbnail when present (cheapest, cacheable, guaranteed to
+                            // render). Fall back to <video src + #t=0.001> so the media
+                            // engine decodes the first keyframe and renders it as poster
+                            // on every browser including iOS 17+.
                             <VideoPostWrapper
                                 url={post.mediaUrls[0]}
                                 onValidVideoClick={() => router.push(`/hub/reels?id=${post.id}`)}
                             >
-                                <video
-                                    src={post.mediaUrls[0]}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                />
+                                {(post.thumbnail_url || post.thumbnailUrl) ? (
+                                    <img
+                                        src={post.thumbnail_url || post.thumbnailUrl}
+                                        alt=""
+                                        loading="lazy"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+                                    />
+                                ) : (
+                                    <video
+                                        src={`${post.mediaUrls[0]}${post.mediaUrls[0].includes('#t=') ? '' : '#t=0.001'}`}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+                                        muted
+                                        playsInline
+                                        preload="metadata"
+                                    />
+                                )}
                             </VideoPostWrapper>
                         ) : (post.contentType === 'link' || post.contentType === 'article') ? (
                             // LINK/ARTICLE: Use centralized ArticleCard component
@@ -1047,8 +1085,14 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                             {post.mediaUrls.map((url, i) => (
                                 <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
                                     {post.contentType === 'video' && i === 0 ? (
+                                        // FEED-VIDEO-THUMBNAIL-FIX-2026-05-06: same pattern as
+                                        // the 1-up branch — thumbnail first, then #t=0.001 fallback.
                                         <div style={{ width: '100%', height: '100%', cursor: 'pointer', position: 'relative', background: '#000' }} onClick={() => router.push(`/hub/reels?id=${post.id}`)}>
-                                            <video style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} src={url} muted playsInline />
+                                            {(post.thumbnail_url || post.thumbnailUrl) ? (
+                                                <img src={post.thumbnail_url || post.thumbnailUrl} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+                                            ) : (
+                                                <video style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} src={`${url}${url.includes('#t=') ? '' : '#t=0.001'}`} muted playsInline preload="metadata" />
+                                            )}
                                             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>

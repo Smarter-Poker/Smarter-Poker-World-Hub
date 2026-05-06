@@ -64,7 +64,10 @@ async function connectPreview(streamId, videoEl, signal) {
     return room;
 }
 
-export function LiveStreamCard({ stream, onClick }) {
+// BUG-FIX-LIVE-2: when inlineAutoplay is true the preview connects on mount —
+// no hover required. Used by /hub/social-media so mobile users see live motion
+// instead of a static thumbnail.
+export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
     const [isHovered, setIsHovered] = useState(false);
     const [previewActive, setPreviewActive] = useState(false);
     const [previewFailed, setPreviewFailed] = useState(false);
@@ -119,6 +122,18 @@ export function LiveStreamCard({ stream, onClick }) {
             stopPreview();
         };
     }, [stopPreview]);
+
+    // BUG-FIX-LIVE-2: auto-connect the LiveKit preview track on mount when
+    // inlineAutoplay is set. Hover-to-preview never fires on touch devices,
+    // so mobile feed tiles previously showed a frozen image. Real-time:
+    // when the broadcaster ends the stream, _subscribeToViewers in
+    // LiveStreamService receives the postgres_changes payload with
+    // status='ended' and triggers onStreamEnded → preview disconnects
+    // automatically. Card re-renders with thumbnail when previewActive=false.
+    useEffect(() => {
+        if (!inlineAutoplay) return;
+        startPreview();
+    }, [inlineAutoplay, startPreview]);
 
     const handleMouseEnter = useCallback(() => {
         setIsHovered(true);

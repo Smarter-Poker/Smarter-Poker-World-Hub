@@ -395,8 +395,16 @@ export default function InviteFriendsModal({
 
                 {/* Email & SMS */}
                 <div style={{ padding: '0 24px 16px', display: 'flex', gap: 10 }}>
+                    {/* BUG-FIX-LIVE-5: Email tile now opens in-app messenger
+                        instead of native mail client (mailto: jumped users
+                        to Mail.app / Outlook web). The /hub/messenger route
+                        will read ?compose=1&body= once messenger.js wires
+                        the prefill — until then the user lands on the
+                        messenger and can paste the share link from
+                        clipboard (already copied via Copy step above). */}
                     <a
-                        href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(fullMessage)}`}
+                        onClick={() => onClose?.()}
+                        href={`/hub/messenger?compose=1&body=${encodeURIComponent(fullMessage)}`}
                         style={{
                             flex: 1,
                             padding: '12px 16px',

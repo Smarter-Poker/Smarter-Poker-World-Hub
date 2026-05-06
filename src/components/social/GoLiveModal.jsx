@@ -15,6 +15,9 @@ import toast from '../../stores/toastStore';
 import { busEmit } from '../../engine/EventBus';
 import Lottie from 'lottie-react';
 import diamondAnimation from '../../../public/diamond-animation.json';
+// BUG-FIX-LIVE-1: shared chime utility — armed in handleGoLive (real
+// user gesture) so iOS unlocks AudioContext, then played at setStage('live').
+import { armSuccessChime, playSuccessChime } from '../../lib/successChime';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505',
@@ -372,6 +375,9 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         // #3/#11: Prevent double-tap / double-broadcast on slow networks
         if (isStarting) return;
         if (!streamRef.current || !user?.id) { setError('Unable to start stream.'); return; }
+        // BUG-FIX-LIVE-1: arm chime synchronously inside the click handler —
+        // iOS Safari only unlocks AudioContext from inside a user gesture.
+        armSuccessChime();
         setIsStarting(true);
         setError('');
         setStage('countdown');
@@ -447,9 +453,15 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             setElapsedTime(0);
             startRecording();
             timerRef.current = setInterval(() => setElapsedTime(p => p + 1), 1000);
-            // Success toast — let broadcaster know they're live
+            // BUG-FIX-LIVE-1: explicit chime via the AudioContext armed in
+            // handleGoLive. toastStore's _playSuccessChime makes a fresh
+            // context that's 'suspended' on iOS Safari — ours plays for real.
+            playSuccessChime();
             toast.success('You Are Now Live!');
+            // Real-time fanout — feed cards listening on 'live_streams'
+            // re-render and pick up the new live tile immediately.
             busEmit.dataMutated?.('live_streams');
+            try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
         } catch (err) {
             setError(err.message || 'Failed to start broadcast.');
             setStage('preview');
@@ -474,14 +486,38 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         // #1: Confirm before ending — prevents accidental stream kills
         if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) return;
         try {
-            if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
+            // BUG-FIX-LIVE-8: previously fired mr.stop() and immediately set
+            // stage='ended'. The recorder's onstop handler is async — by the
+            // time EndStreamModal mounted, recordedBlob was still null and
+            // the modal rendered "Recording not available" with all action
+            // buttons disabled (looked frozen). Now we await the recorder's
+            // 'stop' event, assemble the blob, and call setRecordedBlob in
+            // the same React commit as setStage('ended').
+            const finalizeRecording = () => new Promise((resolve) => {
+                const mr = mediaRecorderRef.current;
+                if (!mr || mr.state === 'inactive') return resolve(null);
+                const mime = mr.mimeType || 'video/webm';
+                let settled = false;
+                const onStopOnce = () => {
+                    if (settled) return;
+                    settled = true;
+                    try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
+                    try { resolve(new Blob(recordedChunksRef.current, { type: mime })); }
+                    catch (_e) { resolve(null); }
+                };
+                mr.addEventListener('stop', onStopOnce);
+                try { mr.stop(); } catch (_) { onStopOnce(); }
+                setTimeout(() => { if (!settled) { settled = true; resolve(null); } }, 4000);
+            });
+            const finalBlob = await finalizeRecording();
             await liveStreamService.endBroadcast();
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-            setIsStarting(false); // Reset for next session
+            setIsStarting(false);
+            if (finalBlob) setRecordedBlob(finalBlob);
             setStage('ended');
-            // Show analytics BEFORE end stream modal
             setShowAnalytics(true);
             busEmit.dataMutated?.('live_streams');
+            try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
         } catch (err) {
             setError(err.message);
         }

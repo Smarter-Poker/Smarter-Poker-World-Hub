@@ -780,19 +780,39 @@ class LiveStreamService {
         }));
     }
 
+    /**
+     * BUG-FIX-LIVE-6: count remote participants who are real viewers,
+     * excluding short-lived "preview-*" identities issued by
+     * /api/live/preview-token (LiveStreamCard's hover/inline preview).
+     * Without this filter, the broadcaster's own social feed tile
+     * auto-connecting to peek at the stream counted as +1 viewer,
+     * producing the off-by-one Dan reported ("SAYS THERE ARE 2 VIEWERS
+     * WHEN THERE IS ONLY 1 WATCHING").
+     */
+    _countRealViewers() {
+        if (!this.room) return 0;
+        let n = 0;
+        for (const p of this.room.remoteParticipants.values()) {
+            const id = p.identity || '';
+            if (id.startsWith('preview-')) continue;
+            n++;
+        }
+        return n;
+    }
+
     /** Debounce viewer count updates — prevents write storms with 100+ viewers */
     _debouncedUpdateViewerCount() {
         if (!this.isBroadcaster) return; // FIX: Only the broadcaster tracks and updates the true viewer count
         if (this._viewerCountDebounceTimer) clearTimeout(this._viewerCountDebounceTimer);
-        // Immediately update the local callback for instant UI
-        if (this.room) this.onViewerCountChange?.(this.room.remoteParticipants.size);
+        // Immediately update the local callback for instant UI (filtered count)
+        this.onViewerCountChange?.(this._countRealViewers());
         // Debounce the DB write to once per 5 seconds
         this._viewerCountDebounceTimer = setTimeout(() => this._updateViewerCount(), 5000);
     }
 
     async _updateViewerCount() {
         if (!this.currentStreamId || !this.room) return;
-        const count = this.room.remoteParticipants.size;
+        const count = this._countRealViewers();
         await supabase.from('live_streams')
             .update({ viewer_count: count })
             .eq('id', this.currentStreamId);

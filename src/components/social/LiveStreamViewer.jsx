@@ -40,6 +40,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [isTheaterMode, setIsTheaterMode] = useState(false);
     const [isPiP, setIsPiP] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
+    // BUG-FIX-LIVE-7: track currently-selected video tier so the menu shows a
+    // checkmark + the trigger button labels the active selection ("Quality · low").
+    const [activeQuality, setActiveQuality] = useState('auto');
     const [commentInput, setCommentInput] = useState('');
     const [showViewerList, setShowViewerList] = useState(false);
     const [showGifts, setShowGifts] = useState(false);
@@ -669,27 +672,83 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     </button>
                 </div>
 
-                {/* Feature 4: Quality controls */}
+                {/* BUG-FIX-LIVE-7 (Quality / PiP / Theatre):
+                    - Quality: tracks activeQuality, shows ✓ on selected tier,
+                      labels the trigger ("Quality · low"). Toast confirmation.
+                    - PiP: surfaces a clear error if the browser/element
+                      doesn't support it; was previously console.warn-only.
+                    - Theatre: actually requests fullscreen on the video
+                      element (with iOS webkitEnterFullscreen fallback)
+                      instead of just toggling flexDirection. */}
                 <div style={{ position: 'absolute', top: 70, right: 16, display: 'flex', gap: 8, zIndex: 20 }}>
                     <div style={{ position: 'relative' }}>
                         <button onClick={() => setShowQualityMenu(!showQualityMenu)} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                            Quality
+                            Quality{activeQuality !== 'auto' ? ` · ${activeQuality}` : ''}
                         </button>
                         {showQualityMenu && (
-                            <div style={{ position: 'absolute', top: 32, right: 0, background: 'rgba(0,0,0,0.8)', borderRadius: 8, overflow: 'hidden', minWidth: 100 }}>
+                            <div style={{ position: 'absolute', top: 32, right: 0, background: 'rgba(0,0,0,0.85)', borderRadius: 8, overflow: 'hidden', minWidth: 120 }}>
                                 {['auto', 'high', 'medium', 'low'].map(q => (
-                                    <div key={q} onClick={() => { liveStreamService.setVideoQuality(q); setShowQualityMenu(false); }} style={{ padding: '8px 12px', color: 'white', fontSize: 13, cursor: 'pointer', textTransform: 'capitalize', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                        {q}
+                                    <div
+                                        key={q}
+                                        onClick={() => {
+                                            liveStreamService.setVideoQuality(q);
+                                            setActiveQuality(q);
+                                            setShowQualityMenu(false);
+                                        }}
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'white',
+                                            fontSize: 13,
+                                            cursor: 'pointer',
+                                            textTransform: 'capitalize',
+                                            borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                            background: activeQuality === q ? 'rgba(0,120,255,0.25)' : 'transparent',
+                                            fontWeight: activeQuality === q ? 700 : 400,
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        }}
+                                    >
+                                        <span>{q}</span>
+                                        {activeQuality === q && <span style={{ color: '#0066FF' }}>✓</span>}
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
-                    <button onClick={togglePiP} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    <button
+                        onClick={async () => {
+                            if (!videoRef.current) return;
+                            const supported = typeof document !== 'undefined' && document.pictureInPictureEnabled;
+                            const elSupported = videoRef.current && !videoRef.current.disablePictureInPicture;
+                            if (!supported || !elSupported) {
+                                setError('Picture-in-picture is not supported on this browser');
+                                setTimeout(() => setError(''), 3000);
+                                return;
+                            }
+                            await togglePiP();
+                        }}
+                        style={{ background: isPiP ? 'rgba(0,120,255,0.7)' : 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                    >
                         PiP
                     </button>
-                    <button onClick={() => setIsTheaterMode(!isTheaterMode)} style={{ background: 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                        {isTheaterMode ? 'Default' : 'Theater'}
+                    <button
+                        onClick={async () => {
+                            const next = !isTheaterMode;
+                            setIsTheaterMode(next);
+                            try {
+                                if (next) {
+                                    if (videoRef.current?.requestFullscreen) {
+                                        await videoRef.current.requestFullscreen();
+                                    } else if (videoRef.current?.webkitEnterFullscreen) {
+                                        videoRef.current.webkitEnterFullscreen();
+                                    }
+                                } else if (document.fullscreenElement && document.exitFullscreen) {
+                                    await document.exitFullscreen();
+                                }
+                            } catch (_) { /* layout-only theatre mode is the fallback */ }
+                        }}
+                        style={{ background: isTheaterMode ? 'rgba(0,120,255,0.7)' : 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                    >
+                        {isTheaterMode ? 'Exit' : 'Theater'}
                     </button>
                 </div>
 
@@ -892,7 +951,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
                         title="Send diamond gift"
                     >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                        {/* BUG-FIX-LIVE-3: replaced 5-pointed star path with brilliant-cut diamond */}
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z M6 3 L9 9 L15 9 L18 3 M9 9 L12 22 L15 9 M2 9 L9 9 M15 9 L22 9" stroke="#000" strokeWidth="0.5" strokeLinejoin="round"/></svg>
                     </button>
                 )}
                 <button

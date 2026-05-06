@@ -96,11 +96,12 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                 }}
             >
                 {success ? (
+                    // BUG-FIX-LIVE-4 (per Dan: white letters not yellow + Title Case)
                     <div style={{ textAlign: 'center', padding: '24px 0' }}>
                         <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
-                        <div style={{ color: '#FFD700', fontSize: 20, fontWeight: 700 }}>Gift Sent!</div>
-                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 6 }}>
-                            {selected} 💎 sent to broadcaster
+                        <div style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 700 }}>Gift Sent!</div>
+                        <div style={{ color: '#FFFFFF', fontSize: 14, marginTop: 6 }}>
+                            {selected} 💎 Sent To Broadcaster
                         </div>
                     </div>
                 ) : (
