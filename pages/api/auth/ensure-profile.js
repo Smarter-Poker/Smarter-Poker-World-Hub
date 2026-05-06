@@ -141,9 +141,36 @@ export default async function handler(req, res) {
           const nextPlayerNumber = Math.max(1500, (parseInt(maxPlayer, 10) || 1499) + 1);
 
           // Generate username if not provided
-          const finalUsername = username ||
+          let finalUsername = username ||
               email?.split('@')[0] ||
               `Player${nextPlayerNumber}`;
+
+          // ── Reserved-word guard ──
+          // Calls the centralized public.is_reserved_username() so the JS path,
+          // the handle_new_user trigger, claim_social_profile, and the legacy
+          // check_username_available all share ONE source of truth and never drift.
+          // is_reserved_username is IMMUTABLE and doesn't use auth.uid(), so it
+          // works fine over the service-role client.
+          try {
+              const { data: isReserved } = await getSupabase()
+                  .rpc('is_reserved_username', { p_username: finalUsername });
+              if (isReserved === true) {
+                  finalUsername = `Player${nextPlayerNumber}`;
+              }
+          } catch (_e) {
+              // If the RPC fails, fall back to a small inline block on the most
+              // dangerous exact-match cases. This is defense-in-depth — the DB
+              // trigger and unique index will still catch issues.
+              const fallbackReserved = new Set([
+                  'admin','administrator','root','support','help','staff','owner',
+                  'moderator','official','smarter','smarterpoker','jarvis','geeves',
+                  'kingfish','bekavac','danbekavac','system','bot','api','www',
+                  'null','undefined','anonymous',
+              ]);
+              if (typeof finalUsername === 'string' && fallbackReserved.has(finalUsername.toLowerCase())) {
+                  finalUsername = `Player${nextPlayerNumber}`;
+              }
+          }
 
           // ── SOCIAL PROFILE COMPLETION GATE ──
           // Mark profile complete only if the caller supplied BOTH an explicit
