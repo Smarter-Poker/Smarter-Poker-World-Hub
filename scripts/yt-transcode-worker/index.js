@@ -574,7 +574,10 @@ async function cookieRecoverySweep() {
     .select('completed_at')
     .eq('status', 'completed').eq('source_type', 'youtube')
     .order('completed_at', { ascending: false }).limit(1).maybeSingle();
-  if (!lastSuccess?.completed_at) return; // No conversions yet, nothing to compare
+  if (!lastSuccess?.completed_at) {
+    log('cookie-recovery: no successful conversions yet — bailing');
+    return;
+  }
 
   const { data: lastCookieFail } = await supa.from('video_transcode_jobs')
     .select('completed_at')
@@ -582,82 +585,103 @@ async function cookieRecoverySweep() {
     .or('error_message.ilike.%cookies-from-browser%,error_message.ilike.%cookies for the authentication%,error_message.ilike.%Sign in to confirm%')
     .order('completed_at', { ascending: false }).limit(1).maybeSingle();
 
-  // No cookie failures ever, or last failure pre-dates last success → cookies healthy
+  // Cookies still broken if most-recent failure is newer than (or equal to)
+  // most-recent success. Bail.
   if (lastCookieFail?.completed_at && new Date(lastCookieFail.completed_at) >= new Date(lastSuccess.completed_at)) {
-    // Cookies are still broken (most-recent failure is newer than most-recent success)
+    log('cookie-recovery: cookies still broken (latest failure is newer than latest success) — bailing');
     return;
   }
 
   // 2. Find candidate reels: in 'ready' state, video_url is YouTube, has
   // original_youtube_url. NOT a member-only / private / region-locked
-  // permanent — to detect those we'd need failure history per URL, but a
-  // benign retry is cheap (worst case it fails permanent again).
+  // permanent — we filter by failure-reason below.
   const { data: candidates } = await supa.from('social_reels')
     .select('id, author_id, original_youtube_url')
     .eq('media_status', 'ready')
     .ilike('video_url', '%youtube%')
     .not('original_youtube_url', 'is', null)
     .limit(500);
-  if (!candidates?.length) return;
-
-  // 3. Reset eligible reels back to 'queued'. Only the ones whose latest
-  // failure was a cookie-auth failure — others (members-only / private /
-  // region) should stay iframe-forever.
-  const recoverable = [];
-  for (const r of candidates) {
-    const { data: job } = await supa.from('video_transcode_jobs')
-      .select('error_message,status')
-      .or(`youtube_url.eq.${r.original_youtube_url},source_url.eq.${r.original_youtube_url}`)
-      .order('completed_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
-    if (!job) continue;
-    const wasCookieFail = job.status === 'failed' && /cookies-from-browser|cookies for the authentication|Sign in to confirm/i.test(job.error_message || '');
-    if (wasCookieFail) recoverable.push(r);
+  if (!candidates?.length) {
+    log('cookie-recovery: no candidate reels (no iframe-flagged YouTube reels found)');
+    return;
   }
 
-  if (!recoverable.length) return;
-  log(`cookie-recovery: ${recoverable.length} reel(s) eligible — re-queueing`);
+  // 3. Batch-fetch the most-recent failed job for ALL candidate URLs at once
+  // (avoids N+1 + the .or() string-interpolation injection vulnerability the
+  // earlier per-reel loop had). The trigger always sets youtube_url AND
+  // source_url to the same value, so checking youtube_url alone is correct.
+  const allUrls = Array.from(new Set(candidates.map((r) => r.original_youtube_url)));
+  const { data: jobs } = await supa.from('video_transcode_jobs')
+    .select('youtube_url, status, error_message, completed_at')
+    .eq('source_type', 'youtube')
+    .eq('status', 'failed')
+    .in('youtube_url', allUrls)
+    .order('completed_at', { ascending: false, nullsFirst: false });
 
-  // Reset reel state
-  await supa.from('social_reels').update({
-    media_status: 'queued',
-    source_type: 'youtube',
-  }).in('id', recoverable.map((r) => r.id));
+  // Reduce to the latest failed-job per URL, then filter to cookie-auth ones
+  const cookieFailedUrls = new Set();
+  const seenUrl = new Set();
+  for (const j of (jobs || [])) {
+    if (seenUrl.has(j.youtube_url)) continue;
+    seenUrl.add(j.youtube_url);
+    if (/cookies-from-browser|cookies for the authentication|Sign in to confirm/i.test(j.error_message || '')) {
+      cookieFailedUrls.add(j.youtube_url);
+    }
+  }
 
-  // We need to also revert video_url. supabase-js doesn't allow per-row
-  // updates in a single .update() call, so set video_url=original_youtube_url
-  // for each reel via a small batched loop.
+  const recoverable = candidates.filter((r) => cookieFailedUrls.has(r.original_youtube_url));
+  if (!recoverable.length) {
+    log(`cookie-recovery: ${candidates.length} candidates checked, 0 had cookie-auth as latest failure`);
+    return;
+  }
+  log(`cookie-recovery: ${recoverable.length} reel(s) eligible (across ${cookieFailedUrls.size} URL(s)) — re-queueing`);
+
+  // 4. Reset reel state in a small batched loop. We need per-row video_url
+  // assignments (supabase-js doesn't allow CASE expressions in update()).
   for (const r of recoverable) {
     await supa.from('social_reels').update({
       video_url: r.original_youtube_url,
+      source_type: 'youtube',
+      media_status: 'queued',
       thumbnail_url: null,
     }).eq('id', r.id);
   }
 
-  // INSERT one job per distinct URL (the trigger only fires on INSERT not UPDATE)
-  const seen = new Set();
+  // 5. INSERT one job per distinct URL. Trigger fires on INSERT not UPDATE.
+  // Wrapped in try/catch per-URL because the partial unique index
+  // uniq_video_transcode_jobs_yt_url_live can race-reject duplicates if a
+  // sibling worker / trigger already enqueued — we tolerate that as a
+  // "someone else handled it" outcome.
   let inserted = 0;
-  for (const r of recoverable) {
-    if (seen.has(r.original_youtube_url)) continue;
-    seen.add(r.original_youtube_url);
+  let raceSkipped = 0;
+  for (const url of cookieFailedUrls) {
+    const reel = recoverable.find((r) => r.original_youtube_url === url);
+    if (!reel) continue;
 
-    // Skip if a live job already exists for this URL (race safety — the
-    // partial unique index also enforces this at row-level)
+    // Skip if already a live job for this URL (race safety)
     const { data: existing } = await supa.from('video_transcode_jobs')
       .select('id').eq('source_type', 'youtube')
-      .or(`youtube_url.eq.${r.original_youtube_url},source_url.eq.${r.original_youtube_url}`)
-      .in('status', ['queued', 'processing']).limit(1).maybeSingle();
-    if (existing) continue;
+      .eq('youtube_url', url)
+      .in('status', ['queued', 'processing'])
+      .limit(1).maybeSingle();
+    if (existing) { raceSkipped++; continue; }
 
     const { error: insErr } = await supa.from('video_transcode_jobs').insert({
-      reel_id: r.id, user_id: r.author_id,
-      source_url: r.original_youtube_url,
-      youtube_url: r.original_youtube_url,
+      reel_id: reel.id, user_id: reel.author_id,
+      source_url: url,
+      youtube_url: url,
       source_type: 'youtube', status: 'queued',
       target_format: 'h264_1080p', target_bitrate: 2500000,
     });
-    if (!insErr) inserted++;
+    if (insErr) {
+      // unique_violation = partial-index race, treat as benign
+      if (insErr.code === '23505') raceSkipped++;
+      else warn(`cookie-recovery: insert failed for ${url}: ${insErr.message}`);
+    } else {
+      inserted++;
+    }
   }
-  log(`cookie-recovery: enqueued ${inserted} new job(s) across ${seen.size} distinct URL(s)`);
+  log(`cookie-recovery: enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already queued)`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

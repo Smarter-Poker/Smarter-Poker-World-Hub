@@ -395,7 +395,11 @@ export default function ReelsPage() {
             // social_posts query produced duplicates that the dedup filter
             // dropped (pure waste). Horse-posted reels surface via the
             // horseResult slot below — same pattern as src/components/social/Reels.jsx.
-            const REEL_SELECT = 'id, author_id, caption, video_url, view_count, like_count, comment_count, created_at, is_public, source_type';
+            // 2026-05-06: added thumbnail_url so the initial feed shows the
+            // worker-extracted poster image immediately (was missing here while
+            // the load-more REEL_SELECT below already had it — caused a
+            // brief black flash on first paint for newly-converted reels).
+            const REEL_SELECT = 'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type';
             const [userResult, libraryResult, horseResult] = await Promise.all([
                 supabase.from('social_reels').select(REEL_SELECT)
                     .eq('is_public', true).eq('source_type', 'user')
