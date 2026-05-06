@@ -648,7 +648,11 @@ export default function SettingsPage() {
         setExportLoading(true);
         try {
             const [profileRes, settingsData, promoRes, avatarRes, clubsRes, ordersRes, vipRes, blockedRes] = await Promise.allSettled([
-                supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+                // Use RPC because phone/email columns are blocked at the DB layer
+                // for direct table SELECTs. RPC returns the user's own full row
+                // including sensitive columns. Adapter normalizes the SETOF
+                // result back to a single row for downstream consumers.
+                supabase.rpc('get_my_full_profile').then(r => ({ ...r, data: Array.isArray(r.data) ? r.data[0] : r.data })),
                 Promise.resolve(settings),
                 supabase.from('promo_code_redemptions').select('*, promo_codes(code, description, reward_type, reward_value)').eq('user_id', user.id).order('redeemed_at', { ascending: false }),
                 supabase.from('user_avatars').select('*').eq('user_id', user.id),

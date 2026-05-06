@@ -15,6 +15,7 @@
 
 import { supabase } from '../lib/supabase';
 import { dedup } from '../lib/requestDedup';
+import { SAFE_PROFILE_COLUMNS } from '../lib/profileColumns';
 
 // Track which profiles are already prefetched to avoid duplicates
 const prefetchedSet = new Set();
@@ -62,7 +63,7 @@ export function prefetchProfile(userId, username) {
         // Lightweight prefetch — just profile + stats (no posts/photos to keep it small)
         // Wrapped through dedup to prevent duplicate in-flight requests for the same user
         dedup(`prefetch:${username}`, () => Promise.all([
-            supabase.from('profiles').select('*').eq('username', username).maybeSingle(),
+            supabase.from('profiles').select(SAFE_PROFILE_COLUMNS).eq('username', username).maybeSingle(),
             // Two-direction friend queries (matches Friends API pattern exactly)
             supabase.from('friendships').select('friend_id').eq('user_id', userId).eq('status', 'accepted'),
             supabase.from('friendships').select('user_id').eq('friend_id', userId).eq('status', 'accepted'),

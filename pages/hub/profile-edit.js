@@ -857,17 +857,24 @@ export default function ProfilePage() {
                         // Use user JWT for profile read (respects RLS) — fallback to anon key
                         const loadToken = getProfileJwt();
 
-                        const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${authUser.id}&select=*`, {
+                        // Profile read uses the get_my_full_profile() RPC because
+                        // direct table SELECT of phone/email is blocked at column
+                        // level for non-service-role callers. The RPC runs
+                        // SECURITY DEFINER + auth.uid() so it can only ever
+                        // return THIS user's row.
+                        const response = await fetch(`${supabaseUrl}/rest/v1/rpc/get_my_full_profile`, {
+                            method: 'POST',
                             headers: {
                                 'apikey': supabaseKey,
                                 'Authorization': `Bearer ${loadToken}`,
                                 'Content-Type': 'application/json'
-                            }
+                            },
+                            body: '{}'
                         });
 
                         if (response.ok) {
                             const profiles = await response.json();
-                            const profileData = profiles[0];
+                            const profileData = Array.isArray(profiles) ? profiles[0] : profiles;
                             if (profileData) {
                                 // Parse full_name into first_name/last_name if those columns are empty
                                 if (!profileData.first_name && !profileData.last_name && profileData.full_name) {

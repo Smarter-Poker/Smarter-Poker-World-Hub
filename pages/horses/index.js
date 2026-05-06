@@ -781,7 +781,7 @@ export default function HorsesAdmin() {
     setCaLoading(true);
     try {
       const [membersRes, agentsRes, tablesRes, cashoutsRes, flagsRes, sessionsRes, txnsRes] = await Promise.all([
-        safeQuery(supabase.from('club_members').select('*, profiles(display_name, username, email, player_number)').eq('club_id', club.id).order('created_at', { ascending: false }).limit(200)),
+        safeQuery(supabase.from('club_members').select('*, profiles(display_name, username, player_number)').eq('club_id', club.id).order('created_at', { ascending: false }).limit(200)),
         safeQuery(supabase.from('agents').select('id, user_id, club_id, commission_rate, credit_limit, credit_used, status, created_at').eq('club_id', club.id)),
         safeQuery(supabase.from('tables').select('*').eq('club_id', club.id).order('created_at', { ascending: false })),
         safeQuery(supabase.from('cashout_requests').select('id, club_id, player_id, amount, status, agent_note, created_at').eq('club_id', club.id).eq('status', 'pending').order('created_at', { ascending: false })),

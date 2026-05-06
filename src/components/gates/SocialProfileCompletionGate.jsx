@@ -424,13 +424,14 @@ export function SocialProfileGateForCurrentUser() {
             try {
                 const user = getAuthUser();
                 if (!user || cancelled) return;
+                // Use RPC because direct table SELECT of phone is blocked at
+                // the column-grant layer; RPC enforces auth.uid() = id internally.
                 const { data, error } = await supabase
-                    .from('profiles')
-                    .select('id, full_name, first_name, last_name, display_name, username, phone, social_profile_completed')
-                    .eq('id', user.id)
-                    .maybeSingle();
-                if (cancelled || error || !data) return;
-                setProfile(data);
+                    .rpc('get_my_full_profile');
+                if (cancelled || error) return;
+                const profileData = Array.isArray(data) ? data[0] : data;
+                if (!profileData) return;
+                setProfile(profileData);
             } catch (_e) {
                 /* fail open — don't block social media if profile lookup fails */
             }

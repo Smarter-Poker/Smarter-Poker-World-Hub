@@ -61,9 +61,11 @@ export function warmCache(user) {
             }
         }
 
-        // Fire-and-forget parallel prefetch
+        // Fire-and-forget parallel prefetch. Profile read uses RPC because
+        // direct table SELECT is blocked at column level for phone/email
+        // even on self. Adapter normalizes SETOF result to single row.
         Promise.all([
-            supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+            supabase.rpc('get_my_full_profile').then(r => ({ ...r, data: Array.isArray(r.data) ? r.data[0] : r.data })),
             supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
             supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
             supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', userId),

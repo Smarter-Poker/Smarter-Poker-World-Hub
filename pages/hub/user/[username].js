@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
+import { SAFE_PROFILE_COLUMNS } from '../../../src/lib/profileColumns';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 import { broadcastSync, broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import { eventBus, busEmit } from '../../../src/engine/EventBus';
@@ -1304,8 +1305,9 @@ export default function UserProfilePage() {
             try {
                 localStorage.removeItem(`sp-profile-cache-${username}`);
             } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-            // Re-fetch profile from Supabase
-            supabase.from('profiles').select('*')
+            // Re-fetch profile from Supabase (using safe column list — phone
+            // and email are blocked at the column-grant layer for non-self reads)
+            supabase.from('profiles').select(SAFE_PROFILE_COLUMNS)
                 .eq('username', username).maybeSingle()
                 .then(({ data }) => {
                     if (data) setProfile(data);
