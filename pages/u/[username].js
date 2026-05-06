@@ -51,12 +51,13 @@ export default function PublicProfilePage() {
 
     (async () => {
       try {
-        // 1. Fetch profile by username
-        const { data: prof, error: profErr } = await getSb()
-          .from('profiles')
-          .select('id, username, full_name, display_name, bio, avatar_url, level, diamonds, created_at')
-          .eq('username', username)
-          .maybeSingle();
+        // 1. Fetch profile by username via SECURITY DEFINER RPC.
+        //    Direct SELECT on public.profiles is now blocked for anon to
+        //    prevent harvesting of phone/email columns. The RPC returns
+        //    only display-safe columns.
+        const { data: rows, error: profErr } = await getSb()
+          .rpc('get_public_profile_by_username', { p_username: username });
+        const prof = Array.isArray(rows) ? rows[0] : rows;
 
         if (profErr || !prof) { setErr('User not found'); setLoading(false); return; }
         setProfile(prof);
