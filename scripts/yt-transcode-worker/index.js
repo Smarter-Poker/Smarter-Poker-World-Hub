@@ -175,16 +175,25 @@ async function processJob(job) {
       warn('  No cookies.txt found — downloads may fail on datacenter IPs');
     }
 
-    // QUALITY: prefer H.264 (avc1) + AAC so we can stream-copy below
-    // (lossless remux, preserves YouTube's full source bitrate).
-    // Fallbacks keep working when the only renditions are VP9/AV1.
+    // QUALITY: pick the BEST overall quality up to 1080p, regardless of codec.
+    //
+    // Earlier version preferred avc1 (H.264) so we could stream-copy.
+    // Verified 2026-05-06: that produced ~1.5 Mbps output because YouTube
+    // intentionally caps its H.264 renditions at low bitrates and reserves
+    // the high-quality 1080p tier for VP9/AV1 only. Stream-copy of avc1
+    // therefore preserves a low-source-quality file — exactly the regression
+    // we were trying to avoid.
+    //
+    // New strategy: take the best video+audio under 1080p (commonly VP9
+    // 1080p ~ 4-5 Mbps), and rely on the HQ re-encode path below
+    // (preset=slow / crf=18 / profile=high / 192k AAC) to land at
+    // 5-8 Mbps H.264 for native playback. Stream-copy is still tried
+    // first in the rare case yt-dlp delivered avc1+aac+mp4.
     const ytdlpArgs = [
       '-f',
-        'bv*[height<=1080][vcodec^=avc1][ext=mp4]+ba[ext=m4a]/' +
-        'b[height<=1080][ext=mp4][vcodec^=avc1]/' +
-        'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/' +
-        'b[height<=1080][ext=mp4]/' +
-        'bv*[height<=1080]+ba/b[height<=1080]',
+        'bv*[height<=1080]+ba/' +
+        'b[height<=1080]/' +
+        'bv*+ba/b',
       '--merge-output-format', 'mp4',
       '--no-playlist',
       '--no-warnings',
