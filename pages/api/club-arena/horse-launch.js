@@ -20,6 +20,23 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+// Phase 61: Was injected by automated retrofit at line 291 INSIDE
+// createTournament's function body — out of scope when handler ran,
+// causing ReferenceError on every POST. Moved to module scope so the
+// handler's idempotency guard actually works.
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+
+// Phase 61: Fisher-Yates shuffle helper. Replaces 5 sites that used
+// arr.sort(() => Math.random() - 0.5) — mathematically biased
+// (some permutations 2x more likely). Mutates in place; returns arr.
+function _shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -288,7 +305,6 @@ async function createTournament(cfg, clubId) {
   const startTime = new Date();
   startTime.setHours(cfg.hour, 0, 0, 0);
   // If the start time is in the past, set it to 2 minutes from now
-const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
   if (startTime.getTime() < Date.now()) {
     startTime.setTime(Date.now() + 2 * 60 * 1000);
   }
@@ -444,7 +460,7 @@ export default async function handler(req, res) {
           
           // Register target number of horses - picking from those with < 2 tournaments
           let availableHorses = horses.all.filter(h => (horseStats.get(h.id)?.tournaments || 0) < 2);
-          availableHorses = availableHorses.sort(() => Math.random() - 0.5);
+          availableHorses = _shuffleInPlace([...availableHorses]); // Phase 61: Fisher-Yates
           const targetHorses = Math.min(cfg.horsesTarget, availableHorses.length);
           const horseSlice = availableHorses.slice(0, targetHorses);
           const reg = await registerHorses(result.id, horseSlice);
@@ -489,7 +505,7 @@ export default async function handler(req, res) {
         if (!error && data) {
           sngsCreated++;
           let availableHorses = horses.all.filter(h => (horseStats.get(h.id)?.tournaments || 0) < 2);
-          availableHorses = availableHorses.sort(() => Math.random() - 0.5);
+          availableHorses = _shuffleInPlace([...availableHorses]); // Phase 61: Fisher-Yates
           const sngHorses = availableHorses.slice(0, cfg.max);
           sngRegistered += await registerHorses(data.id, sngHorses);
           for (const h of sngHorses) {
@@ -533,7 +549,7 @@ export default async function handler(req, res) {
         if (!error && data) {
           spinsCreated++;
           let availableHorses = horses.all.filter(h => (horseStats.get(h.id)?.tournaments || 0) < 2);
-          availableHorses = availableHorses.sort(() => Math.random() - 0.5);
+          availableHorses = _shuffleInPlace([...availableHorses]); // Phase 61: Fisher-Yates
           const spinHorses = availableHorses.slice(0, cfg.max);
           spinRegistered += await registerHorses(data.id, spinHorses);
           for (const h of spinHorses) {
@@ -558,9 +574,10 @@ export default async function handler(req, res) {
         .order('current_players', { ascending: true });
       const activeTables = allTables.data || [];
 
-      // Seat Shark horses at Shark tables, JAQK horses at JAQK tables
-      const sharkHorses = [...horses.shark].sort(() => Math.random() - 0.5);
-      const jaqkHorses = [...horses.jaqk].sort(() => Math.random() - 0.5);
+      // Seat Shark horses at Shark tables, JAQK horses at JAQK tables.
+      // Phase 61: Fisher-Yates instead of biased sort(() => Math.random() - 0.5).
+      const sharkHorses = _shuffleInPlace([...horses.shark]);
+      const jaqkHorses = _shuffleInPlace([...horses.jaqk]);
 
       for (const [clubHorses, clubId] of [[sharkHorses, SHARK_CLUB_ID], [jaqkHorses, JAQK_CLUB_ID]]) {
         const clubTables = activeTables.filter(t => t.club_id === clubId);
