@@ -292,7 +292,24 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         }
     };
 
+    // Phase 70: synchronous re-entry guard prevents rapid clicks on a
+    // mode card from firing two startMode flows. With Phase 56's
+    // _deductInFlightRef the SECOND call's deduct is blocked, but
+    // success=false flowed back to setShowTopUpPopup(true), falsely
+    // telling the user they're out of diamonds. This ref short-circuits
+    // before any state changes.
+    const _startModeInFlightRef = useRef(false);
     const startMode = async (modeId) => {
+        if (_startModeInFlightRef.current) return;
+        _startModeInFlightRef.current = true;
+        try {
+            await _startModeInner(modeId);
+        } finally {
+            _startModeInFlightRef.current = false;
+        }
+    };
+
+    const _startModeInner = async (modeId) => {
         // Block daily if already completed
         if (modeId === 'daily' && dailyCompleted) return;
 
