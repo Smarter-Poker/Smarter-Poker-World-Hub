@@ -66,11 +66,29 @@ const _binPath = (x) => {
 const FFMPEG_BIN = _binPath(ffmpegPath);
 const FFPROBE_BIN = _binPath(ffprobePath);
 
-// Map source URL (full public URL) to its storage path within the bucket.
+// Map source URL (full public URL) to its storage bucket + path.
+// Returns `{ bucket, path }` or null if unparseable.
+//
+// LIVE-REPLAY FIX (2026-05-05 per Dan): live stream recordings live in
+// `live-recordings/` bucket as .webm files. The previous version only
+// matched `social-media/` bucket URLs, so live-replay posts (queued by
+// the extended fn_queue_video_transcode trigger) failed
+// `srcBucketPath = null` → marked 'failed' immediately. Now handles BOTH
+// buckets: source can be either, OUTPUT always lands in social-media so
+// the public feed-card render path stays unchanged.
+function parseStorageUrl(url) {
+    const s = String(url || '');
+    // social-media bucket (most uploads go here)
+    let m = s.match(/\/storage\/v1\/object\/public\/social-media\/(.+?)(?:\?|$)/);
+    if (m) return { bucket: 'social-media', path: m[1] };
+    // live-recordings bucket (live stream replays)
+    m = s.match(/\/storage\/v1\/object\/public\/live-recordings\/(.+?)(?:\?|$)/);
+    if (m) return { bucket: 'live-recordings', path: m[1] };
+    return null;
+}
+// Legacy single-bucket helper for callers that only want the path.
 function urlToBucketPath(url) {
-    // Pattern: https://<host>/storage/v1/object/public/social-media/<path>
-    const m = String(url || '').match(/\/storage\/v1\/object\/public\/social-media\/(.+?)(?:\?|$)/);
-    return m ? m[1] : null;
+    return parseStorageUrl(url)?.path || null;
 }
 
 // Compute the output path: same dir, replace extension with .mp4.
@@ -263,15 +281,26 @@ export default async function handler(req, res) {
         return res.status(200).json({ processed: 0, error: 'no_source', post_id: post.id });
     }
 
-    const srcBucketPath = urlToBucketPath(srcUrl);
-    if (!srcBucketPath) {
+    // LIVE-REPLAY FIX (2026-05-05): parse source URL to handle both
+    // social-media and live-recordings buckets. Output always lands in
+    // social-media so the feed-card render path is unchanged.
+    const parsed = parseStorageUrl(srcUrl);
+    if (!parsed) {
         await supa.from('social_posts').update({
             transcode_status: 'failed',
-            transcode_error: 'Source URL is not a social-media public URL',
+            transcode_error: 'Source URL is not a parseable public storage URL',
         }).eq('id', post.id);
         return res.status(200).json({ processed: 0, error: 'unparseable_url', post_id: post.id });
     }
-    const dstBucketPath = toMp4Path(srcBucketPath);
+    const srcBucket = parsed.bucket;
+    const srcBucketPath = parsed.path;
+    // For live-recordings sources, build a parallel path in social-media/videos/
+    // (output always lives in social-media so the feed-card render is unchanged).
+    // For social-media sources, swap extension to .mp4 in place.
+    const _liveSlug = (srcBucketPath.split('/').pop() || 'recording').replace(/\.[^.]+$/, '');
+    const dstBucketPath = srcBucket === 'live-recordings'
+        ? `videos/${post.author_id}/live_${_liveSlug}_${Date.now()}.mp4`
+        : toMp4Path(srcBucketPath);
 
     // 2. Atomic queue claim — UPDATE only if STILL queued. Returns 0 rows if
     //    the parallel Hetzner worker already grabbed it; we bail without
