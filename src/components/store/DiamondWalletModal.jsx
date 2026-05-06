@@ -1357,7 +1357,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <div style={{
                         position: 'absolute',
                         top: '65.3%', 
-                        left: 'calc(28.5% + 16px)', 
+                        left: 'calc(28.5% + 18px)', 
                         transform: 'translate(-50%, -50%)',
                         width: '100%',
                         textAlign: 'center',

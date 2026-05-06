@@ -1,6 +1,19 @@
 /**
  * PVP LOBBY — Find opponents and start 1v1 trivia battles
  * Entry stakes: 10-100💎, winner takes 90% (10% rake)
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
+ * ╠══════════════════════════════════════════════════════════════════════════╣
+ * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. The real        ║
+ * ║ PvP matchmaking + lobby logic lives inline in pages/hub/trivia/pvp.js,   ║
+ * ║ which integrates Supabase realtime + the actual matchmaking RPC. This    ║
+ * ║ component is a leftover prototype with hard-coded stakes (10/25/50/100)  ║
+ * ║ that don't match the production stake schedule, and the "Battle          ║
+ * ║ Starting In 3..." text is a fixed string with no real countdown.         ║
+ * ║ Verify with: grep -rn 'PvPLobby' pages/ src/                             ║
+ * ║ — safe to delete as of Phase 69.                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
 import React, { useState, useEffect } from 'react';
