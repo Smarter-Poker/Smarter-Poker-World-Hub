@@ -1,6 +1,19 @@
 /**
  * WEEKLY TOURNAMENT — Scheduled competitive trivia
  * Entry: 25💎, Prize pool distributed to top 10
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
+ * ╠══════════════════════════════════════════════════════════════════════════╣
+ * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. The real        ║
+ * ║ tournament lobby + bracket UI is implemented inline in                   ║
+ * ║ pages/hub/trivia/tournaments.js (1803 lines), which uses the actual      ║
+ * ║ trivia_tournaments / trivia_tournament_rounds tables + realtime          ║
+ * ║ subscriptions. This component has a hard-coded prize distribution        ║
+ * ║ that doesn't match the production schedule.                              ║
+ * ║ Verify with: grep -rn 'TournamentLobby' pages/ src/                      ║
+ * ║ — safe to delete as of Phase 69.                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
 import React, { useState, useEffect } from 'react';

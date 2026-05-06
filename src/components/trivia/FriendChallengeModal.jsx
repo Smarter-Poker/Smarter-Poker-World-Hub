@@ -1,6 +1,18 @@
 /**
  * FRIEND CHALLENGE MODAL — Send trivia challenges to friends
  * Stakes: 5-50💎, winner takes all
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
+ * ╠══════════════════════════════════════════════════════════════════════════╣
+ * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. Friend          ║
+ * ║ challenge functionality is currently not wired up in production —        ║
+ * ║ pages/hub/trivia/pvp.js handles standard PvP matchmaking but does        ║
+ * ║ not import this modal. Verify with:                                      ║
+ * ║   grep -rn 'FriendChallengeModal' pages/ src/                            ║
+ * ║ — safe to delete as of Phase 69, OR wire it into pvp.js if friend        ║
+ * ║ challenges are a planned feature.                                        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
 import React, { useState } from 'react';
