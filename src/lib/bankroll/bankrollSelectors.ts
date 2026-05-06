@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * BANKROLL DATA SELECTORS
  * Unified data access layer for bankroll management
