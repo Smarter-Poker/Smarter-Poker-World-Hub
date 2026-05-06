@@ -935,7 +935,7 @@ const bgUpload = {
             // "Video selected" / "Large video" / "Format optimization" toasts
             // were removed from the composers; this is the keeper.
             _bgToastId = toast.action(
-                'Your video is uploading in the background. You can keep using the app.',
+                'Your Video Is Uploading In The Background. You Can Keep Using The App.',
                 null,    // no click action
                 'info',  // toast type
                 4000,    // auto-dismiss after 4 seconds
