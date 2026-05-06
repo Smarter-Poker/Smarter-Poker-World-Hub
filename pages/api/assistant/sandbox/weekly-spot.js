@@ -4,6 +4,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { getTodayCST } from '../../../../src/lib/trivia/getTodayCST';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
           // Try to fetch from DB first
           if (supabaseUrl && supabaseServiceKey) {
               
-              const today = new Date().toISOString().split('T')[0];
+              const today = getTodayCST(); // Phase 77 — CST anchor: weekly spot rotation matches user's local week boundary
 
               const { data, error } = await supabase
                   .from('sandbox_weekly_spots')

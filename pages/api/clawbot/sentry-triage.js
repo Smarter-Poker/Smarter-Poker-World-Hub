@@ -28,6 +28,7 @@ import {
   getSupabase,
   TASK_IDS,
 } from '../../../src/lib/clawbot';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -103,7 +104,7 @@ export default async function handler(req, res) {
       top_offender: enriched[0]
         ? `${enriched[0].title} (${enriched[0].user_count} users)`
         : 'none',
-      snapshot_date: new Date().toISOString().split('T')[0],
+      snapshot_date: getTodayCST(), // Phase 77 — CST anchor matches storeSnapshot/getPreviousSnapshot
     };
 
     return {
@@ -182,15 +183,22 @@ function categorizeError(issue) {
 async function getPreviousSnapshot() {
   try {
     const supabase = getSupabase();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = yesterday.toISOString().split('T')[0];
+    // Phase 77 — CST anchor for daily snapshot rotation. Previous UTC anchor
+    // rotated at 6pm CST, splitting an ops-team daily-errors review across
+    // two snapshot rows.
+    const today = getTodayCST();
+    const cstNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    cstNow.setDate(cstNow.getDate() - 1);
+    const y = cstNow.getFullYear();
+    const m = String(cstNow.getMonth() + 1).padStart(2, '0');
+    const d = String(cstNow.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
 
     const { data, error } = await supabase
       .from('sentry_error_log')
       .select('sentry_issue_id')
       .gte('snapshot_date', dateStr)
-      .lt('snapshot_date', new Date().toISOString().split('T')[0]);
+      .lt('snapshot_date', today);
 
     if (error) {
       console.warn('[CB-01] Failed to get previous snapshot:', error.message);
@@ -206,7 +214,7 @@ async function getPreviousSnapshot() {
 async function storeSnapshot(errors) {
   try {
     const supabase = getSupabase();
-    const snapshotDate = new Date().toISOString().split('T')[0];
+    const snapshotDate = getTodayCST(); // Phase 77 — match summary + getPreviousSnapshot anchor
 
     const rows = errors.map((e) => ({
       sentry_issue_id: e.sentry_issue_id,

@@ -15,6 +15,7 @@ import rgpsEvents from '../../../data/rgps-2026-events.json';
 import venetianEvents from '../../../data/venetian-2026-events.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 let _supabase = null;
 function getSupabase() {
@@ -290,7 +291,7 @@ async function handler(req, res) {
           .limit(Math.min(parsedLimit, 999));
 
         if (upcoming === 'true') {
-          const today = new Date().toISOString().split('T')[0];
+          const today = getTodayCST(); // Phase 77 — CST anchor: don't drop today's series at 6pm CST
           query = query.gte('start_date', today);
         }
 
@@ -338,7 +339,7 @@ async function handler(req, res) {
         // BUG FIX: Must apply identical display filters to poker_series or it dumps all 999
         // remaining series into the merged result set, overriding search/tour/upcoming filters.
         if (upcoming === 'true') {
-          const today = new Date().toISOString().split('T')[0];
+          const today = getTodayCST(); // Phase 77 — CST anchor: don't drop today's series at 6pm CST
           psQuery = psQuery.gte('start_date', today);
         }
         if (type) {
@@ -442,7 +443,7 @@ async function handler(req, res) {
 
         // Apply filters
         if (upcoming === 'true') {
-          const today = new Date().toISOString().split('T')[0];
+          const today = getTodayCST(); // Phase 77 — CST anchor: don't drop today's series at 6pm CST
           allSeries = allSeries.filter((s) => s.start_date >= today);
         }
 

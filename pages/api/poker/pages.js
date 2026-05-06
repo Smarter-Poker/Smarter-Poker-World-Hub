@@ -13,6 +13,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import allVenuesData from '../../../data/all-venues.json';
 import tourRegistry from '../../../data/tour-source-registry.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
@@ -72,7 +73,7 @@ function buildTourPages() {
 
 function buildSeriesPages(includeExpired = false) {
     const allSeries = tourSeriesData.series_2026 || [];
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayCST(); // Phase 77 — CST anchor: don't expire today's series at 6pm CST
     return allSeries
         .filter(s => includeExpired || s.end_date >= today)
         .map((s, i) => ({
