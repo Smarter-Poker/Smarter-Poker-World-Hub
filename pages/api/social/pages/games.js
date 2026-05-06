@@ -418,7 +418,7 @@ export default async function handler(req, res) {
                   canRemove = seatCheck?.player_id === verified_user_id;
               } else if (player_name) {
                   const { data: seatCheck } = await getSupabase()
-                      .from('club_game_seats').select('player_id').eq('game_id', game_id).eq('player_name', player_name).maybeSingle();
+                      .from('club_game_seats').select('player_id').eq('game_id', game_id).eq('player_name', player_name).limit(1).maybeSingle();
                   canRemove = seatCheck?.player_id === verified_user_id;
               }
 

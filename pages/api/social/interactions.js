@@ -245,8 +245,14 @@ export default async function handler(req, res) {
               if (existing) {
                   if (existing.interaction_type === interaction_type) {
                       // Same reaction — toggle OFF (remove)
-                      await getSupabase().from('social_interactions').delete().eq('id', existing.id);
-                      await atomicIncrement('like_count', -1);
+                      const { data: deletedRows } = await getSupabase()
+                          .from('social_interactions')
+                          .delete()
+                          .eq('id', existing.id)
+                          .select('id');
+                      if (deletedRows?.length > 0) {
+                          await atomicIncrement('like_count', -1);
+                      }
                       return res.status(200).json({ action: 'unreacted', reacted: false });
                   } else {
                       // Different reaction — SWITCH type (no count change)
@@ -267,14 +273,18 @@ export default async function handler(req, res) {
               }
 
           } else if (interaction_type === 'share') {
-              // Record share
+              // Record share (prevent infinite increments on rapid clicks)
               const { error } = await getSupabase()
                   .from('social_interactions')
-                  .upsert({ post_id, user_id, interaction_type: 'share' }, { onConflict: 'post_id,user_id,interaction_type' });
-              if (error && error.code !== '23505') {
+                  .insert({ post_id, user_id, interaction_type: 'share' });
+                  
+              if (error) {
+                  // If it's a unique constraint violation (already shared), just return success without incrementing
+                  if (error.code === '23505') return res.status(201).json({ action: 'shared' });
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
-              // Atomic increment share count on the correct table
+              
+              // Atomic increment share count on the correct table only if actually inserted
               await atomicIncrement('share_count', 1);
               return res.status(201).json({ action: 'shared' });
           }
@@ -295,27 +305,19 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
 
-          // Count what we're about to delete so we can decrement counts
-          let countQuery = getSupabase()
-              .from('social_interactions')
-              .select('interaction_type')
-              .eq('post_id', post_id)
-              .eq('user_id', user_id);
-          if (interaction_type) countQuery = countQuery.eq('interaction_type', interaction_type);
-          const { data: toDelete } = await countQuery;
-
           let deleteQuery = getSupabase()
               .from('social_interactions')
               .delete()
               .eq('post_id', post_id)
-              .eq('user_id', user_id);
+              .eq('user_id', user_id)
+              .select('interaction_type');
 
           if (interaction_type) {
               deleteQuery = deleteQuery.eq('interaction_type', interaction_type);
           }
 
           // Execute the delete
-          const { error: deleteError } = await deleteQuery;
+          const { data: deletedRows, error: deleteError } = await deleteQuery;
           if (deleteError) return res.status(500).json({ success: false, error: 'Internal server error' });
 
           // Detect whether this post_id belongs to social_reels or social_posts
@@ -329,10 +331,10 @@ export default async function handler(req, res) {
 
 
            // Decrement counts using atomic RPCs for deleted interactions
-          if (toDelete && toDelete.length > 0) {
+          if (deletedRows && deletedRows.length > 0) {
               const reactionTypes = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
-              const reactionsRemoved = toDelete.filter(i => reactionTypes.has(i.interaction_type)).length;
-              const sharesRemoved = toDelete.filter(i => i.interaction_type === 'share').length;
+              const reactionsRemoved = deletedRows.filter(i => reactionTypes.has(i.interaction_type)).length;
+              const sharesRemoved = deletedRows.filter(i => i.interaction_type === 'share').length;
 
               const atomicDecrement = async (field) => {
                   try {

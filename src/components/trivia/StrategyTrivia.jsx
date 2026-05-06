@@ -249,6 +249,25 @@ export default function StrategyTrivia({ mode }) {
     const isStartingRef = useRef(false); // Prevent double-click race
     const answersRef = useRef([]); // Ref mirror — avoids stale closure in skip→finishGame
 
+    // Phase 68: track pending setTimeouts so unmount cancels them. Without
+    // this, the 300ms skip-advance setTimeout would fire on an unmounted
+    // component when the user navigated away mid-skip.
+    const _pendingTimeoutsRef = useRef(new Set());
+    const _isMountedRef = useRef(true);
+    const safeSetTimeout = (fn, delay) => {
+        const id = setTimeout(() => {
+            _pendingTimeoutsRef.current.delete(id);
+            if (_isMountedRef.current) fn();
+        }, delay);
+        _pendingTimeoutsRef.current.add(id);
+        return id;
+    };
+    useEffect(() => () => {
+        _isMountedRef.current = false;
+        for (const id of _pendingTimeoutsRef.current) clearTimeout(id);
+        _pendingTimeoutsRef.current.clear();
+    }, []);
+
     const currentQuestion = questions[currentQuestionIndex];
 
     // Keep answersRef in sync with answers state
@@ -657,6 +676,9 @@ export default function StrategyTrivia({ mode }) {
         ).length;
         const diamondsEarned = calculateDiamonds(mode, actualCorrectCount, questions.length, 0);
 
+        // Phase 68: track what actually got awarded so trivia_scores doesn't
+        // record a false diamonds_earned and the results UI doesn't lie.
+        let actualAwarded = 0;
         if (userId) {
             // Save score and award diamonds
             if (diamondsEarned > 0) {
@@ -673,8 +695,13 @@ export default function StrategyTrivia({ mode }) {
                     if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
                     busEmit.diamondsEarned(diamondsEarned, `${config.title} Reward`);
                     if (actualCorrectCount >= questions.length) busEmit.celebration('confetti');
+                    actualAwarded = diamondsEarned;
                 } catch (e) {
-                    console.warn('[StrategyTrivia] Error awarding diamonds:', e);
+                    // Phase 68: was silently swallowing the rpcErr — user saw
+                    // diamonds toast and trivia_scores had diamonds_earned set
+                    // but balance never moved. Log loudly + record 0 awarded
+                    // so the score table doesn't lie.
+                    console.warn('[StrategyTrivia] CRITICAL: Diamond reward RPC failed — user owed', diamondsEarned, 'diamonds:', e?.message || e);
                 }
             }
 
@@ -691,7 +718,10 @@ export default function StrategyTrivia({ mode }) {
                     correct_count: actualCorrectCount,
                     total_questions: questions.length,
                     time_spent: timeSpent,
-                    diamonds_earned: diamondsEarned,
+                    // Phase 68: was diamondsEarned (the intended amount). Now
+                    // actualAwarded — 0 if the RPC failed — so trivia_scores
+                    // matches what the user really received.
+                    diamonds_earned: actualAwarded,
                     play_date: today
                 });
                 if (scoreErr) throw scoreErr;
@@ -699,22 +729,40 @@ export default function StrategyTrivia({ mode }) {
                 console.warn('[StrategyTrivia] Error saving score:', e);
             }
 
-            // Record question history for 60-day non-repeat tracking
+            // Record question history for 60-day non-repeat tracking.
+            // Phase 68: was inserting EVERY question including
+            // getFallbackQuestions() entries with hardcoded string IDs like
+            // 'mtt-fb-1' / 'cash-fb-2' which violate the FK to
+            // trivia_questions.id (uuid). Each fallback insert silently
+            // failed and dropped the entire batch (PostgREST upsert is
+            // all-or-nothing). Filter to UUID-shaped IDs only so real
+            // questions are tracked even when fallback questions are mixed
+            // in. Also capture upsert errors that were silently swallowed.
             if (questions && questions.length > 0) {
                 try {
-                    const historyRecords = questions.map((q, idx) => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: answersRef.current[idx] === q.correct_index,
-                        seen_at: new Date().toISOString(),
-                        mode
-                    }));
+                    const _uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                    const historyRecords = questions
+                        .map((q, idx) => ({ q, idx }))
+                        .filter(({ q }) => q && typeof q.id === 'string' && _uuidRe.test(q.id))
+                        .map(({ q, idx }) => ({
+                            user_id: userId,
+                            question_id: q.id,
+                            was_correct: answersRef.current[idx] === q.correct_index,
+                            seen_at: new Date().toISOString(),
+                            mode
+                        }));
 
-                    await supabase.from('trivia_user_question_history')
-                        .upsert(historyRecords, {
-                            onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
-                        });
+                    if (historyRecords.length > 0) {
+                        const { error: historyErr } = await supabase
+                            .from('trivia_user_question_history')
+                            .upsert(historyRecords, {
+                                onConflict: 'user_id,question_id',
+                                ignoreDuplicates: false
+                            });
+                        if (historyErr) {
+                            console.warn('[StrategyTrivia] History upsert failed (non-fatal):', historyErr.message);
+                        }
+                    }
                 } catch (e) {
                     console.warn('[StrategyTrivia] Error recording history:', e);
                 }
@@ -804,8 +852,11 @@ export default function StrategyTrivia({ mode }) {
         setSkipUsed(true);
         setLifelinesUsedCount(prev => prev + 1);
 
-        // Move to next
-        setTimeout(() => {
+        // Move to next.
+        // Phase 68: safeSetTimeout instead of setTimeout — was firing
+        // setState / finishGame on an unmounted component when the user
+        // navigated away during the 300ms window after pressing Skip.
+        safeSetTimeout(() => {
             if (currentQuestionIndex + 1 >= questions.length) {
                 finishGame();
             } else {

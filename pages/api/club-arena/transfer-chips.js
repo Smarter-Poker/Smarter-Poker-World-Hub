@@ -29,6 +29,11 @@ function getSupabase() {
 export default async function handler(req, res) {
   const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', ['POST']);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
@@ -128,19 +133,12 @@ export default async function handler(req, res) {
         });
       }
 
-      // Record transactions (fire-and-forget — transfer already atomic)
-      await getSupabase().from('chip_transactions').insert([
-        {
-          club_id: clubId, from_user_id: user.id, to_user_id: toUserId,
-          amount: -amount, transaction_type: 'transfer_out',
-          notes: note || `Transfer to player`,
-        },
-        {
-          club_id: clubId, from_user_id: user.id, to_user_id: toUserId,
-          amount, transaction_type: 'transfer_in',
-          notes: note || `Transfer from player`,
-        },
-      ]);
+      // Record transaction (fire-and-forget — transfer already atomic)
+      await getSupabase().from('chip_transactions').insert({
+        club_id: clubId, from_user_id: user.id, to_user_id: toUserId,
+        amount, transaction_type: 'transfer',
+        notes: note || `Transfer to player`,
+      });
 
       // Notify recipient
       await notifyUser(supabaseAdmin, {
