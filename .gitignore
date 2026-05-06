@@ -100,3 +100,7 @@ src/content-engine/node_modules
 vercel_deploy_output.txt
 yarn-debug.log*
 yarn-error.log*
+
+# Agent scratch summaries (Anthropic Claude / Antigravity sessions) — never commit
+summary_pt*.md
+summary*.md
