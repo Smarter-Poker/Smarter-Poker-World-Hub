@@ -128,13 +128,20 @@ export default async function handler(req, res) {
           const safeSpeedBonus = Math.max(0, Math.min(parseInt(speedBonusDiamonds, 10) || 0, 50));
           if (safeSpeedBonus > 0) {
               try {
-                  // Use RPC to atomically increment diamonds
+                  // Use RPC to atomically increment diamonds.
+                  // Phase 63: was using `speed_..._${Date.now()}` — per-millisecond
+                  // means every retry/replay credits AGAIN. Combined with the
+                  // 50-diamond cap, a user could spam save-session 100x and
+                  // grab 5000 free diamonds. Now buckets to per-(user, game,
+                  // level, day) so the user gets at most one speed bonus per
+                  // level per UTC day. DB dedups identical retries.
+                  const _dayBucket = Math.floor(Date.now() / 86400000);
                   const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                       p_user_id: userId,
                       p_amount: safeSpeedBonus,
                       p_type: 'speed_bonus',
                       p_description: `Speed bonus: ${parsedGameId} — ${safeSpeedBonus}diamonds`,
-                      p_reference_id: `speed_${userId}_${parsedGameId}_${Date.now()}`
+                      p_reference_id: `speed_${userId}_${parsedGameId}_${parsedLevel || 0}_${_dayBucket}`
                   });
 
                   if (rpcErr) {
