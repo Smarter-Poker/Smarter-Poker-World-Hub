@@ -3,7 +3,7 @@
  * Post-game modal, one question decides all
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gem, AlertTriangle, Check, X, Sparkles } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
@@ -21,20 +21,53 @@ export default function DoubleOrNothing({
     const [isRevealing, setIsRevealing] = useState(false);
     const [won, setWon] = useState(false);
 
+    // Phase 69: track pending setTimeouts so unmount cancels them.
+    // Without this the 1.5-second reveal setTimeout fired setState/
+    // onAnswer on an unmounted component when the user dismissed the
+    // modal mid-reveal. Plus refs to dedup Accept/Decline double-clicks
+    // — onAccept commits diamonds-at-risk on the parent; firing twice
+    // could double-deduct.
+    const _pendingTimeoutsRef = useRef(new Set());
+    const _isMountedRef = useRef(true);
+    const _acceptedRef = useRef(false);
+    const _declinedRef = useRef(false);
+    const safeSetTimeout = (fn, delay) => {
+        const id = setTimeout(() => {
+            _pendingTimeoutsRef.current.delete(id);
+            if (_isMountedRef.current) fn();
+        }, delay);
+        _pendingTimeoutsRef.current.add(id);
+        return id;
+    };
+    useEffect(() => () => {
+        _isMountedRef.current = false;
+        for (const id of _pendingTimeoutsRef.current) clearTimeout(id);
+        _pendingTimeoutsRef.current.clear();
+    }, []);
+
     const handleAccept = () => {
+        if (_acceptedRef.current || _declinedRef.current) return;
+        _acceptedRef.current = true;
         onAccept?.();
         setStage('question');
     };
 
+    const handleDecline = () => {
+        if (_declinedRef.current || _acceptedRef.current) return;
+        _declinedRef.current = true;
+        onDecline?.();
+    };
+
     const handleAnswer = (answerIndex) => {
         if (isRevealing) return;
+        if (!question || question.correct_index == null) return;
 
         setSelectedAnswer(answerIndex);
         setIsRevealing(true);
 
         const isCorrect = answerIndex === question.correct_index;
 
-        setTimeout(() => {
+        safeSetTimeout(() => {
             setWon(isCorrect);
             setStage('result');
             onAnswer?.(isCorrect);
@@ -87,7 +120,7 @@ export default function DoubleOrNothing({
                                 />
                                 <HexButton
                                     label={`Keep ${diamondsAtRisk} Diamonds`}
-                                    onClick={onDecline}
+                                    onClick={handleDecline}
                                     variant="secondary"
                                 />
                             </div>
