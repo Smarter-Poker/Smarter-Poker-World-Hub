@@ -26,16 +26,28 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     useEffect(() => {
         // Guard: never show for VIP users, and wait for userId to resolve
         if (isVip || !userId) return;
+        // Phase 72: cancellation guard prevents setShow / setDismissed from
+        // firing on an unmounted component when the user navigates away
+        // during the async checkPopupDismissed or the 2500ms delay.
+        let cancelled = false;
+        let showTimer = null;
         async function checkDismissal() {
             const isDismissed = await checkPopupDismissed(userId, key);
+            if (cancelled) return;
             if (!isDismissed) {
                 setDismissed(false);
                 // Delay 2500ms to ensure DiamondEngine.isVIP() has time to resolve
                 // (avoids race condition where popup flashes before VIP status loads)
-                setTimeout(() => setShow(true), 2500);
+                showTimer = setTimeout(() => {
+                    if (!cancelled) setShow(true);
+                }, 2500);
             }
         }
         checkDismissal();
+        return () => {
+            cancelled = true;
+            if (showTimer) clearTimeout(showTimer);
+        };
     }, [userId, key, isVip]);
 
     const handleDismiss = async () => {
