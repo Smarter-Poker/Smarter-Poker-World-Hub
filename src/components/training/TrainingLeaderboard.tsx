@@ -15,7 +15,7 @@ const PERIODS = [
 
 export function TrainingLeaderboard({ userId, compact = false }) {
     const [period, setPeriod] = useState('daily');
-    const [leaderboard, setLeaderboard] = useState([]);
+    const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

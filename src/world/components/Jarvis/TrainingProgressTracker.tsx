@@ -15,7 +15,7 @@ interface TrainingProgressTrackerProps {
 
 export function TrainingProgressTracker({ userId, onAskJarvis, onClose }: TrainingProgressTrackerProps) {
     // Use real data from training_sessions table
-    const { stats, isLoading: loading } = useTrainingStats();
+    const { stats, isLoading: loading } = useTrainingStats() as { stats: any; isLoading: boolean; error: any };
     const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'leaks'>('overview');
 
 

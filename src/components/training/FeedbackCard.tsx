@@ -221,7 +221,7 @@ export function FeedbackCard({
                         position: (scenario.heroPosition === 'BB' || scenario.heroPosition === 'SB') ? 'OOP' : 'IP',
                         street: _detectStreet(typeof scenario.board === 'string' ? scenario.board : undefined),
                         spotType: scenario.spotType || 'cbet',
-                        betFrequency: result.gtoLine?.frequency,
+                        betFrequency: result.gtoLine?.frequency ?? 0,
                         frequencies: question.gtoFrequencies || {},
                         is3BetPot: scenario.is3BetPot || false,
                     });

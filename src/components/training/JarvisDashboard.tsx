@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export function JarvisDashboard({ userId, compact = false }) {
-    const [insights, setInsights] = useState(null);
+    const [insights, setInsights] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

@@ -210,28 +210,13 @@ export function useTrainingAccountant(userId: string | null) {
 
                 console.log(`[ACCOUNTANT] 🚨 NEW LEAK DETECTED: ${leakName}`);
                 return {
-                    leakId: data.id,
+                    leakId: data?.id,
                     isNew: true,
                     confidence: 0.25,
                     mistakeCount: 1
                 };
             }
 
-            // Also log as incorrect XP entry (0 XP)
-            await supabase.from('xp_logs').insert({
-                user_id: userId,
-                game_id: gameId,
-                session_type: 'clinic',
-                xp_awarded: 0,
-                base_xp: 0,
-                streak_multiplier: 1.0,
-                speed_multiplier: 1.0,
-                remediation_multiplier: 1.0,
-                streak_count: 0,
-                is_correct: false,
-                question_number: questionNumber,
-                metadata: { source: 'UniversalTrainingTable', lawId }
-            });
 
         } catch (err) {
             console.warn('[ACCOUNTANT] Error logging mistake:', err);

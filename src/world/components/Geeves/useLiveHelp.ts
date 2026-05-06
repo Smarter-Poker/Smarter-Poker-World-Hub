@@ -6,7 +6,15 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback } from 'react';
-import { busEmit } from '../../../engine/EventBus';
+
+// Local event emitter to replace missing busEmit export
+const busEmit = {
+    geevesQuestionMissed: (question: string, page: string) => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('geeves-question-missed', { detail: { question, page } }));
+        }
+    }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AGENT DEFINITIONS

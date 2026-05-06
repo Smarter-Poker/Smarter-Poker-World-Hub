@@ -7,9 +7,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
-    const [streak, setStreak] = useState(null);
+    const [streak, setStreak] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [claiming, setClaiming] = useState(null);
+    const [claiming, setClaiming] = useState<number | null>(null);
 
     useEffect(() => {
         if (userId) fetchStreak();

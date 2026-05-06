@@ -175,8 +175,16 @@ async function processJob(job) {
       warn('  No cookies.txt found — downloads may fail on datacenter IPs');
     }
 
+    // QUALITY: prefer H.264 (avc1) + AAC so we can stream-copy below
+    // (lossless remux, preserves YouTube's full source bitrate).
+    // Fallbacks keep working when the only renditions are VP9/AV1.
     const ytdlpArgs = [
-      '-f', 'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]/bv*[height<=1080]+ba/b[height<=1080]',
+      '-f',
+        'bv*[height<=1080][vcodec^=avc1][ext=mp4]+ba[ext=m4a]/' +
+        'b[height<=1080][ext=mp4][vcodec^=avc1]/' +
+        'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/' +
+        'b[height<=1080][ext=mp4]/' +
+        'bv*[height<=1080]+ba/b[height<=1080]',
       '--merge-output-format', 'mp4',
       '--no-playlist',
       '--no-warnings',
@@ -211,35 +219,65 @@ async function processJob(job) {
     }
     log(`  Downloaded ${(rawStat.size / 1_048_576).toFixed(1)} MB`);
 
-    // ── 2. Re-encode for web (matches cron transcoder output ladder) ────────
-    // Cap longer edge at 1080, libx264 main / level 4.0, AAC 128k, +faststart
-    const SCALE_1080P =
-      "scale='if(gt(iw,ih), min(1920,iw), -2)':'if(gt(iw,ih), -2, min(1920,ih))'";
-    await runProcess('ffmpeg', [
-      '-y', '-hide_banner', '-loglevel', 'error',
-      '-i', rawFile,
-      '-vf', SCALE_1080P,
-      '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-      '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-level', '4.0',
-      '-c:a', 'aac', '-b:a', '128k',
-      '-movflags', '+faststart',
-      outFile,
-    ], FFMPEG_TIMEOUT);
+    // ── 2. Lossless remux first; fall back to high-quality re-encode ────────
+    //
+    // Quality root cause (caught 2026-05-06): the previous step did a full
+    // libx264 re-encode at preset=fast / crf=23 / profile=main, which on
+    // 1080p vertical content produced ~1 Mbps output — well below TikTok/IG
+    // baselines (4-6 Mbps) and a visible quality regression vs. YouTube's
+    // own ~3-5 Mbps source.
+    //
+    // Strategy:
+    //   1. Stream-copy (-c copy + faststart). Lossless. Runs in <1s. Works
+    //      whenever yt-dlp delivered avc1 video + aac audio in an MP4
+    //      container (which is what our format selector now prefers).
+    //   2. If copy fails (codec is VP9/AV1, container quirks, etc.), fall
+    //      back to a HIGH-quality re-encode: preset=slow, crf=18, high
+    //      profile, level 4.1, 192k AAC. Visually lossless on YouTube
+    //      sources, still web-safe.
+    let usedRemux = false;
+    try {
+      await runProcess('ffmpeg', [
+        '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', rawFile,
+        '-c', 'copy',
+        '-movflags', '+faststart',
+        outFile,
+      ], 60_000);
+      usedRemux = true;
+    } catch (copyErr) {
+      // Stream copy failed — fall through to a quality re-encode.
+      warn(`  stream-copy failed (${copyErr.message?.slice(0, 80)}) — re-encoding`);
+      const SCALE_1080P =
+        "scale='if(gt(iw,ih), min(1920,iw), -2)':'if(gt(iw,ih), -2, min(1920,ih))'";
+      await runProcess('ffmpeg', [
+        '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', rawFile,
+        '-vf', SCALE_1080P,
+        '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+        '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1',
+        '-c:a', 'aac', '-b:a', '192k',
+        '-movflags', '+faststart',
+        outFile,
+      ], FFMPEG_TIMEOUT);
+    }
 
     const outStat = await stat(outFile);
-    log(`  Re-encoded → ${(outStat.size / 1_048_576).toFixed(1)} MB`);
+    log(`  ${usedRemux ? 'Remuxed (lossless)' : 'Re-encoded (HQ)'} → ${(outStat.size / 1_048_576).toFixed(1)} MB`);
 
     // ── 3. Extract thumbnail (1s frame) ─────────────────────────────────────
+    // Pull from rawFile (yt-dlp's pristine source) NOT outFile — avoids
+    // inheriting any re-encode artifacts. Native resolution preserved
+    // (caller can downscale via CSS); q:v 2 ≈ 95% jpeg quality.
     const thumbFile = join(dir, 'thumb.jpg');
     let thumbUrl = null;
     try {
       await runProcess('ffmpeg', [
         '-y', '-hide_banner', '-loglevel', 'error',
         '-ss', '1',
-        '-i', outFile,
+        '-i', rawFile,
         '-vframes', '1',
-        '-q:v', '3',
-        '-vf', 'scale=720:-2',
+        '-q:v', '2',
         thumbFile,
       ], 30_000);
       const thumbBuf = await readFile(thumbFile);

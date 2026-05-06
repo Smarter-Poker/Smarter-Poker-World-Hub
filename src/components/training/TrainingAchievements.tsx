@@ -14,7 +14,7 @@ const RARITY_COLORS = {
 };
 
 export function TrainingAchievements({ userId, compact = false, onNewUnlock }) {
-    const [achievements, setAchievements] = useState([]);
+    const [achievements, setAchievements] = useState<any[]>([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ unlocked: 0, total: 0 });

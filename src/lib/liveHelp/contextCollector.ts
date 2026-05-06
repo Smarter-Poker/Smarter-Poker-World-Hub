@@ -75,8 +75,8 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             sessionDuration,
             recentActivity,
             lastDrillType,
-            winRate: stats?.win_rate,
-            handsPlayed: stats?.hands_played
+            winRate: stats?.win_rate ?? undefined,
+            handsPlayed: stats?.hands_played ?? undefined
         };
     } catch (error) {
         console.warn('Failed to collect user context:', error);

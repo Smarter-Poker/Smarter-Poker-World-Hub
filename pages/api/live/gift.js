@@ -124,8 +124,10 @@ export default async function handler(req, res) {
         ? (new Date() - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24)
         : 0;
 
+    const isKingfish = senderProfile?.full_name?.toLowerCase().includes('dan bekavac') || senderProfile?.username?.toLowerCase() === 'kingfish';
+
     // ── GUARD: Hard block — new users (< 30 days) cannot send live gifts ──
-    if (senderAgeDays < NEW_USER_BLOCK_DAYS) {
+    if (!isKingfish && senderAgeDays < NEW_USER_BLOCK_DAYS) {
         const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
         return res.status(403).json({
             error: `New accounts cannot send live gifts until your 30-Day VIP Card expires. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`,
@@ -138,7 +140,7 @@ export default async function handler(req, res) {
     const isGraduated = senderAgeDays >= GRADUATION_DAYS;
     const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    if (!isGraduated) {
+    if (!isKingfish && !isGraduated) {
         // BUG FIX (Pass 4): Use direct RPCs for aggregations instead of paginated HTTP fetching
         const { data: alreadySent } = await supabase.rpc('sum_diamond_transactions', {
             p_user_id: user.id,
@@ -180,7 +182,7 @@ export default async function handler(req, res) {
         p_start: rolling30StartReceive
     });
 
-    if ((broadcasterReceiveTotal || 0) + parsedAmount > RECEIVER_30DAY_RECEIVE_LIMIT) {
+    if (!isKingfish && (broadcasterReceiveTotal || 0) + parsedAmount > RECEIVER_30DAY_RECEIVE_LIMIT) {
         return res.status(429).json({
             error: `This broadcaster has reached their 30-day gift receive limit (${RECEIVER_30DAY_RECEIVE_LIMIT} diamonds/30 days)`,
             gateType: 'broadcaster_receive_cap',

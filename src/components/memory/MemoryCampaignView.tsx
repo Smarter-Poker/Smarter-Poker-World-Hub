@@ -14,12 +14,16 @@ import MemoryGameClient from './MemoryGameClient';
 
 interface Chart {
     chart_id: string;
-    game_type: string;
+    game_type: string | null;
     hero_position: string;
-    villain_action?: string;
-    stack_depth: number;
+    villain_action?: string | null;
+    stack_depth: number | null;
     hand_matrix: unknown;
     created_at?: string;
+    id?: string;
+    position?: string | null;
+    villain_position?: string | null;
+    action?: string | null;
     [key: string]: unknown;
 }
 

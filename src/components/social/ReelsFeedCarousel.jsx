@@ -1660,7 +1660,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             errorCode={ytError}
                             videoId={videoId}
                             videoUrl={videoUrl}
-                            thumbnailUrl={videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null}
+                            thumbnailUrl={videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null}
                             actionLabel="Skipping in 3 seconds..."
                             style={{ pointerEvents: 'auto' }}
                         />

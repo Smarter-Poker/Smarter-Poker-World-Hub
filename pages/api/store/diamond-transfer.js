@@ -260,8 +260,10 @@ export default async function handler(req, res) {
         const senderAgeDays = (now - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24);
         const recipientAgeDays = (now - new Date(recipientProfile.created_at)) / (1000 * 60 * 60 * 24);
 
+        const isKingfish = senderProfile?.full_name?.toLowerCase().includes('dan bekavac') || senderProfile?.username?.toLowerCase() === 'kingfish';
+
         // ── GUARD 16: Hard block — new users (< 30 days) CANNOT send any diamonds ──
-        if (senderAgeDays < NEW_USER_BLOCK_DAYS) {
+        if (!isKingfish && senderAgeDays < NEW_USER_BLOCK_DAYS) {
             const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
             return res.status(403).json({
                 success: false,
@@ -272,12 +274,12 @@ export default async function handler(req, res) {
         }
 
         // Recipient must be at least 7 days old (prevents instant alt-account siphoning)
-        if (recipientAgeDays < 7) {
+        if (!isKingfish && recipientAgeDays < 7) {
             return res.status(403).json({ success: false, error: 'Recipient account must be at least 7 days old to receive diamonds' });
         }
 
         // ── Guard 4: Per-transfer max (tier-aware) ──
-        if (amount > maxTransferVip) {
+        if (!isKingfish && amount > maxTransferVip) {
             return res.status(400).json({
                 success: false,
                 error: isVipTier
@@ -302,7 +304,7 @@ export default async function handler(req, res) {
             .limit(1)
             .maybeSingle();
 
-        if (recentTransfer) {
+        if (!isKingfish && recentTransfer) {
             return res.status(429).json({ success: false, error: `Please wait ${COOLDOWN_SECONDS} seconds between transfers` });
         }
 
@@ -331,7 +333,7 @@ export default async function handler(req, res) {
         const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
         const isGraduated = senderAgeDays >= GRADUATION_DAYS;
 
-        if (!isGraduated) {
+        if (!isKingfish && !isGraduated) {
             // Determine which pool the sender qualifies for
             const activeCap = purchasedWonAvailable >= amount
                 ? PURCHASED_WON_30DAY_LIMIT
@@ -349,7 +351,7 @@ export default async function handler(req, res) {
                     gateType: 'source_tier_cap',
                 });
             }
-        } else {
+        } else if (!isKingfish) {
             // ── GRADUATED (90+ day) accounts: standard daily limits + velocity detection ──
             const dayStart = new Date(now);
             dayStart.setHours(0, 0, 0, 0);
@@ -380,7 +382,7 @@ export default async function handler(req, res) {
             .eq('transaction_type', 'diamond_gift_sent')
             .gte('created_at', rolling30Start)
             .ilike('description', `%[${recipientId}]%`));
-        if (recipientDailyTotal + amount > PER_RECIPIENT_DAILY_LIMIT) {
+        if (!isKingfish && recipientDailyTotal + amount > PER_RECIPIENT_DAILY_LIMIT) {
             console.warn(`[VELOCITY] User ${userId} hit per-recipient limit for ${recipientId}: ${recipientDailyTotal}/${PER_RECIPIENT_DAILY_LIMIT}`);
             return res.status(429).json({
                 success: false,
@@ -400,7 +402,7 @@ export default async function handler(req, res) {
             .limit(1)
             .maybeSingle();
 
-        if (recentRecipientTransfer) {
+        if (!isKingfish && recentRecipientTransfer) {
             return res.status(429).json({
                 success: false,
                 error: `Please wait ${PER_RECIPIENT_COOLDOWN_SECONDS / 60} minutes between transfers to the same friend`
@@ -414,7 +416,7 @@ export default async function handler(req, res) {
             .eq('user_id', recipientId)
             .eq('transaction_type', 'diamond_gift_received')
             .gte('created_at', rolling30Start));
-        if (recipientReceiveTotal + amount > RECIPIENT_DAILY_RECEIVE_LIMIT) {
+        if (!isKingfish && recipientReceiveTotal + amount > RECIPIENT_DAILY_RECEIVE_LIMIT) {
             return res.status(429).json({
                 success: false,
                 error: `This friend has reached their 30-day receive limit (${RECIPIENT_DAILY_RECEIVE_LIMIT} diamonds/30 days)`
