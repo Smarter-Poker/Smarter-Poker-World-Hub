@@ -15,8 +15,9 @@ import toast from '../../stores/toastStore';
 import { busEmit } from '../../engine/EventBus';
 import Lottie from 'lottie-react';
 import diamondAnimation from '../../../public/diamond-animation.json';
-// BUG-FIX-LIVE-1: shared chime utility — armed in handleGoLive (real
-// user gesture) so iOS unlocks AudioContext, then played at setStage('live').
+// BUG-FIX-LIVE-1: shared chime utility — armSuccessChime() in handleGoLive
+// (a real user gesture) unlocks iOS Safari's AudioContext, then
+// playSuccessChime() in startBroadcast plays the live-confirmation chime.
 import { armSuccessChime, playSuccessChime } from '../../lib/successChime';
 
 const C = {
@@ -375,8 +376,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         // #3/#11: Prevent double-tap / double-broadcast on slow networks
         if (isStarting) return;
         if (!streamRef.current || !user?.id) { setError('Unable to start stream.'); return; }
-        // BUG-FIX-LIVE-1: arm chime synchronously inside the click handler —
-        // iOS Safari only unlocks AudioContext from inside a user gesture.
+        // BUG-FIX-LIVE-1: arm the chime here, INSIDE the click handler before
+        // any await — iOS Safari only honors AudioContext unlock if it
+        // happens synchronously inside the user gesture callback. The
+        // actual chime fires several seconds later (after countdown +
+        // LiveKit handshake) when armed context is reused.
         armSuccessChime();
         setIsStarting(true);
         setError('');
@@ -453,13 +457,19 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             setElapsedTime(0);
             startRecording();
             timerRef.current = setInterval(() => setElapsedTime(p => p + 1), 1000);
-            // BUG-FIX-LIVE-1: explicit chime via the AudioContext armed in
-            // handleGoLive. toastStore's _playSuccessChime makes a fresh
-            // context that's 'suspended' on iOS Safari — ours plays for real.
+            // BUG-FIX-LIVE-1: play chime via the AudioContext armed in
+            // handleGoLive(). toast.success below ALSO calls toastStore's
+            // _playSuccessChime, but that creates a fresh AudioContext on
+            // every call — on iOS Safari the new context starts in
+            // 'suspended' state because we're well past the user gesture
+            // (countdown + LiveKit handshake elapsed). Calling our
+            // already-armed shared playSuccessChime guarantees audible
+            // playback. The toastStore chime is harmless if it does fire.
             playSuccessChime();
             toast.success('You Are Now Live!');
-            // Real-time fanout — feed cards listening on 'live_streams'
-            // re-render and pick up the new live tile immediately.
+            // Real-time fanout — open social-media feeds (LiveStreamCard
+            // inlineAutoplay) re-render and pick up the new live tile
+            // immediately via the EventBus 'live_streams' channel.
             busEmit.dataMutated?.('live_streams');
             try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
         } catch (err) {
@@ -486,13 +496,22 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         // #1: Confirm before ending — prevents accidental stream kills
         if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) return;
         try {
-            // BUG-FIX-LIVE-8: previously fired mr.stop() and immediately set
-            // stage='ended'. The recorder's onstop handler is async — by the
-            // time EndStreamModal mounted, recordedBlob was still null and
-            // the modal rendered "Recording not available" with all action
-            // buttons disabled (looked frozen). Now we await the recorder's
-            // 'stop' event, assemble the blob, and call setRecordedBlob in
-            // the same React commit as setStage('ended').
+            // BUG-FIX-LIVE-8 (per Dan: "WHEN STREAM ENDS, IT DOESN'T TAKE THE
+            // STREAMER TO THE SAVE OR POST SCREEN, STREAM JUST ENDS AND SCREEN
+            // FREEZES. CANT POST OR SAVE AFTER IT ENDS").
+            //
+            // Root cause: previously called mediaRecorderRef.current.stop()
+            // and immediately set stage='ended'. The recorder's onstop
+            // handler (defined in startRecording) fires AFTER stop() returns,
+            // so EndStreamModal mounted with videoBlob still null. It then
+            // rendered "Recording not available — cannot be saved or posted"
+            // with all action buttons disabled — which looked like a freeze.
+            //
+            // Fix: assemble the final blob from recordedChunksRef the moment
+            // the recorder dispatches 'stop', resolve a promise, then call
+            // setRecordedBlob BEFORE setStage('ended'). React batches both
+            // updates so EndStreamModal mounts with a real videoBlob and
+            // the Save/Post buttons are enabled.
             const finalizeRecording = () => new Promise((resolve) => {
                 const mr = mediaRecorderRef.current;
                 if (!mr || mr.state === 'inactive') return resolve(null);
@@ -502,20 +521,35 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                     if (settled) return;
                     settled = true;
                     try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
-                    try { resolve(new Blob(recordedChunksRef.current, { type: mime })); }
-                    catch (_e) { resolve(null); }
+                    try {
+                        const blob = new Blob(recordedChunksRef.current, { type: mime });
+                        resolve(blob);
+                    } catch (_e) { resolve(null); }
                 };
                 mr.addEventListener('stop', onStopOnce);
                 try { mr.stop(); } catch (_) { onStopOnce(); }
-                setTimeout(() => { if (!settled) { settled = true; resolve(null); } }, 4000);
+                // Safety: 4-second cap if onstop never fires (browser bug, lost track)
+                setTimeout(() => {
+                    if (!settled) {
+                        settled = true;
+                        try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
+                        resolve(null);
+                    }
+                }, 4000);
             });
+
             const finalBlob = await finalizeRecording();
             await liveStreamService.endBroadcast();
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-            setIsStarting(false);
+            setIsStarting(false); // Reset for next session
+            // setRecordedBlob first so it lands in the same React commit as
+            // the stage transition — EndStreamModal sees a non-null blob.
             if (finalBlob) setRecordedBlob(finalBlob);
             setStage('ended');
             setShowAnalytics(true);
+            // Real-time fanout via EventBus — feed cards (LiveStreamCard
+            // inlineAutoplay) listen on 'live_streams' to flip their tile
+            // from live preview to the post-stream replay state.
             busEmit.dataMutated?.('live_streams');
             try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
         } catch (err) {

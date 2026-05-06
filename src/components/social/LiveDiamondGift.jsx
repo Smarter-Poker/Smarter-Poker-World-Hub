@@ -96,7 +96,12 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                 }}
             >
                 {success ? (
-                    // BUG-FIX-LIVE-4 (per Dan: white letters not yellow + Title Case)
+                    // BUG-FIX-LIVE-4 (per Dan: "WHEN A USER SENDS DIAMONDS, THE
+                    // POP UP NEEDS TO HAVE THE FIRST LETTER OF EVERY WORD
+                    // CAPITALIZED. AND IT NEEDS TO BE WHITE LETTERS, NOT
+                    // YELLOW.") — swap #FFD700 → #FFFFFF on the headline,
+                    // lift the subtitle from 60% white to 100% white, and
+                    // Title-Case the subtitle copy.
                     <div style={{ textAlign: 'center', padding: '24px 0' }}>
                         <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
                         <div style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 700 }}>Gift Sent!</div>

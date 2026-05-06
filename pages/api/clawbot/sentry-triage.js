@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       top_offender: enriched[0]
         ? `${enriched[0].title} (${enriched[0].user_count} users)`
         : 'none',
-      snapshot_date: getTodayCST(), // Phase 77 — CST anchor matches storeSnapshot/getPreviousSnapshot
+      snapshot_date: getTodayCST(), // Phase 77 — CST anchor matches storeSnapshot/getPreviousSnapshot below
     };
 
     return {
@@ -183,10 +183,12 @@ function categorizeError(issue) {
 async function getPreviousSnapshot() {
   try {
     const supabase = getSupabase();
-    // Phase 77 — CST anchor for daily snapshot rotation. Previous UTC anchor
-    // rotated at 6pm CST, splitting an ops-team daily-errors review across
-    // two snapshot rows.
+    // Phase 77 — CST anchor for daily snapshot rotation. Previously rotated
+    // at UTC midnight (=6pm CST), so an ops-team "today's errors" review
+    // before close-of-business CST would actually be tomorrow's bucket.
     const today = getTodayCST();
+    // Yesterday in CST: derived from today + day arithmetic so DST is handled
+    // by the same Intl-based anchor.
     const cstNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
     cstNow.setDate(cstNow.getDate() - 1);
     const y = cstNow.getFullYear();
