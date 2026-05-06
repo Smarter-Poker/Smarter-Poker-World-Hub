@@ -422,7 +422,7 @@ export default function SignUpPage() {
     useEffect(() => {
         if (!router.isReady) return;
         const provider = router.query.provider;
-        if (typeof provider === 'string' && ['google', 'apple', 'discord'].includes(provider)) {
+        if (typeof provider === 'string' && ['google', 'apple', 'discord', 'facebook'].includes(provider)) {
             const cleanQuery = { ...router.query };
             delete cleanQuery.provider;
             router.replace({ pathname: router.pathname, query: cleanQuery }, undefined, { shallow: true });
@@ -924,6 +924,21 @@ export default function SignUpPage() {
                                     <span>{oauthLoading === 'google' ? 'Connecting...' : 'Continue With Google'}</span>
                                 </button>
 
+                                <button
+                                    type="button"
+                                    onClick={() => handleOAuthSignIn('facebook')}
+                                    disabled={!!oauthLoading}
+                                    style={{
+                                        ...styles.socialButton,
+                                        ...styles.facebookButton,
+                                        opacity: oauthLoading && oauthLoading !== 'facebook' ? 0.5 : 1,
+                                    }}
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12S0 5.446 0 12.073c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.875v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                    </svg>
+                                    <span>{oauthLoading === 'facebook' ? 'Connecting...' : 'Continue With Facebook'}</span>
+                                </button>
 
                             </div>
 
@@ -2131,6 +2146,10 @@ const styles = {
     googleButton: {
         background: '#ffffff',
         color: '#333333',
+    },
+    facebookButton: {
+        background: '#1877F2',
+        color: '#ffffff',
     },
     socialDivider: {
         display: 'flex',
