@@ -185,9 +185,15 @@ export function applyHint(hintId, question, currentState) {
                 .map((_, idx) => idx)
                 .filter(idx => idx !== correctIndex);
 
-            // Randomly remove 2 wrong answers
-            const shuffled = wrongIndices.sort(() => Math.random() - 0.5);
-            const toRemove = shuffled.slice(0, 2);
+            // Randomly remove 2 wrong answers.
+            // Phase 60: was using sort(()=>Math.random()-0.5) which is
+            // mathematically biased (some permutations 2x more likely).
+            // Fisher-Yates is uniform.
+            for (let i = wrongIndices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+            }
+            const toRemove = wrongIndices.slice(0, 2);
 
             return {
                 ...currentState,

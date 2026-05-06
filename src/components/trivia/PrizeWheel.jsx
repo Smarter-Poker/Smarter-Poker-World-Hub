@@ -88,35 +88,59 @@ export default function PrizeWheel({
                 busEmit.celebration('confetti');
             }
 
-            // Persist non-diamond items (streak_shield, arcade_ticket, mystery_box)
+            // Persist non-diamond items (streak_shield, arcade_ticket, mystery_box).
+            // Phase 60: capture errors on all 3 supabase calls — were silently
+            // swallowed, so a failed write still called onComplete() and the
+            // user saw "+1 streak shield" toast without the item actually
+            // persisting. Now warns visibly and skips onComplete on failure
+            // so the user can re-spin or contact support.
             if (result.reward.type !== 'diamonds') {
+                let _persistFailed = false;
                 try {
                     const user = getAuthUser();
                     if (user) {
                         // Check if item already exists
-                        const { data: existing } = await supabase
+                        const { data: existing, error: selErr } = await supabase
                             .from('trivia_user_items')
                             .select('quantity')
                             .eq('user_id', user.id)
                             .eq('item_type', result.reward.type)
                             .maybeSingle();
-
-                        if (existing) {
+                        if (selErr) {
+                            console.warn('[PrizeWheel] item select failed:', selErr.message);
+                            _persistFailed = true;
+                        } else if (existing) {
                             // Increment existing quantity
-                            await supabase
+                            const { error: updErr } = await supabase
                                 .from('trivia_user_items')
                                 .update({ quantity: existing.quantity + result.reward.amount, updated_at: new Date().toISOString() })
                                 .eq('user_id', user.id)
                                 .eq('item_type', result.reward.type);
+                            if (updErr) {
+                                console.warn('[PrizeWheel] item update failed:', updErr.message);
+                                _persistFailed = true;
+                            }
                         } else {
                             // Insert new item
-                            await supabase
+                            const { error: insErr } = await supabase
                                 .from('trivia_user_items')
                                 .insert({ user_id: user.id, item_type: result.reward.type, quantity: result.reward.amount });
+                            if (insErr) {
+                                console.warn('[PrizeWheel] item insert failed:', insErr.message);
+                                _persistFailed = true;
+                            }
                         }
                     }
                 } catch (e) {
                     console.warn('[PrizeWheel] Failed to persist item:', e);
+                    _persistFailed = true;
+                }
+                // If persist failed, mark the reward so caller can decide what
+                // to show. Caller (TriviaLobby/etc.) can detect persistFailed
+                // and show a "we'll retry" message instead of the success toast.
+                if (_persistFailed) {
+                    onComplete({ ...result.reward, persistFailed: true });
+                    return;
                 }
             }
 
