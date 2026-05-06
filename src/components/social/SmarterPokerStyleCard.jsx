@@ -196,15 +196,38 @@ export const FeedVideoPlayer = ({ src }) => {
         };
     }, []);
 
+    // FIRST-FRAME FALLBACK (2026-05-06 per Dan: "social-media displays black
+    // background with play button, not first frame or selected thumbnail").
+    // Posts that don't have thumbnail_url set yet (live-stream replays before
+    // transcode finishes, or videos still in the queue) used to render as a
+    // pure black <video preload="metadata"> element — the browser fetches
+    // metadata but doesn't decode any frame.
+    //
+    // Appending `#t=0.001` to the source URL is the standard cross-browser
+    // trick: the media engine seeks to 0.001s, decodes that frame, and
+    // renders it as the visible poster. Works on Chrome/Firefox/iOS Safari
+    // 17+. Negligible bandwidth cost (a few extra KB to fetch the first
+    // keyframe). When the IntersectionObserver later calls play(), the
+    // existing decoded frame transitions smoothly into playback.
+    //
+    // Skip the fragment if src already has one (defensive). Skip for blob:
+    // URLs (rare; staging tile uses different component anyway).
+    const playableSrc = (() => {
+        if (!src || typeof src !== 'string') return src;
+        if (src.startsWith('blob:')) return src;
+        if (src.includes('#t=')) return src; // already has a time fragment
+        return `${src}#t=0.001`;
+    })();
+
     return (
         <video
             ref={videoRef}
-            src={src}
+            src={playableSrc}
             preload="metadata"
             muted
             playsInline
             loop
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
             onError={(e) => {
                 // Replace broken video with gradient placeholder
                 const parent = e.target.parentElement;
