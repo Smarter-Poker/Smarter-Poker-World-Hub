@@ -95,6 +95,47 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         if (existingPhone) setPhoneDigits(existingPhone);
     }, [profile]);
 
+    // ── Username availability checker (used by the debounce effect AND by
+    //    the submit handler when the server reports username_taken/reserved
+    //    so the modal can show fresh suggestion chips immediately).
+    const runUsernameCheck = useCallback(async (rawValue) => {
+        const u = (rawValue || '').trim().toLowerCase();
+        if (!u || !USERNAME_RE.test(u)) {
+            setAvailability(u && u.length > 0 ? {
+                available: false,
+                message: 'Use 3–20 chars: letters, numbers, _ or .',
+                suggestions: [],
+            } : null);
+            setChecking(false);
+            return null;
+        }
+        const myId = ++fetchIdRef.current;
+        setChecking(true);
+        try {
+            const token = await getAccessToken();
+            const resp = await fetch('/api/profile/check-username', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ username: u }),
+            });
+            const data = await resp.json();
+            if (myId !== fetchIdRef.current) return null;
+            lastCheckedRef.current = u;
+            setAvailability(data);
+            return data;
+        } catch (_e) {
+            if (myId !== fetchIdRef.current) return null;
+            const fallback = { available: false, message: 'Could not verify — try again.', suggestions: [] };
+            setAvailability(fallback);
+            return fallback;
+        } finally {
+            if (myId === fetchIdRef.current) setChecking(false);
+        }
+    }, []);
+
     // ── Debounced username availability check ──
     useEffect(() => {
         if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
@@ -108,39 +149,21 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             setChecking(false);
             return;
         }
-        // Avoid duplicate work
+        // If the user typed back to the value we just verified, keep the
+        // existing availability state and skip the round-trip.
         if (u === lastCheckedRef.current) return;
 
+        // Clear stale availability so the helper text doesn't lie during the
+        // 350ms debounce window (e.g. showing "@bar is available" using the
+        // previous result for "foo").
+        setAvailability(null);
         setChecking(true);
-        checkTimerRef.current = setTimeout(async () => {
-            const myId = ++fetchIdRef.current;
-            try {
-                const token = await getAccessToken();
-                const resp = await fetch('/api/profile/check-username', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ username: u }),
-                });
-                const data = await resp.json();
-                // Drop result if a newer fetch has started or the input changed
-                if (myId !== fetchIdRef.current) return;
-                lastCheckedRef.current = u;
-                setAvailability(data);
-            } catch (_e) {
-                if (myId !== fetchIdRef.current) return;
-                setAvailability({ available: false, message: 'Could not verify — try again.', suggestions: [] });
-            } finally {
-                if (myId === fetchIdRef.current) setChecking(false);
-            }
-        }, 350);
+        checkTimerRef.current = setTimeout(() => { runUsernameCheck(u); }, 350);
 
         return () => {
             if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
         };
-    }, [username]);
+    }, [username, runUsernameCheck]);
 
     // ── Step validation ──
     const nameValid     = fullName.trim().length >= 2 && fullName.trim().length <= 80 && /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(fullName);
@@ -171,8 +194,9 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                 if (data?.error === 'username_taken' || data?.error === 'username_reserved' || data?.error === 'invalid_username') {
                     setSubmitError(data.message || 'Pick a different username.');
                     setStep(2);
-                    setAvailability({ available: false, suggestions: [] });
+                    // Force fresh availability check so suggestion chips appear
                     lastCheckedRef.current = '';
+                    runUsernameCheck(username);
                 } else if (data?.error === 'invalid_name') {
                     setSubmitError(data.message || 'Please enter a valid name.');
                     setStep(1);
@@ -192,7 +216,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         } finally {
             setSubmitting(false);
         }
-    }, [fullName, username, country, phoneDigits, nameValid, usernameValid, phoneValid, onComplete]);
+    }, [fullName, username, country, phoneDigits, nameValid, usernameValid, phoneValid, onComplete, runUsernameCheck]);
 
     return (
         <>

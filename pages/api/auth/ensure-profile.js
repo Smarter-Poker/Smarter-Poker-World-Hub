@@ -146,10 +146,14 @@ export default async function handler(req, res) {
               `Player${nextPlayerNumber}`;
 
           // ── SOCIAL PROFILE COMPLETION GATE ──
-          // New OAuth signups (no explicit poker_alias in metadata) need to
-          // confirm name, choose a unique alias, and add a phone before
-          // entering Social Media. Email signups via /auth/signup explicitly
-          // set metadata.poker_alias and a phone, so they're complete out of the gate.
+          // Mark profile complete only if the caller supplied BOTH an explicit
+          // alias (poker_alias / preferred_username in metadata) AND a phone.
+          // Currently the email signup form only passes poker_alias (no phone),
+          // and Google/Facebook OAuth pass neither, so all new signups will be
+          // gated when they enter Social Media — which matches the requirement
+          // of collecting phone numbers from every user. If the email signup
+          // form is updated to collect phone, those users will be marked
+          // complete out of the gate automatically.
           const hadExplicitAlias = !!(metadata?.poker_alias || metadata?.preferred_username);
           const hadPhone         = !!(metadata?.phone || metadata?.phone_number);
           const socialProfileCompleted = hadExplicitAlias && hadPhone;
