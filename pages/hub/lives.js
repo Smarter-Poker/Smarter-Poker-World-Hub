@@ -11,6 +11,13 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch, getAccessToken } from '../../src/lib/authUtils';
+// 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace emoji + HTML-entity icon sites
+import {
+    ArrowLeft as LucArrowLeft, Radio as LucRadio, Tv as LucTv,
+    Eye as LucEye, Play as LucPlay,
+    Heart as LucHeart, MessageCircle as LucMessage, Share2 as LucShare,
+    X as LucX,
+} from 'lucide-react';
 
 // Colors
 const C = {
@@ -436,7 +443,7 @@ export default function LivesPage() {
         <>
             <SEOHead
                 title="Live Streams — Watch Poker Live"
-                description="Watch Live Poker Streams And Events. Follow Your Favorite Players And Catch The Action In Real Time."
+                description="Watch live poker streams and events. Follow your favorite players and catch the action in real time."
                 canonical="/hub/lives"
             />
 
@@ -470,25 +477,27 @@ export default function LivesPage() {
                 }}>
                     <button
                         onClick={() => router.back()}
+                        aria-label="Back"
                         style={{
-                            width: 32,
-                            height: 32,
+                            width: 44,
+                            height: 44,
                             background: 'none',
                             border: 'none',
                             color: 'white',
-                            fontSize: 24,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            borderRadius: 8,
                         }}
                     >
-                        ←
+                        <LucArrowLeft size={22} aria-hidden />
                     </button>
-                    <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
-                        🔴 Lives
+                    <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <LucRadio size={18} aria-hidden style={{ color: '#FA383E' }} />
+                        Lives
                     </h1>
-                    <div style={{ width: 32 }} />
+                    <div style={{ width: 44 }} />
                 </div>
 
                 {/* Category Filter Bar */}
@@ -508,8 +517,9 @@ export default function LivesPage() {
                         <button
                             key={cat.value}
                             onClick={() => { setCategoryFilter(cat.value); setCurrentIndex(0); }}
+                            aria-pressed={categoryFilter === cat.value}
                             style={{
-                                padding: '6px 14px', borderRadius: 20, border: 'none',
+                                padding: '8px 14px', minHeight: 36, borderRadius: 20, border: 'none',
                                 background: categoryFilter === cat.value ? C.red : 'rgba(255,255,255,0.15)',
                                 color: 'white', fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', whiteSpace: 'nowrap',
@@ -584,7 +594,7 @@ export default function LivesPage() {
 
                 {/* Loading State — Shimmer Skeleton */}
                 {loading && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
+                    <div role="status" aria-live="polite" aria-busy="true" aria-label="Loading streams" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
                         <style>{`
                                 @keyframes lives-shimmer {
                                     0%   { background-position: -600px 0; }
@@ -618,8 +628,8 @@ export default function LivesPage() {
                         textAlign: 'center',
                         padding: 40,
                     }}>
-                        <div style={{ fontSize: 64, marginBottom: 20 }}>🔴</div>
-                        <h2 style={{ margin: '0 0 12px', fontSize: 24 }}>No Lives Yet</h2>
+                        <div aria-hidden="true" style={{ fontSize: 64, marginBottom: 20 }}>🔴</div>
+                        <h2 style={{ margin: '0 0 12px', fontSize: 24 }}>No lives yet</h2>
                         <p style={{ color: C.textSec, margin: '0 0 24px' }}>
                             Be the first to go live and share with the community!
                         </p>
@@ -718,16 +728,15 @@ export default function LivesPage() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 color: C.textSec,
-                                fontSize: 60,
                             }}>
-                                📺
+                                <LucTv size={60} aria-hidden />
                             </div>
                         )}
 
                         {/* Live Badge + Watch Button */}
                         {stream.isLive && (
                             <>
-                                <div style={{
+                                <div role="status" aria-label="Live now" style={{
                                     position: 'absolute',
                                     top: 70,
                                     left: 20,
@@ -744,13 +753,15 @@ export default function LivesPage() {
                                 }}>
                                     LIVE
                                     {(stream.viewer_count > 0) && (
-                                        <span style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                                        <span aria-live="polite" style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
                                             {stream.viewer_count} watching
                                         </span>
                                     )}
                                 </div>
                                 <button
                                     onClick={() => setWatchingStream(stream)}
+                                    aria-busy={watchingStream?.id === stream.id}
+                                    aria-label={watchingStream?.id === stream.id ? 'Connecting' : 'Watch live'}
                                     style={{
                                         position: 'absolute',
                                         top: '50%',
@@ -773,7 +784,7 @@ export default function LivesPage() {
                                         zIndex: 10,
                                     }}
                                 >
-                                    {watchingStream?.id === stream.id ? 'Connecting...' : 'Watch Live'}
+                                    {watchingStream?.id === stream.id ? 'Connecting…' : 'Watch live'}
                                 </button>
                                 </>
                             )}
@@ -818,9 +829,13 @@ export default function LivesPage() {
                     {/* Stats */}
                     <div style={{ color: C.textSec, fontSize: 13 }}>
                         {stream.isLive ? (
-                            <span>👁️ {stream.viewer_count || 0} watching</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <LucEye size={14} aria-hidden /> {stream.viewer_count || 0} watching
+                            </span>
                         ) : (
-                            <span>▶️ Replay • {new Date(stream.created_at).toLocaleDateString()}</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <LucPlay size={14} aria-hidden /> Replay • {new Date(stream.created_at).toLocaleDateString()}
+                            </span>
                         )}
                     </div>
                 </div>
@@ -836,50 +851,53 @@ export default function LivesPage() {
                     alignItems: 'center',
                 }}>
                     {/* Like Button */}
-                    <button onClick={handleLivelike} style={{
+                    <button onClick={handleLivelike} aria-pressed={!!likedStreams[stream.id]} aria-label={likedStreams[stream.id] ? 'Unlike' : 'Like'} style={{
                         background: 'none',
                         border: 'none',
                         color: 'white',
-                        fontSize: 28,
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: 4,
+                        minWidth: 44, minHeight: 44,
+                        padding: 4,
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill={likedStreams[stream.id] ? '#FA383E' : 'none'} stroke={likedStreams[stream.id] ? '#FA383E' : 'white'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                        <LucHeart size={28} aria-hidden fill={likedStreams[stream.id] ? '#FA383E' : 'none'} color={likedStreams[stream.id] ? '#FA383E' : 'white'} />
                         <span style={{ fontSize: 12 }}>{likedStreams[stream.id] ? 'Liked' : 'Like'}</span>
                     </button>
 
                     {/* Comment Button */}
-                    <button onClick={handleLiveChat} style={{
+                    <button onClick={handleLiveChat} aria-label="Open chat" aria-pressed={showChat} style={{
                         background: 'none',
                         border: 'none',
                         color: showChat ? C.blue : 'white',
-                        fontSize: 28,
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: 4,
+                        minWidth: 44, minHeight: 44,
+                        padding: 4,
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                        <LucMessage size={28} aria-hidden />
                         <span style={{ fontSize: 12 }}>Chat</span>
                     </button>
 
                     {/* Share Button */}
-                    <button onClick={handleLiveShare} style={{
+                    <button onClick={handleLiveShare} aria-label="Share stream" style={{
                         background: 'none',
                         border: 'none',
                         color: 'white',
-                        fontSize: 28,
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: 4,
+                        minWidth: 44, minHeight: 44,
+                        padding: 4,
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                        <LucShare size={28} aria-hidden />
                         <span style={{ fontSize: 12 }}>{shareMsg || 'Share'}</span>
                     </button>
                 </div>
@@ -899,18 +917,29 @@ export default function LivesPage() {
                     zIndex: 100,
                 }}>
                     {streams.slice(0, 10).map((_, idx) => (
-                        <div
+                        <button
                             key={idx}
+                            type="button"
                             onClick={() => setCurrentIndex(idx)}
+                            aria-label={`Stream ${idx + 1} of ${Math.min(streams.length, 10)}`}
+                            aria-current={idx === currentIndex ? 'true' : undefined}
                             style={{
+                                /* 44pt hit-ring around 6px visible dot */
+                                width: 28, height: 28,
+                                padding: 0, border: 'none', background: 'transparent',
+                                cursor: 'pointer',
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                        >
+                            <span aria-hidden style={{
+                                display: 'block',
                                 width: 6,
                                 height: idx === currentIndex ? 20 : 6,
                                 borderRadius: 3,
                                 background: idx === currentIndex ? 'white' : 'rgba(255,255,255,0.4)',
-                                cursor: 'pointer',
                                 transition: 'all 0.2s ease',
-                            }}
-                        />
+                            }} />
+                        </button>
                     ))}
                 </div>
             )}
@@ -926,10 +955,11 @@ export default function LivesPage() {
                         padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                     }}>
-                        <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Live Chat</span>
-                        <button onClick={() => setShowChat(false)} style={{
-                            background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
-                        }}>x</button>
+                        <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Live chat</span>
+                        <button onClick={() => setShowChat(false)} aria-label="Close chat" style={{
+                            background: 'none', border: 'none', color: 'white', cursor: 'pointer',
+                            minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8,
+                        }}><LucX size={20} aria-hidden /></button>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
                         {chatMessages.length === 0 && (
@@ -948,11 +978,13 @@ export default function LivesPage() {
                         padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)',
                         display: 'flex', gap: 8
                     }}>
+                        <label htmlFor="lives-chat-input" className="lives-sr-only">Chat message</label>
                         <input
+                            id="lives-chat-input"
                             value={chatText}
                             onChange={e => setChatText(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
-                            placeholder="Say Something..."
+                            placeholder="Say something…"
                             style={{
                                 flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
                                 border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
@@ -967,7 +999,7 @@ export default function LivesPage() {
                                 cursor: chatText.trim() ? 'pointer' : 'not-allowed',
                                 opacity: chatText.trim() ? 1 : 0.5
                             }}
-                        >{submittingChat ? '...' : 'Send'}</button>
+                        >{submittingChat ? '…' : 'Send'}</button>
                     </div>
                 </div>
             )}
@@ -987,11 +1019,23 @@ export default function LivesPage() {
             )}
         </div >
 
-            {/* Pulse animation */ }
+            {/* Pulse animation + a11y / motion guard */ }
             < style > {`
          @keyframes pulse {
            0%, 100% { opacity: 1; }
            50% { opacity: 0.7; }
+         }
+
+         /* ═══ A11y: visually-hidden labels for screen readers ═══ */
+         .lives-sr-only {
+           position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+           overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+         }
+
+         /* ═══ Motion guard (UI-UX-Pro-Max priority 7 — WCAG 2.3.3) ═══ */
+         @media (prefers-reduced-motion: reduce) {
+           [aria-label="Live now"] { animation: none !important; }
+           .lives-skel { animation-duration: 2s !important; }
          }
        `}</style >
 
@@ -1018,12 +1062,15 @@ export default function LivesPage() {
                 }}
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <h3 style={{ margin: 0, color: 'white', fontSize: 18, fontWeight: 700 }}>My Saved Streams</h3>
-                    <button onClick={() => setShowDrafts(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, cursor: 'pointer' }}>&#10005;</button>
+                    <h3 style={{ margin: 0, color: 'white', fontSize: 18, fontWeight: 700 }}>My saved streams</h3>
+                    <button onClick={() => setShowDrafts(false)} aria-label="Close drafts" style={{
+                        background: 'none', border: 'none', color: 'white', cursor: 'pointer',
+                        minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8,
+                    }}><LucX size={20} aria-hidden /></button>
                 </div>
                 {myDrafts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)' }}>
-                        No saved streams. After going live, choose &quot;Save To Lives&quot; to save here.
+                        No saved streams. After going live, choose &quot;Save to lives&quot; to save here.
                     </div>
                 ) : (
                     myDrafts.map(draft => (
@@ -1039,7 +1086,7 @@ export default function LivesPage() {
                                 {draft.thumbnail_url ? (
                                     <img src={draft.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                                 ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 24 }}>&#128250;</div>
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}><LucTv size={24} aria-hidden /></div>
                                 )}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1062,7 +1109,7 @@ export default function LivesPage() {
                                     whiteSpace: 'nowrap',
                                 }}
                             >
-                                {publishingDraft === draft.id ? 'Publishing...' : 'Publish'}
+                                {publishingDraft === draft.id ? 'Publishing…' : 'Publish'}
                             </button>
                             <button
                                 onClick={() => deleteDraft(draft)}
