@@ -95,6 +95,18 @@ const warn = (...args) => console.warn(`[yt-worker ${new Date().toISOString()}]`
 // Permanent-failure patterns — yt-dlp exits non-zero and prints one of these.
 // These videos will NEVER succeed regardless of retries. Promote reel to
 // media_status='ready' so it renders as iframe-forever and clears the M4 gate.
+//
+// 2026-05-07 incident: 187 jobs stacked in 'processing' state with 0
+// completing or failing in 10 min. Diagnosis: worker had been up 24h+
+// since the 2026-05-06 12:52 deploy and accumulated orphaned 'processing'
+// rows from prior restarts (each restart claimed MAX_CONCURRENT_YT=6
+// jobs, crashed before finishing them, jobs stayed in DB processing state).
+// resetStaleProcessing's 10-min threshold should have cleaned them up
+// but the poll loop itself was likely stuck on a hung subprocess.
+//
+// Fix: trigger a fresh deploy to force `systemctl restart sp-yt-transcode`,
+// which calls resetStaleProcessing('worker_startup') and clears the
+// stuck 'processing' rows back to 'queued' before resuming normal claims.
 // ════════════════════════════════════════════════════════════════════════════
 const PERMANENT_PATTERNS = [
   /Video unavailable/i,
