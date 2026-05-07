@@ -187,18 +187,12 @@ export default function MemoryGamesPage() {
 
     // Economy state - fetched from Supabase
     const [diamondBalance, setDiamondBalance] = useState(100);
-    const [isVIP, setIsVIP] = useState(() => {
-        // 2026-05-07 — seed from localStorage synchronously so VIP users never
-        // see GameCostPopup flash during the async DiamondEngine.isVIP() round trip.
-        // null = "status not yet known" — popup mount guard treats this as "don't show".
-        if (typeof window === 'undefined') return null;
-        try {
-            const cached = localStorage.getItem('sp-vip-status') ?? localStorage.getItem('vip_status');
-            if (cached === 'true') return true;
-            if (cached === 'false') return false;
-        } catch (e) { /* localStorage unavailable */ }
-        return null;
-    });
+    // 2026-05-07 — single-call dashboard payload from /api/memory/dashboard
+    // RPC: public.rpc_memory_dashboard(uuid). Renders grade chip + per-level
+    // mastery + daily-challenge state in one round-trip (replaces 5+ fetches).
+    const [memoryDashboard, setMemoryDashboard] = useState(null);
+    const [memoryDashboardLoading, setMemoryDashboardLoading] = useState(true);
+    const [isVIP, setIsVIP] = useState(false);
 
     // Initialize Supabase client
     const supabase = useRef(null);
@@ -1023,6 +1017,31 @@ export default function MemoryGamesPage() {
         }
     }, [userId, mode]);
 
+    // Load aggregated dashboard payload (real grade, per-level mastery, daily-challenge state)
+    useEffect(() => {
+        if (!userId) {
+            setMemoryDashboardLoading(false);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+                const r = await fetch('/api/memory/dashboard', {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                if (!r.ok) throw new Error(`memory/dashboard ${r.status}`);
+                const json = await r.json();
+                if (!cancelled && json?.success) setMemoryDashboard(json.stats);
+            } catch (e) {
+                if (!cancelled) console.warn('[MemoryGames] dashboard fetch failed:', e?.message || e);
+            } finally {
+                if (!cancelled) setMemoryDashboardLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [userId]);
+
     // Load leaderboard data
 
     const loadLeaderboard = useCallback(async () => {
@@ -1278,7 +1297,7 @@ export default function MemoryGamesPage() {
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
                 {/* Per-game cost popup (one-time) */}
-                {userId && isVIP === false && (
+                {userId && !isVIP && (
                     <GameCostPopup userId={userId} featureKey="memory_games" isVip={isVIP} cost={10} />
                 )}
 
@@ -1309,10 +1328,30 @@ export default function MemoryGamesPage() {
                             {/* Title */}
                             <div style={styles.titleSection}>
                                 <div style={styles.orbIcon}></div>
-                                <h1 style={styles.title}>PREFLOP CHARTS</h1>
+                                <h1 style={{...styles.title, textTransform: 'none', letterSpacing: '-0.5px'}}>Preflop charts</h1>
                                 <p style={styles.subtitle}>
-                                    Master GTO ranges through high-pressure video game training
+                                    Master GTO ranges through high-pressure training.
                                 </p>
+                                {memoryDashboard?.current_grade && memoryDashboard?.rolling_30d_sessions > 0 && (
+                                    <div style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                        padding: '6px 14px', borderRadius: 999,
+                                        background: 'rgba(0, 212, 255, 0.10)',
+                                        border: '1px solid rgba(0, 212, 255, 0.30)',
+                                        marginTop: 10,
+                                        fontSize: 13, color: '#cbd5e1',
+                                    }} aria-label={`Current GTO grade ${memoryDashboard.current_grade}`}>
+                                        <span style={{ fontFamily: 'Orbitron, monospace', fontWeight: 800, color: '#00D4FF' }}>
+                                            {memoryDashboard.current_grade}
+                                        </span>
+                                        <span>{memoryDashboard.rolling_accuracy_pct}% across last 30 days</span>
+                                        {memoryDashboard.mastered_levels_count > 0 && (
+                                            <span style={{ color: '#94a3b8', marginLeft: 4 }}>
+                                                · {memoryDashboard.mastered_levels_count}/10 mastered
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                                 <div style={styles.costInfo}>
                                     {isVIP ? 'VIP: Unlimited Access' : `💎 ${GAME_COST} Diamonds per game`}
                                 </div>
