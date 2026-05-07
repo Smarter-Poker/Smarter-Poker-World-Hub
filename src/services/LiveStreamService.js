@@ -91,9 +91,10 @@ class LiveStreamService {
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             credentials: 'same-origin',
+            // BUG-FIX-LIVE-API-AUDIT (C1): identity is now server-derived from
+            // the auth.uid() of the bearer token. Don't send it from the client.
             body: JSON.stringify({
                 room: streamId,
-                identity: this.currentUserId,
                 broadcaster,
                 guestInviteCode,
             }),

@@ -113,6 +113,52 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Cannot gift yourself' });
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // BUG-FIX-LIVE-API-AUDIT — three integrity checks before any DB mutation
+    //
+    // (D1) IDOR: receiver_id was previously trusted from the client. A user
+    //      could send a gift to ANY user_id while attributing it to a
+    //      specific stream_id. Verify receiver_id matches the actual
+    //      broadcaster of the stream.
+    //
+    // (D3) Status: gift would otherwise be accepted for ended streams (race
+    //      window between status flip and the broadcaster's "End Stream"
+    //      action propagating to viewers). Reject anything not 'live'.
+    //
+    // (D2) Ban: banned users could still gift the broadcaster who banned
+    //      them. RLS already blocks comments and reactions for banned
+    //      users (PR #245). This closes the gift path.
+    // ═══════════════════════════════════════════════════════════════════════
+    {
+        const { data: streamRow, error: streamErr } = await supabase
+            .from('live_streams')
+            .select('id, broadcaster_id, status')
+            .eq('id', stream_id)
+            .maybeSingle();
+
+        if (streamErr || !streamRow) {
+            return res.status(404).json({ error: 'Stream not found' });
+        }
+        // (D1) — must match the canonical broadcaster_id, not a client value
+        if (streamRow.broadcaster_id !== receiver_id) {
+            return res.status(400).json({ error: 'receiver_id does not match the broadcaster of this stream' });
+        }
+        // (D3) — only live streams accept gifts
+        if (streamRow.status !== 'live') {
+            return res.status(400).json({ error: 'Stream is not live' });
+        }
+        // (D2) — banned users cannot gift
+        const { data: ban } = await supabase
+            .from('live_bans')
+            .select('id')
+            .eq('stream_id', stream_id)
+            .eq('banned_user_id', user.id)
+            .maybeSingle();
+        if (ban) {
+            return res.status(403).json({ error: 'You are banned from this stream' });
+        }
+    }
+
     // ── GUARD: Fetch sender profile for age gate ──
     const { data: senderProfile } = await supabase
         .from('profiles')
