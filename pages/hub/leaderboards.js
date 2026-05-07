@@ -18,6 +18,8 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { supabase } from '../../src/lib/supabase';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+// 2026-05-07 — UI-UX-Pro-Max icons (Lucide for tab icons + states)
+import { Trophy, MapPin, Star, Activity, AlertTriangle } from 'lucide-react';
 
 const C = {
     bg: '#0a0a0a',
@@ -38,10 +40,10 @@ const C = {
 };
 
 const TABS = [
-    { key: 'overall', label: 'Overall', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z' },
-    { key: 'checkins', label: 'Check-ins', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
-    { key: 'reviews', label: 'Reviews', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z' },
-    { key: 'activity', label: 'Activity', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
+    { key: 'overall',  label: 'Overall',   Icon: Trophy   },
+    { key: 'checkins', label: 'Check-ins', Icon: MapPin   },
+    { key: 'reviews',  label: 'Reviews',   Icon: Star     },
+    { key: 'activity', label: 'Activity',  Icon: Activity },
 ];
 
 const PERIODS = [
@@ -431,9 +433,7 @@ export default function LeaderboardsPage() {
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                                     }}
                                 >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d={tab.icon} />
-                                    </svg>
+                                    <tab.Icon size={16} aria-hidden />
                                     <span className="tab-label">{tab.label}</span>
                                 </button>
                             ))}
@@ -534,9 +534,7 @@ export default function LeaderboardsPage() {
                                         border: `1px solid ${C.border}`
                                     }}
                                 >
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="1.5" style={{ marginBottom: 12 }}>
-                                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
+                                    <AlertTriangle size={48} aria-hidden style={{ color: C.red, marginBottom: 12 }} strokeWidth={1.5} />
                                     <p style={{ color: C.text, fontSize: 16, fontWeight: 600, margin: '0 0 8px' }}>
                                         Failed to load leaderboards
                                     </p>
@@ -564,9 +562,7 @@ export default function LeaderboardsPage() {
                                         border: `1px solid ${C.border}`
                                     }}
                                 >
-                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="1" style={{ marginBottom: 16, opacity: 0.5 }}>
-                                        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
+                                    <Trophy size={64} aria-hidden style={{ color: C.textSec, marginBottom: 16, opacity: 0.5 }} strokeWidth={1} />
                                     <p style={{ color: C.text, fontSize: 18, fontWeight: 600, margin: '0 0 8px' }}>
                                         No rankings yet
                                     </p>
