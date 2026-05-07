@@ -76,7 +76,7 @@ export default function PromotionsPage() {
     useEffect(() => {
         // Subscribe to promotions table changes
         const promotionsChannel = supabase
-            .channel('promotions-live')
+            .channel(`promotions-live-${Date.now()}`)
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',

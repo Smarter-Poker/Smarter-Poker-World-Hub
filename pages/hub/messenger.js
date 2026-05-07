@@ -2859,7 +2859,9 @@ function MessengerPage() {
     useEffect(() => {
         if (!user?.id) return;
         
-        const channel = supabase.channel('global_messenger_changes')
+        // BUG FIX (Bug #13): static 'global_messenger_changes' name caused a zombie
+        // subscription on React StrictMode double-invoke. Fixed with unique per-mount name.
+        const channel = supabase.channel(`global-messenger-${user.id}-${Date.now()}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',

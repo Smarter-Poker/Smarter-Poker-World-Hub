@@ -30,7 +30,7 @@ export default function DiamondArenaLeaderboard() {
     // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
         const leaderboardChannel = supabase
-            .channel('diamond-arena-leaderboard')
+            .channel(`diamond-arena-leaderboard-${Date.now()}`)
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',

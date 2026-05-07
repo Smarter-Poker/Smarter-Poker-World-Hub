@@ -1329,7 +1329,7 @@ export default function UserProfilePage() {
     useEffect(() => {
         // Channel matching the backend 'social-feed' for broadcast typing events
         const typingChannel = supabase
-            .channel('social-feed')
+            .channel(`social-feed-${Date.now()}`)
             .on('broadcast', { event: 'typing' }, (payload) => {
                 const p = payload?.payload;
                 if (p) {

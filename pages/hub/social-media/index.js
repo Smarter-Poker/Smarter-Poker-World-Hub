@@ -3875,7 +3875,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {isStaff && (
-                            <button onClick={() => window.location.href = '/commander/dashboard'} style={{
+                            <button onClick={() => window.top.location.href = '/commander/dashboard'} style={{
                                 background: 'linear-gradient(135deg, #1a1a2e, #0f0f0f)', border: '1px solid #22D3EE', borderRadius: 20, padding: '8px 14px',
                                 fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "'Orbitron', sans-serif",
                                 letterSpacing: 1, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6,
@@ -4311,9 +4311,11 @@ function SocialMediaPage() {
     }, []);
 
     // Realtime: auto-refresh Live Now section when any stream goes live or ends
+    // BUG FIX (Bug #12): static 'social-live-monitor' name caused a zombie subscription on
+    // React StrictMode double-invoke. Fixed with a unique per-mount name.
     useEffect(() => {
         const ch = supabase
-            .channel('social-live-monitor')
+            .channel(`social-live-monitor-${Date.now()}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
                 LiveStreamService.getLiveStreams()
                     .then(streams => setLiveStreams(streams || []))
@@ -6333,7 +6335,7 @@ function SocialMediaPage() {
                             try { localStorage.removeItem('sp-cached-header-user'); } catch (_) {}
                             try { localStorage.removeItem('sp-cached-settings-profile'); } catch (_) {}
                             try { localStorage.removeItem('sp-notif-count'); } catch (_) {}
-                            window.location.href = '/';
+                            window.top.location.href = '/';
                         });
                     }} style={{
                         padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
