@@ -5,6 +5,19 @@
  *
  * Uses a pre-rendered metal card PNG (/images/diamond-cost-popup.png)
  * with invisible hit-target overlays on the "Got It!" and "Upgrade To VIP" buttons.
+ *
+ * 2026-05-07 — VIP-status race fix:
+ *   Treat `isVip == null/undefined` as "not yet known, never show".
+ *   Previously, callers that initialised VIP state to `false` while an
+ *   async DiamondEngine.isVIP() call was in-flight would mount this
+ *   popup with `isVip={false}`. The 2500ms internal delay was meant to
+ *   absorb the async window, but if the network/RLS check exceeded that
+ *   delay the popup briefly flashed for VIP users before the parent
+ *   re-render unmounted it.
+ *   Callers can now pass `isVip={null}` (or omit) until VIP status has
+ *   actually resolved. The component does an explicit `=== false` check
+ *   to decide visibility and to gate the dismissal effect, so no popup
+ *   work happens before the answer is in.
  */
 
 import { useState, useEffect } from 'react';
@@ -14,7 +27,7 @@ import { checkPopupDismissed, dismissPopup, GAME_COST } from '../../lib/gates/pe
  * @param {Object} props
  * @param {string} props.userId - User UUID
  * @param {string} props.pageKey - Unique page identifier (e.g., 'training', 'trivia_cash')
- * @param {boolean} props.isVip - Whether user is VIP (if true, popup never shows)
+ * @param {boolean|null|undefined} props.isVip - VIP flag. true → never show. false → show after dismissal check + delay. null/undefined → status not yet known, never show.
  * @param {number} [props.cost] - Override default GAME_COST
  * @param {Function} [props.onDismiss] - Callback when popup is dismissed
  */
@@ -24,8 +37,11 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     const [dismissed, setDismissed] = useState(true);
 
     useEffect(() => {
-        // Guard: never show for VIP users, and wait for userId to resolve
-        if (isVip || !userId) return;
+        // Guard: never show for VIP users, when status is still unknown, or when userId hasn't resolved.
+        // 2026-05-07 — explicit `isVip !== false` fixes the race where callers
+        // initialise VIP state to `false` while DiamondEngine.isVIP() is still
+        // running. We ONLY proceed when isVip is the literal boolean `false`.
+        if (isVip !== false || !userId) return;
         // Phase 72: cancellation guard prevents setShow / setDismissed from
         // firing on an unmounted component when the user navigates away
         // during the async checkPopupDismissed or the 2500ms delay.
@@ -36,8 +52,8 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
             if (cancelled) return;
             if (!isDismissed) {
                 setDismissed(false);
-                // Delay 2500ms to ensure DiamondEngine.isVIP() has time to resolve
-                // (avoids race condition where popup flashes before VIP status loads)
+                // Delay 2500ms so any in-flight VIP check has a chance to flip
+                // the parent state and unmount us before we show.
                 showTimer = setTimeout(() => {
                     if (!cancelled) setShow(true);
                 }, 2500);
@@ -64,7 +80,9 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
         window.top.location.href = '/hub/diamond-store#vip';
     };
 
-    if (isVip || dismissed || !show) return null;
+    // Final visibility gate. `isVip !== false` covers both `true` (real VIP)
+    // and `null/undefined` (status not yet known). Both must keep popup hidden.
+    if (isVip !== false || dismissed || !show) return null;
 
     return (
         <div style={s.overlay} onClick={handleDismiss}>
