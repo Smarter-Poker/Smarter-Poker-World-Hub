@@ -65,11 +65,23 @@ export default function UniversalHeader({
     const _cachedHeader = (() => {
         if (typeof window === 'undefined') return null;
         try {
+            // Get current user ID to prevent cross-session cache bleed
+            let currentUserId = null;
+            const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+            currentUserId = authData?.user?.id;
+            if (!currentUserId) {
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (sbKeys.length > 0) currentUserId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id;
+            }
+
             const raw = localStorage.getItem('sp-cached-header-user');
             if (!raw) return null;
             const data = JSON.parse(raw);
-            // TTL check: discard cache older than 24 hours
+            
+            // TTL check: discard cache older than 24 hours, OR if it belongs to a different user
             if (data?._ts && (Date.now() - data._ts > 24 * 60 * 60 * 1000)) return null;
+            if (data?.userId && data.userId !== currentUserId) return null;
+            
             return data;
         } catch (_) { return null; }
     })();
@@ -101,16 +113,25 @@ export default function UniversalHeader({
     const [profileHref, setProfileHref] = useState(() => {
         if (typeof window === 'undefined') return '/hub/profile';
         try {
+            // Get current user ID to prevent cross-session cache bleed
+            let currentUserId = null;
+            const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+            currentUserId = authData?.user?.id;
+            if (!currentUserId) {
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (sbKeys.length > 0) currentUserId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id;
+            }
+
             const nameCache = localStorage.getItem('sp-profile-username');
             if (nameCache) {
-                const { username } = JSON.parse(nameCache);
-                if (username) return `/hub/user/${username}`;
+                const { userId, username } = JSON.parse(nameCache);
+                if (username && (!userId || userId === currentUserId)) return `/hub/user/${username}`;
             }
             // Fallback: extract username from header user cache
             const headerCache = localStorage.getItem('sp-cached-header-user');
             if (headerCache) {
-                const { username } = JSON.parse(headerCache);
-                if (username) return `/hub/user/${username}`;
+                const { userId, username } = JSON.parse(headerCache);
+                if (username && (!userId || userId === currentUserId)) return `/hub/user/${username}`;
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return '/hub/profile';
@@ -319,6 +340,7 @@ export default function UniversalHeader({
                                 // 🛡️ INSTANT UI: Cache user data for next page load (with TTL timestamp)
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                                        userId: authUser.id,
                                         avatar: avatar_url,
                                         name: username || full_name,
                                         username: username || null,
@@ -390,6 +412,7 @@ export default function UniversalHeader({
                                 // Cache the REST fallback data too
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                                        userId: authUser.id,
                                         avatar: profile.avatar_url,
                                         name: profile.username || profile.full_name,
                                         username: profile.username || null,
@@ -558,6 +581,7 @@ export default function UniversalHeader({
                     // Update localStorage cache with fresh profile data
                     try {
                         localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                            userId: user.id,
                             avatar: result.profile.avatar_url,
                             name: result.profile.username || result.profile.full_name,
                             username: result.profile.username || null,

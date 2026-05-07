@@ -1,0 +1,205 @@
+# ═══════════════════════════════════════════════════════════════════
+# cancel-orphan-vercel-deployments.yml
+#
+# ROOT-CAUSE FIX: When a feature branch (fix/*, feat/*, chore/*) is
+# pushed to GitHub, Vercel queues a Preview deployment. If the branch
+# is later deleted (merged or abandoned), Vercel's queued deployment
+# stays stuck FOREVER — it can never build because the source branch
+# is gone.
+#
+# This workflow fires on branch deletion and immediately cancels any
+# QUEUED or BUILDING Vercel deployments for that branch.
+#
+# Also fires on push to main to cancel outdated queued previews that
+# are wasting the single Vercel Pro concurrency slot.
+# ═══════════════════════════════════════════════════════════════════
+
+name: Cancel Orphan Vercel Deployments
+
+on:
+  # Fires when a branch is deleted
+  delete:
+    branches:
+      - '**'
+
+  # Also fires on push to main — cancels queued previews blocking main
+  push:
+    branches:
+      - main
+
+  # Allow manual trigger for emergency cleanup
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Branch name to cancel deployments for (leave empty to cancel ALL queued)'
+        required: false
+        default: ''
+
+concurrency:
+  group: cancel-orphan-vercel-deployments
+  cancel-in-progress: false  # Never cancel this workflow itself
+
+jobs:
+  cancel-orphans:
+    name: Cancel Orphaned Vercel Queued Deployments
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Determine target branch
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "delete" ]; then
+            echo "branch=${{ github.event.ref }}" >> $GITHUB_OUTPUT
+            echo "mode=single" >> $GITHUB_OUTPUT
+            echo "🗑️  Branch deleted: ${{ github.event.ref }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "branch=" >> $GITHUB_OUTPUT
+            echo "mode=all_queued" >> $GITHUB_OUTPUT
+            echo "📦 Push to main — scanning all queued preview deployments"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "branch=${{ github.event.inputs.branch_name }}" >> $GITHUB_OUTPUT
+            if [ -z "${{ github.event.inputs.branch_name }}" ]; then
+              echo "mode=all_queued" >> $GITHUB_OUTPUT
+            else
+              echo "mode=single" >> $GITHUB_OUTPUT
+            fi
+            echo "🔧 Manual trigger"
+          fi
+
+      - name: Cancel queued deployments for deleted branch
+        if: steps.target.outputs.mode == 'single'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: team_SVD8r7AOPH065G3usBxVvrBc
+          VERCEL_PROJECT_ID: prj_op66GkZyZcygXQKm76iyycfVFAQx
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+        run: |
+          echo "🔍 Looking for QUEUED/BUILDING deployments for branch: $TARGET_BRANCH"
+
+          # Fetch all queued deployments for this project
+          RESPONSE=$(curl -sf \
+            "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=50" \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" || echo '{"deployments":[]}')
+
+          # Filter to QUEUED/BUILDING for this branch and cancel them
+          echo "$RESPONSE" | python3 - <<'EOF'
+          import json, sys, os, urllib.request, urllib.error
+
+          data = json.loads(sys.stdin.read())
+          token = os.environ['VERCEL_TOKEN']
+          team_id = os.environ['VERCEL_TEAM_ID']
+          target_branch = os.environ['TARGET_BRANCH']
+
+          cancelled = 0
+          for d in data.get('deployments', []):
+              state = d.get('state', '')
+              branch = d.get('meta', {}).get('githubCommitRef', '')
+              uid = d.get('uid', '')
+
+              if branch == target_branch and state in ('QUEUED', 'BUILDING'):
+                  print(f"  ❌ Cancelling {uid} [{state}] on {branch}")
+                  try:
+                      req = urllib.request.Request(
+                          f"https://api.vercel.com/v12/deployments/{uid}/cancel?teamId={team_id}",
+                          method='PATCH',
+                          headers={
+                              'Authorization': f'Bearer {token}',
+                              'Content-Type': 'application/json',
+                          },
+                          data=b'{}'
+                      )
+                      with urllib.request.urlopen(req) as resp:
+                          result = json.loads(resp.read())
+                          print(f"     → Status: {result.get('status', 'unknown')}")
+                          cancelled += 1
+                  except urllib.error.HTTPError as e:
+                      body = e.read().decode()
+                      print(f"     ⚠️  HTTP {e.code}: {body[:200]}")
+
+          if cancelled == 0:
+              print(f"  ✅ No QUEUED/BUILDING deployments found for '{target_branch}'")
+          else:
+              print(f"  ✅ Cancelled {cancelled} deployment(s)")
+          EOF
+
+      - name: Cancel ALL queued preview deployments (push to main / manual)
+        if: steps.target.outputs.mode == 'all_queued'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: team_SVD8r7AOPH065G3usBxVvrBc
+          VERCEL_PROJECT_ID: prj_op66GkZyZcygXQKm76iyycfVFAQx
+        run: |
+          echo "🔍 Scanning all QUEUED preview deployments to cancel orphans..."
+
+          # Fetch recent deployments
+          RESPONSE=$(curl -sf \
+            "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=50" \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" || echo '{"deployments":[]}')
+
+          # Get all current remote branches from GitHub API for cross-reference
+          BRANCHES_RESPONSE=$(curl -sf \
+            "https://api.github.com/repos/${{ github.repository }}/branches?per_page=100" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" || echo '[]')
+
+          echo "$RESPONSE $BRANCHES_RESPONSE" | python3 - <<'EOF'
+          import json, sys, os, urllib.request, urllib.error
+
+          # Read stdin is split — use env var trick instead
+          import subprocess, shlex
+
+          token = os.environ['VERCEL_TOKEN']
+          team_id = os.environ['VERCEL_TEAM_ID']
+
+          # Re-fetch inline (stdin trick won't work for two concatenated JSONs)
+          def fetch(url, headers):
+              req = urllib.request.Request(url, headers=headers)
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return json.loads(r.read())
+              except:
+                  return {}
+
+          deployments = fetch(
+              f"https://api.vercel.com/v6/deployments?projectId={os.environ['VERCEL_PROJECT_ID']}&teamId={team_id}&limit=50",
+              {"Authorization": f"Bearer {token}"}
+          ).get('deployments', [])
+
+          gh_token = os.environ.get('GITHUB_TOKEN', '')
+          branches_raw = fetch(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/branches?per_page=100",
+              {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json"}
+          )
+          live_branches = {b['name'] for b in (branches_raw if isinstance(branches_raw, list) else [])}
+
+          cancelled = 0
+          skipped = 0
+          for d in deployments:
+              state = d.get('state', '')
+              branch = d.get('meta', {}).get('githubCommitRef', '')
+              uid = d.get('uid', '')
+              target = d.get('target', '')  # 'production' or None (preview)
+
+              # Only cancel QUEUED/BUILDING preview (non-production) deployments
+              # whose branch no longer exists on GitHub
+              if state in ('QUEUED',) and target != 'production' and branch and branch not in live_branches:
+                  print(f"  ❌ Cancelling {uid} [{state}] — branch '{branch}' is gone")
+                  try:
+                      req = urllib.request.Request(
+                          f"https://api.vercel.com/v12/deployments/{uid}/cancel?teamId={team_id}",
+                          method='PATCH',
+                          headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                          data=b'{}'
+                      )
+                      with urllib.request.urlopen(req) as resp:
+                          result = json.loads(resp.read())
+                          print(f"     → Status: {result.get('status', 'unknown')}")
+                          cancelled += 1
+                  except urllib.error.HTTPError as e:
+                      print(f"     ⚠️  HTTP {e.code}: {e.read().decode()[:200]}")
+              else:
+                  skipped += 1
+
+          print(f"\n  ✅ Cancelled {cancelled} orphan deployment(s). Skipped {skipped} (live or production).")
+          EOF

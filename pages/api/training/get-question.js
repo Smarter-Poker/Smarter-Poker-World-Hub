@@ -548,7 +548,9 @@ function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
     // q.explanation — those are the canonical truth from the cached row,
     // and clobbering them produces a visible "you hold QJs" prose vs
     // "scenario.heroHand=As Ks" mismatch in the rendered UI.
-    console.warn('[GetQuestion] Hero/board card collision — regenerating heroCards from non-board suits.');
+    console.warn(
+      '[GetQuestion] Hero/board card collision — regenerating heroCards from non-board suits.'
+    );
     const seed = hashSeed((q.id || q.questionId || 'collision') + ':retry');
     q.heroCards = _getDeterministicCards(seed, 2, q.boardCards || []);
     // scenario.heroHand and explanation intentionally preserved.

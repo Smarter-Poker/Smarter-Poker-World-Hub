@@ -223,6 +223,10 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             // shell, etc.) refreshes its cached profile data immediately.
             onComplete?.(data.profile);
             try { busEmit.dataMutated('profile'); } catch (_e) { /* bus is best-effort */ }
+            // ── ANTIGRAVITY FIX: Fire window event so UniversalHeader cache updates ──
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('profile-updated'));
+            }
         } catch (err) {
             console.warn('[social-gate] submit error:', err);
             setSubmitError('Network error — please try again.');
