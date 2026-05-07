@@ -99,14 +99,17 @@ export default async function handler(req, res) {
         const qd = cached.question_data;
         const scenario = qd.scenario || {};
 
-        // Extract hero hand in specific card format (e.g. "AhKs")
+        // Phase 93: Prefer scenario.heroHand (canonical, matches explanation prose)
+        // over qd.heroCards. Some cache rows have stale heroCards from before
+        // Phase 77/78/79/80 swap migrations, which would surface as a visible
+        // mismatch (hero_hand="Ts2h" but explanation says "you hold AA").
         let heroHand = '';
-        if (qd.heroCards && Array.isArray(qd.heroCards) && qd.heroCards.length >= 2) {
-          heroHand = qd.heroCards.join('');
-        } else if (scenario.heroHand) {
+        if (scenario.heroHand) {
           heroHand = scenario.heroHand;
         } else if (qd.heroHand) {
           heroHand = qd.heroHand;
+        } else if (qd.heroCards && Array.isArray(qd.heroCards) && qd.heroCards.length >= 2) {
+          heroHand = qd.heroCards.join('');
         }
 
         // Extract board cards
