@@ -45,7 +45,7 @@ import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LI
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { useTrainingStore } from '../../src/stores/trainingStore';
-import { getAuthUser } from '../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import DiamondEngine from '../../src/services/DiamondEngine';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
@@ -103,9 +103,11 @@ export default function TrainingPage() {
     if (user?.id) DiamondEngine.getBalance(user.id).then(setDiamondBalance).catch(() => {});
   }, []);
 
-  const jarvisPick   = useMemo(() => pickRecommended(TRAINING_LIBRARY, progress), [progress]);
-  const biggestLeak  = useMemo(() => leakAnalyzer.getBiggest?.(authUser?.id) ?? null, [authUser]);
-  const weeklyStats  = useMemo(() => buildWeeklyStats(progress), [progress]);
+  // Real data from RPC + Jarvis API — no hardcoded fallbacks
+  const { stats, statsLoading, recommendation, recommendationLoading } = useTrainingDashboard(authUser);
+  const biggestLeak = useMemo(() => leakAnalyzer.getBiggest?.(authUser?.id) ?? null, [authUser]);
+  // Use the real recommendation when available; null otherwise (UI handles empty state)
+  const jarvisPick = recommendation;
 
   const filtered = useMemo(() => {
     const ql = debouncedQuery.trim().toLowerCase();
@@ -155,20 +157,32 @@ export default function TrainingPage() {
 
             <section aria-labelledby="hero-h" className="sp-hero">
               <div>
-                <p className="sp-hero-eyebrow"><span className="sp-dot" aria-hidden /> Today · 12 min plan</p>
+                <p className="sp-hero-eyebrow">
+                  <span className="sp-dot" aria-hidden />
+                  {jarvisPick?.estMinutes ? `Today · ${jarvisPick.estMinutes} min plan` : 'Today'}
+                </p>
                 <h1 id="hero-h" className="sp-hero-title">
-                  Welcome back{authUser?.name ? `, ${authUser.name}` : ''}.
-                  {' '}<em>{jarvisPick?.deltaToNextGrade || '2 correct hands'}</em> away from a {jarvisPick?.nextGrade || 'B+'}.
+                  {renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading })}
                 </h1>
                 <p className="sp-hero-sub">
-                  Jarvis picked one drill that closes your biggest leak this week
-                  {jarvisPick ? ` — ${jarvisPick.title}.` : '.'}
+                  {recommendationLoading
+                    ? 'Loading your daily plan…'
+                    : jarvisPick
+                      ? (jarvisPick.reason
+                          ? `Jarvis: ${jarvisPick.reason}`
+                          : `Jarvis picked one drill for you — ${jarvisPick.name}.`)
+                      : 'Browse the library below to start your first drill.'}
                 </p>
 
-                <DrillCard game={jarvisPick} />
+                {jarvisPick && <DrillCard game={jarvisPick} />}
 
                 <div className="sp-cta-row">
-                  <button className="sp-cta sp-cta-primary" onClick={() => startDrill(jarvisPick)}>
+                  <button
+                    className="sp-cta sp-cta-primary"
+                    onClick={() => jarvisPick && startDrill(jarvisPick)}
+                    disabled={!jarvisPick}
+                    aria-disabled={!jarvisPick}
+                  >
                     <Play size={18} aria-hidden /> Start today's drill
                   </button>
                   <button className="sp-cta sp-cta-secondary" onClick={() => setActiveCat('ALL')}>
@@ -177,7 +191,7 @@ export default function TrainingPage() {
                 </div>
               </div>
 
-              <GradeCard grade={jarvisPick?.currentGrade ?? 'B'} accuracy={jarvisPick?.accuracy ?? 86} hands={jarvisPick?.totalHands ?? 1247} />
+              <GradeCard stats={stats} loading={statsLoading} />
             </section>
 
             {biggestLeak && (
@@ -209,10 +223,41 @@ export default function TrainingPage() {
                 <a className="sp-section-link" href="/hub/session-history">See history <ArrowRight size={14} aria-hidden /></a>
               </div>
               <div className="sp-stats">
-                <Stat icon={Layers}     label="Hands"    value={weeklyStats.hands} trend={weeklyStats.handsTrend} />
-                <Stat icon={Target}     label="Accuracy" value={weeklyStats.accuracy} unit="%" trend={weeklyStats.accuracyTrend} />
-                <Stat icon={TrendingUp} label="EV saved" value={`+${weeklyStats.evSaved}`} unit="bb" trend={weeklyStats.evTrend} />
-                <Stat icon={Flame}      label="Streak"   value={weeklyStats.streak} unit="days" sub={`Personal best: ${weeklyStats.personalBest}`} />
+                <Stat
+                  icon={Layers}
+                  label="Hands"
+                  loading={statsLoading}
+                  value={stats?.hands_this_week ?? 0}
+                  trend={fmtTrend(stats?.hands_this_week, stats?.hands_last_week)}
+                />
+                <Stat
+                  icon={Target}
+                  label="Accuracy"
+                  loading={statsLoading}
+                  value={stats?.accuracy_this_week_pct ?? 0}
+                  unit="%"
+                  trend={fmtTrend(stats?.accuracy_this_week_pct, stats?.accuracy_last_week_pct, ' pts')}
+                />
+                <Stat
+                  icon={TrendingUp}
+                  label="EV saved"
+                  loading={statsLoading}
+                  value={(stats?.ev_saved_this_week_bb ?? 0) >= 0
+                    ? `+${stats?.ev_saved_this_week_bb ?? 0}`
+                    : (stats?.ev_saved_this_week_bb ?? 0)}
+                  unit="bb"
+                  trend={fmtTrend(stats?.ev_saved_this_week_bb, stats?.ev_saved_last_week_bb, ' bb')}
+                />
+                <Stat
+                  icon={Flame}
+                  label="Streak"
+                  loading={statsLoading}
+                  value={stats?.current_streak_days ?? 0}
+                  unit="days"
+                  sub={stats?.personal_best_streak_days
+                    ? `Personal best: ${stats.personal_best_streak_days}`
+                    : null}
+                />
               </div>
             </section>
 
@@ -281,6 +326,8 @@ export default function TrainingPage() {
 function DrillCard({ game }) {
   if (!game) return null;
   const imageUrl = getGameImage(game.id);
+  // Render tags only for fields the recommendation/library actually provides.
+  const formatTag = [game.format, game.stack].filter(Boolean).join(' · ');
   return (
     <div className="sp-drill-card" role="group" aria-label="Today's recommended drill">
       <div className="sp-drill-cover" aria-hidden>
@@ -295,36 +342,83 @@ function DrillCard({ game }) {
         <Target size={22} className="sp-drill-cover-icon" />
       </div>
       <div className="sp-drill-meta">
-        <h2 className="sp-drill-title">{game.title || game.name}</h2>
+        <h2 className="sp-drill-title">{game.name}</h2>
         <div className="sp-drill-tags">
-          <span className="sp-tag"><Layers size={12} aria-hidden /> {game.format || 'MTT'} · {game.stack || '100bb'}</span>
-          <span className="sp-tag"><Clock  size={12} aria-hidden /> ~{game.estMinutes || 12} min</span>
-          <span className="sp-tag"><Zap    size={12} aria-hidden /> {game.handsTarget || 20} hands</span>
+          {formatTag && (
+            <span className="sp-tag"><Layers size={12} aria-hidden /> {formatTag}</span>
+          )}
+          {game.estMinutes != null && (
+            <span className="sp-tag"><Clock size={12} aria-hidden /> ~{game.estMinutes} min</span>
+          )}
+          {game.handsTarget != null && (
+            <span className="sp-tag"><Zap size={12} aria-hidden /> {game.handsTarget} hands</span>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function GradeCard({ grade, accuracy, hands }) {
-  const pct = Math.max(0, Math.min(100, accuracy));
+function GradeCard({ stats, loading }) {
+  if (loading) {
+    return (
+      <div className="sp-grade-card" aria-label="Loading current GTO grade" aria-busy="true">
+        <div className="sp-grade-row">
+          <div className="sp-grade-letter sp-num sp-skel-text">·</div>
+          <div className="sp-grade-text">
+            <p className="sp-grade-label">Current GTO grade</p>
+            <p className="sp-grade-value sp-skel-line" />
+            <div className="sp-progress sp-skel-block" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const grade    = stats?.current_grade || '—';
+  const next     = stats?.next_grade;
+  const accuracy = stats?.rolling_accuracy_pct ?? 0;
+  const hands    = stats?.rolling_total ?? 0;
+  const delta    = stats?.delta_correct_to_next;
+  const pct      = Math.max(0, Math.min(100, accuracy));
+  const hasData  = hands > 0;
+
   return (
     <div className="sp-grade-card" aria-label="Current GTO grade">
       <div className="sp-grade-row">
         <div className="sp-grade-letter sp-num">{grade}</div>
         <div className="sp-grade-text">
-          <p className="sp-grade-label">Current GTO grade</p>
-          <p className="sp-grade-value">{accuracy}% accuracy · {hands.toLocaleString()} hands</p>
+          <p className="sp-grade-label">{hasData ? 'Current GTO grade' : 'No graded sessions yet'}</p>
+          <p className="sp-grade-value">
+            {hasData
+              ? `${accuracy}% accuracy · ${hands.toLocaleString()} hands (30d)`
+              : 'Finish a drill to start your grade.'}
+          </p>
           <div className="sp-progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
             <div className="sp-progress-fill" style={{ width: `${pct}%` }} />
           </div>
+          {hasData && next && delta && (
+            <div className="sp-grade-meta">
+              <span>{grade}</span>
+              <span>{delta} {delta === 1 ? 'correct hand' : 'correct hands'} to {next}</span>
+              <span>{next}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Stat({ icon: Icon, label, value, unit, trend, sub }) {
+function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
+  if (loading) {
+    return (
+      <div className="sp-stat" aria-busy="true">
+        <div className="sp-stat-label"><Icon size={13} aria-hidden /> {label}</div>
+        <div className="sp-stat-value sp-num sp-skel-text">·</div>
+      </div>
+    );
+  }
   const isUp = typeof trend === 'string' && trend.startsWith('+');
   return (
     <div className="sp-stat">
@@ -338,6 +432,35 @@ function Stat({ icon: Icon, label, value, unit, trend, sub }) {
       {sub && <div className="sp-stat-sub">{sub}</div>}
     </div>
   );
+}
+
+/**
+ * Real-data hero headline — never fabricates progression.
+ * Shape:
+ *   1) recommendation loaded + grade data exists → "<delta> correct hands away from <next>."
+ *   2) recommendation loaded + no graded data    → "Ready to start training? Run your first drill."
+ *   3) loading                                    → "Loading your daily plan…"
+ *   4) no recommendation                          → "Browse the library to pick your first drill."
+ */
+function renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading }) {
+  const greet = `Welcome back${authUser?.name ? `, ${authUser.name}` : ''}.`;
+  if (statsLoading || recommendationLoading) {
+    return <>{greet} Loading your daily plan…</>;
+  }
+  const hasGradeData = (stats?.rolling_total ?? 0) > 0;
+  const delta = stats?.delta_correct_to_next;
+  const nextGrade = stats?.next_grade;
+  if (jarvisPick && hasGradeData && delta != null && nextGrade) {
+    const noun = delta === 1 ? 'correct hand' : 'correct hands';
+    return <>{greet} <em>{delta} {noun}</em> away from {nextGrade}.</>;
+  }
+  if (jarvisPick && !hasGradeData) {
+    return <>{greet} Ready to start training?</>;
+  }
+  if (!jarvisPick) {
+    return <>{greet} Browse the library to start your first drill.</>;
+  }
+  return <>{greet}</>;
 }
 
 function CatChip({ children, active, onClick, count }) {
@@ -422,32 +545,86 @@ function ArenaSkeleton() {
   );
 }
 
-function pickRecommended(library, progress) {
-  const notMastered = library.find(g => (progress?.[g.id]?.percent ?? 0) < 100);
-  if (!notMastered) return library[0];
-  return {
-    ...notMastered,
-    title:    notMastered.name,
-    accuracy: 86,
-    currentGrade: 'B',
-    nextGrade:    'B+',
-    deltaToNextGrade: '2 correct hands',
-    totalHands: 1247,
-    estMinutes: notMastered.estMinutes || 12,
-    handsTarget: notMastered.handsTarget || 20,
-    format: notMastered.format || 'MTT',
-    stack: notMastered.stack || '100bb',
-  };
+/**
+ * useTrainingDashboard — single source of truth for the dashboard surface.
+ * Pulls aggregated weekly stats from /api/training/weekly-stats (RPC-backed)
+ * and the recommended drill from /api/training/recommendations (Jarvis).
+ *
+ * Returns { stats, statsLoading, recommendation, recommendationLoading }.
+ * No fallback values. When the user has no session history, fields render as
+ * empty-state ("—") in the UI so we never show invented numbers.
+ */
+function useTrainingDashboard(authUser) {
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [recommendation, setRecommendation] = useState(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!authUser?.id) {
+        setStatsLoading(false);
+        setRecommendationLoading(false);
+        return;
+      }
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      try {
+        const r = await fetch('/api/training/weekly-stats', { headers });
+        if (!r.ok) throw new Error(`weekly-stats ${r.status}`);
+        const json = await r.json();
+        if (!cancelled && json.success) setStats(json.stats);
+      } catch (e) {
+        if (!cancelled) console.warn('[Training] weekly-stats fetch failed:', e?.message || e);
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+
+      try {
+        const r = await fetch('/api/training/recommendations', { headers });
+        if (!r.ok) throw new Error(`recommendations ${r.status}`);
+        const json = await r.json();
+        const recs = json?.recommendations || json?.games || json?.data || [];
+        if (!cancelled && recs.length) {
+          // Hydrate the API result with the matching catalog entry so we get
+          // canonical name, category, image, and minutes/hands targets.
+          const top = recs[0];
+          const recId = top.game_id || top.id;
+          const fromLib = TRAINING_LIBRARY.find(g => g.id === recId) || null;
+          setRecommendation({
+            id: recId,
+            name: fromLib?.name || top.name || top.game_name || 'Recommended drill',
+            category: fromLib?.category || top.category || 'MTT',
+            estMinutes: fromLib?.estMinutes || top.estMinutes || 10,
+            handsTarget: fromLib?.handsTarget || top.handsTarget || 20,
+            format: fromLib?.format || top.format,
+            stack: fromLib?.stack || top.stack,
+            reason: top.reason || top.why,
+          });
+        }
+      } catch (e) {
+        if (!cancelled) console.warn('[Training] recommendations fetch failed:', e?.message || e);
+      } finally {
+        if (!cancelled) setRecommendationLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
+
+  return { stats, statsLoading, recommendation, recommendationLoading };
 }
 
-function buildWeeklyStats(progress) {
-  // Wire to real telemetry in production. Synthetic placeholders for first paint.
-  return {
-    hands: 412, handsTrend: '+18% vs last',
-    accuracy: 86, accuracyTrend: '+3.4 pts',
-    evSaved: 24, evTrend: '+9 vs last',
-    streak: 7, personalBest: 12,
-  };
+/** Format a week-over-week trend string from raw values. */
+function fmtTrend(curr, prev, unit = '') {
+  if (curr == null || prev == null) return null;
+  if (prev === 0 && curr === 0) return null;
+  if (prev === 0) return `+${curr}${unit} (new)`;
+  const delta = curr - prev;
+  const sign = delta >= 0 ? '+' : '';
+  return `${sign}${Math.round(delta * 10) / 10}${unit} vs last`;
 }
 
 function GlobalStyle() {
@@ -521,6 +698,13 @@ function GlobalStyle() {
       .sp-grade-value { font-size: 14px; color: var(--sp-ink-1); margin: 0 0 10px; }
       .sp-progress { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
       .sp-progress-fill { height: 100%; background: linear-gradient(90deg, var(--sp-good), var(--sp-primary)); border-radius: 999px; }
+      .sp-grade-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--sp-ink-3); margin-top: 6px; }
+
+      /* Loading skeletons — avoid layout shift while real data loads */
+      .sp-skel-text { color: transparent; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 6px; }
+      .sp-skel-line { height: 14px; margin: 2px 0 10px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 6px; width: 70%; }
+      .sp-skel-block { height: 6px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 999px; }
+      @keyframes sp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
       .sp-leak { border-radius: var(--sp-r-lg); border: 1px solid rgba(245,158,11,0.30); background: linear-gradient(180deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02)); padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
       @media (max-width: 720px) { .sp-leak { grid-template-columns: 1fr; } }
