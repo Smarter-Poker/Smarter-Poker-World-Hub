@@ -362,17 +362,30 @@ export function EndStreamModal({
                     </div>
                 </div>
 
-                {/* Video Preview */}
+                {/* Video Preview / Upload Cover */}
+                {/*
+                  BUG-FIX-LIVE-4: While uploading, show the user-selected
+                  thumbnail prominently — that's what the post will look like
+                  in the feed, so it's the right thing for the user to see.
+                  Only show the video element when not uploading (so the user
+                  can preview their recording before deciding to post/save).
+                */}
                 <div style={{ position: 'relative', background: '#000', aspectRatio: '16/9' }}>
-                    {videoBlob ? (
+                    {isUploading && (resolvedThumbUrl || thumbnailUrl) ? (
+                        <img
+                            src={resolvedThumbUrl || thumbnailUrl}
+                            alt="Selected cover"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    ) : videoBlob ? (
                         <video
                             ref={videoRef}
                             controls
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
-                    ) : thumbnailUrl ? (
+                    ) : (resolvedThumbUrl || thumbnailUrl) ? (
                         <img
-                            src={thumbnailUrl}
+                            src={resolvedThumbUrl || thumbnailUrl}
                             alt="Stream Preview"
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />

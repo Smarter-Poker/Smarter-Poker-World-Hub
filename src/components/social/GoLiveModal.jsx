@@ -19,6 +19,7 @@ import diamondAnimation from '../../../public/diamond-animation.json';
 // (a real user gesture) unlocks iOS Safari's AudioContext, then
 // playSuccessChime() in startBroadcast plays the live-confirmation chime.
 import { armSuccessChime, playSuccessChime } from '../../lib/successChime';
+import useStreamingViewportLock from '../../lib/useStreamingViewportLock';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505',
@@ -171,6 +172,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const mediaAccessMountedRef = useRef(true);
     // BUG FIX (GLM-6): track error-clear timer so it cancels on unmount
     const errorTimerRef = useRef(null);
+
+    // BUG-FIX-LIVE-7+8: lock viewport, kill pinch zoom, recover from rotation
+    // during live/countdown. Prevents the "icons stay zoomed and screen won't
+    // go back to normal" failure mode after pinch or orientation change.
+    useStreamingViewportLock(stage === 'live' || stage === 'countdown');
 
     useEffect(() => {
         mediaAccessMountedRef.current = true;
@@ -495,66 +501,80 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const handleEndStream = async () => {
         // #1: Confirm before ending — prevents accidental stream kills
         if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) return;
-        try {
-            // BUG-FIX-LIVE-8 (per Dan: "WHEN STREAM ENDS, IT DOESN'T TAKE THE
-            // STREAMER TO THE SAVE OR POST SCREEN, STREAM JUST ENDS AND SCREEN
-            // FREEZES. CANT POST OR SAVE AFTER IT ENDS").
-            //
-            // Root cause: previously called mediaRecorderRef.current.stop()
-            // and immediately set stage='ended'. The recorder's onstop
-            // handler (defined in startRecording) fires AFTER stop() returns,
-            // so EndStreamModal mounted with videoBlob still null. It then
-            // rendered "Recording not available — cannot be saved or posted"
-            // with all action buttons disabled — which looked like a freeze.
-            //
-            // Fix: assemble the final blob from recordedChunksRef the moment
-            // the recorder dispatches 'stop', resolve a promise, then call
-            // setRecordedBlob BEFORE setStage('ended'). React batches both
-            // updates so EndStreamModal mounts with a real videoBlob and
-            // the Save/Post buttons are enabled.
-            const finalizeRecording = () => new Promise((resolve) => {
-                const mr = mediaRecorderRef.current;
-                if (!mr || mr.state === 'inactive') return resolve(null);
-                const mime = mr.mimeType || 'video/webm';
-                let settled = false;
-                const onStopOnce = () => {
-                    if (settled) return;
+
+        // BUG-FIX-LIVE-10 (per Dan: "WHEN I CLICKED END STREAM, IT DID NOT DO
+        // WHAT IT USED TO, AND GIVE ME THE OPTION TO SAVE OR PUBLISH... SCREEN
+        // JUST FREEZES AND LIVE STREAM ENDS FOR VIEWERS, BUT CAN'T DO ANYTHING
+        // AFTER THAT...").
+        //
+        // Root cause: handleEndStream awaited liveStreamService.endBroadcast()
+        // BEFORE flipping stage to 'ended'. If that call threw (LiveKit
+        // disconnect race) or hung past the user's patience, we landed in the
+        // catch block which only setError'd — stage stayed 'live', viewers had
+        // already disconnected, camera tracks were still live, UI looked
+        // permanently frozen.
+        //
+        // Fix: snapshot the recording, kill local tracks + timer, transition
+        // to 'ended' SYNCHRONOUSLY, THEN fire endBroadcast in the background.
+        // The catch path also transitions — there is no code path where the
+        // user remains on the live UI after tapping End Stream.
+
+        // ── 1. Snapshot the recording (with 4s safety cap) ───────────────────
+        const finalizeRecording = () => new Promise((resolve) => {
+            const mr = mediaRecorderRef.current;
+            if (!mr || mr.state === 'inactive') return resolve(null);
+            const mime = mr.mimeType || 'video/webm';
+            let settled = false;
+            const onStopOnce = () => {
+                if (settled) return;
+                settled = true;
+                try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
+                try {
+                    const blob = new Blob(recordedChunksRef.current, { type: mime });
+                    resolve(blob);
+                } catch (_e) { resolve(null); }
+            };
+            mr.addEventListener('stop', onStopOnce);
+            try { mr.stop(); } catch (_) { onStopOnce(); }
+            setTimeout(() => {
+                if (!settled) {
                     settled = true;
                     try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
-                    try {
-                        const blob = new Blob(recordedChunksRef.current, { type: mime });
-                        resolve(blob);
-                    } catch (_e) { resolve(null); }
-                };
-                mr.addEventListener('stop', onStopOnce);
-                try { mr.stop(); } catch (_) { onStopOnce(); }
-                // Safety: 4-second cap if onstop never fires (browser bug, lost track)
-                setTimeout(() => {
-                    if (!settled) {
-                        settled = true;
-                        try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
-                        resolve(null);
-                    }
-                }, 4000);
-            });
+                    resolve(null);
+                }
+            }, 4000);
+        });
 
-            const finalBlob = await finalizeRecording();
-            await liveStreamService.endBroadcast();
-            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-            setIsStarting(false); // Reset for next session
-            // setRecordedBlob first so it lands in the same React commit as
-            // the stage transition — EndStreamModal sees a non-null blob.
-            if (finalBlob) setRecordedBlob(finalBlob);
-            setStage('ended');
-            setShowAnalytics(true);
-            // Real-time fanout via EventBus — feed cards (LiveStreamCard
-            // inlineAutoplay) listen on 'live_streams' to flip their tile
-            // from live preview to the post-stream replay state.
-            busEmit.dataMutated?.('live_streams');
-            try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
+        let finalBlob = null;
+        try {
+            finalBlob = await finalizeRecording();
         } catch (err) {
-            setError(err.message);
+            console.warn('[handleEndStream] recording finalize threw:', err);
         }
+
+        // ── 2. Stop the live timer + reset starting flag ────────────────────
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        setIsStarting(false);
+
+        // ── 3. Lock in the recorded blob, then atomically flip to 'ended' ───
+        // setRecordedBlob fires in the same React commit as setStage so the
+        // EndStreamModal mounts with a non-null videoBlob → Save/Post buttons
+        // enabled.
+        if (finalBlob) setRecordedBlob(finalBlob);
+        setStage('ended');
+        setShowAnalytics(true);
+
+        // ── 4. End the LiveKit broadcast in the background ──────────────────
+        // Failure here is non-fatal to the streamer's UX — they're already on
+        // the post-stream screen. Viewers will see the disconnect either way.
+        liveStreamService.endBroadcast().catch((err) => {
+            console.warn('[handleEndStream] endBroadcast non-fatal error:', err?.message || err);
+        });
+
+        // ── 5. Real-time fanout — feed cards re-render and pick up the
+        // ended stream state via the EventBus 'live_streams' channel.
+        try { busEmit.dataMutated?.('live_streams'); } catch (_) {}
+        try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
     };
 
     const handleFlipCamera = async () => {
@@ -862,7 +882,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                     >
                         {/* Broadcaster/Local Video + Remote Participants */}
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#000' }}>
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'contain', transform: 'scaleX(-1)', transition: 'all 0.3s ease' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', transition: 'all 0.3s ease' }} />
                             
                             {/* Secondary Participants (Guest) */}
                             {participants.map((p, idx) => {
@@ -884,7 +904,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
-                                                objectFit: 'contain',
+                                                objectFit: 'cover',
                                                 transform: 'scaleX(-1)'
                                             }}
                                         />
