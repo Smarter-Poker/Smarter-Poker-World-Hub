@@ -6,6 +6,11 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+// 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace inline SVG + HTML entities
+import {
+    Search as SearchLuc, Calendar as CalendarLuc,
+    X as XLuc, ChevronLeft as ChevLeft, ChevronRight as ChevRight,
+} from 'lucide-react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
@@ -24,14 +29,14 @@ const POPULAR_STATES = [
 ];
 
 const VENUE_TYPES = [
-    { label: 'All Venues', value: '' },
+    { label: 'All venues', value: '' },
     { label: 'Casinos', value: 'Casino' },
-    { label: 'Card Rooms', value: 'Card Room' },
+    { label: 'Card rooms', value: 'Card Room' },
     { label: 'Charity', value: 'Charity' },
 ];
 
 const BUYIN_RANGES = [
-    { label: 'All Buy-Ins', min: null, max: null },
+    { label: 'All buy-ins', min: null, max: null },
     { label: 'Under $50', min: null, max: 50 },
     { label: '$50 - $100', min: 50, max: 100 },
     { label: '$100 - $200', min: 100, max: 200 },
@@ -345,7 +350,7 @@ export default function DailyTournaments() {
         <>
             <SEOHead
                 title="Daily Poker Tournaments — Compete Every Day"
-                description="Join Daily Poker Tournaments On Smarter.Poker. Compete Against Players Worldwide With Daily Challenges And Prize Pools."
+                description="Join daily poker tournaments on Smarter.Poker. Compete against players worldwide with daily challenges and prize pools."
                 canonical="/hub/daily-tournaments"
             >
 
@@ -377,19 +382,18 @@ export default function DailyTournaments() {
                         <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
                     </div>
                     <div className="dt-header-right">
-                        <div className="pnm-search-box" style={{ position: 'relative' }}>
-                            <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                            </svg>
+                        <form role="search" className="pnm-search-box" style={{ position: 'relative' }} onSubmit={(e) => { e.preventDefault(); setDebouncedSearch(searchQuery); }}>
+                            <label htmlFor="venue-search" className="dt-sr-only">Search tournaments by venue</label>
+                            <SearchLuc size={16} aria-hidden style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
                             <input
                                 type="text"
                                 id="venue-search"
                                 className="dt-search-input"
-                                placeholder="Search Venue..."
+                                placeholder="Search venues"
                                 value={searchQuery}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                             />
-                        </div>
+                        </form>
                     </div>
                 </div>
 
@@ -418,6 +422,7 @@ export default function DailyTournaments() {
                                             setSelectedDay(day);
                                             setSelectedDate(null);
                                         }}
+                                        aria-pressed={isActive}
                                     >
                                         {isToday && <span className="day-today-dot" />}
                                         <span className="day-short">{day.substring(0, 3)}</span>
@@ -429,21 +434,18 @@ export default function DailyTournaments() {
                         <button
                             className="calendar-btn"
                             onClick={() => setCalendarOpen(true)}
-                            title="Browse by Calendar Date"
+                            aria-label="Browse by calendar date"
+                            aria-haspopup="dialog"
+                            title="Browse by calendar date"
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
+                            <CalendarLuc size={18} aria-hidden />
                             <span>Calendar</span>
                         </button>
                     </div>
                     {selectedDate && (
                         <div className="selected-date-banner">
                             Showing schedule for: <strong>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
-                            <button onClick={() => setSelectedDate(null)} className="clear-date-btn">&#x2715; Back to Week</button>
+                            <button onClick={() => setSelectedDate(null)} className="clear-date-btn" aria-label="Back to week view"><XLuc size={12} aria-hidden /> Back to week</button>
                         </div>
                     )}
                 </div>
@@ -458,18 +460,18 @@ export default function DailyTournaments() {
                     const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 365);
                     return (
                         <div className="cal-overlay" onClick={() => setCalendarOpen(false)}>
-                            <div className="cal-modal" onClick={e => e.stopPropagation()}>
+                            <div className="cal-modal" role="dialog" aria-modal="true" aria-labelledby="cal-modal-title" onClick={e => e.stopPropagation()}>
                                 <div className="cal-nav">
-                                    <button className="cal-nav-btn" onClick={() => setCalendarMonth(m => {
+                                    <button className="cal-nav-btn" aria-label="Previous month" onClick={() => setCalendarMonth(m => {
                                         if (m.month === 0) return { year: m.year - 1, month: 11 };
                                         return { year: m.year, month: m.month - 1 };
-                                    })}>&#8249;</button>
-                                    <span className="cal-month-label">{MONTH_NAMES[month]} {year}</span>
-                                    <button className="cal-nav-btn" onClick={() => setCalendarMonth(m => {
+                                    })}><ChevLeft size={18} aria-hidden /></button>
+                                    <span className="cal-month-label" id="cal-modal-title">{MONTH_NAMES[month]} {year}</span>
+                                    <button className="cal-nav-btn" aria-label="Next month" onClick={() => setCalendarMonth(m => {
                                         if (m.month === 11) return { year: m.year + 1, month: 0 };
                                         return { year: m.year, month: m.month + 1 };
-                                    })}>&#8250;</button>
-                                    <button className="cal-close-btn" onClick={() => setCalendarOpen(false)}>&#x2715;</button>
+                                    })}><ChevRight size={18} aria-hidden /></button>
+                                    <button className="cal-close-btn" aria-label="Close calendar" onClick={() => setCalendarOpen(false)}><XLuc size={16} aria-hidden /></button>
                                 </div>
                                 <div className="cal-weekdays">
                                     {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} className="cal-wd">{d}</div>)}
@@ -488,6 +490,8 @@ export default function DailyTournaments() {
                                                 key={dateStr}
                                                 className={`cal-cell ${isPast || isFuture ? 'disabled' : ''} ${isSelected ? 'selected' : ''} ${isToday2 ? 'today' : ''}`}
                                                 disabled={isPast || isFuture}
+                                                aria-pressed={isSelected}
+                                                aria-label={`${MONTH_NAMES[month]} ${d}, ${year}${isToday2 ? ' (today)' : ''}`}
                                                 onClick={() => handleCalendarDateClick(dateStr)}
                                             >
                                                 {d}
@@ -503,23 +507,26 @@ export default function DailyTournaments() {
                 {/* Top Level Filters Command Bar — centered dropdowns only, no search here */}
                 <div className="pnm-top-filters">
                     <div className="filters-dropdown-group">
-                        <select className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
+                        <label htmlFor="dt-state-filter" className="dt-sr-only">State</label>
+                        <select id="dt-state-filter" className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
                             const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
                             setSelectedState(st || null);
                         }}>
-                            <option value="">All States</option>
+                            <option value="">All states</option>
                             {POPULAR_STATES.map(state => (
                                 <option key={state.abbr} value={state.abbr}>{state.name}</option>
                             ))}
                         </select>
 
-                        <select className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+                        <label htmlFor="dt-type-filter" className="dt-sr-only">Venue type</label>
+                        <select id="dt-type-filter" className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
                             {VENUE_TYPES.map(type => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
                             ))}
                         </select>
 
-                        <select className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
+                        <label htmlFor="dt-buyin-filter" className="dt-sr-only">Buy-in range</label>
+                        <select id="dt-buyin-filter" className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
                             const range = BUYIN_RANGES.find(r => r.label === e.target.value);
                             setSelectedBuyin(range || BUYIN_RANGES[0]);
                         }}>
@@ -528,17 +535,19 @@ export default function DailyTournaments() {
                             ))}
                         </select>
 
+                        <label htmlFor="dt-distance-filter" className="dt-sr-only">Distance</label>
                         <select
+                            id="dt-distance-filter"
                             className="pnm-filter-select"
                             value={distanceFilter}
                             onChange={(e) => handleDistanceChange(e.target.value)}
                             title={gpsStatus === 'denied' ? 'Location access denied — enable in browser settings' : ''}
                         >
-                            <option value="all">Any Distance</option>
-                            <option value="25">Within 25 Mi</option>
-                            <option value="50">Within 50 Mi</option>
-                            <option value="100">Within 100 Mi</option>
-                            <option value="250">Within 250 Mi</option>
+                            <option value="all">Any distance</option>
+                            <option value="25">Within 25 mi</option>
+                            <option value="50">Within 50 mi</option>
+                            <option value="100">Within 100 mi</option>
+                            <option value="250">Within 250 mi</option>
                         </select>
 
                         {(searchQuery || selectedState || selectedType || selectedBuyin.min !== null || selectedBuyin.max !== null || distanceFilter !== 'all') ? (
@@ -559,17 +568,17 @@ export default function DailyTournaments() {
                             <div className="empty-state error-state" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
                                 <p>Failed to load schedule</p>
                                 <p style={{ fontSize: '13px', opacity: 0.7, marginTop: '8px' }}>{error.message || 'Unknown network collision'}</p>
-                                <button onClick={() => refreshTournaments()} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>Retry Connection</button>
+                                <button onClick={() => refreshTournaments()} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>Retry connection</button>
                             </div>
                         ) : loading ? (
-                            <div className="loading-state">
+                            <div className="loading-state" role="status" aria-live="polite" aria-busy="true">
                                 <div className="spinner"></div>
-                                <span>Finding Tournaments...</span>
+                                <span>Finding tournaments…</span>
                             </div>
                         ) : tournaments.length === 0 ? (
                             <div className="empty-state">
                                 <p>No tournaments found for {selectedDay}</p>
-                                <button onClick={clearFilters}>Clear Filters</button>
+                                <button onClick={clearFilters}>Clear filters</button>
                             </div>
                         ) : (
                             <div className="tournament-list">
@@ -666,7 +675,7 @@ export default function DailyTournaments() {
                         flex: 1 1 140px;
                         min-width: 120px;
                         max-width: 200px;
-                        height: 36px;
+                        height: 40px;
                         padding: 0 10px;
                         background: rgba(12, 22, 40, 0.85);
                         border: 1.5px solid rgba(0,212,255,0.25);
@@ -1105,6 +1114,44 @@ export default function DailyTournaments() {
                     @media (min-width: 1280px) {
                         .tournament-list { grid-template-columns: repeat(4, 1fr); }
                     }
+
+                    /* ═══ A11y: visually-hidden labels for screen readers ═══ */
+                    .dt-sr-only {
+                        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+                        overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+                    }
+
+                    /* ═══ Touch-target compliance (UI-UX-Pro-Max priority 2 — 44pt minimum) ═══ */
+                    .cal-nav-btn {
+                        min-width: 44px; min-height: 44px;
+                        display: inline-flex; align-items: center; justify-content: center;
+                        background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.25);
+                        border-radius: 8px; color: #00D4FF; cursor: pointer;
+                    }
+                    .cal-nav-btn:hover { background: rgba(0,212,255,0.18); }
+                    .cal-close-btn {
+                        min-width: 44px; min-height: 44px;
+                        display: inline-flex; align-items: center; justify-content: center;
+                        background: transparent; border: none;
+                        color: rgba(255,255,255,0.6); cursor: pointer; border-radius: 8px;
+                    }
+                    .cal-close-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+                    .clear-date-btn {
+                        min-height: 36px; padding: 6px 10px;
+                        display: inline-flex; align-items: center; gap: 4px;
+                        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 6px; color: rgba(255,255,255,0.7);
+                        font-size: 12px; cursor: pointer;
+                    }
+                    .clear-date-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+                    /* ═══ Motion guard (UI-UX-Pro-Max priority 7 — WCAG 2.3.3) ═══ */
+                    @media (prefers-reduced-motion: reduce) {
+                        .day-tab, .calendar-btn, .pnm-filter-select, .tournament-card,
+                        .card-link, .clear-date-btn, .cal-cell, .dt-search-input { transition: none !important; }
+                        /* Slow the spinner rather than halt — needed to convey loading state */
+                        .spinner { animation-duration: 2s !important; }
+                    }
                 `}</style>
             </div>
         </>
@@ -1158,12 +1205,12 @@ function TournamentCard({ tournament }) {
             <div className="card-actions">
                 {isRealVenue && (
                     <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
-                        <a className="card-link venue-link">View Venue Page</a>
+                        <a className="card-link venue-link">View venue page</a>
                     </Link>
                 )}
                 {t.pokerAtlasUrl && (
                     <a href={safeHref(t.pokerAtlasUrl)} target="_blank" rel="noopener noreferrer" className="card-link">
-                        View Details
+                        View details
                     </a>
                 )}
             </div>
