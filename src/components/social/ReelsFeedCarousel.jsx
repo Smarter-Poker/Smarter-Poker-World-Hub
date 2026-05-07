@@ -674,11 +674,16 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         setShowOverlay(true);
                         clearTimeout(overlayTimerRef.current);
                         overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-                        // Auto-unmute ONLY if user wants sound
+                        // Auto-unmute ONLY if user wants sound AND a real
+                        // gesture has been captured this tab session. Without
+                        // the gesture gate, YouTube's iframe API silently
+                        // rejects the unMute postMessage and React state
+                        // still flips muted=false — UI lie. Same gate as the
+                        // IntersectionObserver in src/components/social/Reels.jsx.
                         autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
-                        if (userWantsSoundRef.current) {
+                        if (userInteractedRef.current && userWantsSoundRef.current) {
                             const doUnmute = () => {
-                                if (!userWantsSoundRef.current) return;
+                                if (!userInteractedRef.current || !userWantsSoundRef.current) return;
                                 sendYTCmd('unMute');
                                 sendYTCmd('setVolume', [100]);
                                 setMuted(false);
