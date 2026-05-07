@@ -718,7 +718,15 @@ export default function SettingsPage() {
 
             if (response.ok) {
                 await supabase.auth.signOut();
-                window.location.href = '/';
+                // BUG FIX (same as handleLogout): clear all caches, then navigate window.top
+                // so the parent window is torn down, not just the settings iframe.
+                try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+                try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
+                try { localStorage.removeItem('sp-cached-header-user'); } catch (_) {}
+                try { localStorage.removeItem('sp-cached-settings-profile'); } catch (_) {}
+                try { localStorage.removeItem('sp-notif-count'); } catch (_) {}
+                const target = (typeof window !== 'undefined' && window.top) ? window.top : window;
+                target.location.href = '/';
             } else {
                 const err = await response.json().catch(() => ({}));
                 setDeleteFeedback({ type: 'error', message: err.error || err.details || 'Failed To Delete Account. Contact Support.' });

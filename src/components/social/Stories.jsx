@@ -238,11 +238,15 @@ export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
         }
     };
 
-    // Realtime: refresh live badges when any stream goes live or ends
+    // Realtime: refresh live badges when any stream goes live or ends.
+    // BUG FIX: use a unique channel name per mount so React StrictMode double-invoke
+    // and hot-reload don't create two subscribers on the same logical channel.
+    // Supabase deduplicates by name — the second subscriber would silently drop events.
     useEffect(() => {
         if (!userId) return;
+        const channelName = `stories-live-monitor-${Date.now()}`;
         const ch = supabase
-            .channel('stories-live-monitor')
+            .channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
                 loadLiveUsers();
             })
@@ -478,7 +482,13 @@ function StoryViewer({ storyGroup, onClose, userId }) {
         }, interval);
 
         return () => clearInterval(timerRef.current);
-    }, [currentIndex]);
+    // BUG FIX: added stories.length and onClose to deps.
+    // Without stories.length: if a realtime insert changes the story count while the
+    // viewer is open, the closure captures the stale count and auto-advances incorrectly.
+    // Without onClose: parent re-renders with a new callback reference go unnoticed,
+    // and the old callback fires (potential stale state or missing overlay teardown).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex, stories.length, onClose]);
 
 
 
@@ -850,10 +860,20 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         setCreating(false);
     };
 
+    // BUG FIX: mediaPreview is a string state, so the cleanup useEffect closes over
+    // the initial value (always null at mount time). URL.revokeObjectURL(null) is a
+    // no-op — the blob URL leaks until GC.
+    // Fix: track the current preview URL in a ref so the cleanup always reads the
+    // latest value, regardless of how many times the user changes their file selection.
+    const mediaPreviewRef = useRef(null);
+    useEffect(() => {
+        mediaPreviewRef.current = mediaPreview;
+    }, [mediaPreview]);
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+            if (mediaPreviewRef.current) URL.revokeObjectURL(mediaPreviewRef.current);
         };
     }, []);
 
@@ -1229,6 +1249,8 @@ export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onSha
                 p_media_url: mediaUrl,
                 p_media_type: mediaType || 'image',
                 p_background_color: null,
+                p_link_url: null, // BUG FIX: fn_create_story requires all declared params;
+                // omitting p_link_url caused a silent RPC error on some Postgres versions.
             });
             onShared?.();
         } catch (e) {
