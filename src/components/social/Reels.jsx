@@ -1669,24 +1669,23 @@ export function ReelsViewer({ onClose }) {
           const newIdx = parseInt(entry.target.dataset.reelIndex, 10);
           if (isNaN(newIdx)) return;
           setCurrentIndex(newIdx);
-          // Only update mute UI state if a real user gesture has been
-          // captured. Without this gate, IntersectionObserver firing on
-          // cold-mount would set muted=false in React state while the
-          // browser silently kept the actual <video> muted — a UI lie
-          // that confuses both the user and the click-to-toggle logic.
-          // Gesture detection lives in the dedicated useEffect above.
-          if (userInteractedRef.current && userWantsSoundRef.current) {
-            setMuted(false);
-          }
+          // Only attempt to flip the UI/DOM mute state if a real gesture
+          // has been captured AND the user wants sound. The IO callback
+          // runs asynchronously (post-scroll) so the gesture context may
+          // have expired. We rely on the onPlaying handler (called inside
+          // the actual playback event) for the authoritative unmute, and
+          // verify the DOM honored it before lying to React state.
           const activeMedia = entry.target.querySelector('video, iframe');
           if (activeMedia?.tagName === 'VIDEO') {
-            // Only allow unmuted DOM state when a gesture has been seen.
-            // Otherwise leave muted=true so autoplay is permitted by the
-            // browser. The new onPlaying handler will flip muted=false
-            // synchronously inside the playing event when the gesture
-            // flag is set.
-            activeMedia.muted = !(userInteractedRef.current && userWantsSoundRef.current);
-            activeMedia.play().catch(() => {});
+            if (userInteractedRef.current && userWantsSoundRef.current) {
+              activeMedia.muted = false;
+              activeMedia.play().catch(() => {});
+              // Verify-after-unmute: only update React state if DOM honored.
+              if (!activeMedia.muted) setMuted(false);
+            } else {
+              activeMedia.muted = true;
+              activeMedia.play().catch(() => {});
+            }
           } else if (activeMedia?.tagName === 'IFRAME') {
             activeMedia.contentWindow?.postMessage(
               JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
@@ -2118,11 +2117,19 @@ export function ReelsViewer({ onClose }) {
                   // we can flip muted=false IF the user has gestured
                   // at any point in this tab session. This is the
                   // critical handler for the swipe-with-sound flow.
+                  // Verify-after-unmute: when the page is reloaded with
+                  // sessionStorage[sp:reels:interacted]='1' from a prior
+                  // load, userInteractedRef is truthy but the browser has
+                  // not seen a gesture on THIS page load and may silently
+                  // keep muted=true. Only flip React state if the DOM
+                  // actually accepted muted=false — never lie to the UI.
                   if (isActive && userInteractedRef.current && userWantsSoundRef.current) {
                     try {
                       e.target.muted = false;
-                      if (e.target.volume === 0) e.target.volume = 1.0;
-                      setMuted(false);
+                      if (!e.target.muted) {
+                        if (e.target.volume === 0) e.target.volume = 1.0;
+                        setMuted(false);
+                      }
                     } catch (_) {
                       /* best-effort */
                     }
