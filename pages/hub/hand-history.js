@@ -10,6 +10,8 @@ import ImageCropModal from '../../src/components/poker/ImageCropModal';
 import ReviewHandModal from '../../src/components/poker/ReviewHandModal';
 
 const ShareableHandCard = dynamic(() => import('../../src/components/poker/ShareableHandCard'), { ssr: false });
+// 2026-05-07 — UI-UX-Pro-Max icons (no-emoji-icons rule)
+import { History, Check, X, Share2, Sparkles } from 'lucide-react';
 
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
@@ -238,8 +240,9 @@ export default function HandHistoryPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
-            <h1 style={{ color: T.text, fontSize: 22, fontWeight: 900, margin: 0 }}>
-              🃏 Hand History
+            <h1 style={{ color: T.text, fontSize: 22, fontWeight: 600, margin: 0, letterSpacing: '-0.4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <History size={22} aria-hidden style={{ color: T.accent }} />
+              <span>Hand history</span>
             </h1>
             {stats && (
               <span style={{ color: T.textSec, fontSize: 11, fontWeight: 600, display: 'block', marginTop: 4 }}>
@@ -257,7 +260,7 @@ export default function HandHistoryPage() {
                 cursor: 'pointer', opacity: uploadingImage ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 6
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <Sparkles size={14} aria-hidden />
               {uploadingImage ? 'Scanning...' : 'AI Scan'}
             </button>
             <input type="file" ref={fileInputRef} onChange={handleFileInput} accept="image/*" style={{ display: 'none' }} />
@@ -350,7 +353,10 @@ export default function HandHistoryPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ color: T.text, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ color: heroWon ? T.green : T.red }}>{heroWon ? '✅ Won' : '❌ Lost'}</span>
+                      <span style={{ color: heroWon ? T.green : T.red, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {heroWon ? <Check size={12} aria-hidden /> : <X size={12} aria-hidden />}
+                        {heroWon ? 'Won' : 'Lost'}
+                      </span>
                       <span style={{ color: T.textDim, fontSize: 9 }}>Hand #{h.hand_number || '—'}</span>
                     </div>
                     <div style={{ color: T.textDim, fontSize: 9, marginTop: 2 }}>
@@ -488,7 +494,7 @@ export default function HandHistoryPage() {
                             borderRadius: 20, cursor: 'pointer'
                           }}
                         >
-                          🔗 Share Hand Card
+                          <Share2 size={12} aria-hidden style={{ verticalAlign: '-1px', marginRight: 4 }} />Share hand card
                         </button>
                       </div>
                     </motion.div>
