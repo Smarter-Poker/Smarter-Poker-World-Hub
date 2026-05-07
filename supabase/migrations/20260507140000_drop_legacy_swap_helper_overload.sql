@@ -1,0 +1,27 @@
+-- ═══════════════════════════════════════════════════════════════════════
+-- 20260507140000_drop_legacy_swap_helper_overload.sql
+-- ═══════════════════════════════════════════════════════════════════════
+-- TIER:         3   (DROP one obsolete function overload)
+-- AUTHOR:       claude (Phase 87 — cleanup)
+--
+-- WHY:
+--   Phase 77 created two versions of fn_swap_pio_to_premium_hand:
+--     1. fn_swap_pio_to_premium_hand(qd jsonb, scenario_hash_pattern text)
+--        — early iteration, never called by Phases 78/79
+--     2. fn_swap_pio_to_premium_hand(qd jsonb)
+--        — canonical version reused by Phases 78 and 79
+--
+--   The 2-arg overload is dead code. Drop it to remove confusion for
+--   future agents. The 1-arg version + Phase 80 fn_swap_chart_to_premium_hand
+--   + Phase 83 fn_enrich_pio_explanation all stay — they may be useful
+--   for future incremental tuning passes.
+--
+-- ROLLBACK (if needed):
+--   Re-create from Phase 77 source if a future task wants the 2-arg form.
+--   No data depends on this function — only the migration that ran it
+--   in Phase 77 referenced it, and that already completed.
+--
+-- IDEMPOTENT: DROP IF EXISTS, no error if already dropped.
+-- ═══════════════════════════════════════════════════════════════════════
+
+DROP FUNCTION IF EXISTS fn_swap_pio_to_premium_hand(jsonb, text);
