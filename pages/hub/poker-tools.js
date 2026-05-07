@@ -12,6 +12,10 @@ import {
     calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+// 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
+import {
+    ArrowLeft, Menu as MenuIcon, X, UserPlus, Crown, RotateCcw, Play, Loader2,
+} from 'lucide-react';
 
 /* ═══════════════════════════════════════════════
    CONSTANTS
@@ -192,7 +196,8 @@ export default function PokerToolsPage() {
 
             <div style={{
                 minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#080810', color: '#E4E6EB',
-                fontFamily: "var(--font-inter), -apple-system, sans-serif" , textTransform: 'capitalize',
+                fontFamily: "var(--font-inter), -apple-system, sans-serif",
+                /* 2026-05-07 — removed textTransform: 'capitalize' that was Title-Casing every word */
                 display: 'flex', flexDirection: 'column',
             }}>
                 {/* ─── HEADER ─── */}
@@ -201,13 +206,21 @@ export default function PokerToolsPage() {
                     padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Link href="/hub" style={{ color: '#888', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>← Hub</Link>
+                        <Link href="/hub" aria-label="Back to hub" style={{ color: '#888', textDecoration: 'none', fontSize: 13, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <ArrowLeft size={14} aria-hidden /> Hub
+                        </Link>
                         <span style={{ color: '#333' }}>|</span>
                         <h1 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Poker Odds Calculator</h1>
                     </div>
                     <button onClick={() => setShowMenu(!showMenu)}
-                        style={{ background: 'none', border: 'none', color: '#888', fontSize: 22, cursor: 'pointer', padding: '2px 6px' }}>
-                        ☰
+                        aria-label="Open settings menu"
+                        aria-expanded={showMenu}
+                        style={{
+                            background: 'none', border: 'none', color: '#888', cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
+                        }}>
+                        <MenuIcon size={20} aria-hidden />
                     </button>
                 </div>
 
@@ -222,7 +235,14 @@ export default function PokerToolsPage() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                                 <span style={{ fontSize: 16, fontWeight: 800 }}>Settings</span>
                                 <button onClick={() => setShowMenu(false)}
-                                    style={{ background: 'none', border: 'none', color: '#888', fontSize: 20, cursor: 'pointer' }}>✕</button>
+                                    aria-label="Close settings menu"
+                                    style={{
+                                        background: 'none', border: 'none', color: '#888', cursor: 'pointer',
+                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                        minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
+                                    }}>
+                                    <X size={18} aria-hidden />
+                                </button>
                             </div>
                             <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1, marginBottom: 10 }}>LINKS</p>
                             <Link href="/hub" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none', borderBottom: '1px solid #222' }}>← Back To World Hub</Link>
@@ -460,7 +480,12 @@ export default function PokerToolsPage() {
                                         display: 'block', fontSize: 10, fontWeight: 'bold',
                                         color: isSelected ? '#fff' : '#000', lineHeight: 1.3,
                                     }}>
-                                        {isHero ? '★ Hero' : `Villain ${pi}`}
+                                        {isHero ? (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
+                                                <Crown size={9} aria-hidden style={{ flexShrink: 0 }} />
+                                                Hero
+                                            </span>
+                                        ) : `Villain ${pi}`}
                                     </span>
                                     {equity && (
                                         <span style={{
@@ -475,13 +500,25 @@ export default function PokerToolsPage() {
                                 {/* Remove X */}
                                 {!isHero && hands.length > 2 && (
                                     <button onClick={e => { e.stopPropagation(); removePlayer(pi); }}
+                                        aria-label={`Remove villain ${pi}`}
                                         style={{
-                                            position: 'absolute', top: -8, right: -8,
-                                            width: 20, height: 20, borderRadius: '50%',
-                                            background: '#EF4444', border: '2px solid #080810', color: '#fff',
-                                            fontSize: 10, cursor: 'pointer', display: 'flex',
+                                            position: 'absolute', top: -22, right: -22,
+                                            /* 2026-05-07 — expanded from 20px to 44pt min-touch with transparent padding ring */
+                                            width: 44, height: 44, borderRadius: '50%',
+                                            background: 'transparent', border: 'none', color: '#fff',
+                                            cursor: 'pointer', display: 'flex',
                                             alignItems: 'center', justifyContent: 'center', zIndex: 200,
-                                        }}>✕</button>
+                                            padding: 0,
+                                        }}>
+                                        <span style={{
+                                            /* visible 20px chip inside the 44pt hit area */
+                                            width: 20, height: 20, borderRadius: '50%',
+                                            background: '#EF4444', border: '2px solid #080810',
+                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                            <X size={10} aria-hidden />
+                                        </span>
+                                    </button>
                                 )}
                             </div>
                         );
@@ -496,18 +533,21 @@ export default function PokerToolsPage() {
                             cursor: 'pointer', zIndex: 30,
                         }}
                             onClick={addVillain}>
-                            <div style={{
-                                width: 48, height: 48, borderRadius: '50%',
-                                border: '2px dashed rgba(255,215,0,0.25)',
-                                background: 'rgba(0,0,0,0.4)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 22, color: 'rgba(255,215,0,0.3)',
-                                transition: 'all 0.2s',
-                            }}
+                            <button
+                                aria-label="Add villain"
+                                style={{
+                                    width: 48, height: 48, borderRadius: '50%',
+                                    border: '2px dashed rgba(255,215,0,0.25)',
+                                    background: 'rgba(0,0,0,0.4)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'rgba(255,215,0,0.5)', cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    padding: 0,
+                                }}
                                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#FFD700'; e.currentTarget.style.color = '#FFD700'; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,215,0,0.25)'; e.currentTarget.style.color = 'rgba(255,215,0,0.3)'; }}>
-                                +
-                            </div>
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,215,0,0.25)'; e.currentTarget.style.color = 'rgba(255,215,0,0.5)'; }}>
+                                <UserPlus size={18} aria-hidden />
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -515,8 +555,13 @@ export default function PokerToolsPage() {
                 {/* ─── ACTION BAR ─── */}
                 <div style={{ padding: '6px 12px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     <button onClick={resetAll}
-                        style={{ padding: '8px 14px', borderRadius: 8, background: '#1a1a1a', border: '1px solid #333', color: '#aaa', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                        ↺ New Hand
+                        aria-label="Reset to new hand"
+                        style={{
+                            padding: '8px 14px', borderRadius: 8, background: '#1a1a1a', border: '1px solid #333',
+                            color: '#aaa', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36,
+                        }}>
+                        <RotateCcw size={12} aria-hidden /> New hand
                     </button>
                     <button onClick={() => setSelectedSlot({ type: 'board' })}
                         style={{
@@ -547,12 +592,25 @@ export default function PokerToolsPage() {
                     <div style={{ flex: 1 }} />
                     {validCount >= 2 && !results && (
                         <button onClick={runCalculation} disabled={calculating}
+                            aria-label={calculating ? 'Calculating equity' : 'Run equity calculation'}
+                            aria-busy={calculating}
                             style={{
                                 padding: '8px 18px', borderRadius: 8, background: '#1877F2', border: 'none',
-                                color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                                opacity: calculating ? 0.5 : 1,
+                                color: '#fff', fontSize: 13, fontWeight: 600, cursor: calculating ? 'wait' : 'pointer',
+                                opacity: calculating ? 0.6 : 1,
+                                display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36,
                             }}>
-                            {calculating ? '⏳' : '▶ Calculate'}
+                            {calculating ? (
+                                <>
+                                    <Loader2 size={14} aria-hidden style={{ animation: 'spcalc-spin 0.9s linear infinite' }} />
+                                    Calculating
+                                </>
+                            ) : (
+                                <>
+                                    <Play size={14} aria-hidden />
+                                    Calculate
+                                </>
+                            )}
                         </button>
                     )}
                 </div>
@@ -640,6 +698,13 @@ export default function PokerToolsPage() {
 
               <BottomNavBar />
             </div>
+            {/* 2026-05-07 — UI-UX-Pro-Max: spin keyframes + reduced-motion guard */}
+            <style jsx global>{`
+                @keyframes spcalc-spin { to { transform: rotate(360deg); } }
+                @media (prefers-reduced-motion: reduce) {
+                    [aria-busy="true"] svg { animation: none !important; }
+                }
+            `}</style>
         </>
     );
 }
