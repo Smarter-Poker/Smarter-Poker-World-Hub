@@ -187,7 +187,18 @@ export default function MemoryGamesPage() {
 
     // Economy state - fetched from Supabase
     const [diamondBalance, setDiamondBalance] = useState(100);
-    const [isVIP, setIsVIP] = useState(false);
+    const [isVIP, setIsVIP] = useState(() => {
+        // 2026-05-07 — seed from localStorage synchronously so VIP users never
+        // see GameCostPopup flash during the async DiamondEngine.isVIP() round trip.
+        // null = "status not yet known" — popup mount guard treats this as "don't show".
+        if (typeof window === 'undefined') return null;
+        try {
+            const cached = localStorage.getItem('sp-vip-status') ?? localStorage.getItem('vip_status');
+            if (cached === 'true') return true;
+            if (cached === 'false') return false;
+        } catch (e) { /* localStorage unavailable */ }
+        return null;
+    });
 
     // Initialize Supabase client
     const supabase = useRef(null);
@@ -1267,7 +1278,7 @@ export default function MemoryGamesPage() {
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
                 {/* Per-game cost popup (one-time) */}
-                {userId && !isVIP && (
+                {userId && isVIP === false && (
                     <GameCostPopup userId={userId} featureKey="memory_games" isVip={isVIP} cost={10} />
                 )}
 
