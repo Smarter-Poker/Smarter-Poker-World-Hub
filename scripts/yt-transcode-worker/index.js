@@ -783,6 +783,142 @@ async function cookieRecoverySweep() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// Transient-failure retry sweep — finds reels stuck in media_status='failed'
+// whose LATEST job hit a transient error (rate-limited / timeout /
+// ffmpeg_exit_255 / yt-dlp_spawn / Bad Gateway / cookie-auth), and that have
+// NO permanent-failure history (members-only / private / region-blocked /
+// filtered-too-long). These should retry: rate limits decay, cookies refresh,
+// transient ffmpeg crashes don't repeat.
+//
+// Why this exists: cookieRecoverySweep covers `media_status='ready'`
+// (iframe-flagged) reels. orphanedQueuedSweep covers `media_status='queued'`.
+// Reels in `media_status='failed'` are invisible to both — they need a
+// dedicated sweep. Audited 2026-05-07 and found 117 reels stuck this way
+// with 50 rate-limit / 31 cookie / 24 timeout / 9 ffmpeg-255 / 2 spawn —
+// all transient, none had been retried.
+//
+// Bounded retries: skip reels with ≥3 failed jobs for the same URL to
+// prevent infinite retry loops on persistent (but transient-shaped) issues.
+// Throttled to once / TRANSIENT_RETRY_INTERVAL_MS (30 min).
+// Only reconsiders failures older than 1 hour (gives transient sources
+// time to recover before retrying — rate limits, cookie pushes, etc.).
+// ════════════════════════════════════════════════════════════════════════════
+const TRANSIENT_RETRY_INTERVAL_MS = 30 * 60 * 1000;
+const TRANSIENT_FAILURE_MIN_AGE_MS = 60 * 60 * 1000;   // only retry failures >1h old
+const TRANSIENT_RETRY_CAP = 3;                          // skip reels with ≥3 failures
+let lastTransientRetryAt = 0;
+
+const TRANSIENT_PATTERNS = [
+  /cookies-from-browser/i,
+  /cookies for the authentication/i,
+  /Sign in to confirm/i,
+  /rate-limit|rate limit/i,
+  /timeout/i,
+  /ffmpeg_exit_255/i,
+  /yt-dlp_spawn/i,
+  /Bad Gateway/i,
+];
+const PERMANENT_HISTORY_PATTERNS = [
+  /members-only/i,
+  /This video is private/i,
+  /age-restricted/i,
+  /not available in your country/i,
+  /filtered_too_long_or_large/i,
+  /Video unavailable/i,
+  /removed by the uploader/i,
+  /This live event will begin/i,
+  /copyright claim/i,
+];
+const isTransientFailure = (msg) => TRANSIENT_PATTERNS.some((rx) => rx.test(msg || ''));
+const hasPermanentHistory = (msgs) => msgs.some((m) => PERMANENT_HISTORY_PATTERNS.some((rx) => rx.test(m || '')));
+
+async function transientFailureRetrySweep() {
+  if (Date.now() - lastTransientRetryAt < TRANSIENT_RETRY_INTERVAL_MS) return;
+  lastTransientRetryAt = Date.now();
+
+  // 1. Find candidate reels in 'failed' state, video_url is YouTube
+  const { data: candidates } = await supa.from('social_reels')
+    .select('id, author_id, video_url')
+    .eq('media_status', 'failed')
+    .eq('source_type', 'youtube')
+    .ilike('video_url', '%youtube%')
+    .limit(500);
+  if (!candidates?.length) {
+    log('transient-retry: no failed reels found');
+    return;
+  }
+
+  // 2. Batch-fetch all failed jobs for these reels' URLs (one query)
+  const urls = Array.from(new Set(candidates.map((c) => c.video_url)));
+  const ageCutoff = new Date(Date.now() - TRANSIENT_FAILURE_MIN_AGE_MS).toISOString();
+  const { data: allFailedJobs } = await supa.from('video_transcode_jobs')
+    .select('youtube_url, error_message, completed_at, reel_id')
+    .eq('source_type', 'youtube')
+    .eq('status', 'failed')
+    .in('youtube_url', urls)
+    .order('completed_at', { ascending: false, nullsFirst: false });
+
+  // 3. Group jobs by URL, classify
+  const jobsByUrl = new Map();
+  for (const j of (allFailedJobs || [])) {
+    if (!jobsByUrl.has(j.youtube_url)) jobsByUrl.set(j.youtube_url, []);
+    jobsByUrl.get(j.youtube_url).push(j);
+  }
+
+  // 4. Determine which reels qualify for retry:
+  //    - Latest failure was transient
+  //    - Latest failure is OLDER than 1 hour (transient sources had time to recover)
+  //    - Has < TRANSIENT_RETRY_CAP failures total for this URL
+  //    - No permanent-failure history mixed in
+  const eligible = [];
+  for (const reel of candidates) {
+    const jobs = jobsByUrl.get(reel.video_url) || [];
+    if (jobs.length === 0 || jobs.length >= TRANSIENT_RETRY_CAP) continue;
+    const latest = jobs[0];
+    if (!isTransientFailure(latest.error_message)) continue;
+    if (latest.completed_at && new Date(latest.completed_at) > new Date(ageCutoff)) continue;
+    const allMsgs = jobs.map((j) => j.error_message);
+    if (hasPermanentHistory(allMsgs)) continue;
+    eligible.push(reel);
+  }
+
+  if (!eligible.length) {
+    log(`transient-retry: ${candidates.length} failed reels checked, 0 eligible (none transient + age + uncapped)`);
+    return;
+  }
+  log(`transient-retry: ${eligible.length} reel(s) eligible — retrying`);
+
+  // 5. Reset reel to 'queued', INSERT new transcode job (per distinct URL)
+  for (const r of eligible) {
+    await supa.from('social_reels').update({ media_status: 'queued' }).eq('id', r.id);
+  }
+  const seen = new Set();
+  let inserted = 0, raceSkipped = 0;
+  for (const r of eligible) {
+    if (seen.has(r.video_url)) continue;
+    seen.add(r.video_url);
+    // Skip if a live job exists for this URL
+    const { data: existing } = await supa.from('video_transcode_jobs')
+      .select('id').eq('source_type', 'youtube').eq('youtube_url', r.video_url)
+      .in('status', ['queued', 'processing']).limit(1).maybeSingle();
+    if (existing) { raceSkipped++; continue; }
+    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
+      reel_id: r.id, user_id: r.author_id,
+      source_url: r.video_url, youtube_url: r.video_url,
+      source_type: 'youtube', status: 'queued',
+      target_format: 'h264_1080p', target_bitrate: 2500000,
+    });
+    if (insErr) {
+      if (insErr.code === '23505') raceSkipped++;
+      else warn(`transient-retry: insert failed for ${r.video_url}: ${insErr.message}`);
+    } else {
+      inserted++;
+    }
+  }
+  log(`transient-retry: enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already live)`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Main loop — adaptive polling. Fast (5s) when jobs are flowing, slow (60s)
 // when the queue is idle. Saves wasted DB roundtrips during quiet hours.
 // ════════════════════════════════════════════════════════════════════════════
@@ -805,6 +941,7 @@ async function pollLoop() {
     //     SQL updates that bypassed the INSERT trigger).
     cookieRecoverySweep().catch((e) => warn('cookie-recovery error:', e?.message));
     orphanedQueuedSweep().catch((e) => warn('orphan-sweep error:', e?.message));
+    transientFailureRetrySweep().catch((e) => warn('transient-retry error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
