@@ -1,0 +1,25 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Migration: live_streams_replica_identity_full
+-- Version:   20260507165758
+-- Applied:   2026-05-07 via Supabase MCP apply_migration
+-- Audit:     PR #240 — fix(streaming): full sweep — 10 bugs (Bug 5 verification)
+--
+-- Purpose
+--   Found during the line-by-line verification pass. The social-media feed
+--   listener in pages/hub/social-media/index.js compares prev.status to
+--   next.status on each UPDATE event to decide whether to refetch the full
+--   live-streams list (status transition: live → ended or vice versa) vs
+--   patch the row in place (preview_clip_url / viewer_count / etc).
+--
+--   That comparison requires postgres_changes' payload.old to contain the
+--   status column. With default replica identity, payload.old contains only
+--   the primary key, so the comparison would silently misfire and the
+--   in-place row patch would never run as intended.
+--
+--   FULL replica identity makes payload.old contain every column. Slight
+--   WAL increase per row is negligible compared to the in-place-patch perf
+--   win (~25s preview UPDATEs per broadcaster no longer trigger a full
+--   list refetch).
+-- ═══════════════════════════════════════════════════════════════════════════
+
+ALTER TABLE public.live_streams REPLICA IDENTITY FULL;
