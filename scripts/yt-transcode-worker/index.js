@@ -829,6 +829,17 @@ const nativePosterBlacklist = new Set();   // in-memory IDs that failed this pro
 const IFRAME_THUMB_INTERVAL_MS = 30 * 60 * 1000;
 let lastIframeThumbAt = 0;
 
+// Dead-video hiding sweep — periodically detects YouTube reels whose source
+// video has been deleted/privated/copyright-stricken (signature: 404 on
+// img.youtube.com/vi/<id>/hqdefault.jpg) and flips is_public=false so the
+// iframe stops rendering "Video unavailable" in the user feed. Same logic
+// as the manual scripts/cleanup-broken-videos.js but self-healing on a 6h
+// cadence — long enough to be cheap, frequent enough that dead videos
+// never linger more than a quarter-day.
+const DEAD_VIDEO_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const DEAD_VIDEO_BATCH       = 200;
+let lastDeadVideoAt = 0;
+
 const TRANSIENT_PATTERNS = [
   /cookies-from-browser/i,
   /cookies for the authentication/i,
@@ -1125,6 +1136,85 @@ async function iframeThumbnailDeriveSweep() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// Dead-video hiding sweep — sixth self-healer.
+//
+// 2026-05-07 audit found 644 reels (138 distinct YouTube URLs) hidden via
+// the manual scripts/cleanup-broken-videos.js. Verified: hqdefault.jpg
+// returns 404 for all sampled — same signature as known-deleted IDs. The
+// cleanup logic is correct, but the script is unscheduled, so dead-video
+// detection only runs when an operator manually triggers it. This sweep
+// makes that detection self-healing on a 6h cadence.
+//
+// Safe to run frequently: HEAD requests against img.youtube.com are cheap
+// (no body), and we cap at DEAD_VIDEO_BATCH=200 reels per tick. Per-reel
+// cost is ~50ms (HEAD + small UPDATE), so a full tick is ~10s wall-clock.
+// Negligible against MAX_CONCURRENT_YT=3 transcode jobs.
+//
+// Idempotent: WHERE is_public=true filter means already-hidden reels are
+// skipped on subsequent ticks.
+// ════════════════════════════════════════════════════════════════════════════
+async function deadVideoHidingSweep() {
+  if (Date.now() - lastDeadVideoAt < DEAD_VIDEO_INTERVAL_MS) return;
+  lastDeadVideoAt = Date.now();
+
+  const { data: candidates, error } = await supa.from('social_reels')
+    .select('id, video_url')
+    .eq('media_status', 'ready')
+    .eq('is_public', true)
+    .eq('source_type', 'youtube')
+    .ilike('video_url', '%youtube%')
+    .limit(DEAD_VIDEO_BATCH);
+
+  if (error) { warn('dead-video: select error:', error.message); return; }
+  if (!candidates?.length) {
+    log('dead-video: no candidates');
+    return;
+  }
+
+  // Same regex set the rest of the worker uses — covers /embed/, /shorts/, /v/, ?v=
+  const RE1 = /\/(?:embed|shorts|v)\/([A-Za-z0-9_-]{11})/;
+  const RE2 = /[?&]v=([A-Za-z0-9_-]{11})/;
+  const deadIds = [];
+  let unmatchedUrl = 0, alive = 0, headErrors = 0;
+
+  for (const reel of candidates) {
+    const m1 = RE1.exec(reel.video_url || '');
+    const m2 = !m1 ? RE2.exec(reel.video_url || '') : null;
+    const videoId = m1?.[1] || m2?.[1] || null;
+    if (!videoId) { unmatchedUrl++; continue; }
+
+    try {
+      const res = await fetch(
+        `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+        { method: 'HEAD', signal: AbortSignal.timeout(5_000) },
+      );
+      if (res.status === 404) {
+        deadIds.push(reel.id);
+      } else if (res.status >= 200 && res.status < 300) {
+        alive++;
+      } else {
+        // 5xx, 429 — ambiguous; don't hide on transient errors
+        headErrors++;
+      }
+    } catch (_) {
+      headErrors++;
+    }
+  }
+
+  if (deadIds.length) {
+    const { error: updErr } = await supa.from('social_reels')
+      .update({ is_public: false })
+      .in('id', deadIds);
+    if (updErr) {
+      warn(`dead-video: bulk update failed:`, updErr.message);
+      return;
+    }
+  }
+
+  log(`dead-video: ${candidates.length} checked, ${deadIds.length} hidden, ${alive} alive, ${unmatchedUrl} unmatched URLs, ${headErrors} HEAD errors`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Main loop — adaptive polling. Fast (5s) when jobs are flowing, slow (60s)
 // when the queue is idle. Saves wasted DB roundtrips during quiet hours.
 // ════════════════════════════════════════════════════════════════════════════
@@ -1156,6 +1246,11 @@ async function pollLoop() {
     //     hqdefault thumbnails for source_type='youtube' reels with NULL
     //     thumbnail_url. Pure SQL — sister to the native-MP4 sweep.
     iframeThumbnailDeriveSweep().catch((e) => warn('iframe-thumb error:', e?.message));
+    //   - deadVideoHidingSweep: once / 6h, HEAD-checks YouTube hqdefault.jpg
+    //     for public reels and flips is_public=false on 404s (deleted/private/
+    //     copyright-stricken videos). Self-healing replacement for the manual
+    //     scripts/cleanup-broken-videos.js.
+    deadVideoHidingSweep().catch((e) => warn('dead-video error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
