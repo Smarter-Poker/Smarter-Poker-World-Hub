@@ -820,6 +820,15 @@ const NATIVE_POSTER_BATCH      = 20;
 let lastNativePosterAt = 0;
 const nativePosterBlacklist = new Set();   // in-memory IDs that failed this process lifetime
 
+// YouTube iframe thumbnail derive — sister sweep to nativePosterBackfillSweep
+// covering source_type='youtube'. Reels mirrored from social_posts or
+// transitioned to 'ready' state after the 20260507200000 one-shot backfill
+// can land with thumbnail_url=NULL. The fix is pure SQL: derive
+// img.youtube.com/vi/<id>/hqdefault.jpg from the 11-char video ID in the
+// URL. No ffmpeg, no storage upload — runs in milliseconds.
+const IFRAME_THUMB_INTERVAL_MS = 30 * 60 * 1000;
+let lastIframeThumbAt = 0;
+
 const TRANSIENT_PATTERNS = [
   /cookies-from-browser/i,
   /cookies for the authentication/i,
@@ -1054,6 +1063,68 @@ async function nativePosterBackfillSweep() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// YouTube-iframe thumbnail derive sweep — fifth self-healer.
+//
+// Sister sweep to nativePosterBackfillSweep, but for source_type='youtube'.
+// The 2026-05-07 one-shot migration 20260507200000_backfill_iframe_reel_thumbnails
+// fixed 8,982 historical iframe reels — but reels can transition to
+// (media_status='ready', is_public=true, thumbnail_url=NULL) AFTER that
+// migration ran via:
+//   - the social_posts → social_reels mirror trigger (NEW.thumbnail_url NULL)
+//   - the worker's permanent-failure path setting media_status='ready'
+//     (iframe-forever) on a previously-queued reel
+//
+// Without a periodic sweep, those new stragglers paint a black frame on
+// first render until someone notices. This sweep runs the SAME regex-derive
+// UPDATE as the migration. Pure SQL — no ffmpeg, no fetch, no storage.
+// Idempotent: WHERE clauses match 0 rows after first successful run.
+// ════════════════════════════════════════════════════════════════════════════
+async function iframeThumbnailDeriveSweep() {
+  if (Date.now() - lastIframeThumbAt < IFRAME_THUMB_INTERVAL_MS) return;
+  lastIframeThumbAt = Date.now();
+
+  // Use rpc('exec', ...) is not available on supabase-js; instead, do this
+  // as a multi-step JS pattern: SELECT candidates, derive video_id in JS,
+  // UPDATE one-by-one. Tiny batch (max 50) keeps it cheap.
+  const { data: candidates, error } = await supa.from('social_reels')
+    .select('id, video_url')
+    .eq('media_status', 'ready')
+    .eq('is_public', true)
+    .is('thumbnail_url', null)
+    .ilike('video_url', '%youtube%')
+    .limit(50);
+
+  if (error) { warn('iframe-thumb: select error:', error.message); return; }
+  if (!candidates?.length) {
+    log('iframe-thumb: no youtube reels need thumbs');
+    return;
+  }
+
+  // Match the migration's regex pattern set: /embed/, /shorts/, /v/, ?v=
+  const RE1 = /\/(?:embed|shorts|v)\/([A-Za-z0-9_-]{11})/;
+  const RE2 = /[?&]v=([A-Za-z0-9_-]{11})/;
+  let updated = 0, unmatched = 0;
+
+  for (const reel of candidates) {
+    const m1 = RE1.exec(reel.video_url || '');
+    const m2 = !m1 ? RE2.exec(reel.video_url || '') : null;
+    const videoId = m1?.[1] || m2?.[1] || null;
+    if (!videoId) { unmatched++; continue; }
+
+    const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    const { error: updErr } = await supa.from('social_reels')
+      .update({ thumbnail_url: thumbUrl })
+      .eq('id', reel.id);
+    if (updErr) {
+      warn(`iframe-thumb: update failed for ${reel.id}: ${updErr.message}`);
+    } else {
+      updated++;
+    }
+  }
+  log(`iframe-thumb: ${updated} thumbnails derived, ${unmatched} unmatched URLs`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Main loop — adaptive polling. Fast (5s) when jobs are flowing, slow (60s)
 // when the queue is idle. Saves wasted DB roundtrips during quiet hours.
 // ════════════════════════════════════════════════════════════════════════════
@@ -1081,6 +1152,10 @@ async function pollLoop() {
     //     native-MP4 reels uploaded with NULL thumbnail_url (Stories.jsx +
     //     mirror-trigger paths). Self-healing forever.
     nativePosterBackfillSweep().catch((e) => warn('native-poster error:', e?.message));
+    //   - iframeThumbnailDeriveSweep: once / 30 min, derives YouTube
+    //     hqdefault thumbnails for source_type='youtube' reels with NULL
+    //     thumbnail_url. Pure SQL — sister to the native-MP4 sweep.
+    iframeThumbnailDeriveSweep().catch((e) => warn('iframe-thumb error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
