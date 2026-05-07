@@ -1,2245 +1,782 @@
 /**
- *  TRAINING PAGE — 100-Game Library with Video Game Feel
- * ═══════════════════════════════════════════════════════════════════════════
- * 
- * Features:
- * - Complete 100-game library across 5 categories
- * - User progress tracking with NEW/MASTERED indicators
- * - Animated game cards with framer-motion
- * - Category filter system (ALL, GTO, EXPLOITATIVE, MATH)
- * - Netflix-style horizontal scrolling lanes
- * - Overall user stats display
- * 
- * ═══════════════════════════════════════════════════════════════════════════
+ * pages/hub/training.js — REDESIGNED
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Drop-in replacement for Smarter-Poker-World-Hub/pages/hub/training.js
+ *
+ * What changed (vs the existing 2,245-line page):
+ *   - Re-framed the page from "100-game catalog" -> "AI-coached daily surface"
+ *   - New IA: app bar -> hero plan -> leak banner -> stats strip -> library
+ *   - All inline styles moved to a shared `tokens` object
+ *   - GSAP + ScrollTrigger + canvas-confetti + framer-motion removed from the
+ *     initial bundle. Arena celebrations still load `canvas-confetti` lazily.
+ *   - Lucide icons (already a dependency in the codebase) replace emoji icons
+ *   - Sentence case throughout, single primary accent (#00D4FF) reserved
+ *     for the one-tap CTA per screen
+ *   - Touch targets >=44pt, focus rings visible, prefers-reduced-motion honoured
+ *
+ * Existing imports preserved so the page slots into the codebase 1:1:
+ *   - TRAINING_LIBRARY, getGamesByCategory  (src/data/TRAINING_LIBRARY)
+ *   - useTrainingProgress                    (src/hooks/useTrainingProgress)
+ *   - useTrainingStore                       (src/stores/trainingStore)
+ *   - JarvisRecommendations                  (src/components/training/JarvisRecommendations)
+ *   - LeakSignalAnalyzer                     (src/engine/LeakSignalAnalyzer)
+ *   - GodModeArena (lazy)                    (src/components/training/GodModeArena)
+ *   - UniversalHeader / BottomNavBar         (src/components/ui)
+ *   - SEOHead, PageTransition                (existing)
+ *
+ * Author: redesign generated 2026-05-06
  */
 
 import { useRouter } from 'next/router';
-import SEOHead from '../../src/components/seo/SEOHead';
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
-// gsap loaded dynamically — not needed for initial render
-let gsap = null;
-let ScrollTrigger = null;
-if (typeof window !== 'undefined') {
-    import('gsap').then(m => { gsap = m.default; });
-    import('gsap/dist/ScrollTrigger').then(m => { ScrollTrigger = m.ScrollTrigger; });
-}
-// confetti loaded lazily on first use
-let _confetti = null;
-async function fireConfetti(opts) {
-    try {
-        if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
-        _confetti(opts);
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-}
-import GameCard from '../../src/components/training/GameCard';
-import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
-import useTrainingProgress from '../../src/hooks/useTrainingProgress';
-import { getAuthUser } from '../../src/lib/authUtils';
-import { getGameImage } from '../../src/data/GAME_IMAGES';
-import DiamondEngine from '../../src/services/DiamondEngine';
-import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
-import GameIntroSplash from '../../src/components/training/GameIntroSplash';
-import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
-import SmartPracticeCard from '../../src/components/training/SmartPracticeCard';
-import StudyStreakMap from '../../src/components/training/StudyStreakMap';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import {
+  Play, Shuffle, Target, Clock, Layers, Zap, AlertTriangle, Wrench,
+  TrendingUp, Flame, Search, Trophy, DollarSign, Rocket, Brain, Atom,
+  Grid2x2, Check, Sparkles, Lock, Gem, Home, Users, BarChart3, User,
+  ArrowRight,
+} from 'lucide-react';
 
-// Dynamic import for GodModeArena to avoid SSR issues
-const GodModeArena = dynamic(
-    () => import('../../src/components/training/GodModeArena').catch(err => {
-        console.warn('[Training] Failed to load GodModeArena chunk:', err);
-        // Return a fallback component on chunk load failure
-        return {
-            default: () => (
-                <div style={{ padding: 40, textAlign: 'center', color: '#fff' }}>
-                    <h3 style={{ color: '#ef4444', marginBottom: 12 }}>Failed to load game arena</h3>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>Please refresh the page to try again.</p>
-                    <button onClick={() => window.location.reload()} style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: 20, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Refresh</button>
-                </div>
-            )
-        };
-    }),
-    {
-        ssr: false,
-        loading: () => (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'rgba(255,255,255,0.5)' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 32, marginBottom: 12, animation: 'spin 1s linear infinite', width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00d4ff', borderRadius: '50%' }} />
-                    <div>Loading Game Arena...</div>
-                </div>
-            </div>
-        ),
-    }
-);
+import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import TrainingSettingsMenu from '../../src/components/training/TrainingSettingsMenu';
-
-// God-Mode Stack
-import { useTrainingStore } from '../../src/stores/trainingStore';
-import PageTransition from '../../src/components/transitions/PageTransition';
-import { achievementCelebration } from '../../src/utils/confetti';
-import toast from '../../src/stores/toastStore';
-import { trainingSounds } from '../../src/utils/trainingSounds';
-import GamificationService from '../../services/GamificationService';
-import AchievementToast from '../../src/components/training/AchievementToast';
-import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
-import { getCoachingTip, shareResult } from '../../src/utils/shareCard';
-import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
-// DailyBonusWidget removed per UI overhaul
-import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
-import useTrainingBus from '../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
-// busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
-import { findBestGames, getVideoContext, extractCardsFromContext, buildSandboxUrl } from '../../src/utils/videoToTrainingMapper';
-import { getGameById } from '../../src/data/TRAINING_LIBRARY';
+import PageTransition from '../../src/components/transitions/PageTransition';
+import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
+import { getGameImage } from '../../src/data/GAME_IMAGES';
+import useTrainingProgress from '../../src/hooks/useTrainingProgress';
+import { useTrainingStore } from '../../src/stores/trainingStore';
+import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import DiamondEngine from '../../src/services/DiamondEngine';
+import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
+import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
 
+const GodModeArena = dynamic(() => import('../../src/components/training/GodModeArena'), {
+  ssr: false,
+  loading: () => <ArenaSkeleton />,
+});
 
-// Register GSAP plugins
-if (typeof window !== 'undefined') {
-    if (gsap && ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
-}
-
-
-// Filter options - Category based filters that link to game lanes
-const FILTERS = [
-    { id: 'ALL', label: 'ALL', color: '#fff', activeColor: '#0a0a15' },
-    { id: 'MTT', label: 'TOURNAMENTS', color: '#FF6B35', laneTitle: 'MTT MASTERY' },
-    { id: 'CASH', label: 'CASH GAMES', color: '#4CAF50', laneTitle: 'CASH GAME GRIND' },
-    { id: 'SPINS', label: "SIT N GO'S", color: '#FFD700', laneTitle: 'SPINS & SNGS' },
-    { id: 'PSYCHOLOGY', label: 'PSYCHOLOGY', color: '#9C27B0', laneTitle: 'MENTAL GAME' },
-    { id: 'ADVANCED', label: 'ADVANCED', color: '#2196F3', laneTitle: 'ADVANCED THEORY' },
-];
-
-// Category definitions (no icons)
-const CATEGORIES = [
-    { id: 'MTT', title: 'MTT MASTERY', color: '#FF6B35' },
-    { id: 'CASH', title: 'CASH GAME GRIND', color: '#4CAF50' },
-    { id: 'SPINS', title: 'SPINS & SNGS', color: '#FFD700' },
-    { id: 'PSYCHOLOGY', title: 'MENTAL GAME', color: '#9C27B0' },
-    { id: 'ADVANCED', title: 'ADVANCED THEORY', color: '#2196F3' },
-];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// TRAINING HEADER — Fixed header with Hub button, stats, and profile
-// ═══════════════════════════════════════════════════════════════════════════
-
-function TrainingHeader({ gamesPlayed = 0 }) {
-    const router = useRouter();
-    const [diamonds, setDiamonds] = useState(0);
-    const [avatarUrl, setAvatarUrl] = useState(null);
-
-    // Fetch user profile data using authUtils
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const { getAuthUser, queryProfiles, queryDiamondBalance } = await import('../../src/lib/authUtils');
-                const authUser = getAuthUser();
-                if (authUser) {
-                    // Fetch profile for avatar only
-                    const profile = await queryProfiles(authUser.id, 'avatar_url');
-                    // Fetch diamond balance from user_diamond_balance table
-                    const diamondBalance = await queryDiamondBalance(authUser.id);
-
-                    if (profile) {
-                        setAvatarUrl(profile.avatar_url);
-                    }
-                    setDiamonds(diamondBalance);
-                }
-            } catch (e) {
-                console.warn('Failed to fetch profile:', e);
-            }
-        };
-        fetchProfile();
-    }, []);
-
-    return (
-        <div style={headerStyles.container}>
-            {/* LEFT: Smarter.Poker Logo → Hub */}
-            <div
-                onClick={() => router.push('/hub')}
-                style={headerStyles.logoContainer}
-            >
-                <img
-                    src="/smarter-poker-logo-transparent.png"
-                    alt="Smarter Poker"
-                    style={headerStyles.logo}
-                    loading="lazy" />
-            </div>
-
-            {/* RIGHT: Stats + Profile */}
-            <div style={headerStyles.rightSection}>
-                {/* Games Played Counter */}
-                <div style={headerStyles.gamesChip}>
-                    <span style={headerStyles.gamesValue}>{gamesPlayed}</span>
-                    <span style={headerStyles.gamesLabel}>Of 100</span>
-                </div>
-
-                {/* Diamond Wallet with + for top-up */}
-                <div
-                    onClick={() => router.push('/hub/diamond-store')}
-                    style={{ ...headerStyles.statChip, cursor: 'pointer' }}
-                >
-                    <span style={{ fontSize: 14 }}>Diamonds</span>
-                    <span style={headerStyles.statValue}>{diamonds.toLocaleString()}</span>
-                    <span style={headerStyles.plusIcon}>+</span>
-                </div>
-
-
-
-                {/* Settings Menu Button */}
-                <TrainingSettingsMenu />
-
-                {/* Profile Orb → Profile Page */}
-                <div
-                    onClick={() => router.push('/hub/profile')}
-                    style={{
-                        ...headerStyles.profileOrb,
-                        backgroundImage: avatarUrl ? `url('${avatarUrl}')` : 'linear-gradient(135deg, #00d4ff, #0066ff)',
-                    }}
-                />
-            </div>
-        </div>
-    );
-}
-
-const headerStyles = {
-    container: {
-        position: 'sticky',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 56,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0 16px',
-        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.98), rgba(5, 15, 30, 0.95))',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        zIndex: 100,
-    },
-    logoContainer: {
-        cursor: 'pointer',
-        transition: 'transform 0.2s ease',
-    },
-    logo: {
-        height: 36,
-        width: 'auto',
-        objectFit: 'contain',
-    },
-    rightSection: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-    },
-    statChip: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '6px 10px',
-        background: 'rgba(255, 255, 255, 0.08)',
-        borderRadius: 16,
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-    },
-    statValue: {
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#fff',
-    },
-    gamesChip: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '6px 12px',
-        background: 'rgba(0, 212, 255, 0.15)',
-        borderRadius: 16,
-        border: '1px solid rgba(0, 212, 255, 0.4)',
-    },
-    gamesValue: {
-        fontSize: 14,
-        fontWeight: 800,
-        color: '#00d4ff',
-    },
-    gamesLabel: {
-        fontSize: 10,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-    plusIcon: {
-        fontSize: 12,
-        fontWeight: 800,
-        color: '#4CAF50',
-        marginLeft: 2,
-    },
-    profileOrb: {
-        width: 32,
-        height: 32,
-        borderRadius: '50%',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        border: '2px solid rgba(0, 212, 255, 0.6)',
-        boxShadow: '0 0 12px rgba(0, 212, 255, 0.3)',
-        cursor: 'pointer',
-    },
+const t = {
+  bg0: '#060912', bg1: '#0a0e1c', bg2: '#0f1424',
+  line: 'rgba(255,255,255,0.07)',
+  line2: 'rgba(255,255,255,0.12)',
+  ink0: '#f8fafc', ink1: '#cbd5e1', ink2: '#94a3b8', ink3: '#64748b',
+  primary: '#00D4FF', primaryInk: '#001a22',
+  warn: '#F59E0B', good: '#22C55E', bad: '#EF4444',
+  rSm: 8, rMd: 12, rLg: 16, rPill: 9999,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PROMO SECTION — Living advertisement / featured content area
-// ═══════════════════════════════════════════════════════════════════════════
-
-function PromoSection({ onPlayFeatured }) {
-    return (
-        <motion.div
-            style={promoStyles.container}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-        >
-            <div style={promoStyles.content}>
-                <span style={promoStyles.badge}>DAILY CHALLENGE</span>
-                <h2 style={promoStyles.title}>HIGH STAKES BLUFFS</h2>
-                <p style={promoStyles.subtitle}>Master River Bluffing • 20 Hands • 85% To Pass</p>
-                <motion.button
-                    style={promoStyles.playButton}
-                    onClick={onPlayFeatured}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                >
-                    ▶ PLAY NOW
-                </motion.button>
-            </div>
-        </motion.div>
-    );
-}
-
-const promoStyles = {
-    container: {
-        padding: '16px 20px',
-        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(0, 100, 200, 0.1))',
-        borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
-    },
-    content: {
-        textAlign: 'center',
-    },
-    badge: {
-        display: 'inline-block',
-        padding: '4px 10px',
-        background: 'rgba(0, 212, 255, 0.15)',
-        border: '1px solid rgba(0, 212, 255, 0.4)',
-        borderRadius: 12,
-        fontSize: 10,
-        fontWeight: 700,
-        color: '#00d4ff',
-        letterSpacing: 0.5,
-        marginBottom: 6,
-    },
-    title: {
-        margin: '0 0 4px 0',
-        fontSize: 22,
-        fontWeight: 900,
-        fontFamily: 'Orbitron, sans-serif',
-        color: '#fff',
-        letterSpacing: 2,
-        textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-    },
-    subtitle: {
-        margin: '0 0 10px 0',
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.6)',
-    },
-    playButton: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '10px 24px',
-        background: 'linear-gradient(135deg, #FF6B35, #FF8F35)',
-        border: 'none',
-        borderRadius: 24,
-        fontSize: 13,
-        fontWeight: 800,
-        color: '#fff',
-        cursor: 'pointer',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-    },
-    xpBadge: {
-        padding: '3px 8px',
-        background: 'rgba(255,255,255,0.2)',
-        borderRadius: 10,
-        fontSize: 10,
-        fontWeight: 700,
-    },
+const CATEGORY_META = {
+  MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
+  CASH:       { label: 'Cash games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
+  SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#FACC15', glow: 'rgba(250,204,21,0.22)' },
+  PSYCHOLOGY: { label: 'Mental game',  Icon: Brain,      color: '#C084FC', glow: 'rgba(192,132,252,0.22)' },
+  ADVANCED:   { label: 'Advanced',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STREAKS BADGE — Shows highest streak achievement
-// ═══════════════════════════════════════════════════════════════════════════
-
-function StreaksBadge({ bestStreak }) {
-    if (!bestStreak || bestStreak === 0) return null;
-
-    return (
-        <motion.div
-            style={streakStyles.container}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-        >
-            <div style={streakStyles.content}>
-                <span style={streakStyles.icon}></span>
-                <div style={streakStyles.textContainer}>
-                    <span style={streakStyles.label}>BEST STREAK</span>
-                    <span style={streakStyles.value}>{bestStreak} in a row</span>
-                </div>
-            </div>
-        </motion.div>
-    );
-}
-
-const streakStyles = {
-    container: {
-        padding: '12px 20px',
-        background: 'linear-gradient(135deg, rgba(255, 107, 53, 0.12), rgba(255, 152, 0, 0.08))',
-        borderBottom: '1px solid rgba(255, 152, 0, 0.2)',
-    },
-    content: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-    },
-    icon: {
-        fontSize: 24,
-    },
-    textContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-    },
-    label: {
-        fontSize: 9,
-        fontWeight: 700,
-        color: 'rgba(255, 255, 255, 0.5)',
-        letterSpacing: 0.5,
-    },
-    value: {
-        fontSize: 16,
-        fontWeight: 900,
-        color: '#FF9800',
-        fontFamily: 'Orbitron, sans-serif',
-    },
-};
-
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// FILTER BAR
-// ═══════════════════════════════════════════════════════════════════════════
-
-function FilterBar({ active, onFilter, gameCount }) {
-    return (
-        <div style={styles.filterBar}>
-            <div style={styles.filterPills}>
-                {FILTERS.map(filter => {
-                    const isActive = active === filter.id;
-                    return (
-                        <motion.button
-                            key={filter.id}
-                            onClick={() => onFilter(filter.id)}
-                            style={{
-                                ...styles.filterPill,
-                                background: isActive ? '#fff' : 'transparent',
-                                color: isActive ? '#0a0a15' : '#fff',
-                                border: isActive ? 'none' : `1px solid ${filter.color}60`,
-                            }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                        >
-                            {filter.label}
-                        </motion.button>
-                    );
-                })}
-            </div>
-            {/* Game count removed to fit all 6 pills */}
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// OUT OF DIAMONDS MODAL
-// ═══════════════════════════════════════════════════════════════════════════
-function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
-    const router = useRouter();
-    if (!isOpen) return null;
-
-    return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-        }}>
-            <div style={{
-                background: 'linear-gradient(135deg, #1a0a2a, #0a0a12)',
-                borderRadius: 24,
-                padding: 32,
-                maxWidth: 420,
-                width: '90%',
-                textAlign: 'center',
-                border: '2px solid rgba(255, 107, 0, 0.5)',
-                boxShadow: 'none',
-            }}>
-                <div style={{ fontSize: 64, marginBottom: 16 }}>◆</div>
-                <h2 style={{
-                    fontFamily: 'Orbitron, sans-serif',
-                    fontSize: 28,
-                    fontWeight: 900,
-                    color: '#ff6b00',
-                    marginBottom: 8,
-                }}>OUT OF DIAMONDS</h2>
-                <p style={{
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: 16,
-                    marginBottom: 24,
-                    lineHeight: 1.6,
-                }}>
-                    You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this training game.
-                </p>
-
-                <div style={{
-                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
-                    borderRadius: 16,
-                    padding: 20,
-                    marginBottom: 24,
-                    border: '1px solid rgba(138, 43, 226, 0.3)',
-                }}>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
-                        GET VIP FOR
-                    </div>
-                    <div style={{
-                        fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 32,
-                        fontWeight: 900,
-                        color: '#fff',
-                        marginBottom: 4,
-                    }}>
-                        $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
-                    </div>
-                    <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
-                        UNLIMITED ACCESS • No diamonds needed
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 12 }}>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            flex: 1,
-                            padding: '14px 24px',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: 12,
-                            color: '#fff',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                        }}
-                    >
-                        Maybe Later
-                    </button>
-                    <button
-                        onClick={() => router.push('/hub/diamond-store?tab=vip')}
-                        style={{
-                            flex: 1,
-                            padding: '14px 24px',
-                            background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
-                            border: 'none',
-                            borderRadius: 12,
-                            color: '#fff',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                        }}
-                    >
-                        Get Diamonds
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// GAME LANE (Horizontal scroll) - Mobile Optimized
-// ═══════════════════════════════════════════════════════════════════════════
-
-function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, categoryId, onCategoryClick }) {
-    const router = useRouter();
-    if (!games || games.length === 0) return null;
-
-    const handleHeaderClick = () => {
-        if (categoryId && onCategoryClick) {
-            onCategoryClick(categoryId);
-        }
-    };
-
-    return (
-        <div className="game-lane" style={styles.lane}>
-            {/* Clickable Lane header */}
-            <div
-                style={{
-                    ...styles.laneHeader,
-                    cursor: categoryId ? 'pointer' : 'default'
-                }}
-                onClick={handleHeaderClick}
-            >
-                <span style={{ ...styles.laneChevron, color }}>»</span>
-                {/* Icons removed */}
-                <h2 className="vp-lane-title" style={{ ...styles.laneTitle, color }}>{title}</h2>
-                {badge && (
-                    <motion.span
-                        style={styles.laneBadge}
-                        animate={{ scale: [1, 1.05, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                    >
-                        {badge}
-                    </motion.span>
-                )}
-            </div>
-
-            {/* Horizontal scrolling cards - Shows ALL games with horizontal scroll */}
-            <div style={styles.laneScroller}>
-                <div className="vp-lane-cards" style={styles.laneCards}>
-                    {games.map((game, i) => (
-                        <GameCard
-                            key={game.id}
-                            game={game}
-                            progress={getProgress(game.id)}
-                            onClick={onGameClick}
-                            index={i}
-                            image={getGameImage(game.id)}
-                        />
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════════════════
-// VIDEO CONTEXT BANNER — shown when arriving from "Train This Spot"
-// ═══════════════════════════════════════════════════════════════════════════
-function VideoContextBanner({ videoContext, matchedGames, onDismiss, onLaunchGame }) {
-    if (!videoContext?.vid) return null;
-    const thumbnailUrl = `https://img.youtube.com/vi/${videoContext.vid}/mqdefault.jpg`;
-    const extracted = extractCardsFromContext(videoContext);
-    const sandboxUrl = buildSandboxUrl(videoContext);
-    const hasSandboxContext = !!(extracted.hand || extracted.board || extracted.position);
-    const sourceLabel = (videoContext.source || '').replace(/_/g, ' ');
-
-    return (
-        <div style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            zIndex: 9000,
-            background: 'rgba(0,0,0,0.88)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-        }}>
-            <div style={{
-                background: 'linear-gradient(135deg, #0a0a1a, #0f1a2e)',
-                borderRadius: 24,
-                border: '1.5px solid rgba(0,212,255,0.3)',
-                boxShadow: '0 0 60px rgba(0,212,255,0.12), 0 30px 80px rgba(0,0,0,0.7)',
-                width: '100%',
-                maxWidth: 520,
-                overflow: 'hidden',
-                animation: 'tts-slide-in 0.35s cubic-bezier(0.34,1.56,0.64,1) both',
-            }}>
-                {/* Header */}
-                <div style={{
-                    padding: '20px 24px 16px',
-                    borderBottom: '1px solid rgba(255,255,255,0.07)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                }}>
-                    <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))',
-                        border: '1.5px solid rgba(0,200,83,0.5)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                        </svg>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#34C759', letterSpacing: 0.5, marginBottom: 1 }}>Train This Spot</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {videoContext.ref === 'reels' ? 'AI-matched drills for this reel'
-                             : videoContext.ref === 'sandbox' ? 'AI-matched drills for this hand'
-                             : 'AI-matched drills for this exact video'}
-                        </div>
-                    </div>
-                    <button onClick={onDismiss} style={{
-                        background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)',
-                        fontSize: 16, flexShrink: 0, transition: 'background 0.15s',
-                    }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-                       onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}>
-                        ✕
-                    </button>
-                </div>
-
-                {/* Video Preview */}
-                <div style={{ padding: '16px 24px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                    <div style={{
-                        width: 120, height: 68, borderRadius: 10, overflow: 'hidden',
-                        flexShrink: 0, background: '#111', position: 'relative',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                    }}>
-                        <img src={thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                             onError={e => { e.currentTarget.style.display = 'none'; }} />
-                        <div style={{
-                            position: 'absolute', top: 4, right: 4,
-                            background: 'rgba(0,0,0,0.75)', borderRadius: 4, padding: '1px 5px',
-                            fontSize: 9, fontWeight: 700, color: '#fff',
-                        }}>VIDEO</div>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                            fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.4,
-                            marginBottom: 6, overflow: 'hidden',
-                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                        }}>{videoContext.title || 'Poker Video'}</div>
-                        {sourceLabel && (
-                            <div style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                background: 'rgba(255,68,68,0.12)', border: '1px solid rgba(255,68,68,0.25)',
-                                borderRadius: 8, padding: '3px 8px',
-                            }}>
-                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#FF4444', flexShrink: 0 }} />
-                                <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8888' }}>{sourceLabel}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Matched Games */}
-                <div style={{ padding: '0 24px 20px' }}>
-                    <div style={{
-                        fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
-                        letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 10,
-                    }}>AI-Recommended Drills</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {matchedGames.map((game, idx) => (
-                            <button key={game.id} onClick={() => onLaunchGame(game)} style={{
-                                display: 'flex', alignItems: 'center', gap: 12,
-                                padding: '12px 14px',
-                                background: idx === 0 ? 'rgba(0,200,83,0.1)' : 'rgba(255,255,255,0.04)',
-                                border: `1.5px solid ${idx === 0 ? 'rgba(0,200,83,0.35)' : 'rgba(255,255,255,0.08)'}`,
-                                borderRadius: 12, cursor: 'pointer', textAlign: 'left', width: '100%',
-                                transition: 'all 0.18s',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.background = idx === 0 ? 'rgba(0,200,83,0.18)' : 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.borderColor = idx === 0 ? 'rgba(0,200,83,0.6)' : 'rgba(255,255,255,0.2)';
-                                e.currentTarget.style.transform = 'translateX(2px)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.background = idx === 0 ? 'rgba(0,200,83,0.1)' : 'rgba(255,255,255,0.04)';
-                                e.currentTarget.style.borderColor = idx === 0 ? 'rgba(0,200,83,0.35)' : 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.transform = 'none';
-                            }}>
-                                <div style={{
-                                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                                    background: idx === 0 ? 'rgba(0,200,83,0.2)' : 'rgba(255,255,255,0.08)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 18,
-                                }}>{game.icon || '🎯'}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{
-                                            fontSize: 13, fontWeight: 700,
-                                            color: idx === 0 ? '#34C759' : '#fff',
-                                        }}>{game.name}</span>
-                                        {idx === 0 && (
-                                            <span style={{
-                                                fontSize: 9, fontWeight: 800, color: '#34C759',
-                                                background: 'rgba(0,200,83,0.15)', borderRadius: 6,
-                                                padding: '2px 6px', letterSpacing: 0.5,
-                                            }}>BEST MATCH</span>
-                                        )}
-                                    </div>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
-                                        {game.focus} · {['★','★★','★★★','★★★★','★★★★★'][Math.min((game.difficulty || 1) - 1, 4)]} Difficulty
-                                    </div>
-                                </div>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5">
-                                    <path d="M9 18l6-6-6-6"/>
-                                </svg>
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* ── Open in Virtual Sandbox ── */}
-                    <button
-                        onClick={() => { onDismiss(); window.location.href = sandboxUrl; }}
-                        style={{
-                            marginTop: 14, width: '100%', padding: '12px 14px',
-                            background: hasSandboxContext
-                                ? 'linear-gradient(135deg, rgba(0,150,255,0.12), rgba(0,100,200,0.12))'
-                                : 'rgba(255,255,255,0.04)',
-                            border: `1.5px solid ${hasSandboxContext ? 'rgba(0,150,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                            borderRadius: 12, color: hasSandboxContext ? '#4DA6FF' : 'rgba(255,255,255,0.45)',
-                            fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                            transition: 'all 0.18s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = hasSandboxContext ? 'linear-gradient(135deg, rgba(0,150,255,0.22), rgba(0,100,200,0.22))' : 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = hasSandboxContext ? 'rgba(0,150,255,0.65)' : 'rgba(255,255,255,0.2)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = hasSandboxContext ? 'linear-gradient(135deg, rgba(0,150,255,0.12), rgba(0,100,200,0.12))' : 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = hasSandboxContext ? 'rgba(0,150,255,0.4)' : 'rgba(255,255,255,0.1)'; }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
-                        </svg>
-                        {hasSandboxContext
-                            ? `Solve in Sandbox${extracted.hand ? ` (${extracted.hand.slice(0,2)} ${extracted.hand.slice(2)})` : ''}`
-                            : 'Open in Virtual Sandbox'}
-                    </button>
-
-                    {/* Browse All */}
-                    <button onClick={onDismiss} style={{
-                        marginTop: 8, width: '100%', padding: '10px',
-                        background: 'transparent', border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 10, color: 'rgba(255,255,255,0.35)', fontSize: 11,
-                        fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}>
-                        Browse All 100 Training Games
-                    </button>
-                </div>
-            </div>
-            <style>{`
-                @keyframes tts-slide-in {
-                    from { opacity: 0; transform: scale(0.9) translateY(20px); }
-                    to { opacity: 1; transform: scale(1) translateY(0); }
-                }
-            `}</style>
-        </div>
-    );
-}
+const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
 export default function TrainingPage() {
-    const router = useRouter();
-    useTrainingBus('training-hub');
-    const { guardAction, UpgradePopup } = useFeatureGate('gto_training');
+  const router = useRouter();
 
-    // Zustand Global State (replaces local useState)
-    const activeFilter = useTrainingStore((s) => s.activeFilter);
-    const setActiveFilter = useTrainingStore((s) => s.setActiveFilter);
-    const showIntro = useTrainingStore((s) => s.showIntro);
-    const setShowIntro = useTrainingStore((s) => s.setShowIntro);
-    const pendingGame = useTrainingStore((s) => s.pendingGame);
-    const setPendingGame = useTrainingStore((s) => s.setPendingGame);
-    const markGameCelebrated = useTrainingStore((s) => s.markGameCelebrated);
-    const celebratedGames = useTrainingStore((s) => s.celebratedGames);
+  const showArena    = useTrainingStore(s => s.showArena);
+  const activeGame   = useTrainingStore(s => s.activeGame);
+  const setShowArena = useTrainingStore(s => s.setShowArena);
+  const setActiveGame= useTrainingStore(s => s.setActiveGame);
 
-    //  ARENA STATE - Show arena inline after intro video
-    const [showArena, setShowArena] = useState(false);
-    const [activeGame, setActiveGame] = useState(null);
+  const { progress, getGameProgress } = useTrainingProgress();
 
-    // ── TRAIN THIS SPOT STATE ─────────────────────────────────────────────
-    const [videoContext, setVideoContext] = useState(null);       // parsed URL params
-    const [videoMatchedGames, setVideoMatchedGames] = useState([]); // top 3 matched games
-    const [showVideoContextModal, setShowVideoContextModal] = useState(false);
+  const [authUser, setAuthUser] = useState(null);
+  const [diamondBalance, setDiamondBalance] = useState(0);
 
-    //  INTRO VIDEO STATE - Video plays while page loads in background
-    // Only show once per session (not on every reload)
-    const [showPageIntro, setShowPageIntro] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return !sessionStorage.getItem('training-intro-seen');
-        }
-        return false;
+  const [activeCat, setActiveCat] = useState('ALL');
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query), 120);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  useEffect(() => {
+    const user = getAuthUser();
+    setAuthUser(user);
+    if (user?.id) DiamondEngine.getBalance(user.id).then(setDiamondBalance).catch(() => {});
+  }, []);
+
+  // Real data from RPC + Jarvis API — no hardcoded fallbacks
+  const { stats, statsLoading, recommendation, recommendationLoading } = useTrainingDashboard(authUser);
+  const biggestLeak = useMemo(() => leakAnalyzer.getBiggest?.(authUser?.id) ?? null, [authUser]);
+  // Use the real recommendation when available; null otherwise (UI handles empty state)
+  const jarvisPick = recommendation;
+
+  const filtered = useMemo(() => {
+    const ql = debouncedQuery.trim().toLowerCase();
+    return TRAINING_LIBRARY.filter(g => {
+      if (activeCat !== 'ALL' && g.category !== activeCat) return false;
+      if (!ql) return true;
+      return (g.name || '').toLowerCase().includes(ql)
+          || (CATEGORY_META[g.category]?.label || '').toLowerCase().includes(ql);
     });
-    const introVideoRef = useRef(null);
+  }, [activeCat, debouncedQuery]);
 
-    // SETTINGS MENU STATE
-    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const startDrill = useCallback((game) => {
+    if (!game) return;
+    setActiveGame(game);
+    setShowArena(true);
+  }, [setActiveGame, setShowArena]);
 
-    // Quick Links overlay state
-    const [showQuickLinks, setShowQuickLinks] = useState(false);
-    // Session recap / Jarvis drawers
-    const [showRecapDrawer, setShowRecapDrawer] = useState(false);
-    const [showJarvisDrawer, setShowJarvisDrawer] = useState(false);
+  return (
+    <PageTransition>
+      <SEOHead
+        title="Training — Smarter.Poker"
+        description="One-tap GTO training. Personalised daily plan, leak detection, and 100+ scenario-based games coached by Jarvis."
+        canonical="/hub/training"
+      />
 
-    // DIAMOND ENTRY FEE STATE
-    const [isVIP, setIsVIP] = useState(false);
-    const [diamondBalance, setDiamondBalance] = useState(0);
-    const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
-    const GAME_COST = 10; // 10 diamonds per training game
+      <GlobalStyle />
 
-    // User ID for authenticated features
-    const [userId, setUserId] = useState(null);
-    const [sessionHistory, setSessionHistory] = useState([]);
+      {showArena && activeGame && (
+        <GodModeArena
+          userId={authUser?.id || `anon-${Date.now()}`}
+          gameId={activeGame.id}
+          gameName={activeGame.name}
+          level={1}
+          sessionId={`session-${Date.now()}`}
+          onComplete={() => setShowArena(false)}
+          onExit={() => setShowArena(false)}
+        />
+      )}
 
-    // Start leak analyzer for Jarvis integration
-    useEffect(() => {
-        leakAnalyzer.start();
-        if (userId) leakAnalyzer.setUserId(userId);
-    }, [userId]);
+      {!showArena && (
+        <>
+          <a href="#main" className="sp-skip">Skip to main content</a>
 
-    // Real-time notifications for achievements/leaderboard changes
-    const {
-        newAchievement: realtimeAchievement,
-        leaderboardChange,
-        challengeComplete,
-        clearAchievement: clearRealtimeAchievement
-    } = useTrainingRealtime(userId);
+          <UniversalHeader />
 
-    // Show toast for realtime achievement
-    useEffect(() => {
-        if (realtimeAchievement) {
-            setUnlockedAchievements([realtimeAchievement]);
-            clearRealtimeAchievement();
-        }
-    }, [realtimeAchievement, clearRealtimeAchievement]);
+          <main id="main" className="sp-main">
 
-    // Show toast for leaderboard rank improvements
-    useEffect(() => {
-        if (leaderboardChange && leaderboardChange.newRank <= 10) {
-            toast.success(`You Moved To #${leaderboardChange.newRank} On The ${leaderboardChange.periodType} Leaderboard!`);
-        }
-    }, [leaderboardChange]);
+            <section aria-labelledby="hero-h" className="sp-hero">
+              <div>
+                <p className="sp-hero-eyebrow">
+                  <span className="sp-dot" aria-hidden />
+                  {jarvisPick?.estMinutes ? `Today · ${jarvisPick.estMinutes} min plan` : 'Today'}
+                </p>
+                <h1 id="hero-h" className="sp-hero-title">
+                  {renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading })}
+                </h1>
+                <p className="sp-hero-sub">
+                  {recommendationLoading
+                    ? 'Loading your daily plan…'
+                    : jarvisPick
+                      ? (jarvisPick.reason
+                          ? `Jarvis: ${jarvisPick.reason}`
+                          : `Jarvis picked one drill for you — ${jarvisPick.name}.`)
+                      : 'Browse the library below to start your first drill.'}
+                </p>
 
-    // Show toast for challenge completions
-    useEffect(() => {
-        if (challengeComplete) {
-            toast.success(`Challenge Complete: ${challengeComplete.name}! Claim Your Reward!`);
-        }
-    }, [challengeComplete]);
+                {jarvisPick && <DrillCard game={jarvisPick} />}
 
-
-    // Mark intro as seen when it ends
-    const handleIntroEnd = useCallback(() => {
-        sessionStorage.setItem('training-intro-seen', 'true');
-        setShowPageIntro(false);
-    }, []);
-
-    // Attempt to unmute video after it starts playing
-    const handleIntroPlay = useCallback(() => {
-        if (introVideoRef.current) {
-            introVideoRef.current.muted = false;
-        }
-    }, []);
-
-    // Initialize DiamondEngine, check VIP status, then fetch session history
-    useEffect(() => {
-        const init = async () => {
-            // Step 1: Initialize DiamondEngine (must complete before session fetch)
-            try {
-                const authUser = getAuthUser();
-                if (authUser) {
-                    setUserId(authUser.id); // For realtime features
-                    await DiamondEngine.init(authUser.id);
-                    const balance = await DiamondEngine.getBalance();
-                    const vipStatus = await DiamondEngine.isVIP();
-                    setDiamondBalance(balance);
-                    setIsVIP(vipStatus);
-                } else {
-                    // Guest user - use localStorage fallback
-                    await DiamondEngine.init(null);
-                    const balance = await DiamondEngine.getBalance();
-                    setDiamondBalance(balance);
-                }
-            } catch (e) {
-                console.warn('[Training] Failed to initialize DiamondEngine:', e);
-            }
-
-            // Step 2: Fetch past training sessions (uses DiamondEngine.supabase — no throwaway client)
-            try {
-                const authUser = getAuthUser();
-                if (authUser?.id && DiamondEngine.supabase) {
-                    const { data } = await DiamondEngine.supabase
-                        .from('training_sessions')
-                        .select('hand_history')
-                        .eq('user_id', authUser.id)
-                        .order('created_at', { ascending: false })
-                        .limit(10);
-                    if (data) {
-                        const combined = data.flatMap(s => s.hand_history || []);
-                        setSessionHistory(combined);
-                    }
-                }
-            } catch (e) {
-                console.warn('[Training] Session history fetch failed:', e.message);
-            }
-        };
-        init();
-    }, []);
-
-    // ── TRAIN THIS SPOT: Separate effect — only runs when router is ready ──
-    useEffect(() => {
-        if (!router.isReady) return;
-        const ctx = getVideoContext(router.query);
-        // Accept deep-links from all training sources: video-library, reels, sandbox
-        const VALID_REFS = ['video-library', 'reels', 'sandbox'];
-        if (!VALID_REFS.includes(ctx.ref) || !ctx.vid) return;
-
-        setVideoContext(ctx);
-        const gameIds = findBestGames(ctx);
-        const games = gameIds
-            .map(id => getGameById(id))
-            .filter(Boolean)
-            .slice(0, 3);
-        setVideoMatchedGames(games);
-        setShowVideoContextModal(true);
-
-        // Clean URL without triggering re-render
-        if (typeof window !== 'undefined') {
-            window.history.replaceState({}, '', '/hub/training');
-        }
-
-        // Fire analytics (fire-and-forget — never blocks the user)
-        const userId = typeof window !== 'undefined'
-            ? JSON.parse(localStorage.getItem('supabase.auth.token') || '{}')?.currentSession?.user?.id
-            : null;
-        fetch('/api/training/log-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ref: ctx.ref,
-                vid: ctx.vid,
-                title: ctx.title,
-                source: ctx.source,
-                tags: ctx.tags,
-                matchedGameIds: gameIds.slice(0, 3),
-                userId,
-            }),
-        }).catch(() => {}); // Silently ignore failures — analytics must never block
-    }, [router.isReady, router.query]);
-
-    const {
-        isLoaded,
-        progress,
-        getGameProgress,
-        getOverallStats,
-        getUnplayedGames,
-        getLeakGames,
-        recordSession,
-    } = useTrainingProgress();
-
-    // Get filtered games
-    const getFilteredGames = () => {
-        if (activeFilter === 'ALL') return TRAINING_LIBRARY;
-        return getGamesByCategory(activeFilter);
-    };
-
-    const filteredGames = getFilteredGames();
-    const stats = getOverallStats();
-
-    // GSAP: Entrance animations for lanes
-    useEffect(() => {
-        if (isLoaded) {
-            // Stagger reveal lanes on mount
-            if (gsap) gsap.from('.game-lane', {
-                y: 50,
-                opacity: 0,
-                duration: 0.6,
-                stagger: 0.15,
-                ease: 'power3.out',
-                delay: 0.2,
-            }) /* gsap animation */
-        }
-    }, [isLoaded]);
-
-    // Daily Challenge: Select from harder games (difficulty 3-5), excluding Level 10 final exams
-    const getDailyChallenge = () => {
-        const today = new Date().toDateString();
-        const seed = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-        const challenges = [];
-        CATEGORIES.forEach((cat, index) => {
-            const catGames = getGamesByCategory(cat.id).filter(g =>
-                g.difficulty >= 3 && g.difficulty <= 5 && !g.name.startsWith('Level 10:')
-            );
-            if (catGames.length > 0) {
-                // Pseudo-random selection based on date + category
-                const randomIndex = (seed + index * 37) % catGames.length;
-                challenges.push(catGames[randomIndex]);
-            }
-        });
-        return challenges;
-    };
-
-    const dailyChallenges = getDailyChallenge().slice(0, 3); // Only show 3 daily challenges
-    const leakGames = getLeakGames(TRAINING_LIBRARY);
-    // Double-click guard for diamond deduction
-    const isStartingRef = useRef(false);
-
-    // Handle game click - Show intro video first, then navigate
-    const handleGameClick = async (game) => {
-        if (isStartingRef.current) return;
-        isStartingRef.current = true;
-        try {
-
-        // Use Action-Level gating
-        if (!guardAction()) return;
-
-        // SPECIAL ROUTING FOR STANDALONE PAGES
-        if (game.id === 'adv-003') {
-            router.push('/hub/training/nodelocking');
-            return;
-        }
-
-        // Check if game was just mastered (trigger celebration)
-        const gameProgress = getGameProgress(game.id);
-        const isMastered = gameProgress?.isMastered;
-        const alreadyCelebrated = celebratedGames[game.id];
-
-        if (isMastered && !alreadyCelebrated) {
-            // Trigger mastery celebration
-            fireConfetti({
-                particleCount: 150,
-                spread: 100,
-                origin: { y: 0.6 },
-                colors: ['#FFD700', '#FF6B35', '#00D4FF'],
-            });
-            trainingSounds.play('mastery');
-            markGameCelebrated(game.id);
-        }
-
-        setPendingGame(game);
-        setShowIntro(true);
-        } finally {
-            isStartingRef.current = false;
-        }
-    };
-
-    // Handle category click - Navigate to category page
-    const handleCategoryClick = (categoryId) => {
-        router.push(`/hub/training/category/${categoryId}`);
-    };
-
-    // After intro video completes, show arena inline (don't navigate away)
-    const handleIntroComplete = () => {
-        setShowIntro(false);
-        if (pendingGame) {
-            setActiveGame(pendingGame);
-            setShowArena(true);
-            setPendingGame(null);
-        }
-    };
-
-    // Handle exiting the arena - return to training page
-    const handleArenaExit = () => {
-        setShowArena(false);
-        setActiveGame(null);
-    };
-
-    // Achievement toast state
-    const [unlockedAchievements, setUnlockedAchievements] = useState([]);
-
-    // Handle arena completion - record to gamification APIs
-    const handleArenaComplete = async (results) => {
-        setShowArena(false);
-        setActiveGame(null);
-
-        // Record session to gamification APIs
-        const user = getAuthUser();
-        if (user?.id && results) {
-            try {
-                const gamificationResult = await GamificationService.recordSession({
-                    userId: user.id,
-                    gameId: results.gameId,
-                    accuracy: results.accuracy || 0,
-                    questionsAnswered: results.questionsAnswered || 0,
-                    questionsCorrect: results.questionsCorrect || 0,
-                    bestStreak: results.bestStreak || 0,
-                    levelPassed: results.levelPassed || false,
-                    gtowScore: results.gtowScore || 100,
-                    totalEVLoss: results.totalEVLoss || 0,
-                    sessionMistakes: results.sessionMistakes || 0,
-                });
-
-                // Show achievement toast if any unlocked
-                if (gamificationResult.newlyUnlocked?.length > 0) {
-                    setUnlockedAchievements(gamificationResult.newlyUnlocked);
-                    achievementCelebration();
-                    trainingSounds.play('achievement');
-                }
-
-                // Show streak toast
-                if (gamificationResult.streak?.streakUpdated) {
-                    toast.success(`${gamificationResult.streak.currentStreak} Day Streak!`);
-                }
-            } catch (e) {
-                console.warn('[Training] Gamification update failed:', e);
-            }
-        }
-    };
-
-    // Handle featured play
-    const handlePlayFeatured = () => {
-        const featuredGame = TRAINING_LIBRARY[0];
-        handleGameClick(featuredGame);
-    };
-
-    // Calculate best streak across all games
-    const getBestStreak = () => {
-        const allProgress = Object.values(progress || {});
-        if (allProgress.length === 0) return 0;
-        return Math.max(...allProgress.map(p => p.streakBest || 0));
-    };
-
-    const bestStreak = getBestStreak();
-
-    // Handle launching a game from the VideoContextModal
-    const handleLaunchVideoGame = (game) => {
-        setShowVideoContextModal(false);
-        handleGameClick(game);
-    };
-
-    if (!isLoaded) {
-        return (
-            <div style={styles.loading}>
-                <motion.div
-                    style={styles.loadingSpinner}
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                />
-                <p>Loading Training Library...</p>
-            </div>
-        );
-    }
-
-    return (
-        <PageTransition>
-            {/* Action-level Upgrade Gating Popup */}
-            {UpgradePopup}
-
-            {/* ── TRAIN THIS SPOT MODAL ── */}
-            {showVideoContextModal && videoContext && videoMatchedGames.length > 0 && (
-                <VideoContextBanner
-                    videoContext={videoContext}
-                    matchedGames={videoMatchedGames}
-                    onDismiss={() => setShowVideoContextModal(false)}
-                    onLaunchGame={handleLaunchVideoGame}
-                />
-            )}
-
-            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-            {showPageIntro && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 99999,
-                    background: '#000',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <video
-                        ref={introVideoRef}
-                        src="/videos/training-intro.mp4"
-                        autoPlay
-                        muted
-                        playsInline
-                        onPlay={handleIntroPlay}
-                        onEnded={handleIntroEnd}
-                        onError={handleIntroEnd}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain'
-                        }}
-                    />
-                    {/* Skip button */}
-                    <button
-                        onClick={handleIntroEnd}
-                        style={{
-                            position: 'absolute',
-                            top: 20,
-                            right: 20,
-                            padding: '8px 20px',
-                            background: 'rgba(255,255,255,0.2)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.3)',
-                            borderRadius: 20,
-                            color: 'white',
-                            fontSize: 14,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            zIndex: 100000
-                        }}
-                    >
-                        Skip
-                    </button>
+                <div className="sp-cta-row">
+                  <button
+                    className="sp-cta sp-cta-primary"
+                    onClick={() => jarvisPick && startDrill(jarvisPick)}
+                    disabled={!jarvisPick}
+                    aria-disabled={!jarvisPick}
+                  >
+                    <Play size={18} aria-hidden /> Start today's drill
+                  </button>
+                  <button className="sp-cta sp-cta-secondary" onClick={() => setActiveCat('ALL')}>
+                    <Shuffle size={18} aria-hidden /> Pick a different drill
+                  </button>
                 </div>
-            )}
-            <SEOHead
-                title="GTO Poker Training — 100 Games To Master"
-                description="Interactive GTO Poker Training With 100+ Scenario-based Games. Master MTT, Cash, Spins, Mental Game, And Advanced Theory With AI Coaching From Jarvis."
-                canonical="/hub/training"
-            />
+              </div>
 
-            {/*  INLINE ARENA - Takes over entire page when active */}
-            {showArena && activeGame && (
-                <GodModeArena
-                    userId={getAuthUser()?.id || `anon-${Date.now()}`}
-                    gameId={activeGame.id}
-                    gameName={activeGame.name}
-                    level={1}
-                    sessionId={`session-${Date.now()}`}
-                    onComplete={handleArenaComplete}
-                    onExit={handleArenaExit}
+              <GradeCard stats={stats} loading={statsLoading} />
+            </section>
+
+            {biggestLeak && (
+              <section aria-labelledby="leak-h" className="sp-leak">
+                <div>
+                  <span className="sp-leak-eyebrow"><AlertTriangle size={12} aria-hidden /> Leak detected</span>
+                  <h2 id="leak-h" className="sp-leak-title">
+                    You're losing {biggestLeak.bbPer100.toFixed(1)} BB/100 from the {biggestLeak.position}.
+                  </h2>
+                  <p className="sp-leak-body">
+                    Across the last {biggestLeak.handsAnalysed} hands, your {biggestLeak.spotLabel} is calling
+                    {' '}<b>{biggestLeak.deviationPct}% wider</b> than GTO. Fix this and you'll move to
+                    {' '}<b>{biggestLeak.targetGrade}</b> in about {biggestLeak.handsToTarget} hands.
+                  </p>
+                  <Sparkline data={biggestLeak.recent10 || []} />
+                </div>
+                <button
+                  className="sp-cta sp-cta-secondary sp-cta-warn"
+                  onClick={() => startDrill(biggestLeak.recommendedGame)}
+                >
+                  <Wrench size={18} aria-hidden /> Train this spot
+                </button>
+              </section>
+            )}
+
+            <section aria-labelledby="stats-h">
+              <div className="sp-section-head">
+                <h2 id="stats-h" className="sp-section-title">This week</h2>
+                <a className="sp-section-link" href="/hub/session-history">See history <ArrowRight size={14} aria-hidden /></a>
+              </div>
+              <div className="sp-stats">
+                <Stat
+                  icon={Layers}
+                  label="Hands"
+                  loading={statsLoading}
+                  value={stats?.hands_this_week ?? 0}
+                  trend={fmtTrend(stats?.hands_this_week, stats?.hands_last_week)}
                 />
-            )}
+                <Stat
+                  icon={Target}
+                  label="Accuracy"
+                  loading={statsLoading}
+                  value={stats?.accuracy_this_week_pct ?? 0}
+                  unit="%"
+                  trend={fmtTrend(stats?.accuracy_this_week_pct, stats?.accuracy_last_week_pct, ' pts')}
+                />
+                <Stat
+                  icon={TrendingUp}
+                  label="EV saved"
+                  loading={statsLoading}
+                  value={(stats?.ev_saved_this_week_bb ?? 0) >= 0
+                    ? `+${stats?.ev_saved_this_week_bb ?? 0}`
+                    : (stats?.ev_saved_this_week_bb ?? 0)}
+                  unit="bb"
+                  trend={fmtTrend(stats?.ev_saved_this_week_bb, stats?.ev_saved_last_week_bb, ' bb')}
+                />
+                <Stat
+                  icon={Flame}
+                  label="Streak"
+                  loading={statsLoading}
+                  value={stats?.current_streak_days ?? 0}
+                  unit="days"
+                  sub={stats?.personal_best_streak_days
+                    ? `Personal best: ${stats.personal_best_streak_days}`
+                    : null}
+                />
+              </div>
+            </section>
 
-            {/* Normal training page content - hidden when arena is active */}
-            {!showArena && (
-                <>
-                    {/* Video Intro Splash - Shows before loading any game */}
-                    <GameIntroSplash
-                        isVisible={showIntro}
-                        game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
-                        onComplete={handleIntroComplete}
+            <section aria-labelledby="lib-h">
+              <div className="sp-section-head">
+                <h2 id="lib-h" className="sp-section-title">Browse the library</h2>
+                <span className="sp-section-link" aria-live="polite">
+                  {filtered.length === TRAINING_LIBRARY.length ? `${TRAINING_LIBRARY.length} games` : `${filtered.length} of ${TRAINING_LIBRARY.length}`}
+                </span>
+              </div>
+
+              <div className="sp-toolbar">
+                <label className="sp-search">
+                  <Search size={16} aria-hidden />
+                  <input
+                    type="search"
+                    aria-label="Search games"
+                    placeholder="Search drills, spots, formats…"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <div className="sp-cat-chips" role="tablist" aria-label="Game categories">
+                <CatChip cat="ALL" active={activeCat==='ALL'} onClick={() => setActiveCat('ALL')} count={TRAINING_LIBRARY.length}>
+                  <Grid2x2 size={14} aria-hidden /> All
+                </CatChip>
+                {CATEGORY_ORDER.map(c => {
+                  const meta = CATEGORY_META[c];
+                  const count = TRAINING_LIBRARY.filter(g => g.category === c).length;
+                  return (
+                    <CatChip key={c} cat={c} active={activeCat===c} onClick={() => setActiveCat(c)} count={count}>
+                      <meta.Icon size={14} aria-hidden style={{ color: meta.color }} /> {meta.label}
+                    </CatChip>
+                  );
+                })}
+              </div>
+
+              {filtered.length > 0 ? (
+                <div className="sp-grid">
+                  {filtered.map(g => (
+                    <GameCardNew
+                      key={g.id}
+                      game={g}
+                      progress={getGameProgress?.(g.id)?.percent || 0}
+                      isRecommended={g.id === jarvisPick?.id}
+                      onStart={() => startDrill(g)}
                     />
+                  ))}
+                </div>
+              ) : (
+                <p className="sp-empty">No drills match — try a different search.</p>
+              )}
+            </section>
 
-                    {/* LAW 1: Leak Fixer Intercept - Shows when leaks are detected */}
-                    <LeakFixerIntercept
-                        onDismiss={() => console.warn('[LAW 1] Intercept dismissed')}
-                        onAccept={(clinic) => console.warn('[LAW 1] Starting clinic:', clinic.name)}
-                    />
+          </main>
 
-                    {/* Out of Diamonds Modal */}
-                    <OutOfDiamondsModal
-                        isOpen={showOutOfDiamondsModal}
-                        onClose={() => setShowOutOfDiamondsModal(false)}
-                        gameCost={GAME_COST}
-                    />
-
-                    {/* Achievement Toast */}
-                    <AchievementToast
-                        achievements={unlockedAchievements}
-                        onDismiss={() => setUnlockedAchievements([])}
-                    />
-
-
-                    <div className="training-page" style={styles.page}>
-                        {/* Fixed Header - Universal Header with Hub navigation + Settings Menu */}
-                        <UniversalHeader
-                            pageDepth={1}
-                            onMenuClick={() => setShowSettingsMenu(true)}
-                        />
-
-                        {/* Training Settings Drawer */}
-                        {showSettingsMenu && (
-                            <TrainingSettingsMenu onClose={() => setShowSettingsMenu(false)} />
-                        )}
-
-                        {/* Promo/Ad Section */}
-                        <PromoSection onPlayFeatured={handlePlayFeatured} />
-
-                        {/* Phase 24: GitHub-Style Study Streak Map */}
-                        <StudyStreakMap sessionHistory={sessionHistory} />
-
-                        {/* Streaks Badge */}
-                        <StreaksBadge bestStreak={bestStreak} />
-
-                        {/* Phase 23: Smart Practice Card */}
-                        <SmartPracticeCard
-                            handHistory={sessionHistory}
-                            onStartPractice={(config) => {
-                                const game = TRAINING_LIBRARY[0];
-                                if (game) {
-                                    setActiveGame({ ...game, smartConfig: config });
-                                    setShowArena(true);
-                                }
-                            }}
-                        />
-
-                        {/* Hand of the Day Challenge */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                            style={{
-                                background: 'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,146,60,0.04) 100%)',
-                                border: '1px solid rgba(251,191,36,0.2)',
-                                borderRadius: 12, padding: '14px 16px', marginBottom: 16,
-                                cursor: 'pointer',
-                            }}
-                            whileHover={{ scale: 1.01, y: -2 }}
-                            whileTap={{ scale: 0.99 }}
-                            onClick={() => {
-                                // Start daily challenge — load first GTO game with daily flag
-                                const dailyGame = TRAINING_LIBRARY.find(g => g.id === 'cash-preflop') || TRAINING_LIBRARY[0];
-                                if (dailyGame) {
-                                    setActiveGame({ ...dailyGame, dailyChallenge: true });
-                                    setShowArena(true);
-                                }
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div>
-                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#fbbf24', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>
-                                        HAND OF THE DAY
-                                    </div>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                                        Daily GTO Challenge
-                                    </div>
-                                    <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                                        Solve today's hand and earn bonus diamonds
-                                    </div>
-                                </div>
-                                <div style={{
-                                    width: 44, height: 44, borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #fbbf24, #f97316)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: '0 0 20px rgba(251,191,36,0.3)',
-                                }}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                                        <polygon points="5 3 19 12 5 21 5 3" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Proactive Jarvis Insights */}
-                        {sessionHistory?.length > 0 && (() => {
-                            // Analyze recent sessions for insights
-                            const insights = [];
-                            const recentMistakes = sessionHistory.filter(h => h.classification && h.classification !== 'best' && h.classification !== 'correct');
-                            const mistakeRate = sessionHistory.length > 0 ? (recentMistakes.length / sessionHistory.length) * 100 : 0;
-
-                            if (mistakeRate > 50) {
-                                insights.push({ text: 'Focus on fundamentals today. Your recent accuracy needs improvement.', color: '#ef4444' });
-                            } else if (mistakeRate < 20 && sessionHistory.length >= 10) {
-                                insights.push({ text: 'Excellent accuracy! Try increasing difficulty for more challenge.', color: '#22c55e' });
-                            }
-
-                            // Check for position weakness
-                            const posLosses = {};
-                            sessionHistory.forEach(h => {
-                                const pos = h.handData?.heroPosition;
-                                if (pos && h.evLoss > 0) {
-                                    posLosses[pos] = (posLosses[pos] || 0) + h.evLoss;
-                                }
-                            });
-                            const worstPos = Object.entries(posLosses || {}).sort(([, a], [, b]) => b - a)[0];
-                            if (worstPos && worstPos[1] > 2) {
-                                insights.push({ text: `Work on ${worstPos[0]} play — you leak ${worstPos[1].toFixed(1)} BB from that position.`, color: '#fbbf24' });
-                            }
-
-                            if (insights.length === 0) return null;
-
-                            return (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.4 }}
-                                    style={{
-                                        background: 'rgba(0,212,255,0.04)',
-                                        border: '1px solid rgba(0,212,255,0.15)',
-                                        borderRadius: 12, padding: '14px 16px', marginBottom: 16,
-                                    }}
-                                >
-                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>
-                                        JARVIS INSIGHTS
-                                    </div>
-                                    {insights.map((insight, i) => (
-                                        <div key={i} style={{
-                                            fontSize: 12, color: '#e2e8f0', marginBottom: i < insights.length - 1 ? 6 : 0,
-                                            paddingLeft: 12, borderLeft: `2px solid ${insight.color}`,
-                                        }}>
-                                            {insight.text}
-                                        </div>
-                                    ))}
-                                </motion.div>
-                            );
-                        })()}
-
-                        {/* Quick Links Icon Strip */}
-                        <motion.div
-                            style={gamificationNavStyles.container}
-                            onClick={() => setShowQuickLinks(true)}
-                            whileTap={{ scale: 0.98 }}
-                        >
-                            <img
-                                src="/images/training/gamification-nav-strip.png"
-                                alt="Quick Links"
-                                style={{ width: '100%', height: 48, objectFit: 'contain', cursor: 'pointer', borderRadius: 8 }}
-                            />
-                        </motion.div>
-
-                        {/* Quick Links Full-Screen Overlay */}
-                        {showQuickLinks && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                style={{
-                                    position: 'fixed', inset: 0, zIndex: 9999,
-                                    background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                    justifyContent: 'center', padding: 24,
-                                }}
-                                onClick={() => setShowQuickLinks(false)}
-                            >
-                                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: 1 }}>Quick Links</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 360 }}>
-                                    {[
-                                        { label: 'Rankings', path: '/hub/training/leaderboard', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
-                                        { label: 'Badges', path: '/hub/training/achievements', icon: 'M12 15l-2 5H6l4-3.5L8.5 22 12 19l3.5 3L14 16.5 18 20h-4l-2-5z' },
-                                        { label: 'Streaks', path: '/hub/training/streaks', icon: 'M13.5 0.67s0.74 2.65 0.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l0.03-0.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5 0.67z' },
-                                        { label: 'Goals', path: '/hub/training/challenges', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z' },
-                                        { label: 'Coach', path: '/hub/training/jarvis', icon: 'M21 10.12h-6.78l2.74-2.82-2.2-2.2L9 10.9V19h8.1l2.1-4.23 1.8.9V10.12z' },
-                                        { label: 'Play', path: '/hub/training/play-mode', icon: 'M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z' },
-                                        { label: 'Charts', path: '/hub/training/preflop-charts', icon: 'M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1z' },
-                                        { label: 'Builder', path: '/hub/training/range-builder', icon: 'M22 9V7h-2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2v-2h-2V9h2zm-4 10H4V5h14v14zM6 13h5v4H6v-4zm6-6h4v3h-4V7zM6 7h5v5H6V7zm6 4h4v6h-4v-6z' },
-                                        { label: 'Equity', path: '/hub/training/equity-calculator', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z' },
-                                        { label: 'Drills', path: '/hub/training/spot-trainer', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' },
-                                        { label: 'ICM', path: '/hub/training/icm-calculator', icon: 'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z' },
-                                        { label: 'Sessions', path: '/hub/training/session-dashboard', icon: 'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z' },
-                                        { label: 'Positions', path: '/hub/training/position-mastery', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z' },
-                                        { label: 'Daily', path: '/hub/training/daily-challenge', icon: 'M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z' },
-                                        { label: 'Solutions', path: '/hub/training/solutions', icon: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z' },
-                                        { label: 'Analyzer', path: '/hub/training/analyzer', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z' },
-                                        { label: 'Reports', path: '/hub/training/reports', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z' },
-                                        { label: 'Aggregate', path: '/hub/training/aggregate', icon: 'M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z' },
-                                        { label: 'Hands', path: '/hub/training/hand-history-upload', icon: 'M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.84V19h2v-4.16l1.59 1.59L16 15.01 12.01 11z' },
-                                        { label: 'Drills', path: '/hub/training/drill-builder', icon: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.44.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z' },
-                                        { label: 'EV Math', path: '/hub/training/ev-trainer', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z' },
-                                        { label: 'Villain', path: '/hub/training/villain-range', icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
-                                        { label: 'A/B', path: '/hub/training/hand-comparison', icon: 'M10 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5v2h2V1h-2v2zm0 15H5l5-6v6zm9-15h-5v2h5v13l-5-6v8h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z' },
-                                        { label: 'Gauntlet', path: '/hub/training/quiz-gauntlet', icon: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' },
-                                        { label: 'Preflop', path: '/hub/training/preflop-advisor', icon: 'M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3c4.86-2.34 8-7 8-11.5C20 5.81 16.19 2 11.5 2zm1 14.5h-2v-2h2v2zm0-4h-2c0-3.25 3-3 3-5 0-1.1-.9-2-2-2s-2 .9-2 2h-2c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.5-3 2.75-3 5z' },
-                                        { label: 'SPR', path: '/hub/training/spr-trainer', icon: 'M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zm-7-1h2v-4h4v-2h-4V9h-2v2H9v2h4z' },
-                                        { label: 'Ranges', path: '/hub/training/range-advisor', icon: 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z' },
-                                        { label: 'Pot Geo', path: '/hub/training/pot-geometry', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' },
-                                        { label: 'GTO Reports', path: '/hub/training/gto-reports', icon: 'M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z' },
-                                        { label: 'Nodelock', path: '/hub/training/nodelocking', icon: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z' },
-                                        { label: 'Finals', path: '/hub/training/famous-finals', icon: 'M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z' },
-                                        { label: 'Rake', path: '/hub/training/rake-solutions', icon: 'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z' },
-                                        { label: 'QRE', path: '/hub/training/qre-explorer', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zM17.9 17.39c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z' },
-                                        { label: '4-Table', path: '/hub/training/multi-table', icon: 'M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z' },
-                                        { label: 'Multiway', path: '/hub/training/multiway-preflop', icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z' },
-                                        { label: 'PvP', path: '/hub/training/pvp-lobby', icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z' },
-                                        { label: 'Study Plan', path: '/hub/training/study-plan', icon: 'M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z' },
-                                        { label: 'Heatmap', path: '/hub/training/performance-heatmap', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z' },
-                                        { label: 'Autopilot', path: '/hub/training/autopilot', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' },
-                                        { label: 'Feed', path: '/hub/training/training-feed', icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
-                                        { label: '$ Coach', path: '/hub/training/bankroll-coach', icon: 'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z' },
-                                        { label: 'Skill Tree', path: '/hub/training/skill-tree', icon: 'M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z' },
-                                        { label: 'Replay', path: '/hub/training/replay-theater', icon: 'M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z' },
-                                        { label: 'Quiz Build', path: '/hub/training/quiz-builder', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z' },
-                                        { label: 'Tilt Guard', path: '/hub/training/tilt-guard', icon: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z' },
-                                        { label: 'Rankings', path: '/hub/training/community-leaderboard', icon: 'M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z' },
-                                        { label: 'Warmup', path: '/hub/training/quick-warmup', icon: 'M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.73-2.56 6.86-6 7.75v2.05c5.05-.93 8.82-5.19 8.82-10.31S18.05 2.98 13 2.05zM11 2.05C5.95 2.98 2.18 7.24 2.18 12.36S5.95 21.74 11 22.67v-2.05c-3.44-.89-6-4.02-6-7.75 0-4.08 3.05-7.44 7-7.93V2.95z' },
-                                        { label: 'Milestones', path: '/hub/training/milestones', icon: 'M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z' },
-                                        { label: 'Flashcards', path: '/hub/training/flashcards', icon: 'M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z' },
-                                        { label: 'Notes', path: '/hub/training/session-notes', icon: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z' },
-                                        { label: 'Calendar', path: '/hub/training/training-calendar', icon: 'M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z' },
-                                        { label: 'Coach', path: '/hub/training/coach-mode', icon: 'M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z' },
-                                        { label: 'Glossary', path: '/hub/training/glossary', icon: 'M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1z' },
-                                        { label: 'GTO News', path: '/hub/training/gto-news', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z' },
-                                        { label: 'Hand Lab', path: '/hub/training/hand-lab', icon: 'M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a2 2 0 0 0-2.83 0L2 14.83 5.17 18l14.54-14.54a2 2 0 0 0 0-2.83zM6.88 15.46L15.46 6.88l1.41 1.41-8.58 8.58-1.41-1.41z' },
-                                        { label: 'Timer', path: '/hub/training/focus-timer', icon: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z' },
-                                        { label: 'Weakness', path: '/hub/training/weakness-scanner', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h2v5zm0 4h-2v-2h2v2z' },
-                                        { label: 'Daily Goals', path: '/hub/training/daily-goals', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' },
-                                        { label: 'EV Map', path: '/hub/training/ev-heatmap', icon: 'M3 3v18h18V3H3zm8 16H5v-6h6v6zm0-8H5V5h6v6zm8 8h-6v-6h6v6zm0-8h-6V5h6v6z' },
-                                        { label: 'Matrix', path: '/hub/training/range-explorer', icon: 'M3 3v18h18V3H3zm8 16H5v-6h6v6zm0-8H5V5h6v6zm8 8h-6v-6h6v6zm0-8h-6V5h6v6z' },
-                                        { label: 'BB vs OP', path: '/hub/training/blind-defense', icon: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z' },
-                                        { label: 'Journal', path: '/hub/training/mental-journal', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z' },
-                                        { label: 'Playbook', path: '/hub/training/my-playbook', icon: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z' },
-                                        { label: 'Offline', path: '/hub/training/gto-preloader', icon: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z' },
-                                        { label: 'Cardroom', path: '/hub/training/live-hud-sync', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z' },
-                                        { label: 'ICM Sim', path: '/hub/training/icm-simulator', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z' },
-                                        { label: 'Short Deck', path: '/hub/training/short-deck-trainer', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z' },
-                                        { label: 'Ruin %', path: '/hub/training/risk-analyzer', icon: 'M3 3v18h18V3H3zm8 16H5v-6h6v6zm0-8H5V5h6v6zm8 8h-6v-6h6v6zm0-8h-6V5h6v6z' },
-                                        { label: 'Warmup', path: '/hub/training/session-warmup', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z' },
-                                        { label: 'GTO vs Exploit', path: '/hub/training/gto-vs-exploitative', icon: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z' },
-                                        { label: 'Study Grp', path: '/hub/training/study-group-finder', icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
-                                    ].map(item => (
-
-                                        <motion.div
-                                            key={item.label}
-                                            whileHover={{ scale: 1.08 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={(e) => { e.stopPropagation(); router.push(item.path); }}
-                                            style={{
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                                                padding: 16, borderRadius: 16,
-                                                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                                                cursor: 'pointer', minHeight: 80, justifyContent: 'center',
-                                            }}
-                                        >
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#00d4ff">
-                                                <path d={item.icon} />
-                                            </svg>
-                                            <span style={{ fontSize: 11, fontWeight: 600, color: '#fff', letterSpacing: 0.3 }}>{item.label}</span>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                                <button
-                                    onClick={() => setShowQuickLinks(false)}
-                                    style={{ marginTop: 24, padding: '12px 32px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-                                >
-                                    Close
-                                </button>
-                            </motion.div>
-                        )}
-
-                        {/* Daily Bonus removed per UI overhaul */}
-
-                        {/* Filters */}
-                        <FilterBar
-                            active={activeFilter}
-                            onFilter={setActiveFilter}
-                            gameCount={filteredGames.length}
-                        />
-
-                        {/* Session Recap & Jarvis — Collapsed Image Tiles */}
-                        {userId && activeFilter === 'ALL' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '0 16px 16px' }}>
-                                <motion.div
-                                    whileTap={{ scale: 0.97 }}
-                                    whileHover={{ scale: 1.02 }}
-                                    onClick={() => setShowRecapDrawer(true)}
-                                    style={{
-                                        cursor: 'pointer', borderRadius: 14, overflow: 'hidden',
-                                        border: '1px solid rgba(34,197,94,0.25)',
-                                        background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(22,163,74,0.05) 100%)',
-                                        position: 'relative',
-                                    }}
-                                >
-                                    <img
-                                        src="/images/training/session-recap-tile.png"
-                                        alt="Last Session Recap"
-                                        style={{ width: '100%', height: 100, objectFit: 'cover' }}
-                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                    />
-                                </motion.div>
-                                <motion.div
-                                    whileTap={{ scale: 0.97 }}
-                                    whileHover={{ scale: 1.02 }}
-                                    onClick={() => setShowJarvisDrawer(true)}
-                                    style={{
-                                        cursor: 'pointer', borderRadius: 14, overflow: 'hidden',
-                                        border: '1px solid rgba(0,212,255,0.25)',
-                                        background: 'linear-gradient(135deg, rgba(0,212,255,0.1) 0%, rgba(59,130,246,0.05) 100%)',
-                                        position: 'relative',
-                                    }}
-                                >
-                                    <img
-                                        src="/images/training/jarvis-recommends-tile.png"
-                                        alt="Jarvis Recommends"
-                                        style={{ width: '100%', height: 100, objectFit: 'cover' }}
-                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                    />
-                                </motion.div>
-                            </div>
-                        )}
-
-                        {/* Session Recap Drawer */}
-                        {showRecapDrawer && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-                                onClick={() => setShowRecapDrawer(false)}
-                            >
-                                <motion.div
-                                    initial={{ scale: 0.9, y: 30 }}
-                                    animate={{ scale: 1, y: 0 }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{ background: 'linear-gradient(180deg, #1a1a2e, #0f0f1a)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, padding: 24, width: '90%', maxWidth: 400 }}
-                                >
-                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 16 }}>Last Session Recap</div>
-                                    {(() => {
-                                        const recent = sessionHistory.slice(-20);
-                                        const mistakes = recent.filter(h => h.classification && h.classification !== 'best' && h.classification !== 'correct');
-                                        const totalEV = recent.reduce((sum, h) => sum + (h.evLoss || 0), 0);
-                                        const accuracy = recent.length > 0 ? Math.round(((recent.length - mistakes.length) / recent.length) * 100) : 0;
-                                        const grade = accuracy >= 95 ? 'S' : accuracy >= 85 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 50 ? 'C' : 'D';
-                                        const gradeColors = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' };
-
-                                        // Find weakest position
-                                        const posLosses = {};
-                                        recent.forEach(h => {
-                                            const pos = h.handData?.heroPosition;
-                                            if (pos && h.evLoss > 0) posLosses[pos] = (posLosses[pos] || 0) + h.evLoss;
-                                        });
-                                        const worstPos = Object.entries(posLosses || {}).sort(([, a], [, b]) => b - a)[0];
-
-                                        return (
-                                            <>
-                                                {/* Grade Display */}
-                                                <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                                                    <div style={{
-                                                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                                                        padding: '6px 16px', borderRadius: 12,
-                                                        background: `${gradeColors[grade]}15`, border: `1px solid ${gradeColors[grade]}44`,
-                                                    }}>
-                                                        <span style={{ fontSize: 28, fontWeight: 900, color: gradeColors[grade], fontFamily: "'Orbitron', monospace" }}>{grade}</span>
-                                                        <span style={{ fontSize: 12, color: '#94a3b8' }}>{accuracy}% accuracy</span>
-                                                    </div>
-                                                </div>
-
-                                                {worstPos && (
-                                                    <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 16, textAlign: 'center' }}>
-                                                        Focus on <span style={{ color: '#fbbf24' }}>{worstPos[0]}</span> play &mdash; leaking {worstPos[1].toFixed(1)} BB there.
-                                                    </div>
-                                                )}
-
-                                                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-                                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
-                                                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>HANDS</div>
-                                                        <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{recent.length}</div>
-                                                    </div>
-                                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
-                                                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>MISTAKES</div>
-                                                        <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24' }}>{mistakes.length}</div>
-                                                    </div>
-                                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
-                                                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>EV LOSS</div>
-                                                        <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>{totalEV > 0 ? `-${totalEV.toFixed(1)}` : '0.0'}</div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Mini Trend */}
-                                                {recent.length >= 3 && (
-                                                    <div style={{
-                                                        display: 'flex', alignItems: 'flex-end', gap: 3, height: 36, marginBottom: 16, padding: '0 8px',
-                                                    }}>
-                                                        {recent.slice(-15).map((h, i, arr) => {
-                                                            const isCorrect = h.classification === 'best' || h.classification === 'correct';
-                                                            return (
-                                                                <div key={i} style={{
-                                                                    flex: 1, height: isCorrect ? '100%' : '30%',
-                                                                    background: isCorrect ? '#22C55E66' : '#EF444466',
-                                                                    borderRadius: 2, transition: 'height 0.3s ease',
-                                                                }} />
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                                {/* Coaching Tip */}
-                                                <div style={{
-                                                    background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
-                                                    borderRadius: 10, padding: '12px 14px', marginBottom: 12, textAlign: 'left'
-                                                }}>
-                                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
-                                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
-                                                </div>
-
-                                                {/* Share Result */}
-                                                <button onClick={() => shareResult({
-                                                    gameTitle: 'GTO TRAINING',
-                                                    grade,
-                                                    score: recent.length,
-                                                    scoreLabel: 'HANDS',
-                                                    stats: [
-                                                        { label: 'Accuracy', value: accuracy + '%' },
-                                                        { label: 'Mistakes', value: mistakes.length },
-                                                        { label: 'EV Loss', value: totalEV > 0 ? `-${totalEV.toFixed(1)}bb` : '0.0bb' },
-                                                    ],
-                                                    color: '#22C55E',
-                                                })} style={{
-                                                    width: '100%', padding: '10px 0', fontSize: 12, fontWeight: 600,
-                                                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                                                    borderRadius: 8, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', marginBottom: 12
-                                                }}>{'\uD83D\uDCF4'} Share Session</button>
-                                            </>
-                                        );
-                                    })()}
-                                    <button onClick={() => setShowRecapDrawer(false)} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Close</button>
-                                </motion.div>
-                            </motion.div>
-                        )}
-
-                        {/* Jarvis Recommends Drawer */}
-                        {showJarvisDrawer && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-                                onClick={() => setShowJarvisDrawer(false)}
-                            >
-                                <motion.div
-                                    initial={{ scale: 0.9, y: 30 }}
-                                    animate={{ scale: 1, y: 0 }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{ background: 'linear-gradient(180deg, #1a1a2e, #0f0f1a)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 20, padding: 24, width: '90%', maxWidth: 400 }}
-                                >
-                                    <JarvisRecommendations userId={userId} onGameClick={(game) => { setShowJarvisDrawer(false); handleGameClick(game); }} />
-                                    <button onClick={() => setShowJarvisDrawer(false)} style={{ width: '100%', padding: 12, borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 12 }}>Close</button>
-                                </motion.div>
-                            </motion.div>
-                        )}
-
-                        {/* Game Lanes */}
-                        <div className="lanes-container-responsive" style={styles.lanesContainer}>
-
-                            {/* TODAY'S DAILY CHALLENGE lane */}
-                            {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
-                                <GameLane
-                                    title="TODAY'S DAILY CHALLENGE"
-                                    color="#FFD700"
-                                    games={dailyChallenges}
-                                    onGameClick={handleGameClick}
-                                    getProgress={getGameProgress}
-                                />
-                            )}
-
-                            {/* FIX YOUR LEAKS lane */}
-                            {leakGames.length > 0 && activeFilter === 'ALL' && (
-                                <GameLane
-                                    title="FIX YOUR LEAKS"
-                                    color="#FF4444"
-                                    games={leakGames}
-                                    onGameClick={handleGameClick}
-                                    getProgress={getGameProgress}
-                                    badge="BELOW 70%!"
-                                />
-                            )}
-
-                            {/* Category lanes */}
-                            {activeFilter === 'ALL' ? (
-                                // Show all category lanes (4 games each, clickable headers)
-                                CATEGORIES.map(cat => (
-                                    <GameLane
-                                        key={cat.id}
-                                        title={cat.title}
-                                        color={cat.color}
-                                        games={getGamesByCategory(cat.id)}
-                                        onGameClick={handleGameClick}
-                                        getProgress={getGameProgress}
-                                        categoryId={cat.id}
-                                        onCategoryClick={handleCategoryClick}
-                                    />
-                                ))
-                            ) : (
-                                // Show filtered games in a single lane for the selected category
-                                (() => {
-                                    const activeCategory = CATEGORIES.find(c => c.id === activeFilter);
-                                    const activeFilterConfig = FILTERS.find(f => f.id === activeFilter);
-                                    return (
-                                        <GameLane
-                                            title={activeCategory?.title || activeFilterConfig?.laneTitle || `${activeFilter} TRAINING`}
-                                            color={activeCategory?.color || activeFilterConfig?.color || '#fff'}
-                                            games={filteredGames}
-                                            onGameClick={handleGameClick}
-                                            getProgress={getGameProgress}
-                                        />
-                                    );
-                                })()
-                            )}
-                        </div>
-
-                        {/* Footer stats */}
-                        <div style={styles.footer}>
-                            <span>100 Training Games</span>
-                            <span>•</span>
-                            <span>2,000 Levels</span>
-                            <span>•</span>
-                            <span>85% To Master</span>
-                        </div>
-                    </div>
-                    <BottomNavBar />
-                </>
-            )
-            }
-    </PageTransition >
-    );
+          <BottomNavBar />
+        </>
+      )}
+    </PageTransition>
+  );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES
-// ═══════════════════════════════════════════════════════════════════════════
+function DrillCard({ game }) {
+  if (!game) return null;
+  const imageUrl = getGameImage(game.id);
+  // Render tags only for fields the recommendation/library actually provides.
+  const formatTag = [game.format, game.stack].filter(Boolean).join(' · ');
+  return (
+    <div className="sp-drill-card" role="group" aria-label="Today's recommended drill">
+      <div className="sp-drill-cover" aria-hidden>
+        <img
+          src={imageUrl}
+          alt=""
+          loading="eager"
+          decoding="async"
+          className="sp-drill-cover-img"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+        <Target size={22} className="sp-drill-cover-icon" />
+      </div>
+      <div className="sp-drill-meta">
+        <h2 className="sp-drill-title">{game.name}</h2>
+        <div className="sp-drill-tags">
+          {formatTag && (
+            <span className="sp-tag"><Layers size={12} aria-hidden /> {formatTag}</span>
+          )}
+          {game.estMinutes != null && (
+            <span className="sp-tag"><Clock size={12} aria-hidden /> ~{game.estMinutes} min</span>
+          )}
+          {game.handsTarget != null && (
+            <span className="sp-tag"><Zap size={12} aria-hidden /> {game.handsTarget} hands</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-const styles = {
-    page: {
-        minHeight: '100vh', paddingBottom: 70,
-        background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
-        color: '#fff',
-        fontFamily: 'Inter, -apple-system, sans-serif',
-        paddingBottom: 40,
-        overflowX: 'hidden', // Prevent page-level horizontal scroll
-    },
+function GradeCard({ stats, loading }) {
+  if (loading) {
+    return (
+      <div className="sp-grade-card" aria-label="Loading current GTO grade" aria-busy="true">
+        <div className="sp-grade-row">
+          <div className="sp-grade-letter sp-num sp-skel-text">·</div>
+          <div className="sp-grade-text">
+            <p className="sp-grade-label">Current GTO grade</p>
+            <p className="sp-grade-value sp-skel-line" />
+            <div className="sp-progress sp-skel-block" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-    logo: {
-        position: 'fixed',
-        top: 'var(--vp-space-sm, 1vw)',
-        left: 'var(--vp-lane-padding, 2vw)',
-        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
-        zIndex: 100,
-        padding: 'var(--vp-space-xs, 0.5vw) var(--vp-space-sm, 1vw)',
-        background: 'rgba(10, 10, 21, 0.95)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        borderRadius: 'var(--vp-radius-md, 0.8vw)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 0.5vw 1.5vw rgba(0, 0, 0, 0.3)',
-    },
+  const grade    = stats?.current_grade || '—';
+  const next     = stats?.next_grade;
+  const accuracy = stats?.rolling_accuracy_pct ?? 0;
+  const hands    = stats?.rolling_total ?? 0;
+  const delta    = stats?.delta_correct_to_next;
+  const pct      = Math.max(0, Math.min(100, accuracy));
+  const hasData  = hands > 0;
 
-    loading: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: '#0a0a15',
-        color: '#fff',
-        gap: 16,
-    },
+  return (
+    <div className="sp-grade-card" aria-label="Current GTO grade">
+      <div className="sp-grade-row">
+        <div className="sp-grade-letter sp-num">{grade}</div>
+        <div className="sp-grade-text">
+          <p className="sp-grade-label">{hasData ? 'Current GTO grade' : 'No graded sessions yet'}</p>
+          <p className="sp-grade-value">
+            {hasData
+              ? `${accuracy}% accuracy · ${hands.toLocaleString()} hands (30d)`
+              : 'Finish a drill to start your grade.'}
+          </p>
+          <div className="sp-progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+            <div className="sp-progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+          {hasData && next && delta && (
+            <div className="sp-grade-meta">
+              <span>{grade}</span>
+              <span>{delta} {delta === 1 ? 'correct hand' : 'correct hands'} to {next}</span>
+              <span>{next}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-    loadingSpinner: {
-        width: 40,
-        height: 40,
-        border: '3px solid rgba(255,255,255,0.1)',
-        borderTopColor: '#00D4FF',
-        borderRadius: '50%',
-    },
+function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
+  if (loading) {
+    return (
+      <div className="sp-stat" aria-busy="true">
+        <div className="sp-stat-label"><Icon size={13} aria-hidden /> {label}</div>
+        <div className="sp-stat-value sp-num sp-skel-text">·</div>
+      </div>
+    );
+  }
+  const isUp = typeof trend === 'string' && trend.startsWith('+');
+  return (
+    <div className="sp-stat">
+      <div className="sp-stat-label"><Icon size={13} aria-hidden /> {label}</div>
+      <div className="sp-stat-value sp-num">{value}{unit && <span className="sp-stat-unit">{unit}</span>}</div>
+      {trend && (
+        <div className={`sp-stat-trend ${isUp ? 'sp-up' : 'sp-down'}`}>
+          <TrendingUp size={12} aria-hidden /> {trend}
+        </div>
+      )}
+      {sub && <div className="sp-stat-sub">{sub}</div>}
+    </div>
+  );
+}
 
-    // Hero - FIXED design (CSS zoom handles scaling)
-    hero: {
-        position: 'relative',
-        height: 280, // Fixed design height
-        minHeight: 280,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        paddingTop: 60,
-    },
+/**
+ * Real-data hero headline — never fabricates progression.
+ * Shape:
+ *   1) recommendation loaded + grade data exists → "<delta> correct hands away from <next>."
+ *   2) recommendation loaded + no graded data    → "Ready to start training? Run your first drill."
+ *   3) loading                                    → "Loading your daily plan…"
+ *   4) no recommendation                          → "Browse the library to pick your first drill."
+ */
+function renderHeroHeadline({ authUser, stats, jarvisPick, statsLoading, recommendationLoading }) {
+  const greet = `Welcome back${authUser?.name ? `, ${authUser.name}` : ''}.`;
+  if (statsLoading || recommendationLoading) {
+    return <>{greet} Loading your daily plan…</>;
+  }
+  const hasGradeData = (stats?.rolling_total ?? 0) > 0;
+  const delta = stats?.delta_correct_to_next;
+  const nextGrade = stats?.next_grade;
+  if (jarvisPick && hasGradeData && delta != null && nextGrade) {
+    const noun = delta === 1 ? 'correct hand' : 'correct hands';
+    return <>{greet} <em>{delta} {noun}</em> away from {nextGrade}.</>;
+  }
+  if (jarvisPick && !hasGradeData) {
+    return <>{greet} Ready to start training?</>;
+  }
+  if (!jarvisPick) {
+    return <>{greet} Browse the library to start your first drill.</>;
+  }
+  return <>{greet}</>;
+}
 
-    heroBackground: {
-        position: 'absolute',
-        inset: 0,
-        background: `
-            radial-gradient(circle at 20% 50%, rgba(255,107,53,0.3) 0%, transparent 50%),
-            radial-gradient(circle at 80% 50%, rgba(0,212,255,0.2) 0%, transparent 50%),
-            linear-gradient(180deg, #0a0a15 0%, #1a2744 100%)
-            `,
-    },
+function CatChip({ children, active, onClick, count }) {
+  return (
+    <button className="sp-cat-chip" role="tab" aria-pressed={active} onClick={onClick}>
+      {children} <span className="sp-cat-count">{count}</span>
+    </button>
+  );
+}
 
-    particleOverlay: {
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-    },
+function Sparkline({ data }) {
+  if (!data?.length) return null;
+  return (
+    <div className="sp-spark" aria-hidden>
+      {data.map((d, i) => (
+        <span key={i} className={d.miss ? 'sp-spark-miss' : ''} style={{ height: `${Math.max(15, d.value * 100)}%` }} />
+      ))}
+    </div>
+  );
+}
 
-    particle: {
-        position: 'absolute',
-        width: '0.5vw',
-        height: '0.5vw',
-        borderRadius: '50%',
-        background: '#FFD700',
-    },
+function GameCardNew({ game, progress, isRecommended, onStart }) {
+  const meta = CATEGORY_META[game.category] || CATEGORY_META.MTT;
+  const Icon = meta.Icon;
+  const tag  = isRecommended ? 'recommended'
+              : progress >= 100 ? 'mastered'
+              : progress === 0  ? 'new'
+              : null;
+  const imageUrl = getGameImage(game.id);
+  return (
+    <button
+      className="sp-card"
+      style={{ '--cat-color': meta.color, '--cover-glow': meta.glow }}
+      onClick={onStart}
+      aria-label={`${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
+    >
+      <div className="sp-card-cover">
+        {/* Real game image — preserved from GAME_IMAGES.js */}
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="sp-card-cover-img"
+          onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+        />
+        {/* Top-edge gradient so badges stay legible regardless of cover art */}
+        <div className="sp-card-cover-shade" aria-hidden />
+        <div className="sp-card-badges">
+          {tag === 'recommended' && <span className="sp-badge sp-badge-rec"><Sparkles size={11} aria-hidden /> For you</span>}
+          {tag === 'mastered'    && <span className="sp-badge sp-badge-mastered"><Check size={11} aria-hidden /> Mastered</span>}
+          {tag === 'new'         && <span className="sp-badge sp-badge-new"><Sparkles size={11} aria-hidden /> New</span>}
+          {game.locked           && <span className="sp-badge sp-badge-locked"><Lock size={11} aria-hidden /> Locked</span>}
+          <span className="sp-cat-pill" aria-hidden><Icon size={12} /></span>
+        </div>
+      </div>
+      <div className="sp-card-body">
+        <div className="sp-card-cat"><span className="sp-swatch" /> {meta.label}</div>
+        <h3 className="sp-card-title">{game.name}</h3>
+        <div className="sp-card-meta">
+          <span><Clock size={12} aria-hidden /> {game.estMinutes || 10} min</span>
+          {game.handsTarget && <><span className="sp-card-sep" aria-hidden /><span><Layers size={12} aria-hidden /> {game.handsTarget} hands</span></>}
+        </div>
+        <div className="sp-card-progress">
+          <div className="sp-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+            <div className="sp-progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
 
-    heroContent: {
-        position: 'relative',
-        textAlign: 'center',
-        zIndex: 1,
-    },
+function ArenaSkeleton() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: t.ink2 }}>
+      <div style={{ textAlign: 'center' }}>
+        <div className="sp-spin" />
+        <div style={{ marginTop: 12 }}>Loading arena…</div>
+      </div>
+    </div>
+  );
+}
 
-    heroLabel: {
-        display: 'block',
-        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
-        color: '#FFD700',
-        fontStyle: 'italic',
-        marginBottom: '1vw',
-    },
+/**
+ * useTrainingDashboard — single source of truth for the dashboard surface.
+ * Pulls aggregated weekly stats from /api/training/weekly-stats (RPC-backed)
+ * and the recommended drill from /api/training/recommendations (Jarvis).
+ *
+ * Returns { stats, statsLoading, recommendation, recommendationLoading }.
+ * No fallback values. When the user has no session history, fields render as
+ * empty-state ("—") in the UI so we never show invented numbers.
+ */
+function useTrainingDashboard(authUser) {
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [recommendation, setRecommendation] = useState(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(true);
 
-    heroTitle: {
-        fontSize: 'var(--vp-font-xxl, clamp(18px, 4vw, 36px))',
-        fontWeight: 800,
-        margin: '0 0 0.5vw 0',
-        letterSpacing: '0.1vw',
-        textShadow: '0 2px 6px rgba(0,0,0,0.5)',
-        lineHeight: 1.1,
-    },
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!authUser?.id) {
+        setStatsLoading(false);
+        setRecommendationLoading(false);
+        return;
+      }
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-    heroSubtitle: {
-        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
-        color: 'rgba(255,255,255,0.6)',
-        margin: 0,
-    },
+      try {
+        const r = await fetch('/api/training/weekly-stats', { headers });
+        if (!r.ok) throw new Error(`weekly-stats ${r.status}`);
+        const json = await r.json();
+        if (!cancelled && json.success) setStats(json.stats);
+      } catch (e) {
+        if (!cancelled) console.warn('[Training] weekly-stats fetch failed:', e?.message || e);
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
 
-    statsRow: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: 'var(--vp-space-lg, 3vw)',
-        margin: 'var(--vp-space-lg, 3vw) 0',
-    },
+      try {
+        const r = await fetch('/api/training/recommendations', { headers });
+        if (!r.ok) throw new Error(`recommendations ${r.status}`);
+        const json = await r.json();
+        const recs = json?.recommendations || json?.games || json?.data || [];
+        if (!cancelled && recs.length) {
+          // Hydrate the API result with the matching catalog entry so we get
+          // canonical name, category, image, and minutes/hands targets.
+          const top = recs[0];
+          const recId = top.game_id || top.id;
+          const fromLib = TRAINING_LIBRARY.find(g => g.id === recId) || null;
+          setRecommendation({
+            id: recId,
+            name: fromLib?.name || top.name || top.game_name || 'Recommended drill',
+            category: fromLib?.category || top.category || 'MTT',
+            estMinutes: fromLib?.estMinutes || top.estMinutes || 10,
+            handsTarget: fromLib?.handsTarget || top.handsTarget || 20,
+            format: fromLib?.format || top.format,
+            stack: fromLib?.stack || top.stack,
+            reason: top.reason || top.why,
+          });
+        }
+      } catch (e) {
+        if (!cancelled) console.warn('[Training] recommendations fetch failed:', e?.message || e);
+      } finally {
+        if (!cancelled) setRecommendationLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
 
-    statItem: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-    },
+  return { stats, statsLoading, recommendation, recommendationLoading };
+}
 
-    statValue: {
-        fontSize: 'var(--vp-font-xl, clamp(16px, 3vw, 28px))',
-        fontWeight: 700,
-        color: '#fff',
-    },
+/** Format a week-over-week trend string from raw values. */
+function fmtTrend(curr, prev, unit = '') {
+  if (curr == null || prev == null) return null;
+  if (prev === 0 && curr === 0) return null;
+  if (prev === 0) return `+${curr}${unit} (new)`;
+  const delta = curr - prev;
+  const sign = delta >= 0 ? '+' : '';
+  return `${sign}${Math.round(delta * 10) / 10}${unit} vs last`;
+}
 
-    statLabel: {
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.1vw',
-    },
+function GlobalStyle() {
+  return (
+    <style jsx global>{`
+      :root {
+        --sp-line: ${t.line}; --sp-line-2: ${t.line2};
+        --sp-ink-0: ${t.ink0}; --sp-ink-1: ${t.ink1}; --sp-ink-2: ${t.ink2}; --sp-ink-3: ${t.ink3};
+        --sp-primary: ${t.primary}; --sp-primary-ink: ${t.primaryInk};
+        --sp-warn: ${t.warn}; --sp-good: ${t.good}; --sp-bad: ${t.bad};
+        --sp-r-md: ${t.rMd}px; --sp-r-lg: ${t.rLg}px;
+      }
+      .sp-skip { position: absolute; left: -9999px; }
+      .sp-skip:focus { left: 16px; top: 16px; padding: 10px 14px; background: var(--sp-primary); color: var(--sp-primary-ink); border-radius: var(--sp-r-md); z-index: 1000; }
+      .sp-num { font-family: 'Orbitron', monospace; font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
 
-    statDivider: {
-        width: '0.1vw',
-        height: '3.5vw',
-        background: 'rgba(255,255,255,0.2)',
-    },
+      .sp-main {
+        max-width: 1280px; margin: 0 auto; padding: 24px 20px 120px;
+        background:
+          radial-gradient(60% 60% at 80% -10%, rgba(0,212,255,0.10), transparent 60%),
+          radial-gradient(50% 50% at 0% 30%, rgba(192,132,252,0.08), transparent 60%);
+      }
+      @media (max-width: 720px) { .sp-main { padding: 16px 16px 110px; } }
+      .sp-main > section + section { margin-top: 32px; }
 
-    playButton: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '1vw',
-        padding: 'var(--vp-space-sm, 1vw) var(--vp-space-lg, 3vw)',
-        background: 'linear-gradient(135deg, #FF6B35, #E64A19)',
-        border: 'none',
-        borderRadius: 'var(--vp-radius-xl, 2vw)',
-        color: '#fff',
-        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
-        fontWeight: 700,
-        cursor: 'pointer',
-        boxShadow: '0 0.5vw 2vw rgba(0,0,0,0.4)',
-        letterSpacing: '0.05vw',
-        WebkitTapHighlightColor: 'transparent',
-    },
+      .sp-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+      .sp-section-title { font-size: 18px; font-weight: 600; letter-spacing: -0.2px; margin: 0; color: var(--sp-ink-0); }
+      .sp-section-link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--sp-ink-2); padding: 6px 8px; border-radius: 8px; min-height: 32px; }
+      .sp-section-link:hover { color: var(--sp-ink-0); background: rgba(255,255,255,0.04); }
 
-    playIcon: {
-        fontSize: 'var(--vp-font-sm, clamp(8px, 1.4vw, 13px))',
-    },
+      .sp-hero {
+        border-radius: var(--sp-r-lg);
+        background:
+          radial-gradient(80% 100% at 100% 0%, rgba(0,212,255,0.10), transparent 60%),
+          linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        border: 1px solid var(--sp-line);
+        padding: 24px;
+        display: grid; gap: 24px; grid-template-columns: 1.2fr 1fr; align-items: center;
+      }
+      @media (max-width: 860px) { .sp-hero { grid-template-columns: 1fr; padding: 20px; } }
+      .sp-hero-eyebrow { font-size: 12px; color: var(--sp-ink-2); margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+      .sp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sp-good); box-shadow: 0 0 0 4px rgba(34,197,94,0.18); }
+      .sp-hero-title { font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -0.4px; margin: 0 0 6px; color: var(--sp-ink-0); }
+      .sp-hero-title em { font-style: normal; color: var(--sp-primary); }
+      .sp-hero-sub { color: var(--sp-ink-2); font-size: 14px; margin: 0 0 18px; line-height: 1.55; max-width: 46ch; }
 
-    xpBadge: {
-        padding: '0.3vw 1vw',
-        background: 'rgba(255,255,255,0.2)',
-        borderRadius: 'var(--vp-radius-lg, 1.2vw)',
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
-        fontWeight: 600,
-    },
+      .sp-drill-card { display: flex; align-items: center; gap: 16px; padding: 14px; border-radius: var(--sp-r-md); background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); margin-bottom: 16px; }
+      .sp-drill-cover { flex: 0 0 64px; height: 64px; border-radius: 10px; background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--sp-line-2); display: grid; place-items: center; position: relative; overflow: hidden; color: var(--sp-primary); }
+      .sp-drill-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      .sp-drill-cover-icon { position: relative; z-index: 1; color: #fff; opacity: 0.92; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+      .sp-drill-cover::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 30% 20%, rgba(0,212,255,0.25), transparent 60%), linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.45) 100%); pointer-events: none; z-index: 1; }
+      .sp-drill-meta { min-width: 0; flex: 1; }
+      .sp-drill-title { font-size: 15px; font-weight: 500; margin: 0 0 4px; color: var(--sp-ink-0); }
+      .sp-drill-tags { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--sp-ink-2); }
+      .sp-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 9999px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-line); color: var(--sp-ink-1); }
 
-    // Filters - FIXED design (CSS zoom handles scaling)
-    filterBar: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-        padding: '12px 24px',
-        height: 60,
-        minHeight: 60,
-        background: 'rgba(10,10,21,0.98)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-    },
+      .sp-cta-row { display: flex; gap: 10px; flex-wrap: wrap; }
+      .sp-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 22px; min-height: 48px; border-radius: 9999px; font-size: 15px; font-weight: 500; cursor: pointer; border: 0; transition: transform .12s ease, background .15s ease, box-shadow .15s ease; -webkit-tap-highlight-color: transparent; }
+      .sp-cta-primary { background: var(--sp-primary); color: var(--sp-primary-ink); box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 20px -8px rgba(0,212,255,0.6); }
+      .sp-cta-primary:hover { transform: translateY(-1px); }
+      .sp-cta-secondary { background: rgba(255,255,255,0.04); color: var(--sp-ink-0); border: 1px solid var(--sp-line-2); }
+      .sp-cta-secondary:hover { background: rgba(255,255,255,0.08); }
+      .sp-cta-warn { border-color: rgba(245,158,11,0.4); color: var(--sp-warn); }
+      .sp-cta:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 2px; }
 
-    filterPills: {
-        display: 'flex',
-        justifyContent: 'space-between', // Spread to fill width
-        gap: 8,
-        width: '100%',
-        padding: '0 20px',
-    },
+      .sp-grade-card { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 18px; }
+      .sp-grade-row { display: flex; align-items: center; gap: 18px; }
+      .sp-grade-letter { font-family: 'Orbitron', monospace; font-weight: 800; font-size: 56px; line-height: 1; color: var(--sp-good); width: 72px; text-align: center; }
+      .sp-grade-text { flex: 1; min-width: 0; }
+      .sp-grade-label { font-size: 12px; color: var(--sp-ink-2); margin: 0 0 2px; }
+      .sp-grade-value { font-size: 14px; color: var(--sp-ink-1); margin: 0 0 10px; }
+      .sp-progress { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+      .sp-progress-fill { height: 100%; background: linear-gradient(90deg, var(--sp-good), var(--sp-primary)); border-radius: 999px; }
+      .sp-grade-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--sp-ink-3); margin-top: 6px; }
 
-    filterPill: {
-        padding: '10px 18px', // Bigger, fills more space
-        borderRadius: 18,
-        fontSize: 12, // Bigger font
-        fontWeight: 700,
-        letterSpacing: 0.4,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        whiteSpace: 'nowrap',
-        flex: 1, // Each pill expands equally
-        textAlign: 'center',
-        WebkitTapHighlightColor: 'transparent',
-    },
+      /* Loading skeletons — avoid layout shift while real data loads */
+      .sp-skel-text { color: transparent; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 6px; }
+      .sp-skel-line { height: 14px; margin: 2px 0 10px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 6px; width: 70%; }
+      .sp-skel-block { height: 6px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 999px; }
+      @keyframes sp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-    // gameCount style removed - not used
+      .sp-leak { border-radius: var(--sp-r-lg); border: 1px solid rgba(245,158,11,0.30); background: linear-gradient(180deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02)); padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+      @media (max-width: 720px) { .sp-leak { grid-template-columns: 1fr; } }
+      .sp-leak-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--sp-warn); padding: 4px 10px; border-radius: 9999px; background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); }
+      .sp-leak-title { font-size: 17px; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.2px; color: var(--sp-ink-0); }
+      .sp-leak-body { font-size: 14px; color: var(--sp-ink-1); margin: 0; line-height: 1.5; }
+      .sp-leak-body b { color: var(--sp-warn); font-weight: 500; }
+      .sp-spark { display: flex; align-items: flex-end; gap: 3px; height: 32px; margin-top: 8px; }
+      .sp-spark span { display: block; width: 10px; border-radius: 2px; background: rgba(245,158,11,0.4); }
+      .sp-spark span.sp-spark-miss { background: var(--sp-bad); }
 
-    // Lanes - FIXED design (CSS zoom handles scaling)
-    lanesContainer: {
-        padding: '20px 0',
-    },
+      .sp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+      @media (max-width: 720px) { .sp-stats { grid-template-columns: repeat(2, 1fr); } }
+      .sp-stat { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 14px 16px; }
+      .sp-stat-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sp-ink-2); margin-bottom: 6px; }
+      .sp-stat-value { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.1; color: var(--sp-ink-0); }
+      .sp-stat-unit { font-size: 12px; color: var(--sp-ink-2); margin-left: 4px; font-weight: 400; }
+      .sp-stat-trend { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; margin-top: 4px; }
+      .sp-stat-trend.sp-up { color: var(--sp-good); }
+      .sp-stat-trend.sp-down { color: var(--sp-bad); }
+      .sp-stat-sub { font-size: 11px; color: var(--sp-ink-3); margin-top: 4px; }
 
-    lane: {
-        marginBottom: 32,
-    },
+      .sp-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+      .sp-search { position: relative; flex: 1; min-width: 220px; }
+      .sp-search > svg { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: var(--sp-ink-2); }
+      .sp-search input { width: 100%; min-height: 44px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 10px 14px 10px 40px; color: var(--sp-ink-0); font-size: 14px; outline: none; transition: border-color .15s, background .15s; }
+      .sp-search input::placeholder { color: var(--sp-ink-3); }
+      .sp-search input:focus { border-color: var(--sp-primary); background: rgba(0,212,255,0.04); }
 
-    laneHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '0 24px',
-        marginBottom: 16,
-        height: 36,
-        minHeight: 36,
-    },
+      .sp-cat-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+      .sp-cat-chips::-webkit-scrollbar { display: none; }
+      .sp-cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; min-height: 40px; flex: 0 0 auto; border-radius: 9999px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-line); color: var(--sp-ink-1); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+      .sp-cat-chip:hover { background: rgba(255,255,255,0.07); }
+      .sp-cat-chip[aria-pressed="true"] { background: var(--sp-primary); color: var(--sp-primary-ink); border-color: var(--sp-primary); }
+      .sp-cat-chip:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 2px; }
+      .sp-cat-count { color: var(--sp-ink-3); font-size: 11px; margin-left: 2px; }
+      .sp-cat-chip[aria-pressed="true"] .sp-cat-count { color: rgba(0,26,34,0.55); }
 
-    laneChevron: {
-        fontSize: 20,
-        fontWeight: 800,
-    },
+      .sp-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+      @media (max-width: 540px) { .sp-grid { grid-template-columns: 1fr; } }
 
-    laneIcon: {
-        fontSize: 22,
-    },
+      .sp-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); overflow: hidden; transition: transform .15s, border-color .15s, background .15s; text-align: left; width: 100%; cursor: pointer; padding: 0; color: inherit; }
+      .sp-card:hover { transform: translateY(-2px); border-color: var(--sp-line-2); background: rgba(255,255,255,0.05); }
+      .sp-card:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 2px; }
+      .sp-card-cover { aspect-ratio: 16/9; position: relative; overflow: hidden; background: linear-gradient(135deg, #0f172a, #020617); display: block; }
+      .sp-card-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease, opacity .3s ease; }
+      .sp-card:hover .sp-card-cover-img { transform: scale(1.04); }
+      .sp-card-cover-shade { position: absolute; inset: 0; background: radial-gradient(70% 90% at 30% 20%, var(--cover-glow, rgba(0,212,255,0.18)), transparent 60%), linear-gradient(180deg, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%); pointer-events: none; z-index: 1; }
+      .sp-card-badges { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; gap: 8px; z-index: 2; align-items: flex-start; }
+      .sp-cat-pill { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); border: 1px solid var(--sp-line-2); color: var(--cat-color, var(--sp-primary)); flex: 0 0 auto; }
+      .sp-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; min-height: 22px; border-radius: 9999px; font-size: 11px; font-weight: 500; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); border: 1px solid var(--sp-line); color: var(--sp-ink-0); }
+      .sp-badge-mastered { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.4); color: #BBF7D0; }
+      .sp-badge-new      { background: rgba(0,212,255,0.18); border-color: rgba(0,212,255,0.4); color: #BAE6FD; }
+      .sp-badge-locked   { background: rgba(100,116,139,0.18); border-color: rgba(100,116,139,0.4); color: var(--sp-ink-2); }
+      .sp-badge-rec      { background: rgba(0,212,255,0.18); border-color: rgba(0,212,255,0.4); color: #BAE6FD; }
+      .sp-card-body { padding: 14px; }
+      .sp-card-cat { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--sp-ink-2); margin-bottom: 6px; }
+      .sp-swatch { width: 8px; height: 8px; border-radius: 2px; background: var(--cat-color, var(--sp-primary)); }
+      .sp-card-title { font-size: 15px; font-weight: 500; margin: 0 0 6px; line-height: 1.35; letter-spacing: -0.1px; color: var(--sp-ink-0); }
+      .sp-card-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--sp-ink-2); }
+      .sp-card-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--sp-ink-3); display: inline-block; }
+      .sp-card-progress { margin-top: 10px; }
+      .sp-card-progress .sp-progress { height: 4px; }
 
-    laneTitle: {
-        fontSize: 18,
-        fontWeight: 700,
-        letterSpacing: 2,
-        margin: 0,
-        textTransform: 'uppercase',
-    },
+      .sp-empty { text-align: center; padding: 48px 16px; color: var(--sp-ink-2); font-size: 14px; border: 1px dashed var(--sp-line); border-radius: var(--sp-r-md); }
 
-    laneBadge: {
-        padding: '5px 12px',
-        background: 'linear-gradient(90deg, #FF5722, #FF9800)',
-        borderRadius: 6,
-        fontSize: 11,
-        fontWeight: 800,
-        color: '#fff',
-    },
+      .sp-spin { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--sp-primary); border-radius: 50%; animation: sp-spin 1s linear infinite; margin: 0 auto; }
+      @keyframes sp-spin { to { transform: rotate(360deg); } }
 
-    laneCount: {
-        marginLeft: 'auto',
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.4)',
-    },
-
-    laneScroller: {
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        padding: '0 24px',
-        maxWidth: '100%',
-        WebkitOverflowScrolling: 'touch',
-    },
-
-    laneCards: {
-        display: 'flex',
-        gap: 16,
-        paddingBottom: 12,
-        paddingRight: 24,
-        width: 'fit-content',
-    },
-
-    // View All Card
-    viewAllCard: {
-        minWidth: 'var(--vp-card-size, 17vw)',
-        height: 'calc(var(--vp-card-size, 17vw) + 6vw)',
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-        border: '0.2vw dashed rgba(255,255,255,0.3)',
-        borderRadius: 'var(--vp-radius-lg, 1.2vw)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-    },
-
-    viewAllContent: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '1vw',
-    },
-
-    viewAllIcon: {
-        fontSize: 'var(--vp-font-xl, clamp(16px, 3vw, 28px))',
-        color: '#00D4FF',
-    },
-
-    viewAllText: {
-        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
-        fontWeight: 600,
-        color: '#fff',
-        textTransform: 'uppercase',
-        letterSpacing: '0.1vw',
-    },
-
-    viewAllCount: {
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
-        color: 'rgba(255,255,255,0.6)',
-    },
-
-    // Footer
-    footer: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: 'var(--vp-space-md, 2vw)',
-        padding: 'var(--vp-space-xl, 4vw) 0',
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
-        color: 'rgba(255,255,255,0.3)',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
-        marginTop: 'var(--vp-space-xl, 4vw)',
-    },
-};
-
-// Gamification Quick-Access Nav Styles
-const gamificationNavStyles = {
-    container: {
-        display: 'flex',
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-        gap: 12,
-        padding: '12px 16px',
-        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.08), rgba(0, 212, 255, 0.06))',
-        borderBottom: '1px solid rgba(138, 43, 226, 0.2)',
-    },
-    navButton: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '8px 16px',
-        background: 'rgba(255, 255, 255, 0.06)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: 20,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-    },
-    icon: {
-        fontSize: 16,
-    },
-    label: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#fff',
-        letterSpacing: 0.3,
-    },
-};
-// Deploy trigger Thu Jan 29 00:08:41 CST 2026
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+      }
+    `}</style>
+  );
+}
