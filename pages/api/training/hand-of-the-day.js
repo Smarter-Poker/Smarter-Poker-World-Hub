@@ -226,11 +226,14 @@ export default async function handler(req, res) {
                   });
 
               if (error) {
+                  // Phase 81 — table exists in production (verified 2026-05-07).
+                  // A real error here means RLS/FK/auth failure, not missing schema.
+                  // Surface the failure so users know the completion didn't persist.
                   console.warn('[HandOfTheDay] Insert error:', error);
-                  // Graceful fallback — table might not exist yet
-                  return res.status(200).json({
-                      success: true,
-                      message: 'Completion logged (table may not exist yet)',
+                  return res.status(500).json({
+                      success: false,
+                      error: 'Failed to record daily challenge completion',
+                      code: error.code || 'UPSERT_FAILED',
                   });
               }
 
