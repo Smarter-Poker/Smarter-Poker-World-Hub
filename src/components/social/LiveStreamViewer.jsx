@@ -16,6 +16,7 @@ import { busEmit } from '../../engine/EventBus';
 import { getAccessToken } from '../../lib/authUtils';
 import Lottie from 'lottie-react';
 import diamondAnimation from '../../../public/diamond-animation.json';
+import useStreamingViewportLock from '../../lib/useStreamingViewportLock';
 
 const C = {
     red: '#FA383E',
@@ -25,6 +26,12 @@ const C = {
 const COMMENTS_PER_PAGE = 50;
 
 export function LiveStreamViewer({ stream, userId, user, onClose }) {
+    // BUG-FIX-LIVE-7+8 (viewer side): same viewport hardening as the
+    // broadcaster modal — locks meta tag to maximum-scale=1, listens for
+    // orientation/visualViewport events, forces reflow on layout change so
+    // an accidental pinch or rotation doesn't permanently break the viewer.
+    useStreamingViewportLock(true);
+
     // streamData starts as the prop but gets replaced with full DB data from joinStream
     // which includes the broadcaster:profiles join. The prop may be partial (e.g. from Stories.loadLiveUsers).
     const [streamData, setStreamData] = useState(stream);
@@ -524,7 +531,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         flex: 1,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain',
+                        // BUG-FIX-LIVE-3 (viewer side): cover not contain, so the
+                        // broadcaster's portrait video fills the viewer's portrait
+                        // viewport edge-to-edge instead of letterboxing.
+                        objectFit: 'cover',
                         transform: 'scaleX(-1)', // mirror selfie camera
                         transition: 'all 0.3s ease'
                     }}
@@ -555,7 +565,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 style={{
                                     width: '100%',
                                     height: '100%',
-                                    objectFit: 'contain',
+                                    objectFit: 'cover',
                                     transform: 'scaleX(-1)'
                                 }}
                             />

@@ -149,6 +149,9 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
     const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
+    // BUG-FIX-LIVE-10 hardening: prevents double-tap on End Stream from
+    // running two parallel finalize promises and racing the mediaRecorder.
+    const [isEnding, setIsEnding] = useState(false);
     const [guestInviteModalOpen, setGuestInviteModalOpen] = useState(false); // New: invite guest via messenger
     // BUG FIX (GLM-3): separate toast state for share link (not reusing error)
     const [shareToast, setShareToast] = useState('');
@@ -470,8 +473,15 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
             liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
 
+            // BUG-FIX-LIVE-5 verification: capture the active stream id locally
+            // — React's setStreamId is async, so reading `streamId` (state) below
+            // would give us the previous render's value (null on first broadcast).
+            // The LiveStreamService field is `currentStreamId` (not `streamId`).
+            let activeStreamId = null;
+
             if (guestMode && initialRoomId && initialInviteCode) {
                 await liveStreamService.joinAsGuest(user.id, initialRoomId, initialInviteCode, streamRef.current);
+                activeStreamId = initialRoomId;
                 setStreamId(initialRoomId);
                 setGuestInviteCode(initialInviteCode);
             } else {
@@ -483,10 +493,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                     category,
                     description
                 );
+                activeStreamId = newId;
                 setStreamId(newId);
                 setGuestInviteCode(newInviteCode);
             }
-            
+
             setStage('live');
             setElapsedTime(0);
             startRecording();
@@ -497,16 +508,17 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             // and updates live_streams.preview_clip_url so feed cards can
             // autoplay it on loop instead of opening per-card LiveKit
             // connections. First clip lands ~25s in.
+            //
+            // Guests do NOT run preview capture — only the broadcaster's
+            // primary device should write the preview clip URL for the room.
             try {
-                if (streamRef.current && streamId) {
+                if (!guestMode && streamRef.current && activeStreamId) {
                     if (previewCaptureRef.current) {
                         try { previewCaptureRef.current.stop(); } catch (_) {}
                     }
                     previewCaptureRef.current = new StreamPreviewCapture({
                         mediaStream: streamRef.current,
-                        // Note: state setter hasn't flushed yet — use the id from
-                        // the resolved RPC, not the streamId state value.
-                        streamId: liveStreamService.streamId || streamId,
+                        streamId: activeStreamId,
                         userId: user.id,
                         getAccessToken: () => getAccessToken(),
                         supabase,
@@ -560,8 +572,17 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     }, []);
 
     const handleEndStream = async () => {
+        // BUG-FIX-LIVE-10 hardening: ignore re-entry. Without this, a fast
+        // double-tap on End Stream runs two finalizeRecording promises in
+        // parallel and the mediaRecorder errors out before either resolves.
+        if (isEnding) return;
+        setIsEnding(true);
+
         // #1: Confirm before ending — prevents accidental stream kills
-        if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) return;
+        if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) {
+            setIsEnding(false);
+            return;
+        }
 
         // BUG-FIX-LIVE-10 (per Dan: "WHEN I CLICKED END STREAM, IT DID NOT DO
         // WHAT IT USED TO, AND GIVE ME THE OPTION TO SAVE OR PUBLISH... SCREEN
@@ -766,6 +787,9 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         setGuestInviteCode(null);
         setCommentMenu(null);
         setIsMuted(false);
+        // BUG-FIX-LIVE-10: clear the re-entry guard so the next Go Live
+        // session can use End Stream again.
+        setIsEnding(false);
         onClose(action);
     };
 

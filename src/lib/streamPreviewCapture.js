@@ -33,11 +33,14 @@
  * Storage layout
  * ──────────────
  * Bucket: `live-recordings` (existing bucket, already used for thumbnails)
- * Path:   `live-stream-previews/{stream_id}.{ext}`
+ * Path:   `{user_id}/previews/{stream_id}.{ext}`
  *
- * The path is deterministic so each upload overwrites the previous preview
- * — viewers' browser cache busts via the `preview_updated_at` query string
- * appended in LiveStreamCard.
+ * The path is deterministic per stream so each upload overwrites the previous
+ * preview. The user_id prefix matches the existing "Broadcasters can upload
+ * recordings" RLS policy (which requires `storage.foldername(name)[1] =
+ * auth.uid()::text`) so each broadcaster can only write under their own
+ * folder. Viewers' browser cache is busted via the `preview_updated_at`
+ * query string appended in LiveStreamCard.
  *
  * Lifecycle
  * ─────────
@@ -66,7 +69,7 @@ const PREFERRED_MIMES = [
   'video/mp4',
 ];
 const STORAGE_BUCKET = 'live-recordings';
-const STORAGE_PREFIX = 'live-stream-previews';
+const STORAGE_SUBPATH = 'previews';  // under the broadcaster's user_id folder
 
 function pickMime() {
   if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return null;
@@ -196,7 +199,9 @@ export class StreamPreviewCapture {
     this.uploading = true;
     try {
       const ext = extFromMime(this.mime);
-      const path = `${STORAGE_PREFIX}/${this.streamId}.${ext}`;
+      // Path order matters: storage.foldername(name)[1] = auth.uid() is the
+      // RLS check for the "Broadcasters can upload recordings" policy.
+      const path = `${this.userId}/${STORAGE_SUBPATH}/${this.streamId}.${ext}`;
       const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       const token = (await this.getAccessToken()) || ANON_KEY;
