@@ -245,8 +245,8 @@ export default function PokerToolsPage() {
                                 </button>
                             </div>
                             <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1, marginBottom: 10 }}>LINKS</p>
-                            <Link href="/hub" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none', borderBottom: '1px solid #222' }}>← Back To World Hub</Link>
-                            <Link href="/hub/profile-edit" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none' }}>Edit Profile</Link>
+                            <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none', borderBottom: '1px solid #222' }}><ArrowLeft size={14} aria-hidden /> Back to world hub</Link>
+                            <Link href="/hub/profile-edit" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none' }}>Edit profile</Link>
                         </div>
                     </div>
                 )}
