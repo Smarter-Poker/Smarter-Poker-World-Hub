@@ -948,13 +948,55 @@ class LiveStreamService {
     // ═══════════════════════════════════════════════════
 
     static async getLiveStreams() {
-        const { data, error } = await supabase
-            .from('live_streams')
-            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
-            .eq('status', 'live')
-            .order('started_at', { ascending: false });
-        if (error) throw error;
-        return data || [];
+        // BUG-FIX-LIVE-AUDIT (B3): use the get_visible_live_streams RPC which
+        // filters out streams from broadcasters the caller has blocked OR
+        // who have blocked the caller. The previous direct SELECT returned
+        // every live stream regardless of mutual blocks.
+        const { data: rpcData, error: rpcErr } = await supabase
+            .rpc('get_visible_live_streams');
+
+        if (!rpcErr && rpcData) {
+            // Reshape RPC rows to the same shape the rest of the app expects:
+            // { ...stream_columns, broadcaster: { id, username, full_name, avatar_url } }
+            return rpcData.map(r => ({
+                id: r.id,
+                broadcaster_id: r.broadcaster_id,
+                title: r.title,
+                description: r.description,
+                thumbnail_url: r.thumbnail_url,
+                preview_clip_url: r.preview_clip_url,
+                preview_updated_at: r.preview_updated_at,
+                status: r.status,
+                viewer_count: r.viewer_count,
+                peak_viewers: r.peak_viewers,
+                reaction_count: r.reaction_count,
+                category: r.category,
+                started_at: r.started_at,
+                livekit_room: r.livekit_room,
+                broadcaster: {
+                    id: r.broadcaster_id,
+                    username: r.broadcaster_username,
+                    full_name: r.broadcaster_full_name,
+                    avatar_url: r.broadcaster_avatar,
+                },
+            }));
+        }
+
+        // Fallback: RPC missing (older dev DB) — direct SELECT, NO block filter.
+        // Production has the RPC; this branch only fires in mismatched envs.
+        if (rpcErr && (rpcErr.code === 'PGRST202' || rpcErr.message?.includes('not exist'))) {
+            console.warn('[LiveStreamService] get_visible_live_streams RPC missing — falling back to unfiltered SELECT');
+            const { data, error } = await supabase
+                .from('live_streams')
+                .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
+                .eq('status', 'live')
+                .order('started_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        }
+
+        if (rpcErr) throw rpcErr;
+        return [];
     }
 
     static async getStream(streamId) {

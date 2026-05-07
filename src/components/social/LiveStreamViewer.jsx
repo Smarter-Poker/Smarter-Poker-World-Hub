@@ -37,6 +37,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [streamData, setStreamData] = useState(stream);
     const [remoteStream, setRemoteStream] = useState(null);
     const pendingStreamRef = useRef(null); // BUG FIX (LSV-1): hold stream until video element is mounted
+    // BUG-FIX-LIVE-AUDIT (B4): Set<uuid> of user_ids the viewer has blocked
+    // OR who have blocked the viewer. Used by the realtime comment INSERT
+    // handler to drop comments from those users in real time. Initial-load
+    // and pagination paths use the get_visible_live_comments RPC instead.
+    const blockedSetRef = useRef(new Set());
     const [viewerCount, setViewerCount] = useState(stream?.viewer_count || 0);
     const [isConnecting, setIsConnecting] = useState(true);
     const [isReconnecting, setIsReconnecting] = useState(false);
@@ -83,6 +88,25 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
+
+        // BUG-FIX-LIVE-AUDIT (B4): pre-fetch the set of user_ids the viewer
+        // has blocked OR who have blocked the viewer. Used by the realtime
+        // comment INSERT handler to drop hostile comments before they
+        // appear. Cheap one-shot read on mount; the set is small in practice.
+        (async () => {
+            try {
+                const [outBlocks, inBlocks] = await Promise.all([
+                    supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId),
+                    supabase.from('blocked_users').select('blocker_id').eq('blocked_id', userId),
+                ]);
+                const set = new Set();
+                (outBlocks.data || []).forEach(r => r.blocked_id && set.add(r.blocked_id));
+                (inBlocks.data || []).forEach(r => r.blocker_id && set.add(r.blocker_id));
+                blockedSetRef.current = set;
+            } catch (err) {
+                console.warn('[Viewer] block-set prefetch failed:', err?.message || err);
+            }
+        })();
 
         // Fetch historical gifts for leaderboard
         fetch(`/api/live/gifts?stream_id=${stream.id}`)
@@ -172,11 +196,33 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
         // Subscribe to live comments realtime
         if (stream?.id) {
-            supabase.from('live_comments').select('*').eq('stream_id', stream.id)
-                .order('created_at', { ascending: false }).limit(COMMENTS_PER_PAGE)
-                .then(({ data }) => {
+            // BUG-FIX-LIVE-AUDIT (B4): use the get_visible_live_comments RPC
+            // which filters out comments from users the caller has blocked
+            // OR who have blocked the caller. The realtime INSERT subscription
+            // below is also block-filtered client-side via the same logic in
+            // payload handler since postgres_changes can't filter on JOIN.
+            supabase.rpc('get_visible_live_comments', {
+                p_stream_id: stream.id,
+                p_limit: COMMENTS_PER_PAGE,
+                p_before: null,
+            })
+                .then(({ data, error }) => {
+                    if (error) {
+                        // RPC missing (dev/older env) — fall back to unfiltered SELECT
+                        if (error.code === 'PGRST202' || error.message?.includes('not exist')) {
+                            return supabase.from('live_comments').select('*')
+                                .eq('stream_id', stream.id)
+                                .order('created_at', { ascending: false })
+                                .limit(COMMENTS_PER_PAGE);
+                        }
+                        return { data: [] };
+                    }
+                    return { data };
+                })
+                .then((res) => {
+                    const data = res?.data;
                     if (data) {
-                        const reversed = data.reverse();
+                        const reversed = data.slice().reverse();
                         setComments(reversed);
                         setHasMoreComments(data.length === COMMENTS_PER_PAGE);
                     }
@@ -190,6 +236,13 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             const ch = supabase.channel(`live-comments-viewer-${stream.id}`)
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${stream.id}` },
                     (payload) => {
+                        // BUG-FIX-LIVE-AUDIT (B4): drop comments from users
+                        // the viewer has blocked or who have blocked the
+                        // viewer. The set is populated on mount and refreshed
+                        // implicitly when the viewer leaves and re-joins —
+                        // an acceptable lag for a moderation feature.
+                        if (blockedSetRef.current?.has(payload.new.user_id)) return;
+
                         // BUG FIX (LSV-2): Only deduplicate against optimistic comments,
                         // not ALL comments from this user. The optimistic comment has an id
                         // starting with 'optimistic-'. If there's a matching optimistic entry,
@@ -432,16 +485,32 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         setLoadingMoreComments(true);
         try {
             const oldest = comments[0];
-            const { data } = await supabase.from('live_comments')
-                .select('*')
-                .eq('stream_id', stream.id)
-                .lt('created_at', oldest?.created_at || new Date().toISOString())
-                .order('created_at', { ascending: false })
-                .limit(COMMENTS_PER_PAGE);
-            if (data) {
-                const reversed = data.reverse();
+            // BUG-FIX-LIVE-AUDIT (B4): use the block-filtering RPC for pagination
+            // too. Pass p_before so we get older comments than what's loaded.
+            const { data, error } = await supabase.rpc('get_visible_live_comments', {
+                p_stream_id: stream.id,
+                p_limit: COMMENTS_PER_PAGE,
+                p_before: oldest?.created_at || new Date().toISOString(),
+            });
+            let rows = data;
+            if (error) {
+                if (error.code === 'PGRST202' || error.message?.includes('not exist')) {
+                    // Fallback when RPC is missing
+                    const fb = await supabase.from('live_comments')
+                        .select('*')
+                        .eq('stream_id', stream.id)
+                        .lt('created_at', oldest?.created_at || new Date().toISOString())
+                        .order('created_at', { ascending: false })
+                        .limit(COMMENTS_PER_PAGE);
+                    rows = fb.data;
+                } else {
+                    throw error;
+                }
+            }
+            if (rows) {
+                const reversed = rows.slice().reverse();
                 setComments(prev => [...reversed, ...prev]);
-                setHasMoreComments(data.length === COMMENTS_PER_PAGE);
+                setHasMoreComments(rows.length === COMMENTS_PER_PAGE);
             }
         } catch (err) { console.warn('[Viewer] loadMore comments error:', err); }
         setLoadingMoreComments(false);
