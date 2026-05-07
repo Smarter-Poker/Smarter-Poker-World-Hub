@@ -61,7 +61,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     const handleUpgrade = () => {
         try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         handleDismiss();
-        window.location.href = '/hub/diamond-store#vip';
+        window.top.location.href = '/hub/diamond-store#vip';
     };
 
     if (isVip || dismissed || !show) return null;

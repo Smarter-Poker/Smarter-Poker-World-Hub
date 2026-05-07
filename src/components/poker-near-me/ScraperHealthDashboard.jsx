@@ -142,7 +142,7 @@ export default function ScraperHealthDashboard() {
     }
 
     // ── NATIVE REAL-TIME PUSH ENABLED ──
-    const channel = supabase.channel('scraper-health-monitor')
+    const channel = supabase.channel(`scraper-health-monitor-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'scraper_watchdog_state' },

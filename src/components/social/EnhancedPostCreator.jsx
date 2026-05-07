@@ -792,7 +792,7 @@ export const EnhancedPostCreator = ({
         // Modal is already closed — fire a persistent clickable toast pointing to the feed
         toast.action(
           '✅ Your video is live! Tap to see it in the feed.',
-          () => { window.location.href = '/hub/social-media'; },
+          () => { window.top.location.href = '/hub/social-media'; },
           'success'
         );
         // Clean up state even though modal is gone

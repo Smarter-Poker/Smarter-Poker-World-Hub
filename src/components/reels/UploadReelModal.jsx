@@ -263,7 +263,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                 // Modal already closed — fire persistent clickable "Your reel is live!" toast
                 toast.action(
                     '✅ Your reel is live! Tap to see it.',
-                    () => { window.location.href = '/hub/social-media'; },
+                    () => { window.top.location.href = '/hub/social-media'; },
                     'success'
                 );
             } else {

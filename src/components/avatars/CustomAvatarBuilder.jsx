@@ -355,7 +355,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           Please sign in to create your custom AI-powered avatar
         </p>
         <button
-          onClick={() => window.location.href = '/auth/login'}
+          onClick={() => window.top.location.href = '/auth/login'}
           style={{
             padding: '14px 32px',
             background: 'linear-gradient(135deg, #1877F2, #166FE5)',
