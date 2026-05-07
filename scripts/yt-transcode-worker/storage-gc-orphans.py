@@ -95,18 +95,18 @@ conn.autocommit = True
 ORPHAN_QUERY = f"""
 WITH referenced_paths AS (
   SELECT DISTINCT regexp_replace(video_url, '^.*/social-media/', '') AS storage_path
-    FROM social_reels WHERE video_url ILIKE '%supabase.co/storage%social-media/%'
+    FROM social_reels WHERE video_url ILIKE '%%supabase.co/storage%%social-media/%%'
   UNION SELECT DISTINCT regexp_replace(thumbnail_url, '^.*/social-media/', '')
-    FROM social_reels WHERE thumbnail_url ILIKE '%supabase.co/storage%social-media/%'
+    FROM social_reels WHERE thumbnail_url ILIKE '%%supabase.co/storage%%social-media/%%'
   UNION SELECT DISTINCT regexp_replace(original_media_url, '^.*/social-media/', '')
-    FROM social_posts WHERE original_media_url ILIKE '%supabase.co/storage%social-media/%'
+    FROM social_posts WHERE original_media_url ILIKE '%%supabase.co/storage%%social-media/%%'
   UNION SELECT DISTINCT regexp_replace(thumbnail_url, '^.*/social-media/', '')
-    FROM social_posts WHERE thumbnail_url ILIKE '%supabase.co/storage%social-media/%'
+    FROM social_posts WHERE thumbnail_url ILIKE '%%supabase.co/storage%%social-media/%%'
   UNION SELECT DISTINCT regexp_replace(media_url::text, '^.*/social-media/', '')
     FROM social_posts, LATERAL jsonb_array_elements_text(
       CASE WHEN jsonb_typeof(media_urls) = 'array' THEN media_urls ELSE '[]'::jsonb END
     ) AS media_url
-    WHERE media_url::text ILIKE '%supabase.co/storage%social-media/%'
+    WHERE media_url::text ILIKE '%%supabase.co/storage%%social-media/%%'
 )
 SELECT name, (metadata->>'size')::bigint AS size_bytes
 FROM storage.objects o
