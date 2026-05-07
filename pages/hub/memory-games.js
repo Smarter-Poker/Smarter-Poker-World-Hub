@@ -61,6 +61,8 @@ const PatternRecognitionGame = dynamic(() => import('../../src/games/PatternReco
 const MixedStrategyGame = dynamic(() => import('../../src/games/MixedStrategyGame'), { ssr: false });
 import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
 import { getAccessToken } from '../../src/lib/authUtils';
+// 2026-05-07 — Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
+import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck } from 'lucide-react';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ACTION_COLORS moved to src/games/MixedStrategyGame.js
@@ -1501,17 +1503,17 @@ export default function MemoryGamesPage() {
                             {/* Game Mode Selector */}
                             {(() => {
                                 const MODES = [
-                                    { key: 'range', label: 'Range', icon: '\uD83C\uDFAF', color: '#00D4FF', desc: 'Core GTO training' },
-                                    { key: 'speed', label: 'Speed Drill', icon: '\u26A1', color: '#FFD700', desc: 'Beat the clock' },
-                                    { key: 'pressure', label: 'Pressure', icon: '\uD83D\uDCA3', color: '#FF4444', desc: 'Defuse the bomb' },
-                                    { key: 'pattern', label: 'Pattern', icon: '\uD83E\uDDE9', color: '#3B82F6', desc: 'Read the range' },
-                                    { key: 'mixed', label: 'Mixed', icon: '\uD83C\uDFB0', color: '#A855F7', desc: 'Dial frequencies' },
-                                    { key: 'spot', label: 'Spot Trainer', icon: '\u25CE', color: '#F97316', desc: 'Full hand trees' },
-                                    { key: 'tournament', label: 'VS Ranked', icon: '\u2694\uFE0F', color: '#EC4899', desc: 'Climb the ladder' },
+                                    { key: 'range',      label: 'Range',        Icon: Target,         color: '#00D4FF', desc: 'Core GTO training' },
+                                    { key: 'speed',      label: 'Speed drill',  Icon: Zap,            color: '#FFD700', desc: 'Beat the clock' },
+                                    { key: 'pressure',   label: 'Pressure',     Icon: Bomb,           color: '#FF4444', desc: 'Defuse the bomb' },
+                                    { key: 'pattern',    label: 'Pattern',      Icon: Puzzle,         color: '#3B82F6', desc: 'Read the range' },
+                                    { key: 'mixed',      label: 'Mixed',        Icon: Dices,          color: '#A855F7', desc: 'Dial frequencies' },
+                                    { key: 'spot',       label: 'Spot trainer', Icon: Crosshair,      color: '#F97316', desc: 'Full hand trees' },
+                                    { key: 'tournament', label: 'VS ranked',    Icon: Swords,         color: '#EC4899', desc: 'Climb the ladder' },
                                 ];
                                 const EXTRA = [
-                                    { key: 'daily', label: 'Daily', icon: '\uD83D\uDCC5', color: '#00FF88', special: true },
-                                    { key: 'leaderboard', label: 'Rankings', icon: '\uD83C\uDFC6', color: '#FFD700', special: true },
+                                    { key: 'daily',       label: 'Daily',    Icon: Calendar, color: '#00FF88', special: true },
+                                    { key: 'leaderboard', label: 'Rankings', Icon: Trophy,   color: '#FFD700', special: true },
                                 ];
                                 return (
                                     <>
@@ -1547,7 +1549,7 @@ export default function MemoryGamesPage() {
                                                             overflow: 'hidden',
                                                         }}
                                                     >
-                                                        <span style={{ fontSize: 22, lineHeight: 1 }}>{m.icon}</span>
+                                                        <m.Icon size={22} aria-hidden style={{ color: active ? m.color : 'rgba(255,255,255,0.85)' }} />
                                                         <span style={{
                                                             fontSize: 12,
                                                             fontWeight: 700,
@@ -1609,7 +1611,7 @@ export default function MemoryGamesPage() {
                                                             fontWeight: 600,
                                                         }}
                                                     >
-                                                        <span>{m.icon}</span>
+                                                        <m.Icon size={16} aria-hidden />
                                                         <span>{m.label}</span>
                                                     </button>
                                                 );
@@ -2201,7 +2203,7 @@ export default function MemoryGamesPage() {
                                                     gap: 6,
                                                 }}
                                             >
-                                                🔍 {showFilters ? 'Hide Filters' : 'Filter Scenarios'}
+                                                <Filter size={14} aria-hidden style={{ verticalAlign: '-2px', marginRight: 4 }} />{showFilters ? 'Hide filters' : 'Filter scenarios'}
                                                 {Object.keys(scenarioFilters || {}).filter(k => scenarioFilters[k]).length > 0 && (
                                                     <span style={{
                                                         background: '#00D4FF',
@@ -2285,8 +2287,54 @@ export default function MemoryGamesPage() {
                                                     </div>
                                                     <div style={styles.levelMeta}>
                                                         <span>{scenarioCount} scenario{scenarioCount !== 1 ? 's' : ''}</span>
-                                                        {!isUnlocked && <span>🔒</span>}
+                                                        {!isUnlocked && <Lock size={12} aria-hidden style={{ color: 'rgba(255,255,255,0.45)' }} />}
                                                     </div>
+                                                    {/* 2026-05-07 — real progress from memoryDashboard.per_level_mastery */}
+                                                    {(() => {
+                                                        const m = memoryDashboard?.per_level_mastery?.find(x => x.level === level.level);
+                                                        if (!m || m.attempts === 0) return null;
+                                                        const pct = Math.max(0, Math.min(100, m.best_accuracy));
+                                                        return (
+                                                            <div style={{ marginTop: 8 }}>
+                                                                <div style={{
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    fontSize: 10,
+                                                                    color: 'rgba(255,255,255,0.55)',
+                                                                    marginBottom: 4,
+                                                                }}>
+                                                                    <span>Best {pct}%</span>
+                                                                    {m.mastered && (
+                                                                        <span style={{
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            gap: 3,
+                                                                            color: '#22C55E',
+                                                                            fontWeight: 600,
+                                                                        }}>
+                                                                            <ShieldCheck size={10} aria-hidden /> Mastered
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{
+                                                                    height: 4,
+                                                                    background: 'rgba(255,255,255,0.06)',
+                                                                    borderRadius: 999,
+                                                                    overflow: 'hidden',
+                                                                }} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                                                                    <div style={{
+                                                                        height: '100%',
+                                                                        width: pct + '%',
+                                                                        background: m.mastered
+                                                                            ? 'linear-gradient(90deg, #22C55E, #00D4FF)'
+                                                                            : 'linear-gradient(90deg, #00D4FF, #A855F7)',
+                                                                        transition: 'width 0.4s ease',
+                                                                    }} />
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             );
                                         })}
@@ -2294,7 +2342,7 @@ export default function MemoryGamesPage() {
 
                                     {/* Mastery Gate */}
                                     <div style={styles.masteryGate}>
-                                        <span style={styles.masteryIcon}>🔐</span>
+                                        <ShieldCheck size={20} aria-hidden style={{ color: '#00D4FF' }} />
                                         <div>
                                             <div style={styles.masteryTitle}>85% Mastery Gate</div>
                                             <div style={styles.masteryDesc}>
