@@ -17,6 +17,12 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
+// 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace 11 hand-rolled SVG components
+import {
+    Search, MapPin, Calendar as CalendarLuc, List as ListLuc, Map as MapLuc,
+    ChevronLeft as ChevLeft, ChevronRight as ChevRight,
+    X as XLuc, Crosshair, Clock, RefreshCw,
+} from 'lucide-react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -64,18 +70,18 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 const DATE_RANGES = [
   { key: 'today',    label: 'Today' },
   { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'week',     label: 'This Week' },
-  { key: 'weekend',  label: 'This Weekend' },
-  { key: '14days',   label: 'Next 14 Days' },
-  { key: '30days',   label: 'Next 30 Days' },
-  { key: '60days',   label: 'Next 60 Days' },
-  { key: '90days',   label: 'Next 3 Months' },
-  { key: '180days',  label: 'Next 6 Months' },
-  { key: '365days',  label: 'Next 12 Months' },
+  { key: 'week',     label: 'This week' },
+  { key: 'weekend',  label: 'This weekend' },
+  { key: '14days',   label: 'Next 14 days' },
+  { key: '30days',   label: 'Next 30 days' },
+  { key: '60days',   label: 'Next 60 days' },
+  { key: '90days',   label: 'Next 3 months' },
+  { key: '180days',  label: 'Next 6 months' },
+  { key: '365days',  label: 'Next 12 months' },
 ];
 
 const BUY_IN_TIERS = [
-  { key: 'all',       label: 'All Buy-Ins', min: null, max: null },
+  { key: 'all',       label: 'All buy-ins', min: null, max: null },
   { key: '0-100',     label: 'Under $100',  min: 0,    max: 100 },
   { key: '100-300',   label: '$100 - $300', min: 100,  max: 300 },
   { key: '300-1000',  label: '$300 - $1K',  min: 300,  max: 1000 },
@@ -84,7 +90,7 @@ const BUY_IN_TIERS = [
 ];
 
 const GAME_TYPES = [
-  { key: 'all',   label: 'All Games' },
+  { key: 'all',   label: 'All games' },
   { key: 'NLH',   label: 'NLH' },
   { key: 'PLO',   label: 'PLO' },
   { key: 'Mixed', label: 'Mixed' },
@@ -92,26 +98,26 @@ const GAME_TYPES = [
 ];
 
 const EVENT_TYPES = [
-  { key: 'all',    label: 'All Events' },
-  { key: 'daily',  label: 'Daily Tournaments' },
-  { key: 'series', label: 'Poker Series' },
-  { key: 'tour',   label: 'Tour Events' },
+  { key: 'all',    label: 'All events' },
+  { key: 'daily',  label: 'Daily tournaments' },
+  { key: 'series', label: 'Poker series' },
+  { key: 'tour',   label: 'Tour events' },
 ];
 
 const SORT_OPTIONS = [
   { key: 'date',       label: 'Soonest' },
   { key: 'buyin',      label: 'Cheapest' },
-  { key: 'buyin_desc', label: 'Most Expensive' },
+  { key: 'buyin_desc', label: 'Most expensive' },
   { key: 'distance',   label: 'Nearest' },
 ];
 
 const DISTANCE_OPTIONS = [
-  { key: '25',  label: '25 Miles' },
-  { key: '50',  label: '50 Miles' },
-  { key: '100', label: '100 Miles' },
-  { key: '200', label: '200 Miles' },
-  { key: '500', label: '500 Miles' },
-  { key: 'any', label: 'Any Distance' },
+  { key: '25',  label: '25 miles' },
+  { key: '50',  label: '50 miles' },
+  { key: '100', label: '100 miles' },
+  { key: '200', label: '200 miles' },
+  { key: '500', label: '500 miles' },
+  { key: 'any', label: 'Any distance' },
 ];
 
 const POPULAR_CITIES = [
@@ -199,32 +205,36 @@ const SOURCE_COLORS = {
   tour:   { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
 };
 
-/* ───── SVG Icons (no emojis) ───── */
-function SearchIcon()    { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>; }
-function MapPinIcon({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>; }
-function CalendarIcon({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>; }
-function ListIcon()      { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><circle cx="3" cy="6" r="1.5" fill="currentColor" /><circle cx="3" cy="12" r="1.5" fill="currentColor" /><circle cx="3" cy="18" r="1.5" fill="currentColor" /></svg>; }
-function MapIcon()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6" /><line x1="9" y1="3" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="21" /></svg>; }
-function ChevronLeft()   { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>; }
-function ChevronRight()  { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>; }
-function XIcon()         { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>; }
-function CrosshairIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" /></svg>; }
-function ClockIcon()     { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>; }
-function RefreshIcon()   { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>; }
+/* ───── SVG icons replaced by Lucide (see imports). Local components removed. ───── */
+const SearchIcon    = (props) => <Search size={18} aria-hidden {...props} />;
+const MapPinIcon    = ({ size = 14, ...rest }) => <MapPin size={size} aria-hidden {...rest} />;
+const CalendarIcon  = ({ size = 16, ...rest }) => <CalendarLuc size={size} aria-hidden {...rest} />;
+const ListIcon      = (props) => <ListLuc size={16} aria-hidden {...props} />;
+const MapIcon       = (props) => <MapLuc size={16} aria-hidden {...props} />;
+const ChevronLeft   = (props) => <ChevLeft size={18} aria-hidden {...props} />;
+const ChevronRight  = (props) => <ChevRight size={18} aria-hidden {...props} />;
+const XIcon         = (props) => <XLuc size={18} aria-hidden {...props} />;
+const CrosshairIcon = (props) => <Crosshair size={16} aria-hidden {...props} />;
+const ClockIcon     = (props) => <Clock size={13} aria-hidden {...props} />;
+const RefreshIcon   = (props) => <RefreshCw size={13} aria-hidden {...props} />;
 
 /* ───── Event Card Component ───── */
 const EventCard = memo(function EventCard({ event, todayKey }) {
   const source = SOURCE_COLORS[event.source] || SOURCE_COLORS.daily;
   const dateIsToday = event.event_date === todayKey;
 
-  let href = null;
-  if (event.venue_id && event.source === 'daily') href = `/hub/venues/${event.venue_id}`;
-  else if (event.series_id) href = `/hub/series/${event.series_id}`;
-  else if (event.tour_code && event.source === 'tour') href = `/hub/poker-series?tour=${encodeURIComponent(event.tour_code)}`;
+  const href = useMemo(() => {
+    if (event.venue_id && event.source === 'daily') return `/hub/venues/${event.venue_id}`;
+    if (event.series_id) return `/hub/series/${event.series_id}`;
+    if (event.tour_code && event.source === 'tour') return `/hub/poker-series?tour=${encodeURIComponent(event.tour_code)}`;
+    return null;
+  }, [event.venue_id, event.series_id, event.tour_code, event.source]);
 
-  // Generate programmatic official logo replacement via Google Favicon API
-  const guessedDomain = (event.venue_name || event.event_name || '').toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
-  const officialLogoFallback = `https://www.google.com/s2/favicons?domain=${guessedDomain}&sz=128`;
+  // Memoize favicon fallback URL — was rebuilt on every render of every card
+  const officialLogoFallback = useMemo(() => {
+    const guessedDomain = (event.venue_name || event.event_name || '').toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
+    return `https://www.google.com/s2/favicons?domain=${guessedDomain}&sz=128`;
+  }, [event.venue_name, event.event_name]);
   const [imgSrc, setImgSrc] = useState(event.logo_url || officialLogoFallback);
 
   return (
@@ -389,10 +399,10 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 
   return (
     <div className="loc-overlay" onClick={onClose}>
-      <div className="loc-modal" onClick={e => e.stopPropagation()}>
+      <div className="loc-modal" role="dialog" aria-modal="true" aria-labelledby="loc-modal-title" onClick={e => e.stopPropagation()}>
         <div className="loc-modal-header">
-          <h2>Change Location</h2>
-          <button className="loc-close" onClick={onClose}><XIcon /></button>
+          <h2 id="loc-modal-title">Change location</h2>
+          <button className="loc-close" onClick={onClose} aria-label="Close location picker"><XIcon /></button>
         </div>
 
         {locError && (
@@ -403,28 +413,35 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 
         <button className="loc-gps-btn" onClick={handleUseGps} disabled={gpsLoading}>
           <CrosshairIcon />
-          {gpsLoading ? 'Getting Location...' : 'Use My GPS Location'}
+          {gpsLoading ? 'Getting location…' : 'Use my GPS location'}
         </button>
 
         <form className="loc-form" onSubmit={handleManualSubmit}>
           <div className="loc-inputs">
-            <input
-              type="text"
-              placeholder="City Name"
-              value={cityInput}
-              onChange={e => setCityInput(e.target.value)}
-              className="loc-input"
-            />
-            <select value={stateInput} onChange={e => setStateInput(e.target.value)} className="loc-select">
-              <option value="">State</option>
-              {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <div className="loc-field">
+              <label htmlFor="loc-city-input" className="loc-input-label">City</label>
+              <input
+                id="loc-city-input"
+                type="text"
+                placeholder="e.g. Las Vegas"
+                value={cityInput}
+                onChange={e => setCityInput(e.target.value)}
+                className="loc-input"
+              />
+            </div>
+            <div className="loc-field loc-field--state">
+              <label htmlFor="loc-state-input" className="loc-input-label">State</label>
+              <select id="loc-state-input" value={stateInput} onChange={e => setStateInput(e.target.value)} className="loc-select">
+                <option value="">Any</option>
+                {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
           </div>
-          <button type="submit" className="loc-submit">Search This Area</button>
+          <button type="submit" className="loc-submit">Search this area</button>
         </form>
 
         <div className="loc-popular">
-          <span className="loc-popular-label">Popular Cities</span>
+          <span className="loc-popular-label">Popular cities</span>
           <div className="loc-popular-grid">
             {POPULAR_CITIES.map(city => (
               <button key={city} className="loc-city-btn" onClick={() => handleCitySelect(city)}>
@@ -436,7 +453,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 
         {currentLocation && (
           <button className="loc-clear" onClick={() => { onSetLocation(null); onClose(); }}>
-            Clear Location Filter
+            Clear location filter
           </button>
         )}
       </div>
@@ -739,7 +756,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     <>
       <SEOHead
         title="Poker Events Calendar — Find Any Tournament"
-        description="Search Thousands Of Poker Tournaments By Date, Location, Buy-In, And Game Type. Daily Tournaments, Series Events, And Tour Stops — All In One Place."
+        description="Search thousands of poker tournaments by date, location, buy-in, and game type. Daily tournaments, series events, and tour stops — all in one place."
         canonical="/hub/events-calendar"
       />
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
@@ -763,7 +780,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           {userLocation ? (
             <div className="pnm-location-pill">
               <div className="pnm-location-dot" />
-              <span className="pnm-location-label">Location Active</span>
+              <span className="pnm-location-label">Location active</span>
               {userLocation.label && userLocation.label !== 'My Location' && (
                 <span className="pnm-location-city">{userLocation.label}</span>
               )}
@@ -771,7 +788,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                 className="pnm-location-clear"
                 onClick={() => { handleLocationChange(null); }}
                 aria-label="Clear location"
-              >&times;</button>
+              ><XLuc size={14} aria-hidden /></button>
             </div>
           ) : (
             <button
@@ -780,7 +797,7 @@ export default function EventsCalendarPage({ fallbackData }) {
               id="ec-location-btn"
             >
               <MapPinIcon size={14} />
-              Set Location
+              Set location
             </button>
           )}
         </div>
@@ -790,7 +807,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           {/* Centered title block */}
           <h1 className="ec-title"><span className="ec-white">EVENTS</span> <span className="ec-cyan">CALENDAR</span></h1>
           <p className="ec-subtitle" style={{ display: 'flex', flexDirection: 'row', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
+            {loading ? 'Loading…' : `${totalCount.toLocaleString()} tournaments found`}
             {stats.sources && !loading && (
               <span className="ec-source-counts" style={{ display: 'inline', marginLeft: '4px' }}>
                 &middot; {[
@@ -806,8 +823,9 @@ export default function EventsCalendarPage({ fallbackData }) {
           </p>
           {/* Search box — absolute right */}
           <div style={{ position: 'absolute', top: 0, right: 0 }}>
-            <div className="ec-search-wrap" style={{ width: '200px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '500px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <form className="ec-search-wrap" role="search" onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); }} style={{ width: '200px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '500px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <SearchIcon />
+              <label htmlFor="ec-search-input" className="ec-sr-only">Search tournaments</label>
               <input
                 type="text"
                 placeholder="Search"
@@ -818,11 +836,11 @@ export default function EventsCalendarPage({ fallbackData }) {
                 style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: '13px' }}
               />
               {searchInput && (
-                <button className="ec-search-clear" onClick={() => { setSearchInput(''); setSearchQuery(''); }} style={{ background: 'transparent', border: 'none', color: '#8b8d9b', cursor: 'pointer', padding: 4 }}>
+                <button type="button" className="ec-search-clear" aria-label="Clear search" onClick={() => { setSearchInput(''); setSearchQuery(''); }} style={{ background: 'transparent', border: 'none', color: '#8b8d9b', cursor: 'pointer', padding: 4 }}>
                   <XIcon />
                 </button>
               )}
-            </div>
+            </form>
           </div>
         </div>
         
@@ -845,6 +863,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                       key={day}
                       className={`ec-day-tab${isActive ? ' active' : ''}${isToday ? ' today' : ''}`}
                       onClick={() => setDayOfWeek(isActive ? '' : day)}
+                      aria-pressed={isActive}
                     >
                       {isToday && <span className="ec-day-today-dot" />}
                       <span className="ec-day-short">{day.substring(0, 3).toUpperCase()}</span>
@@ -862,7 +881,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Event Type — Show All / Daily / Series / Tour */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label">Event Type</label>
+            <label className="ec-filter-label" htmlFor="ec-event-type">Event type</label>
             <select
               className="ec-filter-select"
               value={eventType}
@@ -875,7 +894,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Date Range */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label">Date Range</label>
+            <label className="ec-filter-label" htmlFor="ec-date-range">Date range</label>
             <select
               className="ec-filter-select"
               value={dateRange}
@@ -889,7 +908,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Buy-In */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label">Buy-In</label>
+            <label className="ec-filter-label" htmlFor="ec-buyin">Buy-in</label>
             <select
               className="ec-filter-select"
               value={buyInTier}
@@ -902,7 +921,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Game Type */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label">Game</label>
+            <label className="ec-filter-label" htmlFor="ec-game-type">Game</label>
             <select
               className="ec-filter-select"
               value={gameType}
@@ -916,7 +935,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           {/* Distance (only when location is set) */}
           {userLocation && (
             <div className="ec-filter-group">
-              <label className="ec-filter-label">Distance</label>
+              <label className="ec-filter-label" htmlFor="ec-distance">Distance</label>
               <select
                 className="ec-filter-select"
                 value={distance}
@@ -930,7 +949,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* Sort By */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label">Sort By</label>
+            <label className="ec-filter-label" htmlFor="ec-sort-by">Sort by</label>
             <select
               className="ec-filter-select"
               value={sortBy}
@@ -943,16 +962,16 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* View Mode */}
           <div className="ec-filter-group">
-            <label className="ec-filter-label">View Mode</label>
+            <label className="ec-filter-label" htmlFor="ec-view-mode">View mode</label>
             <select
               className="ec-filter-select"
               value={viewMode}
               onChange={e => setViewMode(e.target.value)}
               id="ec-view-mode"
             >
-              <option value="list">List View</option>
-              <option value="calendar">Calendar View</option>
-              <option value="map">Map View</option>
+              <option value="list">List view</option>
+              <option value="calendar">Calendar view</option>
+              <option value="map">Map view</option>
             </select>
           </div>
 
@@ -970,15 +989,15 @@ export default function EventsCalendarPage({ fallbackData }) {
         {/* ── Content ── */}
         <div className="ec-content">
           {loading && (
-            <div className="ec-loading">
+            <div className="ec-loading" role="status" aria-live="polite" aria-busy="true">
               <div className="ec-spinner" />
-              <p>Finding Tournaments...</p>
+              <p>Finding tournaments…</p>
             </div>
           )}
 
           {error && !loading && (
             <div className="ec-error">
-              <p>Failed To Load Events</p>
+              <p>Failed to load events</p>
               <p className="ec-error-detail">{error?.message || 'Unknown error'}</p>
             </div>
           )}
@@ -1002,9 +1021,9 @@ export default function EventsCalendarPage({ fallbackData }) {
               {events.length === 0 ? (
                 <div className="ec-empty">
                   <CalendarIcon size={40} />
-                  <p className="ec-empty-title">No Tournaments Found</p>
-                  <p className="ec-empty-sub">Try Adjusting Your Filters Or Expanding Your Search Area.</p>
-                  <button className="ec-empty-btn" onClick={clearFilters}>Clear All Filters</button>
+                  <p className="ec-empty-title">No tournaments found</p>
+                  <p className="ec-empty-sub">Try adjusting your filters or expanding your search area.</p>
+                  <button className="ec-empty-btn" onClick={clearFilters}>Clear all filters</button>
                 </div>
               ) : (
                 <>
@@ -1029,7 +1048,7 @@ export default function EventsCalendarPage({ fallbackData }) {
 
                   {visibleCount < events.length && (
                     <button className="ec-load-more" onClick={() => setVisibleCount(v => v + 100)}>
-                      Show More ({events.length - visibleCount} Remaining)
+                      Show more ({events.length - visibleCount} remaining)
                     </button>
                   )}
                 </>
@@ -1041,10 +1060,10 @@ export default function EventsCalendarPage({ fallbackData }) {
           {!loading && !error && viewMode === 'calendar' && (
             <div className="ec-calendar">
               <div className="ec-month-nav">
-                <button className="ec-nav-btn" onClick={goToPrevMonth}><ChevronLeft /></button>
+                <button className="ec-nav-btn" onClick={goToPrevMonth} aria-label="Previous month"><ChevronLeft /></button>
                 <h2 className="ec-month-label">{MONTH_NAMES[calMonth]} {calYear}</h2>
-                <button className="ec-nav-btn" onClick={goToNextMonth}><ChevronRight /></button>
-                <button className="ec-today-btn" onClick={goToToday}>Today</button>
+                <button className="ec-nav-btn" onClick={goToNextMonth} aria-label="Next month"><ChevronRight /></button>
+                <button className="ec-today-btn" onClick={goToToday} aria-label="Jump to today">Today</button>
               </div>
 
               <div className="ec-grid-header">
@@ -1053,25 +1072,28 @@ export default function EventsCalendarPage({ fallbackData }) {
 
               <div className="ec-grid">
                 {calendarCells.map(cell => (
-                  <div
-                    key={cell.key}
-                    className={`ec-cell ${cell.day ? 'has-day' : 'empty'} ${cell.isToday ? 'today' : ''} ${cell.dateKey === selectedCalDate ? 'selected' : ''}`}
-                    onClick={() => { if (cell.day) setSelectedCalDate(cell.dateKey === selectedCalDate ? null : cell.dateKey); }}
-                  >
-                    {cell.day && (
-                      <>
-                        <span className={`ec-day-num ${cell.isToday ? 'today' : ''}`}>{cell.day}</span>
-                        {cell.count > 0 && (
-                          <div className="ec-dot-row">
-                            {Array.from({ length: Math.min(cell.count, 3) }).map((_, i) => (
-                              <span key={i} className="ec-dot" />
-                            ))}
-                            {cell.count > 3 && <span className="ec-dot-more">+{cell.count - 3}</span>}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                  cell.day ? (
+                    <button
+                      key={cell.key}
+                      type="button"
+                      className={`ec-cell has-day ${cell.isToday ? 'today' : ''} ${cell.dateKey === selectedCalDate ? 'selected' : ''}`}
+                      onClick={() => setSelectedCalDate(cell.dateKey === selectedCalDate ? null : cell.dateKey)}
+                      aria-pressed={cell.dateKey === selectedCalDate}
+                      aria-label={`${MONTH_NAMES[calMonth]} ${cell.day}, ${calYear}${cell.count > 0 ? ` — ${cell.count} event${cell.count !== 1 ? 's' : ''}` : ''}`}
+                    >
+                      <span className={`ec-day-num ${cell.isToday ? 'today' : ''}`}>{cell.day}</span>
+                      {cell.count > 0 && (
+                        <div className="ec-dot-row">
+                          {Array.from({ length: Math.min(cell.count, 3) }).map((_, i) => (
+                            <span key={i} className="ec-dot" aria-hidden />
+                          ))}
+                          {cell.count > 3 && <span className="ec-dot-more">+{cell.count - 3}</span>}
+                        </div>
+                      )}
+                    </button>
+                  ) : (
+                    <div key={cell.key} className="ec-cell empty" role="presentation" />
+                  )
                 ))}
               </div>
 
@@ -1618,6 +1640,65 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         @media (max-width: 480px) {
           .ec-filter-select { min-width: 95px; padding: 8px 22px 8px 10px; }
+        }
+
+        /* ═══ A11y: visually-hidden label for screen readers ═══ */
+        .ec-sr-only {
+          position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+          overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+        }
+
+        /* ═══ Location modal: per-field labels ═══ */
+        .loc-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+        .loc-field--state { flex: 0 0 110px; }
+        .loc-input-label {
+          font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+          text-transform: uppercase; color: rgba(255,255,255,0.5);
+        }
+
+        /* ═══ Touch-target compliance (UI-UX-Pro-Max priority 2 — 44pt minimum) ═══ */
+        .ec-nav-btn { width: 44px; height: 44px; }
+        .ec-today-btn { min-height: 36px; }
+        .loc-close {
+          min-width: 44px; min-height: 44px; display: inline-flex;
+          align-items: center; justify-content: center; border-radius: 8px;
+        }
+        .pnm-location-clear {
+          min-width: 44px; min-height: 44px; display: inline-flex;
+          align-items: center; justify-content: center; border-radius: 50%;
+          padding: 0; font-size: 0;
+        }
+        .ec-search-clear {
+          min-width: 44px; min-height: 44px; display: inline-flex;
+          align-items: center; justify-content: center; border-radius: 50%;
+        }
+
+        /* ═══ Motion guard (UI-UX-Pro-Max priority 7 — WCAG 2.3.3) ═══ */
+        @media (prefers-reduced-motion: reduce) {
+          .ec-gps-btn,
+          .pnm-location-pill,
+          .pnm-location-dot { animation: none !important; }
+          .ec-spinner { animation: ec-spin 2s linear infinite; }
+          .ev-card,
+          .ec-cell,
+          .ec-filter-select,
+          .loc-gps-btn,
+          .loc-city-btn,
+          .loc-clear,
+          .ec-clear-btn,
+          .ec-day-tab,
+          .ec-empty-btn,
+          .ec-load-more { transition: none !important; }
+        }
+
+        /* ═══ Layout: hero search reflows on narrow screens (UI-UX-Pro-Max priority 5) ═══ */
+        @media (max-width: 640px) {
+          .ec-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+          .ec-hero > div[style*="position: absolute"] {
+            position: static !important; width: 100% !important;
+            max-width: 320px; margin: 4px auto 0;
+          }
+          .ec-hero > div[style*="position: absolute"] .ec-search-wrap { width: 100% !important; }
         }
       `}</style>
     </>
