@@ -1,0 +1,81 @@
+name: YT Worker Diagnostics (read-only)
+
+# Read-only diagnostic workflow — SSHes to Hetzner, tails the worker journal,
+# reports cookies.txt metadata, lists running yt-dlp/ffmpeg child processes,
+# and prints resource usage. Does NOT mutate cookies, code, or the worker.
+# Safe to dispatch any time, no destructive side effects.
+#
+# Why this exists: deploy-yt-cookies / deploy-yt-worker / refresh-yt-cookies
+# all run mutating ops before they tail the journal. When the worker appears
+# stuck and you need to see WHAT it's doing without overwriting cookies or
+# restarting the worker, dispatch this instead.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tail_lines:
+        description: 'Number of journal lines to tail'
+        required: false
+        type: string
+        default: '100'
+
+concurrency:
+  group: yt-worker-diag
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+
+      - name: Trust Hetzner host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Cookie state (counts only, no content)
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" '
+            echo "=== cookies.txt ==="
+            sudo ls -la /opt/smarter-poker/yt-transcode-worker/cookies.txt
+            echo "lines:        $(sudo wc -l < /opt/smarter-poker/yt-transcode-worker/cookies.txt)"
+            echo "yt-entries:   $(sudo grep -c "\.youtube\.com" /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
+            echo "LOGIN_INFO:   $(sudo grep -cw LOGIN_INFO /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
+            echo "SAPISID:      $(sudo grep -cw SAPISID /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
+            echo "HSID:         $(sudo grep -cw HSID /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
+          '
+
+      - name: Worker process / resource state
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" '
+            echo "=== systemd ==="
+            sudo systemctl status sp-yt-transcode --no-pager --lines=0 | head -10
+            echo ""
+            echo "=== process tree (yt-dlp / ffmpeg / worker children) ==="
+            ps aux | head -1
+            ps aux | grep -E "yt-dlp|ffmpeg|node.*index.js" | grep -v grep | head -25
+            echo ""
+            echo "=== resource usage ==="
+            free -h | head -2
+            df -h / | head -2
+            uptime
+          '
+
+      - name: Worker journal tail
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          TAIL_LINES: ${{ inputs.tail_lines }}
+        run: |
+          ssh "$USER@$HOST" "sudo journalctl -u sp-yt-transcode -n $TAIL_LINES --no-pager"

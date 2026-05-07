@@ -257,11 +257,31 @@ export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
             // Use native fetch to avoid AbortError
             const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
             const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            // BUG FIX: Always use the user's JWT access token for authenticated RPC calls.
+            // Using anon key gave Supabase no user context → RLS blocked all stories.
+            let accessToken = sbKey; // fallback to anon
+            try {
+                const raw = localStorage.getItem('smarter-poker-auth');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed?.access_token) accessToken = parsed.access_token;
+                }
+                if (accessToken === sbKey) {
+                    // Fallback: try sb-* keys
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) {
+                        const parsed = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        if (parsed?.access_token) accessToken = parsed.access_token;
+                    }
+                }
+            } catch (_) { /* non-critical */ }
+
             const response = await fetch(`${sbUrl}/rest/v1/rpc/fn_get_stories`, {
                 method: 'POST',
                 headers: {
                     'apikey': sbKey,
-                    'Authorization': `Bearer ${sbKey}`,
+                    'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ p_viewer_id: userId })

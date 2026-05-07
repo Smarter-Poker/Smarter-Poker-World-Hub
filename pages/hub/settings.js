@@ -237,16 +237,25 @@ export default function SettingsPage() {
     // Hoisted above menuConfig to avoid TDZ — menuConfig passes this as onSignOut
     const handleLogout = async () => {
         try {
-            // Clear profile cache so next user doesn't see stale alias
+            // Clear ALL profile caches so next user doesn't see stale data from previous account
             try { localStorage.removeItem('sp-social-user'); } catch (_) {}
             try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
+            try { localStorage.removeItem('sp-cached-header-user'); } catch (_) {} // BUG FIX: clear avatar cache
+            try { localStorage.removeItem('sp-cached-settings-profile'); } catch (_) {}
+            try { localStorage.removeItem('sp-notif-count'); } catch (_) {}
             await supabase.auth.signOut();
-            // Force hard redirect to clear all cached state
-            window.location.href = '/';
+            // BUG FIX: Use window.top to navigate the PARENT window, not just the iframe.
+            // When Settings opens inside FullScreenPageOverlay, `window` is the iframe context.
+            // Navigating `window.location` only changes the iframe URL — the parent overlay
+            // stays open and the parent SPA remains on the old authenticated page.
+            // window.top navigates the entire browser tab, tearing down both iframe and SPA.
+            const target = (typeof window !== 'undefined' && window.top) ? window.top : window;
+            target.location.href = '/';
         } catch (error) {
             console.warn('Logout error:', error);
             // Even if there's an error, redirect anyway
-            window.location.href = '/';
+            const target = (typeof window !== 'undefined' && window.top) ? window.top : window;
+            target.location.href = '/';
         }
     };
 
