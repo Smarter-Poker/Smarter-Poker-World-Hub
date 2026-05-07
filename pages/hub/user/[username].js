@@ -3491,7 +3491,12 @@ export default function UserProfilePage() {
                                     btn.textContent = 'Blocking...';
                                     if (!currentUser?.id || !profile?.id) { setProfileMenuMsg('Please log in'); setTimeout(() => setProfileMenuMsg(''), 2000); setShowBlockConfirm(false); btn.disabled = false; btn.textContent = 'Block'; return; }
                                     try {
-                                        await supabase.from('user_blocks').insert({
+                                        // BUG-FIX-LIVE-AUDIT (B2): write to blocked_users, NOT user_blocks.
+                                        // Canonical table read by privacy-service.isUserBlocked,
+                                        // settings export, and the new get_visible_live_streams /
+                                        // get_visible_live_comments RPCs. Writing to user_blocks
+                                        // silently no-op'd — the block didn't take effect anywhere.
+                                        await supabase.from('blocked_users').insert({
                                             blocker_id: currentUser.id,
                                             blocked_id: profile.id
                                         });
