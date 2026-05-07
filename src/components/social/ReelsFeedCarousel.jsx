@@ -375,7 +375,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const touchStartRef = useRef({ x: 0, y: 0 });
     const swipeStartRef = useRef(null);
     const swipeDeltaRef = useRef(0);
-    const userInteractedRef = useRef(false); // Tracks if user has touched/swiped at least once
+    // Session-sticky gesture flag: persisted to sessionStorage so it survives
+    // re-renders and slot transitions. Once any user gesture is captured,
+    // every subsequent video can unmute on its onPlaying event without an
+    // extra click. See the matching fix in src/components/social/Reels.jsx.
+    const userInteractedRef = useRef(
+        typeof window !== 'undefined' && window.sessionStorage?.getItem('sp:reels:interacted') === '1'
+    );
     const userWantsSoundRef = useRef(true);  // User preference — persists across reel changes
     const likeDebounceRef = useRef(false);
     const lastTapRef = useRef(0);
@@ -1310,6 +1316,43 @@ function ReelViewer({ reels, startIndex, onClose }) {
         };
     }, []);
 
+    // ─── Global gesture capture for autoplay-with-sound ─────────────────────
+    // First user gesture (pointerdown/keydown/wheel/touchstart anywhere on the
+    // page) marks userInteractedRef true and persists to sessionStorage. After
+    // that, every video can unmute on its onPlaying event without an extra
+    // click. Mirrors the matching effect in src/components/social/Reels.jsx.
+    useEffect(() => {
+        if (userInteractedRef.current) return;
+        const onGesture = () => {
+            if (userInteractedRef.current) return;
+            userInteractedRef.current = true;
+            try { window.sessionStorage?.setItem('sp:reels:interacted', '1'); } catch (_) {}
+            if (userWantsSoundRef.current) {
+                try {
+                    if (videoRef.current) {
+                        videoRef.current.muted = false;
+                        if (videoRef.current.volume === 0) videoRef.current.volume = 1.0;
+                    }
+                    sendYTCmd('unMute');
+                    sendYTCmd('setVolume', [100]);
+                    setMuted(false);
+                } catch (_) { /* best-effort */ }
+            }
+        };
+        const opts = { capture: true, passive: true };
+        window.addEventListener('pointerdown', onGesture, opts);
+        window.addEventListener('keydown',     onGesture, opts);
+        window.addEventListener('wheel',       onGesture, opts);
+        window.addEventListener('touchstart',  onGesture, opts);
+        return () => {
+            window.removeEventListener('pointerdown', onGesture, opts);
+            window.removeEventListener('keydown',     onGesture, opts);
+            window.removeEventListener('wheel',       onGesture, opts);
+            window.removeEventListener('touchstart',  onGesture, opts);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
@@ -1595,12 +1638,26 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     key={currentReel.id}
                     src={!isYouTubeUrl(currentReel.video_url) ? currentReel.video_url : undefined}
                     autoPlay={!isYouTubeUrl(currentReel.video_url)}
-                    muted={muted}
+                    // Always render muted=true so the browser permits autoplay
+                    // unconditionally. The new onPlaying handler flips muted=false
+                    // synchronously inside the playing event IF the user has
+                    // gestured this tab session — see the global gesture-capture
+                    // useEffect added above.
+                    muted={true}
                     playsInline
                     poster={currentReel.thumbnail_url || undefined}
                     style={{
                         width: '100%', height: '100%', objectFit: 'cover',
                         display: !isYouTubeUrl(currentReel.video_url) ? 'block' : 'none',
+                    }}
+                    onPlaying={(e) => {
+                        if (userInteractedRef.current && userWantsSoundRef.current) {
+                            try {
+                                e.target.muted = false;
+                                if (e.target.volume === 0) e.target.volume = 1.0;
+                                setMuted(false);
+                            } catch (_) { /* best-effort */ }
+                        }
                     }}
                     onPlay={() => {
                         setPaused(false);

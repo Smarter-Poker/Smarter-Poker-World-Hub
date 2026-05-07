@@ -87,6 +87,15 @@ export default function ReelsPage() {
     isPausedRef.current = isPaused; // Keep in sync on every render
     const userWantsSoundRef = useRef(true); // Sync ref for stale-closure-safe YT message handler
     userWantsSoundRef.current = userWantsSound; // Keep in sync on every render
+    // Session-sticky gesture flag: persisted to sessionStorage so it survives
+    // re-renders, slot transitions, and client-side route changes within the
+    // same tab. Once any user gesture is captured anywhere, every subsequent
+    // video can unmute on its onPlaying / onStateChange(1) event without an
+    // extra click. Mirrors the matching pattern in
+    // src/components/social/Reels.jsx and src/components/social/ReelsFeedCarousel.jsx.
+    const userInteractedRef = useRef(
+        typeof window !== 'undefined' && window.sessionStorage?.getItem('sp:reels:interacted') === '1'
+    );
     const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const touchStartY = useRef(0);
     const touchStartX = useRef(0);
@@ -327,13 +336,62 @@ export default function ReelsPage() {
     };
 
     // Auto-unmute helper — fires on swipe and on onStateChange(1).
-    // Swipe IS a user gesture, so the browser always honours the postMessage unMute.
+    // Gated on userInteractedRef.current so the unMute postMessage isn't wasted
+    // before any gesture has been captured (browsers ignore unMute without a
+    // gesture context). After the first gesture, this fires unconditionally
+    // for every slot transition.
     const autoUnmute = () => {
         if (!userWantsSoundRef.current) return;
+        if (!userInteractedRef.current) return;
         sendYouTubeCommand('unMute');
         sendYouTubeCommand('setVolume', [100]);
         setMuted(false);
+        if (videoRef.current) {
+            try {
+                videoRef.current.muted = false;
+                if (videoRef.current.volume === 0) videoRef.current.volume = 1.0;
+            } catch (_) {}
+        }
     };
+
+    // ─── Global gesture capture for autoplay-with-sound ─────────────────────
+    // First user gesture (pointerdown/keydown/wheel/touchstart anywhere on the
+    // page) marks userInteractedRef true and persists '1' to sessionStorage,
+    // then synchronously unmutes the currently active video and YouTube
+    // iframe so the user gets sound on the very first video without an extra
+    // tap. The flag stays sticky for the whole tab session, so subsequent
+    // swipes inherit it.
+    useEffect(() => {
+        if (userInteractedRef.current) return;
+        const onGesture = () => {
+            if (userInteractedRef.current) return;
+            userInteractedRef.current = true;
+            try { window.sessionStorage?.setItem('sp:reels:interacted', '1'); } catch (_) {}
+            if (userWantsSoundRef.current) {
+                try {
+                    if (videoRef.current) {
+                        videoRef.current.muted = false;
+                        if (videoRef.current.volume === 0) videoRef.current.volume = 1.0;
+                    }
+                    sendYouTubeCommand('unMute');
+                    sendYouTubeCommand('setVolume', [100]);
+                    setMuted(false);
+                } catch (_) { /* best-effort */ }
+            }
+        };
+        const opts = { capture: true, passive: true };
+        window.addEventListener('pointerdown', onGesture, opts);
+        window.addEventListener('keydown',     onGesture, opts);
+        window.addEventListener('wheel',       onGesture, opts);
+        window.addEventListener('touchstart',  onGesture, opts);
+        return () => {
+            window.removeEventListener('pointerdown', onGesture, opts);
+            window.removeEventListener('keydown',     onGesture, opts);
+            window.removeEventListener('wheel',       onGesture, opts);
+            window.removeEventListener('touchstart',  onGesture, opts);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
 
     // Wait for router.isReady so router.query.id is populated before loadReels runs.
@@ -1943,8 +2001,22 @@ export default function ReelsPage() {
                             autoPlay
                             loop
                             playsInline
-                            muted={muted}
+                            // Always render muted=true — guarantees autoplay regardless
+                            // of browser policy. The new onPlaying handler flips
+                            // muted=false synchronously inside the playing event IF
+                            // the user has gestured this tab session (see the global
+                            // gesture-capture useEffect above).
+                            muted={true}
                             onPlay={() => setIsPaused(false)}
+                            onPlaying={(e) => {
+                                if (userInteractedRef.current && userWantsSoundRef.current) {
+                                    try {
+                                        e.target.muted = false;
+                                        if (e.target.volume === 0) e.target.volume = 1.0;
+                                        setMuted(false);
+                                    } catch (_) { /* best-effort */ }
+                                }
+                            }}
                             onPause={() => setIsPaused(true)}
                             onEnded={() => { setIsPaused(false); goNext(); }}
                             onTimeUpdate={(e) => {
