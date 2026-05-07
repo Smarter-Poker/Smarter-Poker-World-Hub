@@ -841,9 +841,9 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     setPendingSlotIndex(slotIndex);
     const cid = initialTable?.clubId || tables[0]?.clubId || null;
     if (cid) {
-      window.location.href = `/hub/club-arena?club=${cid}&mtslot=${slotIndex}`;
+      window.top.location.href = `/hub/club-arena?club=${cid}&mtslot=${slotIndex}`;
     } else {
-      window.location.href = '/hub/club-arena';
+      window.top.location.href = '/hub/club-arena';
     }
   }, [setPendingSlotIndex, initialTable, tables, router]);
 

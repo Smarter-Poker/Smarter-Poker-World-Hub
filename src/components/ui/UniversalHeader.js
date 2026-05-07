@@ -168,12 +168,18 @@ export default function UniversalHeader({
 
     // Re-fetch real notification count after overlay closes so the badge reflects DB truth.
     // BroadcastChannel cannot bridge an iframe → parent in the same tab, so we poll on close.
+    const isMountedRef = useRef(true);
+    useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
+
     const closeOverlay = (closedPage) => {
         setOverlayPage(null);
         if (closedPage === 'notifications') {
             // Give the iframe a moment to finish marking rows read, then re-query via API
             // (API counts both social + poker notifications — direct supabase query only gets social)
+            // BUG FIX (Bug #9): capture isMountedRef so the async callback is a no-op if the
+            // component unmounts before the 800ms timer fires.
             setTimeout(async () => {
+                if (!isMountedRef.current) return; // Component gone — skip all setState calls
                 try {
                     let accessToken = null;
                     try {
@@ -206,7 +212,7 @@ export default function UniversalHeader({
                         body: JSON.stringify({ userId }),
                     });
                     const result = await res.json();
-                    if (result.success && typeof result.notificationCount === 'number') {
+                    if (result.success && typeof result.notificationCount === 'number' && isMountedRef.current) {
                         const freshCount = result.notificationCount;
                         setNotificationCount(freshCount);
                         try { localStorage.setItem('sp-notif-count', String(freshCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -445,21 +451,20 @@ export default function UniversalHeader({
                     // NOTE: Unread messages count is set from API response above (lines 160-165)
                     // No direct query needed - the get-header-stats API handles this correctly
 
-                    // REAL-TIME: Subscribe to new notifications (INSERT only — badge increment)
-                    // NOTE: UPDATE/DELETE badge decrements are handled by EventBus.NOTIFICATIONS_READ
-                    //       (same-tab) and broadcastSync → fetchUnreadCount (cross-tab).
-                    //       Supabase RT UPDATE/DELETE payloads have empty payload.old with DEFAULT
-                    //       REPLICA IDENTITY, so checking payload.old.read is unreliable and would
-                    //       double-decrement or decrement already-read notifications.
+                    // BUG FIX (Bug #7): static channel name 'header-notifications' causes a zombie
+                    // subscription when React StrictMode double-invokes useEffect or hot-reload fires.
+                    // Supabase deduplicates channels by name — the second subscriber silently drops
+                    // every INSERT event, so new notification badges never appear after a hot-reload.
+                    // Fix: unique name per mount using user ID + timestamp.
                     notifChannel = supabase
-                        .channel('header-notifications')
+                        .channel(`header-notifs-${authUser.id}-${Date.now()}`)
                         .on('postgres_changes', {
                             event: 'INSERT',
                             schema: 'public',
                             table: 'notifications',
                             filter: `user_id=eq.${authUser.id}`
                         }, () => {
-                            setNotificationCount(prev => prev + 1);
+                            if (mounted) setNotificationCount(prev => prev + 1);
                         })
                         .subscribe();
 

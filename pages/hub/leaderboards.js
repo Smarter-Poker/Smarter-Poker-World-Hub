@@ -316,7 +316,7 @@ export default function LeaderboardsPage() {
     useEffect(() => {
         // Subscribe to leaderboard data changes (check-ins, reviews, posts)
         const leaderboardChannel = supabase
-            .channel('leaderboards-live')
+            .channel(`leaderboards-live-${Date.now()}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',

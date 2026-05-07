@@ -128,7 +128,7 @@ export default function LeaguesPage() {
   // Realtime listener — live updates when leagues are created/updated
   useEffect(() => {
     const ch = supabase
-      .channel('leagues-list')
+      .channel(`leagues-list-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_leagues' }, () => { refreshLeagues(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };

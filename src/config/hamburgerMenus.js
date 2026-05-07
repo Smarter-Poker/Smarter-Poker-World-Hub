@@ -50,7 +50,7 @@ const signOutAction = () => {
         try { localStorage.removeItem('sp-social-user'); } catch (_) {}
         try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
         try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
-        window.location.href = '/';
+        window.top.location.href = '/';
     });
 };
 

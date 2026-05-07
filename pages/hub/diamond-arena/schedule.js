@@ -29,7 +29,7 @@ export default function DiamondArenaSchedule() {
     // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
         const scheduleChannel = supabase
-            .channel('diamond-arena-schedule')
+            .channel(`diamond-arena-schedule-${Date.now()}`)
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',

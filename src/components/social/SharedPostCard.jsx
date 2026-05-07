@@ -109,7 +109,7 @@ export default function SharedPostCard({ postId, mediaMetadata, isOwn }) {
         <a
             href={postUrl}
             style={{ display: 'block', textDecoration: 'none', marginTop: 8 }}
-            onClick={e => { e.preventDefault(); window.location.href = postUrl; }}
+            onClick={e => { e.preventDefault(); window.top.location.href = postUrl; }}
         >
             <div style={{
                 border: `1px solid ${border}`, borderRadius: 12,

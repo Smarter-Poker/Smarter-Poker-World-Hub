@@ -80,7 +80,7 @@ export default class PageErrorBoundary extends React.Component {
 
     handleGoHome = () => {
         if (typeof window !== 'undefined') {
-            window.location.href = '/hub';
+            window.top.location.href = '/hub';
         }
     };
 

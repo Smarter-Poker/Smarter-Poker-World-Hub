@@ -329,7 +329,7 @@ export default function NewsHub() {
     // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
         const newsChannel = supabase
-            .channel('news-live')
+            .channel(`news-live-${Date.now()}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',

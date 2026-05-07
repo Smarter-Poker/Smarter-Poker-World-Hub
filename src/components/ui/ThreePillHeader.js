@@ -183,15 +183,17 @@ export default function ThreePillHeader({
                         // NOTE: UPDATE listener removed — Supabase DEFAULT REPLICA IDENTITY sends
                         // empty payload.old, so payload.old.read is always undefined (never fires).
                         // Same-tab read decrements are handled by EventBus.NOTIFICATIONS_READ.
+                        // BUG FIX (Bug #10): static channel name causes zombie subscription on
+                        // React StrictMode double-invoke or hot-reload. Made unique per mount.
                         notifChannel = supabase
-                            .channel('threepill-notifications')
+                            .channel(`threepill-notifs-${authUser.id}-${Date.now()}`)
                             .on('postgres_changes', {
                                 event: 'INSERT',
                                 schema: 'public',
                                 table: 'notifications',
                                 filter: `user_id=eq.${authUser.id}`
                             }, () => {
-                                setNotificationCount(prev => prev + 1);
+                                if (mounted) setNotificationCount(prev => prev + 1);
                             })
                             .on('postgres_changes', {
                                 event: 'DELETE',
@@ -201,7 +203,7 @@ export default function ThreePillHeader({
                             }, (payload) => {
                                 // payload.old.read may be undefined with DEFAULT REPLICA IDENTITY
                                 // be optimistic: decrement if we can't confirm it was already read
-                                if (!payload.old?.read) {
+                                if (!payload.old?.read && mounted) {
                                     setNotificationCount(prev => Math.max(0, prev - 1));
                                 }
                             })
