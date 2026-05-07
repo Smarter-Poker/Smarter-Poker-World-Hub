@@ -3,7 +3,13 @@
  * VideoThumbnail, VideoPostWrapper, FullScreenVideoViewer
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { SOCIAL_COLORS as C, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail } from '../../lib/socialHelpers';
+import {
+  SOCIAL_COLORS as C,
+  isYouTubeUrl,
+  getYouTubeVideoId,
+  getYouTubeEmbedUrl,
+  getYouTubeThumbnail,
+} from '../../lib/socialHelpers';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
 import toast from '../../stores/toastStore';
 
@@ -12,67 +18,76 @@ import toast from '../../stores/toastStore';
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function VideoThumbnail({ url, style = {}, onValidated }) {
-    const [thumbnailError, setThumbnailError] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [isValid, setIsValid] = useState(null);
-    const imgRef = useRef(null);
-    const thumbnailUrl = getYouTubeThumbnail(url);
+  const [thumbnailError, setThumbnailError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isValid, setIsValid] = useState(null);
+  const imgRef = useRef(null);
+  const thumbnailUrl = getYouTubeThumbnail(url);
 
-    const FallbackUI = ({ showUnavailable = false }) => (
-        <div style={{
-            width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            color: 'white', ...style
-        }}>
-            <span style={{ fontSize: 48, marginBottom: 8 }}></span>
-            <span style={{ fontSize: 14, opacity: 0.8 }}>
-                {showUnavailable ? 'Video Unavailable' : 'Video'}
-            </span>
-        </div>
-    );
+  const FallbackUI = ({ showUnavailable = false }) => (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        ...style,
+      }}
+    >
+      <span style={{ fontSize: 48, marginBottom: 8 }}></span>
+      <span style={{ fontSize: 14, opacity: 0.8 }}>
+        {showUnavailable ? 'Video Unavailable' : 'Video'}
+      </span>
+    </div>
+  );
 
-    if (thumbnailError || !thumbnailUrl) {
-        return <FallbackUI showUnavailable={thumbnailError} />;
+  if (thumbnailError || !thumbnailUrl) {
+    return <FallbackUI showUnavailable={thumbnailError} />;
+  }
+
+  const handleLoad = (e) => {
+    setIsLoaded(true);
+    const img = e.target;
+    const isInvalid = img.naturalWidth <= 120 && img.naturalHeight <= 90;
+    if (isInvalid) {
+      setThumbnailError(true);
+      setIsValid(false);
+      if (onValidated) onValidated(false);
+    } else {
+      setIsValid(true);
+      if (onValidated) onValidated(true);
     }
+  };
 
-    const handleLoad = (e) => {
-        setIsLoaded(true);
-        const img = e.target;
-        const isInvalid = img.naturalWidth <= 120 && img.naturalHeight <= 90;
-        if (isInvalid) {
-            setThumbnailError(true);
-            setIsValid(false);
-            if (onValidated) onValidated(false);
-        } else {
-            setIsValid(true);
-            if (onValidated) onValidated(true);
-        }
-    };
+  const handleError = () => {
+    setThumbnailError(true);
+    setIsValid(false);
+    if (onValidated) onValidated(false);
+  };
 
-    const handleError = () => {
-        setThumbnailError(true);
-        setIsValid(false);
-        if (onValidated) onValidated(false);
-    };
-
-    return (
-        <>
-            {!isLoaded && !thumbnailError && <FallbackUI />}
-            <img
-                ref={imgRef}
-                src={thumbnailUrl}
-                alt="Video Thumbnail"
-                style={{
-                    width: '100%', height: '100%', objectFit: 'cover',
-                    display: (isLoaded && !thumbnailError) ? 'block' : 'none',
-                    ...style
-                }}
-                onLoad={handleLoad}
-                onError={handleError}
-            />
-        </>
-    );
+  return (
+    <>
+      {!isLoaded && !thumbnailError && <FallbackUI />}
+      <img
+        ref={imgRef}
+        src={thumbnailUrl}
+        alt="Video Thumbnail"
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          display: isLoaded && !thumbnailError ? 'block' : 'none',
+          ...style,
+        }}
+        onLoad={handleLoad}
+        onError={handleError}
+      />
+    </>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -80,361 +95,664 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function VideoPostWrapper({ url, onValidVideoClick, children }) {
-    const [isVideoValid, setIsVideoValid] = useState(null);
+  const [isVideoValid, setIsVideoValid] = useState(null);
 
-    const handleClick = () => {
-        if (isVideoValid === false) {
-            toast.error('This video is no longer available on YouTube.');
-            return;
-        }
-        if (onValidVideoClick) onValidVideoClick(url);
-    };
+  const handleClick = () => {
+    if (isVideoValid === false) {
+      toast.error('This video is no longer available on YouTube.');
+      return;
+    }
+    if (onValidVideoClick) onValidVideoClick(url);
+  };
 
-    return (
+  return (
+    <div
+      onClick={handleClick}
+      style={{
+        position: 'relative',
+        cursor: isVideoValid === false ? 'not-allowed' : 'pointer',
+        aspectRatio: '16/9',
+        maxHeight: 400,
+        background: '#000',
+        overflow: 'hidden',
+      }}
+    >
+      {isYouTubeUrl(url) ? (
+        <VideoThumbnail url={url} onValidated={(valid) => setIsVideoValid(valid)} />
+      ) : (
+        children
+      )}
+
+      {isVideoValid !== false && (
         <div
-            onClick={handleClick}
-            style={{
-                position: 'relative',
-                cursor: isVideoValid === false ? 'not-allowed' : 'pointer',
-                aspectRatio: '16/9', maxHeight: 400,
-                background: '#000', overflow: 'hidden'
-            }}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.9)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#333',
+            fontSize: 28,
+            pointerEvents: 'none',
+            transition: 'transform 0.15s, background 0.15s',
+          }}
         >
-            {isYouTubeUrl(url) ? (
-                <VideoThumbnail url={url} onValidated={(valid) => setIsVideoValid(valid)} />
-            ) : children}
-
-            {isVideoValid !== false && (
-                <div style={{
-                    position: 'absolute', top: '50%', left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 64, height: 64, borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#333', fontSize: 28, pointerEvents: 'none',
-                    transition: 'transform 0.15s, background 0.15s'
-                }}>▶</div>
-            )}
-
-            {isVideoValid === false && (
-                <>
-                    <div style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 64, height: 64, borderRadius: '50%',
-                        background: 'rgba(100,100,100,0.6)', backdropFilter: 'blur(4px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#888', fontSize: 28, pointerEvents: 'none'
-                    }}></div>
-                    <div style={{
-                        position: 'absolute', bottom: 8, left: 8,
-                        background: 'rgba(200,50,50,0.8)',
-                        padding: '4px 10px', borderRadius: 4,
-                        color: 'white', fontSize: 12, fontWeight: 500
-                    }}>Video unavailable</div>
-                </>
-            )}
+          ▶
         </div>
+      )}
+
+      {isVideoValid === false && (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: 'rgba(100,100,100,0.6)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#888',
+              fontSize: 28,
+              pointerEvents: 'none',
+            }}
+          ></div>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 8,
+              left: 8,
+              background: 'rgba(200,50,50,0.8)',
+              padding: '4px 10px',
+              borderRadius: 4,
+              color: 'white',
+              fontSize: 12,
+              fontWeight: 500,
+            }}
+          >
+            Video unavailable
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEED VIDEO POSTER - Self-healing thumbnail tile for the social feed.
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// FEED-VIDEO-POSTER-2026-05-07 (per Dan, after ~10 prior "fixes" on the same
+// symptom: "why when you upload a video is it still giving the black screen
+// with play button instead of using the selected or uploaded thumbnail?!"):
+//
+// Three distinct upstream failure modes all manifest identically as
+// "black + play button" on the feed:
+//   1. thumbnail_url is NULL (live replay posts; thumbnail upload silent-fail
+//      in SharedPostCreator; mid-publish race before cron back-fills it).
+//   2. thumbnail_url is populated but the image 404s / CORS-fails / is slow
+//      — the previous renderer's <img background:#000 alt=""> showed black
+//      with no broken-image icon, so the user couldn't tell.
+//   3. Fallback used <video src + #t=0.001> — iOS Safari refuses to decode
+//      that fragment without playback, leaving a black <video> element.
+//
+// VideoPostWrapper sits ABOVE this component and unconditionally draws a
+// white play button overlay, so all three modes render as black + play.
+//
+// This component fixes all three in one place:
+//   • Render <img src={thumbnailUrl}> first — cheap, cacheable, the
+//     happy path.
+//   • On <img onError>, fall through to <video> (so #2 above stops being
+//     a silent black tile).
+//   • The <video> uses IntersectionObserver autoplay (the same trick
+//     FeedVideoPlayer in SmarterPokerStyleCard uses) — when the tile
+//     scrolls into view, video.play() forces iOS Safari to decode the
+//     first frame. Combined with poster={thumbnailUrl} as belt-and-
+//     suspenders, even if autoplay is blocked by data-saver / Reduced
+//     Motion / Low Power Mode, the poster still renders.
+//   • muted + playsInline + loop are required for iOS auto-decode.
+//
+// This is intentionally tolerant: if every layer fails (network down,
+// blob:// URL, malformed src) the worst case is the same black tile we
+// had before — never worse.
+
+export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const videoRef = useRef(null);
+
+  // IntersectionObserver autoplay forces iOS Safari to decode the first
+  // frame of the <video> element. Without this, Safari ignores #t=0.001
+  // and renders pure black until the user taps play — exactly the bug
+  // Dan kept reporting.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (typeof IntersectionObserver === 'undefined') return; // SSR / older browsers
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Best-effort: if autoplay is blocked, poster still shows.
+            video.play().catch(() => {
+              /* silenced — poster handles fallback */
+            });
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.5 }
     );
+    obs.observe(video);
+    return () => {
+      obs.unobserve(video);
+      obs.disconnect();
+    };
+  }, [videoUrl]); // re-attach observer if the underlying video URL changes
+
+  // Branch 1 — happy path: we have a thumbnail URL and it hasn't errored yet.
+  // VideoPostWrapper draws the play button overlay above this img.
+  if (thumbnailUrl && !imgFailed) {
+    return (
+      <img
+        src={thumbnailUrl}
+        alt=""
+        loading="lazy"
+        style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  // Branch 2 — fallback: no thumbnail URL OR the img errored.
+  // Use autoplay-on-scroll <video> with poster as belt-and-suspenders.
+  // Append #t=0.001 only when the URL is a real http(s) src that doesn't
+  // already carry a time fragment, so we don't break blob: URLs or videos
+  // that already use a fragment.
+  const playableSrc =
+    videoUrl &&
+    typeof videoUrl === 'string' &&
+    !videoUrl.startsWith('blob:') &&
+    !videoUrl.includes('#t=')
+      ? `${videoUrl}#t=0.001`
+      : videoUrl;
+
+  return (
+    <video
+      ref={videoRef}
+      src={playableSrc}
+      poster={thumbnailUrl || undefined}
+      preload="metadata"
+      muted
+      playsInline
+      loop
+      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+    />
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onComment, onShare }) {
-    const videoRef = useRef(null);
-    const containerRef = useRef(null);
-    const [isPlaying, setIsPlaying] = useState(true);
-    const [showOverlay, setShowOverlay] = useState(false);
-    const [showHeart, setShowHeart] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [shareToast, setShareToast] = useState(false);
+export function FullScreenVideoViewer({
+  videoUrl,
+  author,
+  caption,
+  onClose,
+  onLike,
+  onComment,
+  onShare,
+}) {
+  const videoRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [showHeart, setShowHeart] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [shareToast, setShareToast] = useState(false);
 
-    const overlayTimerRef = useRef(null);
-    const touchStartRef = useRef({ x: 0, y: 0 });
-    const lastTapRef = useRef(0);
-    const progressRAF = useRef(null);
-    // BUG FIX (SVC-1): track showHeart dismiss timer — prevents setState-after-unmount
-    // when user double-taps and navigates away within 800ms.
-    const showHeartTimerRef = useRef(null);
-    // BUG FIX (SVC-2): track YouTube onLoad retry timers — prevents stale postMessage
-    // to a closed/unmounted iframe after the user closes the viewer within 1500ms.
-    const ytOnLoadTimersRef = useRef([]);
-    // BUG FIX (SVC-3): track shareToast dismiss timer — prevents setState-after-unmount
-    // when the user shares then immediately closes the viewer within 2000ms.
-    const shareToastTimerRef = useRef(null);
+  const overlayTimerRef = useRef(null);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const lastTapRef = useRef(0);
+  const progressRAF = useRef(null);
+  // BUG FIX (SVC-1): track showHeart dismiss timer — prevents setState-after-unmount
+  // when user double-taps and navigates away within 800ms.
+  const showHeartTimerRef = useRef(null);
+  // BUG FIX (SVC-2): track YouTube onLoad retry timers — prevents stale postMessage
+  // to a closed/unmounted iframe after the user closes the viewer within 1500ms.
+  const ytOnLoadTimersRef = useRef([]);
+  // BUG FIX (SVC-3): track shareToast dismiss timer — prevents setState-after-unmount
+  // when the user shares then immediately closes the viewer within 2000ms.
+  const shareToastTimerRef = useRef(null);
 
-    // Centralized YouTube error management
-    const ytVideoId = isYouTubeUrl(videoUrl) ? getYouTubeVideoId(videoUrl) : null;
-    const { ytError: managedYtError, errorInfo, thumbnailUrl } = useYouTubeErrorManager({
-        active: !!ytVideoId,
-        videoId: ytVideoId,
-        surface: 'FullScreenVideoViewer',
-        autoActionDelay: 3000,
-        onError: () => onClose?.(),
-    });
+  // Centralized YouTube error management
+  const ytVideoId = isYouTubeUrl(videoUrl) ? getYouTubeVideoId(videoUrl) : null;
+  const {
+    ytError: managedYtError,
+    errorInfo,
+    thumbnailUrl,
+  } = useYouTubeErrorManager({
+    active: !!ytVideoId,
+    videoId: ytVideoId,
+    surface: 'FullScreenVideoViewer',
+    autoActionDelay: 3000,
+    onError: () => onClose?.(),
+  });
 
+  useEffect(() => {
+    if (showOverlay && isPlaying) {
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+      overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
+    }
+    return () => {
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    };
+  }, [showOverlay, isPlaying]);
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+      // Cancel any running progress RAF to prevent memory leak
+      if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+      // BUG FIX (SVC-1/2/3): cancel all tracked timers on unmount
+      clearTimeout(showHeartTimerRef.current);
+      clearTimeout(shareToastTimerRef.current);
+      ytOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
+      ytOnLoadTimersRef.current = [];
+    };
+  }, []);
 
-    useEffect(() => {
-        if (showOverlay && isPlaying) {
-            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
-        }
-        return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
-    }, [showOverlay, isPlaying]);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handleTouchStart = (e) => {
+      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    };
+    const handleTouchEnd = (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+      const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+      if (dy > 80 && Math.abs(dy) > Math.abs(dx)) {
+        onClose();
+      }
+    };
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [onClose]);
 
-    useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        return () => {
-            document.body.style.overflow = '';
-            // Cancel any running progress RAF to prevent memory leak
-            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-            // BUG FIX (SVC-1/2/3): cancel all tracked timers on unmount
-            clearTimeout(showHeartTimerRef.current);
-            clearTimeout(shareToastTimerRef.current);
-            ytOnLoadTimersRef.current.forEach(t => clearTimeout(t));
-            ytOnLoadTimersRef.current = [];
-        };
-    }, []);
+  const handleTap = (e) => {
+    const now = Date.now();
+    const DOUBLE_TAP_WINDOW = 300;
+    if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
+      onLike?.();
+      try {
+        navigator?.vibrate?.(15);
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
+      setShowHeart(true);
+      // BUG FIX (SVC-1): cancel previous heart timer before scheduling a new one.
+      if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
+      showHeartTimerRef.current = setTimeout(() => {
+        showHeartTimerRef.current = null;
+        setShowHeart(false);
+      }, 800);
+      lastTapRef.current = 0;
+      return;
+    }
+    lastTapRef.current = now;
 
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el) return;
-        const handleTouchStart = (e) => {
-            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        };
-        const handleTouchEnd = (e) => {
-            const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-            const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-            if (dy > 80 && Math.abs(dy) > Math.abs(dx)) { onClose(); }
-        };
-        el.addEventListener('touchstart', handleTouchStart, { passive: true });
-        el.addEventListener('touchend', handleTouchEnd, { passive: true });
-        return () => {
-            el.removeEventListener('touchstart', handleTouchStart);
-            el.removeEventListener('touchend', handleTouchEnd);
-        };
-    }, [onClose]);
+    // Single tap = reveal overlay + toggle play/pause simultaneously
+    // BUG FIX: Previously first tap only showed overlay (no play/pause toggle),
+    // requiring a second tap to actually play/pause the video.
+    setShowOverlay(true);
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
 
-    const handleTap = (e) => {
-        const now = Date.now();
-        const DOUBLE_TAP_WINDOW = 300;
-        if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
-            onLike?.();
-            try { navigator?.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            setShowHeart(true);
-            // BUG FIX (SVC-1): cancel previous heart timer before scheduling a new one.
-            if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
-            showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800);
-            lastTapRef.current = 0;
-            return;
-        }
-        lastTapRef.current = now;
-
-        // Single tap = reveal overlay + toggle play/pause simultaneously
-        // BUG FIX: Previously first tap only showed overlay (no play/pause toggle),
-        // requiring a second tap to actually play/pause the video.
-        setShowOverlay(true);
+    const isYT = isYouTubeUrl(videoUrl);
+    if (!isYT && videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+        setIsPlaying(true);
+      } else {
+        videoRef.current.pause();
+        setIsPlaying(false);
+        // Paused = anchor overlay (don't auto-hide)
         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
-
-        const isYT = isYouTubeUrl(videoUrl);
-        if (!isYT && videoRef.current) {
-            if (videoRef.current.paused) {
-                videoRef.current.play();
-                setIsPlaying(true);
-            } else {
-                videoRef.current.pause();
-                setIsPlaying(false);
-                // Paused = anchor overlay (don't auto-hide)
-                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            }
-        } else if (isYT) {
-            const iframe = containerRef.current?.querySelector('iframe');
-            if (iframe?.contentWindow) {
-                if (!isPlaying) {
-                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                    setIsPlaying(true);
-                } else {
-                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-                    setIsPlaying(false);
-                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                }
-            }
+      }
+    } else if (isYT) {
+      const iframe = containerRef.current?.querySelector('iframe');
+      if (iframe?.contentWindow) {
+        if (!isPlaying) {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
+            '*'
+          );
+          setIsPlaying(true);
+        } else {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
+            '*'
+          );
+          setIsPlaying(false);
+          if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
         }
-    };
+      }
+    }
+  };
 
-    const updateProgress = () => {
-        if (videoRef.current && videoRef.current.duration) {
-            setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
-        }
-        progressRAF.current = requestAnimationFrame(updateProgress);
-    };
+  const updateProgress = () => {
+    if (videoRef.current && videoRef.current.duration) {
+      setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
+    }
+    progressRAF.current = requestAnimationFrame(updateProgress);
+  };
 
-    return (
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: '#000',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      onClick={handleTap}
+    >
+      {/* Close Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          zIndex: 10001,
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(10px)',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'white',
+          fontSize: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        ×
+      </button>
+
+      {/* Video */}
+      {isYouTubeUrl(videoUrl) ? (
         <div
-            ref={containerRef}
-            style={{
-                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                background: '#000', zIndex: 9999,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-            onClick={handleTap}
+          style={{ position: 'relative', width: '100vw', height: '100vh', pointerEvents: 'none' }}
         >
-            {/* Close Button */}
-            <button
-                onClick={(e) => { e.stopPropagation(); onClose(); }}
-                style={{
-                    position: 'absolute', top: 16, left: 16, zIndex: 10001,
-                    width: 44, height: 44, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)',
-                    border: 'none', cursor: 'pointer', color: 'white', fontSize: 24,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-            >×</button>
+          <iframe
+            src={`${getYouTubeEmbedUrl(videoUrl)}&enablejsapi=1&mute=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+            style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+            onLoad={(e) => {
+              try {
+                const iframeWindow = e.target.contentWindow;
+                if (iframeWindow) {
+                  // Mandatory: mute=1 in URL enables autoplay; unMute via postMessage restores audio
+                  // BUG FIX (SVC-2): cancel previous retry batch before scheduling new ones.
+                  ytOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
+                  ytOnLoadTimersRef.current = [300, 800, 1500].map((delay) =>
+                    setTimeout(() => {
+                      iframeWindow.postMessage(
+                        JSON.stringify({ event: 'command', func: 'unMute', args: [] }),
+                        '*'
+                      );
+                      iframeWindow.postMessage(
+                        JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }),
+                        '*'
+                      );
+                    }, delay)
+                  );
+                }
+              } catch (err) {
+                console.warn('[FullScreenVideoViewer] YT onLoad init failed:', err);
+              }
+            }}
+          />
+          {/* Age-restricted / unavailable video overlay */}
+          {managedYtError && (
+            <YouTubeErrorOverlay
+              errorCode={managedYtError}
+              videoId={getYouTubeVideoId(videoUrl)}
+              thumbnailUrl={thumbnailUrl}
+              actionLabel="Closing in 3 seconds..."
+              style={{ pointerEvents: 'auto' }}
+            />
+          )}
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          autoPlay
+          loop
+          playsInline
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            width: 'auto',
+            height: '100%',
+            objectFit: 'contain',
+            cursor: 'pointer',
+          }}
+          onPlay={() => {
+            progressRAF.current = requestAnimationFrame(updateProgress);
+          }}
+          onPause={() => {
+            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+          }}
+        />
+      )}
 
-            {/* Video */}
-            {isYouTubeUrl(videoUrl) ? (
-                <div style={{ position: 'relative', width: '100vw', height: '100vh', pointerEvents: 'none' }}>
-                    <iframe
-                        src={`${getYouTubeEmbedUrl(videoUrl)}&enablejsapi=1&mute=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
-                        style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                        allowFullScreen
-                        onLoad={(e) => {
-                            try {
-                                const iframeWindow = e.target.contentWindow;
-                                if (iframeWindow) {
-                                    // Mandatory: mute=1 in URL enables autoplay; unMute via postMessage restores audio
-                                    // BUG FIX (SVC-2): cancel previous retry batch before scheduling new ones.
-                                    ytOnLoadTimersRef.current.forEach(t => clearTimeout(t));
-                                    ytOnLoadTimersRef.current = [300, 800, 1500].map(delay => setTimeout(() => {
-                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                    }, delay));
-                                }
-                            } catch (err) { console.warn('[FullScreenVideoViewer] YT onLoad init failed:', err); }
-                        }}
-                    />
-                    {/* Age-restricted / unavailable video overlay */}
-                    {managedYtError && (
-                        <YouTubeErrorOverlay
-                            errorCode={managedYtError}
-                            videoId={getYouTubeVideoId(videoUrl)}
-                            thumbnailUrl={thumbnailUrl}
-                            actionLabel="Closing in 3 seconds..."
-                            style={{ pointerEvents: 'auto' }}
-                        />
-                    )}
-                </div>
-            ) : (
-                <video
-                    ref={videoRef}
-                    src={videoUrl}
-                    autoPlay loop playsInline
-                    style={{
-                        maxWidth: '100%', maxHeight: '100%',
-                        width: 'auto', height: '100%',
-                        objectFit: 'contain', cursor: 'pointer'
-                    }}
-                    onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgress); }}
-                    onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
-                />
-            )}
+      {/* Author Info */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 80,
+          left: 16,
+          right: 16,
+          color: 'white',
+          textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+          pointerEvents: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <img
+            src={author?.avatar || '/default-avatar.png'}
+            alt={author?.name}
+            style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }}
+          />
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 16 }}>{author?.name || 'Player'}</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>Smarter.Poker</div>
+          </div>
+        </div>
+        {caption && (
+          <div style={{ fontSize: 14, lineHeight: 1.4, maxHeight: 80, overflow: 'hidden' }}>
+            {caption}
+          </div>
+        )}
+      </div>
 
-            {/* Author Info */}
-            <div style={{
-                position: 'absolute', bottom: 80, left: 16, right: 16,
-                color: 'white', textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                pointerEvents: 'none',
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <img
-                        src={author?.avatar || '/default-avatar.png'}
-                        alt={author?.name}
-                        style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }}
-                    />
-                    <div>
-                        <div style={{ fontWeight: 600, fontSize: 16 }}>{author?.name || 'Player'}</div>
-                        <div style={{ fontSize: 12, opacity: 0.8 }}>Smarter.Poker</div>
-                    </div>
-                </div>
-                {caption && (
-                    <div style={{ fontSize: 14, lineHeight: 1.4, maxHeight: 80, overflow: 'hidden' }}>
-                        {caption}
-                    </div>
-                )}
-            </div>
+      {/* Bottom Overlay */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+          padding: '24px 12px 20px',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          opacity: showOverlay ? 1 : 0,
+          pointerEvents: showOverlay ? 'auto' : 'none',
+          transition: 'opacity 0.3s ease',
+          zIndex: 10002,
+        }}
+      >
+        <button
+          onClick={onLike}
+          style={{
+            background: 'none',
+            border: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            cursor: 'pointer',
+            color: 'white',
+          }}
+        >
+          <span style={{ fontSize: 24 }}>👍</span>
+          <span style={{ fontSize: 10, fontWeight: 500 }}>Like</span>
+        </button>
+        <button
+          onClick={onComment}
+          style={{
+            background: 'none',
+            border: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            cursor: 'pointer',
+            color: 'white',
+          }}
+        >
+          <span style={{ fontSize: 24 }}>💬</span>
+          <span style={{ fontSize: 10, fontWeight: 500 }}>Comment</span>
+        </button>
+        <button
+          onClick={() => {
+            onShare?.();
+            // BUG FIX (SVC-3): cancel previous shareToast timer before scheduling a new one.
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+            setShareToast(true);
+            shareToastTimerRef.current = setTimeout(() => {
+              shareToastTimerRef.current = null;
+              setShareToast(false);
+            }, 2000);
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            cursor: 'pointer',
+            color: 'white',
+          }}
+        >
+          <span style={{ fontSize: 24 }}>📤</span>
+          <span style={{ fontSize: 10, fontWeight: 500 }}>Share</span>
+        </button>
+      </div>
 
-            {/* Bottom Overlay */}
-            <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0,
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
-                    padding: '24px 12px 20px',
-                    display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                    opacity: showOverlay ? 1 : 0,
-                    pointerEvents: showOverlay ? 'auto' : 'none',
-                    transition: 'opacity 0.3s ease', zIndex: 10002,
-                }}
-            >
-                <button onClick={onLike} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
-                    <span style={{ fontSize: 24 }}>👍</span><span style={{ fontSize: 10, fontWeight: 500 }}>Like</span>
-                </button>
-                <button onClick={onComment} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
-                    <span style={{ fontSize: 24 }}>💬</span><span style={{ fontSize: 10, fontWeight: 500 }}>Comment</span>
-                </button>
-                <button onClick={() => {
-                    onShare?.();
-                    // BUG FIX (SVC-3): cancel previous shareToast timer before scheduling a new one.
-                    if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
-                    setShareToast(true);
-                    shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(false); }, 2000);
-                }} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
-                    <span style={{ fontSize: 24 }}>📤</span><span style={{ fontSize: 10, fontWeight: 500 }}>Share</span>
-                </button>
-            </div>
+      {/* Double-tap heart */}
+      {showHeart && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            fontSize: 80,
+            pointerEvents: 'none',
+            zIndex: 10003,
+            animation: 'heartBurstFS 0.8s ease-out forwards',
+          }}
+        >
+          ❤️
+        </div>
+      )}
 
-            {/* Double-tap heart */}
-            {showHeart && (
-                <div style={{
-                    position: 'absolute', top: '50%', left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontSize: 80, pointerEvents: 'none', zIndex: 10003,
-                    animation: 'heartBurstFS 0.8s ease-out forwards',
-                }}>❤️</div>
-            )}
+      {/* Progress bar */}
+      {!isYouTubeUrl(videoUrl) && progress > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: 'rgba(255,255,255,0.2)',
+            zIndex: 10003,
+          }}
+        >
+          <div
+            style={{
+              width: `${progress}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
+              transition: 'width 0.1s linear',
+            }}
+          />
+        </div>
+      )}
 
-            {/* Progress bar */}
-            {!isYouTubeUrl(videoUrl) && progress > 0 && (
-                <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0,
-                    height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 10003,
-                }}>
-                    <div style={{
-                        width: `${progress}%`, height: '100%',
-                        background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
-                        transition: 'width 0.1s linear',
-                    }} />
-                </div>
-            )}
+      {/* Share Toast */}
+      {shareToast && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 60,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(255,255,255,0.15)',
+            color: 'white',
+            padding: '8px 20px',
+            borderRadius: 20,
+            fontSize: 14,
+            zIndex: 10003,
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          Link Copied
+        </div>
+      )}
 
-            {/* Share Toast */}
-            {shareToast && (
-                <div style={{
-                    position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
-                    background: 'rgba(255,255,255,0.15)', color: 'white',
-                    padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 10003,
-                    backdropFilter: 'blur(10px)',
-                }}>Link Copied</div>
-            )}
-
-            {/* Heart burst animation CSS */}
-            <style>{`
+      {/* Heart burst animation CSS */}
+      <style>{`
                 @keyframes heartBurstFS {
                     0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
                     50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
@@ -442,17 +760,30 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
                 }
             `}</style>
 
-            {/* Paused indicator */}
-            {!isPlaying && (
-                <div style={{
-                    position: 'absolute', top: '50%', left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 72, height: 72, borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.4)', border: '2px solid rgba(255,255,255,0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: 32, pointerEvents: 'none',
-                }}>▶</div>
-            )}
+      {/* Paused indicator */}
+      {!isPlaying && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 72,
+            height: 72,
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.4)',
+            border: '2px solid rgba(255,255,255,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: 32,
+            pointerEvents: 'none',
+          }}
+        >
+          ▶
         </div>
-    );
+      )}
+    </div>
+  );
 }

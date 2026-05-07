@@ -1426,14 +1426,25 @@ export function ReelsViewer({ onClose }) {
                 const newIdx = parseInt(entry.target.dataset.reelIndex, 10);
                 if (isNaN(newIdx)) return;
                 setCurrentIndex(newIdx);
-                if (userWantsSoundRef.current) { userInteractedRef.current = true; setMuted(false); }
+                // Only update mute UI state if a real user gesture has been
+                // captured. Without this gate, IntersectionObserver firing on
+                // cold-mount would set muted=false in React state while the
+                // browser silently kept the actual <video> muted — a UI lie
+                // that confuses both the user and the click-to-toggle logic.
+                // Gesture detection lives in the dedicated useEffect above.
+                if (userInteractedRef.current && userWantsSoundRef.current) { setMuted(false); }
                 const activeMedia = entry.target.querySelector('video, iframe');
                 if (activeMedia?.tagName === 'VIDEO') {
-                    activeMedia.muted = !userWantsSoundRef.current;
+                    // Only allow unmuted DOM state when a gesture has been seen.
+                    // Otherwise leave muted=true so autoplay is permitted by the
+                    // browser. The new onPlaying handler will flip muted=false
+                    // synchronously inside the playing event when the gesture
+                    // flag is set.
+                    activeMedia.muted = !(userInteractedRef.current && userWantsSoundRef.current);
                     activeMedia.play().catch(() => {});
                 } else if (activeMedia?.tagName === 'IFRAME') {
                     activeMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                    if (userWantsSoundRef.current) {
+                    if (userInteractedRef.current && userWantsSoundRef.current) {
                         activeMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
                         activeMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
                     }
