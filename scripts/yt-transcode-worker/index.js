@@ -808,6 +808,18 @@ const TRANSIENT_FAILURE_MIN_AGE_MS = 60 * 60 * 1000;   // only retry failures >1
 const TRANSIENT_RETRY_CAP = 3;                          // skip reels with ≥3 failures
 let lastTransientRetryAt = 0;
 
+// Native-MP4 poster backfill — covers reels uploaded directly by users (not
+// via the YouTube transcode path) that landed with thumbnail_url=NULL.
+// Stories.jsx INSERTs social_reels without a thumb; the social_posts→reels
+// mirror trigger copies thumbnail_url which may itself be NULL. Without this
+// sweep, those reels paint a black frame on first render. The 2026-05-07
+// one-shot scripts/backfill-native-poster-thumbnails.mjs cleared the
+// historical backlog (17/19 succeeded). This sweep keeps the lights on.
+const NATIVE_POSTER_INTERVAL_MS = 30 * 60 * 1000;
+const NATIVE_POSTER_BATCH      = 20;
+let lastNativePosterAt = 0;
+const nativePosterBlacklist = new Set();   // in-memory IDs that failed this process lifetime
+
 const TRANSIENT_PATTERNS = [
   /cookies-from-browser/i,
   /cookies for the authentication/i,
@@ -919,6 +931,129 @@ async function transientFailureRetrySweep() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// Native-MP4 poster backfill sweep — fourth self-healer.
+//
+// Why this exists: Stories.jsx (line ~839) and the social_posts→social_reels
+// mirror trigger (fn_social_posts_video_to_reel_mirror) both write
+// social_reels rows where thumbnail_url can be NULL. The Reels.jsx player
+// conditionally renders <img> only when thumbnail_url is set — so a missing
+// thumb makes the player paint a black frame on first render. The 2026-05-07
+// one-shot scripts/backfill-native-poster-thumbnails.mjs cleared the
+// historical backlog (17/19 reels). This sweep keeps things healthy from
+// here on without requiring frontend changes (client-side canvas.toBlob
+// would taint on Supabase Storage public URLs that lack CORS headers).
+//
+// Per tick: SELECT up to NATIVE_POSTER_BATCH eligible reels, for each
+//   1. fetch a small range of the source MP4 (HTTP Range; cap 8 MB)
+//   2. ffmpeg -ss 1 -vframes 1 → JPEG poster
+//   3. upload to social-media bucket at reels/thumbs/native_backfill/{reel_id}.jpg
+//   4. UPDATE social_reels.thumbnail_url with the public URL
+//
+// Reels with corrupt MP4s (no moov atom, etc.) are added to an in-memory
+// blacklist for the lifetime of this process so we don't burn CPU on them
+// every 30 min. Process restarts forget the blacklist (acceptable — one
+// retry per restart, then quiet for the rest of the run).
+// ════════════════════════════════════════════════════════════════════════════
+async function nativePosterBackfillSweep() {
+  if (Date.now() - lastNativePosterAt < NATIVE_POSTER_INTERVAL_MS) return;
+  lastNativePosterAt = Date.now();
+
+  const { data: candidates, error } = await supa.from('social_reels')
+    .select('id, video_url')
+    .eq('media_status', 'ready')
+    .is('thumbnail_url', null)
+    .in('source_type', ['native', 'user'])
+    .eq('is_public', true)
+    .ilike('video_url', `%${new URL(SUPABASE_URL).host}%`)
+    .limit(NATIVE_POSTER_BATCH);
+
+  if (error) { warn('native-poster: select error:', error.message); return; }
+  if (!candidates?.length) {
+    log('native-poster: no reels found needing posters');
+    return;
+  }
+
+  const targets = candidates.filter((r) => !nativePosterBlacklist.has(r.id));
+  if (!targets.length) {
+    log(`native-poster: ${candidates.length} candidate(s) all blacklisted this process`);
+    return;
+  }
+
+  log(`native-poster: processing ${targets.length} reel(s)`);
+  let ok = 0, failed = 0;
+  let tmpDir;
+  try {
+    tmpDir = await mkdtemp(join(tmpdir(), 'native-poster-'));
+  } catch (mkErr) {
+    warn('native-poster: mkdtemp failed:', mkErr.message);
+    return;
+  }
+
+  for (const reel of targets) {
+    const localMp4 = join(tmpDir, `${reel.id}.mp4`);
+    const localJpg = join(tmpDir, `${reel.id}.jpg`);
+    try {
+      // 1. Fetch up to first 8 MB via Range — enough for the moov atom on
+      //    streaming-friendly MP4s (faststart). Avoids downloading whole reel.
+      const res = await fetch(reel.video_url, { headers: { Range: 'bytes=0-8388607' } });
+      if (!res.ok && res.status !== 206) {
+        throw new Error(`fetch HTTP ${res.status}`);
+      }
+      const buf = Buffer.from(await res.arrayBuffer());
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(localMp4, buf);
+
+      // 2. ffmpeg poster — same args as the YouTube transcode poster path.
+      await runProcess('ffmpeg', [
+        '-y', '-hide_banner', '-loglevel', 'error',
+        '-ss', '1',
+        '-i', localMp4,
+        '-t', '3',
+        '-vframes', '1',
+        '-an',
+        '-vf', 'scale=480:-1',
+        '-q:v', '2',
+        localJpg,
+      ], 30_000);
+
+      // 3. Upload poster to social-media bucket
+      const jpgBuf = await readFile(localJpg);
+      const objectPath = `reels/thumbs/native_backfill/${reel.id}.jpg`;
+      const { error: upErr } = await supa.storage
+        .from(STORAGE_BUCKET)
+        .upload(objectPath, jpgBuf, {
+          contentType: 'image/jpeg',
+          upsert: true,
+          cacheControl: '604800',
+        });
+      if (upErr) throw new Error(`storage upload: ${upErr.message}`);
+      const { data: pub } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
+
+      // 4. UPDATE social_reels.thumbnail_url
+      const { error: updErr } = await supa.from('social_reels')
+        .update({ thumbnail_url: pub.publicUrl })
+        .eq('id', reel.id);
+      if (updErr) throw new Error(`db update: ${updErr.message}`);
+      ok++;
+    } catch (err) {
+      // Corrupt MP4 / fetch fail / ffmpeg fail — blacklist for this process
+      nativePosterBlacklist.add(reel.id);
+      warn(`native-poster: blacklisted ${reel.id} — ${err.message}`);
+      failed++;
+    } finally {
+      // Best-effort cleanup of per-reel temp files; whole tmpDir cleaned at end
+      await Promise.all([
+        rm(localMp4, { force: true }).catch(() => {}),
+        rm(localJpg, { force: true }).catch(() => {}),
+      ]);
+    }
+  }
+
+  await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+  log(`native-poster: ${ok} backfilled, ${failed} blacklisted`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // Main loop — adaptive polling. Fast (5s) when jobs are flowing, slow (60s)
 // when the queue is idle. Saves wasted DB roundtrips during quiet hours.
 // ════════════════════════════════════════════════════════════════════════════
@@ -942,6 +1077,10 @@ async function pollLoop() {
     cookieRecoverySweep().catch((e) => warn('cookie-recovery error:', e?.message));
     orphanedQueuedSweep().catch((e) => warn('orphan-sweep error:', e?.message));
     transientFailureRetrySweep().catch((e) => warn('transient-retry error:', e?.message));
+    //   - nativePosterBackfillSweep: once / 30 min, generates posters for
+    //     native-MP4 reels uploaded with NULL thumbnail_url (Stories.jsx +
+    //     mirror-trigger paths). Self-healing forever.
+    nativePosterBackfillSweep().catch((e) => warn('native-poster error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
