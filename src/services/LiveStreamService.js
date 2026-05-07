@@ -819,23 +819,22 @@ class LiveStreamService {
     async _updateViewerCount() {
         if (!this.currentStreamId || !this.room) return;
         const count = this._countRealViewers();
-        await supabase.from('live_streams')
-            .update({ viewer_count: count })
-            .eq('id', this.currentStreamId);
 
+        // BUG-FIX-LIVE-AUDIT: viewer_count + peak_viewers UPDATE goes through
+        // a single SECURITY DEFINER RPC. Direct UPDATEs on these columns are
+        // now blocked by trg_live_streams_guard_update (clout-fraud guard) —
+        // the RPC bypasses the trigger via SECURITY DEFINER and atomically
+        // updates both fields in one statement.
         try {
-            await supabase.rpc('update_live_peak_viewers', {
+            await supabase.rpc('update_live_metrics', {
                 p_stream_id: this.currentStreamId,
-                p_count: count,
+                p_viewer_count: count,
             });
-        } catch (_) {
-            // Fallback: direct update if RPC doesn't exist
-            try {
-                await supabase.from('live_streams')
-                    .update({ peak_viewers: count })
-                    .eq('id', this.currentStreamId)
-                    .lt('peak_viewers', count);
-            } catch (_2) {}
+        } catch (err) {
+            // Non-fatal — the next debounce tick will retry. We never fall
+            // through to a direct UPDATE here because the trigger would
+            // reject it (correctly).
+            console.warn('[LiveStreamService] update_live_metrics failed:', err?.message || err);
         }
         this.onViewerCountChange?.(count);
     }
