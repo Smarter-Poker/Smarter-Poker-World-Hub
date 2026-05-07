@@ -18,6 +18,15 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
     useEffect(() => {
         if (!isOpen) {
             setLoaded(false);
+            // BUG FIX (Bug #8): blank the iframe src when the overlay closes.
+            // Without this, the previous page continues running (auth subscriptions, timers,
+            // Supabase realtime) until React GC removes the node.
+            // On fast re-open React may reuse the same DOM node — if src is unchanged
+            // the browser skips the load event and the spinner never clears.
+            // Blanking here guarantees a clean slate on every open.
+            if (iframeRef.current) {
+                try { iframeRef.current.src = 'about:blank'; } catch (_) {}
+            }
             return;
         }
 

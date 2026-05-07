@@ -6324,9 +6324,15 @@ function SocialMediaPage() {
                     <button onClick={() => {
                         setSidebarOpen(false);
                         supabase.auth.signOut().finally(() => {
+                            // BUG FIX (Bug #11): match the full cache purge from settings.js handleLogout.
+                            // Missing keys (sp-cached-header-user, sp-vip-status, etc.) left stale avatar
+                            // and VIP badge data visible after switching accounts.
                             try { localStorage.removeItem('sp-social-user'); } catch (_) {}
                             try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
                             try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
+                            try { localStorage.removeItem('sp-cached-header-user'); } catch (_) {}
+                            try { localStorage.removeItem('sp-cached-settings-profile'); } catch (_) {}
+                            try { localStorage.removeItem('sp-notif-count'); } catch (_) {}
                             window.location.href = '/';
                         });
                     }} style={{
