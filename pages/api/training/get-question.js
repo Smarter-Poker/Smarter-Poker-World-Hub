@@ -103,56 +103,16 @@ export default async function handler(req, res) {
           }
 
           // ═══════════════════════════════════════════════════════════════════
-          // STEP 3: DETERMINISTIC ENGINE — PRIMARY SOURCE (No Grok AI)
+          // STEP 3: CACHED QUESTIONS — PRIMARY SOURCE (Phase 92 reorder)
           // ═══════════════════════════════════════════════════════════════════
+          // Cache rows are the canonical truth: pre-rebalanced (Phase 77/78/79/80
+          // pedagogical curve), pre-enriched (Phase 83/88 contextual explanations),
+          // and pre-validated (Phase 82 integrity audit: 0 issues across 27,413 rows).
+          // Fresh-from-solver regeneration loses all of that pedagogical work, so
+          // we try cache FIRST and fall back to engines only on cache miss.
           let question = null;
 
-          // Get PIO game config for solver data lookup
-          const pioConfig = pioQueryService.getGameConfig(gameId);
-
-          // TRY DETERMINISTIC ENGINE FIRST for PIO/CHART games
-          if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
-              // Inject service-role client so engine bypasses RLS
-              deterministicEngine.setSupabaseClient(getSupabase());
-              try {
-                  question = await deterministicEngine.generateQuestion({
-                      gameId,
-                      level: parseInt(level, 10),
-                      seenIds: seenQuestionIds,
-                      gameConfig: pioConfig,
-                  });
-                  if (question) {
-                      console.debug(`[Training] Deterministic engine served: ${question.source}`);
-                  }
-              } catch (detErr) {
-                  console.warn('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
-              }
-          }
-
-          // FALLBACK: Route to legacy PIO engine if deterministic failed
-          if (!question) {
-              if (preferredEngine === 'SCENARIO') {
-                  // SCENARIO ENGINE: Now handled by DeterministicGTOEngine — no AI fallback
-                  console.debug(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
-              } else {
-                  // PIO ENGINE: GTO Solver Data (Default)
-                  try {
-                      const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level, 10), userId);
-
-                      if (pioScenarios && pioScenarios.length > 0) {
-                          question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
-                      }
-                  } catch (pioError) {
-                      console.warn('[Training] ⚠️ PIO query failed:', pioError.message);
-                  }
-              }
-          }
-
-          // ═══════════════════════════════════════════════════════════════════
-          // STEP 4: TRY CACHED QUESTIONS (Fallback)
-          // ═══════════════════════════════════════════════════════════════════
-          if (!question) {
-
+          {
               const { data: cachedQuestions } = await getSupabase()
                   .from('training_question_cache')
                   .select('question_data, question_id')
@@ -177,8 +137,50 @@ export default async function handler(req, res) {
                       .from('training_question_cache')
                       .update({ times_used: (currentQ?.times_used || 0) + 1 })
                       .eq('question_id', questionId);
+              }
+          }
 
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)
+          // ═══════════════════════════════════════════════════════════════════
+          const pioConfig = pioQueryService.getGameConfig(gameId);
+
+          if (!question && pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
+              // Inject service-role client so engine bypasses RLS
+              deterministicEngine.setSupabaseClient(getSupabase());
+              try {
+                  question = await deterministicEngine.generateQuestion({
+                      gameId,
+                      level: parseInt(level, 10),
+                      seenIds: seenQuestionIds,
+                      gameConfig: pioConfig,
+                  });
+                  if (question) {
+                      console.debug(`[Training] Deterministic engine served (cache miss): ${question.source}`);
+                  }
+              } catch (detErr) {
+                  console.warn('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
+              }
+          }
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 5: LEGACY PIO ENGINE — FINAL FALLBACK
+          // ═══════════════════════════════════════════════════════════════════
+          if (!question) {
+              if (preferredEngine === 'SCENARIO') {
+                  // SCENARIO ENGINE: Now handled by DeterministicGTOEngine — no AI fallback
+                  console.debug(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
               } else {
+                  // PIO ENGINE: GTO Solver Data (last resort)
+                  try {
+                      const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level, 10), userId);
+
+                      if (pioScenarios && pioScenarios.length > 0) {
+                          question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+                      }
+                  } catch (pioError) {
+                      console.warn('[Training] ⚠️ PIO query failed:', pioError.message);
+                  }
               }
           }
 
