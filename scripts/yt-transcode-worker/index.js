@@ -128,6 +128,7 @@ const PERMANENT_PATTERNS = [
   /use a VPN or a proxy server/i,                   // alternate region-block phrasing
   /yt-dlp_exit_null/i,                              // yt-dlp crashed without exit code — treat permanent, requeue manually if recoverable
   /Sign in to confirm/i,                            // YouTube anti-bot challenge
+  /filtered_too_long_or_large/i,                    // yt-dlp --match-filter rejected (>10min or >400MB) — fundamentally unconvertible by this pipeline
 ];
 const isPermanentFailure = (msg) => PERMANENT_PATTERNS.some((rx) => rx.test(msg));
 
@@ -223,15 +224,23 @@ async function processJob(job) {
     await runProcess('yt-dlp', ytdlpArgs, YT_DOWNLOAD_TIMEOUT);
 
     // --match-filter exits with code 0 but creates no file when video is filtered
+    //
+    // 2026-05-07 BUG FIX: previous code did .update({status:'skipped'}) here.
+    // The CHECK constraint on video_transcode_jobs.status only allows
+    // (queued, processing, running, completed, done, failed, cancelled) —
+    // 'skipped' violates the constraint, the UPDATE silently rejects, the
+    // worker returns, and the row stays in 'processing' state FOREVER.
+    // resetStaleProcessing flips it back to queued after 10 min, the worker
+    // re-claims it, re-skips it — infinite loop. As of this morning, 198
+    // jobs were stuck in this loop with 0 forward progress in 2+ hours.
+    //
+    // Fix: throw an Error with a unique pattern that PERMANENT_PATTERNS
+    // matches. The catch block below sets status='failed' (allowed) AND
+    // broadcasts iframe-forever to all sibling reels with the same URL.
+    // Net result: long-video reels become permanent iframes, no stuck rows.
     const rawExists = await access(rawFile).then(() => true).catch(() => false);
     if (!rawExists) {
-      warn(`  Job ${job.id} skipped — video filtered (too long or too large)`);
-      await supa.from('video_transcode_jobs').update({
-        status: 'skipped',
-        completed_at: new Date().toISOString(),
-        error_message: 'filtered: video exceeds duration or size limit',
-      }).eq('id', job.id);
-      return;
+      throw new Error('filtered_too_long_or_large: yt-dlp --match-filter rejected (duration ≥ 600s or size > 400m)');
     }
 
     const rawStat = await stat(rawFile);
