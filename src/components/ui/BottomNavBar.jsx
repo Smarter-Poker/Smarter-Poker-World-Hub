@@ -18,12 +18,14 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
-// Note: useUnreadCount returns { notifications, messages, total } — we use total for badge
+// BUG-FIX-LIVE-6: useUnreadCount now exposes notificationCount + messageCount
+// separately. The "Alerts" tab badge reflects unread NOTIFICATIONS, not
+// messages — keeping it in sync with the global header notification bell.
 
 export default function BottomNavBar() {
   const router = useRouter();
   const path = router.asPath;
-  const { unreadCount } = useUnreadCount();
+  const { notificationCount } = useUnreadCount();
 
   // Determine which tab is active based on current path
   const isActive = (href) => {
@@ -91,14 +93,14 @@ export default function BottomNavBar() {
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 01-3.46 0" />
         </svg>
-        {unreadCount > 0 && (
+        {notificationCount > 0 && (
           <div style={{
             position: 'absolute', top: 2, right: 'calc(50% - 18px)',
             background: '#f02849', color: 'white', borderRadius: 10,
             minWidth: 18, height: 18, fontSize: 11,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 600, padding: '0 5px',
-          }}>{unreadCount > 99 ? '99+' : unreadCount}</div>
+          }}>{notificationCount > 99 ? '99+' : notificationCount}</div>
         )}
         <span style={{ fontSize: 10, marginTop: 2, fontWeight: isActive('/hub/notifications') ? 700 : 500 }}>Alerts</span>
       </Link>

@@ -1,10 +1,31 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE STREAM CARD v2 — Live video preview in social feed
-   ─ Hover to see a real-time muted video preview via LiveKit WHEP
-   ─ Falls back to thumbnail if unavailable
+   LIVE STREAM CARD v3 — Lightweight looping preview clip in social feed
+
+   BUG-FIX-LIVE-5 (per Dan: "couldn't we make it as a streaming loop? or a
+   preview video that is just auto playing? make it like a video thats looping
+   for users to click instead of downloading a whole stream").
+
+   v2 opened a per-card LiveKit WHEP connection. With N live broadcasters in
+   the feed, that was N concurrent WebRTC connections per viewer device —
+   battery, data, and CPU disaster on mobile.
+
+   v3 reads `preview_clip_url` from the live_streams row — a rolling ~12s clip
+   uploaded every 25s by StreamPreviewCapture on the broadcaster side. The
+   feed card is now a plain `<video autoplay muted loop playsinline>`.
+
+   • CDN-cacheable static MP4/WebM
+   • No tokens, no auth, no realtime
+   • Browser caches and loops the file for free
+   • Cache-busted by appending `?t=preview_updated_at` so the card refreshes
+     when the broadcaster's clip rolls forward.
+
+   First clip lands ~25s into the broadcast — until then we show the static
+   thumbnail (graceful cold-start). On older Safari versions where WebM/VP9
+   playback fails, the video element silently does nothing and the thumbnail
+   underneath remains visible. Tap-to-open behavior is unchanged.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 
 const C = {
     card: '#FFFFFF',
@@ -15,146 +36,40 @@ const C = {
 };
 
 /**
- * Lightweight LiveKit preview connection.
- * Dynamically imports livekit-client so it NEVER runs server-side.
- * Accepts an AbortSignal so the caller can cancel mid-connect.
+ * @param {object} props
+ * @param {object} props.stream  — live_streams row (id, title, thumbnail_url,
+ *                                  preview_clip_url, preview_updated_at,
+ *                                  viewer_count, broadcaster?, profiles?)
+ * @param {() => void} props.onClick — tap handler (opens viewer)
+ * @param {boolean} [props.inlineAutoplay] — kept for API compat; preview now
+ *                                            autoplays unconditionally
  */
-async function connectPreview(streamId, videoEl, signal) {
-    // Dynamic import — livekit-client uses browser APIs (RTCPeerConnection, etc.)
-    // that don't exist on the server. Static import causes `window is not defined`
-    // errors during Next.js SSR. This ensures it's only evaluated in the browser.
-    const { Room, RoomEvent, Track } = await import('livekit-client');
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-
-    const resp = await fetch(`/api/live/preview-token?room=${encodeURIComponent(streamId)}`);
-    if (!resp.ok) throw new Error('Token unavailable');
-    const { token, url } = await resp.json();
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-
-    const room = new Room({ adaptiveStream: true, dynacast: false });
-
-    await room.connect(url, token, { autoSubscribe: true });
-    if (signal?.aborted) {
-        await room.disconnect().catch(() => {});
-        throw new DOMException('Aborted', 'AbortError');
-    }
-
-    // Deliver first video track to the video element
-    const assignTrack = (track) => {
-        if (track.kind !== Track.Kind.Video) return;
-        if (!track.mediaStreamTrack) return;
-        const ms = new MediaStream([track.mediaStreamTrack]);
-        videoEl.srcObject = ms;
-        videoEl.play().catch(() => {});
-    };
-
-    // Check already-subscribed participants (broadcaster joined before us)
-    for (const [, participant] of room.remoteParticipants) {
-        for (const [, pub] of participant.trackPublications) {
-            if (pub.isSubscribed && pub.track?.kind === Track.Kind.Video && pub.track.mediaStreamTrack) {
-                assignTrack(pub.track);
-                return room;
-            }
-        }
-    }
-
-    // Listen for new subscriptions
-    room.on(RoomEvent.TrackSubscribed, (track) => assignTrack(track));
-
-    return room;
-}
-
-// BUG-FIX-LIVE-2: when inlineAutoplay is true the preview connects on mount —
-// no hover required. Used by /hub/social-media so mobile users see live motion
-// instead of a static thumbnail.
-export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
+export function LiveStreamCard({ stream, onClick }) {
     const [isHovered, setIsHovered] = useState(false);
-    const [previewActive, setPreviewActive] = useState(false);
+    const [previewLoaded, setPreviewLoaded] = useState(false);
     const [previewFailed, setPreviewFailed] = useState(false);
     const videoRef = useRef(null);
-    const roomRef = useRef(null);
-    const hoverTimerRef = useRef(null); // debounce — don't connect on quick brush
-    const abortControllerRef = useRef(null); // to cancel mid-flight connection
 
-    const stopPreview = useCallback(async () => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            abortControllerRef.current = null;
-        }
-        if (roomRef.current) {
-            try {
-                await roomRef.current.disconnect();
-            } catch (_) {}
-            roomRef.current = null;
-        }
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
-        setPreviewActive(false);
-    }, []);
+    // Cache-buster: when preview_updated_at advances, the URL changes and the
+    // browser fetches the fresh clip. Memoised so we don't churn the <video>
+    // src on unrelated re-renders.
+    const previewSrc = useMemo(() => {
+        if (!stream.preview_clip_url) return null;
+        const t = stream.preview_updated_at
+            ? `?t=${encodeURIComponent(stream.preview_updated_at)}`
+            : '';
+        return stream.preview_clip_url + t;
+    }, [stream.preview_clip_url, stream.preview_updated_at]);
 
-    const startPreview = useCallback(async () => {
-        if (roomRef.current || previewFailed) return; // already connected or permanently failed
-        const videoEl = videoRef.current;
-        if (!videoEl) return;
-
-        abortControllerRef.current = new AbortController();
-        const signal = abortControllerRef.current.signal;
-
-        try {
-            const room = await connectPreview(stream.id, videoEl, signal);
-            if (!signal.aborted) {
-                roomRef.current = room;
-                setPreviewActive(true);
-            }
-        } catch (err) {
-            if (err.name === 'AbortError') return; // ignore cancellations
-            console.warn('[LiveStreamCard] Preview failed:', err.message);
-            if (!signal.aborted) {
-                setPreviewFailed(true);
-            }
-        }
-    }, [stream.id, previewFailed]);
-
-    // Cleanup on unmount
+    // Reset preview state when src changes (e.g. broadcaster's rolling clip
+    // moved to a new window).
     useEffect(() => {
-        return () => {
-            stopPreview();
-        };
-    }, [stopPreview]);
+        setPreviewLoaded(false);
+        setPreviewFailed(false);
+    }, [previewSrc]);
 
-    // BUG-FIX-LIVE-2: auto-connect the LiveKit preview track on mount when
-    // inlineAutoplay is set. Hover-to-preview never fires on touch devices,
-    // so mobile feed tiles previously showed a frozen image. Real-time:
-    // when the broadcaster ends the stream, _subscribeToViewers in
-    // LiveStreamService receives the postgres_changes payload with
-    // status='ended' and triggers onStreamEnded → preview disconnects
-    // automatically. Card re-renders with thumbnail when previewActive=false.
-    useEffect(() => {
-        if (!inlineAutoplay) return;
-        startPreview();
-    }, [inlineAutoplay, startPreview]);
-
-    const handleMouseEnter = useCallback(() => {
-        setIsHovered(true);
-        // 400ms debounce — avoid connecting on accidental hover
-        hoverTimerRef.current = setTimeout(() => startPreview(), 400);
-    }, [startPreview]);
-
-    const handleMouseLeave = useCallback(() => {
-        setIsHovered(false);
-        if (hoverTimerRef.current) {
-            clearTimeout(hoverTimerRef.current);
-            hoverTimerRef.current = null;
-        }
-        stopPreview();
-    }, [stopPreview]);
-
-    // Also support touch (mobile) — tap-hold pattern not needed; preview on card tap
-    // is handled by the parent onClick; no extra gesture needed here.
-
-    const showVideo = previewActive && !previewFailed;
-    const showThumbnail = !showVideo && stream.thumbnail_url;
+    const showPreviewVideo = !!previewSrc && previewLoaded && !previewFailed;
+    const showThumbnail = !showPreviewVideo && stream.thumbnail_url;
 
     return (
         <div
@@ -170,10 +85,10 @@ export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
                 transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             }}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         >
-            {/* ── Thumbnail / Live Preview ── */}
+            {/* ── Preview clip / thumbnail ── */}
             <div
                 style={{
                     position: 'relative',
@@ -182,11 +97,11 @@ export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
                     overflow: 'hidden',
                 }}
             >
-                {/* Static thumbnail (always rendered, hidden when video is live) */}
+                {/* Static thumbnail — always rendered as a poster behind the video */}
                 {showThumbnail && (
                     <img
                         src={stream.thumbnail_url}
-                        alt={stream.title}
+                        alt={stream.title || 'Live stream'}
                         style={{
                             position: 'absolute', inset: 0,
                             width: '100%', height: '100%',
@@ -195,8 +110,8 @@ export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
                     />
                 )}
 
-                {/* Placeholder icon when no thumbnail AND no live preview */}
-                {!showVideo && !showThumbnail && (
+                {/* Placeholder icon when no thumbnail AND no preview clip */}
+                {!showPreviewVideo && !showThumbnail && (
                     <div style={{
                         position: 'absolute', inset: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -205,41 +120,30 @@ export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
                     </div>
                 )}
 
-                {/* Live video preview element — always in DOM, invisible until active */}
-                <video
-                    ref={videoRef}
-                    muted
-                    autoPlay
-                    playsInline
-                    disablePictureInPicture
-                    style={{
-                        position: 'absolute', inset: 0,
-                        width: '100%', height: '100%',
-                        objectFit: 'cover',
-                        opacity: showVideo ? 1 : 0,
-                        transition: 'opacity 0.4s ease',
-                    }}
-                />
-
-                {/* Hover hint — "HOVER TO PREVIEW" before connection */}
-                {isHovered && !previewActive && !previewFailed && (
-                    <div style={{
-                        position: 'absolute', inset: 0,
-                        background: 'rgba(0,0,0,0.35)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexDirection: 'column', gap: 6,
-                    }}>
-                        <div style={{
-                            width: 32, height: 32,
-                            border: '3px solid rgba(255,255,255,0.3)',
-                            borderTopColor: 'white',
-                            borderRadius: '50%',
-                            animation: 'lscSpin 0.8s linear infinite',
-                        }} />
-                        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>
-                            Loading Preview...
-                        </div>
-                    </div>
+                {/* Looping preview clip — autoplay muted, loops in place.
+                    Always in the DOM so the browser begins fetching as soon
+                    as previewSrc is known; opacity gates visibility until
+                    the first frame loads (avoids flashing a black box). */}
+                {previewSrc && (
+                    <video
+                        ref={videoRef}
+                        src={previewSrc}
+                        muted
+                        autoPlay
+                        loop
+                        playsInline
+                        disablePictureInPicture
+                        preload="auto"
+                        onLoadedData={() => setPreviewLoaded(true)}
+                        onError={() => setPreviewFailed(true)}
+                        style={{
+                            position: 'absolute', inset: 0,
+                            width: '100%', height: '100%',
+                            objectFit: 'cover',
+                            opacity: showPreviewVideo ? 1 : 0,
+                            transition: 'opacity 0.4s ease',
+                        }}
+                    />
                 )}
 
                 {/* LIVE Badge */}
@@ -264,8 +168,8 @@ export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
                     🔴 LIVE
                 </div>
 
-                {/* LIVE indicator when video preview is active */}
-                {showVideo && (
+                {/* Subtle "playing" pip when the preview clip is active */}
+                {showPreviewVideo && (
                     <div style={{
                         position: 'absolute', top: 10, right: 10,
                         background: 'rgba(0,0,0,0.6)',
@@ -346,9 +250,6 @@ export function LiveStreamCard({ stream, onClick, inlineAutoplay = false }) {
                 @keyframes lscPulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.7; }
-                }
-                @keyframes lscSpin {
-                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </div>
