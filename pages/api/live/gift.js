@@ -316,17 +316,13 @@ export default async function handler(req, res) {
         }).catch(() => {}); // Non-fatal if broadcast fails
         supabase.removeChannel(channel);
 
-        // Notify broadcaster (non-fatal)
-        const { error: notifErr } = await supabase.from('notifications').insert({
-            user_id: receiver_id,
-            type: 'live_gift',
-            title: 'Diamond Gift Received',
-            message: `${senderName} sent you ${parsedAmount} diamonds during your live stream!`,
-            actor_id: user.id,
-            link: `/hub/social-media?stream=${stream_id}`,
-            read: false,
-        });
-        if (notifErr) console.warn('Notification insert failed:', notifErr.message);
+        // BUG-FIX-LIVE-1: Diamonds received during a stream MUST NOT create a
+        // notification. They are already surfaced to the broadcaster via:
+        //   1. The realtime gift channel broadcast above (in-stream UI)
+        //   2. The diamond_transactions row (wallet history)
+        //   3. The live_gifts row (stream gift feed / leaderboard)
+        // A notifications row would be redundant noise. Direct wallet→wallet
+        // diamond transfers (a different code path) DO emit notifications.
 
         return res.json({
             success: true,

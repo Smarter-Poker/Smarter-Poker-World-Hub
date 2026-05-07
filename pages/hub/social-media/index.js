@@ -4310,16 +4310,43 @@ function SocialMediaPage() {
         };
     }, []);
 
-    // Realtime: auto-refresh Live Now section when any stream goes live or ends
-    // BUG FIX (Bug #12): static 'social-live-monitor' name caused a zombie subscription on
-    // React StrictMode double-invoke. Fixed with a unique per-mount name.
+    // Realtime: auto-refresh Live Now section when any stream goes live or ends.
+    // BUG FIX (Bug #12 from main): static channel name caused a zombie
+    // subscription on React StrictMode double-invoke. Unique per-mount name
+    // suffix prevents that.
+    // BUG-FIX-LIVE-5 perf: rolling-preview UPDATEs fire every ~25s per
+    // broadcaster. Refetching the entire live-streams list on every preview
+    // refresh would be wasteful (and quadratic with broadcaster count). For
+    // UPDATE events, patch the relevant row in state in place. Only INSERT
+    // and DELETE (and UPDATEs that flip status) trigger a full refetch.
     useEffect(() => {
         const ch = supabase
             .channel(`social-live-monitor-${Date.now()}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_streams' }, () => {
                 LiveStreamService.getLiveStreams()
                     .then(streams => setLiveStreams(streams || []))
                     .catch(() => {});
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_streams' }, () => {
+                LiveStreamService.getLiveStreams()
+                    .then(streams => setLiveStreams(streams || []))
+                    .catch(() => {});
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'live_streams' }, (payload) => {
+                const next = payload.new;
+                const prev = payload.old;
+                // Status flipped (live → ended, or vice versa) — refetch so
+                // the row enters/leaves the visible list.
+                if (next?.status !== prev?.status) {
+                    LiveStreamService.getLiveStreams()
+                        .then(streams => setLiveStreams(streams || []))
+                        .catch(() => {});
+                    return;
+                }
+                // Preview clip / viewer count / etc. — patch the row in place.
+                setLiveStreams(prevList =>
+                    prevList.map(s => (s.id === next.id ? { ...s, ...next } : s))
+                );
             })
             .subscribe();
         return () => { supabase.removeChannel(ch); };

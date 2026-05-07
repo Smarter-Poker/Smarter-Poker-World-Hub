@@ -478,8 +478,14 @@ class LiveStreamService {
         }
 
         // Stop local tracks
+        // BUG-FIX-LIVE-2 verification: previously this stopped both audio and
+        // video tracks. But the MediaStream is owned by the caller (the
+        // mediaStreamSingleton via GoLiveModal), not by LiveStreamService.
+        // Stopping tracks here invalidates the singleton's cached stream, so
+        // the next Go Live tap re-triggers iOS Safari's permission UI —
+        // exactly the bug we're fixing. Just clear our reference; the
+        // singleton manages track lifecycle and releases on full session end.
         if (this.localStream) {
-            this.localStream.getTracks().forEach(t => t.stop());
             this.localStream = null;
         }
 

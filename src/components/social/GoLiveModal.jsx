@@ -19,6 +19,14 @@ import diamondAnimation from '../../../public/diamond-animation.json';
 // (a real user gesture) unlocks iOS Safari's AudioContext, then
 // playSuccessChime() in startBroadcast plays the live-confirmation chime.
 import { armSuccessChime, playSuccessChime } from '../../lib/successChime';
+import useStreamingViewportLock from '../../lib/useStreamingViewportLock';
+import {
+    acquireMediaStream,
+    releaseMediaStream,
+    getCachedMediaStream,
+} from '../../lib/mediaStreamSingleton';
+import StreamPreviewCapture from '../../lib/streamPreviewCapture';
+import { getAccessToken } from '../../lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505',
@@ -141,6 +149,9 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
     const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
+    // BUG-FIX-LIVE-10 hardening: prevents double-tap on End Stream from
+    // running two parallel finalize promises and racing the mediaRecorder.
+    const [isEnding, setIsEnding] = useState(false);
     const [guestInviteModalOpen, setGuestInviteModalOpen] = useState(false); // New: invite guest via messenger
     // BUG FIX (GLM-3): separate toast state for share link (not reusing error)
     const [shareToast, setShareToast] = useState('');
@@ -171,6 +182,13 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const mediaAccessMountedRef = useRef(true);
     // BUG FIX (GLM-6): track error-clear timer so it cancels on unmount
     const errorTimerRef = useRef(null);
+    // BUG-FIX-LIVE-5: rolling preview capture (uploads ~12s loop clip every 25s)
+    const previewCaptureRef = useRef(null);
+
+    // BUG-FIX-LIVE-7+8: lock viewport, kill pinch zoom, recover from rotation
+    // during live/countdown. Prevents the "icons stay zoomed and screen won't
+    // go back to normal" failure mode after pinch or orientation change.
+    useStreamingViewportLock(stage === 'live' || stage === 'countdown');
 
     useEffect(() => {
         mediaAccessMountedRef.current = true;
@@ -179,7 +197,12 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             mediaAccessMountedRef.current = false;
             liveStreamService.onViewerCountChange = null;
             liveStreamService.onParticipantsUpdate = null; // FEATURE 6
-            streamRef.current?.getTracks().forEach(t => t.stop());
+            // BUG-FIX-LIVE-2: do NOT stop streamRef tracks here — they belong
+            // to the module-level mediaStreamSingleton and are reused across
+            // modal opens to prevent iOS Safari re-prompting for camera/mic.
+            // Cleanup of the actual MediaStream happens only on full
+            // navigation away from the streaming surface (handled at the
+            // page-level layout) or via releaseMediaStream({force:true}).
             if (timerRef.current) clearInterval(timerRef.current);
             if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
             if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
@@ -196,6 +219,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             if (liveStreamService.room && liveStreamService.isBroadcaster) {
                 liveStreamService.endBroadcast().catch(() => {});
                 busEmit.dataMutated?.('live_streams');
+            }
+            // BUG-FIX-LIVE-5: stop the rolling preview capture on force-close
+            if (previewCaptureRef.current) {
+                try { previewCaptureRef.current.stop(); } catch (_) {}
+                previewCaptureRef.current = null;
             }
             // FIX: null stale singleton callbacks
             liveStreamService.onViewerCountChange = null;
@@ -290,21 +318,30 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     }, [comments]);
 
     const requestMediaAccess = async () => {
-        // BUG FIX (GLM-5): guard against the case where getUserMedia resolves AFTER
-        // the modal closes — the resulting track would never be stopped, leaking the
-        // camera/mic for the duration of the user session.
-        let stream;
+        // BUG-FIX-LIVE-2 (per Dan: "user should only have to enable the
+        // microphone and camera one time on mobile and not asked every
+        // single time"). The singleton caches the MediaStream module-wide,
+        // so reopening the Go Live modal within the same page session
+        // reuses the existing stream and never re-triggers iOS Safari's
+        // permission UI. See src/lib/mediaStreamSingleton.js.
         try {
-            const isMobile = window.innerWidth < 768;
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: isMobile ? 720 : 1280 }, height: { ideal: isMobile ? 1280 : 720 } },
-                audio: true,
-            });
-            // If the modal was closed while getUserMedia was pending, stop immediately
-            if (!mediaAccessMountedRef.current) {
-                stream.getTracks().forEach(t => t.stop());
+            // Synchronous fast-path — if a cached stream already exists,
+            // attach it before the await so the video element shows the
+            // preview instantly on modal reopen.
+            const cached = getCachedMediaStream();
+            if (cached) {
+                streamRef.current = cached;
+                if (videoRef.current) videoRef.current.srcObject = cached;
+                setStage('preview');
+                setError('');
                 return;
             }
+
+            const stream = await acquireMediaStream();
+            // Modal could have closed while the prompt was open — guard
+            // before touching DOM/state.
+            if (!mediaAccessMountedRef.current) return;
+
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
             setStage('preview');
@@ -436,8 +473,15 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
             liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
 
+            // BUG-FIX-LIVE-5 verification: capture the active stream id locally
+            // — React's setStreamId is async, so reading `streamId` (state) below
+            // would give us the previous render's value (null on first broadcast).
+            // The LiveStreamService field is `currentStreamId` (not `streamId`).
+            let activeStreamId = null;
+
             if (guestMode && initialRoomId && initialInviteCode) {
                 await liveStreamService.joinAsGuest(user.id, initialRoomId, initialInviteCode, streamRef.current);
+                activeStreamId = initialRoomId;
                 setStreamId(initialRoomId);
                 setGuestInviteCode(initialInviteCode);
             } else {
@@ -449,13 +493,48 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                     category,
                     description
                 );
+                activeStreamId = newId;
                 setStreamId(newId);
                 setGuestInviteCode(newInviteCode);
             }
-            
+
             setStage('live');
             setElapsedTime(0);
             startRecording();
+
+            // BUG-FIX-LIVE-5: start the rolling preview clip uploader. It
+            // runs in parallel to the main MediaRecorder using the SAME local
+            // stream, uploads a fresh ~12s clip every 25s to Supabase Storage,
+            // and updates live_streams.preview_clip_url so feed cards can
+            // autoplay it on loop instead of opening per-card LiveKit
+            // connections. First clip lands ~25s in.
+            //
+            // Guests do NOT run preview capture — only the broadcaster's
+            // primary device should write the preview clip URL for the room.
+            try {
+                if (!guestMode && streamRef.current && activeStreamId) {
+                    if (previewCaptureRef.current) {
+                        try { previewCaptureRef.current.stop(); } catch (_) {}
+                    }
+                    previewCaptureRef.current = new StreamPreviewCapture({
+                        mediaStream: streamRef.current,
+                        streamId: activeStreamId,
+                        userId: user.id,
+                        getAccessToken: () => getAccessToken(),
+                        supabase,
+                        onError: (err) => {
+                            // Preview capture is non-fatal — log and continue.
+                            // Live broadcast itself is unaffected; viewers just
+                            // see the static thumbnail until the next window.
+                            console.warn('[StreamPreviewCapture]', err?.message || err);
+                        },
+                    });
+                    previewCaptureRef.current.start();
+                }
+            } catch (previewErr) {
+                console.warn('[GoLive] preview capture init failed:', previewErr?.message || previewErr);
+            }
+
             timerRef.current = setInterval(() => setElapsedTime(p => p + 1), 1000);
             // BUG-FIX-LIVE-1: play chime via the AudioContext armed in
             // handleGoLive(). toast.success below ALSO calls toastStore's
@@ -493,68 +572,99 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     }, []);
 
     const handleEndStream = async () => {
+        // BUG-FIX-LIVE-10 hardening: ignore re-entry. Without this, a fast
+        // double-tap on End Stream runs two finalizeRecording promises in
+        // parallel and the mediaRecorder errors out before either resolves.
+        if (isEnding) return;
+        setIsEnding(true);
+
         // #1: Confirm before ending — prevents accidental stream kills
-        if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) return;
-        try {
-            // BUG-FIX-LIVE-8 (per Dan: "WHEN STREAM ENDS, IT DOESN'T TAKE THE
-            // STREAMER TO THE SAVE OR POST SCREEN, STREAM JUST ENDS AND SCREEN
-            // FREEZES. CANT POST OR SAVE AFTER IT ENDS").
-            //
-            // Root cause: previously called mediaRecorderRef.current.stop()
-            // and immediately set stage='ended'. The recorder's onstop
-            // handler (defined in startRecording) fires AFTER stop() returns,
-            // so EndStreamModal mounted with videoBlob still null. It then
-            // rendered "Recording not available — cannot be saved or posted"
-            // with all action buttons disabled — which looked like a freeze.
-            //
-            // Fix: assemble the final blob from recordedChunksRef the moment
-            // the recorder dispatches 'stop', resolve a promise, then call
-            // setRecordedBlob BEFORE setStage('ended'). React batches both
-            // updates so EndStreamModal mounts with a real videoBlob and
-            // the Save/Post buttons are enabled.
-            const finalizeRecording = () => new Promise((resolve) => {
-                const mr = mediaRecorderRef.current;
-                if (!mr || mr.state === 'inactive') return resolve(null);
-                const mime = mr.mimeType || 'video/webm';
-                let settled = false;
-                const onStopOnce = () => {
-                    if (settled) return;
+        if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) {
+            setIsEnding(false);
+            return;
+        }
+
+        // BUG-FIX-LIVE-10 (per Dan: "WHEN I CLICKED END STREAM, IT DID NOT DO
+        // WHAT IT USED TO, AND GIVE ME THE OPTION TO SAVE OR PUBLISH... SCREEN
+        // JUST FREEZES AND LIVE STREAM ENDS FOR VIEWERS, BUT CAN'T DO ANYTHING
+        // AFTER THAT...").
+        //
+        // Root cause: handleEndStream awaited liveStreamService.endBroadcast()
+        // BEFORE flipping stage to 'ended'. If that call threw (LiveKit
+        // disconnect race) or hung past the user's patience, we landed in the
+        // catch block which only setError'd — stage stayed 'live', viewers had
+        // already disconnected, camera tracks were still live, UI looked
+        // permanently frozen.
+        //
+        // Fix: snapshot the recording, kill local tracks + timer, transition
+        // to 'ended' SYNCHRONOUSLY, THEN fire endBroadcast in the background.
+        // The catch path also transitions — there is no code path where the
+        // user remains on the live UI after tapping End Stream.
+
+        // ── 1. Snapshot the recording (with 4s safety cap) ───────────────────
+        const finalizeRecording = () => new Promise((resolve) => {
+            const mr = mediaRecorderRef.current;
+            if (!mr || mr.state === 'inactive') return resolve(null);
+            const mime = mr.mimeType || 'video/webm';
+            let settled = false;
+            const onStopOnce = () => {
+                if (settled) return;
+                settled = true;
+                try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
+                try {
+                    const blob = new Blob(recordedChunksRef.current, { type: mime });
+                    resolve(blob);
+                } catch (_e) { resolve(null); }
+            };
+            mr.addEventListener('stop', onStopOnce);
+            try { mr.stop(); } catch (_) { onStopOnce(); }
+            setTimeout(() => {
+                if (!settled) {
                     settled = true;
                     try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
-                    try {
-                        const blob = new Blob(recordedChunksRef.current, { type: mime });
-                        resolve(blob);
-                    } catch (_e) { resolve(null); }
-                };
-                mr.addEventListener('stop', onStopOnce);
-                try { mr.stop(); } catch (_) { onStopOnce(); }
-                // Safety: 4-second cap if onstop never fires (browser bug, lost track)
-                setTimeout(() => {
-                    if (!settled) {
-                        settled = true;
-                        try { mr.removeEventListener('stop', onStopOnce); } catch (_) {}
-                        resolve(null);
-                    }
-                }, 4000);
-            });
+                    resolve(null);
+                }
+            }, 4000);
+        });
 
-            const finalBlob = await finalizeRecording();
-            await liveStreamService.endBroadcast();
-            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-            setIsStarting(false); // Reset for next session
-            // setRecordedBlob first so it lands in the same React commit as
-            // the stage transition — EndStreamModal sees a non-null blob.
-            if (finalBlob) setRecordedBlob(finalBlob);
-            setStage('ended');
-            setShowAnalytics(true);
-            // Real-time fanout via EventBus — feed cards (LiveStreamCard
-            // inlineAutoplay) listen on 'live_streams' to flip their tile
-            // from live preview to the post-stream replay state.
-            busEmit.dataMutated?.('live_streams');
-            try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
+        let finalBlob = null;
+        try {
+            finalBlob = await finalizeRecording();
         } catch (err) {
-            setError(err.message);
+            console.warn('[handleEndStream] recording finalize threw:', err);
         }
+
+        // ── 2. Stop the live timer + reset starting flag ────────────────────
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        setIsStarting(false);
+
+        // ── 2a. Stop the rolling preview capture ────────────────────────────
+        // BUG-FIX-LIVE-5: any in-flight upload is allowed to complete (it has
+        // no awaiters); the recorder is halted so no new windows kick off.
+        if (previewCaptureRef.current) {
+            try { previewCaptureRef.current.stop(); } catch (_) {}
+            previewCaptureRef.current = null;
+        }
+
+        // ── 3. Lock in the recorded blob, then atomically flip to 'ended' ───
+        // setRecordedBlob fires in the same React commit as setStage so the
+        // EndStreamModal mounts with a non-null videoBlob → Save/Post buttons
+        // enabled.
+        if (finalBlob) setRecordedBlob(finalBlob);
+        setStage('ended');
+        setShowAnalytics(true);
+
+        // ── 4. End the LiveKit broadcast in the background ──────────────────
+        // Failure here is non-fatal to the streamer's UX — they're already on
+        // the post-stream screen. Viewers will see the disconnect either way.
+        liveStreamService.endBroadcast().catch((err) => {
+            console.warn('[handleEndStream] endBroadcast non-fatal error:', err?.message || err);
+        });
+
+        // ── 5. Real-time fanout — feed cards re-render and pick up the
+        // ended stream state via the EventBus 'live_streams' channel.
+        try { busEmit.dataMutated?.('live_streams'); } catch (_) {}
+        try { busEmit.dataMutated?.('social_posts'); } catch (_) {}
     };
 
     const handleFlipCamera = async () => {
@@ -654,7 +764,10 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     };
 
     const handleEndStreamModalClose = (action) => {
-        streamRef.current?.getTracks().forEach(t => t.stop());
+        // BUG-FIX-LIVE-2: do NOT stop tracks here — keep the singleton alive
+        // so the user can immediately go live again without re-prompting for
+        // camera/mic permission. The singleton will be released only when
+        // the user navigates away from the streaming surface entirely.
         streamRef.current = null;
         setStage('preview');
         setRecordedBlob(null);
@@ -674,6 +787,9 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         setGuestInviteCode(null);
         setCommentMenu(null);
         setIsMuted(false);
+        // BUG-FIX-LIVE-10: clear the re-entry guard so the next Go Live
+        // session can use End Stream again.
+        setIsEnding(false);
         onClose(action);
     };
 
@@ -862,7 +978,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                     >
                         {/* Broadcaster/Local Video + Remote Participants */}
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#000' }}>
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'contain', transform: 'scaleX(-1)', transition: 'all 0.3s ease' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', transition: 'all 0.3s ease' }} />
                             
                             {/* Secondary Participants (Guest) */}
                             {participants.map((p, idx) => {
@@ -884,7 +1000,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
-                                                objectFit: 'contain',
+                                                objectFit: 'cover',
                                                 transform: 'scaleX(-1)'
                                             }}
                                         />

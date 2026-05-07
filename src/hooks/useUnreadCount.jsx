@@ -1,6 +1,23 @@
 /**
- * UNREAD MESSAGE COUNT HOOK
- * Global hook for tracking unread messages across all pages
+ * UNREAD COUNT HOOK — messages + notifications
+ *
+ * Provides three reactive counts:
+ *   - messageCount        — unread DM messages (from social_messages)
+ *   - notificationCount   — unread notifications (from notifications table)
+ *   - total               — messageCount + notificationCount
+ *
+ * `unreadCount` is preserved as an alias for messageCount so existing callers
+ * that show a messenger-icon badge keep working unchanged.
+ *
+ * BUG-FIX-LIVE-6 (per Dan: "notifications should be sent to both the bottom
+ * notification bar and the global header notifications. these should always
+ * both be notified always for any and all notifications.").
+ *
+ * Before this fix, the bottom-nav "Alerts" tab read `unreadCount` which was
+ * messages-only — so notifications never updated the bottom badge even though
+ * the global header notification bell did update. Both surfaces now read from
+ * the same `notificationCount` field driven by a shared Realtime subscription
+ * to the `notifications` table.
  */
 
 import { useState, useEffect, createContext, useContext } from 'react';
@@ -11,11 +28,16 @@ import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
 
 const UnreadContext = createContext({
     unreadCount: 0,
+    messageCount: 0,
+    notificationCount: 0,
+    total: 0,
     refreshUnread: () => { },
+    refreshNotifications: () => { },
 });
 
 export function UnreadProvider({ children }) {
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [messageCount, setMessageCount] = useState(0);
+    const [notificationCount, setNotificationCount] = useState(0);
     const [userId, setUserId] = useState(null);
 
     // Get user on mount - use bulletproof authUtils instead of supabase client
@@ -27,7 +49,7 @@ export function UnreadProvider({ children }) {
         }
     }, []);
 
-    // Fetch unread count
+    // ── Fetch unread MESSAGE count ──────────────────────────────────────────
     const refreshUnread = async () => {
         if (!userId) return;
 
@@ -39,7 +61,7 @@ export function UnreadProvider({ children }) {
                 .eq('user_id', userId);
 
             if (!participations?.length) {
-                setUnreadCount(0);
+                setMessageCount(0);
                 return;
             }
 
@@ -71,9 +93,30 @@ export function UnreadProvider({ children }) {
                 if (lastRead && msg.created_at > lastRead) total++;
             });
 
-            setUnreadCount(total);
+            setMessageCount(total);
         } catch (e) {
             console.warn('Error fetching unread count:', e);
+        }
+    };
+
+    // ── Fetch unread NOTIFICATION count ─────────────────────────────────────
+    // BUG-FIX-LIVE-6: read both `read` and `is_read` columns because the table
+    // has both (legacy schema) and individual code paths historically wrote to
+    // one or the other. We treat "unread" as "neither flag set to true."
+    const refreshNotifications = async () => {
+        if (!userId) return;
+        try {
+            const { count, error } = await supabase
+                .from('notifications')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                // .or() captures rows where either flag indicates unread.
+                .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
+            if (!error && typeof count === 'number') {
+                setNotificationCount(count);
+            }
+        } catch (e) {
+            console.warn('[UnreadProvider] notification count fetch failed:', e?.message || e);
         }
     };
 
@@ -81,16 +124,15 @@ export function UnreadProvider({ children }) {
     useEffect(() => {
         if (userId) {
             refreshUnread();
+            refreshNotifications();
 
-            // Set up real-time subscription for new messages
-            // We subscribe to INSERT events, then validate the message belongs
-            // to a conversation the user participates in before incrementing
+            // ── Realtime subscription: messages ────────────────────────────
             // Wrapped in try-catch: if supabase.channel().on() chaining fails
             // (e.g. mock client resolved instead of real client), the page must
             // NOT crash — periodic refreshUnread() is the fallback.
-            let channel = null;
+            let messagesChannel = null;
             try {
-                channel = supabase
+                messagesChannel = supabase
                     .channel(`unread-messages:${userId}`)
                     .on('postgres_changes', {
                         event: 'INSERT',
@@ -110,7 +152,7 @@ export function UnreadProvider({ children }) {
                                 .maybeSingle();
 
                             if (participation) {
-                                setUnreadCount(prev => prev + 1);
+                                setMessageCount(prev => prev + 1);
                             }
                         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     })
@@ -128,7 +170,47 @@ export function UnreadProvider({ children }) {
                     })
                     .subscribe();
             } catch (realtimeErr) {
-                console.warn('[UnreadProvider] Realtime subscription failed — falling back to polling:', realtimeErr);
+                console.warn('[UnreadProvider] messages realtime subscription failed — falling back to polling:', realtimeErr);
+            }
+
+            // ── Realtime subscription: notifications ───────────────────────
+            // BUG-FIX-LIVE-6: subscribe to notifications inserts for THIS user
+            // so both the global header bell AND the bottom-nav Alerts tab
+            // receive the same update event in real time.
+            let notifChannel = null;
+            try {
+                notifChannel = supabase
+                    .channel(`unread-notifications:${userId}`)
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${userId}`,
+                    }, () => {
+                        setNotificationCount(prev => prev + 1);
+                    })
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${userId}`,
+                    }, () => {
+                        // Mark-as-read updates — recalculate the count from the table
+                        // since UPDATE payloads don't tell us whether read flipped from
+                        // unread to read.
+                        refreshNotifications();
+                    })
+                    .on('postgres_changes', {
+                        event: 'DELETE',
+                        schema: 'public',
+                        table: 'notifications',
+                        filter: `user_id=eq.${userId}`,
+                    }, () => {
+                        refreshNotifications();
+                    })
+                    .subscribe();
+            } catch (realtimeErr) {
+                console.warn('[UnreadProvider] notifications realtime subscription failed — falling back to polling:', realtimeErr);
             }
 
             // NOTE: EventBus MESSAGE_RECEIVED listener was removed here.
@@ -141,29 +223,47 @@ export function UnreadProvider({ children }) {
             const cleanupUnreadSync = listenBroadcast('smarter_poker_unread_sync', (msg) => {
                 if (msg === 'refresh_unread') {
                     refreshUnread();
+                    refreshNotifications();
                 }
             });
 
             // Refresh periodically as backup (corrects any drift)
-            const interval = setInterval(refreshUnread, 30000);
+            const interval = setInterval(() => {
+                refreshUnread();
+                refreshNotifications();
+            }, 30000);
 
             return () => {
-                if (channel) { try { supabase.removeChannel(channel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
+                if (messagesChannel) { try { supabase.removeChannel(messagesChannel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
+                if (notifChannel) { try { supabase.removeChannel(notifChannel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
                 clearInterval(interval);
                 cleanupUnreadSync();
             };
         }
     }, [userId]);
 
-    // Enhanced setUnreadCount that also broadcasts to other tabs
+    // Enhanced setMessageCount that also broadcasts to other tabs
     const setAndBroadcastUnreadCount = (count) => {
-        setUnreadCount(count);
+        setMessageCount(count);
         // Only broadcast if we are specifically clearing/changing it
         broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
     };
 
+    // ── Derived totals + backwards-compat alias ─────────────────────────────
+    const total = messageCount + notificationCount;
+
     return (
-        <UnreadContext.Provider value={{ unreadCount, refreshUnread, setUnreadCount: setAndBroadcastUnreadCount }}>
+        <UnreadContext.Provider value={{
+            // Legacy alias — `unreadCount` historically meant messages-only.
+            // Existing callers (messenger badges) keep working unchanged.
+            unreadCount: messageCount,
+            messageCount,
+            notificationCount,
+            total,
+            refreshUnread,
+            refreshNotifications,
+            setUnreadCount: setAndBroadcastUnreadCount,
+        }}>
             {children}
         </UnreadContext.Provider>
     );

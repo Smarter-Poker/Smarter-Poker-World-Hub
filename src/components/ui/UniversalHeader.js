@@ -120,7 +120,26 @@ export default function UniversalHeader({
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
 
     // Global Unread Messages State (instant caching)
-    const { unreadCount } = useUnreadCount();
+    // BUG-FIX-LIVE-6: useUnreadCount is now the single source of truth for
+    // BOTH unread DM count AND unread notification count, with a Realtime
+    // subscription. Header badges now mirror the bottom-nav badges in
+    // real time — no more "header shows old count until you open the
+    // overlay and close it" lag.
+    const { unreadCount, notificationCount: liveNotificationCount } = useUnreadCount();
+
+    // Header keeps a localStorage-cached `notificationCount` for first-paint
+    // (avoids a 0→N flicker on hard reload). Once the realtime hook reports
+    // a non-null number, we trust it as the source of truth. setNotificationCount
+    // remains for the overlay-close path which still re-fetches via API to
+    // capture both social + poker counts the bare `notifications` table query
+    // does not include.
+    useEffect(() => {
+        if (typeof liveNotificationCount === 'number') {
+            setNotificationCount(liveNotificationCount);
+            try { localStorage.setItem('sp-notif-count', String(liveNotificationCount)); }
+            catch (_) { /* private browsing — ignore */ }
+        }
+    }, [liveNotificationCount]);
 
     // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
     // Cache read is now synchronous in _cachedHeader above — no extra effect needed.
