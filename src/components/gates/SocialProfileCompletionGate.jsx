@@ -45,7 +45,7 @@ const COUNTRIES = [
     { code: '+86', flag: '🇨🇳', label: 'CN' },
 ];
 
-const USERNAME_RE = /^[a-z0-9][a-z0-9_.]{2,19}$/;
+const USERNAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.]{2,19}$/;
 
 // Format phone digits as xxx-xxx-xxxx for +1 (Dan's preferred display format),
 // otherwise leave digits with spaces every 3 chars.
@@ -87,9 +87,8 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         setFullName(initialName);
         // Strip @, lowercase, drop disallowed chars, cap at 20
         const cleanedAlias = (profile.username || initialName.replace(/\s+/g, '') || '')
-            .toLowerCase()
             .replace(/^@+/, '')
-            .replace(/[^a-z0-9_.]/g, '')
+            .replace(/[^a-zA-Z0-9_.]/g, '')
             .slice(0, 20);
         setUsername(cleanedAlias);
         // Pre-fill phone if we somehow already have it. Stored format may be
@@ -110,7 +109,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
     //    the submit handler when the server reports username_taken/reserved
     //    so the modal can show fresh suggestion chips immediately).
     const runUsernameCheck = useCallback(async (rawValue) => {
-        const u = (rawValue || '').trim().toLowerCase();
+        const u = (rawValue || '').trim();
         if (!u || !USERNAME_RE.test(u)) {
             setAvailability(u && u.length > 0 ? {
                 available: false,
@@ -150,7 +149,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
     // ── Debounced username availability check ──
     useEffect(() => {
         if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
-        const u = username.trim().toLowerCase();
+        const u = username.trim();
         if (!u || !USERNAME_RE.test(u)) {
             setAvailability(u && u.length > 0 ? {
                 available: false,
@@ -178,7 +177,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
 
     // ── Step validation ──
     const nameValid     = fullName.trim().length >= 2 && fullName.trim().length <= 80 && /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(fullName);
-    const usernameValid = USERNAME_RE.test(username.trim().toLowerCase()) && availability?.available === true;
+    const usernameValid = USERNAME_RE.test(username.trim()) && availability?.available === true;
     const phoneValid    = phoneDigits.replace(/\D/g, '').length >= 7;
 
     const handleSubmit = useCallback(async () => {
@@ -195,7 +194,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                 },
                 body: JSON.stringify({
                     full_name: fullName.trim(),
-                    username:  username.trim().toLowerCase(),
+                    username:  username.trim(),
                     phone:     `${country} ${phoneDigits.replace(/\D/g, '')}`.trim(),
                 }),
             });
@@ -302,7 +301,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                     spellCheck={false}
                                     placeholder="yourname"
                                     value={username}
-                                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, 20))}
+                                    onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_.]/g, '').slice(0, 20))}
                                     maxLength={20}
                                     autoFocus
                                 />
