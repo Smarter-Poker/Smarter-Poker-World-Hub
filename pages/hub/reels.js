@@ -2035,6 +2035,34 @@ export default function ReelsPage() {
           );
         }
       )
+      // BUG FIX (REELS-DELETE-1): when a user deletes a post from their
+      // profile, /hub/user/[username].js cascades the delete into social_reels
+      // (and a DB FK migration also makes the cascade structural). Without a
+      // DELETE listener here, the deleted reel kept playing in /hub/reels until
+      // the next full reload. Subscribe and filter the reel out of state.
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'social_reels' },
+        (payload) => {
+          const id = payload?.old?.id;
+          if (!id) return;
+          setReels((prev) => prev.filter((r) => r.id !== id));
+        }
+      )
+      // BUG FIX (REELS-DELETE-2): if a reel was created from a social_post
+      // (source_post_id is set), the post-delete path also matters. Filter any
+      // reel whose source_post_id matches the deleted post id. This catches
+      // the rare case where the reel row itself wasn't deleted but the post
+      // was — the user expects the reel to disappear in either case.
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'social_posts' },
+        (payload) => {
+          const postId = payload?.old?.id;
+          if (!postId) return;
+          setReels((prev) => prev.filter((r) => r.source_post_id !== postId));
+        }
+      )
       .subscribe();
     return () => {
       clearTimeout(reloadTimer);
