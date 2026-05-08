@@ -49,6 +49,10 @@ export default function LivesPage() {
     // Tick once a minute (rounding granularity) so the countdown advances naturally.
     const [tick, setTick] = useState(0);
     const containerRef = useRef(null);
+    // BUG FIX (LV-AUDIT-7): keep a ref to the latest fetchStreams so the realtime channel
+    // subscription doesn't re-subscribe on every categoryFilter change. Without this, every
+    // category click tore down the channel and re-created it (brief event-loss window + network thrash).
+    const fetchStreamsRef = useRef(null);
     const videoRefs = useRef({});
     // BUG FIX (L-LIVES-1,3,4): store toast/share timer refs for cleanup on unmount
     const publishToastTimerRef = useRef(null);
@@ -84,6 +88,7 @@ export default function LivesPage() {
     const { guardAction, UpgradePopup } = useFeatureGate('lives');
 
     // Fetch all streams (active lives + recorded)
+    // BUG FIX (LV-AUDIT-7): shadowed by ref below — see realtime channel effect.
     const fetchStreams = useCallback(async () => {
         setLoading(true);
         try {
@@ -125,6 +130,12 @@ export default function LivesPage() {
 
     useEffect(() => {
         fetchStreams();
+    }, [fetchStreams]);
+
+    // BUG FIX (LV-AUDIT-7): keep ref synced so the realtime subscription's stable-deps
+    // closure always invokes the latest fetchStreams (which captures latest categoryFilter).
+    useEffect(() => {
+        fetchStreamsRef.current = fetchStreams;
     }, [fetchStreams]);
 
     // BUG FIX (LV-AUDIT-6): seed likedStreams from DB so the UI shows the correct liked-state
@@ -271,26 +282,34 @@ export default function LivesPage() {
         const touchEnd = e.changedTouches[0].clientY;
         const diff = touchStart - touchEnd;
 
+        // BUG FIX (LV-AUDIT-8): guard the boundary inside the functional updater. Previously
+        // `currentIndex < streams.length - 1` read CLOSURE state — rapid swipes before re-render
+        // could overshoot the list end (setCurrentIndex with stale guard would advance past
+        // streams.length, leaving the user on a blank slot).
+        const max = streams.length - 1;
         if (Math.abs(diff) > 50) {
-            if (diff > 0 && currentIndex < streams.length - 1) {
-                // Swipe up - next video
-                setCurrentIndex(prev => prev + 1);
-            } else if (diff < 0 && currentIndex > 0) {
-                // Swipe down - previous video
-                setCurrentIndex(prev => prev - 1);
+            if (diff > 0) {
+                // Swipe up - next video (clamped at end)
+                setCurrentIndex(prev => prev < max ? prev + 1 : prev);
+            } else {
+                // Swipe down - previous video (clamped at start)
+                setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
             }
         }
         setTouchStart(null);
     };
 
     // Handle wheel scroll
+    // BUG FIX (LV-AUDIT-8): guard the boundary inside the functional updater. Same overshoot
+    // pattern as touch — closure-stale currentIndex could allow rapid wheel events to advance
+    // past the list end. Now the functional updater clamps using the latest state.
     const handleWheel = useCallback((e) => {
-        if (e.deltaY > 30 && currentIndex < streams.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-        } else if (e.deltaY < -30 && currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
+        if (e.deltaY > 30) {
+            setCurrentIndex(prev => prev < streams.length - 1 ? prev + 1 : prev);
+        } else if (e.deltaY < -30) {
+            setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
         }
-    }, [currentIndex, streams.length]);
+    }, [streams.length]);
 
     // Auto-play current video, pause others
     useEffect(() => {
@@ -480,18 +499,22 @@ export default function LivesPage() {
         setChatText('');
         return () => _c.abort();
     }, [currentIndex]);
-    // Realtime subscription — soft re-fetch on stream changes (no hard reload)
+    // Realtime subscription — soft re-fetch on stream changes (no hard reload).
+    // BUG FIX (LV-AUDIT-7): deps reduced to [userId] only. Previously, every categoryFilter
+    // change recreated fetchStreams (useCallback dep) which caused this subscription to
+    // tear down and re-create — brief gap + network thrash. Now the callback uses the
+    // ref so the latest fetchStreams (with current categoryFilter) is always invoked.
     useEffect(() => {
         if (!userId) return;
         const _ch = supabase
             .channel(`lives:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-                // Soft re-fetch: silently refresh the stream list without destroying scroll position
-                fetchStreams();
+                // Soft re-fetch via ref so the closure always reads the latest fetchStreams.
+                if (fetchStreamsRef.current) fetchStreamsRef.current();
             })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [userId, fetchStreams]);
+    }, [userId]);
 
     return (
         <>
