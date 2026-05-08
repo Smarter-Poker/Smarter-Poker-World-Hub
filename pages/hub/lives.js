@@ -338,11 +338,11 @@ export default function LivesPage() {
         setLikeBusy(true);
         const wasLiked = likedStreams[currentStream.id];
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
-        // BUG FIX (LV-LIKES): use authenticated userId from state — not the anon localStorage uid
+        // BUG FIX (REMOVED-LIKES): use authenticated userId from state — not the anon localStorage uid
         // which shadows the outer `userId` state and attributes likes to the wrong identity.
         const likeUserId = userId;
         if (likeUserId) {
-            // BUG FIX (LV-AUDIT-1 restore): authedFetch returns Response without throwing on
+            // BUG FIX (REMOVED-1 restore): authedFetch returns Response without throwing on
             // HTTP errors. .catch()-only would let 403/429/RLS-denial silently keep the optimistic
             // UI flipped. Check res.ok and roll back on any non-2xx.
             authedFetch('/api/social/interactions', {
@@ -461,7 +461,7 @@ export default function LivesPage() {
                 setShareMsg('');
             }, 2000);
             // BUG FIX (LV-SHARE): use authenticated userId from state — not the anon localStorage uid
-            // BUG FIX (LV-AUDIT-1 restore): authedFetch doesn't throw on 4xx/5xx — surface non-2xx
+            // BUG FIX (REMOVED-1 restore): authedFetch doesn't throw on 4xx/5xx — surface non-2xx
             // so monitoring catches RLS / rate-limit denials silently dropping share interactions.
             if (userId) {
                 authedFetch('/api/social/interactions', {
