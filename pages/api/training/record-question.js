@@ -47,21 +47,12 @@ export default async function handler(req, res) {
           return res.status(413).json({ success: false, error: 'Request body too large' });
       }
 
-      const {
-          userId, gameId, questionId, isCorrect, level,
-          // ═══ PHASE 14: Spot metadata for weak-spot targeting ═══
-          heroPosition, villainPosition, street, classification, evLoss,
-          spotType, // e.g. 'facing_cbet', 'open_raise', '3bet_defense'
-      } = req.body;
+      const { userId, gameId, questionId, isCorrect, level } = req.body;
 
-      // BUG FIX (2026-05-08, MAX-RIGOR audit): The two canonical frontend callers
-      // (`src/hooks/useGTOTrainer.js:386`, `src/components/training/utils/questionGenerator.js:212`)
-      // both POST `selectedAnswer`, but this handler previously only destructured
-      // `answerId`. Result: `training_answers.answer_id` was NULL on every recorded
-      // question, breaking downstream analytics (mistake-pattern grouping,
-      // weak-spot targeting, replay-theater, leaderboards) that read `answer_id`.
-      // Accept both shapes — `answerId` is canonical, `selectedAnswer` is the
-      // legacy alias actually shipped by the FE.
+      // BUG FIX #3 (2026-05-08, MAX-RIGOR audit): FE callers
+      // (`src/hooks/useGTOTrainer.js:386`, `questionGenerator.js:212`) POST
+      // `selectedAnswer`, never `answerId`. Accept both so
+      // `training_answers.answer_id` (NOT NULL) populates.
       const answerId = req.body.answerId ?? req.body.selectedAnswer ?? null;
 
       if (!userId || !gameId || !questionId) {
@@ -70,7 +61,7 @@ export default async function handler(req, res) {
 
       try {
           // Record the seen question (for no-repeat)
-          await withRetry(
+          const seenResult = await withRetry(
               () => getSupabase()
                   .from('user_seen_questions')
                   .upsert({
@@ -81,9 +72,26 @@ export default async function handler(req, res) {
                   }, { onConflict: 'user_id,game_id,question_id' }),
               { label: 'RecordQuestion:upsert' }
           );
+          if (seenResult?.error) {
+              // BUG FIX #4 (2026-05-08, MAX-RIGOR audit): withRetry returns
+              // `{ data, error }` instead of throwing on Postgres errors.
+              // The handler previously ignored that and returned 200 success
+              // even when the row never landed. Surface the failure now.
+              console.warn('[RecordQuestion] user_seen_questions upsert failed:', seenResult.error);
+              return res.status(500).json({ success: false, error: 'Failed to record seen question' });
+          }
 
-          // Record the answer for stats (enriched with spot metadata)
-          await withRetry(
+          // Record the answer for stats. NOTE: training_answers schema is
+          // currently {id, user_id, game_id, question_id, answer_id NOT NULL,
+          // is_correct, level, answered_at}. Phase 14 spot-metadata columns
+          // (hero_position, villain_position, street, classification, ev_loss,
+          // spot_type) were never actually added by migration, so prior
+          // inserts hit Postgres 42703 ("column ... does not exist") which the
+          // earlier missing-error-check pattern silently swallowed — that is
+          // why this table had 0 rows. Strip those columns from the insert.
+          // Re-add them under a column-existence check once the schema is
+          // extended.
+          const insertResult = await withRetry(
               () => getSupabase()
                   .from('training_answers')
                   .insert({
@@ -94,16 +102,13 @@ export default async function handler(req, res) {
                       is_correct: isCorrect,
                       level: level,
                       answered_at: new Date().toISOString(),
-                      // ═══ PHASE 14: Spot metadata columns (gracefully ignored if cols don't exist) ═══
-                      hero_position: heroPosition || null,
-                      villain_position: villainPosition || null,
-                      street: street || null,
-                      classification: classification || null,
-                      ev_loss: typeof evLoss === 'number' ? evLoss : null,
-                      spot_type: spotType || null,
                   }),
               { label: 'RecordQuestion:insert' }
           );
+          if (insertResult?.error) {
+              console.warn('[RecordQuestion] training_answers insert failed:', insertResult.error);
+              return res.status(500).json({ success: false, error: 'Failed to record answer' });
+          }
 
           return res.status(200).json({ success: true });
 
