@@ -138,6 +138,8 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [showSchedule, setShowSchedule] = useState(false);
     const [slowMode, setSlowMode] = useState(false);
     const [isCameraFlipping, setIsCameraFlipping] = useState(false);
+    // BUG-FIX-FLIP: track mirror state — front camera mirrors, rear doesn't
+    const [isMirrored, setIsMirrored] = useState(true);
     const [category, setCategory] = useState('general');
     const [connectionQuality, setConnectionQuality] = useState('excellent');
     const [giftFlash, setGiftFlash] = useState(null);
@@ -155,6 +157,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [guestInviteModalOpen, setGuestInviteModalOpen] = useState(false); // New: invite guest via messenger
     // BUG FIX (GLM-3): separate toast state for share link (not reusing error)
     const [shareToast, setShareToast] = useState('');
+    // BUG-FIX-RECONNECT: detect if user has an active live stream (reconnect flow)
+    const [existingLiveStream, setExistingLiveStream] = useState(null);
+    const [checkingExistingStream, setCheckingExistingStream] = useState(false);
+    // BUG-FIX-WATCHDOG: 60s auto-end timer when reconnecting for too long
+    const reconnectWatchdogRef = useRef(null);
 
     // Thumbnail state
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -192,7 +199,25 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
 
     useEffect(() => {
         mediaAccessMountedRef.current = true;
-        if (isOpen) { requestMediaAccess(); }
+        if (isOpen) {
+            requestMediaAccess();
+            // BUG-FIX-RECONNECT: on open, check if user has a zombie live stream
+            // they may want to reconnect to (e.g. lost connection/power).
+            if (user?.id && !guestMode) {
+                setCheckingExistingStream(true);
+                supabase
+                    .from('live_streams')
+                    .select('id, title, started_at')
+                    .eq('broadcaster_id', user.id)
+                    .eq('status', 'live')
+                    .maybeSingle()
+                    .then(({ data }) => {
+                        if (data) setExistingLiveStream(data);
+                        setCheckingExistingStream(false);
+                    })
+                    .catch(() => setCheckingExistingStream(false));
+            }
+        }
         return () => {
             mediaAccessMountedRef.current = false;
             liveStreamService.onViewerCountChange = null;
@@ -213,6 +238,8 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
             // BUG FIX (GLM-6): cancel error clear timer on modal close
             if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+            // BUG-FIX-WATCHDOG: cancel watchdog timer on modal close
+            if (reconnectWatchdogRef.current) { clearTimeout(reconnectWatchdogRef.current); reconnectWatchdogRef.current = null; }
             // FIX: countdown interval cleanup was AFTER the return — unreachable dead code
             if (timerRef._cdInterval) { clearInterval(timerRef._cdInterval); timerRef._cdInterval = null; }
             // FIX: if modal is force-closed during live broadcast, end the broadcast to prevent zombie room
@@ -468,8 +495,27 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const startBroadcast = async (thumbUrl) => {
         try {
             liveStreamService.onViewerCountChange = (c) => setViewerCount(c);
-            liveStreamService.onReconnecting = () => setIsReconnecting(true);
-            liveStreamService.onReconnected = () => setIsReconnecting(false);
+            liveStreamService.onReconnecting = () => {
+                setIsReconnecting(true);
+                // BUG-FIX-WATCHDOG: start 60s timer — if still reconnecting after 60s, auto-end
+                if (reconnectWatchdogRef.current) clearTimeout(reconnectWatchdogRef.current);
+                reconnectWatchdogRef.current = setTimeout(() => {
+                    reconnectWatchdogRef.current = null;
+                    // Only auto-end if still in reconnecting state
+                    setIsReconnecting(prev => {
+                        if (prev) {
+                            console.warn('[GoLive] 60s reconnect watchdog fired — auto-ending stream');
+                            handleEndStream();
+                        }
+                        return prev;
+                    });
+                }, 60000);
+            };
+            liveStreamService.onReconnected = () => {
+                setIsReconnecting(false);
+                // Cancel watchdog if we successfully reconnected
+                if (reconnectWatchdogRef.current) { clearTimeout(reconnectWatchdogRef.current); reconnectWatchdogRef.current = null; }
+            };
             liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
             liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
 
@@ -679,10 +725,50 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 videoRef.current.srcObject = fullStream;
                 streamRef.current = fullStream;
             }
+            // BUG-FIX-FLIP: toggle mirror based on camera facing mode
+            // Front (user) camera needs mirror, rear (environment) does not
+            setIsMirrored(liveStreamService.cameraMode === 'user');
         } catch (err) {
             setError('Camera flip failed: ' + err.message);
         } finally {
             setIsCameraFlipping(false);
+        }
+    };
+
+    // BUG-FIX-RECONNECT: reconnect to an existing live stream
+    const handleReconnectToExisting = async () => {
+        if (!existingLiveStream || !streamRef.current) return;
+        setIsStarting(true);
+        setError('');
+        try {
+            liveStreamService.onViewerCountChange = (c) => setViewerCount(c);
+            liveStreamService.onReconnecting = () => setIsReconnecting(true);
+            liveStreamService.onReconnected = () => setIsReconnecting(false);
+            liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
+            liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps);
+            // Re-join the existing LiveKit room
+            const { token, url } = await liveStreamService._getToken(existingLiveStream.id, true);
+            if (liveStreamService.room) {
+                liveStreamService.room.disconnect().catch(() => {});
+                liveStreamService.room = null;
+            }
+            liveStreamService.currentStreamId = existingLiveStream.id;
+            liveStreamService.isBroadcaster = true;
+            liveStreamService.isManualDisconnect = false;
+            liveStreamService.localStream = streamRef.current;
+            await liveStreamService._connectRoom(url, token, true, streamRef.current);
+            setStreamId(existingLiveStream.id);
+            setTitle(existingLiveStream.title || '');
+            setStage('live');
+            setExistingLiveStream(null);
+            startRecording();
+            timerRef.current = setInterval(() => setElapsedTime(p => p + 1), 1000);
+            toast.success('Reconnected to your live stream!');
+            busEmit.dataMutated?.('live_streams');
+        } catch (err) {
+            setError('Reconnect failed: ' + err.message);
+        } finally {
+            setIsStarting(false);
         }
     };
 
@@ -869,6 +955,22 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             </div>
                         </div>
 
+                        {/* BUG-FIX-RECONNECT: banner if user has active stream to reconnect to */}
+                        {existingLiveStream && (
+                            <div style={{ background:'rgba(250,56,62,0.1)', border:'1px solid rgba(250,56,62,0.4)', borderRadius:10, padding:'12px 16px', margin:'0 20px 4px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                                <div>
+                                    <div style={{ fontWeight:700, color:'#FA383E', fontSize:14 }}>⚡ Active Stream Detected</div>
+                                    <div style={{ color:'#65676B', fontSize:12, marginTop:2 }}>{existingLiveStream.title || 'Your Live'} is still running. Reconnect?</div>
+                                </div>
+                                <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+                                    <button onClick={() => setExistingLiveStream(null)} style={{ background:'none', border:'1px solid #DADDE1', borderRadius:8, padding:'6px 12px', fontSize:13, cursor:'pointer', color:'#65676B' }}>Dismiss</button>
+                                    <button onClick={handleReconnectToExisting} disabled={isStarting} style={{ background:'#FA383E', border:'none', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:700, cursor:'pointer', color:'white' }}>
+                                        {isStarting ? 'Reconnecting...' : 'Reconnect'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Camera preview */}
                         <div style={{ position:'relative', background:'#000', aspectRatio:'16/9' }}>
                             <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
@@ -978,7 +1080,8 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                     >
                         {/* Broadcaster/Local Video + Remote Participants */}
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#000' }}>
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', transition: 'all 0.3s ease' }} />
+                            {/* BUG-FIX-FLIP: mirror only front-facing (user) camera */}
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', transition: 'all 0.3s ease' }} />
                             
                             {/* Secondary Participants (Guest) */}
                             {participants.map((p, idx) => {

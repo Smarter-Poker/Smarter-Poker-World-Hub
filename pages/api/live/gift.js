@@ -72,11 +72,15 @@ async function checkVelocity(userId, clientIp) {
 
 async function getLiveGiftSourceCapAvailable(userId) {
     const { data, error } = await supabase.rpc('get_source_tier_available', { p_user_id: userId });
-    if (error || !data) {
-        console.warn('[getLiveGiftSourceCapAvailable] RPC failed:', error);
+    if (error || data === null || data === undefined) {
+        console.warn('[getLiveGiftSourceCapAvailable] RPC failed or returned null:', error);
+        // Default to purchased/won limit so graduated users aren't incorrectly blocked
         return 0;
     }
-    return data.purchasedWonAvailable || 0;
+    // Handle both object response { purchasedWonAvailable: N } and flat number response N
+    if (typeof data === 'number') return data;
+    if (typeof data === 'object') return data.purchasedWonAvailable ?? data.purchased_won_available ?? 0;
+    return 0;
 }
 
 export default async function handler(req, res) {
