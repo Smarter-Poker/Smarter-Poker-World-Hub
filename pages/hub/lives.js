@@ -44,10 +44,10 @@ export default function LivesPage() {
     const [publishingDraft, setPublishingDraft] = useState(null);
     const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
     const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
-    // BUG FIX (LV-AUDIT-3 restore): countdown tick — drive scheduledLives countdown re-renders.
+    // BUG FIX (AUDIT-REMOVED restore): countdown tick — drive scheduledLives countdown re-renders.
     const [tick, setTick] = useState(0);
     const containerRef = useRef(null);
-    // BUG FIX (LV-AUDIT-7 restore): keep fetchStreams in a ref so realtime channel doesn't
+    // BUG FIX (AUDIT-REMOVED restore): keep fetchStreams in a ref so realtime channel doesn't
     // re-subscribe on every categoryFilter change.
     const fetchStreamsRef = useRef(null);
     const videoRefs = useRef({});
@@ -63,7 +63,7 @@ export default function LivesPage() {
         };
     }, []);
 
-    // BUG FIX (LV-AUDIT-3 restore): drive scheduledLives countdown re-renders.
+    // BUG FIX (AUDIT-REMOVED restore): drive scheduledLives countdown re-renders.
     useEffect(() => {
         if (scheduledLives.length === 0) return;
         const id = setInterval(() => setTick(t => t + 1), 60000);
@@ -126,13 +126,13 @@ export default function LivesPage() {
         fetchStreams();
     }, [fetchStreams]);
 
-    // BUG FIX (LV-AUDIT-7 restore): keep ref synced so realtime subscription's stable-deps
+    // BUG FIX (AUDIT-REMOVED restore): keep ref synced so realtime subscription's stable-deps
     // closure always invokes the latest fetchStreams.
     useEffect(() => {
         fetchStreamsRef.current = fetchStreams;
     }, [fetchStreams]);
 
-    // BUG FIX (LV-AUDIT-6 restore): seed likedStreams from DB so the UI shows correct
+    // BUG FIX (AUDIT-REMOVED restore): seed likedStreams from DB so the UI shows correct
     // liked-state on mount.
     useEffect(() => {
         if (!userId || streams.length === 0) return;
@@ -238,7 +238,7 @@ export default function LivesPage() {
         if (!confirm('Delete this saved stream? This cannot be undone.')) return;
         try {
             const token = getAccessToken();
-            // BUG FIX (LV-AUDIT-9): fetch resolves with a Response on HTTP 4xx/5xx — it does NOT
+            // BUG FIX (AUDIT-REMOVED): fetch resolves with a Response on HTTP 4xx/5xx — it does NOT
             // throw. Previously deleteDraft awaited the fetch and unconditionally ran
             // fetchMyDrafts() afterwards, so a server-side rejection (RLS denial, banned user,
             // 500) showed the user a refreshed list as if the delete succeeded. Destructive-action
@@ -291,7 +291,7 @@ export default function LivesPage() {
         const touchEnd = e.changedTouches[0].clientY;
         const diff = touchStart - touchEnd;
 
-        // BUG FIX (LV-AUDIT-8 restore): clamp boundary inside functional updater.
+        // BUG FIX (AUDIT-REMOVED restore): clamp boundary inside functional updater.
         const max = streams.length - 1;
         if (Math.abs(diff) > 50) {
             if (diff > 0) {
@@ -304,7 +304,7 @@ export default function LivesPage() {
     };
 
     // Handle wheel scroll
-    // BUG FIX (LV-AUDIT-8 restore): clamp via functional updater; drop currentIndex from deps.
+    // BUG FIX (AUDIT-REMOVED restore): clamp via functional updater; drop currentIndex from deps.
     const handleWheel = useCallback((e) => {
         if (e.deltaY > 30) {
             setCurrentIndex(prev => prev < streams.length - 1 ? prev + 1 : prev);
@@ -338,11 +338,11 @@ export default function LivesPage() {
         setLikeBusy(true);
         const wasLiked = likedStreams[currentStream.id];
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
-        // BUG FIX (LV-LIKES): use authenticated userId from state — not the anon localStorage uid
+        // BUG FIX (LIKES-REMOVED): use authenticated userId from state — not the anon localStorage uid
         // which shadows the outer `userId` state and attributes likes to the wrong identity.
         const likeUserId = userId;
         if (likeUserId) {
-            // BUG FIX (LV-AUDIT-1 restore): authedFetch returns Response without throwing on
+            // BUG FIX (AUDIT-REMOVED restore): authedFetch returns Response without throwing on
             // HTTP errors. .catch()-only would let 403/429/RLS-denial silently keep the optimistic
             // UI flipped. Check res.ok and roll back on any non-2xx.
             authedFetch('/api/social/interactions', {
@@ -357,7 +357,7 @@ export default function LivesPage() {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
         } else {
-            // LV-AUDIT-5 restore: rollback the optimistic flip — no DB write happened
+            // AUDIT-REMOVED restore: rollback the optimistic flip — no DB write happened
             setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             setLikeBusy(false);
         }
@@ -400,7 +400,7 @@ export default function LivesPage() {
     // BUG FIX (L-LIVES-2,5): live streams should use /api/live/comment (enforces
     // ban/slow mode); replay streams use social interactions for comment replay.
     const submitChatMsg = async () => {
-        // BUG FIX (LV-AUDIT-2 restore): re-entry guard — Enter-mash double-submit
+        // BUG FIX (AUDIT-REMOVED restore): re-entry guard — Enter-mash double-submit
         if (!chatText.trim() || !currentStream || submittingChat) return;
         // BUG FIX (L-LIVES-2): use authenticated userId from state, not anon localStorage uid
         const authedUserId = userId;
@@ -460,8 +460,8 @@ export default function LivesPage() {
                 shareMsgTimerRef.current = null;
                 setShareMsg('');
             }, 2000);
-            // BUG FIX (LV-SHARE): use authenticated userId from state — not the anon localStorage uid
-            // BUG FIX (LV-AUDIT-1 restore): authedFetch doesn't throw on 4xx/5xx — surface non-2xx
+            // BUG FIX (SHARE-REMOVED): use authenticated userId from state — not the anon localStorage uid
+            // BUG FIX (AUDIT-REMOVED restore): authedFetch doesn't throw on 4xx/5xx — surface non-2xx
             // so monitoring catches RLS / rate-limit denials silently dropping share interactions.
             if (userId) {
                 authedFetch('/api/social/interactions', {
@@ -496,7 +496,7 @@ export default function LivesPage() {
         return () => _c.abort();
     }, [currentIndex]);
     // Realtime subscription — soft re-fetch on stream changes (no hard reload).
-    // BUG FIX (LV-AUDIT-7 restore): deps reduced to [userId] only via fetchStreamsRef.
+    // BUG FIX (AUDIT-REMOVED restore): deps reduced to [userId] only via fetchStreamsRef.
     useEffect(() => {
         if (!userId) return;
         const _ch = supabase
@@ -619,7 +619,7 @@ export default function LivesPage() {
                         scrollbarWidth: 'none',
                     }}>
                         {scheduledLives.map(sl => {
-                            void tick; // eslint-disable-line no-unused-expressions — LV-AUDIT-3 restore
+                            void tick; // eslint-disable-line no-unused-expressions — AUDIT-REMOVED restore
                             const scheduledDate = new Date(sl.scheduled_at);
                             const now = new Date();
                             const diffMs = scheduledDate - now;
@@ -1071,7 +1071,7 @@ export default function LivesPage() {
            50% { opacity: 0.7; }
          }
 
-         /* BUG FIX (LV-AUDIT-4 restore): publishToast referenced 'slideUp' but the keyframes
+         /* BUG FIX (AUDIT-REMOVED restore): publishToast referenced 'slideUp' but the keyframes
             were never defined. Toast appeared with no enter animation. Define here. */
          @keyframes slideUp {
            0%   { transform: translateX(-50%) translateY(20px); opacity: 0; }
