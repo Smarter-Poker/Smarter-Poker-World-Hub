@@ -47,10 +47,16 @@ export async function saveSession(sessionData) {
         speedBonusDiamonds,
     } = sessionData;
 
-    // Get auth user
-    const { getAuthUser } = await import('../../../lib/authUtils');
+    // Get auth user + access token
+    // BUG FIX (2026-05-08, MAX-RIGOR audit): getAuthUser() returns the User object
+    // (no `.session.access_token`), so the previous check `user?.session?.access_token`
+    // was ALWAYS undefined and this whole function silent-returned on every session
+    // completion. Use getSessionToken() — the canonical token getter that reads
+    // `localStorage.getItem('smarter-poker-auth').access_token`.
+    const { getAuthUser, getSessionToken } = await import('../../../lib/authUtils');
     const user = getAuthUser();
-    if (!user?.session?.access_token) return;
+    const accessToken = getSessionToken();
+    if (!user?.id || !accessToken) return;
 
     // Build position stats from hand history
     const posStats = {};
@@ -91,7 +97,7 @@ export async function saveSession(sessionData) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.session.access_token}`,
+                'Authorization': `Bearer ${accessToken}`,
             },
             body: JSON.stringify(payload),
         });
@@ -113,7 +119,7 @@ export async function saveSession(sessionData) {
     } catch (e) {
         console.warn('[saveSession] Network save failed, queueing to OfflineSyncQueue:', e.message);
         await enqueueMutation('/api/training/save-session', payload, {
-            'Authorization': `Bearer ${user.session.access_token}`
+            'Authorization': `Bearer ${accessToken}`
         });
     }
 }

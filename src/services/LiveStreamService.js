@@ -133,40 +133,13 @@ class LiveStreamService {
         if (thumbnailUrl) insertPayload.thumbnail_url = thumbnailUrl;
         if (description) insertPayload.description = description;
 
-        let { data: stream, error } = await supabase
+        const { data: stream, error } = await supabase
             .from('live_streams')
             .insert(insertPayload)
             .select()
             .maybeSingle();
 
-        if (error?.code === '23505') {
-            // RIGOR-AUDIT E5b: another live row exists for this broadcaster.
-            // Could be a stale tab still holding the row alive, or a tab
-            // that crashed without cleanup. The user's intent is clear —
-            // they tapped Go Live in this tab, so they want this tab live.
-            // Auto-end the stale row, then retry once. The partial unique
-            // index now permits insert.
-            try {
-                await supabase
-                    .from('live_streams')
-                    .update({ status: 'ended', ended_at: new Date().toISOString() })
-                    .eq('broadcaster_id', userId)
-                    .eq('status', 'live');
-                const retry = await supabase
-                    .from('live_streams')
-                    .insert(insertPayload)
-                    .select()
-                    .maybeSingle();
-                stream = retry.data;
-                error = retry.error;
-            } catch (retryErr) {
-                error = retryErr;
-            }
-        }
-
-        if (error || !stream) {
-            throw new Error(`Failed to create stream: ${error?.message || 'no row returned'}`);
-        }
+        if (error || !stream) throw new Error(`Failed to create stream: ${error?.message}`);
 
         this.currentStreamId = stream.id;
 

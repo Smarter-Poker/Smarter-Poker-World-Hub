@@ -16,35 +16,19 @@ export default async function handler(req, res) {
     try {
         const { data: gifts, error } = await supabase
             .from('live_gifts')
-            .select('amount, sender_id, profiles!sender_id(username, full_name, avatar_url)')
+            .select('amount, profiles!sender_id(username, full_name)')
             .eq('stream_id', stream_id);
-
+            
         if (error) throw error;
+        
+        // Aggregate totals
+        const totals = {};
+        gifts?.forEach(g => {
+            const name = g.profiles?.username || g.profiles?.full_name || 'Anonymous';
+            totals[name] = (totals[name] || 0) + g.amount;
+        });
 
-        // RIGOR-AUDIT R8: aggregate by sender_id (always unique) instead of
-        // display name. Two users with the same name no longer merge into
-        // one row. Returns array of { sender_id, name, avatar_url, amount }.
-        const byId = new Map();
-        for (const g of (gifts || [])) {
-            if (!g.sender_id) continue;
-            const cur = byId.get(g.sender_id) || {
-                sender_id: g.sender_id,
-                name: g.profiles?.username || g.profiles?.full_name || 'Anonymous',
-                avatar_url: g.profiles?.avatar_url || null,
-                amount: 0,
-            };
-            cur.amount += g.amount;
-            byId.set(g.sender_id, cur);
-        }
-        const topGiftersList = Array.from(byId.values()).sort((a, b) => b.amount - a.amount);
-
-        // Backwards-compat: also return the legacy { name: amount } object so
-        // older client builds that still expect `topGifters` as an object
-        // don't crash. Newer clients use `topGiftersList`.
-        const legacyTotals = {};
-        for (const e of topGiftersList) legacyTotals[e.name] = (legacyTotals[e.name] || 0) + e.amount;
-
-        return res.json({ topGifters: legacyTotals, topGiftersList });
+        return res.json({ topGifters: totals });
     } catch (err) {
         console.error('[live/gifts] fetch error:', err.message);
         return res.status(500).json({ error: err.message });

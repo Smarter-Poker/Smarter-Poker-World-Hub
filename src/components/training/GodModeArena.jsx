@@ -2227,10 +2227,22 @@ function GodModeArenaInner({
                     console.warn('[GodModeArena] Engine scoring failed:', e.message);
                 }
 
+                // BUG FIX (2026-05-08, MAX-RIGOR audit): Include `gameName` + `accuracy`
+                // + canonical questionsAnswered/questionsCorrect aliases so
+                // TrainingEventAggregator and other listeners can render meaningful
+                // toasts ("🎯 MTT Push-Fold — 88% Accuracy") instead of falling
+                // through to the generic "Session Completed" branch every time.
+                const _accuracy = totalQuestions > 0
+                    ? Math.round((correctCount / totalQuestions) * 100)
+                    : 0;
                 const sessionPayload = {
                     gameId: String(gameId),
+                    gameName: gameName || String(gameId),
                     score: Number(gtowScore),
+                    accuracy: _accuracy,
                     totalHands: totalQuestions,
+                    questionsAnswered: totalQuestions,
+                    questionsCorrect: correctCount,
                     durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
                     perfectActionCount: correctCount,
                     engineGrade,

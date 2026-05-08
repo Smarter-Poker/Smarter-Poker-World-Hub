@@ -48,11 +48,21 @@ export default async function handler(req, res) {
       }
 
       const {
-          userId, gameId, questionId, answerId, isCorrect, level,
+          userId, gameId, questionId, isCorrect, level,
           // ═══ PHASE 14: Spot metadata for weak-spot targeting ═══
           heroPosition, villainPosition, street, classification, evLoss,
           spotType, // e.g. 'facing_cbet', 'open_raise', '3bet_defense'
       } = req.body;
+
+      // BUG FIX (2026-05-08, MAX-RIGOR audit): The two canonical frontend callers
+      // (`src/hooks/useGTOTrainer.js:386`, `src/components/training/utils/questionGenerator.js:212`)
+      // both POST `selectedAnswer`, but this handler previously only destructured
+      // `answerId`. Result: `training_answers.answer_id` was NULL on every recorded
+      // question, breaking downstream analytics (mistake-pattern grouping,
+      // weak-spot targeting, replay-theater, leaderboards) that read `answer_id`.
+      // Accept both shapes — `answerId` is canonical, `selectedAnswer` is the
+      // legacy alias actually shipped by the FE.
+      const answerId = req.body.answerId ?? req.body.selectedAnswer ?? null;
 
       if (!userId || !gameId || !questionId) {
           return res.status(400).json({ success: false, error: 'userId, gameId, and questionId required' });

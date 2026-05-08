@@ -8448,39 +8448,13 @@ function SocialMediaPage() {
   // Realtime: auto-refresh Live Now section when any stream goes live or ends
   // BUG FIX (Bug #12): static 'social-live-monitor' name caused a zombie subscription on
   // React StrictMode double-invoke. Fixed with a unique per-mount name.
-  // RIGOR-AUDIT R1: split INSERT/DELETE (full refetch) from UPDATE (in-place
-  // row patch). Without this, every ~25s preview-clip UPDATE per live
-  // broadcaster triggers a full getLiveStreams refetch — quadratic with the
-  // number of broadcasters.
   useEffect(() => {
     const ch = supabase
       .channel(`social-live-monitor-${Date.now()}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_streams' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
         LiveStreamService.getLiveStreams()
           .then((streams) => setLiveStreams(streams || []))
           .catch(() => {});
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_streams' }, () => {
-        LiveStreamService.getLiveStreams()
-          .then((streams) => setLiveStreams(streams || []))
-          .catch(() => {});
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'live_streams' }, (payload) => {
-        const prev = payload.old || {};
-        const next = payload.new || {};
-        // Status transition (live → ended or vice versa) → full refetch so
-        // the row appears/disappears from the visible list.
-        if (prev.status !== next.status) {
-          LiveStreamService.getLiveStreams()
-            .then((streams) => setLiveStreams(streams || []))
-            .catch(() => {});
-          return;
-        }
-        // Otherwise patch in place — preview_clip_url, viewer_count, etc.
-        setLiveStreams((curr) => {
-          if (!Array.isArray(curr)) return curr;
-          return curr.map((s) => (s.id === next.id ? { ...s, ...next, broadcaster: s.broadcaster } : s));
-        });
       })
       .subscribe();
     return () => {

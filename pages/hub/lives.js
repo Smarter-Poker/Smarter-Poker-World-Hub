@@ -44,15 +44,7 @@ export default function LivesPage() {
     const [publishingDraft, setPublishingDraft] = useState(null);
     const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
     const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
-    // BUG FIX (LV-AUDIT-3): countdown tick — scheduledLives countdown was computed inline at
-    // render time only; without a re-render trigger the displayed time stayed frozen indefinitely.
-    // Tick once a minute (rounding granularity) so the countdown advances naturally.
-    const [tick, setTick] = useState(0);
     const containerRef = useRef(null);
-    // BUG FIX (LV-AUDIT-7): keep a ref to the latest fetchStreams so the realtime channel
-    // subscription doesn't re-subscribe on every categoryFilter change. Without this, every
-    // category click tore down the channel and re-created it (brief event-loss window + network thrash).
-    const fetchStreamsRef = useRef(null);
     const videoRefs = useRef({});
     // BUG FIX (L-LIVES-1,3,4): store toast/share timer refs for cleanup on unmount
     const publishToastTimerRef = useRef(null);
@@ -65,15 +57,6 @@ export default function LivesPage() {
             if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current);
         };
     }, []);
-
-    // BUG FIX (LV-AUDIT-3): drive scheduledLives countdown re-renders.
-    // Only ticks while there are scheduled lives to display — avoids unnecessary work on the empty
-    // path. 60s granularity matches the displayed minute resolution.
-    useEffect(() => {
-        if (scheduledLives.length === 0) return;
-        const id = setInterval(() => setTick(t => t + 1), 60000);
-        return () => clearInterval(id);
-    }, [scheduledLives.length]);
 
     // Get auth user for FeatureGate
     useEffect(() => {
@@ -88,7 +71,6 @@ export default function LivesPage() {
     const { guardAction, UpgradePopup } = useFeatureGate('lives');
 
     // Fetch all streams (active lives + recorded)
-    // BUG FIX (LV-AUDIT-7): shadowed by ref below — see realtime channel effect.
     const fetchStreams = useCallback(async () => {
         setLoading(true);
         try {
@@ -131,40 +113,6 @@ export default function LivesPage() {
     useEffect(() => {
         fetchStreams();
     }, [fetchStreams]);
-
-    // BUG FIX (LV-AUDIT-7): keep ref synced so the realtime subscription's stable-deps
-    // closure always invokes the latest fetchStreams (which captures latest categoryFilter).
-    useEffect(() => {
-        fetchStreamsRef.current = fetchStreams;
-    }, [fetchStreams]);
-
-    // BUG FIX (LV-AUDIT-6): seed likedStreams from DB so the UI shows the correct liked-state
-    // on mount. Previously likedStreams started as {} and was never populated; users saw all
-    // streams as 'not liked' even after liking, causing duplicate writes on re-click.
-    useEffect(() => {
-        if (!userId || streams.length === 0) return;
-        let cancelled = false;
-        (async () => {
-            try {
-                const ids = streams.map(s => s.id).filter(Boolean);
-                if (ids.length === 0) return;
-                const { data, error } = await supabase
-                    .from('social_interactions')
-                    .select('post_id')
-                    .eq('user_id', userId)
-                    .eq('interaction_type', 'like')
-                    .in('post_id', ids);
-                if (error || cancelled || !data) return;
-                const seeded = {};
-                for (const row of data) {
-                    if (row.post_id) seeded[row.post_id] = true;
-                }
-                // Merge with any optimistic flips already in flight: optimistic flips win.
-                setLikedStreams(prev => ({ ...seeded, ...prev }));
-            } catch (e) { console.warn('seed likes:', e); }
-        })();
-        return () => { cancelled = true; };
-    }, [userId, streams]);
 
     // Fetch user's draft (saved but not published) streams
     const fetchMyDrafts = useCallback(async () => {
@@ -282,34 +230,26 @@ export default function LivesPage() {
         const touchEnd = e.changedTouches[0].clientY;
         const diff = touchStart - touchEnd;
 
-        // BUG FIX (LV-AUDIT-8): guard the boundary inside the functional updater. Previously
-        // `currentIndex < streams.length - 1` read CLOSURE state — rapid swipes before re-render
-        // could overshoot the list end (setCurrentIndex with stale guard would advance past
-        // streams.length, leaving the user on a blank slot).
-        const max = streams.length - 1;
         if (Math.abs(diff) > 50) {
-            if (diff > 0) {
-                // Swipe up - next video (clamped at end)
-                setCurrentIndex(prev => prev < max ? prev + 1 : prev);
-            } else {
-                // Swipe down - previous video (clamped at start)
-                setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
+            if (diff > 0 && currentIndex < streams.length - 1) {
+                // Swipe up - next video
+                setCurrentIndex(prev => prev + 1);
+            } else if (diff < 0 && currentIndex > 0) {
+                // Swipe down - previous video
+                setCurrentIndex(prev => prev - 1);
             }
         }
         setTouchStart(null);
     };
 
     // Handle wheel scroll
-    // BUG FIX (LV-AUDIT-8): guard the boundary inside the functional updater. Same overshoot
-    // pattern as touch — closure-stale currentIndex could allow rapid wheel events to advance
-    // past the list end. Now the functional updater clamps using the latest state.
     const handleWheel = useCallback((e) => {
-        if (e.deltaY > 30) {
-            setCurrentIndex(prev => prev < streams.length - 1 ? prev + 1 : prev);
-        } else if (e.deltaY < -30) {
-            setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
+        if (e.deltaY > 30 && currentIndex < streams.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+        } else if (e.deltaY < -30 && currentIndex > 0) {
+            setCurrentIndex(prev => prev - 1);
         }
-    }, [streams.length]);
+    }, [currentIndex, streams.length]);
 
     // Auto-play current video, pause others
     useEffect(() => {
@@ -338,29 +278,16 @@ export default function LivesPage() {
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
         // BUG FIX (LV-LIKES): use authenticated userId from state — not the anon localStorage uid
         // which shadows the outer `userId` state and attributes likes to the wrong identity.
-        // BUG FIX (LV-AUDIT-5): if userId is null at click time (auth-resolution race), the
-        // optimistic flip would have stayed permanently with no DB write and no rollback —
-        // UI lying about liked state. Now rollback in the null-userId branch.
         const likeUserId = userId;
         if (likeUserId) {
-            // BUG FIX (LV-AUDIT-1): authedFetch returns Response without throwing on HTTP errors
-            // (verified: submitChatMsg checks res.ok after authedFetch). Previously a
-            // 403/429/RLS-denial silently left the optimistic UI flipped. Now we check res.ok
-            // and roll back on any non-2xx, plus the existing network-error catch.
             authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: currentStream.id, user_id: likeUserId, interaction_type: 'like' })
-            }).then(res => {
-                if (!res || !res.ok) {
-                    setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
-                }
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
         } else {
-            // LV-AUDIT-5: rollback the optimistic flip — no DB write happened
-            setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             setLikeBusy(false);
         }
     };
@@ -402,10 +329,7 @@ export default function LivesPage() {
     // BUG FIX (L-LIVES-2,5): live streams should use /api/live/comment (enforces
     // ban/slow mode); replay streams use social interactions for comment replay.
     const submitChatMsg = async () => {
-        // BUG FIX (LV-AUDIT-2): re-entry guard. The Enter-key path was previously not gated on
-        // submittingChat — Enter-mash could fire multiple in-flight submissions. Both the keydown
-        // handler and this function now refuse re-entry while a submission is pending.
-        if (!chatText.trim() || !currentStream || submittingChat) return;
+        if (!chatText.trim() || !currentStream) return;
         // BUG FIX (L-LIVES-2): use authenticated userId from state, not anon localStorage uid
         const authedUserId = userId;
         if (!authedUserId) return;
@@ -465,15 +389,11 @@ export default function LivesPage() {
                 setShareMsg('');
             }, 2000);
             // BUG FIX (LV-SHARE): use authenticated userId from state — not the anon localStorage uid
-            // BUG FIX (LV-AUDIT-1b): authedFetch doesn't throw on 4xx/5xx — surface non-2xx so
-            // monitoring catches RLS / rate-limit denials silently dropping share interactions.
             if (userId) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' }),
-                }).then(res => {
-                    if (!res || !res.ok) console.warn('[App] Share interaction non-2xx:', res?.status);
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
@@ -499,22 +419,18 @@ export default function LivesPage() {
         setChatText('');
         return () => _c.abort();
     }, [currentIndex]);
-    // Realtime subscription — soft re-fetch on stream changes (no hard reload).
-    // BUG FIX (LV-AUDIT-7): deps reduced to [userId] only. Previously, every categoryFilter
-    // change recreated fetchStreams (useCallback dep) which caused this subscription to
-    // tear down and re-create — brief gap + network thrash. Now the callback uses the
-    // ref so the latest fetchStreams (with current categoryFilter) is always invoked.
+    // Realtime subscription — soft re-fetch on stream changes (no hard reload)
     useEffect(() => {
         if (!userId) return;
         const _ch = supabase
             .channel(`lives:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-                // Soft re-fetch via ref so the closure always reads the latest fetchStreams.
-                if (fetchStreamsRef.current) fetchStreamsRef.current();
+                // Soft re-fetch: silently refresh the stream list without destroying scroll position
+                fetchStreams();
             })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [userId]);
+    }, [userId, fetchStreams]);
 
     return (
         <>
@@ -627,8 +543,6 @@ export default function LivesPage() {
                         scrollbarWidth: 'none',
                     }}>
                         {scheduledLives.map(sl => {
-                            // tick read forces re-render every 60s so the countdown advances
-                            void tick; // eslint-disable-line no-unused-expressions
                             const scheduledDate = new Date(sl.scheduled_at);
                             const now = new Date();
                             const diffMs = scheduledDate - now;
@@ -1037,7 +951,7 @@ export default function LivesPage() {
                         <input
                             value={chatText}
                             onChange={e => setChatText(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !submittingChat) { e.preventDefault(); submitChatMsg(); } }}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
                             placeholder="Say Something..."
                             style={{
                                 flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
@@ -1078,18 +992,6 @@ export default function LivesPage() {
          @keyframes pulse {
            0%, 100% { opacity: 1; }
            50% { opacity: 0.7; }
-         }
-
-         /* BUG FIX (LV-AUDIT-4): publishToast referenced 'slideUp' but the keyframes were never
-            defined. Toast appeared with no enter animation. Define here so the toast slides up. */
-         @keyframes slideUp {
-           0%   { transform: translateX(-50%) translateY(20px); opacity: 0; }
-           100% { transform: translateX(-50%) translateY(0);    opacity: 1; }
-         }
-
-         @media (prefers-reduced-motion: reduce) {
-           [aria-label="Live now"] { animation: none !important; }
-           .lives-skel { animation-duration: 2s !important; }
          }
        `}</style >
 

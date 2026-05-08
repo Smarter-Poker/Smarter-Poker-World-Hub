@@ -64,18 +64,6 @@ export default async function handler(req, res) {
 
             case 'pin_comment': {
                 if (!comment_id) return res.status(400).json({ error: 'comment_id required' });
-                // RIGOR-AUDIT R6: verify the comment belongs to THIS stream.
-                // Previously a broadcaster could pin a comment from a different
-                // stream (cross-stream IDOR), and viewers would render text
-                // from somebody else's stream as the pinned message here.
-                const { data: comment } = await supabase
-                    .from('live_comments')
-                    .select('id, stream_id')
-                    .eq('id', comment_id)
-                    .maybeSingle();
-                if (!comment || comment.stream_id !== stream_id) {
-                    return res.status(404).json({ error: 'Comment not found in this stream' });
-                }
                 await supabase.from('live_pins').upsert({
                     stream_id,
                     comment_id,
