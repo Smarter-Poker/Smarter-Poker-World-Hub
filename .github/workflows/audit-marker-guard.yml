@@ -35,7 +35,7 @@ jobs:
       - name: Verify registry exists
         run: |
           if [ ! -f .github/audit-markers.txt ]; then
-            echo "::error::.github/audit-markers.txt is missing. Without the registry there is nothing to guard. See the workflow header for context."
+            echo "::error::.github/audit-markers.txt is missing. Without the registry there is nothing to guard."
             exit 1
           fi
           echo "Registry found:"
@@ -54,14 +54,14 @@ jobs:
           )
 
           if [ "${#TOKENS[@]}" -eq 0 ]; then
-            echo "::warning::Registry has no tokens — guard is a no-op. Add tokens to .github/audit-markers.txt."
+            echo "::warning::Registry has no tokens — guard is a no-op."
             exit 0
           fi
 
           echo "Checking ${#TOKENS[@]} registered marker(s)..."
           echo ""
 
-          # 2. Validate each token format (defensive). Allow [A-Za-z0-9._-]+.
+          # 2. Validate token format defensively.
           for TOKEN in "${TOKENS[@]}"; do
             if ! [[ "$TOKEN" =~ ^[A-Za-z0-9._-]+$ ]]; then
               echo "::error::Token '${TOKEN}' contains illegal characters. Allowed: [A-Za-z0-9._-]"
@@ -69,32 +69,42 @@ jobs:
             fi
           done
 
-          # 3. Build the file list — git ls-files respects .gitignore.
-          mapfile -t TRACKED < <(
-            git ls-files \
-              | grep -vE '^(node_modules/|\.next/|dist/|build/|public/|vendor/|\.vercel/|\.git/)' \
-              | grep -vE '^(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$' \
-              | grep -vE '^\.github/audit-markers\.txt$' \
-              || true
+          # 3. Use git grep — handles tracked files natively, no xargs batching
+          #    quirks, no binary-file noise, fast even on huge repos.
+          #    Excluded paths via :(exclude) pathspec.
+          PATHSPEC=(
+            ':(exclude).github/audit-markers.txt'
+            ':(exclude)node_modules/**'
+            ':(exclude).next/**'
+            ':(exclude)dist/**'
+            ':(exclude)build/**'
+            ':(exclude)public/**'
+            ':(exclude)vendor/**'
+            ':(exclude).vercel/**'
+            ':(exclude)package-lock.json'
+            ':(exclude)yarn.lock'
+            ':(exclude)pnpm-lock.yaml'
           )
-
-          if [ "${#TRACKED[@]}" -eq 0 ]; then
-            echo "::error::No tracked source files found to scan. Something is wrong with the checkout."
-            exit 1
-          fi
-          echo "Scanning ${#TRACKED[@]} tracked file(s)..."
-          echo ""
 
           MISSING=()
           OK_COUNT=0
 
           for TOKEN in "${TOKENS[@]}"; do
-            if printf '%s\n' "${TRACKED[@]}" | xargs grep -lF -- "$TOKEN" >/dev/null 2>&1; then
+            # git grep exit codes: 0 = match found, 1 = no match, >=2 = error
+            if git grep -lF -- "$TOKEN" "${PATHSPEC[@]}" > /dev/null 2>&1; then
               OK_COUNT=$((OK_COUNT + 1))
               echo "  OK   $TOKEN"
             else
-              MISSING+=("$TOKEN")
-              echo "  MISS $TOKEN"
+              # Distinguish between "no match" (exit 1) and "real error" (>=2)
+              git grep -lF -- "$TOKEN" "${PATHSPEC[@]}" > /dev/null 2>&1
+              EC=$?
+              if [ "$EC" = "1" ]; then
+                MISSING+=("$TOKEN")
+                echo "  MISS $TOKEN"
+              else
+                echo "::error::git grep failed for token '$TOKEN' with exit code $EC"
+                exit 1
+              fi
             fi
           done
 
@@ -108,7 +118,13 @@ jobs:
             echo "| Status | Token |"
             echo "| :----: | ----- |"
             for TOKEN in "${TOKENS[@]}"; do
-              if printf '%s\n' "${MISSING[@]:-}" | grep -Fxq "$TOKEN" 2>/dev/null; then
+              IS_MISSING=0
+              if [ "${#MISSING[@]}" -gt 0 ]; then
+                for M in "${MISSING[@]}"; do
+                  if [ "$M" = "$TOKEN" ]; then IS_MISSING=1; break; fi
+                done
+              fi
+              if [ "$IS_MISSING" = "1" ]; then
                 echo "| MISSING | \`$TOKEN\` |"
               else
                 echo "| OK      | \`$TOKEN\` |"
@@ -116,7 +132,7 @@ jobs:
             done
             echo ""
             if [ "${#MISSING[@]}" -gt 0 ]; then
-              echo "**FAILURE.** ${#MISSING[@]} marker(s) registered in \`.github/audit-markers.txt\` are not present anywhere in the tracked source tree. To intentionally retire a marker, delete its line from the registry in the same commit. To restore the missing fix, re-apply the audited code change."
+              echo "**FAILURE.** ${#MISSING[@]} marker(s) registered in \`.github/audit-markers.txt\` are missing from the tracked source tree. To intentionally retire a marker, delete its line from the registry in the same PR. To restore the missing fix, re-apply the audited code change."
             else
               echo "**OK.** All registered markers found in tree."
             fi
