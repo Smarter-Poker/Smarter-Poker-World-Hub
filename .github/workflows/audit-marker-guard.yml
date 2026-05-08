@@ -1,0 +1,135 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  Audit Marker Guard                                                      ║
+# ╠══════════════════════════════════════════════════════════════════════════╣
+# ║  Fails any push / PR where a token registered in                         ║
+# ║  .github/audit-markers.txt has gone missing from the tracked source     ║
+# ║  tree. With this workflow REQUIRED via branch protection, parallel-      ║
+# ║  agent regressions can't silently land. To intentionally retire a       ║
+# ║  marker, delete its line from the registry IN THE SAME PR.              ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+name: Audit Marker Guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: audit-marker-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Audit-marker registry vs. tree
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify registry exists
+        run: |
+          if [ ! -f .github/audit-markers.txt ]; then
+            echo "::error::.github/audit-markers.txt is missing. Without the registry there is nothing to guard. See the workflow header for context."
+            exit 1
+          fi
+          echo "Registry found:"
+          wc -l .github/audit-markers.txt
+
+      - name: Scan tracked source for each registered marker
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          # 1. Read the registry into a normalised list of tokens.
+          mapfile -t TOKENS < <(
+            sed -e 's/\r$//' .github/audit-markers.txt \
+              | awk 'NF && $0 !~ /^[[:space:]]*#/' \
+              | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+          )
+
+          if [ "${#TOKENS[@]}" -eq 0 ]; then
+            echo "::warning::Registry has no tokens — guard is a no-op. Add tokens to .github/audit-markers.txt."
+            exit 0
+          fi
+
+          echo "Checking ${#TOKENS[@]} registered marker(s)..."
+          echo ""
+
+          # 2. Validate each token format (defensive). Allow [A-Za-z0-9._-]+.
+          for TOKEN in "${TOKENS[@]}"; do
+            if ! [[ "$TOKEN" =~ ^[A-Za-z0-9._-]+$ ]]; then
+              echo "::error::Token '${TOKEN}' contains illegal characters. Allowed: [A-Za-z0-9._-]"
+              exit 1
+            fi
+          done
+
+          # 3. Build the file list — git ls-files respects .gitignore.
+          mapfile -t TRACKED < <(
+            git ls-files \
+              | grep -vE '^(node_modules/|\.next/|dist/|build/|public/|vendor/|\.vercel/|\.git/)' \
+              | grep -vE '^(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$' \
+              | grep -vE '^\.github/audit-markers\.txt$' \
+              || true
+          )
+
+          if [ "${#TRACKED[@]}" -eq 0 ]; then
+            echo "::error::No tracked source files found to scan. Something is wrong with the checkout."
+            exit 1
+          fi
+          echo "Scanning ${#TRACKED[@]} tracked file(s)..."
+          echo ""
+
+          MISSING=()
+          OK_COUNT=0
+
+          for TOKEN in "${TOKENS[@]}"; do
+            if printf '%s\n' "${TRACKED[@]}" | xargs grep -lF -- "$TOKEN" >/dev/null 2>&1; then
+              OK_COUNT=$((OK_COUNT + 1))
+              echo "  OK   $TOKEN"
+            else
+              MISSING+=("$TOKEN")
+              echo "  MISS $TOKEN"
+            fi
+          done
+
+          echo ""
+          echo "Result: $OK_COUNT/${#TOKENS[@]} present, ${#MISSING[@]} missing."
+
+          # 4. Job summary on the PR check.
+          {
+            echo "## Audit Marker Guard"
+            echo ""
+            echo "| Status | Token |"
+            echo "| :----: | ----- |"
+            for TOKEN in "${TOKENS[@]}"; do
+              if printf '%s\n' "${MISSING[@]:-}" | grep -Fxq "$TOKEN" 2>/dev/null; then
+                echo "| MISSING | \`$TOKEN\` |"
+              else
+                echo "| OK      | \`$TOKEN\` |"
+              fi
+            done
+            echo ""
+            if [ "${#MISSING[@]}" -gt 0 ]; then
+              echo "**FAILURE.** ${#MISSING[@]} marker(s) registered in \`.github/audit-markers.txt\` are not present anywhere in the tracked source tree. To intentionally retire a marker, delete its line from the registry in the same commit. To restore the missing fix, re-apply the audited code change."
+            else
+              echo "**OK.** All registered markers found in tree."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # 5. Fail if any missing.
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            echo ""
+            echo "::error::Audit-marker regression detected. ${#MISSING[@]} registered marker(s) missing from tracked source. See job summary."
+            for TOKEN in "${MISSING[@]}"; do
+              echo "::error::Missing marker: $TOKEN"
+            done
+            exit 1
+          fi
+
+          echo "OK — all ${#TOKENS[@]} registered markers found in tracked source."
