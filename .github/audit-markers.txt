@@ -72,3 +72,30 @@ V-VIDEO-1
 # PostgREST because phone+email columns have column-level REVOKE.
 # See src/lib/profileColumns.js header and /hub/user/[username].js comment.
 USER-LOOKUP-1
+
+# ─── pages/hub/user/[username].js — post delete + mobile layout ─────────────
+# USER-DELETE-1 — handleDeletePost was fire-and-forget on the DB delete and
+# fired same-tab cache invalidation BEFORE the DB write completed, causing
+# the optimistic-removed post to be re-fetched and re-added to state. User
+# had to click delete a second time. Fix: await the DB delete THEN broadcast.
+USER-DELETE-1
+# USER-DELETE-2 — social_reels.source_post_id FK was ON DELETE SET NULL, so
+# deleting a profile post left an orphan reel that kept playing in /hub/reels.
+# App-layer defense in depth: explicitly delete matching reels after post
+# delete confirms. Backed by a DB migration changing FK to ON DELETE CASCADE.
+USER-DELETE-2
+# USER-LAYOUT-1 — explicit width / max-width / box-sizing on the .sp-profile-page
+# wrapper to prevent the page from rendering in a narrow column on mobile when
+# an ancestor has a stale width / flex-basis. Reported visible after the
+# USER-LOOKUP-1 fix made the page actually render.
+USER-LAYOUT-1
+
+# ─── pages/hub/reels.js — DELETE realtime subscriptions ─────────────────────
+# REELS-DELETE-1 — subscribe to DELETE events on social_reels so deleted reels
+# disappear from /hub/reels in real time instead of continuing to play.
+REELS-DELETE-1
+# REELS-DELETE-2 — also subscribe to DELETE on social_posts and filter reels
+# whose source_post_id matches; covers the case where a profile post-delete
+# transitively means the reel should disappear.
+REELS-DELETE-2
+
