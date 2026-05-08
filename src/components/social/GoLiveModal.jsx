@@ -1065,7 +1065,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 {/* ── COUNTDOWN STAGE ── */}
                 {stage === 'countdown' && (
                     <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', touchAction:'none', overflow:'hidden' }}>
-                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)', opacity:.4 }} />
+                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', opacity:.4 }} />
                         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
                             <div style={{ fontSize:16, color:'white', fontWeight:700, letterSpacing:3, marginBottom:16, textTransform:'uppercase', opacity:.85 }}>Get Ready</div>
                             <div style={{ fontSize:140, fontWeight:900, color:'white', lineHeight:1, animation:'cdPop .5s ease-out', textShadow:'0 0 60px rgba(0,120,255,.8)' }} key={countdown}>
@@ -1107,8 +1107,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
-                                                objectFit: 'cover',
-                                                transform: 'scaleX(-1)'
+                                                objectFit: 'cover'
                                             }}
                                         />
                                         <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
