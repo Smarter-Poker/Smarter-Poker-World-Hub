@@ -44,7 +44,7 @@ export default function LivesPage() {
     const [publishingDraft, setPublishingDraft] = useState(null);
     const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
     const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
-    // BUG FIX (LV-AUDIT-3 restore): countdown tick — drive scheduledLives countdown re-renders.
+    // BUG FIX (MARKER-REMOVED-3 restore): countdown tick — drive scheduledLives countdown re-renders.
     const [tick, setTick] = useState(0);
     const containerRef = useRef(null);
     // BUG FIX (LV-AUDIT-7 restore): keep fetchStreams in a ref so realtime channel doesn't
@@ -63,7 +63,7 @@ export default function LivesPage() {
         };
     }, []);
 
-    // BUG FIX (LV-AUDIT-3 restore): drive scheduledLives countdown re-renders.
+    // BUG FIX (MARKER-REMOVED-3 restore): drive scheduledLives countdown re-renders.
     useEffect(() => {
         if (scheduledLives.length === 0) return;
         const id = setInterval(() => setTick(t => t + 1), 60000);
@@ -619,7 +619,7 @@ export default function LivesPage() {
                         scrollbarWidth: 'none',
                     }}>
                         {scheduledLives.map(sl => {
-                            void tick; // eslint-disable-line no-unused-expressions — LV-AUDIT-3 restore
+                            void tick; // eslint-disable-line no-unused-expressions — MARKER-REMOVED-3 restore
                             const scheduledDate = new Date(sl.scheduled_at);
                             const now = new Date();
                             const diffMs = scheduledDate - now;
