@@ -82,13 +82,22 @@ export default function GlobalPiPManager() {
 
     const handleEndOrLeave = async () => {
         if (streamContext?.isBroadcaster) {
-            if (confirm('End your live stream?')) {
+            if (!confirm('End your live stream?')) return;
+            try {
                 await liveStreamService.endBroadcast();
+            } catch (err) {
+                console.warn('[GlobalPiP] Failed to end cleanly:', err);
+            } finally {
                 setIsActive(false);
             }
         } else {
-            liveStreamService.leaveStream();
-            setIsActive(false);
+            try {
+                await liveStreamService.leaveStream();
+            } catch (err) {
+                console.warn('[GlobalPiP] Failed to leave cleanly:', err);
+            } finally {
+                setIsActive(false);
+            }
         }
     };
 

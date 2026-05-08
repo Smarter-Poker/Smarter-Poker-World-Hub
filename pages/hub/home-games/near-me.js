@@ -175,7 +175,7 @@ export default function HomeGamesNearMePage() {
             <span className="text-sm">Home Games</span>
           </Link>
           <div className="flex-1" />
-          <Link href="/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-9 px-4 text-xs">
+          <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-9 px-4 text-xs">
             Host a Game
           </Link>
         </div>
@@ -296,7 +296,7 @@ export default function HomeGamesNearMePage() {
             <p className="text-sm text-[#64748B] mt-1">
               {coords ? `Try expanding your radius or starting one yourself.` : 'Try a different state or city.'}
             </p>
-            <Link href="/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-10 px-5 text-sm inline-flex items-center gap-2 mt-4">
+            <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-10 px-5 text-sm inline-flex items-center gap-2 mt-4">
               Host a Home Game
             </Link>
           </div>

@@ -285,7 +285,7 @@ export default function HomeGamesByState({ stateCode, stateName, stateSlug, game
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
-                href={`/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate`}
+                href={`https://commander.smarter.poker/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate`}
                 className="inline-flex items-center px-5 py-2.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium text-sm transition-colors"
               >
                 Host in {stateName} →

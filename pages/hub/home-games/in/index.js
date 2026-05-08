@@ -149,7 +149,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
                 Browse all home games
               </Link>
               <Link
-                href="/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate"
+                href="https://commander.smarter.poker/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate"
                 className="inline-flex items-center px-5 py-2.5 rounded-lg border border-[#334155] hover:border-[#8B5CF6] text-white font-medium text-sm transition-colors"
               >
                 Host your own →
@@ -189,7 +189,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
             <section className="p-8 rounded-xl border border-dashed border-[#334155] bg-[#132240]/40 text-center">
               <p className="text-[#94A3B8]">
                 No public home games have been listed yet.{' '}
-                <Link href="/commander/register?tier=home_game" className="text-[#C4B5FD] underline hover:text-white">
+                <Link href="https://commander.smarter.poker/commander/register?tier=home_game" className="text-[#C4B5FD] underline hover:text-white">
                   Be the first to host one
                 </Link>
                 .
