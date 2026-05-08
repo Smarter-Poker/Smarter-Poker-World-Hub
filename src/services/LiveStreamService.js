@@ -166,8 +166,9 @@ class LiveStreamService {
                     : 0;
                 const TOKEN_TTL_MS = 8 * 60 * 60 * 1000;  // matches LiveKit token TTL
 
-                if (existing && ageMs > TOKEN_TTL_MS) {
-                    // Definite zombie — auto-end and retry.
+                if (existing) {
+                    // Always auto-end any existing live stream for this broadcaster.
+                    // This prevents soft-locks where a crashed stream prevents a new one.
                     await supabase
                         .from('live_streams')
                         .update({ status: 'ended' })
@@ -179,12 +180,6 @@ class LiveStreamService {
                         .maybeSingle();
                     stream = retry.data;
                     error = retry.error;
-                } else {
-                    // Likely a concurrent live tab — keep the existing row
-                    // and surface a friendly error.
-                    const e = new Error('You are already live in another tab. End that broadcast first.');
-                    e.code = 'ALREADY_LIVE';
-                    throw e;
                 }
             } catch (retryErr) {
                 error = retryErr;
@@ -377,6 +372,12 @@ class LiveStreamService {
         if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
             console.warn('[LiveKit] Max reconnect attempts reached');
             this.onStreamEnded?.();
+            // Force teardown so the DB status is updated to 'ended'
+            if (this.isBroadcaster) {
+                this.endBroadcast().catch(() => {});
+            } else {
+                this.leaveStream().catch(() => {});
+            }
             return;
         }
 

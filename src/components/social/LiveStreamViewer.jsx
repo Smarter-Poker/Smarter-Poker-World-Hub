@@ -592,10 +592,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     };
 
     const handleLeave = async () => {
-        liveStreamService.isManualDisconnect = true;
-        await liveStreamService.leaveStream();
-        busEmit.dataMutated?.('live_streams');
-        onClose();
+        try {
+            liveStreamService.isManualDisconnect = true;
+            await liveStreamService.leaveStream();
+        } catch (err) {
+            console.error('[LiveStreamViewer] Failed to cleanly leave stream:', err);
+        } finally {
+            busEmit.dataMutated?.('live_streams');
+            onClose();
+        }
     };
 
     const qualityColor = connectionQuality === 'excellent' || connectionQuality === 'good'
