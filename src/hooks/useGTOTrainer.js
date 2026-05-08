@@ -1035,7 +1035,23 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                         'session_' + Date.now(),
                         gtowScoring.sessionScorer.moves || []
                     );
-                    await saveSession(sessionRecord, moveRecords).catch(e =>
+                    // BUG FIX (2026-05-08, MAX-RIGOR audit round 3):
+                    // SessionTracker.saveSession signature is
+                    // `(supabase, sessionRecord, moveRecords)`. The previous
+                    // call passed only 2 args, so `supabase` arg received
+                    // `sessionRecord` (an object). Inside saveSession,
+                    // `supabase.from(...)` then threw TypeError; the catch
+                    // fell through to `_saveToLocalStorage(sessionRecord,
+                    // moveRecords)` where `sessionRecord` was actually
+                    // `moveRecords` (the array), so localStorage received
+                    // garbage on every game completion. Pass `null` as the
+                    // first arg so saveSession bypasses the broken Supabase
+                    // write and goes straight to the localStorage fallback
+                    // with correctly ordered args. (Server-side persistence
+                    // already happens via /api/training/save-session in the
+                    // saveSession.js utility — this localStorage path is the
+                    // dev/offline backup only.)
+                    await saveSession(null, sessionRecord, moveRecords).catch(e =>
                         console.warn('[GTOTrainer] SessionTracker save non-critical error:', e.message)
                     );
                 }
