@@ -52,10 +52,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [isTheaterMode, setIsTheaterMode] = useState(false);
     const [isPiP, setIsPiP] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
-    // BUG-FIX-THEATER: sync isTheaterMode when user exits fullscreen via browser chrome
-    // Without this, ✕ gets stuck and calling exitFullscreen() on a non-fullscreen doc throws
     const [shareToast, setShareToast] = useState('');
-    const shareToastTimerRef = useRef(null);
     // BUG-FIX-LIVE-7: track currently-selected video tier so the menu shows a
     // checkmark + the trigger button labels the active selection ("Quality · low").
     const [activeQuality, setActiveQuality] = useState('auto');
@@ -77,6 +74,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const giftChannelRef = useRef(null);
     const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
     const pinChannelRef = useRef(null); // #18: pinned comment subscription
+    // BUG FIX (GLM-3): track share toast timer ref
+    const shareToastTimerRef = useRef(null);
     // Feature 3: Clip It
     const mediaRecorderRef = useRef(null);
     const recordedChunksRef = useRef([]); // BUG FIX: was missing, caused "recordedChunksRef is not defined" crash
@@ -470,6 +469,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         const onEnter = () => setIsPiP(true);
         document.addEventListener('leavepictureinpicture', onLeave);
         document.addEventListener('enterpictureinpicture', onEnter);
+        
         // BUG-FIX-THEATER: sync isTheaterMode when user exits fullscreen via browser chrome ✕
         // or back button. Without this, clicking Theater again calls exitFullscreen() on
         // a null fullscreenElement which throws and permanently freezes the stream.

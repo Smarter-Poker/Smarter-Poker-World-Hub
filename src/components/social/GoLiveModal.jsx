@@ -737,7 +737,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
 
     // BUG-FIX-RECONNECT: reconnect to an existing live stream
     const handleReconnectToExisting = async () => {
-        if (!existingLiveStream || !streamRef.current) return;
+        if (!existingLiveStream) return;
+        if (!streamRef.current) {
+            setError('Please wait for camera to initialize or grant permissions.');
+            return;
+        }
         setIsStarting(true);
         setError('');
         try {
@@ -973,7 +977,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
 
                         {/* Camera preview */}
                         <div style={{ position:'relative', background:'#000', aspectRatio:'16/9' }}>
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', transition: 'all 0.3s ease' }} />
                             <div style={{ position:'absolute', top:10, left:10, background:'rgba(0,0,0,.55)', color:'white', padding:'4px 10px', borderRadius:6, fontSize:13, fontWeight:600 }}>Preview</div>
                         </div>
 
