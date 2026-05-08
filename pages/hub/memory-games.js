@@ -208,7 +208,6 @@ export default function MemoryGamesPage() {
 
     // Progress state
     const [consecutivePasses, setConsecutivePasses] = useState(0);
-    const [totalXP, setTotalXP] = useState(0);
 
     // Session history for trend tracking
     const [sessionHistory, setSessionHistory] = useState(() => {
@@ -313,14 +312,16 @@ export default function MemoryGamesPage() {
                         await DiamondEngine.init(null);
                         const balance = await DiamondEngine.getBalance();
                         setDiamondBalance(balance);
+                        setIsVIP(false); // Guest = non-VIP, unlocks gameplay
                     }
                 }
             } catch (e) {
                 console.warn('[MemoryGames] Failed to initialize DiamondEngine:', e);
-                // Fallback to localStorage
+                // Fallback to localStorage — treat as non-VIP so gameplay is not blocked
                 await DiamondEngine.init(null);
                 const balance = await DiamondEngine.getBalance();
                 setDiamondBalance(balance);
+                setIsVIP(false);
             }
         };
 
@@ -573,7 +574,7 @@ export default function MemoryGamesPage() {
             const newPasses = consecutivePasses + 1;
             setConsecutivePasses(newPasses);
 
-            // Award diamonds and XP
+            // Award diamonds
             const baseReward = 15;
             const accuracyBonus = Math.floor((result.score - 85) / 5) * 5;
             const perfectBonus = result.score === 100 ? 50 : 0;
@@ -583,11 +584,6 @@ export default function MemoryGamesPage() {
             const newBalance = DiamondEngine.award(totalReward);
             setDiamondBalance(newBalance);
             setLastReward({ diamonds: totalReward, timestamp: Date.now() });
-
-            // XP - higher levels give more XP
-            const levelConfig = getLevelConfig(currentLevel);
-            const xpGain = Math.floor((50 + (result.score - 85) * 2 + (newCombo * 5)) * levelConfig.xpMultiplier);
-            setTotalXP(prev => prev + xpGain);
         } else {
             // Failure
             SoundEngine.play('wrong');
@@ -715,18 +711,7 @@ export default function MemoryGamesPage() {
                     });
                 });
             }
-            if (result.correctHands) {
-                result.correctHands.forEach(hand => {
-                    answersData.push({
-                        hand,
-                        userAnswer: userGrid[hand] || currentScenario?.solution?.[hand],
-                        correctAnswer: currentScenario?.solution?.[hand],
-                        wasCorrect: true,
-                        position: currentScenario?.position,
-                        scenario: { title: currentScenario?.title, stackDepth: currentScenario?.stackDepth }
-                    });
-                });
-            }
+            // result.correctHands is a count (number), not an array — skip forEach loop
 
             fetch('/api/jarvis/training-session', {
                 method: 'POST',
@@ -2201,7 +2186,7 @@ export default function MemoryGamesPage() {
                                     <div style={styles.levelGrid}>
                                         {LEVELS.map((level, idx) => {
                                             const scenarioCount = getLevelScenarios(level.level);
-                                            const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, xpMultiplier: 1 };
+                                            const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, diamondMultiplier: 1.0 };
                                             const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
 
                                             return (
@@ -2220,7 +2205,7 @@ export default function MemoryGamesPage() {
                                                     <p style={styles.levelFocus}>{level.focus}</p>
                                                     <div style={styles.levelMeta}>
                                                         <span> {levelConfig.timer}s</span>
-                                                        <span>×{levelConfig.xpMultiplier} XP</span>
+                                                        <span>×{levelConfig.diamondMultiplier} 💎</span>
                                                     </div>
                                                     <div style={styles.levelMeta}>
                                                         <span>{scenarioCount} scenario{scenarioCount !== 1 ? 's' : ''}</span>

@@ -34,6 +34,7 @@ const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), 
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDiamondBalance } from '../../hooks/useDiamondBalance';
+import useCurrentUser from '../../hooks/useCurrentUser';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { listenBroadcast } from '../../lib/broadcastSync';
 
@@ -338,12 +339,15 @@ export default function UniversalHeader({
                                     setNotificationCount(result.notificationCount);
                                 }
                                 // 🛡️ INSTANT UI: Cache user data for next page load (with TTL timestamp)
+                                // Lowercase username before caching — prevents stale mixed-case
+                                // values propagating into profileHref via the cache init path.
+                                const normalizedUsername = username ? username.toLowerCase() : null;
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         userId: authUser.id,
                                         avatar: avatar_url,
-                                        name: username || full_name,
-                                        username: username || null,
+                                        name: normalizedUsername || full_name,
+                                        username: normalizedUsername,
                                         diamonds: diamonds ?? 0,
                                         is_vip: !!is_vip,
                                         _ts: Date.now()
@@ -351,8 +355,11 @@ export default function UniversalHeader({
                                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                                 // Update direct profile link if we got the username
+                                // ALWAYS lowercase — DB trigger enforces this, but
+                                // the API response may return a mixed-case value
+                                // if the profile was created before the trigger.
                                 if (username) {
-                                    const directHref = `/hub/user/${username}`;
+                                    const directHref = `/hub/user/${username.toLowerCase()}`;
                                     setProfileHref(directHref);
                                     router.prefetch(directHref);
                                 }
@@ -409,21 +416,22 @@ export default function UniversalHeader({
                                     avatar: profile.avatar_url,
                                     name: profile.username || profile.full_name
                                 }));
-                                // Cache the REST fallback data too
+                                // Cache the REST fallback data too — lowercase username
+                                const normalizedFallbackUsername = profile.username ? profile.username.toLowerCase() : null;
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         userId: authUser.id,
                                         avatar: profile.avatar_url,
-                                        name: profile.username || profile.full_name,
-                                        username: profile.username || null,
+                                        name: normalizedFallbackUsername || profile.full_name,
+                                        username: normalizedFallbackUsername,
                                         diamonds: profile.diamonds ?? 0,
                                         is_vip: !!profile.is_vip,
                                         _ts: Date.now()
                                     }));
                                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                                // Update direct profile link
-                                if (profile.username) {
-                                    const directHref = `/hub/user/${profile.username}`;
+                                // Update direct profile link — lowercase username
+                                if (normalizedFallbackUsername) {
+                                    const directHref = `/hub/user/${normalizedFallbackUsername}`;
                                     setProfileHref(directHref);
                                     router.prefetch(directHref);
                                 }
@@ -578,21 +586,22 @@ export default function UniversalHeader({
                         avatar: result.profile.avatar_url || prev?.avatar,
                         name: result.profile.username || result.profile.full_name || prev?.name
                     }));
-                    // Update localStorage cache with fresh profile data
+                    // Update localStorage cache with fresh profile data — lowercase username
+                    const refreshedUsername = result.profile.username ? result.profile.username.toLowerCase() : null;
                     try {
                         localStorage.setItem('sp-cached-header-user', JSON.stringify({
                             userId: user.id,
                             avatar: result.profile.avatar_url,
-                            name: result.profile.username || result.profile.full_name,
-                            username: result.profile.username || null,
+                            name: refreshedUsername || result.profile.full_name,
+                            username: refreshedUsername,
                             diamonds: result.profile.diamonds ?? 0,
                             is_vip: !!result.profile.is_vip,
                             _ts: Date.now()
                         }));
                     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    // Update direct profile link if username changed
-                    if (result.profile.username) {
-                        const directHref = `/hub/user/${result.profile.username}`;
+                    // Update direct profile link if username changed — always lowercase
+                    if (refreshedUsername) {
+                        const directHref = `/hub/user/${refreshedUsername}`;
                         setProfileHref(directHref);
                     }
                     console.debug('[UniversalHeader] 🚌 Profile refreshed via bus event');
@@ -610,6 +619,16 @@ export default function UniversalHeader({
         };
     }, [user?.id]);
 
+    // ── useCurrentUser: keep profileHref in sync with fresh DB username ──────
+    // This runs after AvatarContext resolves and gives us a guaranteed
+    // lowercase username straight from the profiles table, overriding any
+    // stale cache value that was used for the initial render.
+    const { user: currentUserProfile } = useCurrentUser();
+    useEffect(() => {
+        if (!currentUserProfile?.username) return;
+        const freshHref = `/hub/user/${currentUserProfile.username}`; // username is lowercased by DB trigger + hook
+        setProfileHref(prev => (prev !== freshHref ? freshHref : prev));
+    }, [currentUserProfile?.username]);
     // Guard against rapid double-click on back button
     const backInProgressRef = useRef(false);
 
