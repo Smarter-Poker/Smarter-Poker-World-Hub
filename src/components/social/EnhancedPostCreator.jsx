@@ -1,7 +1,7 @@
 /**
  * ✍️ ENHANCED POST CREATOR MODAL
  * src/components/social/EnhancedPostCreator.jsx
- * 
+ *
  * Full-featured post creator with image/video uploads,
  * media previews, and spatial animations.
  */
@@ -26,16 +26,21 @@ import { useSupabase } from '../../providers/SupabaseProvider';
 
 // File validation — uses sniffMimeType to correctly handle iOS Photo Library uploads.
 // Size constants are aligned with the upload API limits.
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-];
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 const ALLOWED_VIDEO_TYPES = [
-  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
-  'video/x-m4v', 'video/3gpp', 'video/3gpp2', 'video/hevc', 'video/x-matroska',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/x-m4v',
+  'video/3gpp',
+  'video/3gpp2',
+  'video/hevc',
+  'video/x-matroska',
   'application/octet-stream', // iOS fallback when extension sniffing gives generic type
 ];
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024;          // 10MB (pre-compression)
-const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024;    // 5GB (matches /api/social/upload-url)
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB (pre-compression)
+const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB (matches /api/social/upload-url)
 
 const validateFile = (file) => {
   const mimeType = sniffMimeType(file);
@@ -43,14 +48,20 @@ const validateFile = (file) => {
 
   if (isVideo) {
     if (!ALLOWED_VIDEO_TYPES.includes(mimeType)) {
-      return { valid: false, error: `Unsupported video format (${mimeType}). Try MP4, MOV, or WebM.` };
+      return {
+        valid: false,
+        error: `Unsupported video format (${mimeType}). Try MP4, MOV, or WebM.`,
+      };
     }
     if (file.size > MAX_VIDEO_SIZE) {
       return { valid: false, error: 'Video too large. Max 5 GB.' };
     }
   } else {
     if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {
-      return { valid: false, error: `Unsupported image format (${mimeType}). Use JPEG, PNG, GIF, or WebP.` };
+      return {
+        valid: false,
+        error: `Unsupported image format (${mimeType}). Use JPEG, PNG, GIF, or WebP.`,
+      };
     }
     if (file.size > MAX_IMAGE_SIZE) {
       return { valid: false, error: 'Image too large (before compression). Max 10 MB.' };
@@ -70,14 +81,24 @@ const MAX_CHARS = 2000;
 // 🖼️ MEDIA PREVIEW COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const MediaPreview = ({ file, onRemove, onCancelUpload, uploadProgress, uploadStatusLabel, thumbnail }) => {
+const MediaPreview = ({
+  file,
+  onRemove,
+  onCancelUpload,
+  uploadProgress,
+  uploadStatusLabel,
+  thumbnail,
+}) => {
   const [preview, setPreview] = useState(null);
   // Use sniffMimeType so iOS MOV files (which have empty file.type) are detected as video
   const isVideo = sniffMimeType(file).startsWith('video/');
 
   useEffect(() => {
     // Use thumbnail if available (lighter than <video>), otherwise create blob URL for images only
-    if (thumbnail) { setPreview(thumbnail); return; }
+    if (thumbnail) {
+      setPreview(thumbnail);
+      return;
+    }
     if (!isVideo) {
       const url = URL.createObjectURL(file);
       setPreview(url);
@@ -93,8 +114,18 @@ const MediaPreview = ({ file, onRemove, onCancelUpload, uploadProgress, uploadSt
         preview ? (
           <img src={preview} alt="Video preview" className="preview-media" />
         ) : (
-          <div className="preview-media" style={{ background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M8 5v14l11-7z" /></svg>
+          <div
+            className="preview-media"
+            style={{
+              background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)">
+              <path d="M8 5v14l11-7z" />
+            </svg>
           </div>
         )
       ) : (
@@ -104,15 +135,10 @@ const MediaPreview = ({ file, onRemove, onCancelUpload, uploadProgress, uploadSt
       {/* Upload Progress Overlay — shows clock dial + % + Cancel button */}
       {uploadProgress !== undefined && uploadProgress < 100 && (
         <div className="upload-progress-overlay">
-          <div
-            className="progress-ring"
-            style={{ '--progress': uploadProgress }}
-          >
+          <div className="progress-ring" style={{ '--progress': uploadProgress }}>
             <span className="progress-pct">{uploadProgress}%</span>
           </div>
-          {uploadStatusLabel && (
-            <span className="progress-label">{uploadStatusLabel}</span>
-          )}
+          {uploadStatusLabel && <span className="progress-label">{uploadStatusLabel}</span>}
           <button
             onClick={onCancelUpload || onRemove}
             style={{
@@ -144,25 +170,22 @@ const MediaPreview = ({ file, onRemove, onCancelUpload, uploadProgress, uploadSt
       </button>
 
       {/* Type Badge */}
-      <div className="media-type-badge">
-        {isVideo ? '🎬' : '📷'}
-      </div>
+      <div className="media-type-badge">{isVideo ? '🎬' : '📷'}</div>
     </div>
   );
 };
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ✍️ ENHANCED POST CREATOR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const EnhancedPostCreator = ({
-  isOpen = true,  // Default to true for inline mode
+  isOpen = true, // Default to true for inline mode
   onClose,
   onPostCreated,
-  user,              // User object passed from parent
+  user, // User object passed from parent
   supabase: supabaseProp, // Supabase client passed from parent (optional — falls back to useSupabase)
-  inline = false     // New: inline mode renders without modal overlay
+  inline = false, // New: inline mode renders without modal overlay
 }) => {
   // Resolve supabase: prefer explicit prop (legacy callers), fall back to context (inline FeedView usage)
   const { supabase: supabaseCtx } = useSupabase();
@@ -188,20 +211,20 @@ export const EnhancedPostCreator = ({
   const textareaRef = useRef(null);
   const modalRef = useRef(null);
   const fileInputRef = useRef(null);
-  const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
-  const draftTimeout = useRef(null);    // debounce handle for draft auto-save
-  const mountedRef = useRef(true);      // unmount guard for background upload callbacks
+  const xhrRef = useRef(null); // holds active video XHR so we can abort on unmount
+  const draftTimeout = useRef(null); // debounce handle for draft auto-save
+  const mountedRef = useRef(true); // unmount guard for background upload callbacks
   // WH-2 BUG FIX: 1.5s success-close timer was not tracked. Added successTimerRef
   // so the existing unmount cleanup can cancel it if user navigates away first.
   const successTimerRef = useRef(null);
-  const compressionRef = useRef({});    // { [fileKey]: { controller, promise, result } }
-  const thumbnailRef = useRef({});      // { [fileKey]: dataUrl }
+  const compressionRef = useRef({}); // { [fileKey]: { controller, promise, result } }
+  const thumbnailRef = useRef({}); // { [fileKey]: dataUrl }
   // RACE FIX (2026-04-29): mirror SharedPostCreator — track in-flight
   // generateThumbnail promises so submit can await before deciding to skip
   // the thumbnail. iPhone HEVC decode takes 30+ seconds so virtually every
   // upload was being shipped with thumbnail_url=NULL.
   const thumbnailPromiseRef = useRef({}); // { [fileKey]: Promise<dataUrl|null> }
-  const _pickerOpenRef = useRef(false);  // tracks if iOS file picker is open
+  const _pickerOpenRef = useRef(false); // tracks if iOS file picker is open
   const [thumbnails, setThumbnails] = useState({});
 
   // Auto-dismiss error after 10 seconds
@@ -239,7 +262,7 @@ export const EnhancedPostCreator = ({
     if (preparingStage !== 'picker') return;
     const onFocus = () => {
       if (!mountedRef.current) return;
-      setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
+      setPreparingStage((prev) => (prev === 'picker' ? 'loading' : prev));
       // AUDIT-8 — see SharedPostCreator: NO short watchdog. iOS handoff is
       // 5-30s, watchdog at 5s was clearing the banner mid-legitimate-pick.
       // 90s ultimate backstop covers the cancel case.
@@ -259,13 +282,14 @@ export const EnhancedPostCreator = ({
       // so onComplete fires and triggers the DB insert (social_posts).
       // Cleanup happens via bgUpload.abort() when a new upload starts.
       // Abort any running background compressions
-      Object.values(compressionRef.current).forEach(c => {
-        try { c.controller?.abort(); } catch (_) { }
+      Object.values(compressionRef.current).forEach((c) => {
+        try {
+          c.controller?.abort();
+        } catch (_) {}
       });
       compressionRef.current = {};
     };
   }, []);
-
 
   // Character count
   const charCount = content.length;
@@ -283,12 +307,14 @@ export const EnhancedPostCreator = ({
         const clipTitle = urlParams.get('title');
 
         if (clipUrl) {
-           setContent(`${clipTitle || 'Check out my stream clip!'} \n\n${clipUrl}`);
+          setContent(`${clipTitle || 'Check out my stream clip!'} \n\n${clipUrl}`);
         } else {
-           const saved = localStorage.getItem('sp-enhanced-post-draft');
-           if (saved) setContent(saved);
+          const saved = localStorage.getItem('sp-enhanced-post-draft');
+          if (saved) setContent(saved);
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
     }
   }, [isOpen]);
 
@@ -296,7 +322,12 @@ export const EnhancedPostCreator = ({
   useEffect(() => {
     if (!isOpen) {
       // Abort any in-progress video upload when the modal closes
-      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) { } xhrRef.current = null; }
+      if (xhrRef.current) {
+        try {
+          xhrRef.current.abort();
+        } catch (_) {}
+        xhrRef.current = null;
+      }
       setMediaFiles([]);
       setUploadProgress({});
       setUploadStatus({});
@@ -309,7 +340,11 @@ export const EnhancedPostCreator = ({
   // Abort XHR on component unmount (navigation away mid-upload)
   useEffect(() => {
     return () => {
-      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) { } }
+      if (xhrRef.current) {
+        try {
+          xhrRef.current.abort();
+        } catch (_) {}
+      }
       if (draftTimeout.current) clearTimeout(draftTimeout.current);
       if (successTimerRef.current) clearTimeout(successTimerRef.current);
     };
@@ -327,179 +362,201 @@ export const EnhancedPostCreator = ({
   }, [isOpen, isSubmitting, onClose]);
 
   // Handle backdrop click
-  const handleBackdropClick = useCallback((e) => {
-    if (e.target === modalRef.current && !isSubmitting) {
-      if (onClose) onClose();
-    }
-  }, [isSubmitting, onClose]);
+  const handleBackdropClick = useCallback(
+    (e) => {
+      if (e.target === modalRef.current && !isSubmitting) {
+        if (onClose) onClose();
+      }
+    },
+    [isSubmitting, onClose]
+  );
 
   // Handle file selection
-  const handleFileSelect = useCallback((e) => {
-    _pickerOpenRef.current = false;
+  const handleFileSelect = useCallback(
+    (e) => {
+      _pickerOpenRef.current = false;
 
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) {
-      // User cancelled the picker — make sure no banner is up
-      setPreparingStage(null);
-      return;
-    }
-    // AUDIT-6/7: mark file arrival so the focus-watchdog (if pending) bails,
-    // explicitly clear the pending watchdog timer to free its setTimeout
-    // reference now, and transition stage to 'staging' (iOS handoff over).
-    _hasFileArrivedRef.current = true;
-    if (_focusGraceTimerRef.current) {
-      clearTimeout(_focusGraceTimerRef.current);
-      _focusGraceTimerRef.current = null;
-    }
-    setPreparingStage('staging');
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) {
+        // User cancelled the picker — make sure no banner is up
+        setPreparingStage(null);
+        return;
+      }
+      // AUDIT-6/7: mark file arrival so the focus-watchdog (if pending) bails,
+      // explicitly clear the pending watchdog timer to free its setTimeout
+      // reference now, and transition stage to 'staging' (iOS handoff over).
+      _hasFileArrivedRef.current = true;
+      if (_focusGraceTimerRef.current) {
+        clearTimeout(_focusGraceTimerRef.current);
+        _focusGraceTimerRef.current = null;
+      }
+      setPreparingStage('staging');
 
-    // Limit total files
-    const remainingSlots = MAX_MEDIA_FILES - mediaFiles.length;
-    if (remainingSlots <= 0) {
-      setError(`Maximum ${MAX_MEDIA_FILES} media files allowed`);
-      // AUDIT-3 FIX (2026-04-30): clear the banner on early-return paths so
-      // it doesn't sit at "Preparing your video" for the full 60s backstop
-      // when the user has already maxed out their media slots.
-      setPreparingMedia(false);
-      return;
-    }
-
-    const filesToAdd = files.slice(0, remainingSlots);
-
-    // Validate each file using sniffMimeType-aware validator
-    for (const file of filesToAdd) {
-      const validation = validateFile(file);
-      if (!validation.valid) {
-        setError(validation.error);
-        // AUDIT-3 FIX (2026-04-30): same as above — file rejected = clear banner.
+      // Limit total files
+      const remainingSlots = MAX_MEDIA_FILES - mediaFiles.length;
+      if (remainingSlots <= 0) {
+        setError(`Maximum ${MAX_MEDIA_FILES} media files allowed`);
+        // AUDIT-3 FIX (2026-04-30): clear the banner on early-return paths so
+        // it doesn't sit at "Preparing your video" for the full 60s backstop
+        // when the user has already maxed out their media slots.
         setPreparingMedia(false);
         return;
       }
-    }
 
-    setMediaFiles(prev => [...prev, ...filesToAdd]);
-    setError(null);
+      const filesToAdd = files.slice(0, remainingSlots);
 
-    // POPUP CLEANUP (2026-04-29 per Dan): keep exactly one upload toast
-    // (the "Upload running in background" one in bgUpload). The other
-    // toasts ("Video selected (XMB)…", "Large video…", "Your video will
-    // be optimized…") fired in addition to that and stacked 3+ popups
-    // on every video upload. Removed.
-    const videoFiles = filesToAdd.filter(f => sniffMimeType(f).startsWith('video/'));
+      // Validate each file using sniffMimeType-aware validator
+      for (const file of filesToAdd) {
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          setError(validation.error);
+          // AUDIT-3 FIX (2026-04-30): same as above — file rejected = clear banner.
+          setPreparingMedia(false);
+          return;
+        }
+      }
 
-    // 🚀 PREFETCH + BACKGROUND PROCESSING
-    // AUDIT-6 (2026-04-30): mobile path skips client generateThumbnail (see
-    // SharedPostCreator for full rationale — iPhone HEVC decode adds 1-8s
-    // on top of the iOS handoff, server-side cron fills in thumbnail_url).
-    const _isMobile = typeof navigator !== 'undefined'
-      && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
-    if (user?.id) {
-      const startIdx = mediaFiles.length; // index offset for new files
-      for (let j = 0; j < filesToAdd.length; j++) {
-        const file = filesToAdd[j];
-        const mime = sniffMimeType(file);
-        if (!mime.startsWith('video/')) continue;
-        const fk = _fileKey(file);
+      setMediaFiles((prev) => [...prev, ...filesToAdd]);
+      setError(null);
 
-        // Hard validation only — soft warnings deliberately not toasted.
-        const validation = validateVideoFile(file);
-        if (!validation.valid) { setError(validation.error); continue; }
+      // POPUP CLEANUP (2026-04-29 per Dan): keep exactly one upload toast
+      // (the "Upload running in background" one in bgUpload). The other
+      // toasts ("Video selected (XMB)…", "Large video…", "Your video will
+      // be optimized…") fired in addition to that and stacked 3+ popups
+      // on every video upload. Removed.
+      const videoFiles = filesToAdd.filter((f) => sniffMimeType(f).startsWith('video/'));
 
-        if (_isMobile) {
-          // Mobile: defer thumbnail generation to the cron worker server-side.
-          thumbnailPromiseRef.current[fk] = Promise.resolve(null);
-          // Still kick the signed-URL prefetch so it's warm by Post-tap time.
+      // 🚀 PREFETCH + BACKGROUND PROCESSING
+      // AUDIT-6 (2026-04-30): mobile path skips client generateThumbnail (see
+      // SharedPostCreator for full rationale — iPhone HEVC decode adds 1-8s
+      // on top of the iOS handoff, server-side cron fills in thumbnail_url).
+      const _isMobile =
+        typeof navigator !== 'undefined' &&
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+      if (user?.id) {
+        const startIdx = mediaFiles.length; // index offset for new files
+        for (let j = 0; j < filesToAdd.length; j++) {
+          const file = filesToAdd[j];
+          const mime = sniffMimeType(file);
+          if (!mime.startsWith('video/')) continue;
+          const fk = _fileKey(file);
+
+          // Hard validation only — soft warnings deliberately not toasted.
+          const validation = validateVideoFile(file);
+          if (!validation.valid) {
+            setError(validation.error);
+            continue;
+          }
+
+          if (_isMobile) {
+            // Mobile: defer thumbnail generation to the cron worker server-side.
+            thumbnailPromiseRef.current[fk] = Promise.resolve(null);
+            // Still kick the signed-URL prefetch so it's warm by Post-tap time.
+            bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
+            break;
+          }
+
+          // DESKTOP: client-side thumbnail at staging time.
+          // Auto-thumbnail generation — store the PROMISE so submit can await
+          // it. The previous code only saved the resolved value, which meant
+          // any submit fired before HEVC decode finished (every iPhone upload)
+          // shipped with thumbnail_url=NULL.
+          const thumbPromise = generateThumbnail(file)
+            .then((thumb) => {
+              if (!mountedRef.current) return null;
+              if (thumb) {
+                setThumbnails((prev) => ({ ...prev, [fk]: thumb }));
+                // Only set in ref if user hasn't already picked a custom one
+                if (!thumbnailRef.current[fk]) {
+                  thumbnailRef.current[fk] = thumb;
+                }
+              }
+              return thumb || null;
+            })
+            .catch((err) => {
+              console.warn('[EnhancedPostCreator] generateThumbnail failed:', err?.message || err);
+              return null;
+            });
+          thumbnailPromiseRef.current[fk] = thumbPromise;
+
+          // Background compression for large videos
+          const controller = new AbortController();
+          const compPromise = compressVideo(file, {
+            signal: controller.signal,
+            onProgress: ({ pct }) => {
+              if (!mountedRef.current) return;
+              setUploadStatus((prev) => ({ ...prev, [fk]: `Compressing\u2026 ${pct}%` }));
+            },
+          }).then((result) => {
+            compressionRef.current[fk] = { ...compressionRef.current[fk], result };
+            if (result.compressed && mountedRef.current) {
+              const savedMB = Math.round(
+                (result.originalSize - result.compressedSize) / (1024 * 1024)
+              );
+              toast.success(
+                `Video compressed \u2014 saved ${savedMB}MB (${result.savings}% smaller)`,
+                3000
+              );
+              setUploadStatus((prev) => ({ ...prev, [fk]: 'Compressed \u2714' }));
+            } else if (mountedRef.current) {
+              setUploadStatus((prev) => ({ ...prev, [fk]: undefined }));
+            }
+            return result;
+          });
+          compressionRef.current[fk] = { controller, promise: compPromise, result: null };
+
+          // Signed URL prefetch (first video only)
           bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
           break;
         }
-
-        // DESKTOP: client-side thumbnail at staging time.
-        // Auto-thumbnail generation — store the PROMISE so submit can await
-        // it. The previous code only saved the resolved value, which meant
-        // any submit fired before HEVC decode finished (every iPhone upload)
-        // shipped with thumbnail_url=NULL.
-        const thumbPromise = generateThumbnail(file)
-          .then(thumb => {
-            if (!mountedRef.current) return null;
-            if (thumb) {
-              setThumbnails(prev => ({ ...prev, [fk]: thumb }));
-              // Only set in ref if user hasn't already picked a custom one
-              if (!thumbnailRef.current[fk]) {
-                thumbnailRef.current[fk] = thumb;
-              }
-            }
-            return thumb || null;
-          })
-          .catch(err => {
-            console.warn('[EnhancedPostCreator] generateThumbnail failed:', err?.message || err);
-            return null;
-          });
-        thumbnailPromiseRef.current[fk] = thumbPromise;
-
-        // Background compression for large videos
-        const controller = new AbortController();
-        const compPromise = compressVideo(file, {
-          signal: controller.signal,
-          onProgress: ({ pct }) => {
-            if (!mountedRef.current) return;
-            setUploadStatus(prev => ({ ...prev, [fk]: `Compressing\u2026 ${pct}%` }));
-          },
-        }).then(result => {
-          compressionRef.current[fk] = { ...compressionRef.current[fk], result };
-          if (result.compressed && mountedRef.current) {
-            const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
-            toast.success(`Video compressed \u2014 saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
-            setUploadStatus(prev => ({ ...prev, [fk]: 'Compressed \u2714' }));
-          } else if (mountedRef.current) {
-            setUploadStatus(prev => ({ ...prev, [fk]: undefined }));
-          }
-          return result;
-        });
-        compressionRef.current[fk] = { controller, promise: compPromise, result: null };
-
-        // Signed URL prefetch (first video only)
-        bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
-        break;
       }
-    }
 
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
 
-    // Clear the staging banner once the first thumbnail resolves OR a 30s
-    // ceiling fires (iOS HEVC decode is slow). Per-tile pulses take over.
-    // Mirrors SharedPostCreator pattern.
-    const firstVideo = filesToAdd.find(f => sniffMimeType(f).startsWith('video/'));
-    if (firstVideo) {
-      const fk = _fileKey(firstVideo);
-      const promise = thumbnailPromiseRef.current[fk];
-      const ceiling = new Promise(r => setTimeout(r, 30_000));
-      Promise.race([promise || Promise.resolve(null), ceiling]).finally(() => {
-        if (mountedRef.current) setPreparingMedia(false);
-      });
-    } else {
-      setPreparingMedia(false);
-    }
-  }, [mediaFiles.length, user?.id]);
+      // Clear the staging banner once the first thumbnail resolves OR a 30s
+      // ceiling fires (iOS HEVC decode is slow). Per-tile pulses take over.
+      // Mirrors SharedPostCreator pattern.
+      const firstVideo = filesToAdd.find((f) => sniffMimeType(f).startsWith('video/'));
+      if (firstVideo) {
+        const fk = _fileKey(firstVideo);
+        const promise = thumbnailPromiseRef.current[fk];
+        const ceiling = new Promise((r) => setTimeout(r, 30_000));
+        Promise.race([promise || Promise.resolve(null), ceiling]).finally(() => {
+          if (mountedRef.current) setPreparingMedia(false);
+        });
+      } else {
+        setPreparingMedia(false);
+      }
+    },
+    [mediaFiles.length, user?.id]
+  );
 
   // Remove media file
-  const removeMedia = useCallback((index) => {
-    // Cancel background compression if running (use file key, not index)
-    const file = mediaFiles[index];
-    if (file) {
-      const fk = _fileKey(file);
-      if (compressionRef.current[fk]) {
-        compressionRef.current[fk].controller?.abort();
-        delete compressionRef.current[fk];
+  const removeMedia = useCallback(
+    (index) => {
+      // Cancel background compression if running (use file key, not index)
+      const file = mediaFiles[index];
+      if (file) {
+        const fk = _fileKey(file);
+        if (compressionRef.current[fk]) {
+          compressionRef.current[fk].controller?.abort();
+          delete compressionRef.current[fk];
+        }
+        setThumbnails((prev) => {
+          const n = { ...prev };
+          delete n[fk];
+          return n;
+        });
+        // Also purge from ref so stale thumbnail can't persist for re-added files with same key
+        delete thumbnailRef.current[fk];
       }
-      setThumbnails(prev => { const n = { ...prev }; delete n[fk]; return n; });
-      // Also purge from ref so stale thumbnail can't persist for re-added files with same key
-      delete thumbnailRef.current[fk];
-    }
-    setMediaFiles(prev => prev.filter((_, i) => i !== index));
-  }, [mediaFiles]);
+      setMediaFiles((prev) => prev.filter((_, i) => i !== index));
+    },
+    [mediaFiles]
+  );
 
   // Submit post
   const handleSubmit = useCallback(async () => {
@@ -552,13 +609,15 @@ export const EnhancedPostCreator = ({
       const socialService = new SocialService(supabase);
 
       // 👻 GHOST POST: Create optimistic placeholder in the feed for video uploads
-      const hasVideo = mediaFiles.some(f => sniffMimeType(f).startsWith('video/'));
+      const hasVideo = mediaFiles.some((f) => sniffMimeType(f).startsWith('video/'));
       let videoPreviewUrl = null;
       if (hasVideo) {
         // Create a blurred preview from the first video file
-        const firstVideo = mediaFiles.find(f => sniffMimeType(f).startsWith('video/'));
+        const firstVideo = mediaFiles.find((f) => sniffMimeType(f).startsWith('video/'));
         if (firstVideo) {
-          try { videoPreviewUrl = URL.createObjectURL(firstVideo); } catch (_) { }
+          try {
+            videoPreviewUrl = URL.createObjectURL(firstVideo);
+          } catch (_) {}
         }
         ghostPost.create({
           content: content.trim(),
@@ -575,7 +634,7 @@ export const EnhancedPostCreator = ({
         const folder = isVideo ? 'videos' : 'photos';
 
         try {
-          let bgUnsub = null;   // hoisted: catch block can safely call bgUnsub() for both video/image
+          let bgUnsub = null; // hoisted: catch block can safely call bgUnsub() for both video/image
           let wasBackground = false;
           if (isVideo) {
             // ── Use compressed file if background compression finished ──
@@ -584,12 +643,16 @@ export const EnhancedPostCreator = ({
             const comp = compressionRef.current[fk];
             if (comp?.promise) {
               try {
-                const result = comp.result || await Promise.race([
-                  comp.promise,
-                  new Promise(r => setTimeout(() => r({ file, compressed: false }), 500)),
-                ]);
+                const result =
+                  comp.result ||
+                  (await Promise.race([
+                    comp.promise,
+                    new Promise((r) => setTimeout(() => r({ file, compressed: false }), 500)),
+                  ]));
                 if (result.compressed) fileToUpload = result.file;
-              } catch (_) { /* use original */ }
+              } catch (_) {
+                /* use original */
+              }
             }
 
             // ── Background-capable video upload ───────────────────────────────
@@ -597,20 +660,22 @@ export const EnhancedPostCreator = ({
 
             const videoUrl = await new Promise((resolve, reject) => {
               // 1. Start the upload (this clears any old listeners from previous uploads)
-              bgUpload.start({ 
-                  file: fileToUpload, 
-                  userId: user.id, 
-                  folder, 
-                  content: content?.trim(), 
-                  thumbnail: thumbnailRef.current[_fileKey(file)] || null 
-              }).catch(reject);
+              bgUpload
+                .start({
+                  file: fileToUpload,
+                  userId: user.id,
+                  folder,
+                  content: content?.trim(),
+                  thumbnail: thumbnailRef.current[_fileKey(file)] || null,
+                })
+                .catch(reject);
 
               // 2. Subscribe to the new upload's events immediately after
               bgUnsub = bgUpload.subscribe({
                 onProgress: ({ pct, label }) => {
                   if (!mountedRef.current) return;
-                  setUploadProgress(prev => ({ ...prev, [videoIndex]: pct }));
-                  setUploadStatus(prev => ({ ...prev, [videoIndex]: label }));
+                  setUploadProgress((prev) => ({ ...prev, [videoIndex]: pct }));
+                  setUploadStatus((prev) => ({ ...prev, [videoIndex]: label }));
                   ghostPost.updateProgress(pct, label);
                 },
                 onComplete: ({ publicUrl, wasBackground: bg }) => {
@@ -631,7 +696,9 @@ export const EnhancedPostCreator = ({
                       setUploadProgress({});
                       setUploadStatus({});
                       setIsSubmitting(false);
-                      try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) { }
+                      try {
+                        localStorage.removeItem('sp-enhanced-post-draft');
+                      } catch (_) {}
                     }
                   }
                 },
@@ -642,23 +709,21 @@ export const EnhancedPostCreator = ({
             // Clean up compression cache
             delete compressionRef.current[_fileKey(file)];
             // Carry the selected thumbnail alongside the video URL so createPost can persist it
-            uploadedMedia.push({ 
-              url: videoUrl, 
-              type: 'video', 
-              name: file.name, 
-              thumbnail: thumbnailRef.current[_fileKey(file)] || null, 
-              wasBackground 
+            uploadedMedia.push({
+              url: videoUrl,
+              type: 'video',
+              name: file.name,
+              thumbnail: thumbnailRef.current[_fileKey(file)] || null,
+              wasBackground,
             });
 
             if (!wasBackground && mountedRef.current) {
-              setUploadProgress(prev => ({ ...prev, [videoIndex]: 100 }));
-              setUploadStatus(prev => ({ ...prev, [videoIndex]: 'Done' }));
+              setUploadProgress((prev) => ({ ...prev, [videoIndex]: 100 }));
+              setUploadStatus((prev) => ({ ...prev, [videoIndex]: 'Done' }));
             }
-
-
           } else {
             // Compress image before upload
-            setUploadProgress(prev => ({ ...prev, [i]: 10 }));
+            setUploadProgress((prev) => ({ ...prev, [i]: 10 }));
             const compressedFile = await compressImage(file);
             if (compressedFile.size > 4.5 * 1024 * 1024) {
               throw new Error(`Image is too large (max 4.5MB). Please choose a smaller image.`);
@@ -674,7 +739,7 @@ export const EnhancedPostCreator = ({
               throw new Error('Authentication required — please refresh the page and try again.');
             }
 
-            setUploadProgress(prev => ({ ...prev, [i]: 50 }));
+            setUploadProgress((prev) => ({ ...prev, [i]: 50 }));
             const res = await fetch('/api/social/upload', {
               method: 'POST',
               headers: { Authorization: `Bearer ${_imgToken}` },
@@ -688,18 +753,24 @@ export const EnhancedPostCreator = ({
               uploadedMedia.push({
                 url: json.url,
                 type: json.type || 'photo',
-                name: file.name
+                name: file.name,
               });
-              setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+              setUploadProgress((prev) => ({ ...prev, [i]: 100 }));
             } else {
               throw new Error(json.error || 'Unknown upload error');
             }
           }
         } catch (uploadErr) {
-          if (bgUnsub) { bgUnsub(); bgUnsub = null; } // Always clean up listener on error
+          if (bgUnsub) {
+            bgUnsub();
+            bgUnsub = null;
+          } // Always clean up listener on error
           console.warn('Media upload failed:', uploadErr);
           ghostPost.remove(); // Clean up ghost post on upload failure
-          const isCancelled = uploadErr?.message === 'Upload cancelled' || uploadErr?.message === 'Upload aborted' || uploadErr?.message === 'Upload superseded';
+          const isCancelled =
+            uploadErr?.message === 'Upload cancelled' ||
+            uploadErr?.message === 'Upload aborted' ||
+            uploadErr?.message === 'Upload superseded';
           if (!isCancelled) {
             setError(`Upload failed: ${uploadErr.message}`);
           }
@@ -710,7 +781,7 @@ export const EnhancedPostCreator = ({
 
       // Determine content type — compare against normalized 'video'/'photo' strings set during upload,
       // NOT against raw MIME types (which are no longer stored in uploadedMedia.type)
-      const contentType = uploadedMedia.some(m => m.type === 'video')
+      const contentType = uploadedMedia.some((m) => m.type === 'video')
         ? 'video'
         : uploadedMedia.length > 0
           ? 'image'
@@ -722,10 +793,10 @@ export const EnhancedPostCreator = ({
       // takes 30+s). Await the stored promise (with 60s ceiling) before
       // deciding to skip — fixes the "every video post has NULL thumbnail_url"
       // bug confirmed via SQL audit.
-      let rawThumb = uploadedMedia.find(m => m.type === 'video')?.thumbnail || null;
+      let rawThumb = uploadedMedia.find((m) => m.type === 'video')?.thumbnail || null;
       if (!rawThumb && mediaFiles.length > 0) {
         // Pull from any in-flight thumbnail promise for the first video file.
-        const firstVideoFile = mediaFiles.find(f => sniffMimeType(f).startsWith('video/'));
+        const firstVideoFile = mediaFiles.find((f) => sniffMimeType(f).startsWith('video/'));
         if (firstVideoFile) {
           const fk = _fileKey(firstVideoFile);
           const pendingPromise = thumbnailPromiseRef.current[fk];
@@ -733,7 +804,7 @@ export const EnhancedPostCreator = ({
             try {
               rawThumb = await Promise.race([
                 pendingPromise,
-                new Promise(r => setTimeout(() => r(null), 60_000)),
+                new Promise((r) => setTimeout(() => r(null), 60_000)),
               ]);
             } catch (e) {
               console.warn('[EnhancedPostCreator] await thumbnail promise threw:', e?.message || e);
@@ -745,40 +816,53 @@ export const EnhancedPostCreator = ({
       if (rawThumb && typeof rawThumb === 'string' && rawThumb.startsWith('data:') && user?.id) {
         // Best-effort: failure here means no thumbnail but post still goes through.
         // thumbnailUploader logs HTTP details on failure now.
-        persistedThumbnailUrl = await uploadThumbnail(rawThumb, user.id, 'thumbnails').catch(err => {
-          console.warn('[EnhancedPostCreator] uploadThumbnail threw:', err?.message || err);
-          return null;
-        });
+        persistedThumbnailUrl = await uploadThumbnail(rawThumb, user.id, 'thumbnails').catch(
+          (err) => {
+            console.warn('[EnhancedPostCreator] uploadThumbnail threw:', err?.message || err);
+            return null;
+          }
+        );
         if (!persistedThumbnailUrl) {
-          console.warn('[EnhancedPostCreator] uploadThumbnail returned null — post will save without thumbnail_url');
+          console.warn(
+            '[EnhancedPostCreator] uploadThumbnail returned null — post will save without thumbnail_url'
+          );
         }
       } else if (rawThumb && typeof rawThumb === 'string' && rawThumb.startsWith('http')) {
         // Already a real URL (e.g. from a previous upload or YouTube)
         persistedThumbnailUrl = rawThumb;
       } else {
-        console.warn('[EnhancedPostCreator] no thumbnail dataUrl after wait — post saving without thumbnail_url');
+        console.warn(
+          '[EnhancedPostCreator] no thumbnail dataUrl after wait — post saving without thumbnail_url'
+        );
       }
 
       // Create post with rich media objects
       const newPost = await socialService.createPost({
         authorId: user.id,
-        content: content.trim() || (contentType === 'image' ? '📸' : contentType === 'video' ? '🎬' : ''),
+        content:
+          content.trim() || (contentType === 'image' ? '📸' : contentType === 'video' ? '🎬' : ''),
         contentType,
-        mediaUrls: uploadedMedia.map(m => m.url),
+        mediaUrls: uploadedMedia.map((m) => m.url),
         thumbnailUrl: persistedThumbnailUrl,
-        visibility
+        visibility,
       });
 
       // Award social post diamonds (fire-and-forget with toast)
       if (user?.id) {
-        claimReward('/api/rewards/social-post', { userId: user.id, postId: newPost?.id }, 'New Post Published');
+        claimReward(
+          '/api/rewards/social-post',
+          { userId: user.id, postId: newPost?.id },
+          'New Post Published'
+        );
       }
-
 
       // Emit EventBus event for cross-page reactivity
       busEmit.socialPostCreated(newPost?.id, user.id);
       // Cross-tab sync — refresh feed in other open tabs
-      broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
+      broadcastSync('smarter_poker_social_sync', {
+        action: 'refresh_feed',
+        tabId: BROADCAST_TAB_ID,
+      });
 
       // 👻 Promote ghost post to real post — replaces the placeholder in the feed
       if (hasVideo) {
@@ -786,22 +870,57 @@ export const EnhancedPostCreator = ({
       }
 
       // ── Success UX: differs based on whether we went background ──────────
-      const videoWentBackground = uploadedMedia.some(m => m.wasBackground);
+      const videoWentBackground = uploadedMedia.some((m) => m.wasBackground);
 
       if (videoWentBackground) {
         // Modal is already closed — fire a persistent clickable toast pointing to the feed
         toast.action(
           '✅ Your video is live! Tap to see it in the feed.',
-          () => { window.top.location.href = '/hub/social-media'; },
+          () => {
+            window.top.location.href = '/hub/social-media';
+          },
           'success'
         );
         // Clean up state even though modal is gone
-        try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) { }
+        try {
+          localStorage.removeItem('sp-enhanced-post-draft');
+        } catch (_) {}
         onPostCreated?.(newPost);
       } else {
         // Quick upload (<10s) — stay in modal, show success animation
         setShowSuccess(true);
         triggerSuccessParticles();
+        // 2026-05-08 (per Dan: "ENSURE THERE IS AN AUDIO CHIME WHEN POSTED
+        // SUCCESSFULLY POPS UP"): parity with the chime fired on the
+        // /hub/social-media path (pages/hub/social-media/index.js:10030).
+        // Lightweight WebAudio "ding" — no asset dependency, no preload step.
+        // Wrapped in a try/catch because audio is a nice-to-have, must not
+        // block the post-success UX if the AudioContext is unavailable
+        // (older browsers, private mode, autoplay-disabled session).
+        try {
+          if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+            const ac = new (window.AudioContext || window.webkitAudioContext)();
+            const o = ac.createOscillator();
+            const g = ac.createGain();
+            o.connect(g);
+            g.connect(ac.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(880, ac.currentTime); // A5
+            o.frequency.exponentialRampToValueAtTime(1320, ac.currentTime + 0.12); // E6
+            g.gain.setValueAtTime(0.0001, ac.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.18, ac.currentTime + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.18);
+            o.start();
+            o.stop(ac.currentTime + 0.2);
+            setTimeout(() => {
+              try {
+                ac.close();
+              } catch (_) {}
+            }, 400);
+          }
+        } catch (_) {
+          /* audio is a nice-to-have, never block the post */
+        }
         toast.success('Posted Successfully!', 2000);
         if (successTimerRef.current) clearTimeout(successTimerRef.current);
         successTimerRef.current = setTimeout(() => {
@@ -813,15 +932,18 @@ export const EnhancedPostCreator = ({
           setThumbnails({});
           thumbnailRef.current = {};
           setShowSuccess(false);
-          try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) { }
+          try {
+            localStorage.removeItem('sp-enhanced-post-draft');
+          } catch (_) {}
           onPostCreated?.(newPost);
           if (onClose) onClose();
         }, 1500);
       }
-
-
     } catch (err) {
-      const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted' || err?.message === 'Upload superseded';
+      const isCancelled =
+        err?.message === 'Upload cancelled' ||
+        err?.message === 'Upload aborted' ||
+        err?.message === 'Upload superseded';
 
       // 👻 Always remove ghost post on error/cancel so feed placeholders don't linger
       ghostPost.remove();
@@ -840,7 +962,9 @@ export const EnhancedPostCreator = ({
               errorHint: err?.hint,
             },
           });
-        } catch (_sentryErr) { /* never let Sentry itself crash the UI */ }
+        } catch (_sentryErr) {
+          /* never let Sentry itself crash the UI */
+        }
       }
 
       console.warn('[EnhancedPostCreator] Post creation error:', err);
@@ -874,9 +998,7 @@ export const EnhancedPostCreator = ({
         lowerMsg.includes('violates');
 
       const isAuthError =
-        lowerMsg.includes('permission') ||
-        lowerMsg.includes('policy') ||
-        lowerMsg.includes('rls');
+        lowerMsg.includes('permission') || lowerMsg.includes('policy') || lowerMsg.includes('rls');
 
       const isNetworkError =
         lowerMsg.includes('network') ||
@@ -891,7 +1013,7 @@ export const EnhancedPostCreator = ({
             ? 'Upload failed due to a network issue. Please check your connection and try again.'
             : errorMessage;
 
-      const videoWentBackground = uploadedMedia.some(m => m.wasBackground);
+      const videoWentBackground = uploadedMedia.some((m) => m.wasBackground);
 
       if (videoWentBackground) {
         toast.error(`❌ ${userFriendlyMessage}`);
@@ -978,14 +1100,16 @@ export const EnhancedPostCreator = ({
                 try {
                   if (val.trim()) localStorage.setItem('sp-enhanced-post-draft', val);
                   else localStorage.removeItem('sp-enhanced-post-draft');
-                } catch (_) { }
+                } catch (_) {}
               }, 2000);
             }}
             maxLength={MAX_CHARS}
             disabled={isSubmitting}
             rows={1}
-            onFocus={(e) => e.target.rows = 3}
-            onBlur={(e) => { if (!content) e.target.rows = 1; }}
+            onFocus={(e) => (e.target.rows = 3)}
+            onBlur={(e) => {
+              if (!content) e.target.rows = 1;
+            }}
           />
         </div>
 
@@ -1017,7 +1141,7 @@ export const EnhancedPostCreator = ({
                       file={file}
                       currentThumbnail={thumbnails[fk]}
                       onSelect={(thumb) => {
-                        setThumbnails(prev => ({ ...prev, [fk]: thumb }));
+                        setThumbnails((prev) => ({ ...prev, [fk]: thumb }));
                         thumbnailRef.current[fk] = thumb;
                       }}
                     />
@@ -1036,39 +1160,21 @@ export const EnhancedPostCreator = ({
               className="error-dismiss-btn"
               onClick={() => setError(null)}
               aria-label="Dismiss error"
-            >×</button>
+            >
+              ×
+            </button>
           </div>
         )}
 
         {/* Divider */}
-        {preparingMedia && (
-          <div style={{
-            padding: '10px 12px', background: 'linear-gradient(135deg, #E8F4FD, #D4E9F7)',
-            borderRadius: 6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8
-          }}>
-            <div style={{
-              width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
-              borderRadius: '50%',
-              // GPU compositing parity with SharedPostCreator (audit-2 2026-04-30):
-              // generic `spin` keyframe + no transform layer was getting
-              // rate-limited by iOS Safari during HEVC decode. Use the same
-              // spPrepSpin/translateZ(0) hint the primary path now uses.
-              animation: 'spPrepSpin 0.8s linear infinite',
-              WebkitAnimation: 'spPrepSpin 0.8s linear infinite',
-              willChange: 'transform',
-              WebkitTransform: 'translateZ(0)',
-              transform: 'translateZ(0)',
-            }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-              {preparingStage === 'picker'
-                ? 'Opening Photos…'
-                : preparingStage === 'loading'
-                ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
-                : 'Preparing Your Video — This May Take A Moment...'}
-            </span>
-
-          </div>
-        )}
+        {/* Preparing Media banner removed 2026-05-08 (parity with SharedPostCreator).
+            Per Dan: "WHATS THIS WEIRD 'LOADING YOUR VIDEO' THIS LOOKS LIKE BROKEN
+            CODE AND DOES ABSOLUTLY NOTHING TO SPEED ANYTHING UP". The banner was
+            informational only — it could not accelerate iOS HEVC decode or the
+            file-picker handoff, only signal that something was happening. The
+            preparingMedia / preparingStage state machinery is left intact because
+            it's still consumed by the in-tile staging spinner on the media
+            preview row. */}
         <div className="inline-divider" />
 
         {/* Actions Row */}
@@ -1085,7 +1191,16 @@ export const EnhancedPostCreator = ({
 
           <button
             className="inline-action-btn"
-            onClick={() => { if (_focusGraceTimerRef.current) { clearTimeout(_focusGraceTimerRef.current); _focusGraceTimerRef.current = null; } _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */ }}
+            onClick={() => {
+              if (_focusGraceTimerRef.current) {
+                clearTimeout(_focusGraceTimerRef.current);
+                _focusGraceTimerRef.current = null;
+              }
+              _pickerOpenRef.current = true;
+              _hasFileArrivedRef.current = false;
+              setPreparingStage('picker');
+              fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */
+            }}
             disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
           >
             <span className="icon">📷</span> Photo/Video
@@ -1099,11 +1214,7 @@ export const EnhancedPostCreator = ({
 
           {/* Post Button (shows when content exists) */}
           {(content.trim() || mediaFiles.length > 0) && (
-            <button
-              className="inline-post-btn"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
+            <button className="inline-post-btn" onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? '...' : 'Post'}
             </button>
           )}
@@ -1286,11 +1397,7 @@ export const EnhancedPostCreator = ({
   // 🎨 MODAL MODE RENDER
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div
-      className="post-creator-overlay"
-      ref={modalRef}
-      onClick={handleBackdropClick}
-    >
+    <div className="post-creator-overlay" ref={modalRef} onClick={handleBackdropClick}>
       <div className={`creator-card glass-card ${showSuccess ? 'success' : ''}`}>
         {/* Success Overlay */}
         {showSuccess && (
@@ -1318,9 +1425,7 @@ export const EnhancedPostCreator = ({
         {/* Author Preview */}
         <div className="author-preview">
           <div className="author-avatar">
-            <div className="avatar-placeholder">
-              {user?.email?.[0]?.toUpperCase() || '?'}
-            </div>
+            <div className="avatar-placeholder">{user?.email?.[0]?.toUpperCase() || '?'}</div>
           </div>
           <div className="author-info">
             <span className="author-name">{user?.email?.split('@')[0] || 'You'}</span>
@@ -1354,7 +1459,7 @@ export const EnhancedPostCreator = ({
                 try {
                   if (val.trim()) localStorage.setItem('sp-enhanced-post-draft', val);
                   else localStorage.removeItem('sp-enhanced-post-draft');
-                } catch (_) { }
+                } catch (_) {}
               }, 2000);
             }}
             maxLength={MAX_CHARS}
@@ -1367,11 +1472,8 @@ export const EnhancedPostCreator = ({
               className="char-progress"
               style={{
                 width: `${Math.min(charPercentage, 100)}%`,
-                background: charPercentage > 90
-                  ? '#FF4444'
-                  : charPercentage > 75
-                    ? '#FFD700'
-                    : '#00FFFF'
+                background:
+                  charPercentage > 90 ? '#FF4444' : charPercentage > 75 ? '#FFD700' : '#00FFFF',
               }}
             />
             <span className={charPercentage > 90 ? 'warning' : ''}>
@@ -1408,7 +1510,7 @@ export const EnhancedPostCreator = ({
                       file={file}
                       currentThumbnail={thumbnails[fk]}
                       onSelect={(thumb) => {
-                        setThumbnails(prev => ({ ...prev, [fk]: thumb }));
+                        setThumbnails((prev) => ({ ...prev, [fk]: thumb }));
                         thumbnailRef.current[fk] = thumb;
                       }}
                     />
@@ -1427,37 +1529,15 @@ export const EnhancedPostCreator = ({
               className="error-dismiss-btn"
               onClick={() => setError(null)}
               aria-label="Dismiss error"
-            >×</button>
+            >
+              ×
+            </button>
           </div>
         )}
 
-        {/* Preparing Media Indicator */}
-        {preparingMedia && (
-          <div style={{
-            padding: '10px 12px', background: 'rgba(24,119,242,0.1)',
-            borderRadius: 6, margin: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8
-          }}>
-            <div style={{
-              width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
-              borderRadius: '50%',
-              // GPU compositing parity with SharedPostCreator (audit-2 2026-04-30) — see note on the
-              // sibling banner above for why generic `spin` was insufficient on iOS.
-              animation: 'spPrepSpin 0.8s linear infinite',
-              WebkitAnimation: 'spPrepSpin 0.8s linear infinite',
-              willChange: 'transform',
-              WebkitTransform: 'translateZ(0)',
-              transform: 'translateZ(0)',
-            }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-              {preparingStage === 'picker'
-                ? 'Opening Photos…'
-                : preparingStage === 'loading'
-                ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
-                : 'Preparing Your Video — This May Take A Moment...'}
-            </span>
-
-          </div>
-        )}
+        {/* Preparing Media Indicator removed 2026-05-08 — parity with the
+            sibling banner higher up in this file and with SharedPostCreator.
+            See removal rationale on the first banner block. */}
 
         {/* Actions */}
         <footer className="creator-actions">
@@ -1476,23 +1556,24 @@ export const EnhancedPostCreator = ({
             <button
               className="tool-btn interactive"
               title="Add Photo/Video"
-              onClick={() => { if (_focusGraceTimerRef.current) { clearTimeout(_focusGraceTimerRef.current); _focusGraceTimerRef.current = null; } _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */ }}
+              onClick={() => {
+                if (_focusGraceTimerRef.current) {
+                  clearTimeout(_focusGraceTimerRef.current);
+                  _focusGraceTimerRef.current = null;
+                }
+                _pickerOpenRef.current = true;
+                _hasFileArrivedRef.current = false;
+                setPreparingStage('picker');
+                fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */
+              }}
               disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
             >
               📷
             </button>
-            <button
-              className="tool-btn interactive"
-              title="Record Video"
-              disabled
-            >
+            <button className="tool-btn interactive" title="Record Video" disabled>
               🎬
             </button>
-            <button
-              className="tool-btn interactive"
-              title="Add Poll (Coming Soon)"
-              disabled
-            >
+            <button className="tool-btn interactive" title="Add Poll (Coming Soon)" disabled>
               📊
             </button>
 
