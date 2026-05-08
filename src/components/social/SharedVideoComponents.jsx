@@ -237,6 +237,15 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
   // re-create the original "black tile + play button" symptom for this
   // dead-pipeline case.
   const [videoFailed, setVideoFailed] = useState(false);
+  // FEED-VIDEO-POSTER-2026-05-08-Round2 audit Pass 3 fix B7 — separate
+  // failure state for the YT-id-derived hqdefault.jpg fallback. The prior
+  // code reused setImgFailed for BOTH the user-supplied thumbnail AND the
+  // YT-derived poster: when both 404'd, the second onError called
+  // setImgFailed(true) on a state already true, React bailed out, and the
+  // broken <img> stayed stuck on screen with VideoPostWrapper's play
+  // overlay = the original "black + play" symptom we shipped this
+  // component to eliminate.
+  const [ytPosterFailed, setYtPosterFailed] = useState(false);
   const videoRef = useRef(null);
 
   // FEED-VIDEO-POSTER-2026-05-08 audit Pass 1 fix B3 — reset imgFailed when
@@ -245,12 +254,14 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
   // 2026-05-07 will write fresh thumbnail_url values via realtime), the
   // component stays stuck in Branch 2 forever because imgFailed=true never
   // resets. The next img attempt with the fresh URL is exactly what we want.
-  // Same logic for videoFailed when videoUrl prop changes.
+  // Same logic for videoFailed when videoUrl prop changes, and ytPosterFailed
+  // when videoUrl changes (because the YT id is derived from videoUrl).
   useEffect(() => {
     setImgFailed(false);
   }, [thumbnailUrl]);
   useEffect(() => {
     setVideoFailed(false);
+    setYtPosterFailed(false);
   }, [videoUrl]);
 
   // IntersectionObserver autoplay forces iOS Safari to decode the first
@@ -294,7 +305,24 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
     // (cleanup fires) so it doesn't keep referencing the unmounted
     // <video> element. Without this, IntersectionObserver lives outside
     // React's lifecycle and would leak until the component unmounts.
-  }, [videoUrl, imgFailed, videoFailed]);
+    //
+    // FEED-VIDEO-POSTER-2026-05-08-Round2 audit Pass 4 fix B8 — thumbnailUrl
+    // MUST also be in the deps array. The Branch 1↔Branch 2 discriminator
+    // is `thumbnailUrl && !imgFailed`. When realtime UPDATE clears
+    // thumbnail_url to NULL (e.g., the in-flight 749 transcode jobs queued
+    // 2026-05-07 by reencode_low_quality_youtube_reels_targeted, which set
+    // thumbnail_url=NULL on 2,372 reels and propagates to social_posts via
+    // m7_2_mirror_all_video_posts), the component transitions Branch 1
+    // (img) → Branch 2 (video) but imgFailed stays false. Without
+    // thumbnailUrl in deps, this effect doesn't re-run — videoRef.current
+    // was null on the prior render's <img> branch and bailed out, and now
+    // that videoRef.current points at the fresh <video>, no observer
+    // attaches → no autoplay-on-scroll → iOS Safari shows pure black.
+    // Adding thumbnailUrl makes the effect re-run on every Branch 1↔2
+    // transition. Cost: redundant re-runs when thumbnailUrl mutates while
+    // we're in Branch 1 (img). Those re-runs early-return at `if (!video)`
+    // because videoRef.current is still null. Cheap.
+  }, [videoUrl, imgFailed, videoFailed, thumbnailUrl]);
 
   // FEED-VIDEO-POSTER-2026-05-08 audit Pass 1 fix B4 — YouTube URLs cannot
   // render inside a <video> element (they require an iframe). The 1-up
@@ -307,17 +335,16 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
   // call sites are safe.
   const isYouTube = !!(videoUrl && typeof videoUrl === 'string' && isYouTubeUrl(videoUrl));
   if (isYouTube) {
-    const ytPoster =
-      thumbnailUrl && !imgFailed
-        ? thumbnailUrl
-        : (() => {
-            const id = getYouTubeVideoId(videoUrl);
-            return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
-          })();
-    if (ytPoster) {
+    // FEED-VIDEO-POSTER-2026-05-08-Round2 audit Pass 3 fix B7 — try the
+    // user-supplied thumbnail FIRST (highest fidelity), then independently
+    // try the YT-id-derived hqdefault.jpg using a separate failure flag
+    // (ytPosterFailed). The prior single-state design caused an infinite
+    // broken-img stuck-state when both URLs 404'd — see comment block
+    // above the useState declarations for the full root-cause writeup.
+    if (thumbnailUrl && !imgFailed) {
       return (
         <img
-          src={ytPoster}
+          src={thumbnailUrl}
           alt=""
           loading="lazy"
           style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
@@ -325,7 +352,22 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
         />
       );
     }
-    // No YT id extractable — fall through to gradient placeholder, NEVER to <video>.
+    const ytId = getYouTubeVideoId(videoUrl);
+    const ytPosterUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+    if (ytPosterUrl && !ytPosterFailed) {
+      return (
+        <img
+          src={ytPosterUrl}
+          alt=""
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+          onError={() => setYtPosterFailed(true)}
+        />
+      );
+    }
+    // YT id missing OR YT-derived poster also failed — render gradient,
+    // NEVER fall through to <video> below (YT URLs cannot render in
+    // <video> elements; they require iframes via VideoPostWrapper).
     return (
       <div
         style={{

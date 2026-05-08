@@ -8869,7 +8869,6 @@ function SocialMediaPage() {
                 /* non-critical */
               }
             }
-          }
         } catch {
           /* non-critical */
         }
