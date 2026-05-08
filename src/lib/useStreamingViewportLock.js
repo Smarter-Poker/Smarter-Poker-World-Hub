@@ -58,6 +58,11 @@ export function useStreamingViewportLock(enabled) {
     } catch (_) { /* unsupported — ignore */ }
 
     // ── 3. Reflow + scale reset on any layout change ───────────────────────
+    // RIGOR-AUDIT-3 USVL-5: track pending setTimeout ids so cleanup can
+    // cancel them. Without this, a rotation that fires within ~350ms of
+    // unmount would forceReflow on a page the user has already navigated
+    // to, yanking their scroll position.
+    const pendingReflowTimers = new Set();
     const forceReflow = () => {
       // Read offsetHeight to force a synchronous layout pass
       // eslint-disable-next-line no-unused-expressions
@@ -66,11 +71,19 @@ export function useStreamingViewportLock(enabled) {
       window.scrollTo(0, 0);
     };
 
+    const scheduleReflow = (ms) => {
+      const id = setTimeout(() => {
+        pendingReflowTimers.delete(id);
+        forceReflow();
+      }, ms);
+      pendingReflowTimers.add(id);
+    };
+
     const onOrientationChange = () => {
       // Schedule reflow AFTER the orientationchange event settles
       // (Safari fires resize ~100-300ms after orientationchange completes)
-      setTimeout(forceReflow, 50);
-      setTimeout(forceReflow, 350);
+      scheduleReflow(50);
+      scheduleReflow(350);
     };
 
     const onVisualViewportChange = () => {
@@ -93,6 +106,11 @@ export function useStreamingViewportLock(enabled) {
 
     // ── Cleanup ────────────────────────────────────────────────────────────
     return () => {
+      // RIGOR-AUDIT-3 USVL-5: cancel any pending forceReflow timers so they
+      // don't fire on the next mounted route after this hook unmounts.
+      for (const id of pendingReflowTimers) clearTimeout(id);
+      pendingReflowTimers.clear();
+
       window.removeEventListener('orientationchange', onOrientationChange);
       window.removeEventListener('resize', onOrientationChange);
       if (window.visualViewport) {
