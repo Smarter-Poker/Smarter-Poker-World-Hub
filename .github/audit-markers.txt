@@ -1,0 +1,67 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  AUDIT MARKER REGISTRY — must-be-present tokens                          ║
+# ╠══════════════════════════════════════════════════════════════════════════╣
+# ║                                                                          ║
+# ║  Each non-blank, non-comment line is a marker token that MUST appear at  ║
+# ║  least once somewhere in the tracked source tree (excluding              ║
+# ║  node_modules, .next, dist, build, public). The audit-marker-guard CI    ║
+# ║  workflow fails any push or PR where a registered marker has gone        ║
+# ║  missing, blocking accidental regression.                                ║
+# ║                                                                          ║
+# ║  WHY THIS EXISTS:                                                        ║
+# ║  Multiple agents work on this codebase in parallel. Without a guard, a   ║
+# ║  PR built from a stale local copy can silently revert another PR's       ║
+# ║  fixes when it lands on main (observed: commit 2ac380fe wiped LV-AUDIT   ║
+# ║  fixes from PRs #257/#258/#259 with +17/-115 lines on lives.js, all     ║
+# ║  while passing review). This registry + the CI workflow make such a    ║
+# ║  regression FAIL THE BUILD instead of silently shipping.                ║
+# ║                                                                          ║
+# ║  TO RETIRE A MARKER (intentional removal):                              ║
+# ║  Delete its line from this file in the SAME PR that removes the marker  ║
+# ║  from code. The CI workflow only scans the registered tokens, so an    ║
+# ║  explicit registry edit is required to land any removal.                ║
+# ║                                                                          ║
+# ║  TO ADD A NEW MARKER (when shipping a new audit fix):                   ║
+# ║  Add the token here in the same PR as the new fix. Use a short          ║
+# ║  hyphen-delimited tag (LV-AUDIT-N, EC-N, GLM-N, etc.) and embed it as   ║
+# ║  a comment near the affected code, e.g.                                 ║
+# ║    // BUG FIX (LV-AUDIT-12): explanation of what was wrong              ║
+# ║                                                                          ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# ─── /hub/lives.js — UI-UX-Pro-Max + 4 audit passes ─────────────────────────
+LV-AUDIT-1
+LV-AUDIT-2
+LV-AUDIT-3
+LV-AUDIT-4
+LV-AUDIT-5
+LV-AUDIT-6
+LV-AUDIT-7
+LV-AUDIT-8
+LV-AUDIT-9
+
+# ─── /hub/lives.js — pre-existing adversarial-audit fixes ───────────────────
+LV-LIKES
+LV-SHARE
+LV-WATCH
+LV-AUDIO
+L-LIVES-1
+L-LIVES-2
+L-LIVES-3
+L-LIVES-4
+
+# ─── src/components/social/GoLiveModal.jsx ──────────────────────────────────
+GLM-1
+GLM-2
+GLM-3
+GLM-5
+GLM-6
+
+# ─── src/components/social/LiveStreamViewer.jsx ─────────────────────────────
+LSV-1
+LSV-2
+LSV-4
+LSV-5
+LSV-6
+LV-1
+V-VIDEO-1
