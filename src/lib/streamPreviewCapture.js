@@ -177,9 +177,23 @@ export class StreamPreviewCapture {
     try {
       mr.start(1000);  // 1s timeslice
     } catch (err) {
+      // RIGOR-AUDIT-3 SPC-5: previously this just returned, killing the
+      // capture chain forever (no new window scheduled). iOS Safari throws
+      // here on rapid track toggles. Schedule a retry so the chain
+      // self-heals; cap backoff so we don't grind CPU on a hard failure.
       this.onError(err);
+      if (!this.disposed) {
+        const backoff = Math.min(30_000, (this._startBackoffMs || 1000) * 2);
+        this._startBackoffMs = backoff;
+        this.windowTimer = setTimeout(() => {
+          this.windowTimer = null;
+          if (!this.disposed) this._startWindow();
+        }, backoff);
+      }
       return;
     }
+    // Reset backoff on successful start
+    this._startBackoffMs = 1000;
     this.recorder = mr;
 
     this.windowTimer = setTimeout(() => {

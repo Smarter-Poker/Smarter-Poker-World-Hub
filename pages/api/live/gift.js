@@ -113,6 +113,19 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Cannot gift yourself' });
     }
 
+    // RIGOR-AUDIT-3 GFT-6: cap message length. Previously unbounded → an
+    // adversary could put 10MB in `message` and the realtime broadcast
+    // would fan that out to every viewer. Cap matches the comment cap.
+    const MAX_GIFT_MESSAGE_LEN = 200;
+    let trimmedMessage = null;
+    if (typeof message === 'string') {
+        const t = message.trim();
+        if (t.length > MAX_GIFT_MESSAGE_LEN) {
+            return res.status(400).json({ error: `Message too long (max ${MAX_GIFT_MESSAGE_LEN} chars)` });
+        }
+        trimmedMessage = t || null;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // BUG-FIX-LIVE-API-AUDIT — three integrity checks before any DB mutation
     //
@@ -170,7 +183,16 @@ export default async function handler(req, res) {
         ? (new Date() - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24)
         : 0;
 
-    const isKingfish = senderProfile?.full_name?.toLowerCase().includes('dan bekavac') || senderProfile?.username?.toLowerCase() === 'kingfish';
+    // RIGOR-AUDIT-3 GFT-1: anti-farming bypass was previously string-matching
+    // user-editable profile fields (full_name, username). Any user could
+    // UPDATE profiles SET full_name = 'Hello Dan Bekavac' WHERE id = auth.uid()
+    // and bypass ALL anti-farming caps. Now deterministic: only the actual
+    // KingFish auth.uid bypasses. The user_id is sourced from env so test
+    // environments and prod can have different test accounts without code
+    // changes; falls back to the prod canonical id.
+    const KINGFISH_USER_ID = process.env.KINGFISH_USER_ID
+        || '47965354-0e56-43ef-931c-ddaab82af765';
+    const isKingfish = user.id === KINGFISH_USER_ID;
 
     // ── GUARD: Hard block — new users (< 30 days) cannot send live gifts ──
     if (!isKingfish && senderAgeDays < NEW_USER_BLOCK_DAYS) {
@@ -320,14 +342,38 @@ export default async function handler(req, res) {
         }
 
         // Record the gift
-        const { data: gift } = await supabase.from('live_gifts').insert({
+        // RIGOR-AUDIT-3 GFT-2: failure here used to silently leave diamonds
+        // debited from sender + credited to receiver with no audit row. Now
+        // we detect the failure and reverse the transfer (debit receiver,
+        // refund sender) so the books stay balanced.
+        const { data: gift, error: giftErr } = await supabase.from('live_gifts').insert({
             id: giftId,
             stream_id,
             sender_id: user.id,
             receiver_id,
             amount: parsedAmount,
-            message: message || null,
+            message: trimmedMessage,
         }).select().maybeSingle();
+
+        if (giftErr || !gift) {
+            console.error('[live/gift] CRITICAL: live_gifts INSERT failed after credit:', giftErr);
+            // Reverse: debit receiver via deduct_diamonds, then refund sender.
+            try {
+                await supabase.rpc('deduct_diamonds', {
+                    p_user_id:          receiver_id,
+                    p_amount:           parsedAmount,
+                    p_description:      `Reversal — live gift INSERT failure (${giftId})`,
+                    p_transaction_type: 'live_gift_reversal',
+                    p_metadata:         { reason: 'live_gifts insert failed', original_gift_id: giftId },
+                    p_reference_id:     `live_gift_reversal_${giftId}`,
+                    p_cooldown_seconds: 0,
+                });
+            } catch (reverseErr) {
+                console.error('[live/gift] CRITICAL: Failed to reverse credit during gift INSERT recovery:', reverseErr);
+            }
+            await refundSender('live_gifts insert failure');
+            return res.status(500).json({ error: 'Gift failed to record — your diamonds have been refunded. Please try again.' });
+        }
 
         // Record the IP cluster action — clientIp was parsed once at top of handler
         await supabase.from('anti_farming_ips').insert({
@@ -356,7 +402,7 @@ export default async function handler(req, res) {
                 sender_avatar: senderProfile?.avatar_url || null,
                 receiver_id,
                 amount: parsedAmount,
-                message: message || null,
+                message: trimmedMessage,
                 gift_id: gift?.id,
             },
         }).catch(() => {}); // Non-fatal if broadcast fails
