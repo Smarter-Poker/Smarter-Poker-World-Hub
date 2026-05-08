@@ -88,13 +88,9 @@ export default async function handler(req, res) {
 
     try {
         // Verify ownership
-        // RIGOR-AUDIT E7: also fetch preview_clip_url so the delete path can
-        // reclaim the rolling preview blob from storage. Save / post / 
-        // force_end intentionally retain the preview clip so feed cards
-        // continue to look right during the brief replay-conversion window.
         const { data: stream } = await supabase
             .from('live_streams')
-            .select('id, broadcaster_id, video_url, thumbnail_url, preview_clip_url, title')
+            .select('id, broadcaster_id, video_url, thumbnail_url, title')
             .eq('id', stream_id)
             .maybeSingle();
 
@@ -110,23 +106,9 @@ export default async function handler(req, res) {
                 await supabase.from('social_posts').delete().eq('content_type', 'live').contains('metadata', { stream_id });
             }
             // Delete the stream record and any associated storage files
-            const pathsToRemove = [];
             if (stream.video_url) {
-                const p = stream.video_url.split('/live-recordings/')[1];
-                if (p) pathsToRemove.push(p);
-            }
-            // RIGOR-AUDIT E7: also remove the rolling preview clip blob.
-            // Without this, every discarded broadcast left an orphan
-            // ~1MB file under {user_id}/previews/ in storage.
-            if (stream.preview_clip_url) {
-                const p = stream.preview_clip_url.split('/live-recordings/')[1];
-                if (p) {
-                    // strip cache-bust query string if present
-                    pathsToRemove.push(p.split('?')[0]);
-                }
-            }
-            if (pathsToRemove.length > 0) {
-                await supabase.storage.from('live-recordings').remove(pathsToRemove).catch(() => {});
+                const path = stream.video_url.split('/live-recordings/')[1];
+                if (path) await supabase.storage.from('live-recordings').remove([path]).catch(() => {});
             }
             await supabase.from('live_streams').delete().eq('id', stream_id);
             return res.json({ success: true, action: 'deleted' });

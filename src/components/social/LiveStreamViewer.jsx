@@ -60,9 +60,6 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [showGifts, setShowGifts] = useState(false);
     const [userDiamondBalance, setUserDiamondBalance] = useState(0);
     const [giftFlash, setGiftFlash] = useState(null);
-    // RIGOR-AUDIT R8: keyed by sender_id (always unique). Each entry is
-    // { name, amount, avatar_url }. Realtime gift broadcasts include
-    // sender_id so we can patch this map deterministically.
     const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
@@ -76,10 +73,6 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const giftChannelRef = useRef(null);
     const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
     const pinChannelRef = useRef(null); // #18: pinned comment subscription
-    // RIGOR-AUDIT R12: live_bans subscription so a viewer banned mid-stream
-    // is auto-evicted with a UX banner instead of silently 403'ing on
-    // every interaction while still seeing the broadcaster's video.
-    const banChannelRef = useRef(null);
     // Feature 3: Clip It
     const mediaRecorderRef = useRef(null);
     const recordedChunksRef = useRef([]); // BUG FIX: was missing, caused "recordedChunksRef is not defined" crash
@@ -119,21 +112,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         fetch(`/api/live/gifts?stream_id=${stream.id}`)
             .then(res => res.json())
             .then(data => {
-                // RIGOR-AUDIT R8: prefer the sender_id-keyed list. Falls
-                // back to the legacy name-keyed object on older API builds.
-                if (Array.isArray(data.topGiftersList)) {
-                    const byId = {};
-                    for (const e of data.topGiftersList) {
-                        byId[e.sender_id] = { name: e.name, amount: e.amount, avatar_url: e.avatar_url };
-                    }
-                    setTopGifters(byId);
-                } else if (data.topGifters) {
-                    // Legacy shape — keys are display names.
-                    const byName = {};
-                    for (const [name, amount] of Object.entries(data.topGifters)) {
-                        byName[`legacy:${name}`] = { name, amount, avatar_url: null };
-                    }
-                    setTopGifters(byName);
+                if (data.topGifters) {
+                    setTopGifters(data.topGifters);
                 }
             })
             .catch(err => console.error('Failed to load gifts', err));
@@ -253,11 +233,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 supabase.removeChannel(commentChannelRef.current);
                 commentChannelRef.current = null;
             }
-            // RIGOR-AUDIT R3: per-mount unique suffix so React StrictMode
-            // double-invoke and the same user opening the same stream in
-            // multiple tabs don't collide on a static channel name (which
-            // makes Realtime silently drop payloads on the duplicate).
-            const ch = supabase.channel(`live-comments-viewer-${stream.id}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+            const ch = supabase.channel(`live-comments-viewer-${stream.id}`)
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${stream.id}` },
                     (payload) => {
                         // BUG-FIX-LIVE-AUDIT (B4): drop comments from users
@@ -317,16 +293,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     }, 4000);
 
                     // Feature 5: Update Top Gifters Leaderboard
-                    // RIGOR-AUDIT R8: key by sender_id (unique). Gift broadcast
-                    // payload includes sender_id (see /api/live/gift.js).
                     setTopGifters(prev => {
-                        const sid = payload.sender_id;
-                        if (!sid) return prev;  // legacy/missing — skip update
-                        const cur = prev[sid] || { name: payload.sender_name, amount: 0, avatar_url: payload.sender_avatar || null };
-                        return {
-                            ...prev,
-                            [sid]: { ...cur, amount: cur.amount + payload.amount },
-                        };
+                        const currentAmount = prev[payload.sender_name] || 0;
+                        return { ...prev, [payload.sender_name]: currentAmount + payload.amount };
                     });
                 }
             }).subscribe();
@@ -335,9 +304,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
         // #18: Subscribe to pinned comments
         if (stream?.id) {
-            // RIGOR-AUDIT R3: postgres_changes channels need unique names
-            // (StrictMode double-invoke / multi-tab same user).
-            const pinCh = supabase.channel(`live-pins-${stream.id}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+            const pinCh = supabase.channel(`live-pins-${stream.id}`)
                 .on('postgres_changes', {
                     event: '*', schema: 'public', table: 'live_pins',
                     filter: `stream_id=eq.${stream.id}`,
@@ -368,42 +335,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 });
         }
 
-        // RIGOR-AUDIT R12: subscribe to live_bans so a viewer banned
-        // mid-stream is force-evicted from the room with a banner instead
-        // of silently failing on every interaction while still watching.
-        if (stream?.id && userId) {
-            const banCh = supabase
-                .channel(`live-bans-viewer-${stream.id}-${userId}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
-                .on('postgres_changes', {
-                    event: 'INSERT', schema: 'public', table: 'live_bans',
-                    filter: `stream_id=eq.${stream.id}`,
-                }, (payload) => {
-                    if (payload?.new?.banned_user_id !== userId) return;
-                    // Banned. Surface a 3-second banner, then evict.
-                    setError('You have been banned from this stream by the broadcaster');
-                    if (streamEndedTimerRef.current) clearTimeout(streamEndedTimerRef.current);
-                    streamEndedTimerRef.current = setTimeout(() => {
-                        streamEndedTimerRef.current = null;
-                        try {
-                            liveStreamService.isManualDisconnect = true;
-                            liveStreamService.leaveStream();
-                        } catch (_) {}
-                        if (typeof onClose === 'function') onClose();
-                    }, 3000);
-                })
-                .subscribe();
-            banChannelRef.current = banCh;
-        }
-
         return () => {
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
             if (giftChannelRef.current) supabase.removeChannel(giftChannelRef.current);
             if (pinChannelRef.current) supabase.removeChannel(pinChannelRef.current);
-            // RIGOR-AUDIT R12: tear down the ban subscription
-            if (banChannelRef.current) {
-                supabase.removeChannel(banChannelRef.current);
-                banChannelRef.current = null;
-            }
             // BUG FIX (L7): cancel any pending giftFlash timer on unmount
             if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
             // BUG FIX (LV-1): cancel any pending commentError clear timer on unmount
@@ -1113,14 +1048,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 <div style={{ position: 'absolute', top: 120, right: 16, background: 'rgba(0,0,0,0.5)', padding: '10px 14px', borderRadius: 12, zIndex: 15, backdropFilter: 'blur(8px)', minWidth: 140 }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Top Supporters</div>
                     {Object.entries(topGifters)
-                        .sort(([, a], [, b]) => b.amount - a.amount)
+                        .sort(([, a], [, b]) => b - a)
                         .slice(0, 3)
-                        .map(([sid, entry], idx) => (
-                            <div key={sid} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
+                        .map(([name, amount], idx) => (
+                            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
                                 <span style={{ opacity: 0.9, display: 'flex', gap: 6, alignItems: 'center' }}>
-                                    <span style={{ fontSize: 11, opacity: 0.7 }}>#{idx + 1}</span> {entry.name}
+                                    <span style={{ fontSize: 11, opacity: 0.7 }}>#{idx + 1}</span> {name}
                                 </span>
-                                <span style={{ fontWeight: 700, color: '#00CFFF' }}>{entry.amount} 💎</span>
+                                <span style={{ fontWeight: 700, color: '#00CFFF' }}>{amount} 💎</span>
                             </div>
                         ))}
                 </div>

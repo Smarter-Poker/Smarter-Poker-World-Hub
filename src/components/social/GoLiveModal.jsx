@@ -249,10 +249,8 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     // Subscribe to viewer comments when stream goes live
     useEffect(() => {
         if (!streamId) return;
-        // RIGOR-AUDIT R3: postgres_changes channel name unique per mount
-        // to avoid StrictMode double-invoke / multi-tab collision.
         const ch = supabase
-            .channel(`live-comments-broadcaster-${streamId}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+            .channel(`live-comments-broadcaster-${streamId}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${streamId}` },
                 (payload) => {
                     if (payload.new.user_id !== user?.id) { // Don't double-add own comments
@@ -275,19 +273,8 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         fetch(`/api/live/gifts?stream_id=${streamId}`)
             .then(res => res.json())
             .then(data => {
-                // RIGOR-AUDIT R8: prefer sender_id-keyed list; fall back to legacy.
-                if (Array.isArray(data.topGiftersList)) {
-                    const byId = {};
-                    for (const e of data.topGiftersList) {
-                        byId[e.sender_id] = { name: e.name, amount: e.amount, avatar_url: e.avatar_url };
-                    }
-                    setTopGifters(byId);
-                } else if (data.topGifters) {
-                    const byName = {};
-                    for (const [name, amount] of Object.entries(data.topGifters)) {
-                        byName[`legacy:${name}`] = { name, amount, avatar_url: null };
-                    }
-                    setTopGifters(byName);
+                if (data.topGifters) {
+                    setTopGifters(data.topGifters);
                 }
             })
             .catch(err => console.error('Failed to load gifts', err));
@@ -306,12 +293,9 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 }, 4000);
 
                 // Feature 5: Update Top Gifters Leaderboard
-                // RIGOR-AUDIT R8: key by sender_id, not display name.
                 setTopGifters(prev => {
-                    const sid = payload.sender_id;
-                    if (!sid) return prev;
-                    const cur = prev[sid] || { name: payload.sender_name, amount: 0, avatar_url: payload.sender_avatar || null };
-                    return { ...prev, [sid]: { ...cur, amount: cur.amount + payload.amount } };
+                    const currentAmount = prev[payload.sender_name] || 0;
+                    return { ...prev, [payload.sender_name]: currentAmount + payload.amount };
                 });
             }
         }).subscribe();
@@ -1135,14 +1119,14 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             <div style={{ position: 'absolute', top: 120, right: 16, background: 'rgba(0,0,0,0.5)', padding: '10px 14px', borderRadius: 12, zIndex: 15, backdropFilter: 'blur(8px)', minWidth: 140 }}>
                                 <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Top Supporters</div>
                                 {Object.entries(topGifters)
-                                    .sort(([, a], [, b]) => b.amount - a.amount)
+                                    .sort(([, a], [, b]) => b - a)
                                     .slice(0, 3)
-                                    .map(([sid, entry], idx) => (
-                                        <div key={sid} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
+                                    .map(([name, amount], idx) => (
+                                        <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
                                             <span style={{ opacity: 0.9, display: 'flex', gap: 6, alignItems: 'center' }}>
-                                                <span style={{ fontSize: 11, opacity: 0.7 }}>#{idx + 1}</span> {entry.name}
+                                                <span style={{ fontSize: 11, opacity: 0.7 }}>#{idx + 1}</span> {name}
                                             </span>
-                                            <span style={{ fontWeight: 700, color: '#00CFFF' }}>{entry.amount} 💎</span>
+                                            <span style={{ fontWeight: 700, color: '#00CFFF' }}>{amount} 💎</span>
                                         </div>
                                     ))}
                             </div>

@@ -2493,18 +2493,11 @@ export default function ReelsPage() {
                 muted={true}
                 onPlay={() => setIsPaused(false)}
                 onPlaying={(e) => {
-                  // Verify-after-unmute: when sessionStorage[sp:reels:interacted]
-                  // is preset from a prior load, userInteractedRef is true but
-                  // the browser hasn't seen a fresh gesture this load. The
-                  // muted=false write may be silently ignored. Only flip React
-                  // state after the DOM accepted it — never lie.
                   if (userInteractedRef.current && userWantsSoundRef.current) {
                     try {
                       e.target.muted = false;
-                      if (!e.target.muted) {
-                        if (e.target.volume === 0) e.target.volume = 1.0;
-                        setMuted(false);
-                      }
+                      if (e.target.volume === 0) e.target.volume = 1.0;
+                      setMuted(false);
                     } catch (_) {
                       /* best-effort */
                     }
