@@ -44,6 +44,10 @@ export default function LivesPage() {
     const [publishingDraft, setPublishingDraft] = useState(null);
     const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
     const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
+    // BUG FIX (LV-AUDIT-3): countdown tick — scheduledLives countdown was computed inline at
+    // render time only; without a re-render trigger the displayed time stayed frozen indefinitely.
+    // Tick once a minute (rounding granularity) so the countdown advances naturally.
+    const [tick, setTick] = useState(0);
     const containerRef = useRef(null);
     const videoRefs = useRef({});
     // BUG FIX (L-LIVES-1,3,4): store toast/share timer refs for cleanup on unmount
@@ -57,6 +61,15 @@ export default function LivesPage() {
             if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current);
         };
     }, []);
+
+    // BUG FIX (LV-AUDIT-3): drive scheduledLives countdown re-renders.
+    // Only ticks while there are scheduled lives to display — avoids unnecessary work on the empty
+    // path. 60s granularity matches the displayed minute resolution.
+    useEffect(() => {
+        if (scheduledLives.length === 0) return;
+        const id = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(id);
+    }, [scheduledLives.length]);
 
     // Get auth user for FeatureGate
     useEffect(() => {
@@ -280,10 +293,18 @@ export default function LivesPage() {
         // which shadows the outer `userId` state and attributes likes to the wrong identity.
         const likeUserId = userId;
         if (likeUserId) {
+            // BUG FIX (LV-AUDIT-1): authedFetch returns Response without throwing on HTTP errors
+            // (verified: submitChatMsg checks res.ok after authedFetch). Previously a
+            // 403/429/RLS-denial silently left the optimistic UI flipped. Now we check res.ok
+            // and roll back on any non-2xx, plus the existing network-error catch.
             authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: currentStream.id, user_id: likeUserId, interaction_type: 'like' })
+            }).then(res => {
+                if (!res || !res.ok) {
+                    setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
+                }
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
@@ -329,7 +350,10 @@ export default function LivesPage() {
     // BUG FIX (L-LIVES-2,5): live streams should use /api/live/comment (enforces
     // ban/slow mode); replay streams use social interactions for comment replay.
     const submitChatMsg = async () => {
-        if (!chatText.trim() || !currentStream) return;
+        // BUG FIX (LV-AUDIT-2): re-entry guard. The Enter-key path was previously not gated on
+        // submittingChat — Enter-mash could fire multiple in-flight submissions. Both the keydown
+        // handler and this function now refuse re-entry while a submission is pending.
+        if (!chatText.trim() || !currentStream || submittingChat) return;
         // BUG FIX (L-LIVES-2): use authenticated userId from state, not anon localStorage uid
         const authedUserId = userId;
         if (!authedUserId) return;
@@ -389,11 +413,15 @@ export default function LivesPage() {
                 setShareMsg('');
             }, 2000);
             // BUG FIX (LV-SHARE): use authenticated userId from state — not the anon localStorage uid
+            // BUG FIX (LV-AUDIT-1b): authedFetch doesn't throw on 4xx/5xx — surface non-2xx so
+            // monitoring catches RLS / rate-limit denials silently dropping share interactions.
             if (userId) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' }),
+                }).then(res => {
+                    if (!res || !res.ok) console.warn('[App] Share interaction non-2xx:', res?.status);
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
@@ -543,6 +571,8 @@ export default function LivesPage() {
                         scrollbarWidth: 'none',
                     }}>
                         {scheduledLives.map(sl => {
+                            // tick read forces re-render every 60s so the countdown advances
+                            void tick; // eslint-disable-line no-unused-expressions
                             const scheduledDate = new Date(sl.scheduled_at);
                             const now = new Date();
                             const diffMs = scheduledDate - now;
@@ -951,7 +981,7 @@ export default function LivesPage() {
                         <input
                             value={chatText}
                             onChange={e => setChatText(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !submittingChat) { e.preventDefault(); submitChatMsg(); } }}
                             placeholder="Say Something..."
                             style={{
                                 flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
@@ -992,6 +1022,18 @@ export default function LivesPage() {
          @keyframes pulse {
            0%, 100% { opacity: 1; }
            50% { opacity: 0.7; }
+         }
+
+         /* BUG FIX (LV-AUDIT-4): publishToast referenced 'slideUp' but the keyframes were never
+            defined. Toast appeared with no enter animation. Define here so the toast slides up. */
+         @keyframes slideUp {
+           0%   { transform: translateX(-50%) translateY(20px); opacity: 0; }
+           100% { transform: translateX(-50%) translateY(0);    opacity: 1; }
+         }
+
+         @media (prefers-reduced-motion: reduce) {
+           [aria-label="Live now"] { animation: none !important; }
+           .lives-skel { animation-duration: 2s !important; }
          }
        `}</style >
 
