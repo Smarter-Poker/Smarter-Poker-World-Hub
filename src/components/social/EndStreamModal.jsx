@@ -149,7 +149,18 @@ export function EndStreamModal({
     const uploadVideo = async (onProgress) => {
         if (!videoBlob || !user?.id || !streamId) return null;
 
-        const filename = `${user.id}/${streamId}.webm`;
+        // RIGOR-AUDIT-2 ESM-1: derive extension + content-type from the
+        // actual blob mime. iOS Safari records as video/mp4; previously we
+        // hardcoded .webm in the path AND Content-Type: video/webm in the
+        // request header, so iOS-recorded streams uploaded as mp4 bytes
+        // labelled webm — replay playback later failed on iOS.
+        // Fallbacks: blob.type might be empty on some browsers; default to
+        // mp4 (the more universally-playable format).
+        const blobType = videoBlob.type || 'video/mp4';
+        const ext = blobType.includes('mp4') ? 'mp4'
+                  : blobType.includes('webm') ? 'webm'
+                  : 'mp4';
+        const filename = `${user.id}/${streamId}.${ext}`;
         const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -163,7 +174,7 @@ export function EndStreamModal({
             xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/live-recordings/${filename}`);
             xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
             xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-            xhr.setRequestHeader('Content-Type', 'video/webm');
+            xhr.setRequestHeader('Content-Type', blobType);
             xhr.setRequestHeader('x-upsert', 'true');
 
             xhr.upload.onprogress = (e) => {
