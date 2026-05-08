@@ -65,3 +65,10 @@ LSV-5
 LSV-6
 LV-1
 V-VIDEO-1
+
+# ─── pages/hub/user/[username].js — profile lookup hardening ────────────────
+# USER-LOOKUP-1 — fixes 'User Not Found' when clicking profile avatars even
+# though the profile exists. Root cause: select('*') triggers a 403 from
+# PostgREST because phone+email columns have column-level REVOKE.
+# See src/lib/profileColumns.js header and /hub/user/[username].js comment.
+USER-LOOKUP-1

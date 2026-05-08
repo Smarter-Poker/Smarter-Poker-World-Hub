@@ -1413,9 +1413,15 @@ export default function UserProfilePage() {
                 if (user) setCurrentUser(user);
 
                 // Fetch the profile by username
+                // BUG FIX (USER-LOOKUP-1): select('*') triggers a 403 from PostgREST because
+                // phone + email columns have column-level REVOKE for non-service-role callers
+                // (see src/lib/profileColumns.js header). The 403 is caught as `error`, the
+                // null-data branch fires, and the user sees 'User Not Found' even when the
+                // profile exists in the DB. Use SAFE_PROFILE_COLUMNS (already imported at L15)
+                // which lists every public column except phone/email.
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select(SAFE_PROFILE_COLUMNS)
                     .ilike('username', username)
                     .maybeSingle();
 
