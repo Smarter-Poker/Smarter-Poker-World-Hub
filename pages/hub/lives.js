@@ -44,7 +44,12 @@ export default function LivesPage() {
     const [publishingDraft, setPublishingDraft] = useState(null);
     const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
     const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
+    // BUG FIX (LV-AUDIT-3 restore): countdown tick — drive scheduledLives countdown re-renders.
+    const [tick, setTick] = useState(0);
     const containerRef = useRef(null);
+    // BUG FIX (LV-AUDIT-7 restore): keep fetchStreams in a ref so realtime channel doesn't
+    // re-subscribe on every categoryFilter change.
+    const fetchStreamsRef = useRef(null);
     const videoRefs = useRef({});
     // BUG FIX (L-LIVES-1,3,4): store toast/share timer refs for cleanup on unmount
     const publishToastTimerRef = useRef(null);
@@ -57,6 +62,13 @@ export default function LivesPage() {
             if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current);
         };
     }, []);
+
+    // BUG FIX (LV-AUDIT-3 restore): drive scheduledLives countdown re-renders.
+    useEffect(() => {
+        if (scheduledLives.length === 0) return;
+        const id = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(id);
+    }, [scheduledLives.length]);
 
     // Get auth user for FeatureGate
     useEffect(() => {
@@ -113,6 +125,38 @@ export default function LivesPage() {
     useEffect(() => {
         fetchStreams();
     }, [fetchStreams]);
+
+    // BUG FIX (LV-AUDIT-7 restore): keep ref synced so realtime subscription's stable-deps
+    // closure always invokes the latest fetchStreams.
+    useEffect(() => {
+        fetchStreamsRef.current = fetchStreams;
+    }, [fetchStreams]);
+
+    // BUG FIX (LV-AUDIT-6 restore): seed likedStreams from DB so the UI shows correct
+    // liked-state on mount.
+    useEffect(() => {
+        if (!userId || streams.length === 0) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const ids = streams.map(s => s.id).filter(Boolean);
+                if (ids.length === 0) return;
+                const { data, error } = await supabase
+                    .from('social_interactions')
+                    .select('post_id')
+                    .eq('user_id', userId)
+                    .eq('interaction_type', 'like')
+                    .in('post_id', ids);
+                if (error || cancelled || !data) return;
+                const seeded = {};
+                for (const row of data) {
+                    if (row.post_id) seeded[row.post_id] = true;
+                }
+                setLikedStreams(prev => ({ ...seeded, ...prev }));
+            } catch (e) { console.warn('seed likes:', e); }
+        })();
+        return () => { cancelled = true; };
+    }, [userId, streams]);
 
     // Fetch user's draft (saved but not published) streams
     const fetchMyDrafts = useCallback(async () => {
@@ -194,7 +238,13 @@ export default function LivesPage() {
         if (!confirm('Delete this saved stream? This cannot be undone.')) return;
         try {
             const token = getAccessToken();
-            await fetch('/api/live/end-stream', {
+            // BUG FIX (LV-AUDIT-9): fetch resolves with a Response on HTTP 4xx/5xx — it does NOT
+            // throw. Previously deleteDraft awaited the fetch and unconditionally ran
+            // fetchMyDrafts() afterwards, so a server-side rejection (RLS denial, banned user,
+            // 500) showed the user a refreshed list as if the delete succeeded. Destructive-action
+            // UI lie. Now we check resp.ok explicitly (matching publishDraft's pattern at L177)
+            // and surface failures via a toast so the user knows the draft is still there.
+            const resp = await fetch('/api/live/end-stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -203,9 +253,20 @@ export default function LivesPage() {
                 credentials: 'same-origin',
                 body: JSON.stringify({ stream_id: draft.id, action: 'delete' }),
             });
+            if (!resp.ok) {
+                const data = await resp.json().catch(() => ({}));
+                throw new Error(data.error || `Delete failed (${resp.status})`);
+            }
             await fetchMyDrafts();
         } catch (err) {
             console.warn('Delete draft error:', err);
+            // Surface the failure so the user knows the draft is still present
+            setPublishToast('Could not delete draft — please try again');
+            if (publishToastTimerRef.current) clearTimeout(publishToastTimerRef.current);
+            publishToastTimerRef.current = setTimeout(() => {
+                publishToastTimerRef.current = null;
+                setPublishToast(null);
+            }, 4000);
         }
     };
 
@@ -230,26 +291,27 @@ export default function LivesPage() {
         const touchEnd = e.changedTouches[0].clientY;
         const diff = touchStart - touchEnd;
 
+        // BUG FIX (LV-AUDIT-8 restore): clamp boundary inside functional updater.
+        const max = streams.length - 1;
         if (Math.abs(diff) > 50) {
-            if (diff > 0 && currentIndex < streams.length - 1) {
-                // Swipe up - next video
-                setCurrentIndex(prev => prev + 1);
-            } else if (diff < 0 && currentIndex > 0) {
-                // Swipe down - previous video
-                setCurrentIndex(prev => prev - 1);
+            if (diff > 0) {
+                setCurrentIndex(prev => prev < max ? prev + 1 : prev);
+            } else {
+                setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
             }
         }
         setTouchStart(null);
     };
 
     // Handle wheel scroll
+    // BUG FIX (LV-AUDIT-8 restore): clamp via functional updater; drop currentIndex from deps.
     const handleWheel = useCallback((e) => {
-        if (e.deltaY > 30 && currentIndex < streams.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-        } else if (e.deltaY < -30 && currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
+        if (e.deltaY > 30) {
+            setCurrentIndex(prev => prev < streams.length - 1 ? prev + 1 : prev);
+        } else if (e.deltaY < -30) {
+            setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
         }
-    }, [currentIndex, streams.length]);
+    }, [streams.length]);
 
     // Auto-play current video, pause others
     useEffect(() => {
@@ -280,14 +342,23 @@ export default function LivesPage() {
         // which shadows the outer `userId` state and attributes likes to the wrong identity.
         const likeUserId = userId;
         if (likeUserId) {
+            // BUG FIX (LV-AUDIT-1 restore): authedFetch returns Response without throwing on
+            // HTTP errors. .catch()-only would let 403/429/RLS-denial silently keep the optimistic
+            // UI flipped. Check res.ok and roll back on any non-2xx.
             authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: currentStream.id, user_id: likeUserId, interaction_type: 'like' })
+            }).then(res => {
+                if (!res || !res.ok) {
+                    setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
+                }
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
         } else {
+            // LV-AUDIT-5 restore: rollback the optimistic flip — no DB write happened
+            setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             setLikeBusy(false);
         }
     };
@@ -329,7 +400,8 @@ export default function LivesPage() {
     // BUG FIX (L-LIVES-2,5): live streams should use /api/live/comment (enforces
     // ban/slow mode); replay streams use social interactions for comment replay.
     const submitChatMsg = async () => {
-        if (!chatText.trim() || !currentStream) return;
+        // BUG FIX (LV-AUDIT-2 restore): re-entry guard — Enter-mash double-submit
+        if (!chatText.trim() || !currentStream || submittingChat) return;
         // BUG FIX (L-LIVES-2): use authenticated userId from state, not anon localStorage uid
         const authedUserId = userId;
         if (!authedUserId) return;
@@ -389,11 +461,15 @@ export default function LivesPage() {
                 setShareMsg('');
             }, 2000);
             // BUG FIX (LV-SHARE): use authenticated userId from state — not the anon localStorage uid
+            // BUG FIX (LV-AUDIT-1 restore): authedFetch doesn't throw on 4xx/5xx — surface non-2xx
+            // so monitoring catches RLS / rate-limit denials silently dropping share interactions.
             if (userId) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' }),
+                }).then(res => {
+                    if (!res || !res.ok) console.warn('[App] Share interaction non-2xx:', res?.status);
                 }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
@@ -419,18 +495,18 @@ export default function LivesPage() {
         setChatText('');
         return () => _c.abort();
     }, [currentIndex]);
-    // Realtime subscription — soft re-fetch on stream changes (no hard reload)
+    // Realtime subscription — soft re-fetch on stream changes (no hard reload).
+    // BUG FIX (LV-AUDIT-7 restore): deps reduced to [userId] only via fetchStreamsRef.
     useEffect(() => {
         if (!userId) return;
         const _ch = supabase
             .channel(`lives:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-                // Soft re-fetch: silently refresh the stream list without destroying scroll position
-                fetchStreams();
+                if (fetchStreamsRef.current) fetchStreamsRef.current();
             })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [userId, fetchStreams]);
+    }, [userId]);
 
     return (
         <>
@@ -543,6 +619,7 @@ export default function LivesPage() {
                         scrollbarWidth: 'none',
                     }}>
                         {scheduledLives.map(sl => {
+                            void tick; // eslint-disable-line no-unused-expressions — LV-AUDIT-3 restore
                             const scheduledDate = new Date(sl.scheduled_at);
                             const now = new Date();
                             const diffMs = scheduledDate - now;
@@ -951,7 +1028,7 @@ export default function LivesPage() {
                         <input
                             value={chatText}
                             onChange={e => setChatText(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !submittingChat) { e.preventDefault(); submitChatMsg(); } }}
                             placeholder="Say Something..."
                             style={{
                                 flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
@@ -992,6 +1069,18 @@ export default function LivesPage() {
          @keyframes pulse {
            0%, 100% { opacity: 1; }
            50% { opacity: 0.7; }
+         }
+
+         /* BUG FIX (LV-AUDIT-4 restore): publishToast referenced 'slideUp' but the keyframes
+            were never defined. Toast appeared with no enter animation. Define here. */
+         @keyframes slideUp {
+           0%   { transform: translateX(-50%) translateY(20px); opacity: 0; }
+           100% { transform: translateX(-50%) translateY(0);    opacity: 1; }
+         }
+
+         @media (prefers-reduced-motion: reduce) {
+           [aria-label="Live now"] { animation: none !important; }
+           .lives-skel { animation-duration: 2s !important; }
          }
        `}</style >
 
