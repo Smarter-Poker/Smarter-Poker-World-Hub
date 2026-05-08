@@ -48,7 +48,7 @@ const MIN_TRANSFER = 10;
 
 // Phase 1: Account age tiers (days)
 const NEW_USER_BLOCK_DAYS = 30;        // Hard block — no outbound diamonds until day 31
-const GRADUATION_DAYS = 90;            // After 90 days, source caps are lifted
+const GRADUATION_DAYS = 120;           // After 120 days, if not flagged, source caps and send limits are lifted
 
 // Phase 2: Source-tiered rolling 30-day outbound caps (days 31–89)
 const FREE_EARNED_30DAY_LIMIT = 100;   // Max sendable from free/earned diamonds in rolling 30 days
@@ -246,7 +246,7 @@ export default async function handler(req, res) {
         // ── Guard 5: Account age check (both users) ──
         const { data: profiles } = await getSupabase()
             .from('profiles')
-            .select('id, created_at, diamonds, display_name, username')
+            .select('id, created_at, diamonds, display_name, username, is_farming_flagged')
             .in('id', [userId, recipientId]);
 
         const senderProfile = profiles?.find(p => p.id === userId);
@@ -278,8 +278,10 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: 'Recipient account must be at least 7 days old to receive diamonds' });
         }
 
+        const isFullyUnrestricted = senderAgeDays >= GRADUATION_DAYS && senderProfile?.is_farming_flagged === false;
+
         // ── Guard 4: Per-transfer max (tier-aware) ──
-        if (!isKingfish && amount > maxTransferVip) {
+        if (!isKingfish && !isFullyUnrestricted && amount > maxTransferVip) {
             return res.status(400).json({
                 success: false,
                 error: isVipTier
@@ -304,7 +306,7 @@ export default async function handler(req, res) {
             .limit(1)
             .maybeSingle();
 
-        if (!isKingfish && recentTransfer) {
+        if (!isKingfish && !isFullyUnrestricted && recentTransfer) {
             return res.status(429).json({ success: false, error: `Please wait ${COOLDOWN_SECONDS} seconds between transfers` });
         }
 
@@ -333,7 +335,7 @@ export default async function handler(req, res) {
         const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
         const isGraduated = senderAgeDays >= GRADUATION_DAYS;
 
-        if (!isKingfish && !isGraduated) {
+        if (!isKingfish && !isFullyUnrestricted) {
             // Determine which pool the sender qualifies for
             const activeCap = purchasedWonAvailable >= amount
                 ? PURCHASED_WON_30DAY_LIMIT
@@ -351,8 +353,8 @@ export default async function handler(req, res) {
                     gateType: 'source_tier_cap',
                 });
             }
-        } else if (!isKingfish) {
-            // ── GRADUATED (90+ day) accounts: standard daily limits + velocity detection ──
+        } else if (!isKingfish && !isFullyUnrestricted) {
+            // ── GRADUATED (but flagged/restricted) accounts: standard daily limits + velocity detection ──
             const dayStart = new Date(now);
             dayStart.setHours(0, 0, 0, 0);
             const dailyTotal = await sumPaginatedTransactions(getSupabase(), () => getSupabase()
@@ -370,7 +372,10 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Velocity detection — non-blocking flag for 90+ day accounts
+            // Velocity detection — non-blocking flag
+            await checkVelocity(getSupabase(), userId, clientIp);
+        } else if (isFullyUnrestricted && !isKingfish) {
+            // Unrestricted users still trigger velocity logs so we can monitor them
             await checkVelocity(getSupabase(), userId, clientIp);
         }
 
@@ -382,7 +387,7 @@ export default async function handler(req, res) {
             .eq('transaction_type', 'diamond_gift_sent')
             .gte('created_at', rolling30Start)
             .ilike('description', `%[${recipientId}]%`));
-        if (!isKingfish && recipientDailyTotal + amount > PER_RECIPIENT_DAILY_LIMIT) {
+        if (!isKingfish && !isFullyUnrestricted && recipientDailyTotal + amount > PER_RECIPIENT_DAILY_LIMIT) {
             console.warn(`[VELOCITY] User ${userId} hit per-recipient limit for ${recipientId}: ${recipientDailyTotal}/${PER_RECIPIENT_DAILY_LIMIT}`);
             return res.status(429).json({
                 success: false,
@@ -402,7 +407,7 @@ export default async function handler(req, res) {
             .limit(1)
             .maybeSingle();
 
-        if (!isKingfish && recentRecipientTransfer) {
+        if (!isKingfish && !isFullyUnrestricted && recentRecipientTransfer) {
             return res.status(429).json({
                 success: false,
                 error: `Please wait ${PER_RECIPIENT_COOLDOWN_SECONDS / 60} minutes between transfers to the same friend`
