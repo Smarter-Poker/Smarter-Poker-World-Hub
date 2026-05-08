@@ -1116,8 +1116,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
                         title="Send diamond gift"
                     >
-                        {/* BUG-FIX-LIVE-3: replaced 5-pointed star path with brilliant-cut diamond */}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z M6 3 L9 9 L15 9 L18 3 M9 9 L12 22 L15 9 M2 9 L9 9 M15 9 L22 9" stroke="#000" strokeWidth="0.5" strokeLinejoin="round"/></svg>
+                        {/* User requested standard diamond asset with no background */}
+                        <img src="/images/diamond.png" alt="Send Gift" style={{ width: 20, height: 20, display: 'block', margin: '-2px 0' }} />
                     </button>
                 )}
                 <button
