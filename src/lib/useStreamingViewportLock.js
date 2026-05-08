@@ -69,8 +69,22 @@ export function useStreamingViewportLock(enabled) {
     const onOrientationChange = () => {
       // Schedule reflow AFTER the orientationchange event settles
       // (Safari fires resize ~100-300ms after orientationchange completes)
-      setTimeout(forceReflow, 50);
+      setTimeout(() => {
+        forceReflow();
+        // BUG-FIX-LANDSCAPE: force-reapply the viewport meta tag after rotation.
+        // iOS Safari sometimes re-enables scaling after orientation change even
+        // with maximum-scale=1 already set. Re-applying the attribute kicks
+        // the browser rendering engine to recalculate, breaking the zoom lock.
+        if (viewportMeta) {
+          viewportMeta.setAttribute('content', '');
+          // Double-set: clearing then resetting forces Safari to re-parse
+          requestAnimationFrame(() => {
+            viewportMeta.setAttribute('content', STREAMING_VIEWPORT_CONTENT);
+          });
+        }
+      }, 50);
       setTimeout(forceReflow, 350);
+      setTimeout(forceReflow, 700);
     };
 
     const onVisualViewportChange = () => {

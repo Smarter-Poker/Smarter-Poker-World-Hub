@@ -52,6 +52,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [isTheaterMode, setIsTheaterMode] = useState(false);
     const [isPiP, setIsPiP] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
+    // BUG-FIX-THEATER: sync isTheaterMode when user exits fullscreen via browser chrome
+    // Without this, ✕ gets stuck and calling exitFullscreen() on a non-fullscreen doc throws
+    const [shareToast, setShareToast] = useState('');
+    const shareToastTimerRef = useRef(null);
     // BUG-FIX-LIVE-7: track currently-selected video tier so the menu shows a
     // checkmark + the trigger button labels the active selection ("Quality · low").
     const [activeQuality, setActiveQuality] = useState('auto');
@@ -461,16 +465,29 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     };
 
     // BUG FIX (PiP-1): Keep isPiP state in sync when user closes PiP via browser native UI
-    // (the ✕ button on the floating PiP window) rather than through our button.
-    // Without this listener, isPiP stays true permanently, preventing re-entry.
     useEffect(() => {
         const onLeave = () => setIsPiP(false);
         const onEnter = () => setIsPiP(true);
         document.addEventListener('leavepictureinpicture', onLeave);
         document.addEventListener('enterpictureinpicture', onEnter);
+        // BUG-FIX-THEATER: sync isTheaterMode when user exits fullscreen via browser chrome ✕
+        // or back button. Without this, clicking Theater again calls exitFullscreen() on
+        // a null fullscreenElement which throws and permanently freezes the stream.
+        const onFullscreenChange = () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                setIsTheaterMode(false);
+            } else {
+                setIsTheaterMode(true);
+            }
+        };
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
         return () => {
             document.removeEventListener('leavepictureinpicture', onLeave);
             document.removeEventListener('enterpictureinpicture', onEnter);
+            document.removeEventListener('fullscreenchange', onFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
         };
     }, []);
 
@@ -583,7 +600,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         ? '#42B72A' : connectionQuality === 'poor' ? '#FFA500' : '#FA383E';
 
     return (
-        <div style={{
+        <div
+            data-viewer-root
+            style={{
             position: 'fixed', inset: 0, background: '#000', zIndex: 9999,
             display: 'flex', flexDirection: isTheaterMode ? 'row' : 'column', overflow: 'hidden'
         }}>
@@ -604,7 +623,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         // broadcaster's portrait video fills the viewer's portrait
                         // viewport edge-to-edge instead of letterboxing.
                         objectFit: 'cover',
-                        transform: 'scaleX(-1)', // mirror selfie camera
+                        // BUG-FIX-VIEWER-MIRROR: do NOT mirror on viewer side.
+                        // Mirroring is a broadcaster-local UX aid (selfie preview).
+                        // Viewers should see the natural broadcast orientation.
                         transition: 'all 0.3s ease'
                     }}
                 />
@@ -665,7 +686,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 </div>
             )}
 
-            {/* Error Message */}
+            {/* Error Message — BUG-FIX: added Close button so user can dismiss and continue */}
             {error && (
                 <div
                     style={{
@@ -675,12 +696,28 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         transform: 'translate(-50%, -50%)',
                         textAlign: 'center',
                         color: 'white',
-                        background: 'rgba(0, 0, 0, 0.8)',
+                        background: 'rgba(0, 0, 0, 0.9)',
                         padding: '24px 40px',
                         borderRadius: 12,
+                        zIndex: 50,
+                        minWidth: 240,
                     }}
                 >
                     <div style={{ fontSize: 18, fontWeight: 500 }}>{error}</div>
+                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+                        <button
+                            onClick={() => setError('')}
+                            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', padding: '8px 20px', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}
+                        >
+                            Dismiss
+                        </button>
+                        <button
+                            onClick={handleLeave}
+                            style={{ background: '#FA383E', border: 'none', color: 'white', padding: '8px 20px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                            Leave Stream
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -714,7 +751,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     background: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%)',
                 }}
             >
-                {/* Close Button */}
+                {/* Close Button — always functional, not dependent on theater state */}
                 <button
                     onClick={handleLeave}
                     style={{
@@ -730,10 +767,44 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        zIndex: 60,
                     }}
                 >
                     ✕
                 </button>
+
+                {/* BUG-FIX-SHARE: Share button for watchers */}
+                <button
+                    onClick={async () => {
+                        const streamUrl = `${window.location.origin}/hub/social-media?stream=${stream?.id}`;
+                        try {
+                            if (navigator.share) {
+                                await navigator.share({ title: streamData?.title || 'Live Stream', url: streamUrl });
+                            } else {
+                                await navigator.clipboard.writeText(streamUrl);
+                                if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                                setShareToast('Link Copied!');
+                                shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
+                            }
+                        } catch (_) {}
+                    }}
+                    style={{
+                        width: 44, height: 44, borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+                        border: 'none', color: 'white', fontSize: 20, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    title="Share stream"
+                >
+                    📤
+                </button>
+
+                {/* Share toast */}
+                {shareToast && (
+                    <div style={{ position: 'absolute', top: 60, left: 12, background: 'rgba(0,200,100,0.9)', color: 'white', padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
+                        {shareToast}
+                    </div>
+                )}
 
                 {/* Feature 3: Clip It */}
                 <div style={{ position: 'absolute', bottom: 120, right: 16, zIndex: 20 }}>
@@ -796,6 +867,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     <button
                         onClick={async () => {
                             if (!videoRef.current) return;
+                            // BUG-FIX-PIP: ensure video has srcObject and is playing before requesting PiP
+                            if (!videoRef.current.srcObject) {
+                                setError('Video not ready for PiP yet');
+                                setTimeout(() => setError(''), 2500);
+                                return;
+                            }
                             const supported = typeof document !== 'undefined' && document.pictureInPictureEnabled;
                             const elSupported = videoRef.current && !videoRef.current.disablePictureInPicture;
                             if (!supported || !elSupported) {
@@ -803,6 +880,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 setTimeout(() => setError(''), 3000);
                                 return;
                             }
+                            // Ensure video is playing
+                            try { await videoRef.current.play(); } catch (_) {}
                             await togglePiP();
                         }}
                         style={{ background: isPiP ? 'rgba(0,120,255,0.7)' : 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
@@ -811,17 +890,24 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     </button>
                     <button
                         onClick={async () => {
-                            const next = !isTheaterMode;
-                            setIsTheaterMode(next);
+                            // BUG-FIX-THEATER: use the fullscreen API on the outer container
+                            // (not just the video element) so the entire viewer UI enters fullscreen.
+                            // Sync isTheaterMode from the fullscreenchange event listener, not here,
+                            // to avoid the state/reality mismatch that caused the freeze.
+                            const viewerContainer = videoRef.current?.closest('[data-viewer-root]') || videoRef.current?.parentElement?.parentElement?.parentElement?.parentElement;
                             try {
-                                if (next) {
-                                    if (videoRef.current?.requestFullscreen) {
-                                        await videoRef.current.requestFullscreen();
+                                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                                    // Enter fullscreen
+                                    if (viewerContainer?.requestFullscreen) {
+                                        await viewerContainer.requestFullscreen();
                                     } else if (videoRef.current?.webkitEnterFullscreen) {
                                         videoRef.current.webkitEnterFullscreen();
+                                        setIsTheaterMode(true);
                                     }
-                                } else if (document.fullscreenElement && document.exitFullscreen) {
-                                    await document.exitFullscreen();
+                                } else {
+                                    // Exit fullscreen
+                                    if (document.exitFullscreen) await document.exitFullscreen();
+                                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                                 }
                             } catch (_) { /* layout-only theatre mode is the fallback */ }
                         }}

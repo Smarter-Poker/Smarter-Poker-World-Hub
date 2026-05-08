@@ -54,11 +54,13 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
             try {
                 data = await resp.json();
             } catch (parseErr) {
-                // If the API crashes (500) and returns an HTML error page, json() will throw.
-                // We catch it so the user sees a helpful error instead of "Unexpected token <"
                 throw new Error(`Server error: ${resp.status} ${resp.statusText}`);
             }
-            if (!resp.ok) throw new Error(data?.error || 'Gift failed');
+            if (!resp.ok) {
+                // Surface the exact API error (includes anti-farming reason)
+                const apiError = data?.error || 'Gift failed';
+                throw new Error(apiError);
+            }
             
             if (!isMounted.current) return;
             
@@ -147,7 +149,7 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                         </div>
 
                         {error && (
-                            <div style={{ color: '#FA383E', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
+                            <div style={{ color: '#FA383E', fontSize: 13, textAlign: 'center', marginBottom: 12, lineHeight: 1.4, padding: '8px 12px', background: 'rgba(250,56,62,0.1)', borderRadius: 8, border: '1px solid rgba(250,56,62,0.2)' }}>
                                 {error}
                             </div>
                         )}
