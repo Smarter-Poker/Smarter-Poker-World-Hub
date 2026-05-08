@@ -837,6 +837,22 @@ const TRANSIENT_FAILURE_MIN_AGE_MS = 60 * 60 * 1000;   // only retry failures >1
 const TRANSIENT_RETRY_CAP = 3;                          // skip reels with ≥3 failures
 let lastTransientRetryAt = 0;
 
+// Stranded-reel recovery sweep — catch-all safety net.
+// PERMANENT_PATTERNS includes several patterns that are actually transient
+// (cookies, ffmpeg_timeout_, Sign in to confirm, yt-dlp_exit_null, etc).
+// When the worker hits one, it flips media_status='ready' (iframe-forever)
+// to keep the user-facing iframe working. cookieRecoverySweep handles the
+// cookie subset, but other transient-but-classified-permanent failures
+// have no dedicated retry path. This sweep is the universal catch-all:
+// it scans ANY ready-state YT reel whose failures are only transient
+// (no truly-permanent ones mixed in) and re-queues them. Runs hourly,
+// capped at 100 per tick, plus once on worker startup so deploys
+// auto-recover any stranded backlog.
+const STRANDED_RECOVERY_INTERVAL_MS = 60 * 60 * 1000;   // hourly
+const STRANDED_RECOVERY_BATCH       = 100;
+const STRANDED_RECOVERY_MIN_AGE_MS  = 60 * 60 * 1000;   // wait >1h after last failure
+let lastStrandedRecoveryAt = 0;
+
 // Native-MP4 poster backfill — covers reels uploaded directly by users (not
 // via the YouTube transcode path) that landed with thumbnail_url=NULL.
 // Stories.jsx INSERTs social_reels without a thumb; the social_posts→reels
@@ -977,6 +993,143 @@ async function transientFailureRetrySweep() {
     }
   }
   log(`transient-retry: enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already live)`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Stranded-reel recovery sweep — universal catch-all (seventh self-healer).
+//
+// Why this exists: cookieRecoverySweep covers the cookie-auth subset of
+// transient-but-classified-permanent failures. transientFailureRetrySweep
+// covers reels in 'failed' state. But the worker's permanent-failure path
+// flips reels to media_status='ready' (iframe-forever) for SEVERAL transient
+// patterns (cookies, ffmpeg_timeout_, Sign in to confirm, yt-dlp_exit_null)
+// — we kept those in PERMANENT_PATTERNS so the user-facing iframe always
+// works, but that means non-cookie transient failures had NO retry path.
+//
+// This sweep is the universal catch-all: for ANY ready-state YT reel
+// whose ALL failures are transient (cookies / timeout / rate-limit /
+// Bad Gateway / ffmpeg-255 / spawn errors / Sign-in / yt-dlp_exit_null),
+// re-queue it. Skips reels with even one truly-permanent failure mixed
+// in (members-only, private, region-blocked, age-restricted, filtered_too_long).
+//
+// Runs hourly + once at startup. Capped at STRANDED_RECOVERY_BATCH=100
+// per tick. Bounded retries: skip URLs with ≥3 prior failed jobs.
+// Idempotent: NOT EXISTS check on live jobs prevents double-enqueue.
+//
+// IMPORTANT: this is the catch-all, so it will overlap with cookieRecoverySweep
+// and transientFailureRetrySweep. The NOT EXISTS guard makes that safe.
+// ════════════════════════════════════════════════════════════════════════════
+async function strandedReelRecoverySweep(opts = {}) {
+  const { force = false } = opts;
+  if (!force && Date.now() - lastStrandedRecoveryAt < STRANDED_RECOVERY_INTERVAL_MS) return;
+  lastStrandedRecoveryAt = Date.now();
+
+  // 1. Confirm pipeline is healthy: latest success > latest cookie/transient
+  // failure. If cookies are still broken, retrying is pointless.
+  const { data: lastSuccess } = await supa.from('video_transcode_jobs')
+    .select('completed_at')
+    .eq('status', 'completed').eq('source_type', 'youtube')
+    .order('completed_at', { ascending: false }).limit(1).maybeSingle();
+  if (!lastSuccess?.completed_at) {
+    log('stranded-recovery: no successful conversions yet — bailing');
+    return;
+  }
+
+  // 2. Pull ALL recent failed jobs (last 30 days), classify per URL.
+  // We need every failure per URL to know if there's a permanent mixed in.
+  const { data: failedJobs } = await supa.from('video_transcode_jobs')
+    .select('youtube_url, error_message, completed_at')
+    .eq('source_type', 'youtube').eq('status', 'failed')
+    .gte('completed_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+    .order('completed_at', { ascending: false, nullsFirst: false })
+    .limit(10000);
+  if (!failedJobs?.length) {
+    log('stranded-recovery: no recent failed jobs');
+    return;
+  }
+
+  // Group by URL
+  const jobsByUrl = new Map();
+  for (const j of failedJobs) {
+    if (!jobsByUrl.has(j.youtube_url)) jobsByUrl.set(j.youtube_url, []);
+    jobsByUrl.get(j.youtube_url).push(j);
+  }
+
+  // 3. Classify each URL: eligible if all failures are transient and the
+  // most-recent is older than the min-age threshold.
+  const ageCutoff = new Date(Date.now() - STRANDED_RECOVERY_MIN_AGE_MS);
+  const eligibleUrls = [];
+  for (const [url, jobs] of jobsByUrl) {
+    if (jobs.length >= TRANSIENT_RETRY_CAP) continue;
+    const allMsgs = jobs.map(j => j.error_message || '');
+    if (hasPermanentHistory(allMsgs)) continue;
+    if (!isTransientFailure(jobs[0].error_message)) continue;
+    if (jobs[0].completed_at && new Date(jobs[0].completed_at) > ageCutoff) continue;
+    eligibleUrls.push(url);
+  }
+  if (!eligibleUrls.length) {
+    log(`stranded-recovery: ${jobsByUrl.size} URLs scanned, 0 eligible (none all-transient + age + uncapped)`);
+    return;
+  }
+
+  // 4. Find ready-state reels matching these URLs (iframe-forever stranded).
+  // Cap at STRANDED_RECOVERY_BATCH per tick to avoid overwhelming the queue.
+  const batchUrls = eligibleUrls.slice(0, STRANDED_RECOVERY_BATCH);
+  const { data: candidates } = await supa.from('social_reels')
+    .select('id, author_id, original_youtube_url')
+    .eq('media_status', 'ready')
+    .eq('is_public', true)
+    .ilike('video_url', '%youtube%')
+    .in('original_youtube_url', batchUrls)
+    .limit(STRANDED_RECOVERY_BATCH);
+  if (!candidates?.length) {
+    log(`stranded-recovery: ${batchUrls.length} eligible URL(s) but no matching ready+public reels`);
+    return;
+  }
+
+  log(`stranded-recovery: ${candidates.length} stranded reel(s) found across ${batchUrls.length} URL(s) — re-queueing`);
+
+  // 5. Flip reels back to queued, then INSERT one job per distinct URL.
+  // Per-URL deduplication so we don't insert two jobs for the same video.
+  const seen = new Set();
+  let inserted = 0, raceSkipped = 0, flipped = 0;
+  for (const r of candidates) {
+    if (seen.has(r.original_youtube_url)) continue;
+    seen.add(r.original_youtube_url);
+
+    // Skip if already a live job for this URL (race-safety)
+    const { data: existing } = await supa.from('video_transcode_jobs')
+      .select('id').eq('source_type', 'youtube')
+      .eq('youtube_url', r.original_youtube_url)
+      .in('status', ['queued', 'processing'])
+      .limit(1).maybeSingle();
+    if (existing) { raceSkipped++; continue; }
+
+    // Flip the reel back to queued state
+    const { error: updErr } = await supa.from('social_reels').update({
+      media_status: 'queued',
+      video_url: r.original_youtube_url,
+      source_type: 'youtube',
+      thumbnail_url: null,
+    }).eq('id', r.id);
+    if (updErr) { warn(`stranded-recovery: flip failed for ${r.id}:`, updErr.message); continue; }
+    flipped++;
+
+    // Insert fresh transcode job
+    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
+      reel_id: r.id, user_id: r.author_id,
+      source_url: r.original_youtube_url, youtube_url: r.original_youtube_url,
+      source_type: 'youtube', status: 'queued',
+      target_format: 'h264_1080p', target_bitrate: 2500000,
+    });
+    if (insErr) {
+      if (insErr.code === '23505') raceSkipped++;
+      else warn(`stranded-recovery: insert failed for ${r.original_youtube_url}: ${insErr.message}`);
+    } else {
+      inserted++;
+    }
+  }
+  log(`stranded-recovery: flipped ${flipped} reel(s), enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already live)`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1254,6 +1407,11 @@ log(`  Concurrency:      ${MAX_CONCURRENT_YT}`);
 log(`  Poll: idle ${POLL_MS / 1000}s / busy ${FAST_POLL_MS / 1000}s`);
 
 await resetStaleProcessing('worker_startup');
+// Startup catch-up: scan once for stranded reels (any failure mode classified
+// as permanent-but-actually-transient that no other sweep is handling). This
+// makes deploys self-healing — restart the worker and it picks up any drift
+// without any human intervention. Force=true bypasses the throttle.
+strandedReelRecoverySweep({ force: true }).catch((e) => warn('stranded-recovery startup error:', e?.message));
 
 async function pollLoop() {
   try {
@@ -1280,6 +1438,12 @@ async function pollLoop() {
     //     copyright-stricken videos). Self-healing replacement for the manual
     //     scripts/cleanup-broken-videos.js.
     deadVideoHidingSweep().catch((e) => warn('dead-video error:', e?.message));
+    //   - strandedReelRecoverySweep: once / 60 min, universal catch-all that
+    //     scans every ready-state YT reel with all-transient failures and
+    //     re-queues them. Closes the gap left by cookieRecoverySweep (which
+    //     only handled cookie-auth) and transientFailureRetrySweep (which
+    //     only looks at media_status='failed'). Also runs once at startup.
+    strandedReelRecoverySweep().catch((e) => warn('stranded-recovery error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
