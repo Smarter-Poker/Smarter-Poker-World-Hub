@@ -140,25 +140,52 @@ class LiveStreamService {
             .maybeSingle();
 
         if (error?.code === '23505') {
-            // RIGOR-AUDIT E5b: another live row exists for this broadcaster.
-            // Could be a stale tab still holding the row alive, or a tab
-            // that crashed without cleanup. The user's intent is clear —
-            // they tapped Go Live in this tab, so they want this tab live.
-            // Auto-end the stale row, then retry once. The partial unique
-            // index now permits insert.
+            // RIGOR-AUDIT E5b/E5c: another live row exists for this broadcaster.
+            // Two scenarios produce 23505 here:
+            //   (a) A previous tab crashed without endBroadcast cleanup and
+            //       left a zombie 'live' row.
+            //   (b) A second tab is racing this one and got there first — its
+            //       row is genuinely live and we should NOT auto-end it.
+            //
+            // E5c gate: only auto-recover if the existing live row is older
+            // than the LiveKit token TTL (8 hours). A row older than the token
+            // TTL is guaranteed a zombie because the LiveKit room cannot still
+            // be active with an expired token. Younger rows are likely a
+            // concurrent valid tab — surface the friendly error and let the
+            // user end the other tab.
             try {
-                await supabase
+                const { data: existing } = await supabase
                     .from('live_streams')
-                    .update({ status: 'ended', ended_at: new Date().toISOString() })
+                    .select('id, started_at')
                     .eq('broadcaster_id', userId)
-                    .eq('status', 'live');
-                const retry = await supabase
-                    .from('live_streams')
-                    .insert(insertPayload)
-                    .select()
+                    .eq('status', 'live')
                     .maybeSingle();
-                stream = retry.data;
-                error = retry.error;
+
+                const ageMs = existing?.started_at
+                    ? Date.now() - new Date(existing.started_at).getTime()
+                    : 0;
+                const TOKEN_TTL_MS = 8 * 60 * 60 * 1000;  // matches LiveKit token TTL
+
+                if (existing && ageMs > TOKEN_TTL_MS) {
+                    // Definite zombie — auto-end and retry.
+                    await supabase
+                        .from('live_streams')
+                        .update({ status: 'ended' })
+                        .eq('id', existing.id);
+                    const retry = await supabase
+                        .from('live_streams')
+                        .insert(insertPayload)
+                        .select()
+                        .maybeSingle();
+                    stream = retry.data;
+                    error = retry.error;
+                } else {
+                    // Likely a concurrent live tab — keep the existing row
+                    // and surface a friendly error.
+                    const e = new Error('You are already live in another tab. End that broadcast first.');
+                    e.code = 'ALREADY_LIVE';
+                    throw e;
+                }
             } catch (retryErr) {
                 error = retryErr;
             }
@@ -493,11 +520,12 @@ class LiveStreamService {
             body: JSON.stringify({ stream_id: streamIdForEnd, action: 'force_end' }),
         }).catch(() => {}); // Non-fatal
 
-        // Update Supabase stream status (fire-and-forget to prevent UI blocking if network is degraded)
-        supabase
-            .from('live_streams')
-            .update({ status: 'ended', ended_at: new Date().toISOString() })
-            .eq('id', this.currentStreamId).catch(() => {});
+        // RIGOR-AUDIT-2 LSS-7: do NOT write status/ended_at from the client.
+        // The keepalive fetch above already triggers server-side
+        // /api/live/end-stream?action=force_end which writes status='ended'
+        // with server-clock now() — accurate regardless of the user's device
+        // clock. Two writes racing also led to the duration computed from
+        // (started_at, ended_at) becoming non-deterministic. Server wins.
 
         // Disconnect LiveKit room (fire-and-forget)
         if (this.room) {
@@ -872,12 +900,17 @@ class LiveStreamService {
         // viewer singleton channels from colliding when both are on same device.
         // Without this, a viewer joining overwrites the broadcaster's _viewerChannel
         // ref, then their leaveStream() removes the broadcaster's subscription.
+        // RIGOR-AUDIT-2 LSS-2: also append a per-mount unique suffix so two
+        // tabs of the same role (e.g. broadcaster on 2 devices, or viewer
+        // on 2 tabs) don't collide — Realtime silently drops payloads on
+        // the duplicate channel name.
         const roleSuffix = this.isBroadcaster ? 'bc' : 'vw';
+        const uniq = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         if (this._viewerChannel) {
             supabase.removeChannel(this._viewerChannel);
         }
         this._viewerChannel = supabase
-            .channel(`live-viewers-${streamId}-${roleSuffix}`)
+            .channel(`live-viewers-${streamId}-${roleSuffix}-${uniq}`)
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'live_streams',
                 filter: `id=eq.${streamId}`,

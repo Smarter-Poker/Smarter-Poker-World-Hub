@@ -48,7 +48,13 @@ export function LiveStreamCard({ stream, onClick }) {
     const [isHovered, setIsHovered] = useState(false);
     const [previewLoaded, setPreviewLoaded] = useState(false);
     const [previewFailed, setPreviewFailed] = useState(false);
+    // RIGOR-AUDIT-2 LSC-1: pause off-screen preview videos. With 8+ live
+    // broadcasters in the feed, decoding all 8 MP4s simultaneously was a
+    // CPU/battery drain on mobile — same class of bug the v2→v3 rewrite
+    // was meant to solve (the file header documents it).
+    const [isInView, setIsInView] = useState(false);
     const videoRef = useRef(null);
+    const wrapperRef = useRef(null);
 
     // Cache-buster: when preview_updated_at advances, the URL changes and the
     // browser fetches the fresh clip. Memoised so we don't churn the <video>
@@ -68,11 +74,50 @@ export function LiveStreamCard({ stream, onClick }) {
         setPreviewFailed(false);
     }, [previewSrc]);
 
-    const showPreviewVideo = !!previewSrc && previewLoaded && !previewFailed;
+    // RIGOR-AUDIT-2 LSC-1: Observe whether the card is on screen. When off
+    // screen, pause the <video> so it doesn't decode. When back on screen,
+    // resume play. The observer disconnects on unmount.
+    useEffect(() => {
+        const node = wrapperRef.current;
+        if (!node || typeof IntersectionObserver === 'undefined') {
+            // No IO support (very old browsers) — assume always in view,
+            // which preserves prior behaviour.
+            setIsInView(true);
+            return;
+        }
+        const io = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    setIsInView(entry.isIntersecting);
+                }
+            },
+            { rootMargin: '100px', threshold: 0.1 },  // 100px buffer so it preloads just before scroll into view
+        );
+        io.observe(node);
+        return () => io.disconnect();
+    }, []);
+
+    // Drive video play/pause from isInView. Browsers may auto-pause muted
+    // videos when off screen anyway, but this is explicit and reliable.
+    useEffect(() => {
+        const v = videoRef.current;
+        if (!v) return;
+        if (isInView && previewSrc) {
+            // play() returns a Promise that rejects on autoplay policy
+            // violations (rare for muted+playsinline). Swallow it — failure
+            // means the static thumbnail underneath stays visible.
+            v.play?.().catch(() => {});
+        } else {
+            try { v.pause?.(); } catch (_) {}
+        }
+    }, [isInView, previewSrc]);
+
+    const showPreviewVideo = !!previewSrc && previewLoaded && !previewFailed && isInView;
     const showThumbnail = !showPreviewVideo && stream.thumbnail_url;
 
     return (
         <div
+            ref={wrapperRef}
             onClick={onClick}
             style={{
                 background: C.card,
