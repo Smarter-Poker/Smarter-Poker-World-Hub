@@ -230,12 +230,40 @@ export function VideoPostWrapper({ url, onValidVideoClick, children }) {
 
 export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
   const [imgFailed, setImgFailed] = useState(false);
+  // FEED-VIDEO-POSTER-2026-05-08 audit Pass 4 fix B5 — defensive depth.
+  // When BOTH thumbnail and video URLs fail to load, render a gradient
+  // placeholder instead of a broken <video> element. The black <video>
+  // background + VideoPostWrapper's play button overlay would otherwise
+  // re-create the original "black tile + play button" symptom for this
+  // dead-pipeline case.
+  const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef(null);
+
+  // FEED-VIDEO-POSTER-2026-05-08 audit Pass 1 fix B3 — reset imgFailed when
+  // thumbnailUrl changes. Without this, after a transcode worker backfills
+  // a missing thumbnail (e.g., the 749 YT-reel re-encode jobs queued
+  // 2026-05-07 will write fresh thumbnail_url values via realtime), the
+  // component stays stuck in Branch 2 forever because imgFailed=true never
+  // resets. The next img attempt with the fresh URL is exactly what we want.
+  // Same logic for videoFailed when videoUrl prop changes.
+  useEffect(() => {
+    setImgFailed(false);
+  }, [thumbnailUrl]);
+  useEffect(() => {
+    setVideoFailed(false);
+  }, [videoUrl]);
 
   // IntersectionObserver autoplay forces iOS Safari to decode the first
   // frame of the <video> element. Without this, Safari ignores #t=0.001
   // and renders pure black until the user taps play — exactly the bug
   // Dan kept reporting.
+  //
+  // FEED-VIDEO-POSTER-2026-05-08 audit Pass 1 fix B1 — `imgFailed` MUST be
+  // in the deps array. On mount: Branch 1 renders, videoRef is null, this
+  // effect early-returns. When img onError flips imgFailed → true, Branch 2
+  // mounts a fresh <video>, but without imgFailed in deps, the effect
+  // doesn't re-run, so NO observer attaches → no autoplay → iOS Safari
+  // shows the same pure black tile we shipped this component to fix.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -260,7 +288,54 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
       obs.unobserve(video);
       obs.disconnect();
     };
-  }, [videoUrl]); // re-attach observer if the underlying video URL changes
+    // FEED-VIDEO-POSTER-2026-05-08 audit Pass 3 fix B6 — videoFailed MUST
+    // be in the deps array. When the <video> errors and we flip to the
+    // gradient placeholder, we want the prior observer to be torn down
+    // (cleanup fires) so it doesn't keep referencing the unmounted
+    // <video> element. Without this, IntersectionObserver lives outside
+    // React's lifecycle and would leak until the component unmounts.
+  }, [videoUrl, imgFailed, videoFailed]);
+
+  // FEED-VIDEO-POSTER-2026-05-08 audit Pass 1 fix B4 — YouTube URLs cannot
+  // render inside a <video> element (they require an iframe). The 1-up
+  // call site is gated by VideoPostWrapper which short-circuits to
+  // VideoThumbnail for YT URLs, but the 2-up call site at
+  // pages/hub/social-media/index.js:1692 bypasses VideoPostWrapper and
+  // hands the URL directly to FeedVideoPoster. If a 2-up post has a YT
+  // first tile, the original Branch 2 code below would stuff a YT URL
+  // into <video src> and produce a broken element. Guard it here so both
+  // call sites are safe.
+  const isYouTube = !!(videoUrl && typeof videoUrl === 'string' && isYouTubeUrl(videoUrl));
+  if (isYouTube) {
+    const ytPoster =
+      thumbnailUrl && !imgFailed
+        ? thumbnailUrl
+        : (() => {
+            const id = getYouTubeVideoId(videoUrl);
+            return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+          })();
+    if (ytPoster) {
+      return (
+        <img
+          src={ytPoster}
+          alt=""
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+          onError={() => setImgFailed(true)}
+        />
+      );
+    }
+    // No YT id extractable — fall through to gradient placeholder, NEVER to <video>.
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        }}
+      />
+    );
+  }
 
   // Branch 1 — happy path: we have a thumbnail URL and it hasn't errored yet.
   // VideoPostWrapper draws the play button overlay above this img.
@@ -272,6 +347,27 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
         loading="lazy"
         style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
         onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  // FEED-VIDEO-POSTER-2026-05-08 audit Pass 4 fix B5 — video pipeline failed.
+  // Once the <video> element fires onError, that src is dead — re-rendering
+  // it would just produce the same broken element + VideoPostWrapper's play
+  // overlay = "black tile + play button" (the original symptom). Render a
+  // gradient placeholder instead. The check is `videoFailed` alone (not
+  // `imgFailed && videoFailed`): when thumbnailUrl is null we skip Branch 1
+  // entirely so imgFailed stays false even though we still want the gradient
+  // when video errors. The user can still tap the parent for full playback
+  // navigation (parent's onClick handler is unaffected by this branch).
+  if (videoFailed) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        }}
       />
     );
   }
@@ -293,11 +389,19 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
     <video
       ref={videoRef}
       src={playableSrc}
-      poster={thumbnailUrl || undefined}
+      // FEED-VIDEO-POSTER-2026-05-08 audit Pass 1 fix B2 — don't hand the
+      // browser a poster URL we KNOW just 404'd as <img>. Reusing it as
+      // poster causes the same fetch failure twice and produces the same
+      // black tile we shipped this component to eliminate.
+      poster={imgFailed ? undefined : thumbnailUrl || undefined}
       preload="metadata"
       muted
       playsInline
       loop
+      // FEED-VIDEO-POSTER-2026-05-08 audit Pass 4 fix B5 — flag <video>
+      // load failures so the gradient-placeholder branch above renders
+      // on the next pass.
+      onError={() => setVideoFailed(true)}
       style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
     />
   );

@@ -1503,13 +1503,13 @@ export default function MemoryGamesPage() {
                             {/* Game Mode Selector */}
                             {(() => {
                                 const MODES = [
-                                    { key: 'range',      label: 'Range',        Icon: Target,         color: '#00D4FF', desc: 'Core GTO training' },
-                                    { key: 'speed',      label: 'Speed drill',  Icon: Zap,            color: '#FFD700', desc: 'Beat the clock' },
-                                    { key: 'pressure',   label: 'Pressure',     Icon: Bomb,           color: '#FF4444', desc: 'Defuse the bomb' },
-                                    { key: 'pattern',    label: 'Pattern',      Icon: Puzzle,         color: '#3B82F6', desc: 'Read the range' },
-                                    { key: 'mixed',      label: 'Mixed',        Icon: Dices,          color: '#A855F7', desc: 'Dial frequencies' },
-                                    { key: 'spot',       label: 'Spot trainer', Icon: Crosshair,      color: '#F97316', desc: 'Full hand trees' },
-                                    { key: 'tournament', label: 'VS ranked',    Icon: Swords,         color: '#EC4899', desc: 'Climb the ladder' },
+                                    { key: 'range',      label: 'Range',        Icon: Target,         color: '#00D4FF', desc: 'Core GTO Training' },
+                                    { key: 'speed',      label: 'Speed Drill',  Icon: Zap,            color: '#FFD700', desc: 'Beat the Clock' },
+                                    { key: 'pressure',   label: 'Pressure',     Icon: Bomb,           color: '#FF4444', desc: 'Defuse the Bomb' },
+                                    { key: 'pattern',    label: 'Pattern',      Icon: Puzzle,         color: '#3B82F6', desc: 'Read the Range' },
+                                    { key: 'mixed',      label: 'Mixed',        Icon: Dices,          color: '#A855F7', desc: 'Dial Frequencies' },
+                                    { key: 'spot',       label: 'Spot Trainer', Icon: Crosshair,      color: '#F97316', desc: 'Full Hand Trees' },
+                                    { key: 'tournament', label: 'VS Ranked',    Icon: Swords,         color: '#EC4899', desc: 'Climb the Ladder' },
                                 ];
                                 const EXTRA = [
                                     { key: 'daily',       label: 'Daily',    Icon: Calendar, color: '#00FF88', special: true },
