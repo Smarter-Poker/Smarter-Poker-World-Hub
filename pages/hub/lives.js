@@ -127,6 +127,34 @@ export default function LivesPage() {
         fetchStreams();
     }, [fetchStreams]);
 
+    // BUG FIX (LV-AUDIT-6): seed likedStreams from DB so the UI shows the correct liked-state
+    // on mount. Previously likedStreams started as {} and was never populated; users saw all
+    // streams as 'not liked' even after liking, causing duplicate writes on re-click.
+    useEffect(() => {
+        if (!userId || streams.length === 0) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const ids = streams.map(s => s.id).filter(Boolean);
+                if (ids.length === 0) return;
+                const { data, error } = await supabase
+                    .from('social_interactions')
+                    .select('post_id')
+                    .eq('user_id', userId)
+                    .eq('interaction_type', 'like')
+                    .in('post_id', ids);
+                if (error || cancelled || !data) return;
+                const seeded = {};
+                for (const row of data) {
+                    if (row.post_id) seeded[row.post_id] = true;
+                }
+                // Merge with any optimistic flips already in flight: optimistic flips win.
+                setLikedStreams(prev => ({ ...seeded, ...prev }));
+            } catch (e) { console.warn('seed likes:', e); }
+        })();
+        return () => { cancelled = true; };
+    }, [userId, streams]);
+
     // Fetch user's draft (saved but not published) streams
     const fetchMyDrafts = useCallback(async () => {
         if (!userId) return;
@@ -291,6 +319,9 @@ export default function LivesPage() {
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
         // BUG FIX (LV-LIKES): use authenticated userId from state — not the anon localStorage uid
         // which shadows the outer `userId` state and attributes likes to the wrong identity.
+        // BUG FIX (LV-AUDIT-5): if userId is null at click time (auth-resolution race), the
+        // optimistic flip would have stayed permanently with no DB write and no rollback —
+        // UI lying about liked state. Now rollback in the null-userId branch.
         const likeUserId = userId;
         if (likeUserId) {
             // BUG FIX (LV-AUDIT-1): authedFetch returns Response without throwing on HTTP errors
@@ -309,6 +340,8 @@ export default function LivesPage() {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
         } else {
+            // LV-AUDIT-5: rollback the optimistic flip — no DB write happened
+            setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             setLikeBusy(false);
         }
     };
