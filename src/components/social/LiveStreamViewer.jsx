@@ -379,6 +379,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     useEffect(() => {
         if (videoRef.current && remoteStream) {
             videoRef.current.srcObject = remoteStream;
+            videoRef.current.play().catch(() => {});
             pendingStreamRef.current = null;
         }
     }, [remoteStream]);
@@ -387,6 +388,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     useEffect(() => {
         if (!isConnecting && pendingStreamRef.current && videoRef.current) {
             videoRef.current.srcObject = pendingStreamRef.current;
+            videoRef.current.play().catch(() => {});
             
             // Feature 3: Start background recording for Clip It (last 60s)
             try {
@@ -655,8 +657,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 style={{
                                     width: '100%',
                                     height: '100%',
-                                    objectFit: 'cover',
-                                    transform: 'scaleX(-1)'
+                                    objectFit: 'cover'
                                 }}
                             />
                             <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
