@@ -1248,7 +1248,7 @@ export default function UserProfilePage() {
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             // Avatar changed in another tab — refresh profile to get new avatar
             supabase.from('profiles').select('avatar_url, full_name, bio, username')
-                .eq('username', username).maybeSingle()
+                .ilike('username', username).maybeSingle()
                 .then(({ data }) => {
                     if (data) setProfile(prev => prev ? { ...prev, ...data } : prev);
                 });
@@ -1308,7 +1308,7 @@ export default function UserProfilePage() {
             // Re-fetch profile from Supabase (using safe column list — phone
             // and email are blocked at the column-grant layer for non-self reads)
             supabase.from('profiles').select(SAFE_PROFILE_COLUMNS)
-                .eq('username', username).maybeSingle()
+                .ilike('username', username).maybeSingle()
                 .then(({ data }) => {
                     if (data) setProfile(data);
                 });
@@ -1416,7 +1416,7 @@ export default function UserProfilePage() {
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('username', username)
+                    .ilike('username', username)
                     .maybeSingle();
 
                 if (error || !data) {

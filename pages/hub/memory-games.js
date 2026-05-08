@@ -194,7 +194,7 @@ export default function MemoryGamesPage() {
     // mastery + daily-challenge state in one round-trip (replaces 5+ fetches).
     const [memoryDashboard, setMemoryDashboard] = useState(null);
     const [memoryDashboardLoading, setMemoryDashboardLoading] = useState(true);
-    const [isVIP, setIsVIP] = useState(false);
+    const [isVIP, setIsVIP] = useState(null); // null = loading, true = VIP, false = not VIP
 
     // Initialize Supabase client
     const supabase = useRef(null);
@@ -280,28 +280,7 @@ export default function MemoryGamesPage() {
         setVisualHints: (val) => updatePreference('visualHints', val)
     });
 
-    //  INTRO VIDEO STATE - Video plays while page loads in background
-    // Only show once per session (not on every reload)
-    const [showIntro, setShowIntro] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return !sessionStorage.getItem('memory-games-intro-seen');
-        }
-        return false;
-    });
-    const introVideoRef = useRef(null);
-
-    // Mark intro as seen when it ends
-    const handleIntroEnd = useCallback(() => {
-        sessionStorage.setItem('memory-games-intro-seen', 'true');
-        setShowIntro(false);
-    }, []);
-
-    // Attempt to unmute video after it starts playing
-    const handleIntroPlay = useCallback(() => {
-        if (introVideoRef.current) {
-            introVideoRef.current.muted = false;
-        }
-    }, []);
+    // Intro video removed — no longer shown on page load
 
     // Safe helper to get level config with fallback
     const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
@@ -391,7 +370,8 @@ export default function MemoryGamesPage() {
     //   - VIP users skip checkAndDeductDiamonds in startGame (need guard there)
     const isStartingRef = useRef(false); // Double-click guard
     const checkAndDeductDiamonds = async () => {
-        if (isVIP) return true;
+        if (isVIP === true) return true;
+        if (isVIP === null) return false;
         if (isStartingRef.current) return false;
         isStartingRef.current = true;
         try {
@@ -435,8 +415,13 @@ export default function MemoryGamesPage() {
         if (isGameStartingRef.current) return;
         isGameStartingRef.current = true;
         try {
+        if (isVIP === null) {
+            isGameStartingRef.current = false;
+            return;
+        }
+        
         // Check diamond access
-        if (!isVIP) {
+        if (isVIP === false) {
             const canPlay = await checkAndDeductDiamonds();
             if (!canPlay) return;
         }
@@ -1223,58 +1208,7 @@ export default function MemoryGamesPage() {
 
     return (
         <PageTransition>
-            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-            {showIntro && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 99999,
-                    background: '#000',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <video
-                        ref={introVideoRef}
-                        src="/videos/memory-games-intro.mp4"
-                        autoPlay
-                        muted
-                        playsInline
-                        onPlay={handleIntroPlay}
-                        onEnded={handleIntroEnd}
-                        onError={handleIntroEnd}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain'
-                        }}
-                    />
-                    {/* Skip button */}
-                    <button
-                        onClick={handleIntroEnd}
-                        style={{
-                            position: 'absolute',
-                            top: 20,
-                            right: 20,
-                            padding: '8px 20px',
-                            background: 'rgba(255,255,255,0.2)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.3)',
-                            borderRadius: 20,
-                            color: 'white',
-                            fontSize: 14,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            zIndex: 100000
-                        }}
-                    >
-                        Skip
-                    </button>
-                </div>
-            )}
+            {/* Intro video removed */}
             <SEOHead
                 title="Preflop Charts - Master GTO Ranges"
                 description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
@@ -1298,8 +1232,8 @@ export default function MemoryGamesPage() {
                 {/* Standard Hub Header - DO NOT MODIFY */}
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
-                {/* Per-game cost popup (one-time) */}
-                {userId && !isVIP && (
+                {/* Per-game cost popup (one-time) — only for confirmed non-VIP users */}
+                {userId && isVIP === false && (
                     <GameCostPopup userId={userId} featureKey="memory_games" isVip={isVIP} cost={10} />
                 )}
 
@@ -1330,7 +1264,7 @@ export default function MemoryGamesPage() {
                             {/* Title */}
                             <div style={styles.titleSection}>
                                 <div style={styles.orbIcon}></div>
-                                <h1 style={{...styles.title, textTransform: 'none', letterSpacing: '-0.5px'}}>Preflop charts</h1>
+                                <h1 style={{...styles.title, textTransform: 'none', letterSpacing: '-0.5px'}}>Preflop Charts</h1>
                                 <p style={styles.subtitle}>
                                     Master GTO ranges through high-pressure training.
                                 </p>
@@ -1354,9 +1288,12 @@ export default function MemoryGamesPage() {
                                         )}
                                     </div>
                                 )}
-                                <div style={styles.costInfo}>
-                                    {isVIP ? 'VIP: Unlimited Access' : `💎 ${GAME_COST} Diamonds per game`}
-                                </div>
+                                {/* Only show cost info once VIP status is confirmed */}
+                                {isVIP !== null && (
+                                    <div style={styles.costInfo}>
+                                        {isVIP ? 'VIP: Unlimited Access' : `💎 ${GAME_COST} Diamonds per game`}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Daily Challenge Card */}
@@ -2480,12 +2417,12 @@ export default function MemoryGamesPage() {
                                 </div>
                             )}
 
-                            {/* VIP Upsell */}
-                            {!isVIP && (
+                            {/* VIP Upsell — only for confirmed non-VIP users */}
+                            {isVIP === false && (
                                 <div style={styles.vipUpsell}>
-                                    <div style={styles.vipTitle}> GO VIP - $19.99/month</div>
+                                    <div style={styles.vipTitle}>Go VIP - $19.99/month</div>
                                     <div style={styles.vipFeatures}>
-                                        Unlimited games • All levels • No diamond cost • Exclusive modes
+                                        Unlimited Games • All Levels • No Diamond Cost • Exclusive Modes
                                     </div>
                                     <button style={styles.vipButton} onClick={handleVipUpgrade}>
                                         Upgrade to VIP

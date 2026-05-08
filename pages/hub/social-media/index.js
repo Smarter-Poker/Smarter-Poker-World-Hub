@@ -8827,19 +8827,14 @@ function SocialMediaPage() {
         try {
           const authUser = getAuthUser();
           if (!authUser) return;
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,avatar_url,role`,
-            {
-              headers: {
-                apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-              },
-            }
-          );
-          if (res.ok) {
-            const profiles = await res.json();
-            const p = profiles?.[0];
-            if (p) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id,username,full_name,avatar_url,role')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+          if (!error && data) {
+            const p = data;
               let pref = 'full_name';
               try {
                 const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
@@ -8964,23 +8959,18 @@ function SocialMediaPage() {
             )
               console.log('[Social] Fetching profile for user:', authUser.id);
 
-            let profileRes = await fetch(
-              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,role`,
-              {
-                headers: {
-                  apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                  Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                },
-              }
-            );
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('id,username,full_name,display_name,skill_tier,avatar_url,role')
+              .eq('id', authUser.id)
+              .maybeSingle();
 
-            if (profileRes.ok) {
-              let profiles = await profileRes.json();
-              p = profiles?.[0] || null;
+            if (!error) {
+              p = data || null;
             } else {
               console.warn(
-                '[Social] Profile fetch returned',
-                profileRes.status,
+                '[Social] Profile fetch returned error',
+                error.message,
                 '— falling back to auth data'
               );
             }

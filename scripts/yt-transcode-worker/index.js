@@ -690,49 +690,78 @@ async function cookieRecoverySweep() {
     return;
   }
 
-  // 2. Find candidate reels: in 'ready' state, video_url is YouTube, has
-  // original_youtube_url. NOT a member-only / private / region-locked
-  // permanent — we filter by failure-reason below.
+  // 2. PRE-FILTER candidate URLs by failure cause BEFORE pulling reels.
+  //
+  // BUGFIX 2026-05-08: prior version pulled the first 500 social_reels
+  // rows with .limit(500) but no ORDER BY, then post-filtered to
+  // cookie-auth failures. With ~9,300 iframe-flagged YouTube reels and
+  // only ~1,000 of them affected by cookie-auth, Postgres' heap-order
+  // first-500 typically contained ZERO cookie-auth ones. The sweep would
+  // log "0 had cookie-auth as latest failure" and bail forever, leaving
+  // the cookie-failed pool permanently stranded. Now we query the
+  // FAILED-JOBS table first (filtered to cookie-auth patterns), build
+  // the URL set, then pull social_reels.in(those URLs) so the LIMIT 500
+  // only counts eligible reels.
+  const { data: cookieFailedJobs } = await supa.from('video_transcode_jobs')
+    .select('youtube_url, completed_at')
+    .eq('source_type', 'youtube')
+    .eq('status', 'failed')
+    .or('error_message.ilike.%cookies-from-browser%,error_message.ilike.%cookies for the authentication%,error_message.ilike.%Sign in to confirm%')
+    .order('completed_at', { ascending: false, nullsFirst: false })
+    .limit(2000);
+
+  // Dedup by URL — the most-recent failure per URL wins (ordered DESC).
+  const cookieFailedUrls = new Set();
+  for (const j of (cookieFailedJobs || [])) {
+    cookieFailedUrls.add(j.youtube_url);
+  }
+  if (cookieFailedUrls.size === 0) {
+    log('cookie-recovery: no cookie-auth failures in jobs history — nothing to recover');
+    return;
+  }
+
+  // 3. Pull social_reels rows whose original_youtube_url is in the cookie-
+  // failed URL set, limited to ones still in 'ready' state (iframe-forever).
+  const urlsArray = Array.from(cookieFailedUrls).slice(0, 500);
   const { data: candidates } = await supa.from('social_reels')
     .select('id, author_id, original_youtube_url')
     .eq('media_status', 'ready')
     .ilike('video_url', '%youtube%')
-    .not('original_youtube_url', 'is', null)
+    .in('original_youtube_url', urlsArray)
     .limit(500);
   if (!candidates?.length) {
-    log('cookie-recovery: no candidate reels (no iframe-flagged YouTube reels found)');
+    log(`cookie-recovery: ${cookieFailedUrls.size} cookie-auth URL(s) but no matching ready-state reels — nothing to recover`);
     return;
   }
 
-  // 3. Batch-fetch the most-recent failed job for ALL candidate URLs at once
-  // (avoids N+1 + the .or() string-interpolation injection vulnerability the
-  // earlier per-reel loop had). The trigger always sets youtube_url AND
-  // source_url to the same value, so checking youtube_url alone is correct.
-  const allUrls = Array.from(new Set(candidates.map((r) => r.original_youtube_url)));
-  const { data: jobs } = await supa.from('video_transcode_jobs')
+  // 4. Verify the LATEST failed job per URL is still cookie-auth (not a
+  // mixed-failure URL where a permanent failure happened more recently).
+  // This prevents re-queueing reels whose most-recent failure is actually
+  // members-only / private / region-blocked.
+  const allUrlsForLatestCheck = Array.from(new Set(candidates.map((r) => r.original_youtube_url)));
+  const { data: latestJobs } = await supa.from('video_transcode_jobs')
     .select('youtube_url, status, error_message, completed_at')
     .eq('source_type', 'youtube')
     .eq('status', 'failed')
-    .in('youtube_url', allUrls)
+    .in('youtube_url', allUrlsForLatestCheck)
     .order('completed_at', { ascending: false, nullsFirst: false });
 
-  // Reduce to the latest failed-job per URL, then filter to cookie-auth ones
-  const cookieFailedUrls = new Set();
+  const latestCookieFailedUrls = new Set();
   const seenUrl = new Set();
-  for (const j of (jobs || [])) {
+  for (const j of (latestJobs || [])) {
     if (seenUrl.has(j.youtube_url)) continue;
     seenUrl.add(j.youtube_url);
     if (/cookies-from-browser|cookies for the authentication|Sign in to confirm/i.test(j.error_message || '')) {
-      cookieFailedUrls.add(j.youtube_url);
+      latestCookieFailedUrls.add(j.youtube_url);
     }
   }
 
-  const recoverable = candidates.filter((r) => cookieFailedUrls.has(r.original_youtube_url));
+  const recoverable = candidates.filter((r) => latestCookieFailedUrls.has(r.original_youtube_url));
   if (!recoverable.length) {
-    log(`cookie-recovery: ${candidates.length} candidates checked, 0 had cookie-auth as latest failure`);
+    log(`cookie-recovery: ${candidates.length} candidates checked, 0 had cookie-auth as latest failure (later permanent failure took precedence)`);
     return;
   }
-  log(`cookie-recovery: ${recoverable.length} reel(s) eligible (across ${cookieFailedUrls.size} URL(s)) — re-queueing`);
+  log(`cookie-recovery: ${recoverable.length} reel(s) eligible (across ${latestCookieFailedUrls.size} URL(s)) — re-queueing`);
 
   // 4. Reset reel state in a small batched loop. We need per-row video_url
   // assignments (supabase-js doesn't allow CASE expressions in update()).
