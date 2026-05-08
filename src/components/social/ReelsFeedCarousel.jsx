@@ -405,6 +405,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const userInteractedRef = useRef(
     typeof window !== 'undefined' && window.sessionStorage?.getItem('sp:reels:interacted') === '1'
   );
+  // Stricter than userInteractedRef: only true when a gesture happened on
+  // THIS page load. Browsers gate autoplay-with-sound per-document; the
+  // sessionStorage-backed userInteractedRef can be true on reload without
+  // any fresh gesture. YT iframe unMute is silently rejected in that
+  // state. Use this ref for slot-transition setMuted(false) gates.
+  const userGesturedThisLoadRef = useRef(false);
   const userWantsSoundRef = useRef(true); // User preference — persists across reel changes
   const likeDebounceRef = useRef(false);
   const lastTapRef = useRef(0);
@@ -635,7 +641,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
             unmuteTimerRef.current = null;
             sendYTCmd('unMute');
             sendYTCmd('setVolume', [100]);
-            setMuted(false);
+            // Only flip React state if a gesture happened on THIS load.
+            // Otherwise YT silently rejects unMute and React would lie.
+            if (userGesturedThisLoadRef.current) setMuted(false);
           }, 100);
         }
       }
@@ -737,7 +745,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 if (!userInteractedRef.current || !userWantsSoundRef.current) return;
                 sendYTCmd('unMute');
                 sendYTCmd('setVolume', [100]);
-                setMuted(false);
+                // Only flip React state if a gesture happened on THIS load.
+                // YT iframe is cross-origin so we cannot verify unMute landed.
+                if (userGesturedThisLoadRef.current) setMuted(false);
               };
               doUnmute();
               autoUnmuteRetryTimersRef.current = [100, 300, 600].map((d) =>
@@ -1557,13 +1567,20 @@ function ReelViewer({ reels, startIndex, onClose }) {
   // that, every video can unmute on its onPlaying event without an extra
   // click. Mirrors the matching effect in src/components/social/Reels.jsx.
   useEffect(() => {
-    if (userInteractedRef.current) return;
+    // No early-return on userInteractedRef being already true (sticky from
+    // sessionStorage). On reload we must keep listening so the FIRST gesture
+    // this page load flips userGesturedThisLoadRef and unblocks setMuted(false)
+    // in slot-transition paths.
     const onGesture = () => {
-      if (userInteractedRef.current) return;
-      userInteractedRef.current = true;
-      try {
-        window.sessionStorage?.setItem('sp:reels:interacted', '1');
-      } catch (_) {}
+      // Always flip per-load ref — every gesture refreshes the gate.
+      userGesturedThisLoadRef.current = true;
+      // Sticky tab-session flag (idempotent after first set).
+      if (!userInteractedRef.current) {
+        userInteractedRef.current = true;
+        try {
+          window.sessionStorage?.setItem('sp:reels:interacted', '1');
+        } catch (_) {}
+      }
       if (userWantsSoundRef.current) {
         try {
           if (videoRef.current) {
@@ -1915,7 +1932,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                   if (userInteractedRef.current && userWantsSoundRef.current) {
                     sendYTCmd('unMute');
                     sendYTCmd('setVolume', [100]);
-                    setMuted(false);
+                    // Only flip React state if a gesture happened on THIS load.
+                    // YT iframe is cross-origin so we cannot verify unMute.
+                    if (userGesturedThisLoadRef.current) setMuted(false);
                   }
                   // BUG FIX (RFC-8): cancel any previous retry batch before
                   // scheduling new ones — prevents stale postMessage to old iframe
@@ -1957,11 +1976,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
             display: !isYouTubeUrl(currentReel.video_url) ? 'block' : 'none',
           }}
           onPlaying={(e) => {
+            // Verify-after-unmute: when sessionStorage[sp:reels:interacted]
+            // is preset from a prior page load, userInteractedRef is true
+            // but the browser hasn't seen a fresh gesture this load. Setting
+            // muted=false may be silently ignored. Only flip React state
+            // after confirming the DOM accepted the change — never lie.
             if (userInteractedRef.current && userWantsSoundRef.current) {
               try {
                 e.target.muted = false;
-                if (e.target.volume === 0) e.target.volume = 1.0;
-                setMuted(false);
+                if (!e.target.muted) {
+                  if (e.target.volume === 0) e.target.volume = 1.0;
+                  setMuted(false);
+                }
               } catch (_) {
                 /* best-effort */
               }

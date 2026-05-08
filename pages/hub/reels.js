@@ -103,6 +103,13 @@ export default function ReelsPage() {
   const userInteractedRef = useRef(
     typeof window !== 'undefined' && window.sessionStorage?.getItem('sp:reels:interacted') === '1'
   );
+  // Stricter than userInteractedRef: only true when a gesture happened on
+  // THIS page load. Browsers gate autoplay-with-sound per-document; the
+  // sessionStorage-backed userInteractedRef can be true on reload without
+  // any fresh gesture. YT iframe unMute postMessage is silently rejected
+  // in that state. Use this ref for slot-transition setMuted(false) gates
+  // so React state never lies about being unmuted while YT is muted.
+  const userGesturedThisLoadRef = useRef(false);
   const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
   const touchStartY = useRef(0);
   const touchStartX = useRef(0);
@@ -378,7 +385,13 @@ export default function ReelsPage() {
     if (!userInteractedRef.current) return;
     sendYouTubeCommand('unMute');
     sendYouTubeCommand('setVolume', [100]);
-    setMuted(false);
+    // Only flip React state if a gesture happened on THIS page load.
+    // YT iframe is cross-origin so we cannot verify unMute landed; on
+    // reload-with-sessionStorage YT silently rejects unMute and React
+    // state would lie about being unmuted.
+    if (userGesturedThisLoadRef.current) {
+      setMuted(false);
+    }
     if (videoRef.current) {
       try {
         videoRef.current.muted = false;
@@ -395,13 +408,19 @@ export default function ReelsPage() {
   // tap. The flag stays sticky for the whole tab session, so subsequent
   // swipes inherit it.
   useEffect(() => {
-    if (userInteractedRef.current) return;
+    // No early-return on userInteractedRef — on reload with sessionStorage='1'
+    // we still need to listen so the FIRST gesture this page load flips
+    // userGesturedThisLoadRef and unblocks slot-transition setMuted(false).
     const onGesture = () => {
-      if (userInteractedRef.current) return;
-      userInteractedRef.current = true;
-      try {
-        window.sessionStorage?.setItem('sp:reels:interacted', '1');
-      } catch (_) {}
+      // Always flip per-load ref — every gesture refreshes the gate.
+      userGesturedThisLoadRef.current = true;
+      // Sticky tab-session flag (idempotent after first set).
+      if (!userInteractedRef.current) {
+        userInteractedRef.current = true;
+        try {
+          window.sessionStorage?.setItem('sp:reels:interacted', '1');
+        } catch (_) {}
+      }
       if (userWantsSoundRef.current) {
         try {
           if (videoRef.current) {
@@ -2493,11 +2512,18 @@ export default function ReelsPage() {
                 muted={true}
                 onPlay={() => setIsPaused(false)}
                 onPlaying={(e) => {
+                  // Verify-after-unmute: when sessionStorage[sp:reels:interacted]
+                  // is preset from a prior load, userInteractedRef is true but
+                  // the browser hasn't seen a fresh gesture this load. The
+                  // muted=false write may be silently ignored. Only flip React
+                  // state after the DOM accepted it — never lie.
                   if (userInteractedRef.current && userWantsSoundRef.current) {
                     try {
                       e.target.muted = false;
-                      if (e.target.volume === 0) e.target.volume = 1.0;
-                      setMuted(false);
+                      if (!e.target.muted) {
+                        if (e.target.volume === 0) e.target.volume = 1.0;
+                        setMuted(false);
+                      }
                     } catch (_) {
                       /* best-effort */
                     }
