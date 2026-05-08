@@ -18,7 +18,7 @@
  * and is inconsistent with the rest of the system. Route users through
  * the wizard — that is the canonical path.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { Home, Sparkles, Calendar, Users, Shield, ArrowRight } from 'lucide-react';
 
@@ -27,8 +27,48 @@ const WIZARD_PATH = '/commander/register?tier=home_game&return=%2Fhub%2Fcommande
 export default function CreateHomeGame({ onCancel }) {
   const router = useRouter();
 
-  const handleStart = () => {
-    router.push(WIZARD_PATH);
+  const [checking, setChecking] = useState(false);
+
+  const handleStart = async () => {
+    setChecking(true);
+    try {
+      let authBlob = {};
+      try {
+        authBlob = JSON.parse(window.localStorage.getItem('smarter-poker-auth') || '{}');
+      } catch { /* corrupted blob — treat as signed-out */ }
+
+      const user = authBlob?.user || null;
+      const accessToken =
+        authBlob?.session?.access_token ||
+        authBlob?.access_token ||
+        authBlob?.currentSession?.access_token ||
+        null;
+
+      if (!user || !accessToken) {
+        window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
+        return;
+      }
+
+      const res = await fetch('/api/commander/check-access', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.hasAccess) {
+          router.push('/hub/commander/home-games/create');
+          return;
+        }
+      }
+      
+      // If we get here, they need to register
+      window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
+    } catch (e) {
+      console.warn('Commander access check failed:', e);
+      window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
+    }
   };
 
   const bullets = [
@@ -60,13 +100,21 @@ export default function CreateHomeGame({ onCancel }) {
           ))}
         </ul>
 
-        <div className="hg-cta-actions">
-          <button type="button" onClick={handleStart} className="hg-cta-primary">
+        <div className="hg-cta-actions relative">
+          {checking ? (
+            <div className="absolute inset-0 bg-[#242526]/90 flex items-center justify-center rounded-xl backdrop-blur-sm z-10 border border-[#1877F2]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-[#1877F2]/30 border-t-[#1877F2] rounded-full animate-spin" />
+                <span className="text-sm font-semibold text-[#E4E6EB]">Checking Status...</span>
+              </div>
+            </div>
+          ) : null}
+          <button type="button" onClick={handleStart} disabled={checking} className="hg-cta-primary">
             Get Started - It's Free
             <ArrowRight size={16} strokeWidth={2.4} />
           </button>
           {onCancel && (
-            <button type="button" onClick={onCancel} className="hg-cta-secondary">
+            <button type="button" onClick={onCancel} disabled={checking} className="hg-cta-secondary">
               Maybe Later
             </button>
           )}

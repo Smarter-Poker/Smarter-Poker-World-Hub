@@ -379,6 +379,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     useEffect(() => {
         if (videoRef.current && remoteStream) {
             videoRef.current.srcObject = remoteStream;
+            videoRef.current.play().catch(() => {});
             pendingStreamRef.current = null;
         }
     }, [remoteStream]);
@@ -387,6 +388,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     useEffect(() => {
         if (!isConnecting && pendingStreamRef.current && videoRef.current) {
             videoRef.current.srcObject = pendingStreamRef.current;
+            videoRef.current.play().catch(() => {});
             
             // Feature 3: Start background recording for Clip It (last 60s)
             try {
@@ -590,10 +592,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     };
 
     const handleLeave = async () => {
-        liveStreamService.isManualDisconnect = true;
-        await liveStreamService.leaveStream();
-        busEmit.dataMutated?.('live_streams');
-        onClose();
+        try {
+            liveStreamService.isManualDisconnect = true;
+            await liveStreamService.leaveStream();
+        } catch (err) {
+            console.error('[LiveStreamViewer] Failed to cleanly leave stream:', err);
+        } finally {
+            busEmit.dataMutated?.('live_streams');
+            onClose();
+        }
     };
 
     const qualityColor = connectionQuality === 'excellent' || connectionQuality === 'good'
@@ -655,8 +662,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 style={{
                                     width: '100%',
                                     height: '100%',
-                                    objectFit: 'cover',
-                                    transform: 'scaleX(-1)'
+                                    objectFit: 'cover'
                                 }}
                             />
                             <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
@@ -1116,8 +1122,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
                         title="Send diamond gift"
                     >
-                        {/* BUG-FIX-LIVE-3: replaced 5-pointed star path with brilliant-cut diamond */}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z M6 3 L9 9 L15 9 L18 3 M9 9 L12 22 L15 9 M2 9 L9 9 M15 9 L22 9" stroke="#000" strokeWidth="0.5" strokeLinejoin="round"/></svg>
+                        {/* User requested standard diamond asset with no background */}
+                        <img src="/images/diamond.png" alt="Send Gift" style={{ width: 20, height: 20, display: 'block', margin: '-2px 0' }} />
                     </button>
                 )}
                 <button

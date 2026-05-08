@@ -29,7 +29,7 @@ const supabase = createClient(
 
 // ── Anti-farming constants (live gifts) ──
 const NEW_USER_BLOCK_DAYS = 30;
-const GRADUATION_DAYS = 90;
+const GRADUATION_DAYS = 120;
 const FREE_EARNED_30DAY_LIMIT = 100;
 const PURCHASED_WON_30DAY_LIMIT = 500;
 const RECEIVER_30DAY_RECEIVE_LIMIT = 1000; // per broadcaster per 30-day rolling window
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
     // ── GUARD: Fetch sender profile for age gate ──
     const { data: senderProfile } = await supabase
         .from('profiles')
-        .select('id, created_at, username, full_name, avatar_url')
+        .select('id, created_at, username, full_name, avatar_url, is_farming_flagged')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -186,11 +186,12 @@ export default async function handler(req, res) {
         });
     }
 
-    // ── GUARD: Source-tier rolling 30-day cap (accounts 31–89 days) ──
+    // ── GUARD: Source-tier rolling 30-day cap (accounts < 120 days or flagged) ──
     const isGraduated = senderAgeDays >= GRADUATION_DAYS;
+    const isFullyUnrestricted = isGraduated && senderProfile?.is_farming_flagged === false;
     const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    if (!isKingfish && !isGraduated) {
+    if (!isKingfish && !isFullyUnrestricted) {
         // BUG FIX (Pass 4): Use direct RPCs for aggregations instead of paginated HTTP fetching
         const { data: alreadySent } = await supabase.rpc('sum_diamond_transactions', {
             p_user_id: user.id,
