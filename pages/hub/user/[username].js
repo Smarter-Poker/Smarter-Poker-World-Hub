@@ -2000,7 +2000,20 @@ export default function UserProfilePage() {
     };
 
     const handleDeletePost = async (postId) => {
-        // EAGER STATE SYNCHRONIZATION: Update UI immediately (BFCache-safe)
+        // BUG FIX (USER-DELETE-1): handleDeletePost was fire-and-forget on the DB.
+        // It optimistically filtered the post out of state, fired
+        // invalidateProfileCache() + busEmit.dataMutated('social') + broadcastSync(),
+        // and only THEN issued the DB delete. The same-tab cache-invalidation listener
+        // (onCacheInvalidation) runs handleRealtimeUpdate() -> refreshContent() which
+        // re-queries social_posts. Because the DB delete had not landed yet, the
+        // refetch pulled the post back into state and the user had to click delete a
+        // second time. Fix: optimistic UI -> AWAIT the DB delete -> then broadcast.
+        //
+        // BUG FIX (USER-DELETE-2): the post -> reel relationship uses
+        // ON DELETE SET NULL on social_reels.source_post_id, so deleting the post
+        // left an orphan reel that kept playing in /hub/reels. Until the migration
+        // changing that FK to ON DELETE CASCADE has propagated to every environment,
+        // explicitly delete the matching reel rows here.
         const prevPosts = posts;
         const prevPhotos = photos;
         const prevVideos = videos;
@@ -2009,21 +2022,34 @@ export default function UserProfilePage() {
         setPhotos(prev => prev.filter(p => p.id !== postId));
         setVideos(prev => prev.filter(p => p.id !== postId));
         setStats(prev => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
+
+        // AWAIT the DB delete — this is what serializes the broadcast below.
+        const { error } = await supabase.from('social_posts').delete().eq('id', postId);
+
+        if (error) {
+            // Rollback UI on DB failure
+            setPosts(prevPosts);
+            setPhotos(prevPhotos);
+            setVideos(prevVideos);
+            setStats(prevStats);
+            console.warn('Error deleting post:', error);
+            return;
+        }
+
+        // Defense in depth — also delete any reel rows whose source_post_id matched
+        // this post. The migration moves the FK to ON DELETE CASCADE so this becomes
+        // a no-op once it lands, but until then it prevents orphan reels.
+        try {
+            await supabase.from('social_reels').delete().eq('source_post_id', postId);
+        } catch (e) {
+            console.warn('[App] Reel cleanup after post delete failed (non-fatal):', e?.message || e);
+        }
+
+        // Only broadcast / invalidate cache AFTER the DB delete is confirmed —
+        // otherwise listeners refetch and see the still-present row.
         invalidateProfileCache();
         busEmit.dataMutated('social');
-        broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
-
-        // Fire-and-forget DB delete with rollback on failure
-        supabase.from('social_posts').delete().eq('id', postId).then(({ error }) => {
-            if (error) {
-                // Rollback UI on DB failure
-                setPosts(prevPosts);
-                setPhotos(prevPhotos);
-                setVideos(prevVideos);
-                setStats(prevStats);
-                console.warn('Error deleting post:', error);
-            }
-        });
+        broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID, deletedPostId: postId });
     };
 
     const handlePost = async (content, urls = [], type = 'text', mentions = [], linkPreview = null) => {
@@ -2167,7 +2193,11 @@ export default function UserProfilePage() {
                 canonical={`/hub/user/${profile.username}`}
             />
 
-            <div className="sp-profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            {/* BUG FIX (USER-LAYOUT-1): explicit width + box-sizing prevents the page
+                from rendering in a narrow column when an ancestor container has a
+                stale width / flex-basis. Reported on mobile after USER-LOOKUP-1
+                fix made the page actually render. */}
+            <div className="sp-profile-page" style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', boxSizing: 'border-box', overflowX: 'hidden', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 <UniversalHeader pageDepth={2} />
 
                 {/* Pull-to-Refresh Indicator */}
