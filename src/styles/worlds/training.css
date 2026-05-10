@@ -226,3 +226,313 @@ body.world-training ::-webkit-scrollbar-thumb:hover {
         display: none !important;
     }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAIN-CSS-TYPO-1 — typography rhythm + spacing scale across all 89 games
+   ═══════════════════════════════════════════════════════════════════════════
+   Additive utility layer scoped to body.world-training. Pages can adopt the
+   sp-* classes for consistent vertical rhythm and spacing without breaking
+   existing inline-style layouts. Companion to TRAIN-CSS-SWEEP-1 which added
+   accessibility and responsive guards.
+
+   Rationale: training pages were inconsistently sized — some used 14px body,
+   others 12px or 16px; some had 8px gutters, others 16/24/32 ad-hoc. This
+   establishes a single rhythm so cards/sections feel related across games.
+   Each rule maps to a specific anti-pattern from the May 8 handoff §6.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. SEMANTIC HEADING SIZES — handoff §6 'font-scale' (consistent type scale)
+   Pages use .sp-h1 / .sp-h2 / .sp-h3 / .sp-h4 instead of raw font-size.
+   Sizes follow a 1.25 modular scale anchored at 16px body.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-h1 {
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--world-foreground, #ffffff);
+    margin: 0;
+}
+body.world-training .sp-h2 {
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0;
+    color: var(--world-foreground, #ffffff);
+    margin: 0;
+}
+body.world-training .sp-h3 {
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--world-foreground, #ffffff);
+    margin: 0;
+}
+body.world-training .sp-h4 {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. BODY TEXT — handoff §6 'readable-font-size' (16px floor on mobile),
+                  'line-height' (1.5–1.75), 'line-length' (35–60 mobile).
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-body {
+    font-size: 16px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 60ch;
+}
+body.world-training .sp-body-sm {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 60ch;
+}
+body.world-training .sp-caption {
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.2px;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. TABULAR NUMERALS — handoff §6 'number-tabular'
+   Use .sp-num-tabular on data columns, prices, scores, timers — prevents
+   layout shift when digits change (e.g. countdown ticker, EV BB display).
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-num-tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. SPACING SCALE — handoff §5 'spacing-scale' (4/8 incremental)
+   Standard increments 4 → 48 px. Use .sp-stack-Nx (vertical) and
+   .sp-cluster-Nx (horizontal). Eliminates ad-hoc gap values.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-stack-1 > * + * { margin-top: 4px; }
+body.world-training .sp-stack-2 > * + * { margin-top: 8px; }
+body.world-training .sp-stack-3 > * + * { margin-top: 12px; }
+body.world-training .sp-stack-4 > * + * { margin-top: 16px; }
+body.world-training .sp-stack-5 > * + * { margin-top: 24px; }
+body.world-training .sp-stack-6 > * + * { margin-top: 32px; }
+body.world-training .sp-stack-7 > * + * { margin-top: 48px; }
+
+body.world-training .sp-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+body.world-training .sp-cluster-1 { gap: 4px; }
+body.world-training .sp-cluster-2 { gap: 8px; }
+body.world-training .sp-cluster-3 { gap: 12px; }
+body.world-training .sp-cluster-4 { gap: 16px; }
+body.world-training .sp-cluster-5 { gap: 24px; }
+body.world-training .sp-cluster-6 { gap: 32px; }
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. CARD STANDARDS — handoff §6 'truncation-strategy', §5 'spacing-scale'
+   Standard card padding so cards across games feel related.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-card {
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--world-surface, rgba(10, 50, 35, 0.6));
+    border: 1px solid var(--world-border, rgba(0, 255, 136, 0.3));
+}
+body.world-training .sp-card-sm {
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--world-surface, rgba(10, 50, 35, 0.6));
+    border: 1px solid var(--world-border, rgba(0, 255, 136, 0.3));
+}
+body.world-training .sp-card-lg {
+    padding: 24px;
+    border-radius: 16px;
+    background: var(--world-surface, rgba(10, 50, 35, 0.6));
+    border: 1px solid var(--world-border, rgba(0, 255, 136, 0.3));
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. CTA BUTTON BASE — handoff §4 'primary-action' (one primary per screen)
+   Standard primary / secondary / ghost button shapes. Pages can apply
+   .sp-cta as a base then add their own variant class for color.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 150ms ease-out, box-shadow 150ms ease-out, background 150ms ease-out;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+body.world-training .sp-cta-primary {
+    background: linear-gradient(135deg, var(--world-primary, #00ff88), var(--world-secondary, #22c55e));
+    color: #000000;
+    box-shadow: 0 4px 14px rgba(0, 255, 136, 0.25);
+}
+body.world-training .sp-cta-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0, 255, 136, 0.35);
+}
+body.world-training .sp-cta-secondary {
+    background: var(--world-surface, rgba(255, 255, 255, 0.06));
+    border-color: var(--world-border, rgba(255, 255, 255, 0.15));
+    color: rgba(255, 255, 255, 0.9);
+}
+body.world-training .sp-cta-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+body.world-training .sp-cta-ghost {
+    background: transparent;
+    color: var(--world-primary, #00ff88);
+}
+body.world-training .sp-cta-ghost:hover {
+    background: rgba(0, 255, 136, 0.08);
+}
+body.world-training .sp-cta:active {
+    transform: translateY(0);
+}
+body.world-training .sp-cta:disabled,
+body.world-training .sp-cta[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. TRUNCATION HELPERS — handoff §6 'truncation-strategy'
+   Single-line and multi-line truncation utilities for long titles / dense
+   data tables. Use sparingly per the handoff (prefer wrapping over truncation
+   when possible).
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+body.world-training .sp-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+body.world-training .sp-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   8. SECTION DIVIDERS — handoff §6 'whitespace-balance'
+   Subtle horizontal rule for section transitions inside a card. Don't use
+   for top-level page sections — those should just use sp-stack-* spacing.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-divider {
+    height: 1px;
+    margin: 16px 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%);
+    border: none;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   9. EMPTY STATE — handoff §8 'empty-states'
+   Standard "nothing here yet" treatment so pages don't render blank cards.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    line-height: 1.5;
+}
+body.world-training .sp-empty-title {
+    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   10. SKELETON SHIMMER — handoff §3 'progressive-loading' / 'lazy-load'
+   Shared skeleton class for loading placeholders. Use .sp-skeleton-line for
+   single-line stub, .sp-skeleton-block for card-shaped stub. Honors the
+   prefers-reduced-motion guard from TRAIN-CSS-SWEEP-1 (animation collapses
+   to ~0ms when user has reduced-motion enabled).
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sp-skeleton {
+    display: inline-block;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 100%);
+    background-size: 200% 100%;
+    animation: spSkeletonShimmer 1.4s ease-in-out infinite;
+    border-radius: 4px;
+    color: transparent;
+    user-select: none;
+}
+body.world-training .sp-skeleton-line {
+    display: block;
+    height: 12px;
+    width: 100%;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 100%);
+    background-size: 200% 100%;
+    animation: spSkeletonShimmer 1.4s ease-in-out infinite;
+    border-radius: 4px;
+    margin: 6px 0;
+}
+body.world-training .sp-skeleton-block {
+    display: block;
+    height: 80px;
+    width: 100%;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 100%);
+    background-size: 200% 100%;
+    animation: spSkeletonShimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+}
+@keyframes spSkeletonShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
