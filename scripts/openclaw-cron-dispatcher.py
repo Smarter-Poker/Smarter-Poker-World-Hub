@@ -286,6 +286,12 @@ ALL_CRONS = [
     # Zombie cleanup: marks stale live streams (>6h) as ended, cleans viewers.
     # Reminders: notifies followers 15 minutes before a scheduled live starts.
     ('/api/cron/live-cleanup',                    dict(minute='*/5')),       # every 5 min
+    # BUG-FIX-LIVE-LIST-8b backstop: 60-second stale-stream cleanup.
+    # Complements /api/cron/live-cleanup (which handles 6h+ zombies via
+    # cleanup_zombie_streams). This one runs fn_auto_end_stale_streams(60)
+    # every 5 minutes so streams that disconnect at low-traffic hours are
+    # caught even when no users are loading the social-media feed.
+    ('/api/cron/cleanup-stale-streams',           dict(minute='*/5')),       # every 5 min
     ('/api/cron/live-reminders',                  dict(minute='*/5')),       # every 5 min
 
     # ══ WAVE 5 — Club Arena platform crons (Round 9 + X7.4, 2026-04-29) ═════
