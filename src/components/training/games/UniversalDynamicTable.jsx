@@ -4259,6 +4259,38 @@ function UniversalDynamicTable({
                                 </div>
                             )}
 
+                            {/* BUG FIX (TRAIN-FB-IA-1): the post-answer feedback layer was
+                                stacking up to 10 narrative cards (PRINCIPLE / POSITION / TEXTURE /
+                                SPR / VILLAIN RANGE / STREET PLAN / HAND / EQUITY / RANGE TIP /
+                                HAND READING) on top of the KEY TAKEAWAY and SOLVER LINE cards.
+                                On a 390px mobile viewport this filled the screen and pushed the
+                                NEXT HAND button below the fold. Wrap these auxiliary insight
+                                cards in a single <details> accordion so the user sees only the
+                                two important cards by default and can opt into the deep coaching
+                                insights on demand. */}
+                            <details
+                                style={{
+                                    marginTop: 4,
+                                    padding: '4px 8px',
+                                    borderRadius: 8,
+                                    background: 'rgba(255,255,255,0.02)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                }}
+                            >
+                                <summary
+                                    style={{
+                                        cursor: 'pointer',
+                                        fontSize: 9,
+                                        fontWeight: 700,
+                                        letterSpacing: 0.5,
+                                        color: '#94a3b8',
+                                        userSelect: 'none',
+                                        listStyle: 'none',
+                                        padding: '4px 2px',
+                                    }}
+                                >
+                                    More coaching insights
+                                </summary>
                             {/* ═══ PHASE 261-280: Deep coaching insights ═══ */}
                             {(() => {
                                 try {
@@ -4380,6 +4412,7 @@ function UniversalDynamicTable({
                                 } catch (_) { return null; }
                             })()}
 
+                            </details>
                             {/* Phase 301: Optimal Line Narration */}
                             {(() => {
                                 try {
@@ -4499,11 +4532,17 @@ function UniversalDynamicTable({
                                 border: '1px solid rgba(139, 92, 246, 0.2)',
                             }}
                         >
+                            {/* BUG FIX (TRAIN-FB-COPY-1): "Hand Complete — 1 STREET PLAYED" reads
+                                awkwardly. Map streetsPlayed to a natural-language summary. */}
                             <div style={{
                                 fontSize: 9, fontWeight: 700, letterSpacing: 1.2,
                                 textTransform: 'uppercase', color: '#a78bfa', marginBottom: 6,
                             }}>
-                                Hand Complete — {handSummary.streetsPlayed} Street{handSummary.streetsPlayed > 1 ? 's' : ''} Played
+                                {(() => {
+                                    const n = handSummary.streetsPlayed || 1;
+                                    const labels = { 1: 'Played to flop', 2: 'Played to turn', 3: 'Played to river', 4: 'Hand to showdown' };
+                                    return labels[n] || `Hand summary · ${n} streets played`;
+                                })()}
                             </div>
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                 {(handSummary.evHistory || []).map((ev, idx) => {
