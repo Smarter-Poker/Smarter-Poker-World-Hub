@@ -56,8 +56,22 @@ There is exactly ONE deployment path. No exceptions. No alternatives.
 | Supabase   | Database + Auth + Realtime       | `kuklfnapbkmacvwxktbh.supabase.co`                  |
 | Hetzner    | Poker engine server (Node.js)    | `server/` directory, deployed via SSH               |
 
-The `smarter-poker` Vercel project (`prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`) is a DEAD DUPLICATE.
-Its git integration is disconnected. Its deploy hooks are deleted. Do not touch it.
+**Canonical Vercel project for this repo: `hub-vanguard` ONLY.** Never re-link this
+GitHub repo (`Smarter-Poker-World-Hub`) to any other Vercel project. Doing so
+fires a duplicate build on every push, and the duplicate's queue starves the
+real one — the symptom is "deployments queued forever, never build" in the
+Vercel dashboard.
+
+Known dead duplicates (do NOT touch, do NOT re-link):
+| Project name              | Project ID                                | Why it's dead |
+|---------------------------|-------------------------------------------|---------------|
+| `smarter-poker`           | `prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`        | Disconnected, hooks deleted |
+| `smarter-poker-world-hub` | `prj_PGNqOQZSSWwWx7p86leBf5YTOWEU`        | 2026-05-08: deleted after duplicate-builds incident — see `.agent/audits/2026-05-08-vercel-duplicate-project-incident.md` |
+
+If you find a NEW Vercel project linked to this repo, it's a regression of
+this exact bug — disconnect/delete it. Run
+`scripts/check-vercel-project-uniqueness.mjs` to verify exactly one project
+serves this repo at any time.
 
 ### 1.2 Mandatory End-of-Session Push
 
