@@ -82,6 +82,70 @@ class LiveStreamService {
     // TOKEN
     // ═══════════════════════════════════════════════════
 
+    /**
+     * BUG-FIX-LIVE-LIST-8a: detect orphaned broadcaster state.
+     * Returns the persisted state if a previous session ended without
+     * cleanup AND the live_streams row is still status='live'.
+     * Caller (GoLiveModal mount) uses this to offer "Resume Live Stream?".
+     *
+     * Stream rows older than the LiveKit token TTL (8h) are guaranteed
+     * zombies — we don't offer resume for those, just clear the state.
+     */
+    static async detectOrphanedBroadcast(userId) {
+        if (typeof localStorage === 'undefined') return null;
+        let persisted;
+        try {
+            const raw = localStorage.getItem('liveBroadcasterState');
+            if (!raw) return null;
+            persisted = JSON.parse(raw);
+        } catch (_) {
+            try { localStorage.removeItem('liveBroadcasterState'); } catch (_) {}
+            return null;
+        }
+        if (!persisted?.streamId || persisted.broadcasterId !== userId) {
+            // Stale state from a different user — clear it.
+            try { localStorage.removeItem('liveBroadcasterState'); } catch (_) {}
+            return null;
+        }
+        // Older than 8h = zombie, can't resume (LiveKit token expired anyway).
+        const ageMs = Date.now() - (persisted.startedAt || 0);
+        if (ageMs > 8 * 60 * 60 * 1000) {
+            try { localStorage.removeItem('liveBroadcasterState'); } catch (_) {}
+            return null;
+        }
+        // Verify the DB row is still status='live'. If not, our previous
+        // endBroadcast or the stale-cleanup cron already finished it.
+        const { data: row } = await supabase
+            .from('live_streams')
+            .select('id, status, started_at')
+            .eq('id', persisted.streamId)
+            .maybeSingle();
+        if (!row || row.status !== 'live') {
+            try { localStorage.removeItem('liveBroadcasterState'); } catch (_) {}
+            return null;
+        }
+        return persisted;
+    }
+
+    /**
+     * BUG-FIX-LIVE-LIST-8a: explicit dismissal of an orphaned broadcast.
+     * If the user chooses "End it instead of resuming", we mark the row
+     * ended and clear localStorage. Idempotent.
+     */
+    static async dismissOrphanedBroadcast(streamId) {
+        if (!streamId) return;
+        try {
+            await supabase
+                .from('live_streams')
+                .update({ status: 'ended', ended_at: new Date().toISOString() })
+                .eq('id', streamId)
+                .eq('status', 'live');
+        } catch (_) { /* non-fatal */ }
+        try {
+            if (typeof localStorage !== 'undefined') localStorage.removeItem('liveBroadcasterState');
+        } catch (_) {}
+    }
+
     async _getToken(streamId, broadcaster, guestInviteCode = null) {
         const token = getAccessToken();
         const resp = await fetch('/api/live/token', {
@@ -191,6 +255,22 @@ class LiveStreamService {
         }
 
         this.currentStreamId = stream.id;
+
+        // BUG-FIX-LIVE-LIST-8a: persist active broadcast state to localStorage
+        // so if the broadcaster's phone dies / app crashes / they reload the
+        // page, the next mount can detect their dangling 'live' row and offer
+        // "Resume Live Stream?" instead of stranding it as a zombie that
+        // viewers see as 'still live' but with frozen video.
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('liveBroadcasterState', JSON.stringify({
+                    streamId: stream.id,
+                    broadcasterId: userId,
+                    title: title || 'Live Stream',
+                    startedAt: Date.now(),
+                }));
+            }
+        } catch (_) { /* localStorage disabled (Safari private mode) — non-fatal */ }
 
         // 2. Update record with LiveKit room name (= stream id)
         await supabase.from('live_streams')
@@ -559,6 +639,15 @@ class LiveStreamService {
         console.debug('[LiveKit] Broadcast ended:', this.currentStreamId);
         const endedId = this.currentStreamId;
         this.currentStreamId = null;
+
+        // BUG-FIX-LIVE-LIST-8a: clear persisted broadcast state — clean end
+        // means there's nothing to resume from.
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.removeItem('liveBroadcasterState');
+            }
+        } catch (_) { /* non-fatal */ }
+
         this.isBroadcaster = false;   // FIX: reset so next session isn't tainted
         this.currentUserId = null;    // FIX: reset identity for next session
         this._remoteStreamDelivered = false; // FIX: reset guard for next session

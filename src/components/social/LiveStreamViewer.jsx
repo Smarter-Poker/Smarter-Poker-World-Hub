@@ -56,6 +56,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     // Without this, ✕ gets stuck and calling exitFullscreen() on a non-fullscreen doc throws
     const [shareToast, setShareToast] = useState('');
     const shareToastTimerRef = useRef(null);
+    // BUG-FIX-LIVE-LIST-7: 3-option share menu (Copy / Native / Post to feed)
+    const [showShareMenu, setShowShareMenu] = useState(false);
+    const [sharingToFeed, setSharingToFeed] = useState(false);
     // BUG-FIX-LIVE-7: track currently-selected video tier so the menu shows a
     // checkmark + the trigger button labels the active selection ("Quality · low").
     const [activeQuality, setActiveQuality] = useState('auto');
@@ -453,16 +456,39 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     // Feature 1: PiP Mode Handler
     const togglePiP = async () => {
         if (!videoRef.current) return;
+        const v = videoRef.current;
         try {
+            // BUG-FIX-LIVE-LIST-4: iOS Safari path. The standard
+            // pictureInPictureEnabled is false on iOS but webkit-prefixed PiP
+            // works via webkitSupportsPresentationMode + webkitSetPresentationMode.
+            if (typeof v.webkitSupportsPresentationMode === 'function'
+                && v.webkitSupportsPresentationMode('picture-in-picture')) {
+                if (v.webkitPresentationMode === 'picture-in-picture') {
+                    v.webkitSetPresentationMode('inline');
+                    setIsPiP(false);
+                } else {
+                    // Ensure video is playing (iOS rejects PiP for paused videos)
+                    try { await v.play(); } catch (_) {}
+                    v.webkitSetPresentationMode('picture-in-picture');
+                    setIsPiP(true);
+                }
+                return;
+            }
+            // Standard API path (Chrome, Firefox, desktop Safari 13.4+)
             if (document.pictureInPictureElement) {
                 await document.exitPictureInPicture();
                 setIsPiP(false);
             } else if (document.pictureInPictureEnabled) {
-                await videoRef.current.requestPictureInPicture();
+                try { await v.play(); } catch (_) {}
+                await v.requestPictureInPicture();
                 setIsPiP(true);
+            } else {
+                throw new Error('PiP not supported by this browser');
             }
         } catch (err) {
             console.warn('[PiP] Error:', err);
+            setError('Picture-in-picture failed: ' + (err?.message || 'unknown'));
+            setTimeout(() => setError(''), 2500);
         }
     };
 
@@ -497,6 +523,29 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     useEffect(() => {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [comments]);
+
+    // BUG-FIX-LIVE-LIST-7: close share menu on outside click or Escape
+    useEffect(() => {
+        if (!showShareMenu) return;
+        const onDocClick = (e) => {
+            // Any click that wasn't inside the menu (the menu stops propagation
+            // on its container) closes it.
+            setShowShareMenu(false);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') setShowShareMenu(false);
+        };
+        // Wait one tick so the click that OPENED the menu doesn't immediately close it
+        const id = setTimeout(() => {
+            document.addEventListener('click', onDocClick);
+            document.addEventListener('keydown', onKey);
+        }, 0);
+        return () => {
+            clearTimeout(id);
+            document.removeEventListener('click', onDocClick);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [showShareMenu]);
 
     /** Load earlier comments (pagination) */
     const loadMoreComments = async () => {
@@ -592,9 +641,24 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     };
 
     const handleLeave = async () => {
+        // BUG-FIX-LIVE-LIST-3: never block the close. If leaveStream() hangs
+        // (e.g. LiveKit room stuck in transient state after a fullscreen
+        // error), the user must still be able to exit. Race the leaveStream
+        // promise against a 3s safety timer so onClose() ALWAYS runs in
+        // bounded time.
         try {
             liveStreamService.isManualDisconnect = true;
-            await liveStreamService.leaveStream();
+            // Also exit fullscreen if we got stuck inside it.
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                try {
+                    if (document.exitFullscreen) await document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                } catch (_) {}
+            }
+            await Promise.race([
+                liveStreamService.leaveStream(),
+                new Promise((resolve) => setTimeout(resolve, 3000)),
+            ]);
         } catch (err) {
             console.error('[LiveStreamViewer] Failed to cleanly leave stream:', err);
         } finally {
@@ -622,8 +686,19 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     autoPlay
                     playsInline
                     muted
+                    onLoadedMetadata={(e) => {
+                        // BUG-FIX-LIVE-LIST-2: some Safari/iOS combos don't honor
+                        // autoPlay when srcObject is set AFTER initial mount (the
+                        // pendingStreamRef path). Force play on metadata-ready.
+                        try { e.currentTarget.play?.(); } catch (_) {}
+                    }}
                     style={{
-                        flex: 1,
+                        // BUG-FIX-LIVE-LIST-2: explicit absolute fill instead of flex:1.
+                        // flex:1 inside a flex container can collapse to 0 height in
+                        // the brief window between mount and metadata-ready, causing
+                        // the "tiny box" symptom. Absolute fill always claims 100%.
+                        position: 'absolute',
+                        inset: 0,
                         width: '100%',
                         height: '100%',
                         // BUG-FIX-LIVE-3 (viewer side): cover not contain, so the
@@ -779,31 +854,149 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     ✕
                 </button>
 
-                {/* BUG-FIX-SHARE: Share button for watchers */}
-                <button
-                    onClick={async () => {
-                        const streamUrl = `${window.location.origin}/hub/social-media?stream=${stream?.id}`;
-                        try {
-                            if (navigator.share) {
-                                await navigator.share({ title: streamData?.title || 'Live Stream', url: streamUrl });
-                            } else {
-                                await navigator.clipboard.writeText(streamUrl);
-                                if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
-                                setShareToast('Link Copied!');
-                                shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
-                            }
-                        } catch (_) {}
-                    }}
-                    style={{
-                        width: 44, height: 44, borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
-                        border: 'none', color: 'white', fontSize: 20, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                    title="Share stream"
-                >
-                    📤
-                </button>
+                {/* BUG-FIX-LIVE-LIST-7: Share menu — 3 explicit actions
+                    so watchers can copy a link, use native OS share, OR
+                    post the live stream to their own feed. Previously this
+                    button silently picked one based on browser support. */}
+                <div style={{ position: 'relative' }}>
+                    <button
+                        onClick={() => setShowShareMenu(prev => !prev)}
+                        style={{
+                            width: 44, height: 44, borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+                            border: 'none', color: 'white', fontSize: 20, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                        title="Share stream"
+                        aria-label="Share stream"
+                        aria-haspopup="menu"
+                        aria-expanded={showShareMenu}
+                    >
+                        📤
+                    </button>
+                    {showShareMenu && (
+                        <div
+                            role="menu"
+                            style={{
+                                position: 'absolute', top: 50, right: 0,
+                                background: 'rgba(20, 22, 28, 0.95)',
+                                backdropFilter: 'blur(20px)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: 12, padding: 6, minWidth: 200,
+                                boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                                zIndex: 70,
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Copy Link */}
+                            <button
+                                onClick={async () => {
+                                    const streamUrl = `${window.location.origin}/hub/social-media?stream=${stream?.id}`;
+                                    try {
+                                        await navigator.clipboard.writeText(streamUrl);
+                                        if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                                        setShareToast('Link copied to clipboard');
+                                        shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
+                                    } catch (err) {
+                                        setShareToast('Copy failed — try sharing instead');
+                                        if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                                        shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
+                                    }
+                                    setShowShareMenu(false);
+                                }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                                    padding: '10px 14px', background: 'transparent', border: 'none',
+                                    color: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'left',
+                                    borderRadius: 8,
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <span style={{ fontSize: 18 }}>🔗</span>
+                                <span>Copy Link</span>
+                            </button>
+
+                            {/* Native Share (mobile) */}
+                            {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
+                                <button
+                                    onClick={async () => {
+                                        const streamUrl = `${window.location.origin}/hub/social-media?stream=${stream?.id}`;
+                                        try {
+                                            await navigator.share({
+                                                title: streamData?.title || 'Live Stream on Smarter.Poker',
+                                                text: 'Watch this live stream',
+                                                url: streamUrl,
+                                            });
+                                        } catch (_) { /* user cancelled — silent */ }
+                                        setShowShareMenu(false);
+                                    }}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                                        padding: '10px 14px', background: 'transparent', border: 'none',
+                                        color: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'left',
+                                        borderRadius: 8,
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <span style={{ fontSize: 18 }}>📲</span>
+                                    <span>Share to apps...</span>
+                                </button>
+                            )}
+
+                            {/* Post to my feed */}
+                            <button
+                                disabled={sharingToFeed || !stream?.id}
+                                onClick={async () => {
+                                    if (sharingToFeed || !stream?.id) return;
+                                    setSharingToFeed(true);
+                                    try {
+                                        const token = getAccessToken();
+                                        const resp = await fetch('/api/live/share-stream-to-feed', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                            },
+                                            credentials: 'same-origin',
+                                            body: JSON.stringify({ stream_id: stream.id }),
+                                        });
+                                        const data = await resp.json().catch(() => ({}));
+                                        if (resp.ok) {
+                                            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                                            setShareToast(data.already_shared ? 'Already shared to your feed' : 'Posted to your feed');
+                                            shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
+                                        } else {
+                                            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                                            setShareToast(data.error || 'Could not share — please try again');
+                                            shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
+                                        }
+                                    } catch (err) {
+                                        if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                                        setShareToast('Could not share — network error');
+                                        shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(''); }, 2500);
+                                    } finally {
+                                        setSharingToFeed(false);
+                                        setShowShareMenu(false);
+                                    }
+                                }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                                    padding: '10px 14px', background: 'transparent', border: 'none',
+                                    color: sharingToFeed ? 'rgba(255,255,255,0.5)' : 'white', fontSize: 14,
+                                    cursor: sharingToFeed ? 'wait' : 'pointer', textAlign: 'left',
+                                    borderRadius: 8,
+                                }}
+                                onMouseEnter={e => { if (!sharingToFeed) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <span style={{ fontSize: 18 }}>📰</span>
+                                <span>{sharingToFeed ? 'Posting...' : 'Post to my feed'}</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {/* Share toast */}
                 {shareToast && (
@@ -879,15 +1072,17 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 setTimeout(() => setError(''), 2500);
                                 return;
                             }
-                            const supported = typeof document !== 'undefined' && document.pictureInPictureEnabled;
-                            const elSupported = videoRef.current && !videoRef.current.disablePictureInPicture;
-                            if (!supported || !elSupported) {
+                            const v = videoRef.current;
+                            const standardSupported = typeof document !== 'undefined' && document.pictureInPictureEnabled && !v.disablePictureInPicture;
+                            const iosSupported = typeof v.webkitSupportsPresentationMode === 'function'
+                                && v.webkitSupportsPresentationMode('picture-in-picture');
+                            if (!standardSupported && !iosSupported) {
                                 setError('Picture-in-picture is not supported on this browser');
                                 setTimeout(() => setError(''), 3000);
                                 return;
                             }
                             // Ensure video is playing
-                            try { await videoRef.current.play(); } catch (_) {}
+                            try { await v.play(); } catch (_) {}
                             await togglePiP();
                         }}
                         style={{ background: isPiP ? 'rgba(0,120,255,0.7)' : 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
@@ -896,26 +1091,37 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     </button>
                     <button
                         onClick={async () => {
-                            // BUG-FIX-THEATER: use the fullscreen API on the outer container
-                            // (not just the video element) so the entire viewer UI enters fullscreen.
-                            // Sync isTheaterMode from the fullscreenchange event listener, not here,
-                            // to avoid the state/reality mismatch that caused the freeze.
+                            // BUG-FIX-LIVE-LIST-3: theater toggle hardening.
+                            // Source of truth = document.fullscreenElement, NOT
+                            // React state (which can desync if the user exits
+                            // fullscreen via browser chrome between renders).
+                            // After EVERY path (success or thrown), sync React
+                            // state to reality so the next tap behaves
+                            // correctly. Without this, a transient throw left
+                            // theater state stuck and locked the user out.
+                            const inFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
                             const viewerContainer = videoRef.current?.closest('[data-viewer-root]') || videoRef.current?.parentElement?.parentElement?.parentElement?.parentElement;
                             try {
-                                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                                    // Enter fullscreen
+                                if (!inFullscreen) {
                                     if (viewerContainer?.requestFullscreen) {
                                         await viewerContainer.requestFullscreen();
                                     } else if (videoRef.current?.webkitEnterFullscreen) {
                                         videoRef.current.webkitEnterFullscreen();
-                                        setIsTheaterMode(true);
                                     }
                                 } else {
-                                    // Exit fullscreen
                                     if (document.exitFullscreen) await document.exitFullscreen();
                                     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                                 }
-                            } catch (_) { /* layout-only theatre mode is the fallback */ }
+                            } catch (err) {
+                                console.warn('[Theater] toggle failed:', err?.message || err);
+                            } finally {
+                                // Sync state to reality regardless of whether the
+                                // toggle succeeded. fullscreenchange listener will
+                                // also fire if the API actually changed; this is
+                                // a belt-and-suspenders so the UI is never locked.
+                                const nowFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                                setIsTheaterMode(nowFullscreen);
+                            }
                         }}
                         style={{ background: isTheaterMode ? 'rgba(0,120,255,0.7)' : 'rgba(0,0,0,.6)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
                     >
