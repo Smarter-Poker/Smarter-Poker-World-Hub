@@ -1174,9 +1174,14 @@ export default function LivesPage() {
     )
 }
 
-{/* LiveStreamViewer overlay for watching active live streams */ }
+{/* LiveStreamViewer overlay for watching active live streams.
+    BUG-HUNT-2: previously `watchingStream && userId &&` — anon users
+    (userId=null after PR #294's anon-viewer support) never saw the player
+    at all even though the server now mints anon viewer tokens. Drop the
+    userId gate so anon callers reach the viewer; LiveStreamService passes
+    no Auth header → /api/live/token mints viewer-only token. */ }
 {
-    watchingStream && userId && (
+    watchingStream && (
         <LiveStreamViewer
             stream={watchingStream}
             userId={userId}

@@ -3,7 +3,7 @@
  * Viewers send diamonds to broadcasters with animated confirmation.
  */
 import { useState, useEffect, useRef } from 'react';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../lib/authUtils';
 import { LiveDiamondIcon } from './LiveDiamondIcon';
 
 const GIFT_AMOUNTS = [
@@ -41,7 +41,10 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
         setSending(true);
         setError('');
         try {
-            const token = getAccessToken();
+            // BUG-HUNT-12: gift endpoint vulnerable to stale-token 401 on
+            // long streams. Refresh before sending so viewer gifting after
+            // 1+ hour of watching doesn't 401.
+            const token = (await getFreshAccessToken()) || getAccessToken();
             const resp = await fetch('/api/live/gift', {
                 method: 'POST',
                 headers: {

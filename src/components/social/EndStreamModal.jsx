@@ -111,7 +111,17 @@ export function EndStreamModal({
                     if (!blob) return;
                     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
                     const path = `live-thumbnails/${user.id}/${streamId}-auto.jpg`;
-                    const tok = (await getAccessToken()) || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                    // BUG-HUNT-11: thumbnail upload had the same expired-token
+                    // issue as the video upload. Use getFreshAccessToken; if
+                    // refresh dies, skip the thumb (recording can still be
+                    // saved/posted with no auto-thumb — broadcaster can pick
+                    // a manual one). Better than 401-crashing the modal.
+                    const tok = await getFreshAccessToken();
+                    if (!tok) {
+                        console.warn('[EndStreamModal] thumb upload skipped — session expired');
+                        URL.revokeObjectURL(blobUrl);
+                        return;
+                    }
                     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/live-recordings/${path}`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${tok}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },

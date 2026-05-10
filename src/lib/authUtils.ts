@@ -253,6 +253,12 @@ function decodeJwtExp(token: string): number | null {
     }
 }
 
+// BUG-HUNT-10: Coalesce concurrent refresh calls. Two parallel awaiters
+// (e.g. uploadVideo + callEndStream firing in quick succession) would
+// otherwise both POST to /auth/v1/token; the second sees a rotated
+// refresh_token and 4xx's.
+let inFlightRefresh: Promise<string | null> | null = null;
+
 export async function getFreshAccessToken(): Promise<string | null> {
     if (typeof window === 'undefined') return null;
 
@@ -265,43 +271,51 @@ export async function getFreshAccessToken(): Promise<string | null> {
         return current; // still valid
     }
 
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return null;
+    if (inFlightRefresh) return inFlightRefresh;
 
-    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+    inFlightRefresh = (async () => {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) return null;
 
-    try {
-        const resp = await fetch(
-            `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
-            {
-                method: 'POST',
-                headers: {
-                    apikey: SUPABASE_ANON_KEY,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ refresh_token: refreshToken }),
+        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+
+        try {
+            const resp = await fetch(
+                `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+                {
+                    method: 'POST',
+                    headers: {
+                        apikey: SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refresh_token: refreshToken }),
+                }
+            );
+            if (!resp.ok) {
+                console.warn('[authUtils] refresh failed:', resp.status);
+                return null;
             }
-        );
-        if (!resp.ok) {
-            console.warn('[authUtils] refresh failed:', resp.status);
+            const session = await resp.json();
+            if (!session?.access_token) return null;
+            // Persist with the same shape the SDK uses
+            saveAuthSession({
+                access_token: session.access_token,
+                refresh_token: session.refresh_token || refreshToken,
+                expires_at: session.expires_at,
+                expires_in: session.expires_in,
+                user: session.user,
+                token_type: session.token_type || 'bearer',
+            });
+            return session.access_token;
+        } catch (e) {
+            console.warn('[authUtils] refresh threw:', (e as any)?.message || e);
             return null;
+        } finally {
+            inFlightRefresh = null;
         }
-        const session = await resp.json();
-        if (!session?.access_token) return null;
-        // Persist with the same shape the SDK uses
-        saveAuthSession({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token || refreshToken,
-            expires_at: session.expires_at,
-            expires_in: session.expires_in,
-            user: session.user,
-            token_type: session.token_type || 'bearer',
-        });
-        return session.access_token;
-    } catch (e) {
-        console.warn('[authUtils] refresh threw:', (e as any)?.message || e);
-        return null;
-    }
+    })();
+
+    return inFlightRefresh;
 }

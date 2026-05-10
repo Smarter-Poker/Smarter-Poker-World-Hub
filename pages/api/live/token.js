@@ -121,17 +121,18 @@ export default async function handler(req, res) {
 
         // Get display name from profile
         let displayName = name;
-        if (!displayName) {
-            if (isAnonymous) {
-                displayName = 'Guest viewer';
-            } else {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('username, full_name')
-                    .eq('id', user.id)
-                    .maybeSingle();
-                displayName = profile?.username || profile?.full_name || identity;
-            }
+        if (isAnonymous) {
+            // BUG-HUNT-9: ignore client-passed `name` for anon. Otherwise an
+            // anon caller could impersonate any display name in the viewer
+            // list. Always 'Guest viewer'.
+            displayName = 'Guest viewer';
+        } else if (!displayName) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('username, full_name')
+                .eq('id', user.id)
+                .maybeSingle();
+            displayName = profile?.username || profile?.full_name || identity;
         }
 
         // Dynamic import REQUIRED — livekit-server-sdk v2 is ESM-only, no CJS build

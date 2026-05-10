@@ -94,28 +94,35 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const streamEndedTimerRef = useRef(null);
 
     useEffect(() => {
-        if (!stream?.id || !userId) return;
+        // BUG-HUNT-3: previously bailed on `!userId` — anon viewers never
+        // reached connect(), defeating the PR #294 anon-viewer-token work.
+        // Now: gate user-specific lookups (blocklist, follow status,
+        // diamond balance) behind userId, but always run connect().
+        if (!stream?.id) return;
+        const isAnon = !userId;
 
-        // BUG-FIX-LIVE-AUDIT (B4): pre-fetch the set of user_ids the viewer
-        // has blocked OR who have blocked the viewer. Used by the realtime
-        // comment INSERT handler to drop hostile comments before they
-        // appear. Cheap one-shot read on mount; the set is small in practice.
-        (async () => {
-            try {
-                const [outBlocks, inBlocks] = await Promise.all([
-                    supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId),
-                    supabase.from('blocked_users').select('blocker_id').eq('blocked_id', userId),
-                ]);
-                const set = new Set();
-                (outBlocks.data || []).forEach(r => r.blocked_id && set.add(r.blocked_id));
-                (inBlocks.data || []).forEach(r => r.blocker_id && set.add(r.blocker_id));
-                blockedSetRef.current = set;
-            } catch (err) {
-                console.warn('[Viewer] block-set prefetch failed:', err?.message || err);
-            }
-        })();
+        if (!isAnon) {
+            // BUG-FIX-LIVE-AUDIT (B4): pre-fetch the set of user_ids the viewer
+            // has blocked OR who have blocked the viewer. Used by the realtime
+            // comment INSERT handler to drop hostile comments before they
+            // appear. Cheap one-shot read on mount; the set is small in practice.
+            (async () => {
+                try {
+                    const [outBlocks, inBlocks] = await Promise.all([
+                        supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId),
+                        supabase.from('blocked_users').select('blocker_id').eq('blocked_id', userId),
+                    ]);
+                    const set = new Set();
+                    (outBlocks.data || []).forEach(r => r.blocked_id && set.add(r.blocked_id));
+                    (inBlocks.data || []).forEach(r => r.blocker_id && set.add(r.blocker_id));
+                    blockedSetRef.current = set;
+                } catch (err) {
+                    console.warn('[Viewer] block-set prefetch failed:', err?.message || err);
+                }
+            })();
+        }
 
-        // Fetch historical gifts for leaderboard
+        // Fetch historical gifts for leaderboard (public read, anon-safe)
         fetch(`/api/live/gifts?stream_id=${stream.id}`)
             .then(res => res.json())
             .then(data => {
@@ -144,7 +151,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
                 liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
 
-                // Join the stream — joinStream returns the full DB row with broadcaster join
+                // Join the stream — joinStream tolerates userId=null
+                // (gates the live_viewers upsert internally).
                 const freshStream = await liveStreamService.joinStream(stream.id, userId, (remoteMediaStream) => {
                     // BUG FIX (LSV-1): store in ref first, then state. The video element
                     // may not be in the DOM yet when this callback fires (if the connecting
@@ -173,7 +181,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 // Don't set isConnecting false here — let the remoteStream callback do it
                 // so we don't show a blank video before the track is ready.
 
-                // Load diamond balance for gift panel
+                // Load diamond balance for gift panel (auth users only — anons can't gift)
                 if (userId) {
                     supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle()
                         .then(({ data }) => { if (data) setUserDiamondBalance(data.diamonds || 0); });
@@ -1321,8 +1329,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     disabled={!userId}
                     style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background: userId ? 'rgba(0,0,0,.5)' : 'rgba(0,0,0,.3)', color:'white', fontSize:14, outline:'none', opacity: userId ? 1 : 0.6 }}
                 />
-                {/* Diamond gift button */}
-                {(streamData?.broadcaster_id || stream?.broadcaster_id) && (streamData?.broadcaster_id || stream?.broadcaster_id) !== userId && (
+                {/* Diamond gift button — BUG-HUNT-13: gate on userId truthy.
+                    Previously `userId !== broadcaster_id` was true for anon
+                    (undefined !== uuid) so the button showed but tapping
+                    surfaced a 401. Hide it for anon. */}
+                {userId && (streamData?.broadcaster_id || stream?.broadcaster_id) && (streamData?.broadcaster_id || stream?.broadcaster_id) !== userId && (
                     <button
                         onClick={() => setShowGifts(true)}
                         style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
