@@ -213,3 +213,29 @@ TRAIN-CSS-TYPO-1
 # import this component, so the fix propagates broadly. Adds a
 # prefers-reduced-motion guard for the slideUp animation.
 TRAIN-TOAST-SVG-1
+
+# ─── /hub/training — ErrorBanner polish (28 pages) ──────────────────────────
+# TRAIN-ERROR-BANNER-1 — src/components/training/ErrorBanner.js polishing
+# pass on the shared error UI used by 28 training pages.
+#   1. Body text bumped from 12px to 14px (handoff §6 readability floor;
+#      12px under-reads on dense training pages).
+#   2. Added leading alert-triangle SVG (Lucide-style) for visual hierarchy
+#      — handoff §8 'error-recovery' wants errors distinct from regular
+#      content; an icon establishes the affordance.
+#   3. aria-atomic="true" on the alert role so screen readers re-announce
+#      the FULL banner when message changes, not just the diff.
+#   4. Retry button uses :focus-visible offset and minimum 32px height for
+#      better keyboard + touch ergonomics.
+TRAIN-ERROR-BANNER-1
+
+# ─── /hub/training — PageTransition reduced-motion + dvh (14 pages) ─────────
+# TRAIN-PAGE-TRANSITION-1 — src/components/transitions/PageTransition.jsx.
+# Two issues: (1) framer-motion uses JS transforms not CSS animations, so the
+# CSS-level prefers-reduced-motion guard from TRAIN-CSS-SWEEP-1 doesn't catch
+# it — users who set Reduce Motion at the OS level still saw slide+scale on
+# every page transition. Fix: read framer-motion's useReducedMotion() hook
+# and switch to a cross-fade only when reduced-motion is requested. (2)
+# minHeight: '100vh' is the handoff §5 viewport-units anti-pattern; 100vh on
+# mobile includes the address-bar area and causes scroll/jank. Replaced with
+# 100dvh (Chrome 108+, Safari 15.4+, Firefox 101+).
+TRAIN-PAGE-TRANSITION-1
