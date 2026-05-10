@@ -482,6 +482,7 @@ GitHub's environment to execute:
 - `weekly-schedule-scraper.yml`
 - `stale.yml`
 - `club-arena-scheduled-deploy.yml`
+- `vercel-uniqueness-check.yml`
 
 These are the ONLY permitted GitHub Actions `schedule:` cron triggers. Any
 net-new workflow with a `schedule:` trigger is blocked by CI. To add one:
