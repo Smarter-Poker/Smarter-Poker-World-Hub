@@ -200,3 +200,16 @@ TRAIN-CSS-SWEEP-1
 #  10. Skeleton shimmer (sp-skeleton, sp-skeleton-line, sp-skeleton-block) —
 #      honors prefers-reduced-motion via the guard from TRAIN-CSS-SWEEP-1.
 TRAIN-CSS-TYPO-1
+
+# ─── /hub/training — ConnectionToast emoji→SVG (46 pages) ───────────────────
+# TRAIN-TOAST-SVG-1 — src/components/training/ConnectionToast.js. Replaced
+# emoji icons (lightning bolt and check) with inline Lucide-style SVG. The
+# May 8 handoff §4 lists 'no-emoji-icons — Use SVG icons (Heroicons, Lucide),
+# not emojis' as an explicit anti-pattern; emojis are font-dependent, render
+# inconsistently across platforms, cannot be controlled via design tokens,
+# and don't tint with currentColor. Also tightened aria-live to 'assertive'
+# when offline (interruption the screen reader should announce immediately)
+# vs 'polite' when reconnected (reassurance, can wait). 46 training pages
+# import this component, so the fix propagates broadly. Adds a
+# prefers-reduced-motion guard for the slideUp animation.
+TRAIN-TOAST-SVG-1
