@@ -226,7 +226,9 @@ rotate or modify alert thresholds without approval.
 
 Antigravity (and potentially other auto-sync background agents) periodically runs `git reset --hard origin/main`. Any uncommitted edits OR local-only commits at the moment of that reset are silently discarded. Work is recoverable from the reflog (`git reflog`, `git stash list`, `git cherry-pick <orphan-sha>`) but only briefly. 
 
-**Run `bash scripts/git-safe-push.sh` after every meaningful change, not at end of session.** 
+**For trivial single-author work**, run `bash scripts/git-safe-push.sh` after every meaningful change, not at end of session.
+
+**For agent commits or any work where another agent might be touching the same tree**, use `bash scripts/agent-push.sh "msg" path1 path2 ...` instead. It branches a fresh worktree from `origin/main` (which AG can't reset because it's not on `main`), commits ONLY the named files (no `git add -A` cross-contamination), opens a PR, and auto-merges. See `.agent/audits/2026-05-10-branch-protection-and-push-cascade.md` for why this exists. 
 
 The reflog signature of an active reset loop is repeated `reset: moving to origin/main` entries — `scripts/git-safe-push.sh` Phase 0.7 warns when ≥2 are seen in the last 50 ops.
 
