@@ -853,6 +853,23 @@ const STRANDED_RECOVERY_BATCH       = 100;
 const STRANDED_RECOVERY_MIN_AGE_MS  = 60 * 60 * 1000;   // wait >1h after last failure
 let lastStrandedRecoveryAt = 0;
 
+// Failed-reel iframe fallback — eighth self-healer. The frontend treats
+// media_status='failed' (and 'queued' with no live job) as un-renderable, so
+// users see a broken state on those rows. For YouTube reels, iframe playback
+// will work fine even when our native conversion path keeps failing — so any
+// public+youtube reel that's not in 'ready' state AND has a valid YT URL
+// AND has no live job AND has hit the retry cap gets flipped to 'ready'
+// (video_url <- original_youtube_url) so the iframe path renders.
+//
+// Why a sweep and not "just don't INSERT failed status": worker MUST mark
+// jobs failed so transient-retry logic works (we need failure count + age).
+// This sweep is the gracefully-degrade-to-iframe layer that runs after the
+// retry sweeps have given up. Hourly cadence is plenty — failure->visible
+// gap of up to 60 min is acceptable; users only see the "ready" state.
+const FAILED_FALLBACK_INTERVAL_MS = 60 * 60 * 1000;     // hourly
+const FAILED_FALLBACK_BATCH       = 200;
+let lastFailedFallbackAt = 0;
+
 // Native-MP4 poster backfill — covers reels uploaded directly by users (not
 // via the YouTube transcode path) that landed with thumbnail_url=NULL.
 // Stories.jsx INSERTs social_reels without a thumb; the social_posts→reels
@@ -1133,6 +1150,62 @@ async function strandedReelRecoverySweep(opts = {}) {
     }
   }
   log(`stranded-recovery: flipped ${flipped} reel(s), enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already live)`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Failed-reel iframe fallback sweep — eighth self-healer.
+//
+// Why this exists: when transient retries cap out, reels are left in
+// media_status='failed' (or queued with no live job) — both unrenderable on
+// the feed, so users see broken rows. For source_type='youtube' reels we
+// already know the YouTube iframe path will work; this sweep flips them to
+// media_status='ready' with video_url <- original_youtube_url so the
+// iframe renders. Idempotent: no live job allowed, must have hit retry cap.
+// ════════════════════════════════════════════════════════════════════════════
+async function failedReelFallbackSweep() {
+  if (Date.now() - lastFailedFallbackAt < FAILED_FALLBACK_INTERVAL_MS) return;
+  lastFailedFallbackAt = Date.now();
+
+  // Find public YT reels stuck in failed/queued with valid YT URL and no live job.
+  // Pull failed-state first (most common); queued-orphans handled by orphanedQueuedSweep
+  // for fresh queue insertion; this sweep is the give-up-and-iframe layer.
+  const { data: rows, error } = await supa.rpc ? null : null;
+  // Use plain SELECT — no rpc dependency.
+  const { data: candidates, error: selErr } = await supa.from('social_reels')
+    .select('id, video_url, original_youtube_url, source_type, media_status')
+    .eq('is_public', true)
+    .eq('source_type', 'youtube')
+    .in('media_status', ['failed', 'queued'])
+    .or('video_url.ilike.%youtube%,original_youtube_url.ilike.%youtube%')
+    .limit(FAILED_FALLBACK_BATCH);
+
+  if (selErr) { warn('failed-fallback: select failed:', selErr.message); return; }
+  if (!candidates?.length) { log('failed-fallback: no failed/queued public YT reels'); return; }
+
+  // Filter: skip rows with a live job (orphan sweep / stranded sweep handle those)
+  const eligible = [];
+  for (const r of candidates) {
+    const { data: live } = await supa.from('video_transcode_jobs')
+      .select('id').eq('reel_id', r.id)
+      .in('status', ['queued', 'processing'])
+      .limit(1).maybeSingle();
+    if (live) continue;  // let other sweeps handle in-flight conversions
+    eligible.push(r);
+  }
+  if (!eligible.length) { log(`failed-fallback: ${candidates.length} candidates, all have live jobs`); return; }
+
+  let flipped = 0;
+  for (const r of eligible) {
+    const ytUrl = r.original_youtube_url || r.video_url;
+    if (!ytUrl || !/youtube\.com|youtu\.be/i.test(ytUrl)) continue;
+    const { error: updErr } = await supa.from('social_reels').update({
+      media_status: 'ready',
+      video_url: ytUrl,
+    }).eq('id', r.id);
+    if (updErr) { warn(`failed-fallback: flip failed for ${r.id}:`, updErr.message); continue; }
+    flipped++;
+  }
+  log(`failed-fallback: flipped ${flipped} broken-feed reel(s) to ready+iframe`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1447,6 +1520,11 @@ async function pollLoop() {
     //     only handled cookie-auth) and transientFailureRetrySweep (which
     //     only looks at media_status='failed'). Also runs once at startup.
     strandedReelRecoverySweep().catch((e) => warn('stranded-recovery error:', e?.message));
+    //   - failedReelFallbackSweep: once / 60 min, give-up-and-iframe layer.
+    //     Any public YT reel in failed/queued state with no live job gets
+    //     flipped to ready+iframe so the user sees content even when native
+    //     conversion can't be made to work. Last line of defense.
+    failedReelFallbackSweep().catch((e) => warn('failed-fallback error:', e?.message));
     const dispatched = await tick();
     // If we just dispatched work or are still busy, poll fast; else slow.
     const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
