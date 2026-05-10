@@ -12,8 +12,8 @@ export default class MyDocument extends Document {
                 <Head>
                     {/* ═══ RESOURCE HINTS — reduce connection latency ═══ */}
                     {/* Supabase: DB + storage requests start pre-connecting immediately */}
-                    <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
-                    <link rel="dns-prefetch" href="https://kuklfnapbkmacvwxktbh.supabase.co" />
+                    <link rel="preconnect" href="https://auth.smarter.poker" crossOrigin="anonymous" />
+                    <link rel="dns-prefetch" href="https://auth.smarter.poker" />
                     {/* iOS PWA support */}
                     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
                     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />

@@ -357,8 +357,7 @@ const nextConfig = {
   // Allows next/image to serve optimized WebP/AVIF from these external domains.
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'kuklfnapbkmacvwxktbh.supabase.co' }, // Supabase storage (avatars, uploads) — kept for legacy URLs already in DB
-      { protocol: 'https', hostname: 'auth.smarter.poker' },               // Supabase Custom Domain — primary going forward
+      { protocol: 'https', hostname: 'kuklfnapbkmacvwxktbh.supabase.co' }, // Supabase storage (avatars, uploads)
       { protocol: 'https', hostname: '*.supabase.co' },                    // Any Supabase project
       { protocol: 'https', hostname: 'images.unsplash.com' },              // Fallback stock photos
       { protocol: 'https', hostname: 'smarter.poker' },                    // Platform CDN
@@ -405,7 +404,7 @@ const nextConfig = {
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
       "img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
       // Media: self + blob (audio/video playback)
       "media-src 'self' blob: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)
