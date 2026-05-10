@@ -1,0 +1,35 @@
+name: push-velocity-watchdog
+
+# Hourly watchdog that raises a GitHub Issue if origin/main hasn't received
+# a commit in >4h during work hours. Catches the class of silent-failure
+# where auto-push agents back off on chronic red CI without anyone noticing.
+#
+# Triggered 2026-05-10 by a 3-hour stall: the branch-protection-watchdog
+# workflow was added without an allowlist entry in CHECK 6c, every push
+# failed Build Safety Gate, and agents stopped pushing for 3+ hours
+# before Dan noticed.
+#
+# See scripts/check-push-velocity.mjs and
+# .agent/audits/2026-05-10-push-pipeline-3h-stall.md
+
+on:
+  schedule:
+    - cron: '0 */1 * * *' # every hour on the hour
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Check push velocity on main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ADMIN_PAT || secrets.VERCEL_UNIQUENESS_PAT || secrets.GITHUB_TOKEN }}
+        run: node scripts/check-push-velocity.mjs
