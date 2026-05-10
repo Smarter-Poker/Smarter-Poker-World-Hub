@@ -3,10 +3,15 @@
 ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session start.
 This is the single source of truth for **this repo**. Updated 2026-04-29.
 
-**Also read `.agent/CLAUDE_AGENT_RULES.md` at session start** — that's the
-canonical, version-controlled rule book all agents share. Audit records go
-under `.agent/audits/`. Open handoffs go under `.agent/handoffs/`.
-(`.memory/` is gitignored by design — local-only.)
+**MANDATORY reading at session start, in this order:**
+1. `.agent/AGENT_BINDING_RULES.md` — the **short binding rules** on push,
+   publish, and branch protection. Every rule corresponds to a real
+   regression. Violations are auto-detected. Read this FIRST.
+2. `.agent/CLAUDE_AGENT_RULES.md` — the longer, version-controlled rule
+   book all agents share (RULES 1-12).
+
+Audit records go under `.agent/audits/`. Open handoffs go under
+`.agent/handoffs/`. (`.memory/` is gitignored by design — local-only.)
 
 ## RULE 0 (BINDING): No manual human work
 
