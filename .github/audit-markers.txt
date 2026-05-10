@@ -136,3 +136,12 @@ TRAIN-ERROR-BOUNDARY-1
 # the scenario pipeline (tracked as #283); this guard prevents wrong text
 # from reaching users while the upstream fix is built.
 TRAIN-FEEDBACK-SYNC-1
+
+# ─── /hub/training — Surface B (active table) layout polish ─────────────────
+# TRAIN-LAYOUT-QUIT-1 — UniversalDynamicTable.jsx Quit button. Was absolutely
+# positioned at top:-40, left:0 relative to the action bar. The Hint ribbon
+# rendered in the flow immediately above the action bar, so Quit visibly
+# overlapped the hint text. Lifted Quit out of the action-bar layer and
+# pinned it to the viewport's top-left corner with iOS/Android safe-area
+# awareness so it cannot collide with any bottom-UI element.
+TRAIN-LAYOUT-QUIT-1

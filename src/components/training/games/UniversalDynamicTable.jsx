@@ -3176,17 +3176,32 @@ function UniversalDynamicTable({
                         }
                     }}
                 />
-                {/* Quit/Back Button */}
+                {/* BUG FIX (TRAIN-LAYOUT-QUIT-1): Quit button used to be absolutely
+                    positioned at top:-40, left:0 relative to the action bar. The Hint
+                    ribbon ('💡 Hint: On dry boards, c-bet small...') sits in flow
+                    immediately above the action bar at roughly the same vertical
+                    location, so Quit visibly overlapped the hint text on the live
+                    table (screenshot 2 in the May 8 training-overhaul handoff).
+                    Fix: lift Quit out of the action-bar layer entirely and pin it
+                    to the viewport's top-left corner with iOS/Android safe-area
+                    awareness. It now lives in a corner that is guaranteed not to
+                    collide with any bottom-UI element. */}
                 {onExit && (
                     <button
                         onClick={onExit}
+                        aria-label="Quit session"
                         style={{
-                            position: 'absolute', top: -40, left: 0,
+                            position: 'fixed',
+                            top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                            left: 'calc(env(safe-area-inset-left, 0px) + 12px)',
                             padding: '6px 14px', borderRadius: 8,
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            color: '#94a3b8', fontSize: 12, fontWeight: 600,
-                            cursor: 'pointer', zIndex: 10,
+                            background: 'rgba(0, 0, 0, 0.55)',
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            border: '1px solid rgba(255, 255, 255, 0.18)',
+                            color: '#e2e8f0', fontSize: 12, fontWeight: 600,
+                            cursor: 'pointer', zIndex: 9999,
+                            letterSpacing: 0.3,
                         }}
                     >
                         Quit
