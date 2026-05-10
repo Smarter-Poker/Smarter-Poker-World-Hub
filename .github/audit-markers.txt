@@ -239,3 +239,20 @@ TRAIN-ERROR-BANNER-1
 # mobile includes the address-bar area and causes scroll/jank. Replaced with
 # 100dvh (Chrome 108+, Safari 15.4+, Firefox 101+).
 TRAIN-PAGE-TRANSITION-1
+
+# ─── /hub/training — backend RPCs for dashboard surfaces ────────────────────
+# TRAIN-DB-DASHBOARD-1 — supabase/migrations/20260510175000_training_dashboard_rpcs.sql.
+# The May 8 handoff claimed these RPCs were already applied via an earlier
+# migration (20260507120000_training_dashboard_rpcs.sql) but a SELECT against
+# pg_proc on 2026-05-10 confirmed that NO `training_*` functions existed in
+# production. This migration creates them and grants EXECUTE to the
+# `authenticated` role only. Functions:
+#   - training_dashboard_30day_stats(uuid, text)
+#   - training_dashboard_last_session(uuid, text)
+#   - training_dashboard_lifetime_stats(uuid, text)
+# Each function is SECURITY DEFINER but checks auth.uid() = p_user_id at the
+# top so callers can only see their own stats. Migration applied to
+# production via Supabase MCP apply_migration on 2026-05-10 and verified via
+# pg_proc on the same date. Unblocks the deferred Session Setup popup
+# (issue #288) which needs these stats for the YOUR PERFORMANCE (30 DAYS) card.
+TRAIN-DB-DASHBOARD-1
