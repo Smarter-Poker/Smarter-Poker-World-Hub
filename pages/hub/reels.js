@@ -201,6 +201,17 @@ export default function ReelsPage() {
   const copyToastTimerRef = useRef(null);
   // BUG FIX: track slide animation timers to prevent setState-after-unmount
   const slideAnimationTimerRef = useRef(null);
+  // Stall watchdog: when a native <video> reaches loadedmetadata or playing,
+  // we clear this timer. If neither fires within 6s of the reel becoming
+  // active, we treat it as a broken/undecodable URL (most often HEVC on
+  // Chrome desktop which silently hangs without firing onError) and
+  // auto-advance to the next reel. Mirrors the YouTube error overlay's
+  // 3s skip — the user never gets stuck on a black screen.
+  const videoStallTimerRef = useRef(null);
+  // Session-scoped skip set: any video URL whose decode failed (or stalled
+  // past the watchdog) is added here so loadReels filters it out on next
+  // refresh and the user never sees the same broken reel twice in this tab.
+  const brokenUrlsRef = useRef(new Set());
   // Phase 10 - Universal HUD auto-hide (5s timeout for usability)
   const [showOverlay, setShowOverlay] = useState(false);
   const hudTimerRef = useRef(null);
@@ -717,7 +728,20 @@ export default function ReelsPage() {
           setCurrentIndex(0);
         }
 
-        const finalReels = [...fresh, ...stale];
+        // Filter out URLs already known to be broken/undecodable in this
+        // tab session (HEVC failures, dead Supabase URLs, corrupt MP4s
+        // that hung the watchdog). Without this, every loadReels refresh
+        // would re-add the same broken reels and the user would hit them
+        // again. brokenUrlsRef is session-scoped, lost on reload — which
+        // is correct because the worker may have transcoded HEVC by then.
+        const broken = brokenUrlsRef.current;
+        const filteredFresh = broken.size > 0
+          ? fresh.filter((r) => !broken.has(r.video_url))
+          : fresh;
+        const filteredStale = broken.size > 0
+          ? stale.filter((r) => !broken.has(r.video_url))
+          : stale;
+        const finalReels = [...filteredFresh, ...filteredStale];
         setReels(finalReels);
 
         // Initialize like/comment/view counts from the FINAL displayed array
@@ -839,6 +863,49 @@ export default function ReelsPage() {
     }, 3000); // 3 seconds = watched
     return () => clearTimeout(watchTimer);
   }, [currentReel?.id]);
+
+  // ─── Stall watchdog ────────────────────────────────────────────────────
+  // For NATIVE video reels only (YouTube iframes have their own onError +
+  // 3s auto-skip overlay): start a 6s timer when the reel becomes active.
+  // If the <video> element doesn't reach readyState >= 2 (HAVE_CURRENT_DATA)
+  // by then, treat as broken/undecodable and auto-advance to the next reel.
+  // The onPlaying / onLoadedMetadata handlers clear this timer on success.
+  // Catches HEVC silent-hang on Chrome desktop, broken/corrupt MP4s, and
+  // dead Supabase Storage URLs — none of which fire onError reliably.
+  useEffect(() => {
+    if (!currentReel?.id) return;
+    const url = currentReel?.video_url || '';
+    // Only run for native video; YT iframe path skips this watchdog.
+    if (!url || isYouTubeUrl(url)) return;
+    if (videoStallTimerRef.current) clearTimeout(videoStallTimerRef.current);
+    videoStallTimerRef.current = setTimeout(() => {
+      videoStallTimerRef.current = null;
+      const v = videoRef.current;
+      // Only auto-skip if video genuinely hasn't loaded any data.
+      // readyState >= 2 means HAVE_CURRENT_DATA or better — we have at
+      // least one frame, so it's playable.
+      if (v && v.readyState < 2) {
+        console.warn('[Reels] video stall watchdog tripped — auto-skipping', {
+          src: url,
+          readyState: v.readyState,
+          networkState: v.networkState,
+          reason: 'No metadata after 6s — likely HEVC/corrupt/dead URL',
+        });
+        if (typeof window !== 'undefined') {
+          window.__reelStallSkip = (window.__reelStallSkip || 0) + 1;
+        }
+        brokenUrlsRef.current.add(url);
+        goNext();
+      }
+    }, 6000);
+    return () => {
+      if (videoStallTimerRef.current) {
+        clearTimeout(videoStallTimerRef.current);
+        videoStallTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentReel?.id, currentReel?.video_url]);
 
   const goNext = () => {
     if (slideDebounceRef.current) return;
@@ -974,11 +1041,17 @@ export default function ReelsPage() {
             source: v.source || 'reels', // preserve source for incrementMetric routing
             profiles: pm[v.author_id] || { username: 'Anonymous' },
           }));
-          setReels((prev) => [...prev, ...mapped]);
+          // Skip any URL already known broken in this session (HEVC stalls,
+          // corrupt MP4s, dead URLs). Same filter as initial loadReels.
+          const broken = brokenUrlsRef.current;
+          const mappedFiltered = broken.size > 0
+            ? mapped.filter((r) => !broken.has(r.video_url))
+            : mapped;
+          setReels((prev) => [...prev, ...mappedFiltered]);
           const lc = {},
             cc = {},
             vc = {};
-          mapped.forEach((r) => {
+          mappedFiltered.forEach((r) => {
             lc[r.id] = r.like_count || 0;
             cc[r.id] = r.comment_count || 0;
             vc[r.id] = r.view_count || 0;
@@ -2558,6 +2631,14 @@ export default function ReelsPage() {
                 ref={videoRef}
                 key={currentReel.id}
                 src={currentReel.video_url}
+                // Show the reel's thumbnail BEFORE any video frames decode.
+                // Without this, HEVC stalls on Chrome desktop (which can't
+                // decode H.265 without an Apple license) display a pure
+                // black box for 6+ seconds before the watchdog skips. With
+                // poster, users see the still frame immediately so the
+                // swipe feels identical to YouTube-iframe reels (which
+                // always show YouTube's poster underneath the player).
+                poster={currentReel?.thumbnail_url || undefined}
                 autoPlay
                 loop
                 playsInline
@@ -2569,6 +2650,13 @@ export default function ReelsPage() {
                 muted={true}
                 onPlay={() => setIsPaused(false)}
                 onPlaying={(e) => {
+                  // Successful playback — clear the stall watchdog so it
+                  // doesn't auto-skip a video that just took longer to
+                  // start (cold storage, slow network, etc).
+                  if (videoStallTimerRef.current) {
+                    clearTimeout(videoStallTimerRef.current);
+                    videoStallTimerRef.current = null;
+                  }
                   // Verify-after-unmute: when sessionStorage[sp:reels:interacted]
                   // is preset from a prior load, userInteractedRef is true but
                   // the browser hasn't seen a fresh gesture this load. The
@@ -2595,20 +2683,39 @@ export default function ReelsPage() {
                   const v = e.currentTarget;
                   if (v.duration) setVideoProgress((v.currentTime / v.duration) * 100);
                 }}
+                onLoadedMetadata={() => {
+                  // Metadata reached → video IS decodable. Clear stall
+                  // watchdog so we don't auto-skip a healthy reel that
+                  // simply took >6s to download metadata over a slow link.
+                  if (videoStallTimerRef.current) {
+                    clearTimeout(videoStallTimerRef.current);
+                    videoStallTimerRef.current = null;
+                  }
+                }}
                 // Surface decode failures (most commonly HEVC on Chrome
                 // desktop — Chrome doesn't license H.265). Without this,
-                // users see a black box with the play button forever.
+                // users saw a black box with the play button forever.
+                // Now: record broken URL in session-scoped skip-set, then
+                // auto-advance so the same broken reel is never shown twice.
                 onError={(e) => {
                   const err = e.currentTarget?.error;
+                  const url = currentReel?.video_url;
                   console.warn('[Reels] video decode failed', {
                     code: err?.code,
                     message: err?.message,
-                    src: currentReel.video_url,
+                    src: url,
                     suggestion: 'Likely H.265/HEVC — needs server-side transcode to H.264',
                   });
                   if (typeof window !== 'undefined') {
                     window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;
                   }
+                  if (url) brokenUrlsRef.current.add(url);
+                  if (videoStallTimerRef.current) {
+                    clearTimeout(videoStallTimerRef.current);
+                    videoStallTimerRef.current = null;
+                  }
+                  // Auto-advance — user never gets stuck on a broken video.
+                  goNext();
                 }}
                 style={{
                   position: 'absolute',
