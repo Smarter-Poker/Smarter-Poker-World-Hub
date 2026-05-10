@@ -150,6 +150,15 @@ BEGIN
 END;
 $function$;
 
+GRANT EXECUTE ON FUNCTION public.fn_check_anti_farming_gift_cap(uuid, uuid, integer)
+  TO authenticated, service_role;
+
+COMMENT ON FUNCTION public.fn_check_anti_farming_gift_cap(uuid, uuid, integer) IS
+  'GFT-5 unified anti-farming cap check. Called by send_wallet_diamond_transfer, '
+  'send_stream_gift, gift.js. Caps are aggregated across ALL gifting/transfer '
+  'channels (live_gift_sent, stream_gift, wallet_transfer, wallet_diamond_transfer) '
+  'so wallet-route bypass of live-gift caps is closed.';
+
 -- ── 2. Trigger enforcement function ──────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.fn_enforce_anti_farming_caps()
  RETURNS trigger
@@ -202,6 +211,12 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+COMMENT ON FUNCTION public.fn_enforce_anti_farming_caps() IS
+  'GFT-5 last-line defense. Fires on every diamond_transactions INSERT. '
+  'Enforces fn_check_anti_farming_gift_cap on debit rows for live_gift_sent / '
+  'stream_gift / wallet_transfer / wallet_diamond_transfer channels. SECURITY INVOKER '
+  'so it inherits the caller''s privilege semantics.';
 
 -- ── 3. Trigger on diamond_transactions ───────────────────────────────────────
 DROP TRIGGER IF EXISTS trg_enforce_anti_farming_caps ON public.diamond_transactions;
