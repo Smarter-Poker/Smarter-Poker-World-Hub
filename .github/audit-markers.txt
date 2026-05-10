@@ -99,3 +99,30 @@ REELS-DELETE-1
 # transitively means the reel should disappear.
 REELS-DELETE-2
 
+
+# ─── /hub/training — Surface C (post-answer feedback) critical bugs ─────────
+# TRAIN-RANGE-PCT-1 — RangeGrid.jsx rangeStats useMemo. The previous formula
+# assumed gridData[hand][action] was already 0–100 percent, but UDT and other
+# callers sometimes pass freqs in a different unit (raw 0–1 fractions, basis
+# points ×10, or pre-summed across solver subtrees). That caused per-hand
+# `combos` to far exceed `weight`, and grand totals to exceed totalCombos
+# (1326), printing impossible filter-pill percentages such as Fold 35693.8%
+# and (18472/1326 combos). Fix: per-hand normalize so each cell's actions
+# sum to ≤100 before applying weight, mathematically guaranteeing
+# actionTotals ≤ totalCombos regardless of input scale.
+TRAIN-RANGE-PCT-1
+# TRAIN-ACTIONS-COUNT-1 — UniversalDynamicTable.jsx displayOptions useMemo.
+# Question pipeline sometimes pre-trims `options` to 2 entries on a postflop
+# spot where ≥4 actions should be available. After groupActions returns, top
+# up displayOptions from `options` then computedFrequencies (highest-frequency
+# missing actions first) until length ≥ 4 in standard difficulty mode. Push/
+# fold short-stack trainers are detected via the {push, fold, allin} ID set
+# and left at 2 buttons.
+TRAIN-ACTIONS-COUNT-1
+# TRAIN-ERROR-BOUNDARY-1 — GlobalErrorCatcher.jsx. Logged uncaught errors and
+# unhandled rejections at console.warn level, which is invisible in many
+# production log filters and silently swallowed state-corruption errors that
+# the training surface was throwing. Tightened to console.error on both code
+# paths, and the dev-mode toast now names the underlying error type and a
+# trimmed message so triage is actionable. Production toast text unchanged.
+TRAIN-ERROR-BOUNDARY-1
