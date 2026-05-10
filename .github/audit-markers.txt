@@ -181,3 +181,22 @@ TRAIN-FB-IA-1
 # Each block addresses a specific anti-pattern category from the May 8
 # training-overhaul handoff and the ui-ux-pro-max design-system standards.
 TRAIN-CSS-SWEEP-1
+
+# ─── /hub/training — typography rhythm + spacing scale (sweep #2) ───────────
+# TRAIN-CSS-TYPO-1 — src/styles/worlds/training.css second sweep block.
+# Companion to TRAIN-CSS-SWEEP-1 which added a11y/responsive guards. This
+# block adds an additive utility layer scoped to body.world-training so
+# pages can adopt sp-* classes for consistent vertical rhythm and spacing
+# without breaking existing inline-style layouts:
+#   1. Semantic heading sizes (sp-h1..h4) — modular scale anchored at 16px
+#   2. Body text utilities (sp-body, sp-body-sm, sp-caption) with line-height 1.5+
+#   3. Tabular numerals (sp-num-tabular) for data displays
+#   4. Spacing scale (sp-stack-1..7, sp-cluster-1..6) on 4/8/12/16/24/32/48 increments
+#   5. Card padding tokens (sp-card / -sm / -lg)
+#   6. CTA button base (sp-cta + -primary / -secondary / -ghost variants)
+#   7. Truncation helpers (sp-truncate, sp-truncate-2, sp-truncate-3)
+#   8. Section dividers (sp-divider)
+#   9. Empty-state pattern (sp-empty, sp-empty-title)
+#  10. Skeleton shimmer (sp-skeleton, sp-skeleton-line, sp-skeleton-block) —
+#      honors prefers-reduced-motion via the guard from TRAIN-CSS-SWEEP-1.
+TRAIN-CSS-TYPO-1
