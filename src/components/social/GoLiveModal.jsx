@@ -735,9 +735,12 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         }
     };
 
-    // BUG-FIX-RECONNECT: reconnect to an existing live stream
     const handleReconnectToExisting = async () => {
-        if (!existingLiveStream || !streamRef.current) return;
+        if (!existingLiveStream) return;
+        if (!streamRef.current) {
+            setError('Please allow camera access before reconnecting.');
+            return;
+        }
         setIsStarting(true);
         setError('');
         try {

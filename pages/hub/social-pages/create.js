@@ -284,7 +284,7 @@ export default function CreateSocialPage() {
                                             // canonical Club Commander Home Games signup, not the
                                             // generic social-pages creator.
                                             if (tmpl.cat === 'home game') {
-                                                router.push('/commander/register?tier=home_game&from=social_pages&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate');
+                                                window.location.href = 'https://commander.smarter.poker/commander/register?tier=home_game&from=social_pages&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate';
                                                 return;
                                             }
                                             update('page_type', tmpl.type);
@@ -329,7 +329,7 @@ export default function CreateSocialPage() {
                                             // ports (Social Pages / Poker Near Me / Club Commander)
                                             // must funnel through the same canonical signup screen.
                                             if (pt.key === 'home_game') {
-                                                router.push('/commander/register?tier=home_game&from=social_pages&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate');
+                                                window.location.href = 'https://commander.smarter.poker/commander/register?tier=home_game&from=social_pages&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate';
                                                 return;
                                             }
                                             update('page_type', pt.key);

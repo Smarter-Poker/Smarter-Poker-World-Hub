@@ -264,7 +264,7 @@ export default function PlayerHomeGamesHub() {
                   JOIN BY CODE
                 </button>
                 <button
-                  onClick={() => router.push('/commander/register?tier=home_game&from=club_commander&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate')}
+                  onClick={() => window.location.href = 'https://commander.smarter.poker/commander/register?tier=home_game&from=club_commander&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate'}
                   className="cmd-btn cmd-btn-primary"
                 >
                   <UserPlus size={18} />
@@ -428,7 +428,7 @@ export default function PlayerHomeGamesHub() {
                 </button>
               ) : (
                 <button
-                  onClick={() => router.push('/commander/register?tier=home_game&from=club_commander&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate')}
+                  onClick={() => window.location.href = 'https://commander.smarter.poker/commander/register?tier=home_game&from=club_commander&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate'}
                   className="cmd-btn cmd-btn-primary mt-4"
                 >
                   HOST A GAME

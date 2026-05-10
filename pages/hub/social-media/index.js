@@ -8366,6 +8366,7 @@ function SocialMediaPage() {
   const [clubPages, setClubPages] = useState([]);
   const [clubPagesLoading, setClubPagesLoading] = useState(false);
   const [clubPagesCategory, setClubPagesCategory] = useState('all');
+  const [viewingClubPage, setViewingClubPage] = useState(null);
   const [clubPagesSearch, setClubPagesSearch] = useState('');
   const [clubPagesFollowing, setClubPagesFollowing] = useState(new Set());
 
@@ -8401,6 +8402,7 @@ function SocialMediaPage() {
   // LIVE STREAMING STATE
   const [liveStreams, setLiveStreams] = useState([]);
   const [watchingStream, setWatchingStream] = useState(null);
+  const processedStreamIdRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false); // Scroll-to-top FAB
   const [pullRefreshState, setPullRefreshState] = useState('idle'); // 'idle' | 'pulling' | 'refreshing'
   const pullStartY = useRef(0);
@@ -9307,8 +9309,10 @@ function SocialMediaPage() {
     // Handle ?stream=<streamId> query param (from go-live notifications)
     if (router.query.stream && user) {
       const streamId = router.query.stream;
-      (async () => {
-        try {
+      if (processedStreamIdRef.current !== streamId) {
+          processedStreamIdRef.current = streamId;
+          (async () => {
+            try {
           const streamData = await LiveStreamService.getStream(streamId);
           if (streamData && streamData.status === 'live') {
             setWatchingStream(streamData);
@@ -9322,6 +9326,7 @@ function SocialMediaPage() {
         }
         router.replace('/hub/social-media', undefined, { shallow: true });
       })();
+      }
     }
   }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream]);
 
