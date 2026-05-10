@@ -97,6 +97,12 @@ export default function CreateHomeGamePage() {
     start_time: '19:00',
     end_time: '',
     profile_photo_url: '',   // Phase 17: required, uploaded on step 3
+    // Phase 41: multi-table support. tables_count===1 keeps the legacy
+    // single-game flow (top-level game_type/stakes apply). When >1, the
+    // per-table `tables` array carries each table's { game_type, stakes,
+    // custom_stakes } and is shipped under settings.tables.
+    tables_count: 1,
+    tables: [],
   });
 
   // Toggle a day in the schedule_days array
@@ -223,6 +229,16 @@ export default function CreateHomeGamePage() {
         settings: {
           schedule_summary: getScheduleSummary(),
           end_time: formData.end_time || undefined,
+          // Phase 41: per-table breakdown when host runs multiple tables.
+          // Single-table groups omit the array (top-level default_game_type
+          // and default_stakes already capture the same info).
+          tables_count: formData.tables_count,
+          tables: formData.tables_count > 1
+            ? formData.tables.map((t) => ({
+                game_type: t.game_type,
+                stakes: t.stakes === 'Custom' ? (t.custom_stakes || '') : t.stakes,
+              }))
+            : undefined,
         },
       };
 
@@ -452,56 +468,180 @@ export default function CreateHomeGamePage() {
                   Game Setup
                 </h2>
 
+                {/* Phase 41: Number-of-tables selector. Single table keeps the
+                    legacy single-game flow; multi-table reveals a per-table
+                    editor below where each table picks its own game/stakes. */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Game Type
+                    Number of Tables Running
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {GAME_TYPES.map(({ value, label }) => (
+                  <div className="flex gap-2 flex-wrap">
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
                       <button
-                        key={value}
+                        key={n}
                         type="button"
-                        onClick={() => updateField('game_type', value)}
-                        className={`p-3 rounded-lg border text-sm font-medium transition-colors ${formData.game_type === value
+                        onClick={() => {
+                          setFormData((prev) => {
+                            const nextTables = n > 1
+                              ? Array.from({ length: n }, (_, i) => prev.tables[i] || {
+                                  game_type: i === 0 ? prev.game_type : 'nlhe',
+                                  stakes: i === 0 ? prev.stakes : '$1/$2',
+                                  custom_stakes: '',
+                                })
+                              : [];
+                            return { ...prev, tables_count: n, tables: nextTables };
+                          });
+                        }}
+                        className={`flex-1 min-w-[44px] h-10 rounded-lg border font-medium transition-colors ${formData.tables_count === n
                             ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
                             : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
                           }`}
                       >
-                        {label}
+                        {n}
                       </button>
                     ))}
                   </div>
+                  <p className="text-xs text-[#64748B] mt-2">
+                    {formData.tables_count === 1
+                      ? 'Single table — pick the game type and stakes below.'
+                      : `Running ${formData.tables_count} tables — set the game type and stakes for each table below.`}
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Stakes
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {STAKES_OPTIONS.map((stake) => (
-                      <button
-                        key={stake}
-                        type="button"
-                        onClick={() => updateField('stakes', stake)}
-                        className={`p-2 rounded-lg border text-sm font-medium transition-colors ${formData.stakes === stake
-                            ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                            : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
-                          }`}
-                      >
-                        {stake}
-                      </button>
+                {formData.tables_count === 1 && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Game Type
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {GAME_TYPES.map(({ value, label }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => updateField('game_type', value)}
+                            className={`p-3 rounded-lg border text-sm font-medium transition-colors ${formData.game_type === value
+                                ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                                : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                              }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Stakes
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {STAKES_OPTIONS.map((stake) => (
+                          <button
+                            key={stake}
+                            type="button"
+                            onClick={() => updateField('stakes', stake)}
+                            className={`p-2 rounded-lg border text-sm font-medium transition-colors ${formData.stakes === stake
+                                ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                                : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                              }`}
+                          >
+                            {stake}
+                          </button>
+                        ))}
+                      </div>
+                      {formData.stakes === 'Custom' && (
+                        <input
+                          type="text"
+                          value={formData.custom_stakes}
+                          onChange={(e) => updateField('custom_stakes', e.target.value)}
+                          placeholder="e.g., $2/$5/$10"
+                          className="cmd-input mt-2 w-full h-10 px-4"
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {formData.tables_count > 1 && (
+                  <div className="space-y-3">
+                    {formData.tables.map((tbl, idx) => (
+                      <div key={idx} className="p-4 rounded-lg border border-[#4A5E78]/40 bg-[#0D192E] space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-[#22D3EE]">Table {idx + 1}</span>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">
+                            Game Type
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {GAME_TYPES.map(({ value, label }) => (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => {
+                                  setFormData((prev) => {
+                                    const next = [...prev.tables];
+                                    next[idx] = { ...next[idx], game_type: value };
+                                    return { ...prev, tables: next };
+                                  });
+                                }}
+                                className={`p-2.5 rounded-lg border text-xs font-medium transition-colors ${tbl.game_type === value
+                                    ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                                    : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                  }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">
+                            Stakes
+                          </label>
+                          <div className="grid grid-cols-4 gap-2">
+                            {STAKES_OPTIONS.map((stake) => (
+                              <button
+                                key={stake}
+                                type="button"
+                                onClick={() => {
+                                  setFormData((prev) => {
+                                    const next = [...prev.tables];
+                                    next[idx] = { ...next[idx], stakes: stake };
+                                    return { ...prev, tables: next };
+                                  });
+                                }}
+                                className={`p-2 rounded-lg border text-xs font-medium transition-colors ${tbl.stakes === stake
+                                    ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                                    : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                  }`}
+                              >
+                                {stake}
+                              </button>
+                            ))}
+                          </div>
+                          {tbl.stakes === 'Custom' && (
+                            <input
+                              type="text"
+                              value={tbl.custom_stakes || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData((prev) => {
+                                  const next = [...prev.tables];
+                                  next[idx] = { ...next[idx], custom_stakes: val };
+                                  return { ...prev, tables: next };
+                                });
+                              }}
+                              placeholder="e.g., $2/$5/$10"
+                              className="cmd-input mt-2 w-full h-9 px-4 text-sm"
+                            />
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  {formData.stakes === 'Custom' && (
-                    <input
-                      type="text"
-                      value={formData.custom_stakes}
-                      onChange={(e) => updateField('custom_stakes', e.target.value)}
-                      placeholder="e.g., $2/$5/$10"
-                      className="cmd-input mt-2 w-full h-10 px-4"
-                    />
-                  )}
-                </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
