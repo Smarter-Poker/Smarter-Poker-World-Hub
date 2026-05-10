@@ -337,20 +337,50 @@ export default function ReelsPage() {
     }
   };
 
-  // Auto-play retry on every reel change — send playVideo commands
-  // CRITICAL: Do NOT send unMute here. On mobile Safari, unmuting before playback
-  // starts causes autoplay to fail (violates browser policy). Unmuting happens
-  // in the onStateChange(1) handler AFTER YouTube confirms playing.
+  // On every reel change: load the new YouTube video into the persistent iframe
+  // (no remount — use loadVideoById postMessage) and retry playVideo.
   useEffect(() => {
-    if (!loading && reels.length > 0) {
-      const delays = [300, 800, 1500, 3000];
-      const timers = delays.map((delay) =>
+    if (loading || reels.length === 0) return;
+    const reel = reels[currentIndex];
+    if (!reel) return;
+    const ytId = getYouTubeVideoId(reel.video_url);
+
+    // Cancel previous retry batch before scheduling new one
+    playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
+    playVideoOnLoadTimersRef.current = [];
+
+    if (ytId) {
+      // BUG FIX: With persistent iframe (stable key), we must loadVideoById to switch
+      // videos. The old approach (key={currentReel.id}) remounted the entire player on
+      // every swipe — expensive and caused 2-3s black flash while YT reinitialised.
+      sendYouTubeCommand('loadVideoById', [{ videoId: ytId, startSeconds: 0 }]);
+      // Retry playVideo — YT API may not be ready immediately after loadVideoById
+      playVideoOnLoadTimersRef.current = [200, 500, 1000, 2000].map((delay) =>
         setTimeout(() => {
           sendYouTubeCommand('playVideo');
+          autoUnmute();
         }, delay)
       );
-      return () => timers.forEach((t) => clearTimeout(t));
+      // Pause native video if it was playing (switching FROM native TO YouTube)
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+    } else {
+      // Native video — pause YouTube first to prevent audio bleed
+      sendYouTubeCommand('pauseVideo');
     }
+
+    setIsPaused(true); // reset — actual play state set by onPlay / onStateChange
+    setYtReady(false); // suppress phantom play button during autoplay startup
+    setYtError(null);
+
+    return () => {
+      playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
+      playVideoOnLoadTimersRef.current = [];
+      autoUnmuteRetryTimersRef.current.forEach((t) => clearTimeout(t));
+      autoUnmuteRetryTimersRef.current = [];
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, loading, reels.length]);
 
   const handleUnmute = () => {
@@ -604,6 +634,7 @@ export default function ReelsPage() {
           id: video.id,
           author_id: video.author_id,
           video_url: video.video_url,
+          thumbnail_url: video.thumbnail_url || null, // BUG FIX: was fetched in REEL_SELECT but not mapped — caused black flash on native video poster frames
           caption: video.caption,
           like_count: video.like_count,
           comment_count: video.comment_count,
@@ -934,6 +965,7 @@ export default function ReelsPage() {
             id: v.id,
             author_id: v.author_id,
             video_url: v.video_url,
+            thumbnail_url: v.thumbnail_url || null, // BUG FIX: match loadReels mapping
             caption: v.caption,
             like_count: v.like_count,
             comment_count: v.comment_count,
@@ -2472,15 +2504,16 @@ export default function ReelsPage() {
           {videoId ? (
             <iframe
               ref={iframeRef}
-              key={currentReel?.id}
+              key="yt-player-persistent"
               src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
               title="Poker Reel"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
               onLoad={(e) => {
-                // Initialize YouTube postMessage API bridge
-                // CRITICAL: The 'listening' event MUST be sent first to establish
-                // the command channel. Without it, all commands are silently ignored.
+                // BUG FIX: With key="yt-player-persistent" this onLoad fires ONCE at
+                // mount (not on every reel swipe). Establish the postMessage API bridge
+                // here; subsequent video switches go through loadVideoById in the
+                // currentIndex useEffect (no player reinitialisation needed).
                 const iframeWindow = e.target.contentWindow;
                 try {
                   iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
@@ -2488,13 +2521,9 @@ export default function ReelsPage() {
                     JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
                     '*'
                   );
-                  // Aggressive retry loop: YouTube API inside iframe needs time to initialize
-                  // CRITICAL: Do NOT send unMute here — on mobile Safari, unmuting before
-                  // playback starts causes autoplay to fail. Unmute only after
-                  // onStateChange confirms Playing (info === 1).
-                  // Cancel previous batch before scheduling new one.
+                  // Retry playVideo — YT API inside the iframe may not be ready yet.
                   playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
-                  playVideoOnLoadTimersRef.current = [300, 800, 1500, 3000].map((delay) =>
+                  playVideoOnLoadTimersRef.current = [300, 800, 1500].map((delay) =>
                     setTimeout(() => {
                       try {
                         iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
