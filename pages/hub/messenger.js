@@ -1858,6 +1858,52 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         }
 
 
+                        // ── LIVE-INVITE-RENDER-1 ──
+                        // Live stream invite card: [LIVE_INVITE]room=...&invite=...
+                        // Sent by GuestInviteModal / CohostPickerModal in GoLiveModal.
+                        // Receiver taps the button → /hub/live/guest?room=X&invite=Y
+                        // → GoLiveModal opens in guestMode → joinAsGuest publishes
+                        // their tracks to the same LiveKit room as the host.
+                        // Without this handler the recipient saw raw text and the
+                        // entire invite flow was useless from the receiver side.
+                        if (content.startsWith('[LIVE_INVITE]')) {
+                            const qs = content.replace('[LIVE_INVITE]', '');
+                            const joinUrl = `/hub/live/guest?${qs}`;
+                            return (
+                                <div style={{
+                                    background: isOwn ? 'rgba(255,255,255,0.12)' : 'rgba(250,56,62,0.08)',
+                                    borderRadius: 14,
+                                    padding: '14px 16px',
+                                    margin: '-4px -8px',
+                                    border: `1px solid ${isOwn ? 'rgba(255,255,255,0.2)' : 'rgba(250,56,62,0.3)'}`,
+                                    textAlign: 'center',
+                                    minWidth: 220,
+                                }}>
+                                    <div style={{ fontSize: 28, marginBottom: 6, lineHeight: 1 }}>🎥</div>
+                                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: isOwn ? 'white' : '#FA383E' }}>
+                                        Live Stream Invite
+                                    </div>
+                                    <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 12, lineHeight: 1.4 }}>
+                                        {isOwn ? 'You invited them to join your stream' : 'You\u2019ve been invited to join as a guest co-host'}
+                                    </div>
+                                    {!isOwn && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); window.location.href = joinUrl; }}
+                                            style={{
+                                                background: '#FA383E', color: 'white', border: 'none',
+                                                padding: '9px 20px', borderRadius: 22, fontWeight: 700,
+                                                fontSize: 13, cursor: 'pointer', width: '100%',
+                                                boxShadow: '0 2px 12px rgba(250,56,62,0.4)',
+                                            }}
+                                        >
+                                            Join Stream
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        }
+
+
                         // Check for image markdown: [Image](url) or 📷 [Image](url) - support both
                         const imageMatch = content.match(/(?:📷\s*)?\[Image\]\(([^)]+)\)/);
                         const imageUrl = imageMatch?.[1] || message.media_url;
