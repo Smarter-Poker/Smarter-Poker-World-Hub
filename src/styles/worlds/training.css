@@ -25,3 +25,204 @@ body.world-training {
     /* Border: Green accent */
     --world-border: rgba(0, 255, 136, 0.3);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAIN-CSS-SWEEP-1 — cross-cutting accessibility, mobile, and motion guards
+   ═══════════════════════════════════════════════════════════════════════════
+   Applied at body.world-training scope so EVERY training page (all 89 routes
+   under /hub/training/*) inherits these rules without per-page edits. Each
+   block addresses a specific category from the May 8 training-overhaul
+   handoff and the ui-ux-pro-max design-system anti-patterns list.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. NO HORIZONTAL SCROLL ON MOBILE (handoff §5 'horizontal-scroll' anti-pattern)
+   Many training games are content-dense and accidentally overflow at 375px.
+   Lock the horizontal axis at the body level and rely on intentional inner
+   scroll regions (charts, tables) when they really do need to overflow.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training {
+    overflow-x: hidden;
+    overscroll-behavior-x: contain;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. WCAG 2.5.5 — TOUCH TARGET MIN 44 × 44 ON MOBILE
+   Apple HIG: 44 × 44 pt. Material: 48 × 48 dp. Apply 44 here as the floor
+   and let larger Material targets pass through. Only enforced ≤ 768px so
+   desktop layouts that depend on tighter buttons (range-grid cells, hand
+   matrices) aren't disrupted. The hit area extends outward via padding;
+   visible appearance is unchanged.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    body.world-training button:not([data-compact]),
+    body.world-training a[role="button"]:not([data-compact]),
+    body.world-training input[type="button"]:not([data-compact]),
+    body.world-training input[type="submit"]:not([data-compact]),
+    body.world-training [role="tab"]:not([data-compact]),
+    body.world-training [role="menuitem"]:not([data-compact]) {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    /* Inputs that the user types into get height too — iOS auto-zooms inputs
+       below 16px font-size, so we also guard the font size at 16px floor. */
+    body.world-training input[type="text"],
+    body.world-training input[type="email"],
+    body.world-training input[type="password"],
+    body.world-training input[type="number"],
+    body.world-training input[type="search"],
+    body.world-training input[type="tel"],
+    body.world-training input[type="url"],
+    body.world-training select,
+    body.world-training textarea {
+        min-height: 44px;
+        font-size: max(16px, 1rem);
+    }
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. :focus-visible RINGS (WCAG 2.4.7 — Focus Visible)
+   Many training cells (range-grid hands, action buttons, mode pills) had
+   their default focus rings stripped by inline styles. Re-apply a strong
+   training-themed focus indicator using :focus-visible so it only appears
+   for keyboard users — pointer users don't see ugly outlines after click.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training :focus-visible {
+    outline: 2px solid var(--world-primary, #00ff88);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+/* Don't double-ring when an element already styles its own ring */
+body.world-training [data-focus-custom]:focus-visible {
+    outline: none;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. prefers-reduced-motion — RESPECT USER PREFERENCE
+   handoff §7 'reduced-motion' anti-pattern: framer-motion components don't
+   automatically honour the OS-level Reduced Motion setting. Force animations
+   and transitions to a near-zero duration when the user has opted out.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    body.world-training *,
+    body.world-training *::before,
+    body.world-training *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. SAFE-AREA AWARENESS FOR FIXED ELEMENTS
+   PR #289 fixed the Quit button to use env(safe-area-inset-*). Generalise
+   the pattern: any element with [data-safe-top] / [data-safe-bottom] gets
+   automatic notch / Dynamic Island / gesture-bar awareness.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training [data-safe-top] {
+    padding-top: max(env(safe-area-inset-top, 0px), 12px);
+}
+body.world-training [data-safe-bottom] {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+}
+body.world-training [data-safe-left] {
+    padding-left: max(env(safe-area-inset-left, 0px), 12px);
+}
+body.world-training [data-safe-right] {
+    padding-right: max(env(safe-area-inset-right, 0px), 12px);
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. NO-FOUC DARK BACKDROP
+   Several pages render their hero section before CSS finishes loading. Set
+   a deep-charcoal default body background under the world theme so users
+   never see a flash of white between the React hydration and the gradient
+   surface kicking in.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training {
+    background-color: var(--world-bg-start, #050a08);
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. TAP-DELAY KILLER + GESTURE INTENT
+   Mobile Safari adds a 300ms tap delay unless touch-action is set. Apply
+   touch-action: manipulation to all interactive elements so taps register
+   immediately. (handoff §2 'tap-delay' anti-pattern)
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training button,
+body.world-training a,
+body.world-training [role="button"],
+body.world-training [role="tab"],
+body.world-training [role="menuitem"] {
+    touch-action: manipulation;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   8. SCREEN-READER ONLY UTILITY
+   Standard sr-only class. Many training pages have icons-only buttons that
+   need invisible labels for VoiceOver / TalkBack. This gives them a sane
+   utility class to spread without per-page CSS.
+   ────────────────────────────────────────────────────────────────────────── */
+body.world-training .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   9. SCROLLBAR REFINEMENT (Windows/Linux Chrome)
+   Default scrollbars in dark mode look out of place. Make them themed and
+   subtle on training pages.
+   ────────────────────────────────────────────────────────────────────────── */
+@supports (scrollbar-color: auto) {
+    body.world-training {
+        scrollbar-color: rgba(0, 255, 136, 0.3) rgba(0, 0, 0, 0.2);
+        scrollbar-width: thin;
+    }
+}
+body.world-training ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+body.world-training ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+body.world-training ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 136, 0.25);
+    border-radius: 4px;
+}
+body.world-training ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 136, 0.45);
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   10. PRINT-SAFETY
+   Don't blow up the rendering when a user hits Cmd-P on a training page.
+   Strip backgrounds and force black text for legible printouts.
+   ────────────────────────────────────────────────────────────────────────── */
+@media print {
+    body.world-training {
+        background: white !important;
+        color: black !important;
+    }
+    body.world-training [data-no-print] {
+        display: none !important;
+    }
+}
