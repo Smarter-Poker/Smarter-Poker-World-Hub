@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 
 export default function HostHomeGameButton({ className }) {
   const [checking, setChecking] = useState(false);
@@ -7,29 +8,34 @@ export default function HostHomeGameButton({ className }) {
     setChecking(true);
     const WIZARD_PATH = '/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate';
     try {
-      let authBlob = {};
-      try {
-        authBlob = JSON.parse(window.localStorage.getItem('smarter-poker-auth') || '{}');
-      } catch { /* corrupted blob */ }
-
-      const user = authBlob?.user || null;
-      const accessToken =
-        authBlob?.session?.access_token ||
-        authBlob?.access_token ||
-        authBlob?.currentSession?.access_token ||
-        null;
+      // Use the canonical auth helpers — they check the explicit
+      // 'smarter-poker-auth' AUTH_STORAGE_KEY first, then fall back to legacy
+      // sb-* keys. The previous hand-rolled localStorage parse missed users
+      // whose session lives only under the legacy key, which silently sent
+      // them through the unauthenticated branch even though they were logged
+      // in everywhere else.
+      const user = getAuthUser();
+      const accessToken = getAccessToken();
 
       if (!user || !accessToken) {
+        // Truly unauthenticated → register flow.
         window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
         return;
       }
 
-      const res = await fetch('/api/commander/check-access', {
+      // Authenticated → query hub-vanguard's canonical access endpoint.
+      // Backed by the SECURITY DEFINER RPC get_commander_access_details(uuid),
+      // which checks all four access vectors:
+      //   - clubs.owner_id (Club Arena owner)
+      //   - commander_subscriptions.owner_id (active sub)
+      //   - commander_staff.user_id|linked_user_id (owner/manager at a venue)
+      //   - commander_home_groups.owner_id (home-game host)
+      const res = await fetch('/api/check-access', {
         method: 'GET',
         headers: { Authorization: `Bearer ${accessToken}` },
         credentials: 'include',
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         if (data?.hasAccess) {
@@ -37,12 +43,14 @@ export default function HostHomeGameButton({ className }) {
           return;
         }
       }
-      
-      // Needs to register
+
+      // Authenticated but no Commander access → register.
       window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
     } catch (e) {
       console.warn('Commander access check failed:', e);
       window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
+    } finally {
+      setChecking(false);
     }
   };
 
