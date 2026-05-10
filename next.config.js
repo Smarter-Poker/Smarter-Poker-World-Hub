@@ -357,7 +357,8 @@ const nextConfig = {
   // Allows next/image to serve optimized WebP/AVIF from these external domains.
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'kuklfnapbkmacvwxktbh.supabase.co' }, // Supabase storage (avatars, uploads)
+      { protocol: 'https', hostname: 'kuklfnapbkmacvwxktbh.supabase.co' }, // Supabase storage (avatars, uploads) — kept for legacy URLs already in DB
+      { protocol: 'https', hostname: 'auth.smarter.poker' },               // Supabase Custom Domain — primary going forward
       { protocol: 'https', hostname: '*.supabase.co' },                    // Any Supabase project
       { protocol: 'https', hostname: 'images.unsplash.com' },              // Fallback stock photos
       { protocol: 'https', hostname: 'smarter.poker' },                    // Platform CDN
