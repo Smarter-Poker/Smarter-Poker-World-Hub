@@ -33,11 +33,23 @@ export default async function handler(req, res) {
     }
 
     try {
+        // BUG-FIX-LIVE2-3a: anonymous viewers can watch public streams.
+        // Previously this 401'd any unauthenticated user — even though
+        // streams are public content. We now allow anon callers to get a
+        // VIEWER-only token (no publish, no data, no roomCreate). Auth is
+        // still required for broadcaster/guest claims and for any state-
+        // changing action (gifts, comments, follows have their own
+        // authenticated endpoints).
         const { user } = await getServerUserWithFallback(req, supabase);
-        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        const isAnonymous = !user;
 
         const { room, name, broadcaster: clientClaimsBroadcaster = false, guestInviteCode = null } = req.body;
         if (!room) return res.status(400).json({ error: 'room required' });
+
+        // Block anonymous from claiming privileged roles outright
+        if (isAnonymous && (clientClaimsBroadcaster || guestInviteCode)) {
+            return res.status(401).json({ error: 'Sign in to broadcast or join as guest' });
+        }
 
         // BUG-FIX-LIVE-API-AUDIT (C1): SECURITY — identity is forced to the
         // server-known user.id. Previously the client sent `identity` and we
@@ -46,7 +58,12 @@ export default async function handler(req, res) {
         // duplicate identity) and impersonating them in the participant list.
         // Anonymous preview tokens still go through /api/live/preview-token,
         // which has its own random-suffix identity flow.
-        const identity = String(user.id);
+        // BUG-FIX-LIVE2-3a: anon viewers get a random anon-N identity. This
+        // never collides with a real user because real ids are uuids and
+        // anons are prefixed.
+        const identity = isAnonymous
+            ? `anon-${Math.random().toString(36).slice(2, 12)}`
+            : String(user.id);
 
         // BUG FIX (#15): SECURITY — Never trust the client-supplied broadcaster flag.
         // A malicious viewer could POST { broadcaster: true } and receive a token that
@@ -85,12 +102,12 @@ export default async function handler(req, res) {
             if (!isVerifiedGuest) {
                 return res.status(403).json({ error: 'Invalid guest invite code' });
             }
-        } else {
-            // BUG-FIX-LIVE-API-AUDIT (C3): viewer tokens now ban-checked.
-            // Banned users cannot join the LiveKit room (and therefore can't
-            // see/hear the broadcaster's stream nor send data messages on
-            // the room channel). Existing RLS already blocks comments and
-            // reactions; this closes the LiveKit-side gap.
+        } else if (!isAnonymous) {
+            // BUG-FIX-LIVE-API-AUDIT (C3): authenticated viewer tokens are
+            // ban-checked. Banned users can't join the LiveKit room. Anonymous
+            // viewers skip this check (no user.id to ban against — moderators
+            // can't ban anon-N* anyway. They can ban a real account if the
+            // user signs in.)
             const { data: ban } = await supabase
                 .from('live_bans')
                 .select('id')
@@ -105,12 +122,16 @@ export default async function handler(req, res) {
         // Get display name from profile
         let displayName = name;
         if (!displayName) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('username, full_name')
-                .eq('id', user.id)
-                .maybeSingle();
-            displayName = profile?.username || profile?.full_name || identity;
+            if (isAnonymous) {
+                displayName = 'Guest viewer';
+            } else {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('username, full_name')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                displayName = profile?.username || profile?.full_name || identity;
+            }
         }
 
         // Dynamic import REQUIRED — livekit-server-sdk v2 is ESM-only, no CJS build
@@ -127,7 +148,10 @@ export default async function handler(req, res) {
             room: String(room),
             canPublish: isVerifiedBroadcaster || isVerifiedGuest,
             canSubscribe: true,
-            canPublishData: true,
+            // BUG-FIX-LIVE2-3a: anon viewers can't send room data messages.
+            // Authenticated viewers retain canPublishData so emoji reactions
+            // / typing indicators / cursors keep working for them.
+            canPublishData: !isAnonymous,
             roomCreate: isVerifiedBroadcaster,
         });
 

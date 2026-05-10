@@ -279,6 +279,18 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [isCameraFlipping, setIsCameraFlipping] = useState(false);
     // BUG-FIX-FLIP: track mirror state — front camera mirrors, rear doesn't
     const [isMirrored, setIsMirrored] = useState(true);
+    // BUG-FIX-LIVE2-1b: per-user zoom control. zoomCapability comes from the
+    // active video track via getCapabilities().zoom when supported. Most
+    // mobile devices expose zoom as a continuous range. We clamp and apply
+    // via applyConstraints({ advanced: [{ zoom }] }) which is the correct
+    // pattern for the Image Capture / MediaTrack zoom spec.
+    const [zoomCapability, setZoomCapability] = useState(null); // { min, max, step }
+    const [zoomLevel, setZoomLevel] = useState(1);
+    const [zoomSliderOpen, setZoomSliderOpen] = useState(false);
+    // BUG-FIX-LIVE2-2: tappable hide of the time/duration overlay. Default
+    // visible; one tap hides; tap the (now ghost) area or the show-button to
+    // bring it back.
+    const [timeOverlayHidden, setTimeOverlayHidden] = useState(false);
     const [category, setCategory] = useState('general');
     const [connectionQuality, setConnectionQuality] = useState('excellent');
     const [giftFlash, setGiftFlash] = useState(null);
@@ -490,6 +502,56 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     useEffect(() => {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [comments]);
+
+    // BUG-FIX-LIVE2-1b: detect zoom capability on the active video track.
+    // Returns { min, max, step, current } when supported, null otherwise.
+    // Most modern mobile devices (iOS 14.3+, modern Android Chrome) expose
+    // zoom via getCapabilities().zoom; older browsers and most desktop
+    // webcams don't, in which case we hide the slider entirely.
+    const detectZoomCapability = (stream) => {
+        try {
+            const track = stream?.getVideoTracks?.()[0];
+            if (!track || typeof track.getCapabilities !== 'function') return null;
+            const caps = track.getCapabilities();
+            if (!caps || typeof caps.zoom === 'undefined') return null;
+            const z = caps.zoom;
+            // Some browsers expose discrete (min/max/step), some continuous (just min/max)
+            const min = typeof z.min === 'number' ? z.min : 1;
+            const max = typeof z.max === 'number' ? z.max : 1;
+            if (max <= min) return null; // No range = no zoom
+            const step = typeof z.step === 'number' ? z.step : 0.1;
+            const settings = (typeof track.getSettings === 'function') ? track.getSettings() : {};
+            const current = typeof settings.zoom === 'number' ? settings.zoom : min;
+            return { min, max, step, current };
+        } catch (_) {
+            return null;
+        }
+    };
+
+    // Apply a zoom value via the MediaTrack constraints API. Clamps the
+    // value to detected capability range. Async — caller can await but
+    // doesn't have to (we update local state optimistically).
+    const applyZoom = async (z) => {
+        if (!streamRef.current || !zoomCapability) return;
+        const clamped = Math.max(zoomCapability.min, Math.min(zoomCapability.max, z));
+        setZoomLevel(clamped);
+        try {
+            const track = streamRef.current.getVideoTracks?.()[0];
+            if (!track) return;
+            await track.applyConstraints({ advanced: [{ zoom: clamped }] });
+        } catch (err) {
+            console.warn('[GoLive] applyZoom failed:', err?.message || err);
+        }
+    };
+
+    // Detect zoom whenever the stream is attached (fresh acquire OR cached path)
+    useEffect(() => {
+        if (!streamRef.current) return;
+        const cap = detectZoomCapability(streamRef.current);
+        setZoomCapability(cap);
+        if (cap) setZoomLevel(cap.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stage]);
 
     const requestMediaAccess = async () => {
         // BUG-FIX-LIVE-2 (per Dan: "user should only have to enable the
@@ -814,6 +876,32 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         if (isEnding) return;
         setIsEnding(true);
 
+        // BUG-FIX-LIVE2-3b: GUESTS LEAVE; THEY DO NOT END THE HOST'S STREAM.
+        // Previously this function went straight into the broadcaster path
+        // for guests too — calling /api/live/end-stream?action=force_end with
+        // the host's stream_id, which killed the host's broadcast. Symptom
+        // Dan reported: "WHEN THE GUEST 'ENDED' IT KILLED THE MAIN STREAM."
+        // For guests we simply leaveStream() (LiveKit disconnect, no DB write
+        // touching the host's row) and close the modal.
+        if (guestMode) {
+            if (!confirm('Leave the stream? The host\u2019s broadcast will continue without you.')) {
+                setIsEnding(false);
+                return;
+            }
+            try {
+                liveStreamService.isManualDisconnect = true;
+                await Promise.race([
+                    liveStreamService.leaveStream(),
+                    new Promise((resolve) => setTimeout(resolve, 3000)),
+                ]);
+            } catch (err) {
+                console.warn('[handleEndStream guest] leaveStream non-fatal:', err?.message || err);
+            }
+            try { busEmit.dataMutated?.('live_streams'); } catch (_) {}
+            onClose?.();
+            return;
+        }
+
         // #1: Confirm before ending — prevents accidental stream kills
         if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) {
             setIsEnding(false);
@@ -918,6 +1006,17 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             // BUG-FIX-FLIP: toggle mirror based on camera facing mode
             // Front (user) camera needs mirror, rear (environment) does not
             setIsMirrored(liveStreamService.cameraMode === 'user');
+            // BUG-FIX-LIVE2-1b E7: re-detect zoom capability on the new
+            // track. Front and back cameras typically expose different
+            // zoom ranges (front often has none, back has 1-10x). Reset
+            // zoomLevel to the new track's current zoom so we don't
+            // apply a stale value that's out of the new range.
+            if (fullStream) {
+                const cap = detectZoomCapability(fullStream);
+                setZoomCapability(cap);
+                setZoomLevel(cap ? cap.current : 1);
+                setZoomSliderOpen(false); // close the slider since the range changed
+            }
         } catch (err) {
             setError('Camera flip failed: ' + err.message);
         } finally {
@@ -1091,6 +1190,16 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     }
 
     if (stage === 'ended') {
+        // BUG-FIX-LIVE2-4: guests never see EndStreamModal. The Save/Post/
+        // Delete buttons all hit /api/live/end-stream which 403s for non-
+        // broadcasters anyway (server check at line 98). Showing them the
+        // modal would just produce confusing 403 toasts. handleEndStream
+        // guest branch should already close before reaching this — this
+        // is belt-and-suspenders.
+        if (guestMode) {
+            onClose?.();
+            return null;
+        }
         return (
             <EndStreamModal
                 isOpen={true}
@@ -1406,10 +1515,47 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             {isMuted && <span style={{ marginLeft:6, opacity:0.7 }}>🔇</span>}
                         </div>
 
-                        {/* BOTTOM-RIGHT: elapsed timer */}
-                        <div style={{ position:'absolute', bottom:110, right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 12px', borderRadius:8, fontSize:14, fontWeight:700, zIndex:10, fontVariantNumeric:'tabular-nums' }}>
-                            {formatTime(elapsedTime)}
-                        </div>
+                        {/* BUG-FIX-LIVE2-2: elapsed timer — moved from bottom-right to LEFT side
+                            (per Dan: "TIME IS ACTUALLY BLOCKING OTHER THINGS"). Tappable to
+                            hide. When hidden, a small ⏱ button reappears in the same spot to
+                            bring it back. Mid-screen vertical so it doesn't collide with top
+                            description bar or bottom comment input. */}
+                        {!timeOverlayHidden ? (
+                            <button
+                                onClick={() => setTimeOverlayHidden(true)}
+                                title="Tap to hide timer"
+                                aria-label="Hide stream timer"
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%', transform: 'translateY(-50%)',
+                                    left: 16,
+                                    background: 'rgba(0,0,0,.55)', color: 'white',
+                                    padding: '6px 12px', borderRadius: 8,
+                                    fontSize: 14, fontWeight: 700, zIndex: 10,
+                                    fontVariantNumeric: 'tabular-nums',
+                                    border: 'none', cursor: 'pointer',
+                                }}
+                            >
+                                {formatTime(elapsedTime)}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setTimeOverlayHidden(false)}
+                                title="Tap to show timer"
+                                aria-label="Show stream timer"
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%', transform: 'translateY(-50%)',
+                                    left: 16,
+                                    background: 'rgba(0,0,0,.35)', color: 'white',
+                                    padding: '6px 9px', borderRadius: 8,
+                                    fontSize: 14, zIndex: 10,
+                                    border: 'none', cursor: 'pointer', opacity: 0.55,
+                                }}
+                            >
+                                ⏱
+                            </button>
+                        )}
 
                         {/* Stream description (visible to broadcaster) */}
                         {description && (
@@ -1543,6 +1689,73 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                     opacity: isCameraFlipping ? 0.5 : 1,
                                 }}
                             >🔄</button>
+                            {/* BUG-FIX-LIVE2-1b: zoom slider trigger. Only rendered when the
+                                device's video track exposes a zoom capability. Tap toggles a
+                                vertical slider overlay anchored to this button. */}
+                            {zoomCapability && (
+                                <div style={{ position: 'relative' }}>
+                                    <button
+                                        onClick={e => { e.stopPropagation(); setZoomSliderOpen(prev => !prev); }}
+                                        title="Zoom"
+                                        aria-label="Zoom"
+                                        aria-pressed={zoomSliderOpen}
+                                        style={{
+                                            width: 44, height: 44, borderRadius: '50%', border: 'none',
+                                            background: zoomSliderOpen ? 'rgba(0, 102, 255, 0.6)' : 'rgba(0,0,0,0.6)',
+                                            backdropFilter: 'blur(8px)',
+                                            color: 'white', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}
+                                    >
+                                        {zoomLevel.toFixed(1)}×
+                                    </button>
+                                    {zoomSliderOpen && (
+                                        <div
+                                            onClick={e => e.stopPropagation()}
+                                            style={{
+                                                position: 'absolute',
+                                                right: 52, top: '50%', transform: 'translateY(-50%)',
+                                                background: 'rgba(0,0,0,0.85)',
+                                                backdropFilter: 'blur(12px)',
+                                                padding: '14px 12px',
+                                                borderRadius: 12,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                minWidth: 60,
+                                            }}
+                                        >
+                                            <div style={{ color: 'white', fontSize: 11, opacity: 0.7 }}>
+                                                {zoomCapability.max.toFixed(1)}×
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min={zoomCapability.min}
+                                                max={zoomCapability.max}
+                                                step={zoomCapability.step || 0.1}
+                                                value={zoomLevel}
+                                                onChange={e => applyZoom(parseFloat(e.target.value))}
+                                                style={{
+                                                    // Vertical slider via rotate + sized box
+                                                    writingMode: 'vertical-lr',
+                                                    WebkitAppearance: 'slider-vertical',
+                                                    width: 6,
+                                                    height: 140,
+                                                    cursor: 'pointer',
+                                                    accentColor: '#FA383E',
+                                                }}
+                                            />
+                                            <div style={{ color: 'white', fontSize: 11, opacity: 0.7 }}>
+                                                {zoomCapability.min.toFixed(1)}×
+                                            </div>
+                                            <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginTop: 2 }}>
+                                                {zoomLevel.toFixed(1)}×
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {/* Share button */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleShare(); }}
@@ -1584,15 +1797,26 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         </div>
 
                         {/* TAP-TO-REVEAL: End Stream — only visible when showControls */}
+                        {/* BUG-FIX-LIVE2-3b: guests show "Leave Stream" not "End Stream".
+                            Tapping it must only disconnect them, not end the host's
+                            broadcast. handleEndStream branches on guestMode below. */}
                         {showControls && (
                             <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:20, animation:'slideUp .2s ease-out' }}>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleEndStream(); }}
-                                    style={{ background:'rgba(255,255,255,.92)', color:C.red, border:'none', padding:'15px 36px', borderRadius:32, fontSize:17, fontWeight:800, cursor:'pointer', boxShadow:'0 4px 24px rgba(0,0,0,.4)', letterSpacing:.5 }}
+                                    style={{
+                                        background: guestMode ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.92)',
+                                        color: guestMode ? '#444' : C.red,
+                                        border:'none', padding:'15px 36px', borderRadius:32, fontSize:17,
+                                        fontWeight:800, cursor:'pointer',
+                                        boxShadow:'0 4px 24px rgba(0,0,0,.4)', letterSpacing:.5,
+                                    }}
                                 >
-                                    End Stream
+                                    {guestMode ? 'Leave Stream' : 'End Stream'}
                                 </button>
-                                <div style={{ textAlign:'center', marginTop:10, color:'rgba(255,255,255,.6)', fontSize:12 }}>Tap anywhere to hide</div>
+                                <div style={{ textAlign:'center', marginTop:10, color:'rgba(255,255,255,.6)', fontSize:12 }}>
+                                    {guestMode ? 'You will leave; the host\u2019s stream continues' : 'Tap anywhere to hide'}
+                                </div>
                             </div>
                         )}
 
