@@ -544,14 +544,23 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         }
     };
 
-    // Detect zoom whenever the stream is attached (fresh acquire OR cached path)
-    useEffect(() => {
-        if (!streamRef.current) return;
-        const cap = detectZoomCapability(streamRef.current);
+    // Detect zoom whenever the stream is attached — handled inline in
+    // requestMediaAccess + handleFlipCamera (BUG-HUNT-1). The previous
+    // useEffect on [stage] never re-fired after the async acquire resolved.
+
+    // BUG-HUNT-1: zoom detection. Previously a useEffect on [stage] tried
+    // to detect — but on first mount stage='preview' fires BEFORE the async
+    // acquireMediaStream() resolves, so streamRef.current was still null and
+    // the effect bailed. Stage doesn't change again so detection never reran.
+    // Fix: detect synchronously in requestMediaAccess after assigning streamRef
+    // (both the cached fast-path and the fresh-acquire path) and after camera
+    // flip (handled in handleFlipCamera).
+    const detectAndApplyZoom = (stream) => {
+        if (!stream) return;
+        const cap = detectZoomCapability(stream);
         setZoomCapability(cap);
-        if (cap) setZoomLevel(cap.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [stage]);
+        setZoomLevel(cap ? cap.current : 1);
+    };
 
     const requestMediaAccess = async () => {
         // BUG-FIX-LIVE-2 (per Dan: "user should only have to enable the
@@ -570,6 +579,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 if (videoRef.current) videoRef.current.srcObject = cached;
                 setStage('preview');
                 setError('');
+                detectAndApplyZoom(cached); // BUG-HUNT-1
                 return;
             }
 
@@ -582,6 +592,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             if (videoRef.current) videoRef.current.srcObject = stream;
             setStage('preview');
             setError('');
+            detectAndApplyZoom(stream); // BUG-HUNT-1
         } catch (err) {
             if (mediaAccessMountedRef.current) {
                 setError('Camera access denied. Please allow camera and microphone permissions.');
