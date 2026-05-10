@@ -1721,7 +1721,69 @@ function UniversalDynamicTable({
     // ═══ DIFFICULTY MODE GROUPING (GTO Wizard Simple/Grouped/Standard) ═══
     const activeDifficultyMode = trainerConfig?.difficultyMode || 'standard';
     const { groupedOptions: displayOptions, frequencyMap: displayFrequencies, actionMapping: difficultyActionMapping } = useMemo(() => {
-        return groupActions(options, computedFrequencies, activeDifficultyMode);
+        // BUG FIX (TRAIN-ACTIONS-COUNT-1): the source-of-truth `options` array
+        // sometimes arrives with only 2 entries (e.g. ["BET 16%", "CHECK"]) on
+        // a postflop spot where ≥4 actions should be available. That happens
+        // because the question pipeline pre-trims options by EV or frequency.
+        // The fix: if we are in 'standard' difficulty mode AND the spot is not
+        // a binary push/fold drill, top-up displayOptions from
+        // computedFrequencies (highest-frequency missing actions first) until
+        // we have at least 4 buttons. Binary spots (push/fold short-stack
+        // trainers) are detected and left at 2 buttons.
+        const grouped = groupActions(options, computedFrequencies, activeDifficultyMode);
+        if (activeDifficultyMode !== 'standard') return grouped;
+        if (!grouped.groupedOptions || grouped.groupedOptions.length >= 4) return grouped;
+
+        // Detect a binary-action spot: only push (allin / 'p') and fold are
+        // present in either the existing options or the GTO frequency map.
+        const isBinary = (() => {
+            const ids = new Set();
+            (grouped.groupedOptions || []).forEach(o => ids.add(String(o.id || o).toLowerCase()));
+            Object.keys(computedFrequencies || {}).forEach(k => ids.add(String(k).toLowerCase()));
+            const allowed = new Set(['allin', 'p', 'push', 'f', 'fold']);
+            // Binary if every present id is in {push, fold} AND we have at most 2 distinct ids.
+            for (const id of ids) { if (!allowed.has(id)) return false; }
+            return ids.size > 0 && ids.size <= 2;
+        })();
+        if (isBinary) return grouped;
+
+        // Pad: take any action from `options` that wasn't included in groupedOptions
+        // first (preserves question-supplied labels), then top up from computedFrequencies
+        // sorted by descending frequency. Stop at 4.
+        const presentIds = new Set((grouped.groupedOptions || []).map(o => String(o.id || o).toLowerCase()));
+        const padded = [...grouped.groupedOptions];
+        const freqMap = { ...grouped.frequencyMap };
+        const mapping = { ...grouped.actionMapping };
+
+        // Phase 1: pull more from `options` if any are missing
+        if (Array.isArray(options)) {
+            for (const opt of options) {
+                if (padded.length >= 4) break;
+                const id = String(opt.id || opt).toLowerCase();
+                if (presentIds.has(id)) continue;
+                presentIds.add(id);
+                padded.push(typeof opt === 'object' ? opt : { id: opt, text: String(opt) });
+                const f = computedFrequencies?.[id] ?? computedFrequencies?.[opt?.id] ?? 0;
+                freqMap[opt.id || id] = f;
+                mapping[opt.id || id] = [opt.id || id];
+            }
+        }
+
+        // Phase 2: still short — pull from computedFrequencies sorted by freq desc
+        if (padded.length < 4 && computedFrequencies) {
+            const ranked = Object.entries(computedFrequencies)
+                .filter(([k, v]) => v > 0 && !presentIds.has(String(k).toLowerCase()))
+                .sort((a, b) => b[1] - a[1]);
+            for (const [actionId] of ranked) {
+                if (padded.length >= 4) break;
+                presentIds.add(String(actionId).toLowerCase());
+                padded.push({ id: actionId, text: actionId });
+                freqMap[actionId] = computedFrequencies[actionId];
+                mapping[actionId] = [actionId];
+            }
+        }
+
+        return { groupedOptions: padded, frequencyMap: freqMap, actionMapping: mapping };
     }, [options, computedFrequencies, activeDifficultyMode]);
 
     // Wrap handleAnswer to resolve grouped actions back to solver actions for scoring

@@ -70,7 +70,12 @@ export default function GlobalErrorCatcher() {
                 return;
             }
 
-            console.warn('[GlobalErrorCatcher] 🔥 Uncaught error:', event?.error || message);
+            // BUG FIX (TRAIN-ERROR-BOUNDARY-1): use console.error (not console.warn)
+            // so this surfaces in production logs with proper severity and is
+            // not silently swallowed by warn-level filters. The handoff for the
+            // training-surface overhaul flagged that the previous level made
+            // state-corruption errors invisible during triage.
+            console.error('[GlobalErrorCatcher] 🔥 Uncaught error:', event?.error || message);
 
             // Report to Sentry silently
             try {
@@ -80,9 +85,14 @@ export default function GlobalErrorCatcher() {
                         extra: { url: window.location.href },
                     });
                 }
-            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            } catch (_) { console.error('[GlobalErrorCatcher] Sentry capture failed:', _?.message || _); }
 
-            showToast('Something went wrong. If the issue persists, try refreshing.', 'error');
+            // In development, expose the underlying error type/message so the
+            // toast is actionable. In production, keep it user-friendly.
+            const isDev = (typeof process !== 'undefined') && process.env && process.env.NODE_ENV !== 'production';
+            const friendly = 'Something went wrong. If the issue persists, try refreshing.';
+            const debugMsg = isDev ? `${friendly} [${event?.error?.name || 'Error'}: ${String(message).slice(0, 100)}]` : friendly;
+            showToast(debugMsg, 'error');
         };
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -98,7 +108,10 @@ export default function GlobalErrorCatcher() {
                 return;
             }
 
-            console.warn('[GlobalErrorCatcher] 🔥 Unhandled promise rejection:', reason);
+            // BUG FIX (TRAIN-ERROR-BOUNDARY-1): same rationale as handleError —
+            // log at error level so production triage can see it, and emit
+            // dev-mode toast text that names the underlying error type/message.
+            console.error('[GlobalErrorCatcher] 🔥 Unhandled promise rejection:', reason);
 
             // Report to Sentry silently
             try {
@@ -109,12 +122,15 @@ export default function GlobalErrorCatcher() {
                         extra: { url: window.location.href },
                     });
                 }
-            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            } catch (_) { console.error('[GlobalErrorCatcher] Sentry capture failed:', _?.message || _); }
 
             // Don't show toast for every failed API call — only critical ones
             // We check if it's a TypeError or ReferenceError (code bugs, not network issues)
             if (reason instanceof TypeError || reason instanceof ReferenceError) {
-                showToast('A background error occurred. The page should still work normally.', 'warning');
+                const isDev = (typeof process !== 'undefined') && process.env && process.env.NODE_ENV !== 'production';
+                const friendly = 'A background error occurred. The page should still work normally.';
+                const debugMsg = isDev ? `${friendly} [${reason?.constructor?.name || 'Error'}: ${String(message).slice(0, 100)}]` : friendly;
+                showToast(debugMsg, 'warning');
             }
         };
 

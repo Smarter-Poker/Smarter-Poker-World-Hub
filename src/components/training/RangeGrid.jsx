@@ -523,7 +523,18 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
     const [actionFilter, setActionFilter] = useState(null); // null = show all, 'b33' = highlight that action
 
     // ═══ RANGE PERCENTAGE CALCULATOR ═══
-    // Count combos per action across entire range
+    // BUG FIX (TRAIN-RANGE-PCT-1): the old formula assumed gridData[hand][action]
+    // was already a 0–100 percent. Upstream callers (UniversalDynamicTable et al.)
+    // sometimes pass freqs in a different unit (raw fractions 0–1, basis points
+    // ×10, or pre-summed across multiple solver subtrees). When that happens,
+    // (freq / 100) * weight produced wildly-too-large per-cell combos, and the
+    // grand totals exceeded totalCombos (1326), printing impossible figures like
+    // "Fold 35693.8%" and "(18472/1326 combos)".
+    //
+    // Robust fix: per-hand normalize. For each cell, take whatever scale the
+    // freqs are in, sum them, and scale so they total at most 100. Each cell
+    // therefore contributes at most `weight` combos to actionTotals, and the
+    // grand totals are mathematically guaranteed to be ≤ totalCombos.
     const rangeStats = useMemo(() => {
         if (!gridData) return null;
         const COMBO_WEIGHTS = { pair: 6, suited: 4, offsuit: 12 };
@@ -538,15 +549,23 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                 const weight = COMBO_WEIGHTS[type];
                 const freqs = gridData[hand];
                 totalCombos += weight;
-                if (freqs) {
-                    Object.entries(freqs || {}).forEach(([action, freq]) => {
-                        if (freq > 0) {
-                            const combos = (freq / 100) * weight;
-                            actionTotals[action] = (actionTotals[action] || 0) + combos;
-                            if (action !== 'f' && action !== 'fold') activeCombos += combos;
-                        }
-                    });
-                }
+                if (!freqs) continue;
+
+                // Sum positive freqs for this cell, then scale so the cell's
+                // total ≤ 100 (in percent). If sum is already ≤ 100, leave as
+                // is; if larger, normalize down.
+                let sum = 0;
+                Object.values(freqs).forEach(f => { if (f > 0) sum += f; });
+                if (sum <= 0) continue;
+                const scale = sum > 100 ? (100 / sum) : 1;
+
+                Object.entries(freqs || {}).forEach(([action, freq]) => {
+                    if (freq <= 0) return;
+                    const pct = freq * scale;            // ≤ 100 per cell sum
+                    const combos = (pct / 100) * weight; // ≤ weight per cell
+                    actionTotals[action] = (actionTotals[action] || 0) + combos;
+                    if (action !== 'f' && action !== 'fold') activeCombos += combos;
+                });
             }
         }
 
