@@ -48,6 +48,7 @@ import { useTrainingStore } from '../../src/stores/trainingStore';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import DiamondEngine from '../../src/services/DiamondEngine';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
+import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
 
 const GodModeArena = dynamic(() => import('../../src/components/training/GodModeArena'), {
@@ -119,11 +120,28 @@ export default function TrainingPage() {
     });
   }, [activeCat, debouncedQuery]);
 
+  // BUG FIX (TRAIN-SETUP-MODAL-1): originally startDrill mounted the arena
+  // directly. The May 8 training-overhaul handoff (issue #288) called for a
+  // Session Setup pop-up between the tile click and the arena so users can
+  // see their 30-day stats and pick difficulty / timer / training mode
+  // before committing. Setup state lives here in local component state;
+  // existing showArena / activeGame Zustand state is unchanged so the
+  // arena render path below still works identically.
+  const [setupGame, setSetupGame] = useState(null);
   const startDrill = useCallback((game) => {
     if (!game) return;
     setActiveGame(game);
+    setSetupGame(game);  // show modal; modal will call onStart to flip showArena
+  }, [setActiveGame]);
+
+  const handleSetupClose = useCallback(() => {
+    setSetupGame(null);
+  }, []);
+
+  const handleSetupStart = useCallback((/* prefs */) => {
+    setSetupGame(null);
     setShowArena(true);
-  }, [setActiveGame, setShowArena]);
+  }, [setShowArena]);
 
   return (
     <PageTransition>
@@ -134,6 +152,18 @@ export default function TrainingPage() {
       />
 
       <GlobalStyle />
+
+      {/* BUG FIX (TRAIN-SETUP-MODAL-1): Session Setup modal — shown between
+          tile click and arena mount. Reads training_dashboard_30day_stats
+          and training_dashboard_last_session RPCs for the YOUR PERFORMANCE
+          card. Persists difficulty / timer / mode in localStorage. */}
+      <SessionSetupModal
+        isOpen={Boolean(setupGame)}
+        game={setupGame}
+        userId={authUser?.id || null}
+        onClose={handleSetupClose}
+        onStart={handleSetupStart}
+      />
 
       {showArena && activeGame && (
         <GodModeArena
