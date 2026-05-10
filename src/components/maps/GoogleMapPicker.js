@@ -13,7 +13,11 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+// Phase 41: trim defensively. The Vercel env var has historically been pasted
+// with a trailing newline, which made Google reject the key (the '%0A' on the
+// script URL produces "This page can't load Google Maps correctly"). The trim
+// makes the loader resilient to whitespace regardless of how the env was set.
+const GOOGLE_MAPS_KEY = (process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '').trim();
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
