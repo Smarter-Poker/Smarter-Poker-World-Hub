@@ -1,0 +1,25 @@
+name: branch-protection-watchdog
+
+# Daily auto-correcting watchdog for `main` branch protection.
+# See scripts/check-branch-protection.mjs and
+# .agent/audits/2026-05-10-branch-protection-and-push-cascade.md
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Verify + auto-correct main branch protection
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ADMIN_PAT || secrets.VERCEL_UNIQUENESS_PAT || secrets.GITHUB_TOKEN }}
+        run: node scripts/check-branch-protection.mjs --fix
