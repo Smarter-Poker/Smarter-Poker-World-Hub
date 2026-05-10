@@ -37,7 +37,7 @@ function getSupabase() {
    if (!_supabase) {
       // During Vercel SSG build, env vars may be omitted.
       // Use production fallback to satisfy createClient URL parser, preventing build crash.
-      const safeUrl = supabaseUrl || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+      const safeUrl = supabaseUrl || 'https://auth.smarter.poker'; // Supabase Custom Domain (paid add-on, $10/mo)
 
       if (!supabaseAnonKey) {
          console.warn('[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_ANON_KEY — cannot create authenticated client');
