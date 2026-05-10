@@ -162,3 +162,22 @@ TRAIN-FB-COPY-1
 # coaching insights") so the two important cards stay visible by default and
 # the deep insights are opt-in.
 TRAIN-FB-IA-1
+
+# ─── /hub/training — cross-cutting CSS sweep across all 89 game pages ───────
+# TRAIN-CSS-SWEEP-1 — src/styles/worlds/training.css. The training theme file
+# was 1.3KB of theme variables only; zero accessibility, responsive, or motion
+# rules. Added 9 cross-cutting rule blocks at body.world-training scope so
+# every training route inherits them without per-page edits:
+#   1. No horizontal scroll on mobile (lock body overflow-x)
+#   2. WCAG 2.5.5 — touch target min 44×44 on mobile
+#   3. :focus-visible rings for keyboard accessibility
+#   4. prefers-reduced-motion respect (force ~0ms animations when set)
+#   5. Safe-area awareness for fixed elements via [data-safe-*] hooks
+#   6. No-FOUC dark backdrop
+#   7. Tap-delay killer (touch-action: manipulation)
+#   8. .sr-only utility for icon-only-button labels
+#   9. Themed scrollbars
+#  10. Print stylesheet for sane Cmd-P output
+# Each block addresses a specific anti-pattern category from the May 8
+# training-overhaul handoff and the ui-ux-pro-max design-system standards.
+TRAIN-CSS-SWEEP-1
