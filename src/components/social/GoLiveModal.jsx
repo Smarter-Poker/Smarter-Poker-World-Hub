@@ -1292,7 +1292,21 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         </div>
 
                         {/* FLOATING ACTION BUTTONS — camera flip, share, slow mode */}
-                        <div style={{ position:'absolute', bottom:110, right:16, display:'flex', flexDirection:'column', gap:8, zIndex:15 }}>
+                        {/* BUG-FIX-LIVE-LIST-1: safe-area-aware bottom (above the input row),
+                            cap max-height + scroll-y so the strip never clips off-screen on
+                            phones with notch/home-bar regardless of how many buttons render. */}
+                        <div style={{
+                            position:'absolute',
+                            bottom:'calc(64px + max(16px, env(safe-area-inset-bottom, 0px)))',
+                            right:16,
+                            maxHeight:'calc(100vh - 200px - max(16px, env(safe-area-inset-top, 0px)) - max(16px, env(safe-area-inset-bottom, 0px)))',
+                            display:'flex',
+                            flexDirection:'column',
+                            gap:8,
+                            zIndex:15,
+                            overflowY:'auto',
+                            scrollbarWidth:'none',
+                        }}>
                             {/* Camera flip */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleFlipCamera(); }}

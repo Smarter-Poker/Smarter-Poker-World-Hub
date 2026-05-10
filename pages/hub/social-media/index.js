@@ -8464,6 +8464,24 @@ function SocialMediaPage() {
     };
   }, []);
 
+  // BUG-FIX-LIVE-LIST-8b: lazy stale-stream cleanup. Every active user
+  // pulling the feed sweeps any stream that's been status='live' but
+  // disconnected for 60+ seconds. Auto-saves recordings (preserved as
+  // drafts) rather than deleting them. Fire-and-forget — no need to
+  // block feed render on this. Auth required server-side so this can't
+  // be hammered anonymously.
+  useEffect(() => {
+    const token = (typeof localStorage !== 'undefined') && localStorage.getItem('sb-access-token');
+    fetch('/api/live/cleanup-stale', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'same-origin',
+    }).catch(() => { /* best-effort, don't surface */ });
+  }, []);
+
   //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
   // SSR-safe: always start false on server, check sessionStorage on client mount
