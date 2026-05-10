@@ -101,23 +101,41 @@ export async function acquireMediaStream(opts = {}) {
     return inFlightRequest;
   }
 
-  // Default constraints: portrait-friendly on mobile, larger on desktop.
-  // Mirrors the inline default from GoLiveModal so we don't regress quality.
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const defaultConstraints = {
-    video: {
-      facingMode: 'user',
-      width: { ideal: isMobile ? 720 : 1280 },
-      height: { ideal: isMobile ? 1280 : 720 },
-    },
-    audio: true,
+  // BUG-FIX-LIVE2-1a: front camera not launching on first mount.
+  // facingMode: 'user' is a SOFT preference — on iOS Safari with previously
+  // granted permission, the OS sometimes returns the BACK camera anyway.
+  // User had to manually flip-then-flip-back to force the front camera.
+  // Fix: try facingMode: { exact: 'user' } first (hard constraint that
+  // explicitly demands the front camera). If the device rejects 'exact'
+  // — some older Safaris error on it — fall back to soft preference.
+  //
+  // Also dropped width/height constraints. Previously asking for ideal
+  // 720x1280 caused devices with native 1080×1920+ sensors to capture at
+  // 720p, then CSS objectFit:cover scaled it UP to fill the viewport —
+  // the "super zoomed in" symptom. Letting the device pick its native
+  // resolution gives a sharper image at the actual aspect.
+  const tryAcquireWithFacingMode = async (mode) => {
+    const constraints = {
+      video: { facingMode: mode },
+      audio: true,
+    };
+    return navigator.mediaDevices.getUserMedia(constraints);
   };
 
   inFlightRequest = (async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(
-        opts.constraints || defaultConstraints
-      );
+      let stream;
+      try {
+        // First try EXACT front camera (hard constraint)
+        stream = await tryAcquireWithFacingMode({ exact: 'user' });
+      } catch (exactErr) {
+        // Fall back to soft preference if exact fails (older Safari, etc.)
+        if (opts.constraints) {
+          stream = await navigator.mediaDevices.getUserMedia(opts.constraints);
+        } else {
+          stream = await tryAcquireWithFacingMode('user');
+        }
+      }
       cachedStream = stream;
       // If a track ends asynchronously (user revokes permission while backgrounded),
       // drop our cache so the next acquire re-requests cleanly.

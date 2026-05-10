@@ -7,7 +7,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
 import toast from '../../stores/toastStore';
 
@@ -160,13 +160,29 @@ export function EndStreamModal({
         const ext = blobType.includes('mp4') ? 'mp4'
                   : blobType.includes('webm') ? 'webm'
                   : 'mp4';
+
+        // BUG-FIX-LIVE2-4 (415 root cause): Supabase Storage allowed_mime_types
+        // is strict — 'video/mp4;codecs=avc1.640028' (what iOS Safari
+        // MediaRecorder produces) does NOT match 'video/mp4' in the allowlist
+        // and storage returns 415 Unsupported Media Type. The bucket allowlist
+        // contains 'video/mp4', 'video/webm', 'video/ogg' (plus two specific
+        // webm codec strings) but not iOS's full codec param. Strip the
+        // ;codecs=... suffix to land on the universal short form.
+        const baseMime = blobType.split(';')[0].trim();
         const filename = `${user.id}/${streamId}.${ext}`;
         const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        // Get access token for authenticated upload
-        // BUG FIX (ESM-3): use getAccessToken() instead of raw localStorage read
-        const accessToken = getAccessToken() || SUPABASE_ANON_KEY;
+        // BUG-FIX-LIVE2-4 (Unauthorized root cause): refresh the access token
+        // BEFORE uploading. On long streams (1h+ default JWT TTL), the token
+        // can expire by the time the user taps Post. Previously we fell back
+        // to SUPABASE_ANON_KEY, which is not authenticated for the user's
+        // own bucket folder — storage 401s. getFreshAccessToken decodes the
+        // JWT exp, refreshes via /auth/v1/token if needed, and persists.
+        const accessToken = await getFreshAccessToken();
+        if (!accessToken) {
+            throw new Error('Your session expired. Please sign in again to save or post your stream.');
+        }
 
         // Use XHR for real upload progress instead of Supabase SDK
         return new Promise((resolve, reject) => {
@@ -174,7 +190,10 @@ export function EndStreamModal({
             xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/live-recordings/${filename}`);
             xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
             xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-            xhr.setRequestHeader('Content-Type', blobType);
+            // BUG-FIX-LIVE2-4: send the BASE mime (e.g. 'video/mp4'), not the
+            // full codec-decorated string. Bucket allowlist requires the
+            // canonical short form.
+            xhr.setRequestHeader('Content-Type', baseMime);
             xhr.setRequestHeader('x-upsert', 'true');
 
             xhr.upload.onprogress = (e) => {
@@ -202,7 +221,10 @@ export function EndStreamModal({
 
     /** Call the server-side endpoint for post/save/delete */
     const callEndStream = async (action) => {
-        const token = getAccessToken();
+        // BUG-FIX-LIVE2-4: refresh token before the API call too. Prevents
+        // the upload-succeeds-then-post-401s race that was producing
+        // "Streamer Unauthorized" toasts after long streams.
+        const token = (await getFreshAccessToken()) || getAccessToken();
         const resp = await fetch('/api/live/end-stream', {
             method: 'POST',
             headers: {

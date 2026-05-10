@@ -218,3 +218,90 @@ export function saveAuthSession(session: any) {
         console.warn('[authUtils] Error saving auth session:', e);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Fresh-token helper for long-lived flows (e.g. live-stream end, large uploads)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Problem: getAccessToken() reads from localStorage. If the token has
+// expired since the user last interacted (say, mid-way through a long
+// stream), the server will 401 on subsequent API calls — exactly the
+// "Streamer Unauthorized on Post" symptom Dan reported. supabase.auth
+// .refreshSession() is blocked (safeSupabase) because it's prone to
+// AbortError, so we refresh by direct fetch against the Supabase auth
+// endpoint.
+//
+// Strategy:
+//   1. Decode the current JWT's exp claim. If exp > now + 60s buffer,
+//      return the existing token (no refresh needed).
+//   2. Otherwise POST to /auth/v1/token?grant_type=refresh_token with
+//      the stored refresh_token.
+//   3. Save the new session to the same localStorage key the SDK reads
+//      from. Subsequent getAccessToken() calls see the fresh token.
+//   4. Return the new access_token. On refresh failure (refresh expired,
+//      network down) returns null — caller decides what to do.
+function decodeJwtExp(token: string): number | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = JSON.parse(
+            atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+        );
+        return typeof payload.exp === 'number' ? payload.exp : null;
+    } catch {
+        return null;
+    }
+}
+
+export async function getFreshAccessToken(): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
+
+    const current = getAccessToken();
+    if (!current) return null;
+
+    // 60-second safety buffer so we don't hand out a token about to expire
+    const exp = decodeJwtExp(current);
+    if (exp && exp * 1000 > Date.now() + 60_000) {
+        return current; // still valid
+    }
+
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return null;
+
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+
+    try {
+        const resp = await fetch(
+            `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+            {
+                method: 'POST',
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+            }
+        );
+        if (!resp.ok) {
+            console.warn('[authUtils] refresh failed:', resp.status);
+            return null;
+        }
+        const session = await resp.json();
+        if (!session?.access_token) return null;
+        // Persist with the same shape the SDK uses
+        saveAuthSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token || refreshToken,
+            expires_at: session.expires_at,
+            expires_in: session.expires_in,
+            user: session.user,
+            token_type: session.token_type || 'bearer',
+        });
+        return session.access_token;
+    } catch (e) {
+        console.warn('[authUtils] refresh threw:', (e as any)?.message || e);
+        return null;
+    }
+}
