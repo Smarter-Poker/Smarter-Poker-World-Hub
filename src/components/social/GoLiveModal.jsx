@@ -37,6 +37,125 @@ const C = {
 // ═══════════════════════════════════════════════════════════════════════════
 // GUEST INVITE MODAL — Select a friend and send them an invite via DM
 // ═══════════════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 2: CohostPickerModal — pre-live co-host selection
+// Dan: "ability to START with 2 people for the stream"
+//
+// Distinct from GuestInviteModal (which fires DURING the broadcast and needs
+// the real guest_invite_code). This picker stages a friend BEFORE the stream
+// is created. After startBroadcast lands the real invite code, GoLiveModal's
+// handleGoLive auto-sends the messenger invite to the staged friend.
+// ─────────────────────────────────────────────────────────────────────────────
+function CohostPickerModal({ isOpen, onClose, currentUser, onPick }) {
+    const [friends, setFriends] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+
+    useEffect(() => {
+        if (!isOpen) return;
+        let cancelled = false;
+        const fetchFriends = async () => {
+            setLoading(true);
+            try {
+                const { getAccessToken } = await import('../../lib/authUtils');
+                const token = getAccessToken();
+                const res = await fetch('/api/friends?action=list', {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                const json = await res.json().catch(() => ({}));
+                if (cancelled) return;
+                if (json?.success) setFriends(json.data?.friends || []);
+            } catch (err) {
+                console.warn('[CohostPickerModal] fetch friends failed:', err?.message || err);
+            }
+            if (!cancelled) setLoading(false);
+        };
+        fetchFriends();
+        return () => { cancelled = true; };
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const q = search.trim().toLowerCase();
+    const filtered = !q ? friends : friends.filter(f =>
+        (f.display_name || '').toLowerCase().includes(q) ||
+        (f.username || '').toLowerCase().includes(q)
+    );
+
+    return (
+        <div
+            style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            onClick={onClose}
+        >
+            <div
+                style={{ background: '#1C1E21', padding: 20, borderRadius: 16, width: '100%', maxWidth: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+                onClick={e => e.stopPropagation()}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div>
+                        <h3 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 700 }}>Invite a Co-Host</h3>
+                        <div style={{ color: '#aaa', fontSize: 12, marginTop: 4 }}>
+                            They'll get a messenger invite the instant you go live
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        aria-label="Close"
+                        style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}
+                    >✕</button>
+                </div>
+                <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Search friends..."
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #333', background: '#0f1012', color: '#fff', fontSize: 14, marginBottom: 12, boxSizing: 'border-box', outline: 'none' }}
+                />
+                {loading ? (
+                    <div style={{ color: '#aaa', textAlign: 'center', padding: '30px 0' }}>Loading friends...</div>
+                ) : filtered.length === 0 ? (
+                    <div style={{ color: '#aaa', textAlign: 'center', padding: '30px 0', fontSize: 14 }}>
+                        {friends.length === 0 ? 'No friends yet — add some first.' : 'No matches.'}
+                    </div>
+                ) : (
+                    <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                        {filtered.map(f => (
+                            <button
+                                key={f.id}
+                                onClick={() => { onPick(f); onClose(); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                                    padding: '12px 8px', background: 'transparent', border: 'none',
+                                    borderBottom: '1px solid #2a2a2a', cursor: 'pointer', textAlign: 'left',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#252628'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <div style={{
+                                    width: 38, height: 38, borderRadius: '50%',
+                                    background: f.avatar_url ? `url(${f.avatar_url}) center/cover` : 'linear-gradient(135deg, #FA383E, #FFA500)',
+                                    flexShrink: 0,
+                                }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ color: '#fff', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {f.display_name || f.username}
+                                    </div>
+                                    {f.username && f.display_name && (
+                                        <div style={{ color: '#aaa', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            @{f.username}
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ color: '#1877F2', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>Pick →</div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }) {
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -64,11 +183,27 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
         try {
             const { getAccessToken } = await import('../../lib/authUtils');
             const token = getAccessToken();
-            const { data: convId } = await supabase.rpc('fn_get_or_create_conversation', {
-                user1_id: currentUser.id,
-                user2_id: friendId,
+
+            // FIX (LIVE-INVITE-1): the previous implementation called a Supabase
+            // RPC `fn_get_or_create_conversation` that does NOT exist in
+            // production. Every invite tap silently failed at this line. The
+            // real production messenger uses /api/messenger/start-conversation
+            // which writes to the social_conversations + social_conversation_participants
+            // tables (NOT the legacy `conversations` table the RPC would have
+            // touched). Switching to the canonical endpoint.
+            const convResp = await fetch('/api/messenger/start-conversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ otherUserId: friendId }),
             });
-            if (!convId) throw new Error('No conversation');
+            const convData = await convResp.json().catch(() => ({}));
+            if (!convResp.ok || !convData?.conversationId) {
+                throw new Error(convData?.error || 'Could not open conversation');
+            }
+            const convId = convData.conversationId;
 
             const inviteQs = `room=${streamId}&invite=${inviteCode}`;
             const res = await fetch('/api/messenger/send-message', {
@@ -80,10 +215,14 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
                     message_type: 'text'
                 })
             });
-            if (!res.ok) throw new Error('Send failed');
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data?.error || 'Send failed');
+            }
             toast.success('Invite sent!');
         } catch (err) {
-            toast.error('Failed to send invite');
+            console.warn('[GuestInviteModal] sendInvite error:', err?.message || err);
+            toast.error(err?.message || 'Failed to send invite');
         }
         setSendingId(null);
     };
@@ -151,6 +290,14 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
     const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
+    // ── PHASE 2: pre-live co-host pick (Dan: "ability to START with 2 people") ──
+    // pendingCohost is a friend object selected BEFORE going live. After
+    // startBroadcast returns the real guest_invite_code, we auto-send the
+    // invite via messenger so the co-host can join from t=0. cohostInviteSent
+    // gates the auto-send so it only fires once.
+    const [pendingCohost, setPendingCohost] = useState(null);
+    const [cohostInviteSent, setCohostInviteSent] = useState(false);
+    const [cohostPickerOpen, setCohostPickerOpen] = useState(false);
     // BUG-FIX-LIVE-10 hardening: prevents double-tap on End Stream from
     // running two parallel finalize promises and racing the mediaRecorder.
     const [isEnding, setIsEnding] = useState(false);
@@ -542,6 +689,49 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 activeStreamId = newId;
                 setStreamId(newId);
                 setGuestInviteCode(newInviteCode);
+
+                // ── PHASE 2: auto-send the pre-staged co-host invite ──
+                // Dan: "ability to START with 2 people for the stream". The
+                // host pre-selects a friend during preview; the moment we
+                // have the real guest_invite_code (which only the server can
+                // generate), we fire the messenger invite. Co-host taps
+                // Join → /hub/live/guest renders GoLiveModal in guestMode →
+                // joinAsGuest publishes their tracks to the same LiveKit
+                // room → both visible from t=0.
+                if (pendingCohost && newId && newInviteCode && !cohostInviteSent) {
+                    setCohostInviteSent(true);
+                    try {
+                        const { getAccessToken } = await import('../../lib/authUtils');
+                        const token = getAccessToken();
+                        const convResp = await fetch('/api/messenger/start-conversation', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ otherUserId: pendingCohost.id }),
+                        });
+                        const convData = await convResp.json().catch(() => ({}));
+                        if (!convResp.ok || !convData?.conversationId) {
+                            throw new Error(convData?.error || 'Could not open conversation');
+                        }
+                        const inviteQs = `room=${newId}&invite=${newInviteCode}`;
+                        const sendResp = await fetch('/api/messenger/send-message', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({
+                                conversationId: convData.conversationId,
+                                content: `[LIVE_INVITE]${inviteQs}`,
+                                message_type: 'text',
+                            }),
+                        });
+                        if (!sendResp.ok) {
+                            const data = await sendResp.json().catch(() => ({}));
+                            throw new Error(data?.error || 'Send failed');
+                        }
+                        toast.success(`Co-host invite sent to ${pendingCohost.display_name || pendingCohost.username}`);
+                    } catch (cohostErr) {
+                        console.warn('[GoLiveModal] cohost auto-invite failed:', cohostErr?.message || cohostErr);
+                        toast.error(`Couldn't invite co-host: ${cohostErr?.message || 'unknown'} — use the Invite Guest button to retry`);
+                    }
+                }
             }
 
             setStage('live');
@@ -1042,6 +1232,39 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                         <option value="hand_review">Hand Review</option>
                                         <option value="just_chatting">Just Chatting</option>
                                     </select>
+
+                                    {/* PHASE 2: Co-Host picker (start with 2 people) */}
+                                    <label style={{ display:'block', marginTop:14, marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>
+                                        Co-Host <span style={{ color:C.textSec, fontWeight:500, fontSize:12 }}>(optional — they'll get a Messenger invite when you go live)</span>
+                                    </label>
+                                    {pendingCohost ? (
+                                        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderRadius:8, border:`1px solid ${C.border}`, background:'#F0F2F5' }}>
+                                            <div style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: pendingCohost.avatar_url ? `url(${pendingCohost.avatar_url}) center/cover` : 'linear-gradient(135deg, #FA383E, #FFA500)',
+                                                flexShrink: 0,
+                                            }} />
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ color: C.text, fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {pendingCohost.display_name || pendingCohost.username}
+                                                </div>
+                                                <div style={{ color: C.textSec, fontSize: 12 }}>Will be invited the moment you go live</div>
+                                            </div>
+                                            <button
+                                                onClick={() => setPendingCohost(null)}
+                                                style={{ background: 'none', border: 'none', color: C.red, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '6px 8px' }}
+                                            >Remove</button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => setCohostPickerOpen(true)}
+                                            style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px dashed ${C.border}`, background:'white', color:C.text, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
+                                        >
+                                            <span style={{ fontSize:16 }}>👥</span>
+                                            <span>Invite a friend to co-host</span>
+                                        </button>
+                                    )}
                                 </>
                             )}
 
@@ -1407,6 +1630,16 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 user={user}
             />
         )}
+
+        {/* PHASE 2: Co-Host picker — mounted at top level so it overlays the
+            preview stage too (the inner mount inside the live-stage block was
+            only reachable after going live, defeating the purpose). */}
+        <CohostPickerModal
+            isOpen={cohostPickerOpen}
+            onClose={() => setCohostPickerOpen(false)}
+            currentUser={user}
+            onPick={(friend) => setPendingCohost(friend)}
+        />
         </>
     );
 }
