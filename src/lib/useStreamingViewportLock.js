@@ -58,6 +58,11 @@ export function useStreamingViewportLock(enabled) {
     } catch (_) { /* unsupported — ignore */ }
 
     // ── 3. Reflow + scale reset on any layout change ───────────────────────
+    // BUG-FIX-LIVE-LIST-6: track pending setTimeout ids so cleanup can cancel
+    // them. Without this, a rotation that fires within ~700ms of unmount would
+    // forceReflow / re-set viewport meta on a page the user has already
+    // navigated to.
+    const pendingReflowTimers = new Set();
     const forceReflow = () => {
       // Read offsetHeight to force a synchronous layout pass
       // eslint-disable-next-line no-unused-expressions
@@ -66,25 +71,39 @@ export function useStreamingViewportLock(enabled) {
       window.scrollTo(0, 0);
     };
 
+    const scheduleReflow = (ms, fn) => {
+      const id = setTimeout(() => {
+        pendingReflowTimers.delete(id);
+        if (fn) fn(); else forceReflow();
+      }, ms);
+      pendingReflowTimers.add(id);
+    };
+
     const onOrientationChange = () => {
       // Schedule reflow AFTER the orientationchange event settles
       // (Safari fires resize ~100-300ms after orientationchange completes)
-      setTimeout(() => {
+      scheduleReflow(50, () => {
         forceReflow();
-        // BUG-FIX-LANDSCAPE: force-reapply the viewport meta tag after rotation.
-        // iOS Safari sometimes re-enables scaling after orientation change even
-        // with maximum-scale=1 already set. Re-applying the attribute kicks
-        // the browser rendering engine to recalculate, breaking the zoom lock.
+        // BUG-FIX-LIVE-LIST-6 (was BUG-FIX-LANDSCAPE): force-reapply the
+        // viewport meta after rotation. Previously this cleared the
+        // attribute to '' first — which exposed a frame where Safari
+        // re-parsed the empty value and dropped scaling lock entirely,
+        // leaving the user stuck zoomed in when rotating from landscape
+        // back to portrait. Now we toggle between equivalent values
+        // (initial-scale=1 ↔ initial-scale=1.0001 then back) to kick the
+        // re-parse without ever exposing an empty value.
         if (viewportMeta) {
-          viewportMeta.setAttribute('content', '');
-          // Double-set: clearing then resetting forces Safari to re-parse
+          viewportMeta.setAttribute(
+            'content',
+            'width=device-width, initial-scale=1.0001, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover'
+          );
           requestAnimationFrame(() => {
             viewportMeta.setAttribute('content', STREAMING_VIEWPORT_CONTENT);
           });
         }
-      }, 50);
-      setTimeout(forceReflow, 350);
-      setTimeout(forceReflow, 700);
+      });
+      scheduleReflow(350);
+      scheduleReflow(700);
     };
 
     const onVisualViewportChange = () => {
@@ -107,6 +126,11 @@ export function useStreamingViewportLock(enabled) {
 
     // ── Cleanup ────────────────────────────────────────────────────────────
     return () => {
+      // BUG-FIX-LIVE-LIST-6: cancel any pending reflow timers so they don't
+      // fire on whatever route the user navigated to after unmounting.
+      for (const id of pendingReflowTimers) clearTimeout(id);
+      pendingReflowTimers.clear();
+
       window.removeEventListener('orientationchange', onOrientationChange);
       window.removeEventListener('resize', onOrientationChange);
       if (window.visualViewport) {

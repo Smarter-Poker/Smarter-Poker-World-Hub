@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
+import { LiveDiamondIcon } from './LiveDiamondIcon';
 
 const GIFT_AMOUNTS = [
     { amount: 5,   label: '5',   emoji: '💎' },
@@ -107,16 +108,18 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                     <div style={{ textAlign: 'center', padding: '24px 0' }}>
                         <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
                         <div style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 700 }}>Gift Sent!</div>
-                        <div style={{ color: '#FFFFFF', fontSize: 14, marginTop: 6 }}>
-                            {selected} 💎 Sent To Broadcaster
+                        <div style={{ color: '#FFFFFF', fontSize: 14, marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                            {selected} <LiveDiamondIcon size={16} alt="diamonds" /> Sent To Broadcaster
                         </div>
                     </div>
                 ) : (
                     <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                            <span style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>Send Diamonds 💎</span>
-                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-                                Balance: {(userBalance || 0).toLocaleString()} 💎
+                            <span style={{ color: 'white', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                Send Diamonds <LiveDiamondIcon size={20} alt="diamond" />
+                            </span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                Balance: {(userBalance || 0).toLocaleString()} <LiveDiamondIcon size={13} alt="diamonds" />
                             </span>
                         </div>
 
@@ -172,7 +175,11 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                                 transition: 'all 0.2s',
                             }}
                         >
-                            {sending ? 'Sending...' : selected ? `Send ${selected} 💎` : 'Select an amount'}
+                            {sending ? 'Sending...' : selected ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                    Send {selected} <LiveDiamondIcon size={16} alt="diamonds" />
+                                </span>
+                            ) : 'Select an amount'}
                         </button>
                     </>
                 )}
