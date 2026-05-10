@@ -229,3 +229,34 @@ Antigravity (and potentially other auto-sync background agents) periodically run
 **Run `bash scripts/git-safe-push.sh` after every meaningful change, not at end of session.** 
 
 The reflog signature of an active reset loop is repeated `reset: moving to origin/main` entries — `scripts/git-safe-push.sh` Phase 0.7 warns when ≥2 are seen in the last 50 ops.
+
+## RULE 12 — Never create new infrastructure; write to the canonical one (added 2026-05-10)
+
+Agents must NEVER create new GitHub repos, Vercel projects, Supabase projects, Hetzner servers, OAuth clients, or any parallel infra "for this work." Every smarter.poker workload has exactly ONE canonical home, and the agent's job is to write into it.
+
+**The only canonical homes that exist:**
+
+| Surface             | Canonical home                                       | Project/Repo ID                              |
+|---------------------|-------------------------------------------------------|----------------------------------------------|
+| World Hub repo      | `Smarter-Poker/Smarter-Poker-World-Hub`               | github repo `1132365826`                     |
+| Club Arena repo     | `Smarter-Poker/club-arena`                            | (single canonical)                           |
+| Workers repo        | `Smarter-Poker/smarter-poker-workers`                 | (single canonical)                           |
+| Vercel project      | `hub-vanguard`                                        | `prj_op66GkZyZcygXQKm76iyycfVFAQx`           |
+| Supabase project    | `kuklfnapbkmacvwxktbh.supabase.co`                    | (single canonical)                           |
+| Hetzner engine VM   | nbg1 / CX23 (poker engine)                            | (see RULE 10.4)                              |
+| Hetzner workers VM  | CPX21 (workers + Open Claw)                           | (see RULE 10.4)                              |
+| Google OAuth client | one client in the smarterpoker45@gmail.com GCP project | (single canonical)                           |
+| Domain              | `smarter.poker` (via Vercel)                          | (single canonical, no apex/non-www variants) |
+
+**Forbidden actions:**
+- `gh repo create`, GitHub UI "New repository", any fork-then-rename flow producing a 2nd repo for the same workload.
+- Vercel "Import Project" / "Add New Project" while connected to a repo that already has a canonical project. (Vercel auto-suggests this when a repo isn't linked from the perspective of the current account — answer is to LOG INTO THE RIGHT ACCOUNT, not create a duplicate.)
+- Creating a 2nd Supabase project "for staging" or "for X feature."
+- Creating a 2nd OAuth client in Google Cloud / Facebook for Developers / etc. when one already exists. EDITING the existing client (adding redirect URIs, scopes) is correct; making a parallel one is not.
+- Creating a 2nd Hetzner server "for testing" without RULE 10.1 paperwork.
+
+**If the existing canonical place doesn't seem to fit the new work, you're wrong** — and the right move is to ask Dan, not to create something new.
+
+**If you find a duplicate that already exists** (someone else's earlier mistake): document it under `.agent/audits/<date>-duplicate-<surface>.md`, get Dan's confirmation, then disconnect/delete the duplicate. See `.agent/audits/2026-05-08-vercel-duplicate-project-incident.md` for the canonical postmortem template.
+
+**Existing guardrail script:** `scripts/check-vercel-project-uniqueness.mjs` enforces the Vercel-side invariant.
