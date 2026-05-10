@@ -73,6 +73,22 @@ this exact bug — disconnect/delete it. Run
 `scripts/check-vercel-project-uniqueness.mjs` to verify exactly one project
 serves this repo at any time.
 
+
+### 1.1.1 No new infra, ever — write to the canonical place (RULE 12)
+
+Agents are FORBIDDEN from creating new GitHub repos, Vercel projects,
+Supabase projects, Hetzner servers, OAuth clients, or any parallel
+infrastructure. Every smarter.poker workload has exactly one canonical
+home and that's where agents write. See RULE 12 in
+`.agent/CLAUDE_AGENT_RULES.md` for the full canonical-homes table and
+forbidden-actions list.
+
+Quick rule: if you're about to run `gh repo create`, click Vercel
+"Import Project", create a second Supabase project "for X", or make a
+second OAuth client in any provider's console — STOP. The existing
+canonical thing is what you write into. If it doesn't fit, ask Dan,
+don't create something new.
+
 ### 1.2 Mandatory End-of-Session Push
 
 Canonical rules live in `.agent/CLAUDE_AGENT_RULES.md` — RULE 1 (push), RULE 2
