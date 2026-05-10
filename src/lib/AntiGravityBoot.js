@@ -81,7 +81,10 @@ function initializeSupabase() {
 
 /**
  * Perform Supabase health check (deterministic proof)
- * With timeout to prevent hanging on slow mobile networks
+ * With timeout to prevent hanging on slow mobile networks.
+ * BUG FIX: The profiles table is RLS-protected — anon SELECT returns 401
+ * which causes ANTI-GRAVITY OFFLINE on every page load. Use the public
+ * /rest/v1/ root endpoint instead (returns 200 without auth).
  */
 async function supabaseHealthCheck() {
     if (!supabaseClient) {
@@ -89,34 +92,32 @@ async function supabaseHealthCheck() {
     }
 
     try {
-        // Race against timeout to prevent hanging on slow mobile networks
-        const healthPromise = supabaseClient
-            .from('profiles')
-            .select('id')
-            .limit(1);
+        // Use the Supabase URL from the shared client to ping the REST root.
+        // The REST root (GET /rest/v1/) is publicly accessible (no auth required)
+        // and returns 200, proving the connection is alive without hitting any RLS wall.
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
 
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Health check timeout')), 1500)
-        );
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1500);
 
-        const { data, error } = await Promise.race([healthPromise, timeoutPromise]);
+        const res = await fetch(`${supabaseUrl}/rest/v1/`, {
+            method: 'GET',
+            headers: { apikey: anonKey, Accept: 'application/json' },
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
-        // Even if table doesn't exist, a proper error means connection works
-        if (error && error.code === 'PGRST116') {
-            // No rows - but connection works
-            return { success: true, proof: 'CONNECTION_OK_NO_DATA' };
+        if (res.ok || res.status === 200) {
+            return { success: true, proof: 'REST_API_REACHABLE' };
         }
 
-        if (error && error.message.includes('does not exist')) {
-            // Table doesn't exist but connection works
-            return { success: true, proof: 'CONNECTION_OK_TABLE_PENDING' };
+        // Some deployments return 400 at /rest/v1/ (bad request is OK — server is alive)
+        if (res.status >= 400 && res.status < 500) {
+            return { success: true, proof: `CONNECTION_OK_HTTP_${res.status}` };
         }
 
-        if (error) {
-            return { success: false, error: error.message };
-        }
-
-        return { success: true, proof: 'FULL_CONNECTION_OK' };
+        return { success: false, error: `Unexpected HTTP ${res.status}` };
     } catch (error) {
         console.warn('[AntiGravity] Health check failed:', error?.message || error);
         return { success: false, error: error.message || 'Health check failed' };
