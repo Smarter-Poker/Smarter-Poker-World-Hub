@@ -145,3 +145,20 @@ TRAIN-FEEDBACK-SYNC-1
 # pinned it to the viewport's top-left corner with iOS/Android safe-area
 # awareness so it cannot collide with any bottom-UI element.
 TRAIN-LAYOUT-QUIT-1
+
+# ─── /hub/training — Surface C (post-answer feedback) IA pass ───────────────
+# TRAIN-FB-COPY-1 — UniversalDynamicTable.jsx Hand Summary header. The previous
+# wording "Hand Complete — 1 STREET PLAYED" reads awkwardly on mobile and is
+# both ambiguous (which street?) and SCREAMING-CAPS. Replaced with a natural
+# language map: 1 → "Played to flop", 2 → "Played to turn", 3 → "Played to
+# river", 4 → "Hand to showdown", and a generic fallback for higher counts.
+TRAIN-FB-COPY-1
+# TRAIN-FB-IA-1 — UniversalDynamicTable.jsx auxiliary feedback cards. The
+# post-answer feedback layer was stacking up to 10 narrative cards (PRINCIPLE
+# / POSITION / TEXTURE / SPR / VILLAIN RANGE / STREET PLAN / HAND / EQUITY /
+# RANGE TIP / HAND READING) on top of the KEY TAKEAWAY and SOLVER LINE cards.
+# On a 390px mobile viewport this filled the screen and pushed the NEXT HAND
+# button below the fold. Wrapped them in a single <details> accordion ("More
+# coaching insights") so the two important cards stay visible by default and
+# the deep insights are opt-in.
+TRAIN-FB-IA-1
