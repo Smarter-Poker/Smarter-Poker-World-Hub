@@ -4,7 +4,7 @@ export default function HostHomeGameButton({ className }) {
   const [checking, setChecking] = useState(false);
 
   const handleStart = async () => {
-    console.log('BUTTON CLICKED'); setChecking(true);
+    setChecking(true);
     const WIZARD_PATH = '/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate';
     try {
       let authBlob = {};
