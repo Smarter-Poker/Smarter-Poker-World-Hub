@@ -892,8 +892,11 @@ const TRANSIENT_PATTERNS = [
   /rate-limit|rate limit/i,
   /timeout/i,
   /ffmpeg_exit_255/i,
+  /ffmpeg_timeout_/i,        // ffmpeg_timeout_600s (~129 stranded as of 2026-05-10) — wallclock cap, retry can succeed
   /yt-dlp_spawn/i,
+  /yt-dlp_exit_null/i,       // yt-dlp crashed without exit code (~15 stranded) — usually transient (network blip, OOM)
   /Bad Gateway/i,
+  /Gateway Timeout/i,        // 504 from YouTube CDN — pure infra blip
 ];
 const PERMANENT_HISTORY_PATTERNS = [
   /members-only/i,
