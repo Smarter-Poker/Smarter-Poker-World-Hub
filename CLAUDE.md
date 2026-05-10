@@ -499,6 +499,7 @@ GitHub's environment to execute:
 - `stale.yml`
 - `club-arena-scheduled-deploy.yml`
 - `vercel-uniqueness-check.yml`
+- `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
 
 These are the ONLY permitted GitHub Actions `schedule:` cron triggers. Any
 net-new workflow with a `schedule:` trigger is blocked by CI. To add one:
