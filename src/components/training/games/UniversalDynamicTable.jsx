@@ -238,6 +238,75 @@ const SoundEngine = {
 // F1: RANGE MATRIX VIEWER — 13×13 hand grid colored by action frequency
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// BUG FIX (TRAIN-FEEDBACK-SYNC-1): defensive guard against the templated
+// explanation / solver-line narrative referencing a board, hand, or position
+// different from the scenario rendered on the active table.
+//
+// Symptom from the May 8 handoff: the table shows K8 on AT5 (CO vs BTN) but
+// the feedback narrative says "On the Qc Kc 7d flop, you hold 86o from the
+// CO." Root cause is upstream — the explanation is built against a stale
+// scenario object, likely a pre-rendered DB row that didn't get updated in
+// lockstep with the rendered question. Fixing the upstream pipeline is a
+// separate ticket (#283); this helper keeps wrong narrative off the screen.
+//
+// Returns true when `text` is safe to render given the current scenario, or
+// when no scenario fingerprint can be extracted (so abstract narratives like
+// "Bet 33% is the dominant action" pass through unchanged). Returns false
+// only when the text mentions a board / hand / position that demonstrably
+// does not match the scenario.
+// ═══════════════════════════════════════════════════════════════════════════
+function explanationMatchesScenario(text, scenario) {
+    if (!text || typeof text !== 'string') return true;
+    if (!scenario) return true;
+
+    // 1. BOARD CHECK — extract canonical 'Rs' card codes from scenario.board
+    //    (handles both array form ['Ah','Kd','7c'] and concatenated 'AhKd7c'
+    //    or space-separated 'Ah Kd 7c').
+    let scenarioBoard = null;
+    try {
+        const b = scenario.board;
+        if (b) {
+            const tokens = Array.isArray(b)
+                ? b.flatMap(c => String(c).match(/[2-9TJQKA][cdhs]/gi) || [])
+                : String(b).match(/[2-9TJQKA][cdhs]/gi) || [];
+            if (tokens.length >= 3) {
+                scenarioBoard = new Set(tokens.map(c => c[0].toUpperCase() + c[1].toLowerCase()));
+            }
+        }
+    } catch (_) { /* best-effort */ }
+
+    // Find rank+suit tokens in the text. If 3+ are mentioned but ZERO appear
+    // in the scenario board, the text is referencing a different board.
+    if (scenarioBoard) {
+        const mentioned = text.match(/\b[2-9TJQKA][cdhs]\b/g);
+        if (mentioned && mentioned.length >= 3) {
+            const mset = new Set(mentioned.map(c => c[0].toUpperCase() + c[1].toLowerCase()));
+            let overlap = 0;
+            for (const c of mset) if (scenarioBoard.has(c)) overlap++;
+            if (mset.size >= 3 && overlap === 0) return false;
+        }
+    }
+
+    // 2. HAND CHECK — only when scenario provides a hand notation.
+    const scenarioHand = String(scenario.heroHand || '').toUpperCase();
+    if (/^[2-9TJQKA]{2}[OS]?$/.test(scenarioHand)) {
+        const handsInText = text.match(/\b[2-9TJQKA]{2}[oOsS]?\b/g) || [];
+        if (handsInText.length > 0) {
+            const r1 = scenarioHand[0];
+            const r2 = scenarioHand[1];
+            const ok = handsInText.some(h => {
+                const hu = h.toUpperCase();
+                // Match either ordering (e.g. AKo === KAo for the same hand).
+                return (hu.startsWith(r1 + r2) || hu.startsWith(r2 + r1));
+            });
+            if (!ok) return false;
+        }
+    }
+
+    return true;
+}
+
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 /**
@@ -3829,7 +3898,11 @@ function UniversalDynamicTable({
                         })();
 
                         // Phase 47: Enhanced feedback messages for all classifications
-                        const displayExplanation = explanation || (() => {
+                        // BUG FIX (TRAIN-FEEDBACK-SYNC-1): only trust the upstream `explanation`
+                        // prop when its content matches the rendered scenario; otherwise fall
+                        // back to the auto-generated abstract template (which is scenario-free).
+                        const explanationOk = explanationMatchesScenario(explanation, question?.scenario);
+                        const displayExplanation = (explanation && explanationOk) ? explanation : (() => {
                             if (!moveClassification) return null;
                             if (moveClassification === 'best') {
                                 if (correctFreq >= 95) return `Perfect — ${correctOpt} is a pure play here. The solver always takes this action in this spot.`;
@@ -4106,8 +4179,8 @@ function UniversalDynamicTable({
                                 )}
                             </div>
 
-                            {/* Key takeaway */}
-                            {structuredExplanation.takeaway && (
+                            {/* Key takeaway — guarded by TRAIN-FEEDBACK-SYNC-1 */}
+                            {structuredExplanation.takeaway && explanationMatchesScenario(structuredExplanation.takeaway, question?.scenario) && (
                                 <div style={{
                                     padding: '6px 10px', marginBottom: 6,
                                     background: structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.06)' : 'rgba(251, 191, 36, 0.06)',
@@ -4299,6 +4372,9 @@ function UniversalDynamicTable({
                                     const sc = question?.scenario || {};
                                     const narr = getOptimalLineNarration(structuredExplanation?.primary || '', gtoFrequencies || {}, sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', question?.handCategory || '');
                                     if (!narr) return null;
+                                    // BUG FIX (TRAIN-FEEDBACK-SYNC-1): suppress solver-line narration when it
+                                    // references a different board or hand than the active scenario.
+                                    if (!explanationMatchesScenario(narr.narration, sc)) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.06)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.15)', fontSize: 9, lineHeight: 1.5, color: '#86efac' }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#4ade80' }}>SOLVER LINE: </span>{narr.narration}
                                     </div>);
