@@ -743,3 +743,18 @@ TRAIN-FOCUS-A11Y-1
 # gain explicit type="button" (aria already present). Follows build-safety
 # rules from PR #362/#365/#369.
 TRAIN-TPP-A11Y-1
+
+# ─── Shared PlayingCard component — canonical 52-deck PNG everywhere ────────
+# TRAIN-PLAYCARD-1 — src/components/poker/PlayingCard.jsx (new). Shared
+# React component that renders any single playing card using the canonical
+# custom 52-deck PNG asset set at /public/cards/{suit}_{rank}.png (same
+# deck used by Club Arena, sandbox, hand-replayer). Accepts shorthand
+# strings ('As', '10h'), explicit rank+suit, or engine cardId 0-51.
+# Five size presets (xs 24px / sm 36px / md 60px / lg 90px / xl 120px),
+# faceDown + cardBack support, highlighted + dimmed states, onClick with
+# role=button + keyboard handler, aria-label derived from full card name.
+# Aspect ratio locked at 150:210. Build-safe: no emoji chars (suit glyph
+# parsing uses \u escapes), no JSX comments in conditional expressions.
+# This unblocks subsequent PRs that replace inline unicode-string card
+# rendering across all 89 training surfaces with the shared component.
+TRAIN-PLAYCARD-1
