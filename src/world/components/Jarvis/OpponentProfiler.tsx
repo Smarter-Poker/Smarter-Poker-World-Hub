@@ -65,7 +65,7 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
     useEffect(() => {
         async function loadProfiles() {
             try {
-                const user = await getSafeUser(supabase);
+                const user = getSafeUser();
                 if (!user) {
                     setLoading(false);
                     // Load from localStorage for unauthenticated users

@@ -60,7 +60,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
     useEffect(() => {
         async function loadHands() {
             try {
-                const user = await getSafeUser(supabase);
+                const user = getSafeUser();
                 if (!user) {
                     setLoading(false);
                     // Load from localStorage

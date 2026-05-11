@@ -37,7 +37,7 @@ export function useConversationMemory() {
     useEffect(() => {
         async function loadSessions() {
             try {
-                const user = await getSafeUser(supabase);
+                const user = getSafeUser();
 
                 if (!user) {
                     // Load from localStorage for unauthenticated users

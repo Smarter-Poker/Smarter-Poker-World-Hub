@@ -46,7 +46,7 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
     useEffect(() => {
         const loadGoals = async () => {
             try {
-                const user = await getSafeUser(supabase);
+                const user = getSafeUser();
                 if (user) {
                     setUserId(user.id);
                     // Load from Supabase

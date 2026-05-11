@@ -306,9 +306,13 @@ if [ -f "$AUTHUTILS_FILE" ]; then
     AU_ERRORS=0
 
     while IFS= read -r f; do
-        IMPORTED=$(grep -oE "import \{[^}]+\} from ['\"].*authUtils['\"]" "$f" 2>/dev/null \
-          | grep -oE "[A-Za-z_][A-Za-z0-9_]+" \
-          | grep -v "^import$" | grep -v "^from$" | sort -u || true)
+        IMPORTED=$(grep -v "^[[:space:]]*//" "$f" 2>/dev/null \
+          | grep -oE "import \{[^}]+\} from ['\"].*authUtils['\"]" \
+          | grep -oE "\{[^}]+\}" \
+          | tr -d '{}' | tr ',' '\n' \
+          | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+          | grep -E "^[A-Za-z_][A-Za-z0-9_]+$" \
+          | sort -u || true)
         for sym in $IMPORTED; do
             if ! echo "$AU_EXPORTS" | grep -qx "$sym"; then
                 echo "   ❌ $f: imports '$sym' which is NOT exported by $AUTHUTILS_FILE"

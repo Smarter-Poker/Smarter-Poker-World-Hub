@@ -53,7 +53,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
     useEffect(() => {
         const loadEntries = async () => {
             try {
-                const user = await getSafeUser(supabase);
+                const user = getSafeUser();
                 if (user) {
                     setUserId(user.id);
                     const { data, error } = await (supabase

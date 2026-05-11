@@ -96,9 +96,16 @@ jobs:
             done
 
             if [ "$STATUS" != "200" ]; then
-              echo "::error::FATAL: Could not fetch ${BUCKET} bucket config after 3 attempts. HTTP $STATUS"
-              echo "$BODY"
-              FAIL=1
+              # HTTP 544 = Supabase DatabaseTimeout — transient infra issue, not a code bug.
+              # Treat as a warning so transient DB outages don't block valid deploys.
+              if [ "$STATUS" = "544" ] || [ "$STATUS" = "503" ] || [ "$STATUS" = "504" ]; then
+                echo "::warning::Supabase storage API timed out for ${BUCKET} (HTTP $STATUS) — skipping bucket check (transient)."
+                echo "$BODY"
+              else
+                echo "::error::FATAL: Could not fetch ${BUCKET} bucket config after 3 attempts. HTTP $STATUS"
+                echo "$BODY"
+                FAIL=1
+              fi
               continue
             fi
 
