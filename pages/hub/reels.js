@@ -1847,6 +1847,18 @@ export default function ReelsPage() {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
 
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        // BUG FIX (2026-05-11): sync-unmute inside the keypress gesture so
+        // Chrome accepts the unMute postMessage. Without this, the new
+        // iframe's onStateChange(1) autoUnmute runs after gesture expiry
+        // and YouTube silently rejects. Mirrors handleTouchEnd / handleWheel.
+        if (userWantsSoundRef.current) {
+          sendYouTubeCommand('unMute');
+          sendYouTubeCommand('setVolume', [100]);
+          setMuted(false);
+          setUserWantsSound(true);
+        }
+      }
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') slideToNextRef.current();
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') slideToPrevRef.current();
       if (e.key === 'Escape') router.push('/hub/social-media');
@@ -2016,6 +2028,22 @@ export default function ReelsPage() {
       wheelTimeout = setTimeout(() => {
         wheelTimeout = null;
       }, 400);
+      if (Math.abs(e.deltaY) > 30) {
+        // BUG FIX (2026-05-11 — "why is sound not auto playing when a user
+        // scrolls up or down for the next or previous video?"): unmute
+        // synchronously here — THIS is the user gesture context. Calling
+        // via slideToNext/Prev breaks the gesture chain (setTimeout + React
+        // state) and by the time the new iframe loads and fires
+        // onStateChange(1), Chrome has already dropped the wheel gesture
+        // context — YouTube silently rejects the unMute postMessage.
+        // Mirrors the working pattern in handleTouchEnd at lines ~1995-2000.
+        if (userWantsSoundRef.current) {
+          sendYouTubeCommand('unMute');
+          sendYouTubeCommand('setVolume', [100]);
+          setMuted(false);
+          setUserWantsSound(true);
+        }
+      }
       if (e.deltaY > 30) {
         slideToNextRef.current();
       }
