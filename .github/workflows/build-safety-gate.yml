@@ -78,10 +78,16 @@ jobs:
             # Retry up to 3 times with backoff for Supabase API flakiness
             STATUS="000"
             for ATTEMPT in 1 2 3; do
-              RESP=$(curl -sS -w "\n%{http_code}" --max-time 10 \
+              # bug-hunt-zero/B-SAFETY-1: curl exit code 28 (timeout) on a single
+              # bucket query was bombing the entire step before the retry loop
+              # could attempt to recover. The `|| true` makes curl's non-zero
+              # exit tolerable, and the timeout is widened from 10s to 25s for
+              # Supabase API slow-path tolerance. The retry loop still applies
+              # for transient failures.
+              RESP=$(curl -sS -w "\n%{http_code}" --max-time 25 \
                 -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
                 -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-                "https://${PROJECT_REF}.supabase.co/storage/v1/bucket/${BUCKET}")
+                "https://${PROJECT_REF}.supabase.co/storage/v1/bucket/${BUCKET}" || true)
               BODY=$(echo "$RESP" | head -n -1)
               STATUS=$(echo "$RESP" | tail -n 1)
               [ "$STATUS" = "200" ] && break
@@ -126,7 +132,7 @@ jobs:
           # Catch-all: no bucket in the project should EVER have NULL file_size_limit
           echo ""
           echo "Running catch-all NULL guard across all buckets..."
-          ALL_RESP=$(curl -sS --max-time 10 \
+          ALL_RESP=$(curl -sS --max-time 25 \
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
             "https://${PROJECT_REF}.supabase.co/storage/v1/bucket")
