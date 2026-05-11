@@ -963,10 +963,25 @@ class LiveStreamService {
   // ═══════════════════════════════════════════════════
 
   /**
-   * Toggle slow mode for a stream
+   * Toggle slow mode for a stream.
+   *
+   * STREAM-POLISH-R3 CHAT-MOD-3: optional `delay` parameter (seconds)
+   * lets the broadcaster tune the throttle between 1s and 120s. The
+   * column was added in migration 20260511200000_live_streams_slow_mode_delay_column.
+   * If omitted, only the boolean toggles — the column default (3) or
+   * the previously-set value persists.
+   *
+   * @param {string} streamId
+   * @param {boolean} enabled
+   * @param {number} [delay] seconds, integer, 1..120
    */
-  async setSlowMode(streamId, enabled) {
-    await supabase.from('live_streams').update({ slow_mode: enabled }).eq('id', streamId);
+  async setSlowMode(streamId, enabled, delay) {
+    const payload = { slow_mode: enabled };
+    if (typeof delay === 'number' && Number.isFinite(delay)) {
+      const clamped = Math.max(1, Math.min(120, Math.round(delay)));
+      payload.slow_mode_delay = clamped;
+    }
+    await supabase.from('live_streams').update(payload).eq('id', streamId);
   }
 
   /**
@@ -1149,20 +1164,38 @@ class LiveStreamService {
   }
 
   /**
-   * BUG-FIX-LIVE-6: count remote participants who are real viewers,
-   * excluding short-lived "preview-*" identities issued by
-   * /api/live/preview-token (LiveStreamCard's hover/inline preview).
-   * Without this filter, the broadcaster's own social feed tile
-   * auto-connecting to peek at the stream counted as +1 viewer,
-   * producing the off-by-one Dan reported ("SAYS THERE ARE 2 VIEWERS
-   * WHEN THERE IS ONLY 1 WATCHING").
+   * BUG-FIX-LIVE-6 + STREAM-POLISH-R2 VIEWER-1: count remote
+   * participants who are real viewers.
+   *
+   * BUG-FIX-LIVE-6: exclude short-lived "preview-*" identities issued
+   * by /api/live/preview-token (LiveStreamCard's hover/inline preview)
+   * so the broadcaster's own social-feed tile peeking at the stream
+   * doesn't count as +1 viewer.
+   *
+   * STREAM-POLISH-R2 VIEWER-1: also exclude the broadcaster's own
+   * identities. The Bug 5 fix (PR #395) introduced per-device viewer
+   * identities `<user_id>:vw-<random>`. If the broadcaster opens their
+   * own live stream from a second device (or taps into a story preview
+   * that mounts LiveStreamViewer for their own stream), the 2nd device
+   * joins as a remote participant with identity
+   * `<broadcaster_id>:vw-<random>`. Without this filter the broadcaster
+   * sees a phantom "+1 viewer" that's really just themselves — the
+   * same off-by-one Dan reported, returning via the new multi-device
+   * path.
+   *
+   * Filter rule: skip any participant whose identity is exactly the
+   * broadcaster's user_id OR starts with `<broadcaster_id>:vw-`.
    */
   _countRealViewers() {
     if (!this.room) return 0;
+    const bid = this.currentUserId ? String(this.currentUserId) : null;
+    const bidViewerPrefix = bid ? `${bid}:vw-` : null;
     let n = 0;
     for (const p of this.room.remoteParticipants.values()) {
       const id = p.identity || '';
       if (id.startsWith('preview-')) continue;
+      // STREAM-POLISH-R2 VIEWER-1: skip broadcaster's own devices.
+      if (bid && (id === bid || (bidViewerPrefix && id.startsWith(bidViewerPrefix)))) continue;
       n++;
     }
     return n;

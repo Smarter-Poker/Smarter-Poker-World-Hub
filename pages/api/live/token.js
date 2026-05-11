@@ -130,6 +130,20 @@ export default async function handler(req, res) {
       if (!isVerifiedGuest) {
         return res.status(403).json({ error: 'Invalid guest invite code' });
       }
+      // STREAM-POLISH-R3 CO-HOST-1: even with a valid invite code, a
+      // co-host the broadcaster has banned via /api/live/moderate must
+      // not be able to mint a fresh token. Previously this branch
+      // skipped the ban check entirely — a banned co-host could rejoin
+      // with publish privileges by re-using their still-valid code.
+      const { data: guestBan } = await supabase
+        .from('live_bans')
+        .select('id')
+        .eq('stream_id', room)
+        .eq('banned_user_id', user.id)
+        .maybeSingle();
+      if (guestBan) {
+        return res.status(403).json({ error: 'You are banned from this stream' });
+      }
     } else if (!isAnonymous) {
       // BUG-FIX-LIVE-API-AUDIT (C3): authenticated viewer tokens are
       // ban-checked. Banned users can't join the LiveKit room. Anonymous

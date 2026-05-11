@@ -339,8 +339,8 @@ function decodeHTMLEntities(text) {
         .replace(/&nbsp;/g, ' ');
 }
 
-// Check if URL is a social platform that needs Microlink for preview
-// Returns platform info object or null if not a social platform
+// Check if URL is a social platform OR a Cloudflare-protected news/sports site
+// that needs Microlink for preview. Returns platform info object or null.
 function checkSocialPlatform(url) {
     try {
         const urlObj = new URL(url);
@@ -379,6 +379,76 @@ function checkSocialPlatform(url) {
                 platformId: 'instagram',
                 contentType,
                 fallbackImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1024px-Instagram_logo_2016.svg.png',
+            };
+        }
+
+        // ESPN — blocks direct server-side scraping with Cloudflare
+        if (hostname.includes('espn.com') || hostname.includes('espnfc.com')) {
+            return {
+                platform: 'ESPN',
+                platformId: 'espn',
+                contentType: 'Article',
+                fallbackImage: 'https://a.espncdn.com/combiner/i?img=/i/espn/espn_logos/espn_red.png&w=1200&h=630&scale=crop&cquality=40',
+            };
+        }
+
+        // PokerNews — blocks server-side scraping
+        if (hostname.includes('pokernews.com')) {
+            return {
+                platform: 'PokerNews',
+                platformId: 'pokernews',
+                contentType: 'Article',
+                fallbackImage: 'https://www.pokernews.com/pkr-assets/pokernews-logo.png',
+            };
+        }
+
+        // CardPlayer — blocks server-side scraping
+        if (hostname.includes('cardplayer.com')) {
+            return {
+                platform: 'Card Player',
+                platformId: 'cardplayer',
+                contentType: 'Article',
+                fallbackImage: 'https://www.cardplayer.com/images/cardplayer-logo.png',
+            };
+        }
+
+        // Bleacher Report / BR
+        if (hostname.includes('bleacherreport.com') || hostname.includes('br.com')) {
+            return {
+                platform: 'Bleacher Report',
+                platformId: 'bleacherreport',
+                contentType: 'Article',
+                fallbackImage: 'https://static-assets.bleacherreport.com/img/br-logo-orange.png',
+            };
+        }
+
+        // Sports Illustrated
+        if (hostname.includes('si.com') || hostname.includes('sportsillustrated.com')) {
+            return {
+                platform: 'Sports Illustrated',
+                platformId: 'si',
+                contentType: 'Article',
+                fallbackImage: 'https://www.si.com/.image/t_share/SI_logo_wordmark_red.png',
+            };
+        }
+
+        // PokerGO / PokerCentral
+        if (hostname.includes('pokergo.com') || hostname.includes('pokercentral.com')) {
+            return {
+                platform: 'PokerGO',
+                platformId: 'pokergo',
+                contentType: 'Article',
+                fallbackImage: 'https://www.pokergo.com/images/pokergo-social.jpg',
+            };
+        }
+
+        // Global Poker Index
+        if (hostname.includes('globalpokerindex.com') || hostname.includes('gpi.tv')) {
+            return {
+                platform: 'GPI',
+                platformId: 'gpi',
+                contentType: 'Article',
+                fallbackImage: 'https://www.globalpokerindex.com/wp-content/uploads/gpi-logo-social.jpg',
             };
         }
 

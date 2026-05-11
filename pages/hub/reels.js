@@ -1895,7 +1895,7 @@ export default function ReelsPage() {
         // slideTo* setTimeout drops us out of Chrome's transient activation
         // window. Sets lastLoadedVideoIdRef so the useEffect skips its
         // mute-pivot and doesn't re-mute the player.
-        const direction = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+        const direction = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
         const nextIdx = currentIndexRef.current + direction;
         const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
         const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
@@ -5317,7 +5317,11 @@ export default function ReelsPage() {
             <>
               {/* DNS preconnect for YT — done once, cheap, helps every YT swipe */}
               <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
-              <link rel="preconnect" href="https://www.youtube-nocookie.com" crossOrigin="anonymous" />
+              <link
+                rel="preconnect"
+                href="https://www.youtube-nocookie.com"
+                crossOrigin="anonymous"
+              />
               <link rel="dns-prefetch" href="https://img.youtube.com" />
               {upcoming.map((r) => {
                 const url = r?.video_url || '';
@@ -5331,7 +5335,13 @@ export default function ReelsPage() {
                       key={`spw-prefetch-${r.id}`}
                       src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
                       alt=""
-                      style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                      style={{
+                        position: 'absolute',
+                        width: 1,
+                        height: 1,
+                        opacity: 0,
+                        pointerEvents: 'none',
+                      }}
                     />
                   );
                 }
@@ -5339,14 +5349,7 @@ export default function ReelsPage() {
                 // is a valid hint anywhere in the DOM (not just <head>) per
                 // HTML5 spec — Chrome/Safari honor it and pre-fetch the start
                 // of the file. Result: native swipes feel instant.
-                return (
-                  <link
-                    key={`spw-prefetch-${r.id}`}
-                    rel="preload"
-                    href={url}
-                    as="video"
-                  />
-                );
+                return <link key={`spw-prefetch-${r.id}`} rel="preload" href={url} as="video" />;
               })}
             </>
           );

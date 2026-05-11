@@ -100,10 +100,16 @@ export function isValidImageUrl(url) {
             || url.includes('/img/')
             || url.includes('/image/')
             || url.includes('pnimg.net')
-            || url.includes('fbcdn.net')       // SmarterPoker CDN
+            || url.includes('fbcdn.net')        // SmarterPoker CDN
             || url.includes('cdninstagram.com') // Instagram CDN
-            || url.includes('scontent')         // Social content servers
-            || url.includes('img.youtube.com'); // YouTube thumbnails
+            || url.includes('scontent')          // Social content servers
+            || url.includes('img.youtube.com')   // YouTube thumbnails
+            || url.includes('espncdn.com')        // ESPN images
+            || url.includes('pokernews.com')      // PokerNews images
+            || url.includes('cardplayer.com')     // CardPlayer images
+            || url.includes('pokergo.com')        // PokerGO images
+            || url.includes('bleacherreport.com') // Bleacher Report images
+            || url.includes('si.com');            // Sports Illustrated images
     } catch {
         return false;
     }
