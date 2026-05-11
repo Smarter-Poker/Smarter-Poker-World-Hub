@@ -1075,3 +1075,14 @@ TRAIN-WIRE-EMPTY-8a
 # TRAIN-WIRE-EMPTY-8b — pages/hub/training/quiz-builder.js. "📝 No quizzes
 # yet" inline empty state replaced with compact TrainerEmptyState.
 TRAIN-WIRE-EMPTY-8b
+
+# ─── Phase-6 adoption: wire RangeMatrix into range-explorer ─────────────────
+# TRAIN-WIRE-RANGE-MATRIX-1 — pages/hub/training/range-explorer.js. Replaces
+# the inline 13x13 grid (custom hex-color threshold via getGridColor) with
+# the shared <RangeMatrix /> component (TRAIN-RANGE-MATRIX-1) which uses
+# split-fill linear-gradient on {raise, call, fold} normalized to 0..1.
+# An adapter (gridData + handToCell) bridges the existing matrix (0..100
+# percentages with threshold-colored cells) into RangeMatrix's data prop and
+# preserves the existing selectedHand state + click-to-select handler via
+# onCellClick + highlight props. The Details Panel below is unchanged.
+TRAIN-WIRE-RANGE-MATRIX-1

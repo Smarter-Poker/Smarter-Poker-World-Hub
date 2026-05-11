@@ -13,6 +13,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import RangeMatrix from '../../../src/components/poker/RangeMatrix';
+// TRAIN-WIRE-RANGE-MATRIX-1 — adoption: range-explorer 13x13 grid via shared RangeMatrix
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
@@ -152,6 +154,21 @@ export default function RangeExplorerPage() {
     matrix.push(row);
   }
 
+  // TRAIN-WIRE-RANGE-MATRIX-1: adapter for shared RangeMatrix component.
+  // RangeMatrix expects data[hand] = { raise, call, fold } in 0..1 — our
+  // matrix has percentages in 0..100, so divide.
+  const gridData = {};
+  for (const row of matrix) {
+    for (const cell of row) {
+      gridData[cell.hand] = {
+        raise: (cell.freqs.raise || 0) / 100,
+        call: (cell.freqs.call || 0) / 100,
+        fold: (cell.freqs.fold || 0) / 100,
+      };
+    }
+  }
+  const handToCell = Object.fromEntries(matrix.flat().map((c) => [c.hand, c]));
+
   return (
     <>
       <Head>
@@ -246,43 +263,16 @@ export default function RangeExplorerPage() {
           </div>
 
           <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {/* 13x13 Grid */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(13, 1fr)',
-                gap: '2px',
-                background: '#000',
-                padding: '2px',
-                borderRadius: '8px',
-                border: '1px solid #334155',
+            {/* 13x13 Grid — shared RangeMatrix (TRAIN-WIRE-RANGE-MATRIX-1) */}
+            <RangeMatrix
+              data={gridData}
+              size={28}
+              highlight={selectedHand?.hand}
+              onCellClick={(hand) => {
+                const cell = handToCell[hand];
+                if (cell) setSelectedHand(cell);
               }}
-            >
-              {matrix.map((row, i) =>
-                row.map((cell, j) => (
-                  <div
-                    key={cell.hand}
-                    onClick={() => setSelectedHand(cell)}
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      background: cell.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      color: cell.color === '#1e293b' ? '#475569' : '#000',
-                      cursor: 'pointer',
-                      border: selectedHand?.hand === cell.hand ? '2px solid #fff' : 'none',
-                      opacity: selectedHand && selectedHand.hand !== cell.hand ? 0.6 : 1,
-                    }}
-                  >
-                    {cell.hand}
-                  </div>
-                ))
-              )}
-            </div>
+            />
 
             {/* Details Panel */}
             <div style={{ width: '280px', flexShrink: 0 }}>
