@@ -188,9 +188,19 @@ export default function CreateHomeGamePage() {
       fd.append('folder', 'logos');
       fd.append('prefix', `home-group-pending-${Date.now()}`);
 
+      // bug-hunt-zero/B-CREATE-LOGO-1: idempotency for the logo upload.
+      // A retry of a successful upload creates an orphaned file in the
+      // storage bucket. Server can use this header to dedupe.
+      const idemKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
       const res = await fetch('/api/social/upload', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': idemKey,
+        },
         body: fd,
       });
       const json = await res.json();
