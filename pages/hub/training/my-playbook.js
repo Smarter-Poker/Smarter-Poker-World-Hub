@@ -14,6 +14,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-3b — adoption: shared empty-state primitive
 
 const TAG_COLORS = ['#ef4444', '#f97316', '#fbbf24', '#34d399', '#0ea5e9', '#8b5cf6'];
 
@@ -475,18 +477,11 @@ export default function MyPlaybookPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {plays.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-                  {/* TRAIN-PLAYBOOK-A11Y-1: SVG book replaces 📖 */}
-                  <div style={{ display: 'inline-flex', marginBottom: 16, opacity: 0.5, color: '#64748b' }} aria-hidden>
-                    <BookOpenIcon size={40} />
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
-                    Your Playbook is empty
-                  </div>
-                  <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-                    Create custom exploits and strategies to reference before live sessions.
-                  </div>
-                </div>
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="Your Playbook is empty"
+                  message="Create custom exploits and strategies to reference before live sessions."
+                />
               ) : null}
 
               {displayPlays.map((p, i) => (
