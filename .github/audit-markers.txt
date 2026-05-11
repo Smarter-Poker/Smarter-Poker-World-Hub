@@ -549,3 +549,17 @@ TRAIN-WARMUP-A11Y-1
 # specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/
 # #333/#334/#335/#336/#337/#338.
 TRAIN-NEWS-A11Y-1
+
+# ─── /hub/training/aggregate — surface a11y polish ──────────────────────────
+# TRAIN-AGGREGATE-A11Y-1 — pages/hub/training/aggregate.js. Aggregate flop
+# reports surface had nine emoji icons (📈 header, 💰 🎯 🏆 GAME_TYPES,
+# 📊 results header, 🎨 textures, 📭 empty state, 🪑 position row, ⚠️
+# error) plus a bare ← back arrow. Replacements: TrendingUpIcon, MoneyIcon,
+# TargetIcon, TrophyIcon, ChartBarIcon, PaletteIcon, InboxEmptyIcon,
+# ChairIcon, AlertIcon, BackArrowIcon — fronted by a GameTypeIcon
+# discriminator. GAME_TYPES gain iconKind; legacy icon emoji preserved.
+# Game-format buttons gain type+aria-pressed; error gains role="alert";
+# back button gains type+aria-label. Same surface-specific pattern as PR
+# #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337/
+# #338/#339.
+TRAIN-AGGREGATE-A11Y-1
