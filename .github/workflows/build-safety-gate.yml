@@ -132,10 +132,15 @@ jobs:
           # Catch-all: no bucket in the project should EVER have NULL file_size_limit
           echo ""
           echo "Running catch-all NULL guard across all buckets..."
+          # bug-hunt-zero/B-SAFETY-2: same fix as B-SAFETY-1 but for the
+          # catch-all curl. When the Supabase storage API is slow, this curl
+          # also exits 28 and set -e bombs the step. The `|| true` keeps the
+          # step alive; the parse step below handles non-JSON gracefully via
+          # the parse_err branch.
           ALL_RESP=$(curl -sS --max-time 25 \
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-            "https://${PROJECT_REF}.supabase.co/storage/v1/bucket")
+            "https://${PROJECT_REF}.supabase.co/storage/v1/bucket" || true)
 
           NULL_BUCKETS=$(echo "$ALL_RESP" | node -e "
             let s='';process.stdin.on('data',c=>s+=c);
