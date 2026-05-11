@@ -459,3 +459,18 @@ TRAIN-FEED-A11Y-1
 # so SR announces search/filter changes. Same surface-specific pattern as
 # PR #320/#322/#324/#327/#328/#329/#330/#331/#332.
 TRAIN-GLOSSARY-A11Y-1
+
+# ─── /hub/training/training-calendar — surface a11y polish ──────────────────
+# TRAIN-CALENDAR-A11Y-1 — pages/hub/training/training-calendar.js. GitHub-
+# style activity heatmap had: a ← back-button entity, a 🌟 "Goal Met"
+# indicator, and a 16×7 grid of heatmap cells rendered as motion.button
+# with no aria-labels at all (each interactive day was an empty button
+# from a screen reader's perspective). Replacements: BackArrowIcon (SVG)
+# + button hardening; StarSparkleIcon (SVG) for the goal-met indicator;
+# per-cell aria-label '"<date>: <hands> hands, <sessions> sessions"'
+# (or "(future)" for future days), plus type="button", aria-pressed
+# (selected state), and disabled for future cells. Day-streak counter
+# gains role="status". Title raised to <h1>. Loading wrapper gains
+# role="status" + aria-label. Same surface-specific pattern as PR #320/
+# #322/#324/#327/#328/#329/#330/#331/#332/#333.
+TRAIN-CALENDAR-A11Y-1
