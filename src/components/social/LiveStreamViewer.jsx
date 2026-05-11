@@ -1480,7 +1480,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     // BUG FIX (LSV-4): if not authed, show a hint instead of silently failing
                     placeholder={userId ? 'Say something...' : 'Sign in to chat...'}
                     disabled={!userId}
-                    style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background: userId ? 'rgba(0,0,0,.5)' : 'rgba(0,0,0,.3)', color:'white', fontSize:14, outline:'none', opacity: userId ? 1 : 0.6 }}
+                    // STREAM-BUG-12a: 16px minimum so iOS Safari does not auto-zoom on focus.
+                    style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background: userId ? 'rgba(0,0,0,.5)' : 'rgba(0,0,0,.3)', color:'white', fontSize:16, outline:'none', opacity: userId ? 1 : 0.6 }}
                 />
                 {/* Diamond gift button — BUG-HUNT-13: gate on userId truthy.
                     Previously `userId !== broadcaster_id` was true for anon
@@ -1489,11 +1490,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 {userId && (streamData?.broadcaster_id || stream?.broadcaster_id) && (streamData?.broadcaster_id || stream?.broadcaster_id) !== userId && (
                     <button
                         onClick={() => setShowGifts(true)}
-                        style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
+                        // STREAM-BUG-9: strip yellow ring (was rgba(255,215,0,0.85)),
+                        // enlarge button + icon, black background per Dan.
+                        style={{ padding:'14px 16px', borderRadius:28, border:'none', background:'#000000', color:'#fff', fontSize:16, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center' }}
                         title="Send diamond gift"
+                        aria-label="Send diamond gift"
                     >
-                        {/* User requested standard diamond asset with no background */}
-                        <img src="/images/diamond.png" alt="Send Gift" style={{ width: 20, height: 20, display: 'block', margin: '-2px 0' }} />
+                        {/* STREAM-BUG-9 follow-up: 32px ≥ floating-reaction emoji (28px)
+                            and 12px taller than the 20px reaction-button emoji glyphs. */}
+                        <img src="/images/diamond.png" alt="" aria-hidden="true" style={{ width: 32, height: 32, display: 'block' }} />
                     </button>
                 )}
                 <button

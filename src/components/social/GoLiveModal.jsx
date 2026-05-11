@@ -1548,11 +1548,12 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             {isMuted && <span style={{ marginLeft:6, opacity:0.7 }}>🔇</span>}
                         </div>
 
-                        {/* BUG-FIX-LIVE2-2: elapsed timer — moved from bottom-right to LEFT side
-                            (per Dan: "TIME IS ACTUALLY BLOCKING OTHER THINGS"). Tappable to
-                            hide. When hidden, a small ⏱ button reappears in the same spot to
-                            bring it back. Mid-screen vertical so it doesn't collide with top
-                            description bar or bottom comment input. */}
+                        {/* STREAM-BUG-1: clock pinned BOTTOM-LEFT, just above the chat scroll
+                            zone. Chat scroll lives at bottom:110 + maxHeight:200, so its top edge
+                            is at bottom:310. Placing the timer at bottom:316 puts it one row
+                            above the chat. If a pinned-comment banner is occupying bottom:320,
+                            the timer bumps up to bottom:380 to avoid collision. Tappable to hide;
+                            when hidden, a small ⏱ chip returns in the same corner. */}
                         {!timeOverlayHidden ? (
                             <button
                                 onClick={() => setTimeOverlayHidden(true)}
@@ -1560,7 +1561,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                 aria-label="Hide stream timer"
                                 style={{
                                     position: 'absolute',
-                                    top: '50%', transform: 'translateY(-50%)',
+                                    bottom: pinnedComment ? 380 : 316,
                                     left: 16,
                                     background: 'rgba(0,0,0,.55)', color: 'white',
                                     padding: '6px 12px', borderRadius: 8,
@@ -1578,7 +1579,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                 aria-label="Show stream timer"
                                 style={{
                                     position: 'absolute',
-                                    top: '50%', transform: 'translateY(-50%)',
+                                    bottom: pinnedComment ? 380 : 316,
                                     left: 16,
                                     background: 'rgba(0,0,0,.35)', color: 'white',
                                     padding: '6px 9px', borderRadius: 8,
@@ -1685,7 +1686,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                 onKeyDown={e => { e.stopPropagation(); if(e.key==='Enter') handleSendComment(); }}
                                 onClick={e => e.stopPropagation()}
                                 placeholder="Say something..."
-                                style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.45)', color:'white', fontSize:14, outline:'none' }}
+                                // STREAM-BUG-12a: fontSize must be ≥16px. iOS Safari auto-zooms
+                                // when a tapped input has font-size <16px, which Dan saw as the
+                                // page zooming in AND broke perceived typing because the input
+                                // gets re-positioned offscreen during the zoom animation.
+                                style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.45)', color:'white', fontSize:16, outline:'none' }}
                             />
                             <button
                                 onClick={e => { e.stopPropagation(); handleSendComment(); }}
