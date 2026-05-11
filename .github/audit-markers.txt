@@ -675,3 +675,14 @@ TRAIN-JARVIS-A11Y-1
 # preserved on CATEGORIES. Same surface-specific pattern as PR #320/
 # #322/#324/#327-#355.
 TRAIN-COMMUNITY-A11Y-1
+
+# ─── /hub/training/study-group — surface a11y + emoji→SVG ───────────────────
+# TRAIN-STUDYGROUP-A11Y-1 — pages/hub/training/study-group.js. Collaborative
+# study room had five emoji icons (👑 admin marker, 📤 empty hand viewer,
+# ✕ close button, ➤ send-message button, ← back arrow) plus a ⭐ solver-
+# eval star. Card-suit glyphs (♠♣♥♦) in hand strings remain (semantic).
+# Replacements: CrownIcon, UploadIcon, CloseIcon, SendIcon, BackArrowIcon,
+# StarIcon. All interactive buttons gain type="button" + aria-label.
+# Input fields gain aria-label. Same surface-specific pattern as PR
+# #320/#322/#324/#327-#356.
+TRAIN-STUDYGROUP-A11Y-1
