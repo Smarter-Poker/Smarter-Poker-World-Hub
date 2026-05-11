@@ -181,18 +181,20 @@ function ExternalLinkModal({ url, title, onClose }) {
 
     const isYouTube = !!youtubeVideoId;
 
-    // Show blocked state after 3 seconds - but NOT for YouTube (YouTube embed always works)
+    // The 3-second auto-blocked timer was needed when we iframed external URLs directly
+    // (they silently reject with X-Frame-Options and the iframe never fires onLoad).
+    // Now that all non-YouTube content goes through /api/proxy which always returns HTTP 200,
+    // the iframe WILL fire onLoad — the timer is no longer needed and would prematurely
+    // show "blocked" for valid articles. onLoad/onError on the iframe drive state now.
+    // Keep a 15-second safety-net for proxy timeouts (proxy has a 7s upstream timeout
+    // + retries, so total server time can reach ~15s before responding).
     useEffect(() => {
-        if (isYouTube) {
-            // YouTube embeds load reliably — don't show blocked state
-            return;
-        }
-        const timeout = setTimeout(() => {
+        if (isYouTube) return;
+        const safetyNet = setTimeout(() => {
             setLoading(false);
             setBlocked(true);
-        }, 3000);
-
-        return () => clearTimeout(timeout);
+        }, 15000); // 15s — matches proxy server-side timeout window
+        return () => clearTimeout(safetyNet);
     }, [url, isYouTube]);
 
     const copyLink = async () => {
@@ -289,17 +291,22 @@ function ExternalLinkModal({ url, title, onClose }) {
                             />
                         </div>
                     ) : (
-                        /* Regular iframe for non-YouTube content */
+                        /* Regular article iframe — served through our proxy (same as ArticleReaderModal)
+                           so blocked news/sports domains (ESPN, PokerNews, SI, etc.) load correctly. */
                         !blocked && (
                             <iframe
-                                src={url}
+                                src={`/api/proxy?url=${encodeURIComponent(url)}`}
                                 style={{
                                     ...styles.iframe,
                                     opacity: loading ? 0 : 1
                                 }}
-                                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                                referrerPolicy="no-referrer"
+                                referrerPolicy="origin-when-cross-origin"
                                 title={title}
+                                onLoad={() => setLoading(false)}
+                                onError={() => {
+                                    setLoading(false);
+                                    setBlocked(true);
+                                }}
                             />
                         )
                     )}
