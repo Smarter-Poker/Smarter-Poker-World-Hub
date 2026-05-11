@@ -10,6 +10,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
+// TRAIN-WIRE-BOTTOMSHEET-1 — adoption: bluff-catcher MDF info sheet
 // TRAIN-WIRE-PROGRESS-1 — adoption: bluff-catcher in-play progress strip
 // TRAIN-WIRE-FX-1 — adoption: bluff-catcher answer + completion feedback (audio + haptics)
 // TRAIN-WIRE-PLAYCARD-1 — first adoption of shared PlayingCard
@@ -66,6 +68,7 @@ export default function BluffCatcherTrainer() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastAnswer, setLastAnswer] = useState(null);
   const [streak, setStreak] = useState(0);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const scenario = SCENARIOS[currentScenarioIndex];
   const fb = useTrainingFeedback();
@@ -130,6 +133,27 @@ export default function BluffCatcherTrainer() {
         <title>Bluff-Catching Trainer | Smarter.Poker</title>
       </Head>
       <UniversalHeader />
+      <BottomSheet
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        title="How Bluff-Catcher Works"
+        subtitle="Pseudo-MDF scenarios"
+      >
+        <div style={{ padding: '0 4px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.6 }}>
+          <p style={{ marginTop: 0 }}>
+            Each scenario presents a river spot where villain takes an aggressive line. Your job:
+            decide whether to call down (defending against the bluff) or fold.
+          </p>
+          <p>
+            <strong style={{ color: '#00d4ff' }}>MDF</strong> = the minimum frequency at which you must
+            call to make villain's bluffs unprofitable. Below MDF villain prints money by bluffing more.
+          </p>
+          <p>
+            The optimal action is shown after each guess. Score updates on correct answers; streak
+            resets on mistakes.
+          </p>
+        </div>
+      </BottomSheet>
 
       <div style={styles.container}>
         <div style={styles.header}>
@@ -138,7 +162,18 @@ export default function BluffCatcherTrainer() {
           </button>
           <div>
             <h1 style={styles.title}>BLUFF-CATCHER</h1>
-            <p style={styles.subtitle}>Minimum Defense Frequency & Hand Reading</p>
+            <p style={styles.subtitle}>
+              Minimum Defense Frequency &amp; Hand Reading
+              {' '}
+              <button
+                type="button"
+                onClick={() => setInfoOpen(true)}
+                aria-label="How this trainer works"
+                style={{ background: 'transparent', border: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff', borderRadius: 4, padding: '0 6px', cursor: 'pointer', fontSize: 11, fontWeight: 700, marginLeft: 6 }}
+              >
+                ?
+              </button>
+            </p>
           </div>
           <div style={styles.statsPanel}>
             <div style={styles.statBox}>

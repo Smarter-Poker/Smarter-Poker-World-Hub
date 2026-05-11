@@ -1132,3 +1132,12 @@ TRAIN-WIRE-FEEDBACK-V2-1
 # selected/recommended ring visuals, and themed action colors from the
 # ACTION_THEMES palette in ActionButton.
 TRAIN-WIRE-ACTIONBTN-1
+
+# ─── Phase-8 adoption: BottomSheet into bluff-catcher ───────────────────────
+# TRAIN-WIRE-BOTTOMSHEET-1 — pages/hub/training/bluff-catcher.js. Adds a "?"
+# info button to the subtitle that opens a BottomSheet explaining the trainer
+# (MDF concept, how scoring works). Uses controlled open/onClose pattern with
+# infoOpen state. Mobile-first: bottom placement (default); on desktop it
+# renders as the same bottom sheet for consistency. Build-safe: no JSX
+# comments inside conditionals; no emoji chars.
+TRAIN-WIRE-BOTTOMSHEET-1
