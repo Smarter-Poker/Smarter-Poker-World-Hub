@@ -20,6 +20,44 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useSWRConfig } from 'swr';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ICON COMPONENTS — TRAIN-LEADERBOARD-A11Y-1
+// SVG replacements for the cleaned-emoji gaps in this file. Original file
+// had 🥇🥈🥉 medals + a 🏆 in the page title; they were stripped to empty
+// strings + the literal word 'Trophy' but never replaced. Lucide-style
+// SVGs with currentColor inheritance restore the visual + a11y semantics.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TrophyIcon({ size = 22, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true" focusable="false">
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+      <path d="M7 4h10v5a5 5 0 0 1-10 0z" />
+      <path d="M5 4H2v3a3 3 0 0 0 3 3" />
+      <path d="M19 4h3v3a3 3 0 0 1-3 3" />
+    </svg>
+  );
+}
+
+function MedalIcon({ rank, size = 22, color = 'currentColor' }) {
+  // rank 1/2/3 each get a distinct medal silhouette via different ribbon
+  // angles; colour comes from the parent (gold/silver/bronze).
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      role="img" aria-label={`Rank ${rank} medal`} focusable="false">
+      <path d="M7 2l3 5" />
+      <path d="M17 2l-3 5" />
+      <circle cx="12" cy="14" r="7" />
+      <text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="700"
+        fill={color} stroke="none">{rank}</text>
+    </svg>
+  );
+}
+
 export default function TrainingLeaderboard() {
   useTrainingBus('training-leaderboard');
   const [user, setUser] = useState(null);
@@ -106,7 +144,13 @@ export default function TrainingLeaderboard() {
         <UniversalHeader pageDepth={2} />
 
         <div style={styles.content}>
-          <h1 style={styles.title}>Trophy Training Leaderboard</h1>
+          {/* TRAIN-LEADERBOARD-A11Y-1: was 'Trophy Training Leaderboard' (a
+              cleaned-emoji artifact — original title was '🏆 Training
+              Leaderboard'). Restore the icon as proper SVG. */}
+          <h1 style={{ ...styles.title, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            <TrophyIcon size={24} color="#FFD700" />
+            Training Leaderboard
+          </h1>
 
           {/* Filters */}
           <div style={styles.filters}>
@@ -243,10 +287,13 @@ function LeaderboardEntry({
     return '#00E0FF';
   };
 
+  // TRAIN-LEADERBOARD-A11Y-1: previously returned empty strings (emojis
+  // 🥇🥈🥉 were stripped but never replaced). Return a SVG MedalIcon for
+  // top-3 ranks; rank colour from getRankColor() flows via currentColor.
   const getRankIcon = () => {
-    if (rank === 1) return '';
-    if (rank === 2) return '';
-    if (rank === 3) return '';
+    if (rank === 1) return <MedalIcon rank={1} size={26} color="#FFD700" />;
+    if (rank === 2) return <MedalIcon rank={2} size={24} color="#C0C0C0" />;
+    if (rank === 3) return <MedalIcon rank={3} size={24} color="#CD7F32" />;
     return null;
   };
 
@@ -258,6 +305,9 @@ function LeaderboardEntry({
       }}
     >
       <div style={styles.rankSection}>
+        {/* TRAIN-LEADERBOARD-A11Y-1: getRankIcon now returns an SVG element
+            (not a text glyph), so render it directly. The rank colour is
+            embedded in the medal's stroke. */}
         {getRankIcon() ? (
           <span style={styles.rankIcon}>{getRankIcon()}</span>
         ) : (

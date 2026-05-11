@@ -344,3 +344,14 @@ TRAIN-SKILL-TREE-A11Y-1
 # `iconKind` prop with back-compat fallback for the legacy `icon` text
 # prop. Same pattern as TRAIN-SKILL-TREE-A11Y-1.
 TRAIN-PROGRESS-A11Y-1
+
+# ─── /hub/training/leaderboard — restore stripped-emoji gaps ────────────────
+# TRAIN-LEADERBOARD-A11Y-1 — pages/hub/training/leaderboard.js. Found two
+# cleaned-emoji artifacts left unfixed in source: the page title literally
+# read 'Trophy Training Leaderboard' (originally '🏆 Training Leaderboard'
+# — the emoji had been replaced with the word 'Trophy'), and `getRankIcon()`
+# returned empty strings for ranks 1/2/3 (the medals 🥇🥈🥉 were stripped
+# but never replaced). Added TrophyIcon + MedalIcon SVG components and
+# wired them in. Medal stroke colour preserves the existing gold/silver/
+# bronze theme (#FFD700/#C0C0C0/#CD7F32) via currentColor.
+TRAIN-LEADERBOARD-A11Y-1
