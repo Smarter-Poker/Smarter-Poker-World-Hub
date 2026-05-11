@@ -1122,3 +1122,13 @@ TRAIN-WIRE-PROGRESS-3
 # userAction = `${userAnswer}${q.unit}`; solverAction = `${q.answer}${q.unit}`;
 # whyShort = q.explanation stripped of bold-asterisk markup. compact=true.
 TRAIN-WIRE-FEEDBACK-V2-1
+
+# ─── Phase-8 adoption: ActionButton + ActionButtonRow into blind-defense ────
+# TRAIN-WIRE-ACTIONBTN-1 — pages/hub/training/blind-defense.js. Replaces the
+# inline 3-button motion.button row (FOLD/CALL/3-Bet) with <ActionButtonRow>
+# wrapping 3 <ActionButton> components (action=fold/call/raise, size=lg,
+# shortcut={1|2|3}). Preserves the disabled-when-feedback and handleAction
+# wiring; gains role=group accessibility, keyboard-shortcut chip rendering,
+# selected/recommended ring visuals, and themed action colors from the
+# ACTION_THEMES palette in ActionButton.
+TRAIN-WIRE-ACTIONBTN-1
