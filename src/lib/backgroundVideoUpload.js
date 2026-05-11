@@ -293,10 +293,101 @@ const TUS_URL_KEY_PREFIX = 'sp-tus-url:'; // stores resumable TUS upload URL per
 // on slow uplinks (a user on 1 Mbps cellular would take 4 minutes for one
 // chunk and the underlying TCP socket may close). 16 MB is the sweet spot
 // for "fast WiFi finishes quickly, slow cellular still completes."
-const TUS_CHUNK_SIZE = 16 * 1024 * 1024; // 16 MB — was 6 MB pre-AUDIT-19
+const TUS_CHUNK_SIZE_DEFAULT = 16 * 1024 * 1024; // 16 MB — sweet spot for WiFi
+const TUS_CHUNK_SIZE_SLOW    =  4 * 1024 * 1024; //  4 MB — for 2g/3g cellular
 
-// ─── Client-side hard timeout for the entire upload session ───────────────────
-const UPLOAD_HARD_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes — surfaces real error, never hangs
+// Dan-fix/mobile-upload (2026-05-11): network-quality-aware chunk size.
+// On slow cellular (2g/3g per Network Information API), drop to 4MB chunks
+// so a single chunk PATCH completes inside the typical 30-60s cellular
+// keep-alive. Falls back to 16MB on fast connections, unknown connections,
+// and desktop. Safari/iOS doesn't expose navigator.connection at all, so
+// iOS gets 16MB by default — fine for WiFi, risky on slow LTE.
+function _getAdaptiveChunkSize() {
+    if (typeof navigator === 'undefined') return TUS_CHUNK_SIZE_DEFAULT;
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!c) return TUS_CHUNK_SIZE_DEFAULT;
+    const slow = c.effectiveType === '2g' || c.effectiveType === 'slow-2g' || c.effectiveType === '3g'
+                  || (typeof c.downlink === 'number' && c.downlink > 0 && c.downlink < 1.5);
+    return slow ? TUS_CHUNK_SIZE_SLOW : TUS_CHUNK_SIZE_DEFAULT;
+}
+
+// Dan-fix/mobile-upload (2026-05-11): adaptive no-progress watchdog.
+// Replaces the dead-code UPLOAD_HARD_TIMEOUT_MS constant from v3.4. Watchdog
+// is a "stall detector" not a hard ceiling — it fires only if zero progress
+// happens for the timeout window. Resets every time _setState() advances
+// progress, so a slow-but-steady upload never trips it.
+//
+// Window sizing: 90s base + 1.5s per MB of file size, capped at 30 min.
+//   - 50 MB upload  → 90 + 75  = 165s  (~3 min stall window)
+//   - 240 MB upload → 90 + 360 = 450s  (~7.5 min stall window)
+//   - 1 GB upload   → 90 + 1500 = 1590s, capped to 1800s (30 min)
+// Generous: a slow but progressing upload is fine; only a true hang trips it.
+function _watchdogTimeoutForSize(fileSize) {
+    const baseMs = 90_000;
+    const perMb  = 1500;
+    const sizeMb = Math.max(1, (fileSize || 0) / (1024 * 1024));
+    return Math.min(30 * 60 * 1000, Math.round(baseMs + perMb * sizeMb));
+}
+let _progressWatchdog = null;
+let _watchdogFileSize = 0;
+let _watchdogLastProgress = 0;
+function _armWatchdog(fileSize, onTimeout) {
+    _watchdogFileSize = fileSize || 0;
+    _resetWatchdog(onTimeout);
+}
+function _resetWatchdog(onTimeout) {
+    if (_progressWatchdog) clearTimeout(_progressWatchdog);
+    if (typeof onTimeout !== 'function') return;
+    const ms = _watchdogTimeoutForSize(_watchdogFileSize);
+    _progressWatchdog = setTimeout(() => {
+        _progressWatchdog = null;
+        try { onTimeout(ms); } catch (_) {}
+    }, ms);
+}
+function _disarmWatchdog() {
+    if (_progressWatchdog) {
+        clearTimeout(_progressWatchdog);
+        _progressWatchdog = null;
+    }
+    _watchdogFileSize = 0;
+    _watchdogLastProgress = 0;
+}
+
+// Dan-fix/mobile-upload (2026-05-11): visibility-change tracking.
+// iOS Safari aggressively throttles XHR/fetch in backgrounded tabs — the
+// #1 cause of "mobile upload starts then hangs forever." Tracking ensures
+// (a) diagnostics in the console when users report stalls, and (b) the
+// watchdog can extend its window while the tab is hidden (since iOS may
+// pause network entirely, "no progress" while hidden is expected).
+let _visibilityListener = null;
+let _hiddenSince = null;       // timestamp ms when last hidden, null if visible
+let _totalHiddenMs = 0;        // cumulative hidden time for this upload session
+function _installVisibilityListener() {
+    if (_visibilityListener || typeof document === 'undefined') return;
+    const handler = () => {
+        if (typeof document === 'undefined') return;
+        const hidden = document.hidden || document.visibilityState === 'hidden';
+        if (hidden) {
+            _hiddenSince = Date.now();
+            console.warn('[bgUpload] tab hidden during upload — iOS Safari may throttle network');
+        } else if (_hiddenSince) {
+            const dt = Date.now() - _hiddenSince;
+            _totalHiddenMs += dt;
+            _hiddenSince = null;
+            console.log('[bgUpload] tab visible again after', Math.round(dt / 1000), 's hidden,',
+                        'total hidden this session:', Math.round(_totalHiddenMs / 1000), 's');
+        }
+    };
+    document.addEventListener('visibilitychange', handler);
+    _visibilityListener = handler;
+}
+function _removeVisibilityListener() {
+    if (!_visibilityListener || typeof document === 'undefined') return;
+    document.removeEventListener('visibilitychange', _visibilityListener);
+    _visibilityListener = null;
+    _hiddenSince = null;
+    _totalHiddenMs = 0;
+}
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -307,10 +398,28 @@ function _emit(type, payload) {
 
 function _setState(state, progress, label) {
     _state = state;
-    if (progress !== undefined) _progress = progress;
+    if (progress !== undefined) {
+        // Dan-fix/mobile-upload (2026-05-11): reset the no-progress watchdog
+        // whenever progress advances. The watchdog only fires if the upload
+        // truly stalls — never on a slow-but-steady upload. Includes the
+        // "Uploading…" → "Connection restored — resuming…" label changes
+        // which keep _progress stable; those don't reset since progress
+        // didn't actually advance.
+        if (progress > _watchdogLastProgress) {
+            _watchdogLastProgress = progress;
+            if (_progressWatchdog && _watchdogFileSize > 0) {
+                _resetWatchdog(_watchdogOnTimeoutHandler);
+            }
+        }
+        _progress = progress;
+    }
     if (label !== undefined) _label = label;
     _emit('onProgress', { state: _state, pct: _progress, label: _label, queuePosition: _queuePosition, queueTotal: _queueTotal });
 }
+
+// Holder for the on-timeout callback supplied by start(). Set just before
+// arming the watchdog; cleared on _disarmWatchdog().
+let _watchdogOnTimeoutHandler = null;
 
 /**
  * Format seconds into a human-readable ETA string.
@@ -490,9 +599,13 @@ async function _uploadWithTus(file, meta, mimeType) {
             tusHeaders['x-signature'] = meta.token;
         }
 
+        // Dan-fix/mobile-upload (2026-05-11): adaptive chunk size based on
+        // navigator.connection. Default 16MB on fast/unknown links, 4MB on
+        // 2g/3g/sub-1.5Mbps cellular for faster failure recovery.
+        const adaptiveChunkSize = _getAdaptiveChunkSize();
         const upload = new tus.Upload(file, {
             endpoint: meta.tusEndpoint,
-            chunkSize: TUS_CHUNK_SIZE,          // 6MB — immune to gateway timeouts
+            chunkSize: adaptiveChunkSize,
             retryDelays: [0, 3000, 8000, 15000, 30000],
             removeFingerprintOnSuccess: true,
             // NOTE: storeFingerprintForResuming intentionally omitted.
@@ -862,6 +975,8 @@ const bgUpload = {
             });
         } catch (_) { /* localStorage may be unavailable (SSR, private browsing) */ }
         _removeNetworkListeners();
+        _removeVisibilityListener();
+        _disarmWatchdog();
         _clearUploadIntent();
         if (_bgToastId) {
             useToastStore.getState().removeToast(_bgToastId);
@@ -914,6 +1029,40 @@ const bgUpload = {
 
         // Network state monitoring — shows connection status in progress label
         _installNetworkListeners();
+        // Dan-fix/mobile-upload (2026-05-11): install visibility listener
+        // + arm adaptive no-progress watchdog. Watchdog fires only if zero
+        // progress for the file-size-adjusted window (90s + 1.5s/MB,
+        // capped 30min). On fire, emit a clear error so the user sees
+        // "Upload stalled" instead of a forever spinner.
+        _installVisibilityListener();
+        _watchdogOnTimeoutHandler = (ms) => {
+            console.error('[bgUpload] watchdog fired — no progress for', Math.round(ms / 1000), 's',
+                          'last progress:', _watchdogLastProgress + '%',
+                          'file size:', Math.round(file.size / 1024 / 1024) + 'MB',
+                          'hidden time:', Math.round(_totalHiddenMs / 1000) + 's');
+            // Abort the active TUS upload if any
+            if (_activeXhr) {
+                try { _activeXhr.abort(); } catch (_) {}
+                _activeXhr = null;
+            }
+            _state = 'idle';
+            const errorMsg = _totalHiddenMs > 30000
+                ? 'Upload stalled — please keep the app open while large videos upload, especially on cellular.'
+                : 'Upload stalled — please check your connection and try again.';
+            _emit('onError', { error: new Error(errorMsg) });
+            _removeBeforeUnload();
+            _removeNetworkListeners();
+            _removeVisibilityListener();
+            _disarmWatchdog();
+            _removeVisibilityListener();
+            _disarmWatchdog();
+            _clearUploadIntent();
+            if (_bgToastId) {
+                useToastStore.getState().removeToast(_bgToastId);
+                _bgToastId = null;
+            }
+        };
+        _armWatchdog(file.size, _watchdogOnTimeoutHandler);
 
         // 10-second background trigger
         _bgTimer = setTimeout(() => {
@@ -980,6 +1129,8 @@ const bgUpload = {
             _bgTimer = null;
             _removeBeforeUnload();
             _removeNetworkListeners();
+            _removeVisibilityListener();
+            _disarmWatchdog();
             _clearUploadIntent();
             _lastUploadParams = null;
             // Dismiss the persistent background toast before showing completion
@@ -1029,6 +1180,8 @@ const bgUpload = {
             _bgTimer = null;
             _removeBeforeUnload();
             _removeNetworkListeners();
+            _removeVisibilityListener();
+            _disarmWatchdog();
             _clearUploadIntent();
             _activeXhr = null;
             // Dismiss the persistent background toast
@@ -1151,6 +1304,8 @@ const bgUpload = {
         _bgTimer = null;
         _removeBeforeUnload();
         _removeNetworkListeners();
+        _removeVisibilityListener();
+        _disarmWatchdog();
         _clearUploadIntent();
         _lastUploadParams = null;
         if (_bgToastId) {
