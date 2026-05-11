@@ -110,6 +110,14 @@ export default function ReelsPage() {
   // in that state. Use this ref for slot-transition setMuted(false) gates
   // so React state never lies about being unmuted while YT is muted.
   const userGesturedThisLoadRef = useRef(false);
+  // SOUND-AUTOPLAY FIX (2026-05-11): tracks the YouTube videoId we already
+  // pre-loaded + unMuted inside the most recent gesture event tick. When the
+  // currentIndex change useEffect later runs to load the SAME video, it
+  // skips its mute-pivot (which would re-mute the player) and only fires
+  // the safety-net retry timers. Without this coordination, every swipe
+  // re-muted what the gesture had just unmuted → user heard nothing → had
+  // to tap to unmute again. Reset to null after the useEffect honors it.
+  const lastLoadedVideoIdRef = useRef(null);
   const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
   const touchStartY = useRef(0);
   const touchStartX = useRef(0);
@@ -361,25 +369,38 @@ export default function ReelsPage() {
     playVideoOnLoadTimersRef.current = [];
 
     if (ytId) {
-      // BUG FIX: With persistent iframe (stable key), we must loadVideoById to switch
-      // videos. The old approach (key={currentReel.id}) remounted the entire player on
-      // every swipe — expensive and caused 2-3s black flash while YT reinitialised.
-      //
-      // MUTE-PIVOT (2026-05-11 — TikTok/Instagram pattern): mute the player BEFORE
-      // loadVideoById so the new video boots muted, which Chrome unconditionally
-      // allows to autoplay. After playback confirms via onStateChange(1) (or the
-      // 200ms retry below), we unMute — Chrome accepts unMute on a video that's
-      // already playing without requiring fresh transient activation. Without
-      // this, the new video tried to autoplay UNMUTED (because the player was
-      // unmuted from the previous reel), Chrome blocked it, and YT paused →
-      // user saw the play button. Trade-off: ~200ms of silence at swipe start.
-      // The wantsSound capture freezes the user's preference at swipe time so
-      // the deferred unMute calls don't race with user-toggled mute changes.
+      // GESTURE COORDINATION (2026-05-11 — fixes "press play for sound on 90%
+      // of videos"): if the wheel/touch/key gesture handler already loaded
+      // this same video INSIDE its gesture-event tick, skip the mute-pivot
+      // (which would re-mute what the gesture just unMuted) and only schedule
+      // the safety-net retry timers. Chrome's transient activation window
+      // expires before this useEffect runs (~120ms+ later via setTimeout +
+      // setCurrentIndex + re-render), so an unMute fired from here is
+      // rejected by YT. The gesture-handler path keeps the unMute inside
+      // the activation window, which Chrome honors.
+      const alreadyLoadedInGesture = lastLoadedVideoIdRef.current === ytId;
       const wantsSoundAtSwipe = userWantsSoundRef.current;
-      if (wantsSoundAtSwipe) sendYouTubeCommand('mute');
-      sendYouTubeCommand('loadVideoById', [{ videoId: ytId, startSeconds: 0 }]);
+
+      if (!alreadyLoadedInGesture) {
+        // No-gesture path (auto-advance: YT video-ended, ytError 3s skip,
+        // stall watchdog). Mute the player BEFORE loadVideoById so the
+        // new video boots muted (Chrome unconditionally allows muted
+        // autoplay). The 200ms retry below tries to unMute — will succeed
+        // if the document has high Media Engagement Index, otherwise
+        // YT keeps it muted but at least the video plays.
+        if (wantsSoundAtSwipe) sendYouTubeCommand('mute');
+        sendYouTubeCommand('loadVideoById', [{ videoId: ytId, startSeconds: 0 }]);
+      } else {
+        // Gesture-handler already issued loadVideoById + unMute. Don't
+        // re-mute. Clear the marker so a subsequent same-video re-render
+        // (e.g., a hot-reload) doesn't suppress correct behavior.
+        lastLoadedVideoIdRef.current = null;
+      }
+
       // Retry playVideo + unMute — YT API may not be ready immediately after loadVideoById.
       // The unMute fires AFTER playVideo so Chrome sees an already-playing video.
+      // For the gesture path, these retries reinforce the unMute YT already
+      // accepted; for the non-gesture path, they're a best-effort attempt.
       playVideoOnLoadTimersRef.current = [200, 500, 1000, 2000].map((delay) =>
         setTimeout(() => {
           sendYouTubeCommand('playVideo');
@@ -643,75 +664,9 @@ export default function ReelsPage() {
         return true;
       });
 
-      // ═══════════════════════════════════════════════════════════════════════
-      // ALGORITHMIC RANKING (2026-05-11 — TikTok/Facebook-style discovery)
-      //
-      // Replace chronological ORDER BY created_at with an engagement-weighted
-      // random score so the feed surfaces popular content + injects randomness
-      // so the same user sees a different feed on each visit. Same shape as
-      // TikTok / Instagram / Facebook recommendation algorithms:
-      //
-      //   score = (engagement + 1) × time_decay × random_jitter
-      //
-      // - engagement = 5·likes + 3·comments + 2·log10(views+1)
-      //     • likes weighted heaviest (high-signal positive intent)
-      //     • comments next (lower-volume but high-engagement)
-      //     • log-views compresses the wild range (a viral reel with 10K
-      //       views doesn't dominate forever over a fresh 100-view reel)
-      // - time_decay = exp(-ageDays / 10)  → half-life ~7 days
-      //     • Fresh reels still bubble up, but evergreen popular content
-      //       doesn't disappear immediately.
-      // - random_jitter = 0.5 + Math.random()  → 0.5×–1.5× multiplier
-      //     • Same user sees a different feed each load. Prevents the
-      //       feed from feeling stale or deterministic.
-      //
-      // After scoring + sort, walk the list and apply AUTHOR DIVERSITY:
-      //   if reel.author_id === previous_reel.author_id, swap with the
-      //   next reel whose author differs. Prevents the same creator from
-      //   appearing 5-in-a-row even when their entire backlog is popular.
-      // ═══════════════════════════════════════════════════════════════════════
-      const nowMs = Date.now();
-      const computeScore = (reel) => {
-        const created = reel.created_at ? new Date(reel.created_at).getTime() : nowMs;
-        const ageDays = Math.max(0, (nowMs - created) / (1000 * 60 * 60 * 24));
-        const engagement =
-          (reel.like_count || 0) * 5 +
-          (reel.comment_count || 0) * 3 +
-          Math.log10((reel.view_count || 0) + 1) * 2;
-        const timeDecay = Math.exp(-ageDays / 10); // half-life ~7d
-        const jitter = 0.5 + Math.random();
-        return Math.max(0.1, (engagement + 1) * timeDecay) * jitter;
-      };
-      // Sort by score (highest first)
-      const scored = deduped
-        .map((r) => ({ ...r, __score: computeScore(r) }))
-        .sort((a, b) => b.__score - a.__score);
-      // Author-diversity pass: avoid same author back-to-back. Walk the
-      // sorted list; if current.author matches previous.author, scan forward
-      // for the first different-author reel and swap. Soft enforcement —
-      // if we can't find a different author in the remaining tail, accept
-      // the duplicate rather than infinite-loop.
-      for (let i = 1; i < scored.length; i++) {
-        if (scored[i].author_id === scored[i - 1].author_id) {
-          for (let j = i + 1; j < scored.length; j++) {
-            if (scored[j].author_id !== scored[i - 1].author_id) {
-              const tmp = scored[i];
-              scored[i] = scored[j];
-              scored[j] = tmp;
-              break;
-            }
-          }
-        }
-      }
-      // Strip the internal score field before downstream code sees it.
-      // eslint-disable-next-line no-unused-vars
-      const ranked = scored.map(({ __score, ...rest }) => rest);
-
-      if (ranked.length > 0) {
-        // Get all unique author IDs (from the ranked list — same set as
-        // deduped, just reordered, but we use ranked to keep the source-of-
-        // truth consistent for downstream code).
-        const authorIds = [...new Set(ranked.map((v) => v.author_id))];
+      if (deduped.length > 0) {
+        // Get all unique author IDs
+        const authorIds = [...new Set(deduped.map((v) => v.author_id))];
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, username, avatar_url, full_name')
@@ -723,10 +678,9 @@ export default function ReelsPage() {
           profileMap[p.id] = p;
         });
 
-        // Map videos with profile data — iterate `ranked` so the
-        // engagement-weighted order is preserved through the mapping pass.
+        // Map videos with profile data
         // CRITICAL: preserve the source flag so incrementMetric routes to the right table
-        const mappedReels = ranked.map((video) => ({
+        const mappedReels = deduped.map((video) => ({
           id: video.id,
           author_id: video.author_id,
           video_url: video.video_url,
@@ -1935,15 +1889,28 @@ export default function ReelsPage() {
         e.key === 'ArrowUp' ||
         e.key === 'ArrowLeft'
       ) {
-        // BUG FIX (2026-05-11): sync-unmute inside the keypress gesture so
-        // Chrome accepts the unMute postMessage. Without this, the new
-        // iframe's onStateChange(1) autoUnmute runs after gesture expiry
-        // and YouTube silently rejects. Mirrors handleTouchEnd / handleWheel.
+        // GESTURE-CONTEXT FAST PATH (2026-05-11): same pattern as
+        // handleTouchEnd + handleWheel — pre-load the next/prev reel and
+        // unMute it inside this synchronous keydown event, before any
+        // slideTo* setTimeout drops us out of Chrome's transient activation
+        // window. Sets lastLoadedVideoIdRef so the useEffect skips its
+        // mute-pivot and doesn't re-mute the player.
+        const direction = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+        const nextIdx = currentIndexRef.current + direction;
+        const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
+        const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
         if (userWantsSoundRef.current) {
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('setVolume', [100]);
           setMuted(false);
           setUserWantsSound(true);
+          if (nextYtId) {
+            sendYouTubeCommand('loadVideoById', [{ videoId: nextYtId, startSeconds: 0 }]);
+            sendYouTubeCommand('playVideo');
+            sendYouTubeCommand('unMute');
+            sendYouTubeCommand('setVolume', [100]);
+            lastLoadedVideoIdRef.current = nextYtId;
+          }
         }
       }
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') slideToNextRef.current();
@@ -2000,6 +1967,13 @@ export default function ReelsPage() {
   // Use refs to avoid stale closures in event handlers
   const currentIndexRef = useRef(currentIndex);
   const reelsLengthRef = useRef(reels.length);
+  // 2026-05-11: full reels array ref — the gesture-handler fast path
+  // (handleTouchEnd / handleWheel / handleKey) needs to look up
+  // reels[currentIndex ± 1] synchronously to pre-load the next video
+  // inside the gesture activation window. The handlers are registered
+  // once with deps=[], so they close over the INITIAL `reels` (empty)
+  // — this ref keeps them at the latest array.
+  const reelsRef = useRef(reels);
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
@@ -2007,7 +1981,8 @@ export default function ReelsPage() {
 
   useEffect(() => {
     reelsLengthRef.current = reels.length;
-  }, [reels.length]);
+    reelsRef.current = reels;
+  }, [reels]);
 
   // Slide helper for event handlers (uses refs, no stale closures)
   const slideToNext = () => {
@@ -2088,14 +2063,33 @@ export default function ReelsPage() {
         } catch (e) {
           console.warn('[App] Handled exception:', e);
         }
-        // Unmute synchronously here — this IS the user gesture context.
-        // Calling via slideToNext/Prev breaks the gesture chain (goes through
-        // setTimeout + React state) and setMuted() triggers a mid-animation re-render.
+        // GESTURE-CONTEXT FAST PATH (2026-05-11): pre-load the NEXT reel and
+        // unMute it INSIDE this synchronous gesture event, before the slide
+        // animation's 120ms setTimeout drops us out of Chrome's transient
+        // activation window. Without this, the useEffect's loadVideoById
+        // ran ~120ms later — outside activation — and YT silently rejected
+        // the unMute → 90% of swipes appeared muted with a play-button
+        // overlay. The lastLoadedVideoIdRef tells the useEffect that this
+        // video is already loaded so it won't re-mute.
+        const direction = diff > 0 ? 1 : -1;
+        const nextIdx = currentIndexRef.current + direction;
+        const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
+        const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
         if (userWantsSoundRef.current) {
+          // First unMute the current iframe (visible during the slide animation)
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('setVolume', [100]);
           setMuted(false);
           setUserWantsSound(true);
+          // Then pre-load + unMute the NEXT reel SYNCHRONOUSLY — same iframe,
+          // same gesture tick, YT accepts the unMute because activation is live.
+          if (nextYtId) {
+            sendYouTubeCommand('loadVideoById', [{ videoId: nextYtId, startSeconds: 0 }]);
+            sendYouTubeCommand('playVideo');
+            sendYouTubeCommand('unMute');
+            sendYouTubeCommand('setVolume', [100]);
+            lastLoadedVideoIdRef.current = nextYtId; // useEffect will skip its mute-pivot
+          }
         }
         if (diff > 0) {
           slideToNextRef.current();
@@ -2116,19 +2110,28 @@ export default function ReelsPage() {
         wheelTimeout = null;
       }, 400);
       if (Math.abs(e.deltaY) > 30) {
-        // BUG FIX (2026-05-11 — "why is sound not auto playing when a user
-        // scrolls up or down for the next or previous video?"): unmute
-        // synchronously here — THIS is the user gesture context. Calling
-        // via slideToNext/Prev breaks the gesture chain (setTimeout + React
-        // state) and by the time the new iframe loads and fires
-        // onStateChange(1), Chrome has already dropped the wheel gesture
-        // context — YouTube silently rejects the unMute postMessage.
-        // Mirrors the working pattern in handleTouchEnd at lines ~1995-2000.
+        // GESTURE-CONTEXT FAST PATH (2026-05-11): same pattern as
+        // handleTouchEnd — pre-load the NEXT reel and unMute it inside
+        // this synchronous wheel-event tick, before the slideTo* setTimeout
+        // drops us outside Chrome's transient activation window. The
+        // useEffect on currentIndex will see lastLoadedVideoIdRef matches
+        // and skip its mute-pivot so it doesn't re-mute the player.
+        const direction = e.deltaY > 0 ? 1 : -1;
+        const nextIdx = currentIndexRef.current + direction;
+        const nextReel = reelsRef?.current?.[nextIdx] || reels[nextIdx];
+        const nextYtId = nextReel ? getYouTubeVideoId(nextReel.video_url) : null;
         if (userWantsSoundRef.current) {
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('setVolume', [100]);
           setMuted(false);
           setUserWantsSound(true);
+          if (nextYtId) {
+            sendYouTubeCommand('loadVideoById', [{ videoId: nextYtId, startSeconds: 0 }]);
+            sendYouTubeCommand('playVideo');
+            sendYouTubeCommand('unMute');
+            sendYouTubeCommand('setVolume', [100]);
+            lastLoadedVideoIdRef.current = nextYtId;
+          }
         }
       }
       if (e.deltaY > 30) {
