@@ -2052,6 +2052,37 @@ export default function UserProfilePage() {
         broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID, deletedPostId: postId });
     };
 
+    // Delete a reel directly (separate from handleDeletePost, which targets
+    // social_posts). The Reels tab queries social_reels directly — many older
+    // reels have source_post_id=NULL because they were uploaded straight to
+    // the reels feed (not via a social_post mirror). Those won't cascade when
+    // a post is deleted because there's no post to delete. This handler lets
+    // an owner remove a reel from their profile by reel.id directly. Includes
+    // the same defense-in-depth pattern as handleDeletePost: optimistic UI
+    // first, then AWAIT the DB delete, then broadcast cache invalidation.
+    const handleDeleteReel = async (reelId) => {
+        if (!reelId || !currentUser?.id) return;
+        if (typeof window !== 'undefined' && !window.confirm('Delete this reel? This cannot be undone.')) return;
+        const prevReels = reels;
+        const prevStats = { ...stats };
+        setReels(prev => prev.filter(r => r.id !== reelId));
+        setStats(prev => ({ ...prev, reels: Math.max(0, (prev.reels || 0) - 1) }));
+        const { error } = await supabase
+            .from('social_reels')
+            .delete()
+            .eq('id', reelId)
+            .eq('author_id', currentUser.id); // RLS-safety: only delete own reels
+        if (error) {
+            setReels(prevReels);
+            setStats(prevStats);
+            console.warn('Error deleting reel:', error);
+            return;
+        }
+        invalidateProfileCache();
+        busEmit.dataMutated('social');
+        broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID, deletedReelId: reelId });
+    };
+
     const handlePost = async (content, urls = [], type = 'text', mentions = [], linkPreview = null) => {
         if (!currentUser?.id) {
             console.warn('Cannot post: user not logged in');
@@ -3382,21 +3413,63 @@ export default function UserProfilePage() {
                             {reels.length > 0 ? (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                                     {reels.map(reel => (
-                                        <Link key={reel.id} href={`/hub/reels?id=${reel.id}`} style={{ textDecoration: 'none' }}>
-                                            <div style={{ aspectRatio: '9/16', position: 'relative', overflow: 'hidden', borderRadius: 8, background: '#000' }}>
-                                                {reel.thumbnail_url ? (
-                                                    <img src={reel.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Video thumbnail" loading="lazy" />
-                                                ) : (
-                                                    <video src={reel.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
-                                                )}
-                                                <div style={{
-                                                    position: 'absolute', bottom: 8, left: 8,
-                                                    color: 'white', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4
-                                                }}>
-                                                    ▶️ {reel.view_count || 0}
+                                        <div key={reel.id} style={{ position: 'relative' }}>
+                                            <Link href={`/hub/reels?id=${reel.id}`} style={{ textDecoration: 'none' }}>
+                                                <div style={{ aspectRatio: '9/16', position: 'relative', overflow: 'hidden', borderRadius: 8, background: '#000' }}>
+                                                    {reel.thumbnail_url ? (
+                                                        <img src={reel.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Video thumbnail" loading="lazy" />
+                                                    ) : (
+                                                        <video src={reel.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                                                    )}
+                                                    <div style={{
+                                                        position: 'absolute', bottom: 8, left: 8,
+                                                        color: 'white', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4
+                                                    }}>
+                                                        ▶️ {reel.view_count || 0}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </Link>
+                                            </Link>
+                                            {/* Own-profile delete affordance — many older reels have
+                                                source_post_id=NULL and won't cascade when a post is
+                                                deleted, so the only way to remove them is a direct
+                                                reel delete. See handleDeleteReel above. */}
+                                            {isOwnProfile && (
+                                                <button
+                                                    type="button"
+                                                    aria-label="Delete this reel"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleDeleteReel(reel.id);
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 6,
+                                                        right: 6,
+                                                        width: 28,
+                                                        height: 28,
+                                                        borderRadius: '50%',
+                                                        background: 'rgba(0,0,0,0.65)',
+                                                        color: '#ff5560',
+                                                        border: '1px solid rgba(255,255,255,0.18)',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: 0,
+                                                        zIndex: 2,
+                                                    }}
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                                        <path d="M10 11v6"/>
+                                                        <path d="M14 11v6"/>
+                                                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             ) : (

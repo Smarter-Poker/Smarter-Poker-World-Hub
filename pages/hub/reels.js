@@ -643,9 +643,75 @@ export default function ReelsPage() {
         return true;
       });
 
-      if (deduped.length > 0) {
-        // Get all unique author IDs
-        const authorIds = [...new Set(deduped.map((v) => v.author_id))];
+      // ═══════════════════════════════════════════════════════════════════════
+      // ALGORITHMIC RANKING (2026-05-11 — TikTok/Facebook-style discovery)
+      //
+      // Replace chronological ORDER BY created_at with an engagement-weighted
+      // random score so the feed surfaces popular content + injects randomness
+      // so the same user sees a different feed on each visit. Same shape as
+      // TikTok / Instagram / Facebook recommendation algorithms:
+      //
+      //   score = (engagement + 1) × time_decay × random_jitter
+      //
+      // - engagement = 5·likes + 3·comments + 2·log10(views+1)
+      //     • likes weighted heaviest (high-signal positive intent)
+      //     • comments next (lower-volume but high-engagement)
+      //     • log-views compresses the wild range (a viral reel with 10K
+      //       views doesn't dominate forever over a fresh 100-view reel)
+      // - time_decay = exp(-ageDays / 10)  → half-life ~7 days
+      //     • Fresh reels still bubble up, but evergreen popular content
+      //       doesn't disappear immediately.
+      // - random_jitter = 0.5 + Math.random()  → 0.5×–1.5× multiplier
+      //     • Same user sees a different feed each load. Prevents the
+      //       feed from feeling stale or deterministic.
+      //
+      // After scoring + sort, walk the list and apply AUTHOR DIVERSITY:
+      //   if reel.author_id === previous_reel.author_id, swap with the
+      //   next reel whose author differs. Prevents the same creator from
+      //   appearing 5-in-a-row even when their entire backlog is popular.
+      // ═══════════════════════════════════════════════════════════════════════
+      const nowMs = Date.now();
+      const computeScore = (reel) => {
+        const created = reel.created_at ? new Date(reel.created_at).getTime() : nowMs;
+        const ageDays = Math.max(0, (nowMs - created) / (1000 * 60 * 60 * 24));
+        const engagement =
+          (reel.like_count || 0) * 5 +
+          (reel.comment_count || 0) * 3 +
+          Math.log10((reel.view_count || 0) + 1) * 2;
+        const timeDecay = Math.exp(-ageDays / 10); // half-life ~7d
+        const jitter = 0.5 + Math.random();
+        return Math.max(0.1, (engagement + 1) * timeDecay) * jitter;
+      };
+      // Sort by score (highest first)
+      const scored = deduped
+        .map((r) => ({ ...r, __score: computeScore(r) }))
+        .sort((a, b) => b.__score - a.__score);
+      // Author-diversity pass: avoid same author back-to-back. Walk the
+      // sorted list; if current.author matches previous.author, scan forward
+      // for the first different-author reel and swap. Soft enforcement —
+      // if we can't find a different author in the remaining tail, accept
+      // the duplicate rather than infinite-loop.
+      for (let i = 1; i < scored.length; i++) {
+        if (scored[i].author_id === scored[i - 1].author_id) {
+          for (let j = i + 1; j < scored.length; j++) {
+            if (scored[j].author_id !== scored[i - 1].author_id) {
+              const tmp = scored[i];
+              scored[i] = scored[j];
+              scored[j] = tmp;
+              break;
+            }
+          }
+        }
+      }
+      // Strip the internal score field before downstream code sees it.
+      // eslint-disable-next-line no-unused-vars
+      const ranked = scored.map(({ __score, ...rest }) => rest);
+
+      if (ranked.length > 0) {
+        // Get all unique author IDs (from the ranked list — same set as
+        // deduped, just reordered, but we use ranked to keep the source-of-
+        // truth consistent for downstream code).
+        const authorIds = [...new Set(ranked.map((v) => v.author_id))];
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, username, avatar_url, full_name')
@@ -657,9 +723,10 @@ export default function ReelsPage() {
           profileMap[p.id] = p;
         });
 
-        // Map videos with profile data
+        // Map videos with profile data — iterate `ranked` so the
+        // engagement-weighted order is preserved through the mapping pass.
         // CRITICAL: preserve the source flag so incrementMetric routes to the right table
-        const mappedReels = deduped.map((video) => ({
+        const mappedReels = ranked.map((video) => ({
           id: video.id,
           author_id: video.author_id,
           video_url: video.video_url,
