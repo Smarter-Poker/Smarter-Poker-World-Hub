@@ -876,7 +876,11 @@ export default function ReelsPage() {
     if (!currentReel?.id) return;
     const url = currentReel?.video_url || '';
     // Only run for native video; YT iframe path skips this watchdog.
-    if (!url || isYouTubeUrl(url)) return;
+    // Only run for native video; YT iframe path skips this watchdog.
+    // getYouTubeVideoId returns truthy ID for any YT URL, null otherwise —
+    // semantically equivalent to isYouTubeUrl which this file does not
+    // define (that helper lives in src/components/social/Reels.jsx).
+    if (!url || getYouTubeVideoId(url)) return;
     if (videoStallTimerRef.current) clearTimeout(videoStallTimerRef.current);
     videoStallTimerRef.current = setTimeout(() => {
       videoStallTimerRef.current = null;
