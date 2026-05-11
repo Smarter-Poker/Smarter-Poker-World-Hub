@@ -300,3 +300,21 @@ TRAIN-HEADER-CHIPS-1
 # because position:sticky has no effect until content scrolls past the
 # button's natural inline position.
 TRAIN-NEXT-HAND-STICKY-1
+
+# ─── /hub/training — frontend race root-cause fix (closes #283) ─────────────
+# TRAIN-FEEDBACK-SNAPSHOT-1 — src/components/training/games/UniversalDynamicTable.jsx.
+# Companion to TRAIN-FEEDBACK-SYNC-1 (PR #286) which added a defensive
+# explanationMatchesScenario() guard that suppressed wrong feedback text.
+# This sweep targets the underlying race: when the parent (Director.tsx /
+# GameSession.tsx) eagerly preloads the NEXT question while feedback is
+# still on screen, the live `question` prop changes under the feedback
+# render path, so the guard's "matches" check uses the NEW scenario and
+# can either pass through stale text or suppress correct text.
+#
+# Fix: route feedback-render guards through a new getFeedbackQuestion()
+# accessor that returns lastQuestionRef.current (snapshotted while
+# !showFeedback) during the feedback window, and the live prop otherwise.
+# All three TRAIN-FEEDBACK-SYNC-1 guard sites updated: displayExplanation
+# construction (~3954), structuredExplanation.takeaway (~4234), and the
+# Phase 301 SOLVER LINE narration (~4458). Closes issue #283.
+TRAIN-FEEDBACK-SNAPSHOT-1

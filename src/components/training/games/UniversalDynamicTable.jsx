@@ -1225,6 +1225,22 @@ function UniversalDynamicTable({
     const lastQuestionRef = useRef(null);
     const [retryActive, setRetryActive] = React.useState(false);
 
+    // BUG FIX (TRAIN-FEEDBACK-SNAPSHOT-1): Render feedback against the question
+    // that was actually answered, not the live `question` prop. Without this,
+    // when the parent (Director.tsx / GameSession.tsx) eagerly preloads the
+    // NEXT question while feedback is still on screen, the feedback render
+    // path can pick up the new scenario and the narrative desyncs from the
+    // hand the user actually played (issue #283 root cause).
+    //
+    // lastQuestionRef already snapshots `question` while !showFeedback, so by
+    // the time showFeedback flips true the ref holds the question being
+    // viewed. Read through this getter at feedback-render sites; falls back
+    // to the live prop when the ref is empty (initial render edge case).
+    const getFeedbackQuestion = () => {
+        if (showFeedback && lastQuestionRef.current) return lastQuestionRef.current;
+        return question;
+    };
+
     // Phase 3: Study Mode (show frequencies before answering)
     const [studyMode, setStudyMode] = React.useState(false);
     const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(false);
@@ -3951,7 +3967,9 @@ function UniversalDynamicTable({
                         // BUG FIX (TRAIN-FEEDBACK-SYNC-1): only trust the upstream `explanation`
                         // prop when its content matches the rendered scenario; otherwise fall
                         // back to the auto-generated abstract template (which is scenario-free).
-                        const explanationOk = explanationMatchesScenario(explanation, question?.scenario);
+                        // TRAIN-FEEDBACK-SNAPSHOT-1: route through the snapshot so the guard
+                        // validates against the question that was actually answered.
+                        const explanationOk = explanationMatchesScenario(explanation, getFeedbackQuestion()?.scenario);
                         const displayExplanation = (explanation && explanationOk) ? explanation : (() => {
                             if (!moveClassification) return null;
                             if (moveClassification === 'best') {
@@ -4230,7 +4248,8 @@ function UniversalDynamicTable({
                             </div>
 
                             {/* Key takeaway — guarded by TRAIN-FEEDBACK-SYNC-1 */}
-                            {structuredExplanation.takeaway && explanationMatchesScenario(structuredExplanation.takeaway, question?.scenario) && (
+                            {/* TRAIN-FEEDBACK-SNAPSHOT-1: snapshot-based check */}
+                            {structuredExplanation.takeaway && explanationMatchesScenario(structuredExplanation.takeaway, getFeedbackQuestion()?.scenario) && (
                                 <div style={{
                                     padding: '6px 10px', marginBottom: 6,
                                     background: structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.06)' : 'rgba(251, 191, 36, 0.06)',
@@ -4452,8 +4471,10 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getOptimalLineNarration || !structuredExplanation?.isCorrect === undefined) return null;
-                                    const sc = question?.scenario || {};
-                                    const narr = getOptimalLineNarration(structuredExplanation?.primary || '', gtoFrequencies || {}, sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', question?.handCategory || '');
+                                    // TRAIN-FEEDBACK-SNAPSHOT-1: build narration against the snapshot
+                                    const fbQuestion = getFeedbackQuestion();
+                                    const sc = fbQuestion?.scenario || {};
+                                    const narr = getOptimalLineNarration(structuredExplanation?.primary || '', gtoFrequencies || {}, sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', fbQuestion?.handCategory || '');
                                     if (!narr) return null;
                                     // BUG FIX (TRAIN-FEEDBACK-SYNC-1): suppress solver-line narration when it
                                     // references a different board or hand than the active scenario.
