@@ -19,11 +19,47 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 
+
+// BUG FIX (TRAIN-JOURNAL-A11Y-1): SVG icons replacing the mental-journal
+// emoji set. STATES now carries iconKind; StateIcon renders by kind. Legacy
+// `icon` emoji string preserved for back-compat. Plus standalone SVGs for
+// ✓ save toast and ← back. Same surface-specific a11y pattern as PR #320/
+// #322/#324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=20, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function BoltIcon({ size=20 })   { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
+function SleepIcon({ size=20 })  { return <_Svg size={size}><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/><path d="M16 4l1.5 3 3 .5-2 2 .5 3-3-1.5L13 12.5l.5-3-2-2 3-.5z"/></_Svg>; }
+function AngryIcon({ size=20 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><path d="M8 16s1.5-2 4-2 4 2 4 2"/><line x1="7.5" y1="8.5" x2="9.5" y2="10"/><line x1="16.5" y1="8.5" x2="14.5" y2="10"/></_Svg>; }
+function MonkeyIcon({ size=20 }) { return <_Svg size={size}><circle cx="12" cy="13" r="6"/><circle cx="6" cy="9" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="10" cy="12" r="0.5"/><circle cx="14" cy="12" r="0.5"/><path d="M9 16s1.5 1.5 3 1.5 3-1.5 3-1.5"/></_Svg>; }
+function StateIcon({ kind, size=20 }) {
+  switch (kind) {
+    case 'bolt':   return <BoltIcon size={size}/>;
+    case 'sleep':  return <SleepIcon size={size}/>;
+    case 'angry':  return <AngryIcon size={size}/>;
+    case 'monkey': return <MonkeyIcon size={size}/>;
+    default:       return <BoltIcon size={size}/>;
+  }
+}
+function CheckIcon({ size=14 }) { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
+function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function MoonIcon({ size=12 })   { return <_Svg size={size}><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></_Svg>; }
+function CoffeeIcon({ size=12 }) { return <_Svg size={size}><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></_Svg>; }
+
+
 const STATES = [
-  { id: 'zone', label: 'In The Zone', color: '#4ade80', icon: '⚡' },
-  { id: 'bored', label: 'Bored / Autopilot', color: '#94a3b8', icon: '😴' },
-  { id: 'frust', label: 'Frustrated', color: '#fbbf24', icon: '😤' },
-  { id: 'tilt', label: 'Monkey Tilt', color: '#ef4444', icon: '🦍' },
+  { id: 'zone', label: 'In The Zone', color: '#4ade80', iconKind: 'bolt', icon: '⚡' },
+  { id: 'bored', label: 'Bored / Autopilot', color: '#94a3b8', iconKind: 'sleep', icon: '😴' },
+  { id: 'frust', label: 'Frustrated', color: '#fbbf24', iconKind: 'angry', icon: '😤' },
+  { id: 'tilt', label: 'Monkey Tilt', color: '#ef4444', iconKind: 'monkey', icon: '🦍' },
 ];
 
 const TRIGGERS = [
@@ -181,6 +217,8 @@ export default function MentalJournalPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
+              type="button"
+              aria-label="Back to training"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -196,10 +234,12 @@ export default function MentalJournalPage() {
                 justifyContent: 'center',
               }}
             >
-              ←
+              {/* TRAIN-JOURNAL-A11Y-1: SVG back arrow */}
+              <BackArrowIcon size={18} />
             </button>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Mental Journal</div>
+              {/* TRAIN-JOURNAL-A11Y-1: semantic h1 */}
+              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Mental Journal</h1>
               <div style={{ fontSize: 11, color: '#64748b' }}>Tilt & Trigger Tracking</div>
             </div>
           </div>
@@ -209,6 +249,8 @@ export default function MentalJournalPage() {
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); if (view === 'history') fetchHistory(); }} />
           {/* View Toggle */}
           <div
+            role="tablist"
+            aria-label="Switch between new entry and history"
             style={{
               display: 'flex',
               background: 'rgba(0,0,0,0.3)',
@@ -218,6 +260,8 @@ export default function MentalJournalPage() {
             }}
           >
             <button
+              type="button"
+              role="tab"
               aria-label="New journal entry"
               aria-pressed={view === 'add'}
               onClick={() => setView('add')}
@@ -236,6 +280,8 @@ export default function MentalJournalPage() {
               New Entry
             </button>
             <button
+              type="button"
+              role="tab"
               aria-label="Browse journal history"
               aria-pressed={view === 'history'}
               onClick={() => setView('history')}
@@ -281,6 +327,8 @@ export default function MentalJournalPage() {
                   max="10"
                   step="0.5"
                   value={sleep}
+                  aria-label={`Sleep quality: ${sleep} hours`}
+                  aria-valuetext={`${sleep} hours`}
                   onChange={(e) => setSleep(e.target.value)}
                   style={{ width: '100%', marginBottom: 24, accentColor: '#00d4ff' }}
                 />
@@ -299,6 +347,8 @@ export default function MentalJournalPage() {
                   max="6"
                   step="1"
                   value={caffeine}
+                  aria-label={`Caffeine level: ${caffeine} cups`}
+                  aria-valuetext={`${caffeine} cups`}
                   onChange={(e) => setCaffeine(e.target.value)}
                   style={{ width: '100%', accentColor: '#fbbf24' }}
                 />
@@ -318,6 +368,8 @@ export default function MentalJournalPage() {
                 Primary State
               </div>
               <div
+                role="radiogroup"
+                aria-label="Primary mental state"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -328,6 +380,10 @@ export default function MentalJournalPage() {
                 {STATES.map((s) => (
                   <motion.button
                     key={s.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={mindState === s.id}
+                    aria-label={`Mental state: ${s.label}`}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setMindState(s.id)}
                     style={{
@@ -345,7 +401,8 @@ export default function MentalJournalPage() {
                       textAlign: 'left',
                     }}
                   >
-                    <span style={{ fontSize: 20 }}>{s.icon}</span> {s.label}
+                    {/* TRAIN-JOURNAL-A11Y-1: SVG StateIcon replaces emoji */}
+                    <span style={{ fontSize: 20, display: 'inline-flex' }} aria-hidden><StateIcon kind={s.iconKind} size={20} /></span> {s.label}
                   </motion.button>
                 ))}
               </div>
@@ -369,6 +426,9 @@ export default function MentalJournalPage() {
                   return (
                     <button
                       key={t}
+                      type="button"
+                      aria-label={`${active ? 'Remove' : 'Add'} trigger: ${t}`}
+                      aria-pressed={active}
                       onClick={() => toggleTrigger(t)}
                       style={{
                         padding: '8px 14px',
@@ -391,6 +451,7 @@ export default function MentalJournalPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Additional session notes..."
+                aria-label="Additional session notes"
                 style={{
                   width: '100%',
                   padding: 16,
@@ -407,6 +468,8 @@ export default function MentalJournalPage() {
               />
 
               <motion.button
+                type="button"
+                aria-label="Log mental state to journal"
                 disabled={isSaving}
                 whileTap={{ scale: 0.97 }}
                 onClick={saveEntry}
@@ -426,7 +489,10 @@ export default function MentalJournalPage() {
               >
                 {isSaving ? 'Logging to Database...' : 'Log Mental State'}
                 {savedToast && (
-                  <span style={{ position: 'absolute', right: 20, color: '#4ade80' }}>✓ Saved</span>
+                  <span style={{ position: 'absolute', right: 20, color: '#4ade80', display: 'inline-flex', alignItems: 'center', gap: 4 }} role="status" aria-live="polite">
+                    {/* TRAIN-JOURNAL-A11Y-1: SVG check replaces ✓ */}
+                    <CheckIcon size={14} /> Saved
+                  </span>
                 )}
               </motion.button>
             </motion.div>
@@ -435,7 +501,7 @@ export default function MentalJournalPage() {
           {view === 'history' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {loadingHistory && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16 }} role="status" aria-label="Loading journal history">
                   {[1, 2, 3].map(i => (
                     <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 16 }}>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
@@ -490,7 +556,8 @@ export default function MentalJournalPage() {
                             borderRadius: 12,
                           }}
                         >
-                          {st.icon} {st.label}
+                          {/* TRAIN-JOURNAL-A11Y-1: SVG StateIcon in history rows */}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }} aria-hidden><StateIcon kind={st.iconKind} size={12} /></span> {st.label}
                         </div>
                       </div>
                       <div
@@ -503,10 +570,12 @@ export default function MentalJournalPage() {
                         }}
                       >
                         <div>
-                          <span style={{ color: '#00d4ff' }}>☁️ Sleep:</span> {e.sleep}h
+                          {/* TRAIN-JOURNAL-A11Y-1: SVG moon replaces ☁️ */}
+                          <span style={{ color: '#00d4ff', display: 'inline-flex', alignItems: 'center', gap: 4 }}><MoonIcon size={12} /> Sleep:</span> {e.sleep}h
                         </div>
                         <div>
-                          <span style={{ color: '#fbbf24' }}>☕ Caf:</span> {e.caffeine} cups
+                          {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ☕ */}
+                          <span style={{ color: '#fbbf24', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} cups
                         </div>
                       </div>
                       {e.triggers && e.triggers.length > 0 && (

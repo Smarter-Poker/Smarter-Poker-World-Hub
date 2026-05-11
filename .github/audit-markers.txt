@@ -502,3 +502,19 @@ TRAIN-DAILY-GOALS-A11Y-1
 # surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
 # #332/#333/#334/#335.
 TRAIN-PLAYBOOK-A11Y-1
+
+# ─── /hub/training/mental-journal — surface a11y polish ─────────────────────
+# TRAIN-JOURNAL-A11Y-1 — pages/hub/training/mental-journal.js. Tilt &
+# trigger tracker had emoji icons across the form + history surfaces:
+# ⚡ 😴 😤 🦍 STATES, ☁️ sleep / ☕ caffeine labels, ✓ save toast, ← back.
+# Replacements: SVG StateIcon discriminator (bolt/sleep/angry/monkey) driven
+# by a new `iconKind` field on each STATE; MoonIcon + CoffeeIcon for the
+# history rows; CheckIcon for the save toast; BackArrowIcon for back.
+# Range sliders gain aria-label + aria-valuetext. STATES grid becomes
+# role="radiogroup" with each option role="radio" + aria-checked. Trigger
+# chips gain type+aria-pressed. Textarea gains aria-label. Save button +
+# back button + view-toggle tabs all gain type="button" and where
+# appropriate role="tab"/"radio"/"radiogroup". Title raised to <h1>. Same
+# surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
+# #332/#333/#334/#335/#336.
+TRAIN-JOURNAL-A11Y-1
