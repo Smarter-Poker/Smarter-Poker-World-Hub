@@ -2045,6 +2045,22 @@ export default function UserProfilePage() {
             console.warn('[App] Reel cleanup after post delete failed (non-fatal):', e?.message || e);
         }
 
+        // Defense in depth (2026-05-11) — also delete any live_streams row whose
+        // feed_post_id matched this post. The FK live_streams.feed_post_id ->
+        // social_posts.id is ON DELETE SET NULL (not CASCADE), so a post-delete
+        // would otherwise leave the live_streams row orphaned with feed_post_id=NULL
+        // — the past-lives tab still shows it and the replay still plays. RLS
+        // guard on broadcaster_id ensures only own streams are touched.
+        try {
+            await supabase
+                .from('live_streams')
+                .delete()
+                .eq('feed_post_id', postId)
+                .eq('broadcaster_id', currentUser?.id);
+        } catch (e) {
+            console.warn('[App] Live-stream cleanup after post delete failed (non-fatal):', e?.message || e);
+        }
+
         // Only broadcast / invalidate cache AFTER the DB delete is confirmed —
         // otherwise listeners refetch and see the still-present row.
         invalidateProfileCache();
@@ -2081,6 +2097,50 @@ export default function UserProfilePage() {
         invalidateProfileCache();
         busEmit.dataMutated('social');
         broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID, deletedReelId: reelId });
+    };
+
+    // Delete a past live stream from the profile. Symmetric to handleDeleteReel —
+    // wired because the profile's Lives tab queries live_streams directly and
+    // there's no other delete affordance. The FK direction is
+    // live_streams.feed_post_id -> social_posts.id ON DELETE SET NULL, which
+    // means deleting the social_post leaves the live_streams row orphaned with
+    // feed_post_id=NULL (still appears under "Past Lives"). To make
+    // delete-from-profile work, we delete the live_streams row directly
+    // (cascades to live_comments, live_reactions, live_viewers, live_gifts,
+    // live_pins, live_signaling, live_bans, live_ban_audit) AND explicitly
+    // delete the linked social_posts row (the "X went live" feed entry) since
+    // the FK SET NULL leaves it behind. RLS-safety: only own streams.
+    const handleDeleteLive = async (liveId, feedPostId) => {
+        if (!liveId || !currentUser?.id) return;
+        if (typeof window !== 'undefined' && !window.confirm('Delete this live replay? Comments, reactions, and viewer history will also be removed. This cannot be undone.')) return;
+        const prevLives = pastLives;
+        const prevStats = { ...stats };
+        setPastLives(prev => prev.filter(l => l.id !== liveId));
+        setStats(prev => ({ ...prev, lives: Math.max(0, (prev.lives || 0) - 1) }));
+        const { error } = await supabase
+            .from('live_streams')
+            .delete()
+            .eq('id', liveId)
+            .eq('broadcaster_id', currentUser.id); // RLS-safety: only delete own streams
+        if (error) {
+            setPastLives(prevLives);
+            setStats(prevStats);
+            console.warn('Error deleting live stream:', error);
+            return;
+        }
+        // Also clean the "X went live" feed post so it doesn't linger in the
+        // social feed pointing at a now-deleted stream. FK SET NULL would
+        // leave it orphaned otherwise.
+        if (feedPostId) {
+            try {
+                await supabase.from('social_posts').delete().eq('id', feedPostId).eq('author_id', currentUser.id);
+            } catch (e) {
+                console.warn('[App] Feed-post cleanup after live delete failed (non-fatal):', e?.message || e);
+            }
+        }
+        invalidateProfileCache();
+        busEmit.dataMutated('social');
+        broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID, deletedLiveId: liveId });
     };
 
     const handlePost = async (content, urls = [], type = 'text', mentions = [], linkPreview = null) => {
@@ -3497,20 +3557,64 @@ export default function UserProfilePage() {
                             {pastLives.length > 0 ? (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                                     {pastLives.map(live => (
-                                        <Link key={live.id} href={`/hub/lives?id=${live.id}`} style={{ textDecoration: 'none' }}>
-                                            <div style={{ borderRadius: 12, overflow: 'hidden', background: '#000', position: 'relative', aspectRatio: '16/9' }}>
-                                                {live.thumbnail_url ? (
-                                                    <img src={live.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={live.title} loading="lazy" />
-                                                ) : (
-                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 36 }}>📺</div>
-                                                )}
-                                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '24px 10px 8px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}>
-                                                    <div style={{ color: 'white', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{live.title || 'Live Replay'}</div>
-                                                    <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 }}>👁 {live.viewer_count || 0} · {new Date(live.created_at).toLocaleDateString()}</div>
+                                        <div key={live.id} style={{ position: 'relative' }}>
+                                            <Link href={`/hub/lives?id=${live.id}`} style={{ textDecoration: 'none' }}>
+                                                <div style={{ borderRadius: 12, overflow: 'hidden', background: '#000', position: 'relative', aspectRatio: '16/9' }}>
+                                                    {live.thumbnail_url ? (
+                                                        <img src={live.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={live.title} loading="lazy" />
+                                                    ) : (
+                                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 36 }}>📺</div>
+                                                    )}
+                                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '24px 10px 8px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}>
+                                                        <div style={{ color: 'white', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{live.title || 'Live Replay'}</div>
+                                                        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 }}>👁 {live.viewer_count || 0} · {new Date(live.created_at).toLocaleDateString()}</div>
+                                                    </div>
+                                                    <div style={{ position: 'absolute', top: 8, left: 8, background: '#FA383E', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 4 }}>LIVE</div>
                                                 </div>
-                                                <div style={{ position: 'absolute', top: 8, left: 8, background: '#FA383E', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 4 }}>LIVE</div>
-                                            </div>
-                                        </Link>
+                                            </Link>
+                                            {/* Own-profile delete affordance — symmetric to the trash-icon
+                                                on the Reels tab. live_streams has no direct cascade FROM
+                                                social_posts (the FK is SET NULL), so a "delete the post"
+                                                path leaves the stream orphaned. This button calls
+                                                handleDeleteLive which removes the stream + cascade-cleans
+                                                viewers/comments/reactions + nukes the feed-post entry. */}
+                                            {isOwnProfile && (
+                                                <button
+                                                    type="button"
+                                                    aria-label="Delete this live replay"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleDeleteLive(live.id, live.feed_post_id);
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 8,
+                                                        right: 8,
+                                                        width: 28,
+                                                        height: 28,
+                                                        borderRadius: '50%',
+                                                        background: 'rgba(0,0,0,0.65)',
+                                                        color: '#ff5560',
+                                                        border: '1px solid rgba(255,255,255,0.18)',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: 0,
+                                                        zIndex: 2,
+                                                    }}
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                                        <path d="M10 11v6"/>
+                                                        <path d="M14 11v6"/>
+                                                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             ) : (
