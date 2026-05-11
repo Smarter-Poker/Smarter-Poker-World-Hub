@@ -704,3 +704,10 @@ TRAIN-STUDYFINDER-A11Y-1
 # arrow; deal-proposal CTA gains type+aria-label. Same surface-specific
 # pattern as PR #320/#322/#324/#327-#359.
 TRAIN-FTS-A11Y-1
+
+# ─── /hub/training/mixed-strategy-lab — surface a11y polish ─────────────────
+# TRAIN-MSL-A11Y-1 — pages/hub/training/mixed-strategy-lab.js. Mixed-
+# strategy visualization lab was already emoji-free. Polish: back button
+# gains type+aria-label + SVG MslBackArrowIcon replacing bare '← Hub'
+# text-arrow. Same surface-specific pattern as PR #320/#322/#324/#327-#360.
+TRAIN-MSL-A11Y-1

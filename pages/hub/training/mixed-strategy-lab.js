@@ -16,6 +16,27 @@ const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false 
 const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 
+// BUG FIX (TRAIN-MSL-A11Y-1): SVG back-arrow + button hardening for the
+// mixed-strategy lab. Page was already emoji-free. Same surface-specific
+// a11y pattern as PR #320/#322/#324/#327-#360.
+const _MSL_ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function MslBackArrowIcon({ size=14 }) {
+  return (
+    <svg {..._MSL_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+
+
 export default function MixedStrategyLab() {
   const router = useRouter();
   useTrainingBus('mixed-strategy-lab');
@@ -74,8 +95,17 @@ export default function MixedStrategyLab() {
 
       <div style={styles.container}>
         <div style={styles.header}>
-          <button onClick={() => router.push('/hub/training')} style={styles.backButton}>
-            ← Hub
+          <button
+            type="button"
+            aria-label="Back to training hub"
+            onClick={() => router.push('/hub/training')}
+            style={styles.backButton}
+          >
+            {/* TRAIN-MSL-A11Y-1: SVG back arrow + visible label */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <MslBackArrowIcon size={14} />
+              Hub
+            </span>
           </button>
           <div>
             <h1 style={styles.title}>MIXED STRATEGY LAB</h1>
