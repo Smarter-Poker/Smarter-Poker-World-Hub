@@ -18,6 +18,8 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-1c — adoption: shared empty-state primitive
 
 
 // BUG FIX (TRAIN-JOURNAL-A11Y-1): SVG icons replacing the mental-journal
@@ -515,9 +517,12 @@ export default function MentalJournalPage() {
               )}
 
               {!loadingHistory && entries.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
-                  No entries found in database.
-                </div>
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No journal entries yet"
+                  message="Log a mental check-in to start building your trend."
+                  compact
+                />
               ) : null}
 
               {!loadingHistory &&

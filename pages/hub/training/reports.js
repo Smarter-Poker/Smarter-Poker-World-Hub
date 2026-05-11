@@ -20,6 +20,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 // ── Phase 3+5 Engines: Session trends + leak detection for reports ──────
 import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
 import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-1b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG
@@ -401,14 +403,12 @@ export default function GTOReports() {
               `}</style>
             </div>
           ) : !report || report.totalSessions === 0 ? (
-            <div style={{ textAlign: 'center', paddingTop: 60, opacity: 0.6 }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>REPORT</div>
-              <p style={{ fontSize: 14, color: '#94a3b8' }}>
-                No training data found for this period.
-              </p>
-              <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                Complete some training sessions to see your GTO report.
-              </p>
+            <div style={{ paddingTop: 60 }}>
+              <TrainerEmptyState
+                variant="no-data"
+                title="No training data"
+                message="Complete some training sessions to see your GTO report."
+              />
             </div>
           ) : (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
