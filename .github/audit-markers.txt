@@ -771,3 +771,13 @@ TRAIN-PLAYCARD-1
 # the kbd hint chip. Build-safe: no emoji chars, no JSX comments in
 # conditional expressions.
 TRAIN-ACTIONBTN-1
+
+# ─── Shared FeedbackCard v2 — GTO-Wizard 1:1 ────────────────────────────────
+# TRAIN-FEEDBACK-V2 — src/components/poker/FeedbackCard.jsx (new). Shared
+# post-answer feedback card with two-tier layout modeled on GTO Wizard:
+# verdict band (correct/incorrect/mixed pill + action chosen vs solver +
+# EV cost), chips row (accuracy, streak), short why paragraph with Read-
+# More expand to full, optional rangeSlot + detailsSlot, primary NEXT +
+# optional secondary REVIEW CTA. stickyNext prop for mobile bottom-sheet.
+# Build-safe: no emoji chars, no JSX comments in conditional expressions.
+TRAIN-FEEDBACK-V2
