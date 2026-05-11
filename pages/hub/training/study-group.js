@@ -201,8 +201,8 @@ export default function StudyGroupRoom() {
                       }}
                     />
                     {p.name}{' '}
+                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces 👑 */}
                     {p.role === 'Admin' && (
-                      {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces 👑 */}
                       <span style={{ color: '#fbbf24', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
                         <CrownIcon size={12} />
                       </span>
