@@ -790,3 +790,12 @@ TRAIN-FEEDBACK-V2
 # best-streak flame chip, and an optional elapsed-time chip. Build-safe:
 # no emoji chars, no JSX comments in conditional expressions.
 TRAIN-PROGRESS-STRIP-1
+
+# ─── Shared TrainerEmptyState — empty/lock/retry/complete primitive ─────────
+# TRAIN-EMPTY-STATE-1 — src/components/training/TrainerEmptyState.jsx (new).
+# Replaces ad-hoc empty-state blocks across trainer surfaces with one
+# consistent primitive. Four built-in variants (no-data, locked, retry,
+# complete) each with default icon + tone, plus custom override. Optional
+# primary + secondary CTAs (44+ touch). Build-safe: no emoji chars, no
+# JSX comments in conditional expressions.
+TRAIN-EMPTY-STATE-1
