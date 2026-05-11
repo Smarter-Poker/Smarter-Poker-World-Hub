@@ -325,6 +325,18 @@ const nextConfig = {
     config.resolve.alias = Object.assign(config.resolve.alias || {}, {
       [path.resolve(__dirname, 'src/lib/supabase.js')]:
         path.resolve(__dirname, 'src/lib/supabase.ts'),
+      // ─── authUtils.js (commander-shared re-export stub) → authUtils.ts ─────
+      // src/lib/authUtils.js is a 136-byte stub that re-exports from
+      // @smarter-poker/commander-shared, which does NOT export
+      // getFreshAccessToken (introduced 2026-04-30 locally in authUtils.ts).
+      // Without this alias, webpack resolves the import path
+      // '../../lib/authUtils' to the .js stub (.js takes precedence over
+      // .ts in module resolution), so consumer components — LiveDiamondGift,
+      // EndStreamModal, LiveActivityFeed — get an empty namespace and
+      // (0,s.getFreshAccessToken) is undefined at runtime. Force resolution
+      // to the .ts file where the function actually lives.
+      [path.resolve(__dirname, 'src/lib/authUtils.js')]:
+        path.resolve(__dirname, 'src/lib/authUtils.ts'),
     });
 
     if (dev) {

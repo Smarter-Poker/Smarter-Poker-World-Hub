@@ -428,7 +428,7 @@ export function ReelsViewer({ onClose }) {
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data?.event === 'onStateChange') {
-          if (data.info === 0) goNext(); // Video ended → auto advance
+          if (data.info === 0) goNextRef.current?.(); // Video ended → auto advance (ref-routed, see TDZ fix below)
           if (data.info === 1) {
             // Playing
             setYtReady(true);
@@ -470,12 +470,23 @@ export function ReelsViewer({ onClose }) {
     };
     window.addEventListener('message', handleYTMessage);
     return () => window.removeEventListener('message', handleYTMessage);
-    // BUG FIX: include goNext so YT onStateChange(0) "video ended" auto-advance
-    // does not fire the stale goNext from when currentIndex last changed.
-    // Without this, if loadMoreReels() completes between index changes, YT fires
-    // the old goNext that doesn't know about new items in the list.
+    // BUG FIX (revised 2026-05-11): the prior version had `[currentIndex, goNext]`
+    // in the dep array, but `const goNext = useCallback(...)` is declared ~400
+    // lines below — referencing it here put it in the TDZ and crashed the viewer
+    // on mount with `ReferenceError: Cannot access 'goNext' before initialization`.
+    // Same class of bug as the `isYouTubeUrl` crash on /hub/reels (fixed PR #353).
+    // Fixed: read goNext through goNextRef (set just below the useCallback so it
+    // always has the current binding by the time the listener fires). Effect deps
+    // shrunk to [currentIndex] — handler closure reads ref.current at call time,
+    // so freshness is preserved without TDZ.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, goNext]);
+  }, [currentIndex]);
+
+  // Stable ref to goNext so the YT message handler above can read the current
+  // binding without putting goNext in its dep array (which would TDZ — see comment
+  // above). Updated by the effect just after the useCallback declaration so it
+  // always points at the latest closure.
+  const goNextRef = useRef(null);
 
   // Reset paused state when changing reels + track view
   // dep: currentIndex ONLY - we do NOT add `reels` because setReels() alone
@@ -889,6 +900,14 @@ export function ReelsViewer({ onClose }) {
       return next;
     });
   }, [reels.length, hasMore, loadingMore]);
+
+  // Keep the YT message handler's ref-routed goNext call (see TDZ comment ~400
+  // lines above) pointed at the freshest binding. Runs after every render that
+  // recomputes goNext via useCallback. No deps so it captures the current
+  // closure on every render — cheap, no allocation churn.
+  useEffect(() => {
+    goNextRef.current = goNext;
+  });
 
   const goPrev = useCallback(() => {
     setCurrentIndex((prev) => {
