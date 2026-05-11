@@ -59,6 +59,30 @@ export default async function handler(req, res) {
         let totalNotified = 0;
 
         for (const sched of upcoming) {
+            // STREAM-POLISH-R3 REMINDER-1: atomic claim BEFORE sending.
+            // Previously we sent notifications then updated reminded_at;
+            // a concurrent cron tick (or a retry after a partial failure)
+            // could both see reminded_at IS NULL and both fire the
+            // inserts — duplicate 'starting soon' notifications.
+            //
+            // Now: claim the row via WHERE reminded_at IS NULL. If
+            // .select() returns 0 rows, another tick already grabbed it;
+            // skip this schedule. If 1 row, we own the send.
+            const { data: claimed, error: claimErr } = await supabase
+                .from('scheduled_lives')
+                .update({ reminded_at: now.toISOString() })
+                .eq('id', sched.id)
+                .is('reminded_at', null)
+                .select('id');
+            if (claimErr) {
+                console.warn('[live-reminders] claim failed for', sched.id, claimErr.message);
+                continue;
+            }
+            if (!claimed || claimed.length === 0) {
+                // Another tick already claimed this schedule — skip.
+                continue;
+            }
+
             // Get broadcaster display name
             const { data: profile } = await supabase
                 .from('profiles')
@@ -92,7 +116,8 @@ export default async function handler(req, res) {
             // Calculate minutes until stream
             const minutesUntil = Math.round((new Date(sched.scheduled_at) - now) / 60000);
 
-            // Insert notifications
+            // STREAM-POLISH-R3 REMINDER-2: include scheduled_live_id in
+            // data so clients can dedup + deep-link to the specific live.
             const notifications = eligible.map(f => ({
                 user_id: f.follower_id,
                 type: 'live_reminder',
@@ -101,18 +126,13 @@ export default async function handler(req, res) {
                 link: `/hub/lives`,
                 actor_id: sched.broadcaster_id,
                 read: false,
+                data: { scheduled_live_id: sched.id, broadcaster_id: sched.broadcaster_id },
             }));
 
             const CHUNK = 50;
             for (let i = 0; i < notifications.length; i += CHUNK) {
                 await supabase.from('notifications').insert(notifications.slice(i, i + CHUNK));
             }
-
-            // Mark as reminded to prevent duplicate notifications
-            await supabase
-                .from('scheduled_lives')
-                .update({ reminded_at: now.toISOString() })
-                .eq('id', sched.id);
 
             totalNotified += eligible.length;
         }
