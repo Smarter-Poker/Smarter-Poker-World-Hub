@@ -18,6 +18,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -229,23 +231,22 @@ export default function TrainingLeaderboard() {
                   : leaderboard;
                 if (displayList.length === 0 && view === 'friends') {
                   return (
-                    <div style={styles.emptyState}>
-                      <p>No Friends On The Leaderboard Yet</p>
-                      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Invite friends to train together and compete!</p>
-                      <Link href="/hub/friends" style={styles.button}>
-                        Find Friends
-                      </Link>
-                    </div>
+                    <TrainerEmptyState
+                      variant="no-data"
+                      title="No friends on the leaderboard yet"
+                      message="Invite friends to train together and compete!"
+                      cta={{ label: 'Find Friends', onClick: () => { try { window.location.href = '/hub/friends'; } catch (_) {} } }}
+                    />
                   );
                 }
                 if (displayList.length === 0) {
                   return (
-                    <div style={styles.emptyState}>
-                      <p>No Data Yet For This Timeframe</p>
-                      <Link href="/hub/training" style={styles.button}>
-                        Start Training
-                      </Link>
-                    </div>
+                    <TrainerEmptyState
+                      variant="no-data"
+                      title="No data yet for this timeframe"
+                      message="Be the first to put up a score in this window."
+                      cta={{ label: 'Start Training', onClick: () => { try { window.location.href = '/hub/training'; } catch (_) {} } }}
+                    />
                   );
                 }
                 return displayList.map((entry, index) => (
