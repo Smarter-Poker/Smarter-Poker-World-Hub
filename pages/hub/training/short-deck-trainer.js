@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const SUIT_COLORS = { '♠': '#e2e8f0', '♥': '#ef4444', '♦': '#3b82f6', '♣': '#22c55e' };
@@ -132,6 +134,7 @@ function generateQuiz(round) {
 export default function ShortDeckTrainerPage() {
   const router = useRouter();
   useTrainingBus('short-deck-trainer');
+  const fb = useTrainingFeedback();
 
   // Equity Calculator State
   const [heroCards, setHeroCards] = useState(['A♠', 'K♠']);
@@ -182,6 +185,7 @@ export default function ShortDeckTrainerPage() {
     (option) => {
       if (quizAnswer !== null) return;
       const isCorrect = option === quiz.correct;
+      if (isCorrect) fb.correct(); else fb.incorrect();
       setQuizAnswer(option);
       setQuizScore((p) => ({ total: p.total + 1, correct: p.correct + (isCorrect ? 1 : 0) }));
     },
@@ -189,9 +193,10 @@ export default function ShortDeckTrainerPage() {
   );
 
   const nextQuiz = useCallback(() => {
+    fb.click();
     setQuiz(generateQuiz(quizScore.total));
     setQuizAnswer(null);
-  }, [quizScore.total]);
+  }, [quizScore.total, fb]);
 
   // Auto-save every 10 questions
   useEffect(() => {
