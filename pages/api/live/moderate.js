@@ -136,14 +136,27 @@ export default async function handler(req, res) {
                     banned_by: user.id,
                 }, { onConflict: 'stream_id,banned_user_id' });
 
-                // 2. BUG-FIX-DEEP-AUDIT-R3 M-3: kick the banned viewer from
-                //    the LiveKit room immediately. The viewer's token
-                //    identity is String(user_id) (per /api/live/token C1).
-                //    Best-effort: if the user isn't actually in the room
-                //    (preview-only, never joined, already left), the SDK
-                //    raises a 404 which we swallow and log as 'skipped'.
+                // 2. BUG-FIX-DEEP-AUDIT-R3 M-3 + STREAM-POLISH-R2 BAN-1:
+                //    kick the banned user from the LiveKit room immediately.
+                //
+                //    STREAM-POLISH-R2 BAN-1 — the original M-3 fix assumed
+                //    one identity per user (bare String(user_id)), but the
+                //    Bug-5 fix (PR #395) changed authenticated viewer
+                //    identities to `<user_id>:vw-<8-char-random>` so the
+                //    same user can watch from multiple devices. A bare
+                //    removeParticipant(user_id) call now 404s on the viewer
+                //    path — the ban row is written but the user keeps
+                //    streaming for up to 8h (token TTL).
+                //
+                //    Fix: listParticipants and remove ALL identities for
+                //    this user — the bare `user_id` (broadcaster/guest
+                //    flow, unlikely for a ban but legal) AND every
+                //    `<user_id>:vw-*` (each device the viewer is watching
+                //    from). Banning is per-user, so all their devices
+                //    must be evicted.
                 let kickStatus = 'attempted';
                 let kickError = null;
+                let kickedCount = 0;
                 const room = stream.livekit_room || stream.id;
 
                 try {
@@ -163,21 +176,58 @@ export default async function handler(req, res) {
 
                         const { RoomServiceClient } = await import('livekit-server-sdk');
                         const rs = new RoomServiceClient(httpUrl, apiKey, apiSecret);
+                        const roomStr = String(room);
+                        const userIdStr = String(target_user_id);
+                        const viewerPrefix = `${userIdStr}:vw-`;
 
+                        // Enumerate participants and find every identity
+                        // that maps to target_user_id (bare + any vw-* suffix).
+                        let participants = [];
                         try {
-                            await rs.removeParticipant(String(room), String(target_user_id));
-                            kickStatus = 'succeeded';
-                        } catch (rmErr) {
-                            // 404 = participant not in the room (already left
-                            // or never joined). Other errors (network, auth)
-                            // bubble up as 'failed' so we can investigate.
-                            const msg = rmErr?.message || String(rmErr);
-                            if (msg.includes('not_found') || msg.includes('404')) {
+                            participants = await rs.listParticipants(roomStr);
+                        } catch (listErr) {
+                            const lmsg = listErr?.message || String(listErr);
+                            // If the room itself doesn't exist (stream not
+                            // joined yet), treat as skipped.
+                            if (lmsg.includes('not_found') || lmsg.includes('404')) {
+                                kickStatus = 'skipped';
+                                kickError = 'room_not_found';
+                            } else {
+                                kickStatus = 'failed';
+                                kickError = `list_failed: ${lmsg.slice(0, 400)}`;
+                            }
+                        }
+
+                        if (kickStatus === 'attempted') {
+                            const matches = (participants || []).filter(p => {
+                                const id = p?.identity || '';
+                                return id === userIdStr || id.startsWith(viewerPrefix);
+                            });
+
+                            if (matches.length === 0) {
                                 kickStatus = 'skipped';
                                 kickError = 'not_in_room';
                             } else {
-                                kickStatus = 'failed';
-                                kickError = msg.slice(0, 500);
+                                const failures = [];
+                                for (const p of matches) {
+                                    try {
+                                        await rs.removeParticipant(roomStr, p.identity);
+                                        kickedCount += 1;
+                                    } catch (rmErr) {
+                                        const msg = rmErr?.message || String(rmErr);
+                                        // 404 here = race (already left between
+                                        // list + remove). Don't count as failure.
+                                        if (!msg.includes('not_found') && !msg.includes('404')) {
+                                            failures.push(`${p.identity}: ${msg.slice(0, 120)}`);
+                                        }
+                                    }
+                                }
+                                if (failures.length > 0) {
+                                    kickStatus = 'failed';
+                                    kickError = failures.join(' | ').slice(0, 500);
+                                } else {
+                                    kickStatus = 'succeeded';
+                                }
                             }
                         }
                     }
@@ -203,6 +253,7 @@ export default async function handler(req, res) {
                     success: true,
                     action: 'ban_user',
                     livekit_kick_status: kickStatus,
+                    livekit_kicked_count: kickedCount,
                 });
             }
 
