@@ -43,6 +43,48 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
 // WEAK SPOT DETECTION ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 
+
+// BUG FIX (TRAIN-AUTOPILOT-A11Y-1): SVG icon components replacing the
+// autopilot surface emoji set across SPOT_DEFINITIONS (🛡 🎯 💥 🔄 🏁 ⚡
+// ♠ 🏆), 🧠 detection banner, 🎉 completion celebration, 📊 empty state.
+// Same surface-specific a11y pattern as PR #320/#322/#324/#327-#345.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=20, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function ShieldIcon({ size=20 })   { return <_Svg size={size}><path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5l-8-3z"/></_Svg>; }
+function TargetIcon({ size=20 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function ExplosionIcon({ size=20 }){ return <_Svg size={size}><polygon points="12 2 14 8 20 5 16 11 22 12 16 13 20 19 14 16 12 22 10 16 4 19 8 13 2 12 8 11 4 5 10 8 12 2"/></_Svg>; }
+function RotateIcon({ size=20 })   { return <_Svg size={size}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></_Svg>; }
+function FlagIcon({ size=20 })     { return <_Svg size={size}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></_Svg>; }
+function BoltIcon({ size=20 })     { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
+function SpadeIcon({ size=20 })    { return <_Svg size={size}><path d="M12 2c-2 3-7 7-7 11 0 3 2 5 5 5 1 0 2-1 2-2v-2"/><path d="M12 2c2 3 7 7 7 11 0 3-2 5-5 5-1 0-2-1-2-2v-2"/><line x1="9" y1="22" x2="15" y2="22"/></_Svg>; }
+function TrophyIcon({ size=20 })   { return <_Svg size={size}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></_Svg>; }
+function BrainIcon({ size=40 })    { return <_Svg size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_Svg>; }
+function CelebrateIcon({ size=32 }){ return <_Svg size={size}><polyline points="3 21 5 13 16 2 22 8 11 19 3 21"/><line x1="7" y1="17" x2="15" y2="9"/></_Svg>; }
+function ChartIcon({ size=40 })    { return <_Svg size={size}><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="13" width="3" height="7"/><rect x="10" y="8" width="3" height="12"/><rect x="15" y="4" width="3" height="16"/></_Svg>; }
+function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function SpotIcon({ kind, size=20 }) {
+  switch (kind) {
+    case 'shield':    return <ShieldIcon size={size}/>;
+    case 'target':    return <TargetIcon size={size}/>;
+    case 'explosion': return <ExplosionIcon size={size}/>;
+    case 'rotate':    return <RotateIcon size={size}/>;
+    case 'flag':      return <FlagIcon size={size}/>;
+    case 'bolt':      return <BoltIcon size={size}/>;
+    case 'spade':     return <SpadeIcon size={size}/>;
+    case 'trophy':    return <TrophyIcon size={size}/>;
+    default:          return <TargetIcon size={size}/>;
+  }
+}
+
 const SPOT_DEFINITIONS = [
   {
     id: 'bb-preflop',
@@ -50,6 +92,7 @@ const SPOT_DEFINITIONS = [
     position: 'BB',
     street: 'preflop',
     color: '#3b82f6',
+    iconKind: 'shield',
     icon: '🛡️',
     gameId: 'cash-bb-defense',
   },
@@ -59,6 +102,7 @@ const SPOT_DEFINITIONS = [
     position: 'BTN',
     street: 'preflop',
     color: '#22c55e',
+    iconKind: 'target',
     icon: '🎯',
     gameId: 'cash-btn-opens',
   },
@@ -68,6 +112,7 @@ const SPOT_DEFINITIONS = [
     position: 'any',
     street: 'flop',
     color: '#f97316',
+    iconKind: 'explosion',
     icon: '💥',
     gameId: 'cash-cbet',
   },
@@ -77,6 +122,7 @@ const SPOT_DEFINITIONS = [
     position: 'any',
     street: 'turn',
     color: '#a855f7',
+    iconKind: 'rotate',
     icon: '🔄',
     gameId: 'cash-turn-play',
   },
@@ -86,6 +132,7 @@ const SPOT_DEFINITIONS = [
     position: 'any',
     street: 'river',
     color: '#ef4444',
+    iconKind: 'flag',
     icon: '🏁',
     gameId: 'cash-river-bluffs',
   },
@@ -95,6 +142,7 @@ const SPOT_DEFINITIONS = [
     position: 'any',
     street: 'any',
     color: '#ec4899',
+    iconKind: 'bolt',
     icon: '⚡',
     gameId: 'cash-threeBet-spots',
   },
@@ -104,6 +152,7 @@ const SPOT_DEFINITIONS = [
     position: 'SB',
     street: 'preflop',
     color: '#8b5cf6',
+    iconKind: 'spade',
     icon: '♠️',
     gameId: 'cash-sb',
   },
@@ -113,6 +162,7 @@ const SPOT_DEFINITIONS = [
     position: 'any',
     street: 'preflop',
     color: '#fbbf24',
+    iconKind: 'trophy',
     icon: '🏆',
     gameId: 'mtt-push-fold',
   },
@@ -356,7 +406,10 @@ export default function AutopilotPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
+              {/* TRAIN-AUTOPILOT-A11Y-1: SVG celebration */}
+              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: '#fbbf24' }} aria-hidden>
+                <CelebrateIcon size={32} />
+              </div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 4 }}>
                 Autopilot Complete
               </div>
@@ -408,7 +461,8 @@ export default function AutopilotPage() {
                     key={i}
                     style={{ padding: '10px', borderRadius: 8, background: 'rgba(0,0,0,0.2)' }}
                   >
-                    <div style={{ fontSize: 14 }}>{r.spot.icon}</div>
+                    {/* TRAIN-AUTOPILOT-A11Y-1: SVG SpotIcon */}
+                    <div style={{ fontSize: 14, display: 'inline-flex', color: r.spot.color }} aria-hidden><SpotIcon kind={r.spot.iconKind} size={14} /></div>
                     <div
                       style={{
                         fontSize: 11,
@@ -534,9 +588,11 @@ export default function AutopilotPage() {
                 <motion.div
                   animate={{ y: [0, -4, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  style={{ fontSize: 40, marginBottom: 12 }}
+                  style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: '#a855f7' }}
+                  aria-hidden
                 >
-                  🧠
+                  {/* TRAIN-AUTOPILOT-A11Y-1: SVG brain replaces 🧠 */}
+                  <BrainIcon size={40} />
                 </motion.div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#e2e8f0', marginBottom: 6 }}>
                   3 Weak Spots Detected
@@ -611,7 +667,7 @@ export default function AutopilotPage() {
                           fontSize: 18,
                         }}
                       >
-                        {spot.icon}
+                        <SpotIcon kind={spot.iconKind} size={20} />
                       </div>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: spot.color }}>
@@ -647,7 +703,10 @@ export default function AutopilotPage() {
           {/* No data state */}
           {!loading && weakSpots.length === 0 && (
             <div style={{ textAlign: 'center', padding: '80px 20px', color: '#64748b' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+              {/* TRAIN-AUTOPILOT-A11Y-1: SVG chart replaces 📊 */}
+              <div style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: '#94a3b8' }} aria-hidden>
+                <ChartIcon size={40} />
+              </div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
                 Need More Data
               </div>
@@ -655,6 +714,8 @@ export default function AutopilotPage() {
                 Complete a few training sessions first so we can identify your weak spots.
               </div>
               <motion.button
+                type="button"
+                aria-label="Back to training"
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
                 style={{
