@@ -29,24 +29,54 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
     useEffect(() => {
         if (!streamId) return;
         let cancelled = false;
-        const load = async () => {
-            try {
-                const { data } = await supabase
-                    .from('live_stream_analytics')
-                    .select('*')
-                    .eq('id', streamId)
-                    .maybeSingle();
-                if (!cancelled) setAnalytics(data);
-            } catch (e) {
-                console.warn('[analytics] failed:', e);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+
+        // BUG-FIX-DEEP-AUDIT-R5 AC-4: replace the fixed 1.5s delay with
+        // a bounded retry-on-null. The live_stream_analytics view is
+        // computed live via subqueries on live_reactions / live_comments
+        // / live_gifts — there's no separate aggregation step. But the
+        // row may briefly be absent if the broadcaster ends-then-loads-
+        // analytics in <100ms (the live_streams row's ended_at gets set
+        // and the view picks it up almost immediately, but the upstream
+        // 'mark ended' SQL transaction may still be committing). Three
+        // attempts at 500ms / 1500ms / 3500ms handles every observed lag
+        // without making the UI feel sluggish on the common case.
+        const ATTEMPTS = [500, 1500, 3500];
+        let attemptTimers = [];
+
+        const tryLoad = async (delayMs) => {
+            const timer = setTimeout(async () => {
+                if (cancelled) return;
+                try {
+                    const { data } = await supabase
+                        .from('live_stream_analytics')
+                        .select('*')
+                        .eq('id', streamId)
+                        .maybeSingle();
+                    if (cancelled) return;
+                    if (data) {
+                        setAnalytics(data);
+                        setLoading(false);
+                    }
+                } catch (e) {
+                    console.warn('[analytics] failed:', e);
+                }
+            }, delayMs);
+            attemptTimers.push(timer);
         };
-        // Short delay so DB has time to aggregate
-        // FIX: store timer so cleanup can cancel it on unmount
-        const timer = setTimeout(load, 1500);
-        return () => { cancelled = true; clearTimeout(timer); };
+
+        ATTEMPTS.forEach(d => tryLoad(d));
+
+        // Final fallback: after the longest attempt window, force-stop
+        // loading and show whatever we have (zeros if no row landed).
+        const finalTimer = setTimeout(() => {
+            if (!cancelled) setLoading(false);
+        }, ATTEMPTS[ATTEMPTS.length - 1] + 500);
+        attemptTimers.push(finalTimer);
+
+        return () => {
+            cancelled = true;
+            attemptTimers.forEach(t => clearTimeout(t));
+        };
     }, [streamId]);
 
     return (

@@ -623,6 +623,22 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
 
     const uploadThumbnail = async (file) => {
         if (!file || !user?.id) return null;
+        // BUG-FIX-DEEP-AUDIT-R5 SLM-1 sibling: client-side MIME + size
+        // validation. Round 2's bucket lockdown silently broke this upload
+        // until R5's migration restored image MIME types. The failure
+        // here returns null so the broadcast continues without a
+        // thumbnail (existing intent) — but now with a louder log so
+        // the next such regression is detectable.
+        const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!ALLOWED.includes(file.type)) {
+            console.warn(`[GoLive] thumbnail MIME not allowed: ${file.type}; skipping upload`);
+            return null;
+        }
+        const MAX_BYTES = 8 * 1024 * 1024;  // 8 MB
+        if (file.size > MAX_BYTES) {
+            console.warn(`[GoLive] thumbnail too large: ${file.size} bytes; skipping upload`);
+            return null;
+        }
         try {
             const ext = file.name.split('.').pop();
             const path = `live-thumbnails/${user.id}/${Date.now()}.${ext}`;
@@ -633,7 +649,13 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             const { data } = supabase.storage.from('live-recordings').getPublicUrl(path);
             return data.publicUrl;
         } catch (err) {
-            console.warn('[GoLive] thumbnail upload failed:', err);
+            // BUG-FIX-DEEP-AUDIT-R5 SLM-1: louder logging. Includes the
+            // bucket name + MIME so a future allowlist regression is
+            // immediately diagnosable from the console.
+            console.warn(
+                `[GoLive] thumbnail upload failed (bucket=live-recordings mime=${file.type}):`,
+                err?.message || err
+            );
             return null;
         }
     };

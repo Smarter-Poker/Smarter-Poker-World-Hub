@@ -84,7 +84,16 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
 
     return (
         <div
-            onClick={onClose}
+            onClick={() => {
+                // BUG-FIX-DEEP-AUDIT-R5 DG-3: prevent backdrop dismiss
+                // while a gift is in-flight. Otherwise the user can tap
+                // outside mid-send, the modal closes, and the API
+                // succeeds without ever showing the confirmation. The
+                // diamonds are deducted but the user thinks nothing
+                // happened.
+                if (sending) return;
+                onClose();
+            }}
             style={{
                 position: 'absolute', inset: 0,
                 background: 'rgba(0,0,0,0.5)', zIndex: 50,
@@ -127,31 +136,41 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 20 }}>
-                            {GIFT_AMOUNTS.map(g => (
-                                <button
-                                    key={g.amount}
-                                    onClick={() => setSelected(g.amount)}
-                                    style={{
-                                        padding: '12px 4px',
-                                        borderRadius: 12,
-                                        border: selected === g.amount
-                                            ? '2px solid #FFD700'
-                                            : '2px solid rgba(255,255,255,0.1)',
-                                        background: selected === g.amount
-                                            ? 'rgba(255,215,0,0.15)'
-                                            : 'rgba(255,255,255,0.05)',
-                                        color: 'white',
-                                        fontSize: 12,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        textAlign: 'center',
-                                        opacity: g.amount > (userBalance || 0) ? 0.4 : 1,
-                                    }}
-                                >
-                                    <div style={{ fontSize: 20, marginBottom: 4 }}>{g.emoji}</div>
-                                    {g.label}
-                                </button>
-                            ))}
+                            {GIFT_AMOUNTS.map(g => {
+                                // BUG-FIX-DEEP-AUDIT-R5 DG-1: actually
+                                // disable buttons over balance. The opacity:0.4
+                                // visual hint already existed but the button
+                                // was still clickable, surfacing a 'Not
+                                // enough diamonds' error after the round trip.
+                                const overBalance = g.amount > (userBalance || 0);
+                                return (
+                                    <button
+                                        key={g.amount}
+                                        onClick={() => setSelected(g.amount)}
+                                        disabled={overBalance}
+                                        title={overBalance ? `Need ${g.amount} diamonds` : undefined}
+                                        style={{
+                                            padding: '12px 4px',
+                                            borderRadius: 12,
+                                            border: selected === g.amount
+                                                ? '2px solid #FFD700'
+                                                : '2px solid rgba(255,255,255,0.1)',
+                                            background: selected === g.amount
+                                                ? 'rgba(255,215,0,0.15)'
+                                                : 'rgba(255,255,255,0.05)',
+                                            color: 'white',
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            cursor: overBalance ? 'not-allowed' : 'pointer',
+                                            textAlign: 'center',
+                                            opacity: overBalance ? 0.4 : 1,
+                                        }}
+                                    >
+                                        <div style={{ fontSize: 20, marginBottom: 4 }}>{g.emoji}</div>
+                                        {g.label}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {error && (
