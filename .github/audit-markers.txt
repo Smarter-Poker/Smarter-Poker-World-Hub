@@ -414,3 +414,19 @@ TRAIN-CHALLENGES-A11Y-1
 # gains role="status". Calendar days gain per-day aria-label. Same surface-
 # specific pattern as PR #320/#322/#324/#327/#328/#329.
 TRAIN-STREAKS-A11Y-1
+
+# ─── /hub/training/milestones — surface a11y + emoji→SVG ────────────────────
+# TRAIN-MILESTONES-A11Y-1 — pages/hub/training/milestones.js. Milestone
+# timeline page had 25 distinct emoji icons in MILESTONE_DEFS plus 🎁
+# (reward label) and ✅ (rewarded indicator) in the render path, and a
+# bare '←' entity in the back button. Replacements: 25 new SVG icon
+# components fronted by a MilestoneIcon discriminator that switches on a
+# new `iconKind` field added to each milestone def. GiftIcon + CheckIcon
+# replace 🎁 / ✅. Back button gains type="button" + aria-label="Back to
+# training" and an SVG arrow replaces the entity. Earned-count chip gains
+# role="status", loading wrapper gains role="status" + aria-label, and the
+# spotlight progress bar becomes role="progressbar" with valuenow/min/max.
+# Legacy emoji `icon` strings preserved on every milestone def for any
+# external API consumer still reading the old shape. Same surface-specific
+# pattern as PR #320/#322/#324/#327/#328/#329/#330.
+TRAIN-MILESTONES-A11Y-1
