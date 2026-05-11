@@ -13,6 +13,8 @@
    
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import { useState, useEffect } from 'react';
+
 // Storage key used by Supabase client (must match supabase.ts config)
 const AUTH_STORAGE_KEY = 'smarter-poker-auth';
 
@@ -335,13 +337,30 @@ export function getSafeUser() {
 }
 
 /**
- * useRequireAuth — React hook shim for auth-gated pages.
- * Pages that import this use it to early-return when not authenticated.
- * Since our auth is synchronous (localStorage), this simply returns the
- * current user synchronously. Callers check for null to gate rendering.
+ * useRequireAuth — React hook for auth-gated pages.
+ * Returns { user, checking } — checking is true while verifying auth.
+ * Redirects to login with ?redirect= param when unauthenticated.
+ * SSG-safe: all side-effects run in useEffect (client-only).
  */
-export function useRequireAuth() {
-    return getAuthUser();
+export function useRequireAuth(redirectPath?: string): { user: any; checking: boolean } {
+    const [user, setUser] = useState<any>(null);
+    const [checking, setChecking] = useState(true);
+
+    useEffect(() => {
+        const currentUser = getAuthUser();
+        if (!currentUser && typeof window !== 'undefined') {
+            const loginUrl = redirectPath
+                ? `/auth/login?redirect=${encodeURIComponent(redirectPath)}`
+                : '/auth/login';
+            window.location.replace(loginUrl);
+        } else {
+            setUser(currentUser);
+        }
+        setChecking(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    return { user, checking };
 }
 
 /**
