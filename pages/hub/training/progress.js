@@ -18,6 +18,85 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ICON COMPONENTS — TRAIN-PROGRESS-A11Y-1
+// SVG replacements for the emoji icons used in StatCard + section titles.
+// Stroke colour inherits via currentColor so the parent's colour token
+// drives the visual. Handoff §4 'no-emoji-icons' anti-pattern.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StatIcon({ kind, size = 18, color = 'currentColor' }) {
+  const common = {
+    width: size, height: size, viewBox: '0 0 24 24',
+    fill: 'none', stroke: color, strokeWidth: 2,
+    strokeLinecap: 'round', strokeLinejoin: 'round',
+    'aria-hidden': true, focusable: 'false',
+  };
+  switch (kind) {
+    case 'questions':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      );
+    case 'correct':
+      return (
+        <svg {...common}>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      );
+    case 'accuracy':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+      );
+    case 'timer':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case 'streak':
+      return (
+        <svg {...common}>
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+        </svg>
+      );
+    case 'category':
+      return (
+        <svg {...common}>
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      );
+    case 'improve':
+      return (
+        <svg {...common}>
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+          <polyline points="17 6 23 6 23 12" />
+        </svg>
+      );
+    case 'activity':
+      return (
+        <svg {...common}>
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 export default function TrainingProgress() {
   useTrainingBus('training-progress');
   const [user, setUser] = useState(null);
@@ -220,27 +299,28 @@ export default function TrainingProgress() {
 
           {/* Overall Stats */}
           <div style={styles.statsGrid}>
+            {/* TRAIN-PROGRESS-A11Y-1: emoji icon prop replaced with SVG iconKind */}
             <StatCard
-              icon=""
+              iconKind="questions"
               label="Total Questions"
               value={stats.totalQuestions.toLocaleString()}
             />
             <StatCard
-              icon="✅"
+              iconKind="correct"
               label="Correct Answers"
               value={stats.correctAnswers.toLocaleString()}
             />
             <StatCard
-              icon=""
+              iconKind="accuracy"
               label="Accuracy"
               value={`${stats.accuracy}%`}
               color={
                 stats.accuracy >= 80 ? '#31A24C' : stats.accuracy >= 60 ? '#FFB800' : '#FF4444'
               }
             />
-            <StatCard icon="⏱" label="Avg Time/Question" value={`${stats.averageTime}s`} />
+            <StatCard iconKind="timer" label="Avg Time/Question" value={`${stats.averageTime}s`} />
             <StatCard
-              icon="🔥"
+              iconKind="streak"
               label="Current Streak"
               value={`${stats.streak} days`}
               color={stats.streak >= 7 ? '#FF6B35' : stats.streak >= 3 ? '#FFB800' : '#9ca3af'}
@@ -249,7 +329,11 @@ export default function TrainingProgress() {
 
           {/* Category Breakdown */}
           <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>📚 Category Breakdown</h2>
+            <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was 📚) */}
+              <StatIcon kind="category" size={20} color="currentColor" />
+              Category Breakdown
+            </h2>
             <div style={styles.categoryList}>
               {Object.entries(stats.categoryBreakdown || {}).map(([category, data]) => {
                 const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
@@ -269,7 +353,11 @@ export default function TrainingProgress() {
           {/* Weak Areas */}
           {stats.weakAreas.length > 0 && (
             <section style={styles.section}>
-              <h2 style={styles.sectionTitle}> Areas To Improve</h2>
+              <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              {/* TRAIN-PROGRESS-A11Y-1: SVG icon */}
+              <StatIcon kind="improve" size={20} color="currentColor" />
+              Areas To Improve
+            </h2>
               <div style={styles.weakAreasList}>
                 {stats.weakAreas.map((area) => (
                   <WeakAreaCard key={area.category} {...area} />
@@ -280,7 +368,11 @@ export default function TrainingProgress() {
 
           {/* Recent Activity */}
           <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>📅 Recent Activity</h2>
+            <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was 📅) */}
+              <StatIcon kind="activity" size={20} color="currentColor" />
+              Recent Activity
+            </h2>
             <div style={styles.activityList}>
               {stats.recentActivity.map((activity, i) => (
                 <ActivityCard key={i} {...activity} />
@@ -308,7 +400,8 @@ export default function TrainingProgress() {
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StatCard({ icon, label, value, color = '#00E0FF' }) {
+// TRAIN-PROGRESS-A11Y-1: iconKind takes precedence; legacy icon accepted for back-compat.
+function StatCard({ iconKind, icon, label, value, color = '#00E0FF' }) {
   return (
     <motion.div style={styles.statCard} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
       <div style={{ fontSize: '32px', marginBottom: '8px' }}>{icon}</div>
