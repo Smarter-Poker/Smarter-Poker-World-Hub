@@ -20,6 +20,8 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 // ── Phase 5 Engine: Auto-detect leaks against GTO benchmarks ────────────
 import { detectLeaks, generateDrillRecommendations, LEAK_TYPES } from '../../../src/engines/LeakDetector';
 import { identifyLeaks as identifySessionLeaks } from '../../../src/engines/SessionTracker';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-6a — adoption: shared empty-state primitive
 
 function analyzeData(sessions) {
   if (!sessions || sessions.length === 0) return null;
@@ -626,23 +628,21 @@ export default function WeaknessScannerPage() {
           )}
 
           {!loading && !data && !fetchError && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              {/* TRAIN-WEAKNESS-A11Y-1: SVG chart replaces 📊 */}
-              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: '#475569' }} aria-hidden>
-                <WeaknessChartIcon size={32} />
-              </div>
-              {rawSessions && rawSessions.length > 0 ? (
-                <>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>No data in this time range</div>
-                  <div style={{ fontSize: 11, marginTop: 4 }}>Try selecting a wider time range above</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>No data to scan</div>
-                  <div style={{ fontSize: 11, marginTop: 4 }}>Play some training sessions first</div>
-                </>
-              )}
-            </div>
+            rawSessions && rawSessions.length > 0 ? (
+              <TrainerEmptyState
+                variant="no-data"
+                title="No data in this time range"
+                message="Try selecting a wider time range above."
+                compact
+              />
+            ) : (
+              <TrainerEmptyState
+                variant="no-data"
+                title="No data to scan"
+                message="Play some training sessions first."
+                compact
+              />
+            )
           )}
         </div>
       </div>

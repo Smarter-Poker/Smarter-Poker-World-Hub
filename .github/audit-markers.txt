@@ -1049,3 +1049,13 @@ TRAIN-WIRE-EMPTY-5e
 # TRAIN-WIRE-EMPTY-5f — pages/hub/training/study-group.js. "No Hand Active"
 # block with Load Demo Hand button replaced; CTA preserved via cta prop.
 TRAIN-WIRE-EMPTY-5f
+
+# ─── Phase-4 adoption: TrainerEmptyState batch 6 (2 trainers) ───────────────
+# TRAIN-WIRE-EMPTY-6a — pages/hub/training/weakness-scanner.js. Branching
+# empty-state (no-data-in-range vs no-data-to-scan) replaced with two
+# TrainerEmptyState calls inside the same conditional.
+TRAIN-WIRE-EMPTY-6a
+# TRAIN-WIRE-EMPTY-6b — pages/hub/training/bankroll-coach.js. "Need Training
+# Data" + DollarIcon block + Start Training motion.button replaced with
+# TrainerEmptyState; CTA preserved via cta prop.
+TRAIN-WIRE-EMPTY-6b

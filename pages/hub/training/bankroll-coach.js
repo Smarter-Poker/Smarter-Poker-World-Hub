@@ -17,6 +17,8 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-6b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STAKES PRESETS
@@ -569,42 +571,14 @@ export default function BankrollCoachPage() {
               </motion.button>
             </>
           )}
-
           {/* No data */}
           {!loading && !impact && (
-            <div style={{ textAlign: 'center', padding: '80px 20px', color: '#64748b' }}>
-              {/* TRAIN-BANKROLL-A11Y-1: SVG dollar replaces 💰 */}
-              <div style={{ display: 'inline-flex', marginBottom: 12, color: '#fbbf24' }} aria-hidden>
-                <DollarIcon size={40} />
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
-                Need Training Data
-              </div>
-              <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Complete some training sessions first.
-                <br />
-                We&apos;ll calculate the dollar impact of your leaks.
-              </div>
-              <motion.button
-                type="button"
-                aria-label="Start training"
-                whileTap={{ scale: 0.97 }}
-                onClick={() => router.push('/hub/training')}
-                style={{
-                  marginTop: 20,
-                  padding: '12px 24px',
-                  borderRadius: 10,
-                  border: '1px solid rgba(0,212,255,0.2)',
-                  background: 'rgba(0,212,255,0.06)',
-                  color: '#00d4ff',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Start Training
-              </motion.button>
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title="Need training data"
+              message="Complete some training sessions first. We'll calculate the dollar impact of your leaks."
+              cta={{ label: 'Start Training', onClick: () => router.push('/hub/training') }}
+            />
           )}
         </div>
       </div>
