@@ -1112,3 +1112,13 @@ TRAIN-WIRE-EMPTY-9b
 # strip's position chip + completion ring). The grid drops from 4 columns to
 # 3 (Score / Combo / Time).
 TRAIN-WIRE-PROGRESS-3
+
+# ─── Phase-8 adoption: FeedbackCard V2 into quiz-gauntlet ───────────────────
+# TRAIN-WIRE-FEEDBACK-V2-1 — pages/hub/training/quiz-gauntlet.js. Replaces
+# the inline feedback motion.div (✅ EXACT! / ⚡ CLOSE / ❌ WRONG / ⏰ TIME UP
+# verdict + correct answer + bolded explanation) with the shared FeedbackCard
+# component (TRAIN-FEEDBACK-V2). showFeedback string maps to verdict prop
+# ('correct' → 'correct', 'close' → 'mixed', 'wrong'/'timeout' → 'incorrect').
+# userAction = `${userAnswer}${q.unit}`; solverAction = `${q.answer}${q.unit}`;
+# whyShort = q.explanation stripped of bold-asterisk markup. compact=true.
+TRAIN-WIRE-FEEDBACK-V2-1

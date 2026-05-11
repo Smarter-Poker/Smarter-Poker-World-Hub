@@ -13,6 +13,8 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+// TRAIN-WIRE-FEEDBACK-V2-1 — adoption: quiz-gauntlet feedback panel
 // TRAIN-WIRE-PROGRESS-3 — adoption: quiz-gauntlet question progress
 // TRAIN-WIRE-FX-6b — adoption: feedback hook
 
@@ -590,55 +592,17 @@ export default function QuizGauntlet() {
                   </div>
                 )}
 
-                {/* Feedback */}
+                {/* Feedback (TRAIN-WIRE-FEEDBACK-V2-1) */}
                 {showFeedback && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: 12,
-                      fontSize: 14,
-                      fontWeight: 800,
-                      background:
-                        showFeedback === 'correct'
-                          ? 'rgba(34,197,94,0.15)'
-                          : showFeedback === 'close'
-                            ? 'rgba(251,191,36,0.15)'
-                            : 'rgba(239,68,68,0.15)',
-                      border: `1px solid ${showFeedback === 'correct' ? 'rgba(34,197,94,0.5)' : showFeedback === 'close' ? 'rgba(251,191,36,0.5)' : 'rgba(239,68,68,0.4)'}`,
-                      color:
-                        showFeedback === 'correct'
-                          ? '#22c55e'
-                          : showFeedback === 'close'
-                            ? '#fbbf24'
-                            : '#ef4444',
-                    }}
-                  >
-                    {showFeedback === 'correct'
-                      ? '✅ EXACT!'
-                      : showFeedback === 'close'
-                        ? `⚡ CLOSE! (±${q.tolerance})`
-                        : showFeedback === 'timeout'
-                          ? '⏰ TIME UP!'
-                          : '❌ WRONG'}
-                    {' · '}Correct:{' '}
-                    <span style={{ ...C.orb }}>
-                      {q.answer}
-                      {q.unit}
-                    </span>
-                    <div style={{ fontSize: 12, marginTop: 6, color: '#94a3b8', fontWeight: 600 }}>
-                      {q.explanation.split('**').map((p, i) =>
-                        i % 2 === 0 ? (
-                          <span key={i}>{p}</span>
-                        ) : (
-                          <strong key={i} style={{ color: q.color }}>
-                            {p}
-                          </strong>
-                        )
-                      )}
-                    </div>
-                  </motion.div>
+                  <FeedbackCard
+                    verdict={showFeedback === 'correct' ? 'correct' : showFeedback === 'close' ? 'mixed' : 'incorrect'}
+                    userAction={userAnswer ? `${userAnswer}${q.unit || ''}` : (showFeedback === 'timeout' ? 'No answer' : '—')}
+                    solverAction={`${q.answer}${q.unit || ''}`}
+                    evLoss={0}
+                    whyShort={q.explanation ? q.explanation.replace(/\*\*/g, '') : ''}
+                    accuracy={undefined}
+                    compact
+                  />
                 )}
               </motion.div>
             )}
