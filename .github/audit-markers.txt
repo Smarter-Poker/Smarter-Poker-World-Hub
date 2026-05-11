@@ -875,6 +875,18 @@ TRAIN-WIRE-PLAYCARD-1
 # the TUTORIAL_STEPS data are unchanged from main.
 TRAIN-WIRE-PLAYCARD-2
 
+# ─── Phase-2 adoption: wire shared PlayingCard into blind-defense ────────────
+# TRAIN-WIRE-PLAYCARD-3 — pages/hub/training/blind-defense.js. Replaces the
+# two motion.div hero-card boxes (built from scenario.hand[i].r + .s + .c with
+# manual ♥/♦ color check + 90×130 white background + bottom-right rotated
+# rank/suit) with two <PlayingCard rank suit size="xl" priority /> components
+# preserving the existing rotate(-5deg) / rotate(5deg) entry transform. The
+# enter-animation (motion x/opacity/rotate) was the framer-motion wrapper; the
+# steady-state visual is now the shared deck PNG. Build-safe: no JSX comments
+# inside conditionals; SUITS/RANKS arrays still contain unicode glyphs in
+# string-literal form (same as main).
+TRAIN-WIRE-PLAYCARD-3
+
 # ─── Phase-2 adoption: wire shared PlayingCard into hand-lab ────────────────
 # TRAIN-WIRE-PLAYCARD-4 — pages/hub/training/hand-lab.js. Replaces the three
 # inline <span style={getColor(...)}>{cardStr}</span> renders (2 hero slot
