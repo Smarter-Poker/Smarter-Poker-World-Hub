@@ -18,10 +18,47 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
+
+// BUG FIX (TRAIN-AGGREGATE-A11Y-1): SVG icon components replacing the
+// aggregate-reports emoji set (📈 header, 💰 🎯 🏆 game-type icons,
+// 📊 results header, 🎨 textures, 📭 empty state, 🪑 position row,
+// ⚠️ error). Plus ← back arrow hardening. Same surface-specific a11y
+// pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334/
+// #335/#336/#337/#338/#339.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=20, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function TrendingUpIcon({ size=28 }) { return <_Svg size={size}><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></_Svg>; }
+function MoneyIcon({ size=14 })      { return <_Svg size={size}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></_Svg>; }
+function TargetIcon({ size=14 })     { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function TrophyIcon({ size=14 })     { return <_Svg size={size}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></_Svg>; }
+function ChartBarIcon({ size=24 })   { return <_Svg size={size}><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="13" width="3" height="7"/><rect x="10" y="8" width="3" height="12"/><rect x="15" y="4" width="3" height="16"/></_Svg>; }
+function PaletteIcon({ size=18 })    { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="6.5" cy="11.5" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7" r="1"/><circle cx="17" cy="12" r="1"/><circle cx="14" cy="17" r="1"/></_Svg>; }
+function InboxEmptyIcon({ size=48 }) { return <_Svg size={size}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></_Svg>; }
+function ChairIcon({ size=18 })      { return <_Svg size={size}><path d="M5 4v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4"/><path d="M5 12v8"/><path d="M19 12v8"/><line x1="3" y1="20" x2="21" y2="20"/></_Svg>; }
+function AlertIcon({ size=14 })      { return <_Svg size={size}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></_Svg>; }
+function BackArrowIcon({ size=18 })  { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function GameTypeIcon({ kind, size=14 }) {
+  switch (kind) {
+    case 'money':  return <MoneyIcon size={size}/>;
+    case 'target': return <TargetIcon size={size}/>;
+    case 'trophy': return <TrophyIcon size={size}/>;
+    default:       return null;
+  }
+}
+
 const GAME_TYPES = [
-  { key: 'hu_cash', label: 'Cash HU', icon: '💰' },
-  { key: 'cash_6max', label: 'Cash 6-Max', icon: '🎯' },
-  { key: 'mtt_6max_icm', label: 'MTT 6-Max', icon: '🏆' },
+  { key: 'hu_cash', label: 'Cash HU', iconKind: 'money', icon: '?' },
+  { key: 'cash_6max', label: 'Cash 6-Max', iconKind: 'target', icon: '?' },
+  { key: 'mtt_6max_icm', label: 'MTT 6-Max', iconKind: 'trophy', icon: '?' },
 ];
 
 const STACK_DEPTHS = [20, 40, 60, 80, 100, 150, 200];
@@ -107,15 +144,22 @@ export default function AggregateReports() {
         {/* Header */}
         <div style={styles.header}>
           <motion.button
+            type="button"
+            aria-label="Back to training"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => router.push('/hub/training')}
             style={styles.backBtn}
           >
-            ← Training
+            {/* TRAIN-AGGREGATE-A11Y-1: SVG back arrow + visible label */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <BackArrowIcon size={14} />
+              Training
+            </span>
           </motion.button>
           <h1 style={styles.title}>
-            <span style={{ fontSize: 28 }}>📈</span> Aggregate Reports
+            {/* TRAIN-AGGREGATE-A11Y-1: SVG TrendingUp replaces 📈 */}
+            <span style={{ display: 'inline-flex', verticalAlign: 'middle', color: '#00d4ff' }} aria-hidden><TrendingUpIcon size={28} /></span> Aggregate Reports
           </h1>
         </div>
 
@@ -132,6 +176,9 @@ export default function AggregateReports() {
               {GAME_TYPES.map((g) => (
                 <motion.button
                   key={g.key}
+                  type="button"
+                  aria-pressed={gameType === g.key}
+                  aria-label={`Game format: ${g.label}`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setGameType(g.key)}
@@ -140,7 +187,11 @@ export default function AggregateReports() {
                     ...(gameType === g.key ? styles.filterBtnActive : {}),
                   }}
                 >
-                  {g.icon} {g.label}
+                  {/* TRAIN-AGGREGATE-A11Y-1: SVG icon replaces emoji */}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <GameTypeIcon kind={g.iconKind} size={14} />
+                    {g.label}
+                  </span>
                 </motion.button>
               ))}
             </div>
@@ -202,7 +253,12 @@ export default function AggregateReports() {
         )}
 
         {/* Error */}
-        {error && !loading && <div style={styles.errorBox}>⚠️ {error}</div>}
+        {error && !loading && <div style={styles.errorBox} role="alert">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {/* TRAIN-AGGREGATE-A11Y-1: SVG alert replaces ⚠️ */}
+              <AlertIcon size={14} /> {error}
+            </span>
+          </div>}
 
         {/* Report Data */}
         {report && !loading && (
@@ -216,7 +272,8 @@ export default function AggregateReports() {
               {/* Overall Stats */}
               <div style={styles.overallCard}>
                 <div style={styles.overallHeader}>
-                  <span style={{ fontSize: 24 }}>📊</span>
+                  {/* TRAIN-AGGREGATE-A11Y-1: SVG bar chart replaces 📊 */}
+                  <span style={{ display: 'inline-flex', color: '#00d4ff' }} aria-hidden><ChartBarIcon size={24} /></span>
                   <span style={styles.overallTitle}>Overall Summary</span>
                   <span style={styles.spotCount}>
                     {report.totalSpots.toLocaleString()} spots analyzed
@@ -241,13 +298,15 @@ export default function AggregateReports() {
 
               {/* Texture Breakdown */}
               <div style={styles.sectionHeader}>
-                <span style={{ fontSize: 18 }}>🎨</span>
+                {/* TRAIN-AGGREGATE-A11Y-1: SVG palette replaces 🎨 */}
+                <span style={{ display: 'inline-flex', color: '#a855f7' }} aria-hidden><PaletteIcon size={18} /></span>
                 <span>Strategy by Flop Texture</span>
               </div>
 
               {report.textures.length === 0 && (
                 <div style={styles.emptyState}>
-                  <span style={{ fontSize: 48 }}>📭</span>
+                  {/* TRAIN-AGGREGATE-A11Y-1: SVG inbox replaces 📭 */}
+                  <span style={{ display: 'inline-flex', color: '#475569' }} aria-hidden><InboxEmptyIcon size={48} /></span>
                   <p>No solver data found for this configuration.</p>
                   <p style={{ fontSize: 12, color: '#475569' }}>
                     Try changing the game type or stack depth.
@@ -314,7 +373,8 @@ export default function AggregateReports() {
               {report.positions && report.positions.length > 0 && (
                 <>
                   <div style={{ ...styles.sectionHeader, marginTop: 24 }}>
-                    <span style={{ fontSize: 18 }}>🪑</span>
+                    {/* TRAIN-AGGREGATE-A11Y-1: SVG chair replaces 🪑 */}
+                    <span style={{ display: 'inline-flex', color: '#94a3b8' }} aria-hidden><ChairIcon size={18} /></span>
                     <span>Strategy by Position</span>
                   </div>
                   <div style={styles.positionGrid}>
