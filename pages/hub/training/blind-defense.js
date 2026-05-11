@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import PlayingCard from '../../../src/components/poker/PlayingCard';
+// TRAIN-WIRE-PLAYCARD-3 — adoption: blind-defense via shared PlayingCard
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -254,83 +256,23 @@ export default function BlindDefensePage() {
               )}
             </AnimatePresence>
 
-            <motion.div
-              key={`c1-${scenario.hand[0].r}${scenario.hand[0].s}`}
-              initial={{ x: -50, opacity: 0, rotate: -10 }}
-              animate={{ x: 0, opacity: 1, rotate: -5 }}
-              style={{
-                width: 90,
-                height: 130,
-                background: '#fff',
-                borderRadius: 8,
-                border: '2px solid #cbd5e1',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '8px',
-              }}
-            >
-              <div
-                style={{ fontSize: 24, fontWeight: 900, color: scenario.hand[0].c, lineHeight: 1 }}
-              >
-                {scenario.hand[0].r}
-              </div>
-              <div style={{ fontSize: 20, color: scenario.hand[0].c, lineHeight: 1 }}>
-                {scenario.hand[0].s}
-              </div>
-              <div
-                style={{
-                  marginTop: 'auto',
-                  alignSelf: 'flex-end',
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: scenario.hand[0].c,
-                  lineHeight: 1,
-                  transform: 'rotate(180deg)',
-                }}
-              >
-                {scenario.hand[0].r}
-              </div>
-            </motion.div>
+            <PlayingCard
+              key={'c1-'+scenario.hand[0].r+scenario.hand[0].s}
+              rank={scenario.hand[0].r}
+              suit={scenario.hand[0].s}
+              size="xl"
+              priority
+              style={{ transform: 'rotate(-5deg)' }}
+            />
 
-            <motion.div
-              key={`c2-${scenario.hand[1].r}${scenario.hand[1].s}`}
-              initial={{ x: 50, opacity: 0, rotate: 10 }}
-              animate={{ x: 0, opacity: 1, rotate: 5 }}
-              style={{
-                width: 90,
-                height: 130,
-                background: '#fff',
-                borderRadius: 8,
-                border: '2px solid #cbd5e1',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '8px',
-              }}
-            >
-              <div
-                style={{ fontSize: 24, fontWeight: 900, color: scenario.hand[1].c, lineHeight: 1 }}
-              >
-                {scenario.hand[1].r}
-              </div>
-              <div style={{ fontSize: 20, color: scenario.hand[1].c, lineHeight: 1 }}>
-                {scenario.hand[1].s}
-              </div>
-              <div
-                style={{
-                  marginTop: 'auto',
-                  alignSelf: 'flex-end',
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: scenario.hand[1].c,
-                  lineHeight: 1,
-                  transform: 'rotate(180deg)',
-                }}
-              >
-                {scenario.hand[1].r}
-              </div>
-            </motion.div>
+            <PlayingCard
+              key={'c2-'+scenario.hand[1].r+scenario.hand[1].s}
+              rank={scenario.hand[1].r}
+              suit={scenario.hand[1].s}
+              size="xl"
+              priority
+              style={{ transform: 'rotate(5deg)' }}
+            />
           </div>
 
           {/* Action Buttons */}
