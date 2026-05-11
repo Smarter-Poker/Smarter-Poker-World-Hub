@@ -52,18 +52,40 @@ export default async function handler(req, res) {
         }
 
         // BUG-FIX-LIVE-API-AUDIT (C1): SECURITY — identity is forced to the
-        // server-known user.id. Previously the client sent `identity` and we
-        // used it verbatim in the LiveKit token. A malicious user could pass
-        // another user's id, kicking that user out of the room (LiveKit kicks
-        // duplicate identity) and impersonating them in the participant list.
-        // Anonymous preview tokens still go through /api/live/preview-token,
-        // which has its own random-suffix identity flow.
-        // BUG-FIX-LIVE2-3a: anon viewers get a random anon-N identity. This
-        // never collides with a real user because real ids are uuids and
-        // anons are prefixed.
-        const identity = isAnonymous
-            ? `anon-${Math.random().toString(36).slice(2, 12)}`
-            : String(user.id);
+        // server-known user.id for broadcaster + guest claims so a malicious
+        // viewer cannot impersonate the broadcaster by sending another
+        // user's id in the token request.
+        //
+        // STREAM-BUG-5 (per Dan: "CLICKING ON A STORY ON ANOTHER DEVICE
+        // WHILE I WAS LIVE KILLED MY STREAM"). LiveKit kicks any older
+        // participant when a new one joins with the same identity. With
+        // viewer-side identity hard-pinned to `user.id`, the broadcaster's
+        // OWN account joining the room as a viewer from a different device
+        // (e.g. tapping a story surface that mounts LiveStreamViewer for
+        // a stream owned by the same account) would evict Device A's
+        // broadcaster session via LiveKit dedup.
+        //
+        // Fix: authenticated VIEWERS get a per-device random suffix
+        // appended to their user id (`<user.id>:vw-<random>`). Multiple
+        // devices for the same user can now coexist as distinct LiveKit
+        // participants. The ban check below still uses `user.id` (the
+        // auth user) so cross-device bans continue to work.
+        // Broadcasters + guests keep the bare user.id so LiveKit's
+        // intentional dedup still prevents the same account from
+        // publishing video from two devices at once.
+        let identity;
+        if (isAnonymous) {
+            // BUG-FIX-LIVE2-3a: anon viewers get a random anon-N identity.
+            identity = `anon-${Math.random().toString(36).slice(2, 12)}`;
+        } else if (clientClaimsBroadcaster || guestInviteCode) {
+            // Broadcaster + guest co-host: bare user.id, single device per identity.
+            identity = String(user.id);
+        } else {
+            // STREAM-BUG-5: authenticated VIEWER — random per-device suffix
+            // to prevent cross-device identity collision.
+            const deviceSuffix = Math.random().toString(36).slice(2, 10);
+            identity = `${String(user.id)}:vw-${deviceSuffix}`;
+        }
 
         // BUG FIX (#15): SECURITY — Never trust the client-supplied broadcaster flag.
         // A malicious viewer could POST { broadcaster: true } and receive a token that
