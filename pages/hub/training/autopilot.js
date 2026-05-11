@@ -20,6 +20,8 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-2a — adoption: shared empty-state primitive
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
@@ -702,37 +704,12 @@ export default function AutopilotPage() {
 
           {/* No data state */}
           {!loading && weakSpots.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '80px 20px', color: '#64748b' }}>
-              {/* TRAIN-AUTOPILOT-A11Y-1: SVG chart replaces 📊 */}
-              <div style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: '#94a3b8' }} aria-hidden>
-                <ChartIcon size={40} />
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
-                Need More Data
-              </div>
-              <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Complete a few training sessions first so we can identify your weak spots.
-              </div>
-              <motion.button
-                type="button"
-                aria-label="Back to training"
-                whileTap={{ scale: 0.97 }}
-                onClick={() => router.push('/hub/training')}
-                style={{
-                  marginTop: 20,
-                  padding: '12px 24px',
-                  borderRadius: 10,
-                  border: '1px solid rgba(0,212,255,0.2)',
-                  background: 'rgba(0,212,255,0.06)',
-                  color: '#00d4ff',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Start Training
-              </motion.button>
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title="Need More Data"
+              message="Complete a few training sessions first so we can identify your weak spots."
+              cta={{ label: 'Start Training', onClick: () => router.push('/hub/training') }}
+            />
           )}
         </div>
       </div>

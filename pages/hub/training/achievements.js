@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-2c — adoption: shared empty-state primitive
 
 const RARITY_COLORS = {
   common: '#9ca3af',
@@ -341,9 +343,12 @@ export default function TrainingAchievements() {
               ))}
 
               {filteredAchievements.length === 0 && (
-                <div style={styles.empty}>
-                  {user ? 'No achievements in this category yet!' : 'Sign in to track achievements'}
-                </div>
+                <TrainerEmptyState
+                  variant={user ? 'no-data' : 'locked'}
+                  title={user ? 'No achievements yet' : 'Sign in required'}
+                  message={user ? 'Complete training sessions to unlock achievements in this category.' : 'Sign in to track your achievements.'}
+                  compact
+                />
               )}
             </div>
           )}
