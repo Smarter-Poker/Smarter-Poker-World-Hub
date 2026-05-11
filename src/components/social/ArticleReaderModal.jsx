@@ -14,7 +14,7 @@
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
 
