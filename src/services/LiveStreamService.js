@@ -534,6 +534,28 @@ class LiveStreamService {
     }
 
     /**
+     * STREAM-BUG-6: Manual reconnect entry point for the UI.
+     *
+     * Called when the broadcaster taps "Try Reconnect" on the stuck-stream
+     * popup. Resets reconnectAttempts so the user gets a fresh budget
+     * (otherwise the prior 5 attempts would have already exhausted MAX and
+     * _handleUnexpectedDisconnect would immediately give up again), clears
+     * the isReconnecting guard so the recursion isn't blocked, and
+     * re-invokes the same disconnect-recovery path.
+     *
+     * Idempotent — if there's no active stream, returns without doing
+     * anything. The inner _handleUnexpectedDisconnect handles the
+     * "already reconnecting" case via its own guard.
+     */
+    async forceReconnect() {
+        if (!this.currentStreamId) return;
+        this.reconnectAttempts = 0;
+        this.isReconnecting = false;
+        this.isManualDisconnect = false;
+        return this._handleUnexpectedDisconnect();
+    }
+
+    /**
      * Flip camera between front and back
      */
     async flipCamera() {

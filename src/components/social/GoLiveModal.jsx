@@ -279,6 +279,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [controlsTimer, setControlsTimer] = useState(null);
     // New v2 state
     const [isReconnecting, setIsReconnecting] = useState(false);
+    // STREAM-BUG-6: after 60s of failed reconnects, show a popup with an
+    // explicit Try Reconnect button + End Stream confirmation instead of
+    // silently ending the broadcast. Dan: "There needs to be a popup that
+    // comes up, with a 'Reconnect' button and a confirmation."
+    const [reconnectStuck, setReconnectStuck] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
     const [showSchedule, setShowSchedule] = useState(false);
     const [slowMode, setSlowMode] = useState(false);
@@ -759,15 +764,19 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             liveStreamService.onViewerCountChange = (c) => setViewerCount(c);
             liveStreamService.onReconnecting = () => {
                 setIsReconnecting(true);
-                // BUG-FIX-WATCHDOG: start 60s timer — if still reconnecting after 60s, auto-end
+                // STREAM-BUG-6: after 60s of failed reconnects, surface a
+                // popup instead of silently ending the broadcast. The
+                // popup gives the broadcaster two explicit options:
+                // "Try Reconnect" (force-reconnect with reset attempt budget)
+                // or "End Stream" (confirmed handoff to handleEndStream so
+                // they can still save/post the recording).
                 if (reconnectWatchdogRef.current) clearTimeout(reconnectWatchdogRef.current);
                 reconnectWatchdogRef.current = setTimeout(() => {
                     reconnectWatchdogRef.current = null;
-                    // Only auto-end if still in reconnecting state
                     setIsReconnecting(prev => {
                         if (prev) {
-                            console.warn('[GoLive] 60s reconnect watchdog fired — auto-ending stream');
-                            handleEndStream();
+                            console.warn('[GoLive] 60s reconnect watchdog fired — surfacing stuck-popup (no auto-end)');
+                            setReconnectStuck(true);
                         }
                         return prev;
                     });
@@ -775,6 +784,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
             };
             liveStreamService.onReconnected = () => {
                 setIsReconnecting(false);
+                setReconnectStuck(false);
                 // Cancel watchdog if we successfully reconnected
                 if (reconnectWatchdogRef.current) { clearTimeout(reconnectWatchdogRef.current); reconnectWatchdogRef.current = null; }
             };
@@ -1510,12 +1520,78 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             })}
                         </div>
 
-                        {/* Reconnect overlay */}
-                        {isReconnecting && (
+                        {/* Reconnect overlay (initial 60s — auto-recovery in progress) */}
+                        {isReconnecting && !reconnectStuck && (
                             <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.7)', zIndex:30, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
                                 <div style={{ width:48, height:48, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.2)', borderTopColor:'#0066FF', animation:'spin 0.8s linear infinite', marginBottom:16 }} />
                                 <div style={{ color:'white', fontSize:16, fontWeight:700 }}>Reconnecting...</div>
                                 <div style={{ color:'rgba(255,255,255,0.5)', fontSize:13, marginTop:6 }}>Please wait</div>
+                            </div>
+                        )}
+                        {/* STREAM-BUG-6: Stuck-reconnect popup — appears after 60s.
+                            Two explicit options:
+                              - Try Reconnect: resets attempt budget, retries the LiveKit handshake.
+                              - End Stream: confirmed exit, hands off to handleEndStream so the
+                                broadcaster can still save/post the recording. */}
+                        {reconnectStuck && (
+                            <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.82)', zIndex:32, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+                                <div style={{ background:'#1C1E21', borderRadius:16, padding:'24px 20px', maxWidth:340, width:'100%', textAlign:'center', boxShadow:'0 8px 28px rgba(0,0,0,0.5)' }}>
+                                    <div style={{ color:'#FA383E', fontSize:13, fontWeight:700, letterSpacing:1.5, textTransform:'uppercase', marginBottom:8 }}>
+                                        Connection Lost
+                                    </div>
+                                    <div style={{ color:'white', fontSize:18, fontWeight:700, marginBottom:10 }}>
+                                        Stream disrupted
+                                    </div>
+                                    <div style={{ color:'rgba(255,255,255,0.7)', fontSize:14, lineHeight:1.45, marginBottom:20 }}>
+                                        We couldn't reconnect to the broadcast after 60 seconds. Try again, or end the stream and save your recording.
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setReconnectStuck(false);
+                                                setIsReconnecting(true);
+                                                if (reconnectWatchdogRef.current) clearTimeout(reconnectWatchdogRef.current);
+                                                reconnectWatchdogRef.current = setTimeout(() => {
+                                                    reconnectWatchdogRef.current = null;
+                                                    setIsReconnecting(prev => {
+                                                        if (prev) setReconnectStuck(true);
+                                                        return prev;
+                                                    });
+                                                }, 60000);
+                                                try {
+                                                    await liveStreamService.forceReconnect?.();
+                                                } catch (err) {
+                                                    console.warn('[GoLive] forceReconnect failed:', err?.message || err);
+                                                }
+                                            }}
+                                            style={{
+                                                width:'100%', padding:'14px 0', borderRadius:10, border:'none',
+                                                background:'#0066FF', color:'white', fontSize:15, fontWeight:700, cursor:'pointer',
+                                            }}
+                                        >
+                                            Try Reconnect
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!window.confirm('End the stream and save your recording? Your viewers will be disconnected.')) return;
+                                                setReconnectStuck(false);
+                                                setIsReconnecting(false);
+                                                if (reconnectWatchdogRef.current) { clearTimeout(reconnectWatchdogRef.current); reconnectWatchdogRef.current = null; }
+                                                handleEndStream();
+                                            }}
+                                            style={{
+                                                width:'100%', padding:'14px 0', borderRadius:10,
+                                                background:'transparent', color:'rgba(255,255,255,0.85)',
+                                                fontSize:15, fontWeight:600, cursor:'pointer',
+                                                border:'1px solid rgba(255,255,255,0.25)',
+                                            }}
+                                        >
+                                            End Stream
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
