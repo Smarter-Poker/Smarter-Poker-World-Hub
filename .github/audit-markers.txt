@@ -318,3 +318,19 @@ TRAIN-NEXT-HAND-STICKY-1
 # construction (~3954), structuredExplanation.takeaway (~4234), and the
 # Phase 301 SOLVER LINE narration (~4458). Closes issue #283.
 TRAIN-FEEDBACK-SNAPSHOT-1
+
+# ─── /hub/training/skill-tree — visible surface a11y + emoji→SVG ────────────
+# TRAIN-SKILL-TREE-A11Y-1 — pages/hub/training/skill-tree.js. The 12-level
+# progression map (FOUNDATIONS → BOSS MODE per the May 8 handoff) had four
+# emoji branch icons (🃏 🎯 ⚡ 👑), three emoji node-status icons (🔒 ✅ 🎯),
+# and an emoji back-arrow (←) — all anti-patterns per handoff §4 'no-emoji-
+# icons'. Plus no semantic heading levels and no aria-labels on the back
+# button or the XP status chip. Replacements:
+#   - New BranchIcon component renders Lucide-style SVGs based on branch.id
+#     (preflop / postflop / advanced / mastery), uses currentColor.
+#   - Node status: SVG lock / check / target circle conditional on state.
+#   - Back button: SVG arrow + aria-label="Back to training".
+#   - Page title becomes semantic h1; branch headers become semantic h2.
+#   - XP chip gets role="status" + aria-label and tabular numerals.
+# Visible surface, no other touches.
+TRAIN-SKILL-TREE-A11Y-1
