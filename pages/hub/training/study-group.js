@@ -9,8 +9,8 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // BUG FIX (TRAIN-STUDYGROUP-A11Y-1): SVG icon components replacing the
-// study-group emoji set: 👑 admin marker, 📤 empty hand viewer, ✕ close,
-// ➤ send arrow, ← back. Card-suit glyphs (♠♣♥♦) in hand strings remain
+// study-group emoji set: crown admin marker, upload empty hand viewer, close,
+// send arrow, back. Card-suit glyphs in hand strings remain
 // (semantic). Same surface-specific a11y pattern as PR #320/#322/#324/
 // #327-#356.
 const ICON_PROPS = {
@@ -201,12 +201,12 @@ export default function StudyGroupRoom() {
                       }}
                     />
                     {p.name}{' '}
-                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces 👑 */}
-                    {p.role === 'Admin' && (
+                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces emoji — ternary form (SWC parser in next 16.2.4 chokes on JSX-inside-&&-paren here, even with comment outside; see PR #362, #364, and build logs from dpl_HJeXm). */}
+                    {p.role === 'Admin' ? (
                       <span style={{ color: '#fbbf24', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
                         <CrownIcon size={12} />
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 ))}
                 <button type="button" aria-label="Generate invite link" style={styles.inviteBtn}>+ Invite Link</button>
@@ -227,7 +227,7 @@ export default function StudyGroupRoom() {
                         style={styles.closeBtn}
                         onClick={() => setActiveHandInfo(null)}
                       >
-                        {/* TRAIN-STUDYGROUP-A11Y-1: SVG close replaces ✕ */}
+                        {/* TRAIN-STUDYGROUP-A11Y-1: SVG close replaces glyph */}
                         <CloseIcon size={16} />
                       </button>
                     </div>
@@ -252,7 +252,7 @@ export default function StudyGroupRoom() {
                     </div>
 
                     <div style={styles.solverEval}>
-                      {/* TRAIN-STUDYGROUP-A11Y-1: SVG star replaces ⭐ */}
+                      {/* TRAIN-STUDYGROUP-A11Y-1: SVG star replaces glyph */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#fbbf24' }} aria-hidden>
                         <StarIcon size={14} />
                         {activeHandInfo.solverEval}
@@ -261,7 +261,7 @@ export default function StudyGroupRoom() {
                   </motion.div>
                 ) : (
                   <div style={styles.emptyHandViewer}>
-                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG upload replaces 📤 */}
+                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG upload replaces emoji */}
                     <div style={{ fontSize: 48, marginBottom: 16, display: 'inline-flex', justifyContent: 'center', color: '#475569' }} aria-hidden>
                       <UploadIcon size={48} />
                     </div>
@@ -333,7 +333,7 @@ export default function StudyGroupRoom() {
                   style={styles.chatInput}
                 />
                 <button type="submit" aria-label="Send chat message" style={styles.sendBtn}>
-                  {/* TRAIN-STUDYGROUP-A11Y-1: SVG send replaces ➤ */}
+                  {/* TRAIN-STUDYGROUP-A11Y-1: SVG send replaces glyph */}
                   <SendIcon size={16} />
                 </button>
               </form>
