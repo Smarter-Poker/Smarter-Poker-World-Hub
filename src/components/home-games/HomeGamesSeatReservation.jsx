@@ -30,8 +30,24 @@ function authHeaders() {
                : { 'Content-Type': 'application/json' };
 }
 
+// bug-hunt-zero/B-SEAT-RES-{1,2,3}, B-ROSTER-PICK-{1,2}, B-CREATE-TBL-1:
+// auto-inject X-Idempotency-Key on every mutating method so a timeout-then-
+// retry doesn't double-claim a seat, double-add a roster member, or
+// double-create a table. The header is cheap when the server doesn't yet
+// honor it; it lets a future server-side dedupe land deterministically.
+function makeIdemKey() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
 async function jsonFetch(url, init = {}) {
-  const res = await fetch(url, { ...init, headers: { ...authHeaders(), ...(init.headers || {}) } });
+  const method = String(init.method || 'GET').toUpperCase();
+  const isMutation = method !== 'GET' && method !== 'HEAD';
+  const extraHeaders = isMutation ? { 'X-Idempotency-Key': makeIdemKey() } : {};
+  const res = await fetch(url, {
+    ...init,
+    headers: { ...authHeaders(), ...extraHeaders, ...(init.headers || {}) },
+  });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body?.success === false) {
     const msg = body?.message || body?.error || `HTTP ${res.status}`;
