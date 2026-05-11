@@ -237,7 +237,13 @@ jobs:
           echo "Checking authUtils exports against consumer imports (source: $AUTHUTILS)..."
 
           # Extract all exported function/const names from the file
-          EXPORTS=$(grep -oE "^export (async )?function [A-Za-z_][A-Za-z0-9_]+" "$AUTHUTILS" \
+          # bug-hunt-zero/B-SAFETY-4: the previous regex only matched
+          # `export function` and `export async function`. It missed
+          # `export const`, `export let`, `export var`, and `export class`,
+          # which made SUPABASE_URL / SUPABASE_ANON_KEY invisible to the
+          # check even though they are real exports. Widened to cover all
+          # named-export declaration forms.
+          EXPORTS=$(grep -oE "^export (const|let|var|class|async function|function) [A-Za-z_][A-Za-z0-9_]+" "$AUTHUTILS" \
             | grep -oE "[A-Za-z_][A-Za-z0-9_]+$" | sort -u)
           EXPORT_BLOCK=$(grep -oE "^export \{[^}]+\}" "$AUTHUTILS" | grep -oE "[A-Za-z_][A-Za-z0-9_]+" || true)
           ALL_EXPORTS=$(echo -e "$EXPORTS\n$EXPORT_BLOCK" | sort -u)
