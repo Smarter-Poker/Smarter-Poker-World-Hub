@@ -1004,3 +1004,11 @@ TRAIN-WIRE-EMPTY-3d
 # TRAIN-WIRE-EMPTY-3e — pages/hub/training/challenges.js. "No Active Goals
 # Right Now" + TargetIcon block replaced with full TrainerEmptyState.
 TRAIN-WIRE-EMPTY-3e
+
+# ─── Phase-3 adoption: TrainerEmptyState batch 4 ────────────────────────────
+# TRAIN-WIRE-EMPTY-4a — pages/hub/training/leaderboard.js. TWO inline empty
+# states (friends list empty + timeframe data empty) both replaced with
+# TrainerEmptyState. Each preserves the existing CTA destination via window.
+# location.href since the original used <Link>; switching to a CTA prop keeps
+# the same UX. View=friends CTA: Find Friends. Default CTA: Start Training.
+TRAIN-WIRE-EMPTY-4a
