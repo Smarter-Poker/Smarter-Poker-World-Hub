@@ -2064,6 +2064,21 @@ export default function UserProfilePage() {
         .then(({ count }) => {
           if (count != null) setStats((prev) => ({ ...prev, posts: count }));
         });
+      // BUG FIX (2026-05-11 audit P1): prune local state when a sibling tab
+      // signals a specific deletion. Before this, deleting a live / reel /
+      // post in Tab 1 left the corresponding tile rendered in Tab 2 until
+      // manual refresh — the listener only re-fetched the post count.
+      if (msg?.deletedLiveId) {
+        setPastLives((prev) => prev.filter((l) => l.id !== msg.deletedLiveId));
+      }
+      if (msg?.deletedReelId) {
+        setReels((prev) => prev.filter((r) => r.id !== msg.deletedReelId));
+      }
+      if (msg?.deletedPostId) {
+        setPosts((prev) => prev.filter((p) => p.id !== msg.deletedPostId));
+        setPhotos((prev) => prev.filter((p) => p.id !== msg.deletedPostId));
+        setVideos((prev) => prev.filter((p) => p.id !== msg.deletedPostId));
+      }
     });
 
     // Cross-tab friends sync — refresh friend count/status when another tab changes friendships
@@ -3163,18 +3178,45 @@ export default function UserProfilePage() {
       console.warn('[App] Reel cleanup after post delete failed (non-fatal):', e?.message || e);
     }
 
-    // Defense in depth (2026-05-11) — also delete any live_streams row whose
+    // Defense in depth (2026-05-11) — also clean up any live_streams row whose
     // feed_post_id matched this post. The FK live_streams.feed_post_id ->
     // social_posts.id is ON DELETE SET NULL (not CASCADE), so a post-delete
     // would otherwise leave the live_streams row orphaned with feed_post_id=NULL
-    // — the past-lives tab still shows it and the replay still plays. RLS
-    // guard on broadcaster_id ensures only own streams are touched.
+    // — the past-lives tab still shows it and the replay still plays.
+    //
+    // BUG FIX (2026-05-11 audit P1, L2): route through /api/live/end-stream
+    // instead of an inline DELETE. Inline DELETE leaves the .mp4 in the
+    // live-recordings storage bucket orphaned because storage isn't governed
+    // by the FK. The endpoint does ownership verification, removes the .mp4,
+    // and deletes the row atomically. Same fix already in handleDeleteLive.
+    // RLS guard on broadcaster_id is preserved at the endpoint side.
     try {
-      await supabase
+      const { data: ownedStreams } = await supabase
         .from('live_streams')
-        .delete()
+        .select('id')
         .eq('feed_post_id', postId)
         .eq('broadcaster_id', currentUser?.id);
+      if (ownedStreams && ownedStreams.length) {
+        const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+        await Promise.all(
+          ownedStreams.map((s) =>
+            fetch('/api/live/end-stream', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              credentials: 'same-origin',
+              body: JSON.stringify({ stream_id: s.id, action: 'delete' }),
+            }).catch((err) => {
+              console.warn(
+                '[App] Live-stream endpoint delete failed (non-fatal):',
+                err?.message || err
+              );
+            })
+          )
+        );
+      }
     } catch (e) {
       console.warn(
         '[App] Live-stream cleanup after post delete failed (non-fatal):',
