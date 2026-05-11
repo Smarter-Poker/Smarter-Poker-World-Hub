@@ -216,6 +216,11 @@ DROP FUNCTION IF EXISTS public.geeves_upsert_missed_question(text, text, jsonb);
 DROP FUNCTION IF EXISTS public.increment_share_view(text);
 DROP FUNCTION IF EXISTS public.set_topic_cooldown(text, text, integer);
 DROP FUNCTION IF EXISTS public.fn_complete_media_upload(uuid, text);
+-- 20260314 shipped report_live_game with p_venue_id uuid, but
+-- live_games.venue_id is integer and clients send parseInt. The new
+-- (integer, uuid, ...) overload above is the real impl; this DROPs
+-- the leftover uuid-arg phantom stub.
+DROP FUNCTION IF EXISTS public.report_live_game(uuid, uuid, text, text, integer, integer, integer, text, text);
 
 -- No active callers (repo-wide .rpc() grep returned zero results)
 DROP FUNCTION IF EXISTS public.update_leaderboard_rankings(uuid);
