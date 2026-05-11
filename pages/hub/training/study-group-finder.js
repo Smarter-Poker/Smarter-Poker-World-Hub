@@ -16,6 +16,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-9b — adoption: shared empty-state primitive
 
 const MOCK_GROUPS = [
   {
@@ -536,9 +538,12 @@ export default function StudyGroupFinderPage() {
 
           {/* Group Cards */}
           {filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: '#334155', fontSize: 13 }}>
-              No groups match your filters.
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title="No groups match"
+              message="Try a different filter combination to find study groups."
+              compact
+            />
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filtered.map((g, i) => {

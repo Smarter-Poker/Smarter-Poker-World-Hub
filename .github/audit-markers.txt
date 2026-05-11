@@ -1095,3 +1095,12 @@ TRAIN-WIRE-FX-6a
 # fb.incorrect() right after `isCorrect = res !== 'wrong'` derives — covers
 # both 'correct' and 'close' as correct, 'wrong' and 'timeout' as incorrect.
 TRAIN-WIRE-FX-6b
+
+# ─── Phase-7 adoption: TrainerEmptyState batch 9 ────────────────────────────
+# TRAIN-WIRE-EMPTY-9a — pages/hub/training/replay-theater.js. "🎉 No mistakes
+# found" + dynamic message (sessions-vs-filters) replaced with compact
+# TrainerEmptyState variant="complete" with dynamic message.
+TRAIN-WIRE-EMPTY-9a
+# TRAIN-WIRE-EMPTY-9b — pages/hub/training/study-group-finder.js. "No groups
+# match your filters." inline div replaced with compact TrainerEmptyState.
+TRAIN-WIRE-EMPTY-9b

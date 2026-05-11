@@ -21,6 +21,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 // ── Phase 3+5 Engines: EV analysis + move classification for replay ─────
 import { calculateEVLoss, calculateActionEVs } from '../../../src/engines/EVCalculator';
 import { classifyMove } from '../../../src/engines/GTOScoreEngine';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-9a — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MISTAKE RECONSTRUCTION
@@ -565,17 +567,14 @@ export default function ReplayTheaterPage() {
             ))}
 
           {!loading && filteredMistakes.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#94a3b8' }}>
-                No mistakes found
-              </div>
-              <div style={{ fontSize: 11, marginTop: 4 }}>
-                {mistakes.length === 0
-                  ? 'Complete some training sessions first'
-                  : 'Try adjusting your filters'}
-              </div>
-            </div>
+            <TrainerEmptyState
+              variant="complete"
+              title="No mistakes found"
+              message={mistakes.length === 0
+                ? 'Complete some training sessions first.'
+                : 'Try adjusting your filters.'}
+              compact
+            />
           )}
         </div>
       </div>
