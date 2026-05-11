@@ -3,9 +3,18 @@
  * Host can manage members, schedule events, send announcements
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
+
+// Phase 41/audit-sweep-B-mgmt: module-level idempotency-token generator.
+// Used by the broadcast, DM, and ScheduleEventModal POSTs so a network
+// timeout-then-retry doesn't double-send / double-create. Falls back to a
+// time+random suffix when crypto.randomUUID is unavailable.
+function makeIdemKey() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart, List, Megaphone, MessageSquare } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import HomeGamesSeatReservation from '../../../../../src/components/home-games/HomeGamesSeatReservation';
@@ -27,6 +36,10 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
     notes: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  // Phase 41/audit-sweep-B-mgmt: idempotency token kept stable across
+  // retries until a 2xx or 4xx settles (then rotate). Network/5xx errors
+  // keep the token so a safe retry doesn't double-create the event.
+  const idemKeyRef = useRef(makeIdemKey());
 
   async function handleSubmit() {
     if (!eventData.scheduled_date) return;
@@ -40,7 +53,8 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': idemKeyRef.current,
         },
         body: JSON.stringify({
           group_id: group.id,
@@ -51,6 +65,13 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
           notes: eventData.notes
         })
       });
+
+      // Server saw and answered (2xx/4xx) → rotate the token so the next
+      // attempt is a fresh logical operation. Keep it on 5xx/network so
+      // the retry stays deduplicated.
+      if (res.ok || (res.status >= 400 && res.status < 500)) {
+        idemKeyRef.current = makeIdemKey();
+      }
 
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -263,6 +284,13 @@ export default function ManageHomeGamePage() {
   const [pageSlug, setPageSlug] = useState(null);
   const [pageUrlCopied, setPageUrlCopied] = useState(false);
 
+  // Phase 41/audit-sweep-B-mgmt: in-flight guard for the broadcast action.
+  // The button uses window.prompt() then POSTs, so a host who clicks twice
+  // can send the same announcement twice (with two prompts). The ref blocks
+  // re-entry until the first request settles. Pairs with X-Idempotency-Key
+  // so a timeout-then-retry doesn't double-send to N members either.
+  const broadcastingRef = useRef(false);
+
   // Phase 41 — seat reservation + host modals
   const [currentUserId, setCurrentUserId]   = useState(null);
   const [rosterPickerState, setRosterPickerState] = useState(null);
@@ -284,6 +312,10 @@ export default function ManageHomeGamePage() {
   }, []);
 
   // Start a direct message with a user
+  // Phase 41/audit-sweep-B-mgmt: idempotency-protected. If the server
+  // doesn't dedupe (host_user_id, target_user_id), a network retry could
+  // create a second DM session; the header lets a future server-side fix
+  // collapse retries deterministically.
   async function handleStartDm(targetUserId) {
     if (!targetUserId) return;
     try {
@@ -292,7 +324,8 @@ export default function ManageHomeGamePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': makeIdemKey(),
         },
         body: JSON.stringify({ target_user_id: targetUserId })
       });
@@ -1042,13 +1075,29 @@ export default function ManageHomeGamePage() {
                 </button>
                 <button
                   onClick={async () => {
+                    // Phase 41/audit-sweep-B-mgmt: block re-entry so a host who
+                    // taps Broadcast twice can't fire two independent prompts +
+                    // POSTs in parallel.
+                    if (broadcastingRef.current) {
+                      toast('A broadcast is already being sent…');
+                      return;
+                    }
                     const msg = window.prompt('Broadcast announcement to all group members:');
                     if (!msg?.trim()) return;
+                    broadcastingRef.current = true;
+                    // Fresh token per broadcast attempt. Reused only on 5xx /
+                    // network errors (retry path) so the second attempt is
+                    // deduplicated by the server if it honors the header.
+                    const idemKey = makeIdemKey();
                     try {
                       const token = getAccessToken();
                       const res = await fetch(`/api/commander/home-games/groups/${id}/broadcast`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`,
+                          'X-Idempotency-Key': idemKey,
+                        },
                         body: JSON.stringify({ message_text: msg.trim() })
                       });
                       const data = await res.json();
@@ -1059,6 +1108,7 @@ export default function ManageHomeGamePage() {
                         toast.error(data.error?.message || data.error || 'Broadcast failed');
                       }
                     } catch (e) { toast.error('Broadcast failed'); }
+                    finally { broadcastingRef.current = false; }
                   }}
                   className="cmd-panel p-4 flex flex-col items-center gap-2 hover:bg-[#1A2E4A] transition-colors text-center"
                 >
