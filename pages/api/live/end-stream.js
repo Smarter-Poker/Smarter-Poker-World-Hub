@@ -120,7 +120,26 @@ export default async function handler(req, res) {
         if (action === 'save') {
             // Mark live feed post as ended — stream is no longer live but saved privately
             await markFeedPostEnded(stream_id);
+
+            // STREAM-POLISH-R2 REC-1: defensively ensure status/ended_at
+            // are set. force_end (fired during endBroadcast via keepalive)
+            // normally writes these, but the keepalive request can fail
+            // silently (network blip, serverless cold start, browser
+            // beforeunload cancellation). Without this defense the stream
+            // sticks at status='live' indefinitely while the row is also
+            // marked is_draft=true — a contradictory state that surfaces
+            // in lobby queries and stale-cleanup crons.
+            //
+            // ended_at write is gated by .is('ended_at', null) so a real
+            // force_end timestamp is never clobbered with a later one
+            // (would shift stream-duration calculations forward).
+            await supabase.from('live_streams')
+                .update({ ended_at: new Date().toISOString() })
+                .eq('id', stream_id)
+                .is('ended_at', null);
+
             await supabase.from('live_streams').update({
+                status: 'ended',
                 is_posted: false,
                 is_draft: true,
             }).eq('id', stream_id);
@@ -174,8 +193,16 @@ export default async function handler(req, res) {
                 postId = post?.id;
             }
 
+            // STREAM-POLISH-R2 REC-1: defensively ensure status/ended_at
+            // are set (see save branch above for full rationale).
+            await supabase.from('live_streams')
+                .update({ ended_at: new Date().toISOString() })
+                .eq('id', stream_id)
+                .is('ended_at', null);
+
             // Update stream record — is_draft must be FALSE when posting publicly
             await supabase.from('live_streams').update({
+                status: 'ended',
                 is_posted: true,
                 is_draft: false,
             }).eq('id', stream_id);
