@@ -17,6 +17,8 @@ import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authU
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-3a — adoption: shared empty-state primitive
 
 const MOOD_OPTIONS = [
   { id: 'focused', emoji: '🎯', label: 'Focused' },
@@ -695,15 +697,12 @@ export default function SessionNotesPage() {
               )
               }
               {filtered.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#94a3b8' }}>
-                    No notes yet
-                  </div>
-                  <div style={{ fontSize: 11, marginTop: 4 }}>
-                    Switch to Write tab after your next session
-                  </div>
-                </div>
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No notes yet"
+                  message="Switch to the Write tab after your next session to start your journal."
+                  compact
+                />
               )}
               <AnimatePresence>
                 {filtered.map((note) => (

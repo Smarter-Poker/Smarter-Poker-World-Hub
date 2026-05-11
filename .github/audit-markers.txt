@@ -987,3 +987,20 @@ TRAIN-WIRE-EMPTY-2b
 # TRAIN-WIRE-EMPTY-2c — pages/hub/training/achievements.js. Replaces
 # user-branching inline div with TrainerEmptyState variant='no-data'|'locked'.
 TRAIN-WIRE-EMPTY-2c
+
+# ─── Phase-3 adoption: TrainerEmptyState batch 3 ────────────────────────────
+# TRAIN-WIRE-EMPTY-3a — pages/hub/training/session-notes.js. "📝 No notes yet"
+# inline block replaced with TrainerEmptyState compact no-data variant.
+TRAIN-WIRE-EMPTY-3a
+# TRAIN-WIRE-EMPTY-3b — pages/hub/training/my-playbook.js. "Your Playbook is
+# empty" 14-line block replaced with TrainerEmptyState (full size).
+TRAIN-WIRE-EMPTY-3b
+# TRAIN-WIRE-EMPTY-3c — pages/hub/training/glossary.js. "No matching terms"
+# + SearchIcon block replaced with compact TrainerEmptyState.
+TRAIN-WIRE-EMPTY-3c
+# TRAIN-WIRE-EMPTY-3d — pages/hub/training/gto-news.js. "No articles match
+# your filters." inline div replaced with compact TrainerEmptyState.
+TRAIN-WIRE-EMPTY-3d
+# TRAIN-WIRE-EMPTY-3e — pages/hub/training/challenges.js. "No Active Goals
+# Right Now" + TargetIcon block replaced with full TrainerEmptyState.
+TRAIN-WIRE-EMPTY-3e

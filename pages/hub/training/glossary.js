@@ -13,6 +13,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-3c — adoption: shared empty-state primitive
 
 
 // BUG FIX (TRAIN-GLOSSARY-A11Y-1): SVG icon components replacing emoji
@@ -543,13 +545,12 @@ export default function GlossaryPage() {
           ))}
 
           {filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
-              {/* TRAIN-GLOSSARY-A11Y-1: SVG search replaces 🔍 */}
-              <div style={{ display: 'inline-flex', marginBottom: 8, color: '#475569' }} aria-hidden>
-                <SearchIcon size={32} />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>No matching terms</div>
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title="No matching terms"
+              message="Try a different search or clear your filters."
+              compact
+            />
           )}
         </div>
       </div>

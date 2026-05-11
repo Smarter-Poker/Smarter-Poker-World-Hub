@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-3d — adoption: shared empty-state primitive
 
 const ARTICLES = [
   {
@@ -515,9 +517,12 @@ export default function GtoNewsPage() {
 
           {/* Articles */}
           {filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: '#334155', fontSize: 13 }}>
-              No articles match your filters.
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title="No articles match"
+              message="Try a different filter combination."
+              compact
+            />
           )}
           {filtered.map((a, i) => (
             <motion.div

@@ -18,6 +18,8 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-3e — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-CHALLENGES-A11Y-1): SVG icon components replacing the page's
 // emoji set (🎯 header / sign-in / empty-state, 📅 weekly badge, 📆 monthly
@@ -200,14 +202,11 @@ export default function ChallengesPage() {
               <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
             </div>
           ) : challenges.length === 0 ? (
-            <div style={styles.emptyState}>
-              {/* TRAIN-CHALLENGES-A11Y-1: SVG target replaces 🎯 fontSize:48 */}
-              <span style={{ display: 'inline-flex', color: '#9ca3af' }} aria-hidden>
-                <TargetIcon size={48} />
-              </span>
-              <p>No Active Goals Right Now</p>
-              <p style={styles.emptyHint}>Check Back Soon For New Challenges!</p>
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title="No active goals right now"
+              message="Check back soon for new challenges!"
+            />
           ) : (
             <div style={styles.challengeList}>
               {challenges.map((challenge, i) => {
