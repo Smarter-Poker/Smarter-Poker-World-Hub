@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-4a — adoption: feedback hook for spot-trainer.fresh.js
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -69,6 +71,7 @@ function HandBadge({ hand }) {
 export default function SpotTrainerPage() {
   const router = useRouter();
   const bus = useTrainingBus('spot-trainer');
+  const fb = useTrainingFeedback();
 
   // State
   const [spot, setSpot] = useState(null);
@@ -141,6 +144,7 @@ export default function SpotTrainerPage() {
       setTotalDrills((prev) => prev + 1);
 
       const isCorrect = action === spot.gtoAction;
+      if (isCorrect) fb.correct(); else fb.incorrect();
 
       // Record per-question detail for session granularity
       sessionHandHistory.current.push({

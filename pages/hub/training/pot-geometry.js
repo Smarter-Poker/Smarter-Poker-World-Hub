@@ -8,6 +8,8 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-4b — adoption: feedback hook for pot-geometry.fresh.js
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SPR ENGINE
@@ -247,6 +249,7 @@ function generateDrill() {
 export default function PotGeometry() {
   const router = useRouter();
   useTrainingBus('pot-geometry');
+  const fb = useTrainingFeedback();
 
   // Calculator mode
   const [stack, setStack] = useState(200);
@@ -284,6 +287,7 @@ export default function PotGeometry() {
       setSelected(option);
       setShowResult(true);
       const isCorrect = option === drill.cat.label;
+      if (isCorrect) fb.correct(); else fb.incorrect();
       const newTotal = total + 1;
       const newCorrect = correct + (isCorrect ? 1 : 0);
       setTotal(newTotal);
