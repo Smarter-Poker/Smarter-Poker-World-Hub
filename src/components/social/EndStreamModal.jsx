@@ -194,8 +194,17 @@ export function EndStreamModal({
             throw new Error('Your session expired. Please sign in again to save or post your stream.');
         }
 
-        // Use XHR for real upload progress instead of Supabase SDK
-        return new Promise((resolve, reject) => {
+        // STREAM-POLISH-R3 REC-RESILIENCE: retry up to 2x on network /
+        // 5xx errors. The XHR upload was previously single-shot — any
+        // mid-upload blip on a flaky connection forced the user to
+        // re-tap Post and re-upload the entire blob from scratch.
+        // x-upsert: 'true' makes retries safe (same filename, same
+        // bucket → overwrite previous partial bytes).
+        //
+        // 4xx errors (auth/quota/MIME) are NOT retried — they won't
+        // self-heal and we'd just waste another upload-worth of bytes.
+        const MAX_ATTEMPTS = 3;
+        const attempt = () => new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/live-recordings/${filename}`);
             xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
@@ -215,18 +224,40 @@ export function EndStreamModal({
 
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    // Build public URL
                     const { data: urlData } = supabase.storage
                         .from('live-recordings')
                         .getPublicUrl(filename);
                     resolve(urlData.publicUrl);
                 } else {
-                    reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
+                    // 4xx is not retryable; bubble immediately with retryable=false.
+                    const retryable = xhr.status >= 500 && xhr.status < 600;
+                    const err = new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`);
+                    err.retryable = retryable;
+                    reject(err);
                 }
             };
-            xhr.onerror = () => reject(new Error('Network error during upload'));
+            xhr.onerror = () => {
+                const err = new Error('Network error during upload');
+                err.retryable = true;
+                reject(err);
+            };
             xhr.send(videoBlob);
         });
+
+        let lastErr = null;
+        for (let i = 1; i <= MAX_ATTEMPTS; i++) {
+            try {
+                return await attempt();
+            } catch (err) {
+                lastErr = err;
+                if (!err.retryable || i === MAX_ATTEMPTS) break;
+                // Reset progress UI on retry so the user sees a fresh
+                // percentage instead of a stuck bar. Backoff 1s, 4s.
+                if (onProgress) onProgress(0);
+                await new Promise((r) => setTimeout(r, 1000 * (i * i)));
+            }
+        }
+        throw lastErr || new Error('Upload failed after retries');
     };
 
     /** Call the server-side endpoint for post/save/delete */
