@@ -256,3 +256,21 @@ TRAIN-PAGE-TRANSITION-1
 # pg_proc on the same date. Unblocks the deferred Session Setup popup
 # (issue #288) which needs these stats for the YOUR PERFORMANCE (30 DAYS) card.
 TRAIN-DB-DASHBOARD-1
+
+# ─── /hub/training — Session Setup popup (greenfield, closes #288) ──────────
+# TRAIN-SETUP-MODAL-1 — src/components/training/SessionSetupModal.jsx (new
+# component) + pages/hub/training.js (mount point). Mounts between a game-
+# tile click and the GodModeArena render. Surfaces session goal + 30-day
+# stats + difficulty/timer/training-mode pills + Start Training CTA per
+# the May 8 training-overhaul handoff (issue #288).
+#
+# Data sources:
+#   - training_dashboard_30day_stats RPC (TRAIN-DB-DASHBOARD-1)
+#   - training_dashboard_last_session RPC (TRAIN-DB-DASHBOARD-1)
+# Persistence: localStorage `sp-train-prefs-${gameId}` remembers last
+# difficulty / timer / mode pick.
+# Styling: uses sp-* utility classes from TRAIN-CSS-SWEEP-1 and
+# TRAIN-CSS-TYPO-1 so it inherits a11y + touch + reduced-motion guards.
+# A11y: role=dialog, aria-modal, aria-labelledby, ESC dismisses, focus
+# rings, pills are real <button role="radio" aria-checked> elements.
+TRAIN-SETUP-MODAL-1
