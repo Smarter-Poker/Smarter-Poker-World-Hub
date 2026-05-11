@@ -896,3 +896,13 @@ TRAIN-WIRE-PLAYCARD-3
 # (which is a 4×13 suit×rank button picker, NOT a card display) are unchanged.
 # Build-safe: no JSX comments inside conditionals.
 TRAIN-WIRE-PLAYCARD-4
+
+# ─── Phase-2 adoption: wire shared PlayingCard into three-way-postflop ──────
+# TRAIN-WIRE-PLAYCARD-5 — pages/hub/training/three-way-postflop.js. Replaces
+# the 22px Rajdhani text-stamp board render ({texture?.example || 'K 7 2'})
+# with a row of <PlayingCard size="md" priority /> built from the texture's
+# example string (e.g. 'K♠ 7♥ 2♦'). PlayingCard parses both unicode suit
+# glyphs (♠♥♦♣ → s/h/d/c via SUIT_FROM_SYMBOL) and lowercase suit chars.
+# Build-safe: no JSX comments inside conditionals; BOARD_TEXTURES data with
+# its unicode strings unchanged.
+TRAIN-WIRE-PLAYCARD-5

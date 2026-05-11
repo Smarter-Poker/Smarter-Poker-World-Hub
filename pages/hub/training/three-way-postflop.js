@@ -13,6 +13,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import PlayingCard from '../../../src/components/poker/PlayingCard';
+// TRAIN-WIRE-PLAYCARD-5 — adoption: three-way-postflop board via shared PlayingCard
 
 // ═══════════════════════════════════════════════════════════════════════════
 // POSITION/RANGE PRESETS
@@ -408,16 +410,13 @@ export default function ThreeWayPostflopPage() {
             >
               BOARD
             </div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 700,
-                color: '#e4e6eb',
-                letterSpacing: '0.15em',
-                fontFamily: "'Rajdhani', sans-serif",
-              }}
-            >
-              {texture?.example || 'K 7 2'}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+              {(texture?.example || 'Ks 7h 2d')
+                .split(/\s+/)
+                .filter(Boolean)
+                .map((c, i) => (
+                  <PlayingCard key={i} card={c} size="md" priority />
+                ))}
             </div>
           </div>
 
