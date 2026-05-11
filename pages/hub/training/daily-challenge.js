@@ -17,6 +17,8 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card, { parseCards, getCardImagePath } from '../../../src/components/training/Card';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-4d — adoption: feedback hook for daily-challenge.fresh.js
 
 /**
  * Convert abstract hand notation (A5s, KK, K5o) OR specific (Ah5s) to card objects.
@@ -152,6 +154,7 @@ function StreakCalendar({ completedDays }) {
 export default function DailyChallengePage() {
   const router = useRouter();
   const bus = useTrainingBus('daily-challenge');
+  const fb = useTrainingFeedback();
 
   const answerStartRef = useRef(Date.now());
 
@@ -241,6 +244,7 @@ export default function DailyChallengePage() {
 
       const correctAction = challenge.correct_answer || challenge.gto_action;
       const isCorrect = action === correctAction;
+      if (isCorrect) fb.correct(); else fb.incorrect();
 
       // Save to local storage
       const today = new Date().toISOString().split('T')[0];

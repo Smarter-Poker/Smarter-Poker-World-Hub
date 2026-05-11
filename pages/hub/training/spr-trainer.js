@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-4c — adoption: feedback hook for spr-trainer.fresh.js
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -119,6 +121,7 @@ const ACTION_CONFIG = {
 
 export default function SPRTrainer() {
   useTrainingBus('spr-trainer');
+  const fb = useTrainingFeedback();
   const router = useRouter();
 
   const [scenario, setScenario] = useState(null);
@@ -136,6 +139,7 @@ export default function SPRTrainer() {
       if (!scenario || choice !== null) return;
       setChoice(action);
       const isCorrect = action === correctAction;
+      if (isCorrect) fb.correct(); else fb.incorrect();
       setStats((prev) => {
         const next = { correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 };
         const accuracy = Math.round((next.correct / next.total) * 100);
