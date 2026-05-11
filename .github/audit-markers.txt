@@ -1012,3 +1012,12 @@ TRAIN-WIRE-EMPTY-3e
 # location.href since the original used <Link>; switching to a CTA prop keeps
 # the same UX. View=friends CTA: Find Friends. Default CTA: Start Training.
 TRAIN-WIRE-EMPTY-4a
+
+# ─── Phase-3 adoption: wire ProgressStrip into bluff-catcher ───────────────
+# TRAIN-WIRE-PROGRESS-1 — pages/hub/training/bluff-catcher.js. Replaces the
+# inline "SCENARIO N/M" infoBadge div with <ProgressStrip current total
+# correct bestStreak difficulty compact />. Score is divided by 10 to derive
+# correct count since each correct answer scores 10. Streak chip is read from
+# existing streak state. Difficulty pinned to "intermediate" (matches the
+# trainer's MDF level).
+TRAIN-WIRE-PROGRESS-1

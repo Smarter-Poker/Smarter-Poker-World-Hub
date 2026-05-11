@@ -9,6 +9,8 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+// TRAIN-WIRE-PROGRESS-1 — adoption: bluff-catcher in-play progress strip
 // TRAIN-WIRE-FX-1 — adoption: bluff-catcher answer + completion feedback (audio + haptics)
 // TRAIN-WIRE-PLAYCARD-1 — first adoption of shared PlayingCard
 
@@ -151,9 +153,15 @@ export default function BluffCatcherTrainer() {
         </div>
 
         <div style={styles.boardArea}>
-          <div style={styles.infoBadge}>
-            SCENARIO {currentScenarioIndex + 1}/{SCENARIOS.length}
-          </div>
+          <ProgressStrip
+            current={currentScenarioIndex + 1}
+            total={SCENARIOS.length}
+            correct={Math.floor(score / 10)}
+            bestStreak={streak}
+            difficulty="intermediate"
+            compact
+            style={{ marginBottom: 12 }}
+          />
 
           <div style={styles.scenarioDesc}>{scenario.description}</div>
 
