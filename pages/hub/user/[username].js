@@ -1610,7 +1610,13 @@ export default function UserProfilePage() {
                     // Reels
                     supabase.from('social_reels').select('id, video_url, caption, thumbnail_url, view_count, created_at').eq('author_id', socialId).order('created_at', { ascending: false }).limit(30),
                     // Past Lives (posted recordings only)
-                    supabase.from('live_streams').select('id, title, video_url, thumbnail_url, viewer_count, created_at').eq('broadcaster_id', socialId).eq('status', 'ended').eq('is_posted', true).not('video_url', 'is', null).order('created_at', { ascending: false }).limit(20),
+                    // BUG FIX (2026-05-11 audit): added feed_post_id so handleDeleteLive can
+                    // explicitly clean up the linked "X went live" social_posts entry on delete.
+                    // The live_streams.feed_post_id → social_posts.id FK is ON DELETE SET NULL
+                    // (not CASCADE), so without this id in scope the defense-in-depth cleanup
+                    // was a silent no-op — the past-live tile would disappear but the social
+                    // post would linger pointing at a now-deleted stream.
+                    supabase.from('live_streams').select('id, title, video_url, thumbnail_url, viewer_count, created_at, feed_post_id').eq('broadcaster_id', socialId).eq('status', 'ended').eq('is_posted', true).not('video_url', 'is', null).order('created_at', { ascending: false }).limit(20),
                 ];
 
                 const [postsData, photosData, videosData, reelsData, livesData] = await Promise.all(contentPromises);
@@ -2110,33 +2116,37 @@ export default function UserProfilePage() {
     // live_pins, live_signaling, live_bans, live_ban_audit) AND explicitly
     // delete the linked social_posts row (the "X went live" feed entry) since
     // the FK SET NULL leaves it behind. RLS-safety: only own streams.
-    const handleDeleteLive = async (liveId, feedPostId) => {
+    const handleDeleteLive = async (liveId /* feedPostId unused — endpoint handles it */) => {
         if (!liveId || !currentUser?.id) return;
-        if (typeof window !== 'undefined' && !window.confirm('Delete this live replay? Comments, reactions, and viewer history will also be removed. This cannot be undone.')) return;
+        if (typeof window !== 'undefined' && !window.confirm('Delete this live replay? Comments, reactions, viewer history, and the recording file will also be removed. This cannot be undone.')) return;
+        // BUG FIX (2026-05-11 audit): route through /api/live/end-stream?action=delete
+        // instead of inline Supabase deletes. That endpoint ALSO removes the .mp4
+        // from the live-recordings storage bucket — inline deletes left the file
+        // orphaned (the storage-GC cron would eventually clean it but not
+        // immediately). The endpoint does ownership verification, deletes the
+        // linked social_posts entry, deletes storage, deletes live_streams.
+        // Same path pages/hub/lives.js uses for draft-delete (proven).
         const prevLives = pastLives;
-        const prevStats = { ...stats };
         setPastLives(prev => prev.filter(l => l.id !== liveId));
-        setStats(prev => ({ ...prev, lives: Math.max(0, (prev.lives || 0) - 1) }));
-        const { error } = await supabase
-            .from('live_streams')
-            .delete()
-            .eq('id', liveId)
-            .eq('broadcaster_id', currentUser.id); // RLS-safety: only delete own streams
-        if (error) {
-            setPastLives(prevLives);
-            setStats(prevStats);
-            console.warn('Error deleting live stream:', error);
-            return;
-        }
-        // Also clean the "X went live" feed post so it doesn't linger in the
-        // social feed pointing at a now-deleted stream. FK SET NULL would
-        // leave it orphaned otherwise.
-        if (feedPostId) {
-            try {
-                await supabase.from('social_posts').delete().eq('id', feedPostId).eq('author_id', currentUser.id);
-            } catch (e) {
-                console.warn('[App] Feed-post cleanup after live delete failed (non-fatal):', e?.message || e);
+        try {
+            const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+            const resp = await fetch('/api/live/end-stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ stream_id: liveId, action: 'delete' }),
+            });
+            if (!resp.ok) {
+                const data = await resp.json().catch(() => ({}));
+                throw new Error(data.error || `HTTP ${resp.status}`);
             }
+        } catch (e) {
+            setPastLives(prevLives);
+            console.warn('[App] Error deleting live stream:', e?.message || e);
+            return;
         }
         invalidateProfileCache();
         busEmit.dataMutated('social');
