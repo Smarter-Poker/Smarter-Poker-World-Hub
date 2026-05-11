@@ -243,16 +243,44 @@ export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
     // BUG FIX: use a unique channel name per mount so React StrictMode double-invoke
     // and hot-reload don't create two subscribers on the same logical channel.
     // Supabase deduplicates by name — the second subscriber would silently drop events.
+    //
+    // STREAM-POLISH-R4 STORY-LIVE-1: throttle refetch to once per 5s.
+    // Previously every realtime event (including high-frequency
+    // viewer_count UPDATEs every ~5s per active stream) triggered an
+    // immediate loadLiveUsers() SELECT-all-live-streams. With N viewers
+    // browsing during M concurrent streams that scaled as N×M queries
+    // every few seconds. Throttle collapses bursts and serves freshness
+    // bounded at 5s, which is fine for the story-ring "is X live?"
+    // indicator — story rings don't need sub-second precision.
     useEffect(() => {
         if (!userId) return;
+        let lastFetchAt = 0;
+        let pendingTimer = null;
+        const THROTTLE_MS = 5000;
+        const throttledRefresh = () => {
+            const now = Date.now();
+            const elapsed = now - lastFetchAt;
+            if (elapsed >= THROTTLE_MS) {
+                lastFetchAt = now;
+                loadLiveUsers();
+            } else if (!pendingTimer) {
+                // Schedule a trailing-edge refresh so the last burst is captured.
+                pendingTimer = setTimeout(() => {
+                    pendingTimer = null;
+                    lastFetchAt = Date.now();
+                    loadLiveUsers();
+                }, THROTTLE_MS - elapsed);
+            }
+        };
         const channelName = `stories-live-monitor-${Date.now()}`;
         const ch = supabase
             .channel(channelName)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-                loadLiveUsers();
-            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, throttledRefresh)
             .subscribe();
-        return () => { supabase.removeChannel(ch); };
+        return () => {
+            if (pendingTimer) clearTimeout(pendingTimer);
+            supabase.removeChannel(ch);
+        };
     }, [userId]);
 
     const loadStories = async () => {
