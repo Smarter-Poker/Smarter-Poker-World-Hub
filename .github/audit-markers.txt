@@ -610,3 +610,16 @@ TRAIN-REPORTS-A11Y-1
 # Completion counter gains role="status". Title raised to <h1>. Same
 # surface-specific pattern as PR #320/#322/#324/#327-#343.
 TRAIN-COACH-A11Y-1
+
+# ─── /hub/training/autopilot — surface a11y + emoji→SVG ─────────────────────
+# TRAIN-AUTOPILOT-A11Y-1 — pages/hub/training/autopilot.js. Autopilot leak-
+# fix surface had eight SPOT_DEFINITIONS data emojis (🛡 🎯 💥 🔄 🏁 ⚡ ♠ 🏆),
+# 🧠 detection banner, 🎉 completion celebration, 📊 empty-state, and a
+# ← back arrow. Replacements: SVG SpotIcon discriminator (shield/target/
+# explosion/rotate/flag/bolt/spade/trophy) routed through new `iconKind`
+# field on each SPOT_DEFINITIONS row, plus standalone BrainIcon (banner),
+# CelebrateIcon (completion), ChartIcon (empty), BackArrowIcon (back).
+# Legacy `icon` emoji preserved. Back + start + bottom-CTA buttons gain
+# type+aria-label. Title raised to <h1>. Same surface-specific pattern as
+# PR #320/#322/#324/#327-#345.
+TRAIN-AUTOPILOT-A11Y-1
