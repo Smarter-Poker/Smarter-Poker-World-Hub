@@ -1,5 +1,5 @@
 /**
- * 🎯 TRAINING CHALLENGES PAGE
+ * TRAINING CHALLENGES PAGE
  * ═══════════════════════════════════════════════════════════════════════════
  * Weekly and Monthly Goals with diamond rewards
  * ═══════════════════════════════════════════════════════════════════════════
@@ -18,6 +18,68 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+
+// BUG FIX (TRAIN-CHALLENGES-A11Y-1): SVG icon components replacing the page's
+// emoji set (🎯 header / sign-in / empty-state, 📅 weekly badge, 📆 monthly
+// badge, 💎 diamond reward, ✅ claimed badge). Emojis read inconsistently
+// across screen readers and don't theme via currentColor. Same surface-
+// specific a11y pattern as PR #320/#322/#324/#327/#328.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+
+function TargetIcon({ size = 22 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  );
+}
+function CalendarIcon({ size = 14 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+function CalendarMonthIcon({ size = 14 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <rect x="7" y="13" width="4" height="4" rx="0.5" />
+      <rect x="13" y="13" width="4" height="4" rx="0.5" />
+    </svg>
+  );
+}
+function DiamondIcon({ size = 16 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M6 3h12l4 6-10 12L2 9z" />
+      <path d="M11 3 8 9l4 12 4-12-3-6" />
+      <path d="M2 9h20" />
+    </svg>
+  );
+}
+function CheckIcon({ size = 16 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
 
 export default function ChallengesPage() {
   useTrainingBus('challenges');
@@ -68,7 +130,7 @@ export default function ChallengesPage() {
         );
         busEmit.diamondsEarned(data.diamondsAwarded, `Challenge: ${challenge.title}`);
         busEmit.celebration('confetti');
-        alert(`🎉 +${data.diamondsAwarded} diamonds claimed!`);
+        alert(`+${data.diamondsAwarded} diamonds claimed!`);
       }
     } catch (error) {
       console.warn('Claim error:', error);
@@ -93,7 +155,10 @@ export default function ChallengesPage() {
           <UniversalHeader pageDepth={2} />
           <div style={styles.content}>
             <div style={styles.signInPrompt}>
-              <span style={{ fontSize: 48 }}>🎯</span>
+              {/* TRAIN-CHALLENGES-A11Y-1: SVG target replaces 🎯 fontSize:48 */}
+              <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
+                <TargetIcon size={48} />
+              </span>
               <h2>Sign In To Track Goals</h2>
               <p>Complete Weekly And Monthly Goals To Earn Diamonds!</p>
               <Link href="/auth/signup" style={styles.signInBtn}>
@@ -119,16 +184,27 @@ export default function ChallengesPage() {
         <div style={styles.content}>
           {/* Header */}
           <div style={styles.header}>
-            <h1 style={styles.title}>🎯 Your Goals</h1>
+            {/* TRAIN-CHALLENGES-A11Y-1: semantic h1 + SVG target icon */}
+            <h1 style={styles.title}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center', color: '#00E0FF' }}>
+                <TargetIcon size={26} />
+                Your Goals
+              </span>
+            </h1>
             <p style={styles.subtitle}>Complete Challenges To Earn Diamond Rewards</p>
           </div>
 
           {/* Loading */}
           {loading ? (
-            <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
+            <div role="status" aria-label="Loading challenges">
+              <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
+            </div>
           ) : challenges.length === 0 ? (
             <div style={styles.emptyState}>
-              <span style={{ fontSize: 48 }}>🎯</span>
+              {/* TRAIN-CHALLENGES-A11Y-1: SVG target replaces 🎯 fontSize:48 */}
+              <span style={{ display: 'inline-flex', color: '#9ca3af' }} aria-hidden>
+                <TargetIcon size={48} />
+              </span>
               <p>No Active Goals Right Now</p>
               <p style={styles.emptyHint}>Check Back Soon For New Challenges!</p>
             </div>
@@ -138,6 +214,7 @@ export default function ChallengesPage() {
                 const progress = getProgressPercent(challenge);
                 const isComplete = progress >= 100;
                 const canClaim = isComplete && !challenge.claimed;
+                const isWeekly = challenge.period === 'weekly';
 
                 return (
                   <motion.div
@@ -151,9 +228,13 @@ export default function ChallengesPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
                   >
-                    {/* Badge */}
+                    {/* TRAIN-CHALLENGES-A11Y-1: SVG calendar icon replaces 📅 / 📆.
+                        Period label remains the readable 'Weekly' / 'Monthly'. */}
                     <div style={styles.typeBadge}>
-                      {challenge.period === 'weekly' ? '📅 Weekly' : '📆 Monthly'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {isWeekly ? <CalendarIcon size={12} /> : <CalendarMonthIcon size={12} />}
+                        {isWeekly ? 'Weekly' : 'Monthly'}
+                      </span>
                     </div>
 
                     {/* Title */}
@@ -162,7 +243,15 @@ export default function ChallengesPage() {
 
                     {/* Progress Bar */}
                     <div style={styles.progressContainer}>
-                      <div style={styles.progressTrack}>
+                      {/* TRAIN-CHALLENGES-A11Y-1: progress now a proper progressbar */}
+                      <div
+                        style={styles.progressTrack}
+                        role="progressbar"
+                        aria-label={`${challenge.title} progress`}
+                        aria-valuenow={Math.round(progress)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      >
                         <motion.div
                           style={{
                             ...styles.progressFill,
@@ -183,17 +272,29 @@ export default function ChallengesPage() {
                     {/* Reward + Action */}
                     <div style={styles.rewardRow}>
                       <div style={styles.reward}>
-                        <span>💎</span>
-                        <span style={styles.rewardAmount}>{challenge.diamonds}</span>
+                        {/* TRAIN-CHALLENGES-A11Y-1: SVG diamond replaces 💎 */}
+                        <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
+                          <DiamondIcon size={16} />
+                        </span>
+                        <span style={styles.rewardAmount} aria-label={`${challenge.diamonds} diamonds`}>{challenge.diamonds}</span>
                       </div>
 
                       {challenge.claimed ? (
-                        <span style={styles.claimedBadge}>✅ Claimed</span>
+                        <span style={styles.claimedBadge}>
+                          {/* TRAIN-CHALLENGES-A11Y-1: SVG check replaces ✅ */}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <CheckIcon size={14} />
+                            Claimed
+                          </span>
+                        </span>
                       ) : canClaim ? (
+                        /* TRAIN-CHALLENGES-A11Y-1: type+aria on claim button */
                         <button
+                          type="button"
                           onClick={() => claimReward(challenge)}
                           disabled={claiming === challenge.id}
                           style={styles.claimBtn}
+                          aria-label={`Claim ${challenge.diamonds} diamonds for ${challenge.title}`}
                         >
                           {claiming === challenge.id ? 'Claiming...' : 'Claim Reward'}
                         </button>
