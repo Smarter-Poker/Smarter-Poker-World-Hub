@@ -7,6 +7,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import PlayingCard from '../../../src/components/poker/PlayingCard';
+// TRAIN-WIRE-PLAYCARD-1 — first adoption of shared PlayingCard
 
 // Pseudo-MDF based bluff-catching scenarios
 const SCENARIOS = [
@@ -157,11 +159,19 @@ export default function BluffCatcherTrainer() {
           <div style={styles.cardsRow}>
             <div style={styles.cardGroup}>
               <div style={styles.cardGroupLabel}>BOARD</div>
-              <div style={styles.boardCards}>{scenario.board}</div>
+              <div style={{ ...styles.boardCards, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {scenario.board.split(/\s+/).filter(Boolean).map((c, i) => (
+                  <PlayingCard key={'b'+i} card={c} size="md" priority />
+                ))}
+              </div>
             </div>
             <div style={styles.cardGroup}>
               <div style={styles.cardGroupLabel}>HERO CARDS</div>
-              <div style={styles.heroCards}>{scenario.heroHand}</div>
+              <div style={{ ...styles.heroCards, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {scenario.heroHand.split(/\s+/).filter(Boolean).map((c, i) => (
+                  <PlayingCard key={'h'+i} card={c} size="md" highlighted priority />
+                ))}
+              </div>
             </div>
           </div>
 

@@ -852,3 +852,14 @@ TRAIN-FEEDBACK-FX-1
 # Migration file checked in because the live Supabase MCP connection timed
 # out — apply via supabase db push or psql -f.
 TRAIN-DATA-ROLLUPS-1
+
+# ─── First adoption: wire shared PlayingCard into bluff-catcher ─────────────
+# TRAIN-WIRE-PLAYCARD-1 — pages/hub/training/bluff-catcher.js. Replaces the
+# inline unicode-string card rendering (e.g. {scenario.board} as a single
+# styled <div>'A♠ K♦ 7♣ 4♥ 2♠') with a row of <PlayingCard /> components.
+# Board cards use size=md priority. Hero cards use size=md highlighted
+# priority. Demonstrates the adoption pattern for the remaining trainers.
+# Build-safe: no JSX comments inside conditionals, the existing SCENARIOS
+# data still contains card-suit glyphs (♠♣♦♥) in string literals which is
+# the same form that was on main pre-patch.
+TRAIN-WIRE-PLAYCARD-1
