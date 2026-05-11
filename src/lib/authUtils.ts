@@ -390,11 +390,35 @@ export async function authedFetch(url: string, options: RequestInit = {}): Promi
 }
 
 /**
- * useAuthUser — React hook alias for getAuthUser().
- * Returns the current authenticated user synchronously, or null.
+ * useAuthUser — React hook that exposes the current auth user.
+ * Returns { user, checking } — never null, never throws on destructure.
+ * SSG-safe: returns { user: null, checking: false } when window is undefined.
+ *
+ * Consumers (pages/hub/social-pages/index.js, [pageId].js) do:
+ *   const { user } = useAuthUser();
+ * Previously returned getAuthUser() directly which was null during SSG
+ * prerender, causing "Cannot destructure property 'user' of null" build error.
  */
-export function useAuthUser() {
-    return getAuthUser();
+export function useAuthUser(): { user: any; checking: boolean } {
+    if (typeof window === 'undefined') {
+        return { user: null, checking: false };
+    }
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const React = require('react');
+        const [user, setUser] = React.useState<any>(null);
+        const [checking, setChecking] = React.useState(true);
+
+        React.useEffect(() => {
+            setUser(getAuthUser());
+            setChecking(false);
+        }, []);
+
+        return { user, checking };
+    } catch {
+        // Fallback if React hooks unavailable (e.g. called outside component tree)
+        return { user: getAuthUser(), checking: false };
+    }
 }
 
 /**
