@@ -1098,21 +1098,29 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     };
 
     const handleShare = async () => {
+        // STREAM-BUG-3: while LIVE, the broadcaster's "share" action should pop
+        // the in-app friend picker (GuestInviteModal) so they can DM the stream
+        // to friends inside the app — not OS share sheet that surfaces iMessage,
+        // WhatsApp, etc. The internal picker also reuses the live-stream invite
+        // code, which generates an in-app deep link that re-opens the stream.
+        if (guestInviteCode) {
+            setGuestInviteModalOpen(true);
+            return;
+        }
+        // Fallback (pre-live or post-live, no invite code yet) — clipboard only.
+        // Deliberately skip navigator.share even when available: Dan was clear
+        // that external messengers should not be surfaced from the live UI.
         const url = `${window.location.origin}/hub/social-media?stream=${streamId}`;
         try {
-            if (navigator.share) {
-                await navigator.share({ title: title || 'Live Stream', url });
-            } else {
-                await navigator.clipboard.writeText(url);
-                // BUG FIX (GLM-3): use dedicated toast state + tracked timer, not error state
-                if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
-                setShareToast('Link copied to clipboard!');
-                shareToastTimerRef.current = setTimeout(() => {
-                    shareToastTimerRef.current = null;
-                    setShareToast('');
-                }, 2500);
-            }
-        } catch { /* ignore user cancel */ }
+            await navigator.clipboard.writeText(url);
+            // BUG FIX (GLM-3): use dedicated toast state + tracked timer, not error state
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+            setShareToast('Link copied to clipboard!');
+            shareToastTimerRef.current = setTimeout(() => {
+                shareToastTimerRef.current = null;
+                setShareToast('');
+            }, 2500);
+        } catch { /* ignore */ }
     };
 
     const handleToggleMute = async () => {
