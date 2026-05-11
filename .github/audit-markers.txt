@@ -334,3 +334,13 @@ TRAIN-FEEDBACK-SNAPSHOT-1
 #   - XP chip gets role="status" + aria-label and tabular numerals.
 # Visible surface, no other touches.
 TRAIN-SKILL-TREE-A11Y-1
+
+# ─── /hub/training/progress — surface a11y + emoji→SVG ──────────────────────
+# TRAIN-PROGRESS-A11Y-1 — pages/hub/training/progress.js. Personal progress
+# dashboard had 5 emoji StatCard icons (text/checkmark/target/clock/flame)
+# and 3 emoji section title prefixes (📚 books / improve / 📅 calendar).
+# Replaced all with a new StatIcon component (Lucide-style SVGs keyed by
+# `kind`, currentColor inheritance) and routed StatCard via a new
+# `iconKind` prop with back-compat fallback for the legacy `icon` text
+# prop. Same pattern as TRAIN-SKILL-TREE-A11Y-1.
+TRAIN-PROGRESS-A11Y-1
