@@ -290,6 +290,8 @@ export default function ManageHomeGamePage() {
   // re-entry until the first request settles. Pairs with X-Idempotency-Key
   // so a timeout-then-retry doesn't double-send to N members either.
   const broadcastingRef = useRef(false);
+  // bug-hunt-zero/B-MGR-7: re-entry guard for the irreversible delete-group action.
+  const deletingGroupRef = useRef(false);
 
   // Phase 41 — seat reservation + host modals
   const [currentUserId, setCurrentUserId]   = useState(null);
@@ -634,6 +636,14 @@ export default function ManageHomeGamePage() {
   async function handleDeleteGroup() {
     if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) return;
 
+    // bug-hunt-zero/B-MGR-7: in-flight guard. The confirm dialog → fetch
+    // window is long enough that a frustrated user might double-tap OK.
+    // Without this, two parallel DELETE requests fire — the second 404s
+    // and the user sees an "already deleted" error that came from their
+    // own first request.
+    if (deletingGroupRef.current) return;
+    deletingGroupRef.current = true;
+
     setDeleteError(null);
     try {
         const token = getAccessToken();
@@ -642,8 +652,12 @@ export default function ManageHomeGamePage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      // Parse the response body once and check both error paths
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't delete group (${res.status})`;
+        throw new Error(msg);
+      }
       if (data.success) {
         busEmit.dataMutated('home-games');
         router.push('/hub/commander/home-games');
@@ -652,7 +666,9 @@ export default function ManageHomeGamePage() {
       }
     } catch (error) {
       console.warn('Delete group failed:', error);
-      setDeleteError('Failed to delete group');
+      setDeleteError(error && error.message ? error.message : 'Failed to delete group');
+    } finally {
+      deletingGroupRef.current = false;
     }
   }
 
@@ -668,13 +684,27 @@ export default function ManageHomeGamePage() {
         body: JSON.stringify(newSettings)
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success || data.group) {
+      // bug-hunt-zero/B-MGR-8: was silently failing. Now we (a) surface
+      // server errors to the user via toast, and (b) prefer the
+      // server-canonical group from data.group rather than blindly
+      // merging the client's newSettings — server may clamp/normalize
+      // values (e.g. trim a name, coerce booleans). If only data.success
+      // came back, fall back to the optimistic merge since we have no
+      // other source of truth.
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't update settings (${res.status})`;
+        throw new Error(msg);
+      }
+      if (data.group) {
+        setGroup(data.group);
+      } else if (data.success) {
         setGroup(prev => ({ ...prev, ...newSettings }));
       }
+      toast.success('Settings updated');
     } catch (error) {
       console.warn('Update settings failed:', error);
+      toast.error(error && error.message ? error.message : 'Failed to update settings');
     }
   }
 
