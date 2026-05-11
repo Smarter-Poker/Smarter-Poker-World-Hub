@@ -201,12 +201,12 @@ export default function StudyGroupRoom() {
                       }}
                     />
                     {p.name}{' '}
-                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces 👑 */}
-                    {p.role === 'Admin' && (
+                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces 👑 — ternary form (SWC parser in next 16.2.4 chokes on JSX-inside-&&-paren here, even with comment outside; see PR #362, #364, and build logs from dpl_HJeXm). */}
+                    {p.role === 'Admin' ? (
                       <span style={{ color: '#fbbf24', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
                         <CrownIcon size={12} />
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 ))}
                 <button type="button" aria-label="Generate invite link" style={styles.inviteBtn}>+ Invite Link</button>
