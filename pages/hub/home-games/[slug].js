@@ -26,6 +26,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken, getSafeUser } from '../../../src/lib/authUtils';
 import HomeGamesSeatReservation from '../../../src/components/home-games/HomeGamesSeatReservation';
+import { safeCopyToClipboard } from '../../../src/lib/clipboard';
 
 const GAME_TYPE_LABELS = {
   nlh: "No-Limit Hold'em",
@@ -351,17 +352,14 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
   const jsonLd = buildJsonLd(data);
 
+  // bug-hunt-zero/B-SLUG-1: refactored to use the shared clipboard util.
+  // The previous code awaited the promise (good) but had no execCommand
+  // fallback, so non-secure / unfocused contexts always returned "Copy Failed"
+  // even though the textarea-based fallback would have succeeded.
   const copyShareUrl = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(shareUrl);
-        setCopyState('Copied!');
-        setTimeout(() => setCopyState(''), 2000);
-      }
-    } catch (e) {
-      setCopyState('Copy Failed');
-      setTimeout(() => setCopyState(''), 2000);
-    }
+    const ok = await safeCopyToClipboard(shareUrl);
+    setCopyState(ok ? 'Copied!' : 'Copy Failed');
+    setTimeout(() => setCopyState(''), 2000);
   };
 
   return (

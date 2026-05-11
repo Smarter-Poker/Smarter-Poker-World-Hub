@@ -12,6 +12,7 @@ import PlayerRating from '../../../../src/components/commander/home-games/Player
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
+import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
 
 // Phase 41/bug-hunt-zero: idempotency-token generator. Used on every
 // state-changing POST in this page so a timeout-then-retry doesn't
@@ -456,11 +457,18 @@ export default function HomeGameDetailPage() {
   }
 
   // Copy invite code
-  function copyInviteCode() {
-    if (group?.invite_code) {
-      navigator.clipboard.writeText(group.invite_code);
+  // bug-hunt-zero/B-ID-8: was silently failing in non-HTTPS / iframe / no-permission
+  // contexts. The async path checks success and falls back to execCommand; total
+  // failure shows the code so the user can copy manually.
+  async function copyInviteCode() {
+    const code = group?.invite_code;
+    if (!code) return;
+    const ok = await safeCopyToClipboard(code);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error(`Couldn't copy. Code: ${code}`);
     }
   }
 

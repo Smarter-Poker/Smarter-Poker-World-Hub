@@ -25,6 +25,7 @@ import { useRequireAuth, getAccessToken, getSafeUser } from '../../../../../src/
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
 import { toast } from 'react-hot-toast';
+import { safeCopyToClipboard } from '../../../../../src/lib/clipboard';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -1291,11 +1292,18 @@ export default function ManageHomeGamePage() {
                     {group?.invite_code || 'N/A'}
                   </code>
                   <button
-                    onClick={() => {
-                      if (group?.invite_code) {
-                        navigator.clipboard.writeText(group.invite_code);
+                    onClick={async () => {
+                      // bug-hunt-zero/B-MGR-9: was lying to the user on copy
+                      // failure. Uses safeCopyToClipboard so the "Copied!"
+                      // state only fires after we know the write succeeded.
+                      const code = group?.invite_code;
+                      if (!code) return;
+                      const ok = await safeCopyToClipboard(code);
+                      if (ok) {
                         setCopySuccess(true);
                         setTimeout(() => setCopySuccess(false), 2000);
+                      } else {
+                        toast.error(`Couldn't copy. Code: ${code}`);
                       }
                     }}
                     className="cmd-btn cmd-btn-primary px-4 py-3"
@@ -1331,10 +1339,16 @@ export default function ManageHomeGamePage() {
                           smarter.poker/hub/home-games/{pageSlug}
                         </code>
                         <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(`https://smarter.poker/hub/home-games/${pageSlug}`);
-                            setPageUrlCopied(true);
-                            setTimeout(() => setPageUrlCopied(false), 2000);
+                          onClick={async () => {
+                            // bug-hunt-zero/B-MGR-10: same fix for the public page URL.
+                            const url = `https://smarter.poker/hub/home-games/${pageSlug}`;
+                            const ok = await safeCopyToClipboard(url);
+                            if (ok) {
+                              setPageUrlCopied(true);
+                              setTimeout(() => setPageUrlCopied(false), 2000);
+                            } else {
+                              toast.error(`Couldn't copy. URL: ${url}`);
+                            }
                           }}
                           className="cmd-btn cmd-btn-primary px-4 py-3 whitespace-nowrap"
                         >
