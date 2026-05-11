@@ -45,6 +45,27 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
             // long streams. Refresh before sending so viewer gifting after
             // 1+ hour of watching doesn't 401.
             const token = (await getFreshAccessToken()) || getAccessToken();
+
+            // STREAM-POLISH-R3 GIFT-1 (client): generate a stable
+            // idempotency_key for this gift attempt. The server uses it
+            // as the deduct/credit reference + live_gifts.id upsert key,
+            // so a network retry (fetch interrupted by network blip,
+            // browser auto-retry) won't double-charge the sender. Key
+            // is scoped to a single tap; if the user taps Send again
+            // after a failure that gets reported back, that's a separate
+            // gift with its own key.
+            let idempotencyKey;
+            if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+                idempotencyKey = crypto.randomUUID();
+            } else {
+                // RFC-4122 v4 fallback for older browsers without crypto.randomUUID.
+                idempotencyKey = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    const r = (Math.random() * 16) | 0;
+                    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+                    return v.toString(16);
+                });
+            }
+
             const resp = await fetch('/api/live/gift', {
                 method: 'POST',
                 headers: {
@@ -52,7 +73,12 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ stream_id: streamId, receiver_id: receiverId, amount: selected }),
+                body: JSON.stringify({
+                    stream_id: streamId,
+                    receiver_id: receiverId,
+                    amount: selected,
+                    idempotency_key: idempotencyKey,
+                }),
             });
             let data;
             try {
