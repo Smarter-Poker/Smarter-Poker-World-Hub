@@ -661,3 +661,17 @@ TRAIN-PROFILES-A11Y-1
 # AlertIcon (worst venue). Legacy `icon` emoji prop preserved as fallback.
 # Same surface-specific pattern as PR #320/#322/#324/#327-#352.
 TRAIN-JARVIS-A11Y-1
+
+# ─── /hub/training/community-leaderboard — surface a11y polish ──────────────
+# TRAIN-COMMUNITY-A11Y-1 — pages/hub/training/community-leaderboard.js.
+# Community GTO leaderboard had four CATEGORY tab emojis (🏆 overall, 🃏
+# preflop, 🎯 postflop, 🔥 streaks), three medal podium emojis (🥇🥈🥉),
+# and a ← back arrow. Replacements: CategoryIcon discriminator (trophy/
+# cards/target/flame) routed through new iconKind field on each CATEGORY;
+# MedalIcon (color-tinted gold/silver/bronze) replaces medal emoji array;
+# BackArrowIcon replaces ←. Period toggle + category tab buttons gain
+# type=button; podium medals gain per-rank role="img" + aria-label
+# (First/Second/Third place). Title raised to <h1>. Legacy `icon` emoji
+# preserved on CATEGORIES. Same surface-specific pattern as PR #320/
+# #322/#324/#327-#355.
+TRAIN-COMMUNITY-A11Y-1
