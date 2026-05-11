@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-8a — adoption: shared empty-state primitive
 
 const CARDS = [
   // Original 30
@@ -656,12 +658,13 @@ export default function FlashcardsPage() {
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>All Caught Up!</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>
-                You've reviewed all due cards for this category today.
-              </div>
+            <div>
+              <TrainerEmptyState
+                variant="complete"
+                title="All caught up"
+                message="You've reviewed all due cards for this category today."
+                compact
+              />
               {/* Mastery Progress */}
               <div
                 style={{
