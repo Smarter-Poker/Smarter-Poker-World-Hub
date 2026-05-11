@@ -563,3 +563,13 @@ TRAIN-NEWS-A11Y-1
 # #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337/
 # #338/#339.
 TRAIN-AGGREGATE-A11Y-1
+
+# ─── /hub/training/bankroll-coach — surface a11y polish ─────────────────────
+# TRAIN-BANKROLL-A11Y-1 — pages/hub/training/bankroll-coach.js. Bankroll
+# impact coach surface had a ← back entity, a 💰 empty-state emoji, and
+# unlabeled stakes-selector + CTA buttons. Replacements: BackArrowIcon
+# (back), DollarIcon (empty state). Stakes buttons gain type+aria-pressed
+# + per-stake aria-label. "Fix My Leaks" and "Start Training" CTA buttons
+# gain type+aria-label. Title raised to <h1>. Same surface-specific
+# pattern as PR #320/#322/#324/#327-#340.
+TRAIN-BANKROLL-A11Y-1
