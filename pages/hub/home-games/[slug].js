@@ -176,16 +176,35 @@ function buildJsonLd(data) {
         organizer: host
           ? { '@type': 'Person', name: host.display_name }
           : undefined,
-        offers: g.buyin_min
+        offers: g.buyin_min != null
           ? {
             '@type': 'Offer',
             price: g.buyin_min,
             priceCurrency: 'USD',
             availability: g.max_players && (g.rsvp_yes || 0) < g.max_players
               ? 'https://schema.org/InStock'
-              : 'https://schema.org/SoldOut',
+              : g.max_players
+                ? 'https://schema.org/SoldOut'
+                : 'https://schema.org/InStock',
             url: canonicalUrl,
           }
+          : undefined,
+        // Dan-fix/tournament-jsonld: tournaments get extra schema fields
+        // that improve Google Rich Results eligibility for events with a
+        // hard registration cap. maximumAttendeeCapacity is a recognized
+        // schema.org property; remainingAttendeeCapacity is a Google
+        // extension for events with a partial fill.
+        maximumAttendeeCapacity: g.format === 'tournament' && g.max_players
+          ? g.max_players
+          : undefined,
+        remainingAttendeeCapacity: g.format === 'tournament' && g.max_players
+          ? Math.max(0, g.max_players - (g.rsvp_yes || 0))
+          : undefined,
+        // Tournaments also benefit from a more specific name pattern that
+        // search engines can parse for "[buy-in] [structure] tournament"
+        // intent. Falls back to the simple title for cash games.
+        about: g.format === 'tournament'
+          ? `Live poker tournament${g.structure ? ` (${g.structure})` : ''}${g.buyin_min != null ? ` — $${g.buyin_min} buy-in` : ''}`
           : undefined,
       };
     });

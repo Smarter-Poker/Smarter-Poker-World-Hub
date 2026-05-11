@@ -837,22 +837,31 @@ export default function ManageHomeGamePage() {
 
         {/* Content */}
         <main className="max-w-4xl mx-auto px-4 py-6">
-          {/* Events Tab */}
-          {activeTab === 'events' && (
-            <div className="space-y-4">
-              {events.length === 0 ? (
-                <div className="cmd-panel p-8 text-center">
-                  <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                  <p className="text-[#64748B]">No Games Scheduled</p>
-                  <button
-                    onClick={() => setShowScheduleModal(true)}
-                    className="mt-4 cmd-btn cmd-btn-primary"
-                  >
-                    Schedule a Game
-                  </button>
-                </div>
-              ) : (
-                events.map((event) => {
+          {/* Events Tab — Dan-fix/tournament-dedup: filter tournaments OUT
+              of the cash-games list (they live on the Tournaments tab now).
+              Belt-and-braces: filter by format='tournament' AND by id-set so
+              even if the events API doesn't return format, tournament rows
+              are still excluded by id. */}
+          {activeTab === 'events' && (() => {
+            const tournamentIds = new Set((tournaments || []).map((t) => t.id));
+            const cashEvents = (events || []).filter(
+              (e) => e.format !== 'tournament' && !tournamentIds.has(e.id)
+            );
+            return (
+              <div className="space-y-4">
+                {cashEvents.length === 0 ? (
+                  <div className="cmd-panel p-8 text-center">
+                    <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                    <p className="text-[#64748B]">No Games Scheduled</p>
+                    <button
+                      onClick={() => setShowScheduleModal(true)}
+                      className="mt-4 cmd-btn cmd-btn-primary"
+                    >
+                      Schedule a Game
+                    </button>
+                  </div>
+                ) : (
+                  cashEvents.map((event) => {
                   const eventDate = new Date(event.scheduled_date);
                   return (
                     <div
@@ -954,8 +963,9 @@ export default function ManageHomeGamePage() {
                   );
                 })
               )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {/* Tournaments Tab — Dan-fix/tournament-buildout
               Add / Edit / Cancel for tournament events. Tournaments persist
