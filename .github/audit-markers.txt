@@ -430,3 +430,17 @@ TRAIN-STREAKS-A11Y-1
 # external API consumer still reading the old shape. Same surface-specific
 # pattern as PR #320/#322/#324/#327/#328/#329/#330.
 TRAIN-MILESTONES-A11Y-1
+
+# ─── /hub/training/training-feed — surface a11y + emoji→SVG ─────────────────
+# TRAIN-FEED-A11Y-1 — pages/hub/training/training-feed.js. Social activity
+# feed had five emoji icons in EVENT_TYPES (🎯 session, 🔥 streak, 🏆
+# achievement, ⭐ mastery, 📊 leaderboard), an empty-state 📡 antenna, a 👤
+# "self" avatar fallback, and a bare ← back button. Replacements: new
+# EventIcon discriminator switches on a `iconKind` field added to each
+# EVENT_TYPES entry; UserSvg, AntennaSvg, and BackArrowSvg cover the
+# remaining standalone emojis. Legacy `icon` emoji string preserved on
+# every event type. Back + Challenge + Filter buttons gain explicit
+# type="button"; back gains aria-label. Page title raised to <h1>. Filter
+# row gains role="tablist". Loading wrapper gains role="status". Same
+# surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331.
+TRAIN-FEED-A11Y-1
