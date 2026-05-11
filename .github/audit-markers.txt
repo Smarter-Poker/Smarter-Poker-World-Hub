@@ -863,3 +863,15 @@ TRAIN-DATA-ROLLUPS-1
 # data still contains card-suit glyphs (♠♣♦♥) in string literals which is
 # the same form that was on main pre-patch.
 TRAIN-WIRE-PLAYCARD-1
+
+# ─── Phase-2 adoption: wire shared PlayingCard into blind-defense ────────────
+# TRAIN-WIRE-PLAYCARD-3 — pages/hub/training/blind-defense.js. Replaces the
+# two motion.div hero-card boxes (built from scenario.hand[i].r + .s + .c with
+# manual ♥/♦ color check + 90×130 white background + bottom-right rotated
+# rank/suit) with two <PlayingCard rank suit size="xl" priority /> components
+# preserving the existing rotate(-5deg) / rotate(5deg) entry transform. The
+# enter-animation (motion x/opacity/rotate) was the framer-motion wrapper; the
+# steady-state visual is now the shared deck PNG. Build-safe: no JSX comments
+# inside conditionals; SUITS/RANKS arrays still contain unicode glyphs in
+# string-literal form (same as main).
+TRAIN-WIRE-PLAYCARD-3
