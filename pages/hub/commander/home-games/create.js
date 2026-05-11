@@ -75,6 +75,16 @@ export default function CreateHomeGamePage() {
   const [logoError, setLogoError] = useState(null);
   const logoInputRef = useRef(null);
 
+  // Phase 41/audit-fix-B9: idempotency token kept stable across retries.
+  // We rotate it after the server confirms a 2xx OR returns a parseable 4xx
+  // (= it processed our input and rejected it). Network errors / 5xx keep
+  // the token so a retry doesn't create a duplicate group if the original
+  // request actually succeeded server-side.
+  const makeToken = () => (typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'tok_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+  const submissionTokenRef = useRef(makeToken());
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -131,6 +141,26 @@ export default function CreateHomeGamePage() {
 
   function updateField(field, value) {
     setFormData(prev => ({ ...prev, [field]: value }));
+  }
+
+  // Phase 41/audit-fix-B1+B3: gate the Step 2 Continue button so users
+  // can't advance with broken Game Setup. Server would reject these too,
+  // but failing fast at the step boundary keeps the UX honest.
+  function isStep2Valid() {
+    const min = Number(formData.min_buyin);
+    const max = Number(formData.max_buyin);
+    if (!Number.isFinite(min) || min < 0) return false;
+    if (!Number.isFinite(max) || max <= 0) return false;
+    if (max <= min) return false;
+    if (formData.tables_count === 1) {
+      if (formData.stakes === 'Custom' && !(formData.custom_stakes || '').trim()) return false;
+      return true;
+    }
+    if (!Array.isArray(formData.tables) || formData.tables.length !== formData.tables_count) return false;
+    return formData.tables.every(t =>
+      !!t && !!t.game_type && !!t.stakes &&
+      (t.stakes !== 'Custom' || (t.custom_stakes || '').trim().length > 0)
+    );
   }
 
   // ── PHASE 17: LOGO UPLOAD HANDLER ─────────────────────────────────
@@ -205,8 +235,15 @@ export default function CreateHomeGamePage() {
       }
       const token = getAccessToken();
 
-      // Map form fields to API/DB column names
-      const resolvedStakes = formData.stakes === 'Custom' ? formData.custom_stakes : formData.stakes;
+      // Map form fields to API/DB column names.
+      // Phase 41/audit-fix-B4: when multi-table, the "default" surfaced on
+      // group cards is whatever Table 1 carries — keep it in sync so the rest
+      // of the app doesn't show a stale single-table value.
+      const isMultiTable = formData.tables_count > 1 && Array.isArray(formData.tables) && formData.tables.length > 0;
+      const primaryGameType = isMultiTable ? formData.tables[0].game_type : formData.game_type;
+      const primaryStakesRaw = isMultiTable ? formData.tables[0].stakes : formData.stakes;
+      const primaryCustomStakes = isMultiTable ? (formData.tables[0].custom_stakes || '') : formData.custom_stakes;
+      const resolvedStakes = primaryStakesRaw === 'Custom' ? primaryCustomStakes : primaryStakesRaw;
       const payload = {
         name: formData.name.trim(),
         description: formData.description,
@@ -217,7 +254,7 @@ export default function CreateHomeGamePage() {
         zip_code: formData.zip_code || undefined,
         latitude: formData.approximate_lat || undefined,
         longitude: formData.approximate_lng || undefined,
-        default_game_type: formData.game_type,
+        default_game_type: primaryGameType,
         default_stakes: resolvedStakes,
         typical_buyin_min: formData.min_buyin,
         typical_buyin_max: formData.max_buyin,
@@ -246,12 +283,31 @@ export default function CreateHomeGamePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          // Phase 41/audit-fix-B9: opportunistic idempotency. Server may not
+          // honor it yet, but sending it now means once it does, retries
+          // after a flaky network won't duplicate the group.
+          'X-Idempotency-Key': submissionTokenRef.current,
         },
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      // Rotate the token on 2xx (success) or 4xx (server saw & rejected our input).
+      // Keep it on 5xx / network errors so a safe retry doesn't duplicate.
+      if (res.ok || (res.status >= 400 && res.status < 500)) {
+        submissionTokenRef.current = makeToken();
+      }
+
+      // Phase 41/audit-fix-B8: surface the server's error message when present,
+      // not a generic "Connection error" that hides 400s from the user.
+      if (!res.ok) {
+        let serverMsg = '';
+        try {
+          const errBody = await res.json();
+          serverMsg = errBody?.error?.message || (typeof errBody?.error === 'string' ? errBody.error : '') || errBody?.message || '';
+        } catch (_) { /* not JSON */ }
+        throw new Error(serverMsg || `Request failed (${res.status})`);
+      }
       const data = await res.json();
 
       if (data.success || data.group) {
@@ -271,7 +327,9 @@ export default function CreateHomeGamePage() {
         setError(data.error?.message || (typeof data.error === 'string' ? data.error : null) || 'Failed to create group');
       }
     } catch (err) {
-      setError('Connection error. Please try again.');
+      // Phase 41/audit-fix-B8: keep the specific message when we have one;
+      // fall back to generic only on true network errors (no message).
+      setError(err && err.message ? err.message : 'Connection error. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -482,8 +540,15 @@ export default function CreateHomeGamePage() {
                         type="button"
                         onClick={() => {
                           setFormData((prev) => {
+                            // Phase 41/audit-fix-B2/B5: stable IDs for React keys (prevents
+                            // focus-jump and state-bleed when array length shrinks). Existing
+                            // rows are preserved; only new slots get a fresh ID.
+                            const makeId = () => (typeof crypto !== 'undefined' && crypto.randomUUID
+                              ? crypto.randomUUID()
+                              : 'tbl_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
                             const nextTables = n > 1
                               ? Array.from({ length: n }, (_, i) => prev.tables[i] || {
+                                  id: makeId(),
                                   game_type: i === 0 ? prev.game_type : 'nlhe',
                                   stakes: i === 0 ? prev.stakes : '$1/$2',
                                   custom_stakes: '',
@@ -506,6 +571,11 @@ export default function CreateHomeGamePage() {
                       ? 'Single table — pick the game type and stakes below.'
                       : `Running ${formData.tables_count} tables — set the game type and stakes for each table below.`}
                   </p>
+                  {formData.tables_count > 1 && (
+                    <p className="text-[10px] text-[#64748B]/70 mt-1 italic">
+                      Tip: reducing the count will discard the higher-numbered tables' settings.
+                    </p>
+                  )}
                 </div>
 
                 {formData.tables_count === 1 && (
@@ -566,7 +636,7 @@ export default function CreateHomeGamePage() {
                 {formData.tables_count > 1 && (
                   <div className="space-y-3">
                     {formData.tables.map((tbl, idx) => (
-                      <div key={idx} className="p-4 rounded-lg border border-[#4A5E78]/40 bg-[#0D192E] space-y-3">
+                      <div key={tbl.id || `tbl-fallback-${idx}`} className="p-4 rounded-lg border border-[#4A5E78]/40 bg-[#0D192E] space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold text-[#22D3EE]">Table {idx + 1}</span>
                         </div>
@@ -705,7 +775,9 @@ export default function CreateHomeGamePage() {
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  className="cmd-btn cmd-btn-primary flex-1 h-12 transition-colors"
+                  disabled={!isStep2Valid()}
+                  title={isStep2Valid() ? '' : 'Fix the highlighted fields to continue'}
+                  className="cmd-btn cmd-btn-primary flex-1 h-12 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue
                 </button>
