@@ -501,7 +501,13 @@ class LiveStreamService {
 
         console.debug(`[LiveKit] Reconnect attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
 
-        await new Promise(r => setTimeout(r, RECONNECT_DELAY_MS * this.reconnectAttempts));
+        // BUG-FIX-DEEP-AUDIT-R4 RECON-2: exponential backoff replaces
+        // the prior linear backoff (RECONNECT_DELAY_MS * attempts =
+        // 2/4/6/8/10s). Linear hammers a struggling LiveKit server too
+        // hard. 2s/4s/8s/16s/32s gives the server time to recover on
+        // longer outages while still being snappy for transient blips.
+        const backoffMs = RECONNECT_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1);
+        await new Promise(r => setTimeout(r, backoffMs));
 
         try {
             const { token, url } = await this._getToken(this.currentStreamId, this.isBroadcaster, this.guestInviteCode);

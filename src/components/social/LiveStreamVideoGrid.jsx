@@ -11,6 +11,12 @@ const TrackVideo = ({ track, style }) => {
         };
     }, [track]);
 
+    // BUG-FIX-DEEP-AUDIT-R4 VG-1: remote participants must NOT be
+    // mirrored. The mirror-flip is a self-preview convention (so the user
+    // sees themselves the way they're used to in a mirror). Applied to
+    // remote video, it shows everyone else's video reversed — text on
+    // shirts, hand gestures, anything they put on camera ends up
+    // left-right swapped. Only the local self-preview gets scaleX(-1).
     return (
         <video 
             ref={videoRef} 
@@ -19,7 +25,7 @@ const TrackVideo = ({ track, style }) => {
             playsInline 
             disablePictureInPicture 
             controls={false} 
-            style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', ...style }} 
+            style={{ width: '100%', height: '100%', objectFit: 'cover', ...style }} 
         />
     );
 };
