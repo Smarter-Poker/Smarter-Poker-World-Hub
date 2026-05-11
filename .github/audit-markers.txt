@@ -371,3 +371,17 @@ TRAIN-LEADERBOARD-A11Y-1
 # while preserving its original inline style chrome. Visible surface only,
 # no logic changes.
 TRAIN-DAILY-CHALLENGE-A11Y-1
+
+# ─── /hub/training/achievements — surface a11y + emoji→SVG ──────────────────
+# TRAIN-ACHIEVEMENTS-A11Y-1 — pages/hub/training/achievements.js. The training
+# achievements page surface had seven emoji icons (🏅 header, 🎯 🔥 📚 👑
+# category map, 🏆 ach-card fallback, ✓ unlocked marker) and an unlabeled
+# share button. Replacements: new MedalIcon (header), CategoryIcon (renders
+# by kind: accuracy/streak/volume/mastery), TrophyIcon (ach-card fallback),
+# CheckIcon (unlocked). Share button gets type="button" + per-achievement
+# aria-label '"Share '${ach.name}' achievement to your feed"'. Stat counters
+# gain role="status" so screen readers announce updates after SESSION_END
+# refetch. Skeleton wrapper gets role="status" + aria-label. Progress bars
+# gain role="progressbar" with aria-valuenow/min/max. Filter row gets
+# role="tablist". Same surface-specific pattern as PR #320/#322/#324/#327.
+TRAIN-ACHIEVEMENTS-A11Y-1
