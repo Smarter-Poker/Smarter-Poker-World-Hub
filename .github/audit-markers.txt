@@ -758,3 +758,16 @@ TRAIN-TPP-A11Y-1
 # This unblocks subsequent PRs that replace inline unicode-string card
 # rendering across all 89 training surfaces with the shared component.
 TRAIN-PLAYCARD-1
+
+# ─── Shared ActionButton — GTO-Wizard 4-button display ──────────────────────
+# TRAIN-ACTIONBTN-1 — src/components/poker/ActionButton.jsx (new). Shared
+# React component for poker action buttons (Fold / Check / Call / Bet /
+# Raise / All-in) modeled on GTO Wizard's 4-button display. Six action
+# themes with distinct colors. Three size presets (sm/md/lg) — md uses
+# 44+px touch target. Optional amount sub-line ("Call 100"), keyboard
+# shortcut chip (e.g. 1/2/3/4), selected (last-chosen) ring, recommended
+# (solver-optimal) glow, disabled state. Includes <ActionButtonRow> for
+# equal-flex layout. Parent owns global keydown wiring — this just renders
+# the kbd hint chip. Build-safe: no emoji chars, no JSX comments in
+# conditional expressions.
+TRAIN-ACTIONBTN-1
