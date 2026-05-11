@@ -54,6 +54,34 @@ function useGoogleMaps() {
             };
         }
 
+        // Dan-fix/maps-3 (B-MAPS-BILLING-1): proactive billing check.
+        // gm_authFailure only fires for INVALID_KEY-class auth errors. When
+        // billing is DISABLED on the Google Cloud Project, the JS bundle
+        // loads fine, the map renders, and THEN Google injects an intrusive
+        // "This page can't load Google Maps correctly" modal on top of the
+        // tiles plus a "For development purposes only" watermark. Neither
+        // gm_authFailure nor onerror catches that. We probe the static-map
+        // endpoint with the same key BEFORE letting the live map mount.
+        // If we get a 403, we set error early and the React fallback renders
+        // instead of a broken-looking map.
+        (async () => {
+            try {
+                const probeUrl = 'https://maps.googleapis.com/maps/api/staticmap?center=0,0&zoom=1&size=1x1&key=' + GOOGLE_MAPS_KEY;
+                const probe = await fetch(probeUrl, { method: 'GET', cache: 'no-store' });
+                if (probe.status === 403) {
+                    setError(
+                        'Google Maps is not configured to load on this site. ' +
+                        'Please enter your city and state manually below — ' +
+                        'your home game will save normally.'
+                    );
+                    return;
+                }
+            } catch (_e) {
+                // Network error — don't block the live map from trying. The
+                // gm_authFailure hook still catches auth-class failures.
+            }
+        })();
+
         if (window.google?.maps) {
             setLoaded(true);
             return;
