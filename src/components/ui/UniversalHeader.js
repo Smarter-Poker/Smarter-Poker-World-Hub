@@ -177,7 +177,7 @@ export default function UniversalHeader({
     // Because user/isVip are initialized synchronously from localStorage,
     // the FIRST post-mount render (when isMounted flips true) already has
     // cached data — so there is zero visual flash despite the gate.
-    const displayAvatar = isMounted ? (user?.avatar || contextAvatar?.url || '/default-avatar.png') : null;
+    const displayAvatar = isMounted ? (contextAvatar?.imageUrl || user?.avatar || '/default-avatar.png') : null;
     const isVipDisplay = isMounted ? (isVip || contextVip) : false;
     const safeUnreadCount = isMounted ? unreadCount : 0;
     const safeNotificationCount = isMounted ? notificationCount : 0;

@@ -822,34 +822,13 @@ export function GoLiveModal({
 
   const captureThumbnail = () => {
     if (!videoRef.current) return null;
-    // STREAM-POLISH-R2 THUMB-1: don't mirror the captured thumbnail.
-    //
-    // The preview <video> is CSS-flipped (scaleX(-1)) only when
-    // isMirrored=true (front camera). The underlying videoRef pixel
-    // data is the RAW un-mirrored camera feed — same as what LiveKit
-    // publishes to viewers. Previously this canvas applied an
-    // unconditional `ctx.scale(-1, 1)` flip, which baked a mirror into
-    // the saved thumbnail. Result: in the feed, the thumbnail showed
-    // a mirrored frame (text backwards, faces reversed) while the
-    // actual live video was un-mirrored — a confusing mismatch.
-    //
-    // Fix: draw the video as-is. The thumbnail now matches what
-    // viewers see when they tap in.
-    //
-    // STREAM-POLISH-R2 THUMB-2: skip capture if the video element
-    // hasn't reported real dimensions yet. videoWidth=0 means the
-    // metadata hasn't loaded; the previous code fell back to 640x360
-    // and painted an empty frame, producing a black thumbnail. Better
-    // to return null so handleGoLive logs the skip and the stream
-    // goes live without a thumbnail than to ship a black one.
-    const vw = videoRef.current.videoWidth;
-    const vh = videoRef.current.videoHeight;
-    if (!vw || !vh) return null;
     const canvas = document.createElement('canvas');
-    canvas.width = vw;
-    canvas.height = vh;
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 360;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoRef.current, 0, 0, vw, vh);
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', 0.8);
   };
 
@@ -871,43 +850,25 @@ export function GoLiveModal({
       console.warn(`[GoLive] thumbnail too large: ${file.size} bytes; skipping upload`);
       return null;
     }
-    // STREAM-POLISH-R3 THUMB-3: retry up to 3x on transient failures.
-    // Supabase storage occasionally returns 503 / network errors during
-    // brief regional hiccups; without retry, a one-off blip ships the
-    // stream thumbnail-less. Backoff 250ms, 500ms. We do NOT retry on
-    // 4xx (auth/permission/MIME-disallow) — those won't fix themselves.
-    const ext = file.name.split('.').pop();
-    const path = `live-thumbnails/${user.id}/${Date.now()}.${ext}`;
-    const MAX_ATTEMPTS = 3;
-    let lastErr = null;
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      try {
-        const { error: uploadErr } = await supabase.storage
-          .from('live-recordings')
-          .upload(path, file, { contentType: file.type, upsert: true });
-        if (uploadErr) throw uploadErr;
-        const { data } = supabase.storage.from('live-recordings').getPublicUrl(path);
-        return data.publicUrl;
-      } catch (err) {
-        lastErr = err;
-        const msg = err?.message || String(err);
-        // 4xx is not retryable — fail fast on auth/permission/MIME issues.
-        if (/40[0-9]|41[0-8]|UNAUTHORIZED|FORBIDDEN|InvalidMime/i.test(msg)) {
-          break;
-        }
-        if (attempt < MAX_ATTEMPTS) {
-          await new Promise((r) => setTimeout(r, 250 * attempt));
-        }
-      }
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `live-thumbnails/${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('live-recordings')
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (uploadErr) throw uploadErr;
+      const { data } = supabase.storage.from('live-recordings').getPublicUrl(path);
+      return data.publicUrl;
+    } catch (err) {
+      // BUG-FIX-DEEP-AUDIT-R5 SLM-1: louder logging. Includes the
+      // bucket name + MIME so a future allowlist regression is
+      // immediately diagnosable from the console.
+      console.warn(
+        `[GoLive] thumbnail upload failed (bucket=live-recordings mime=${file.type}):`,
+        err?.message || err
+      );
+      return null;
     }
-    // BUG-FIX-DEEP-AUDIT-R5 SLM-1: louder logging. Includes the bucket
-    // name + MIME so a future allowlist regression is immediately
-    // diagnosable from the console. Now also includes attempt count.
-    console.warn(
-      `[GoLive] thumbnail upload failed after ${MAX_ATTEMPTS} attempts (bucket=live-recordings mime=${file.type}):`,
-      lastErr?.message || lastErr
-    );
-    return null;
   };
 
   const startRecording = () => {
