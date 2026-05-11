@@ -25,6 +25,15 @@ const C = {
 
 const COMMENTS_PER_PAGE = 50;
 
+// BUG-FIX-DEEP-AUDIT-R4 LSV-14: cap the local comments buffer. Realtime
+// INSERTs used to append unboundedly; on a popular stream with 100
+// comments/sec, the array grew to thousands of nodes and React's diff
+// for the comments list became visibly laggy after ~10 minutes. Once
+// the buffer exceeds this cap, drop the oldest entries. The user can
+// still pull older comments via loadMoreComments (which uses
+// `oldest.created_at` cursor — works fine even after trimming).
+const MAX_COMMENT_BUFFER = COMMENTS_PER_PAGE * 4;  // 200
+
 export function LiveStreamViewer({ stream, userId, user, onClose }) {
     // BUG-FIX-LIVE-7+8 (viewer side): same viewport hardening as the
     // broadcaster modal — locks meta tag to maximum-scale=1, listens for
@@ -84,6 +93,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const mediaRecorderRef = useRef(null);
     const recordedChunksRef = useRef([]); // BUG FIX: was missing, caused "recordedChunksRef is not defined" crash
     const [isClipping, setIsClipping] = useState(false);
+    // BUG-FIX-DEEP-AUDIT-R4 LSV-10: clip-buffering is now opt-in.
+    // Previously a MediaRecorder started passively on EVERY viewer
+    // session, recording the remote broadcaster's stream continuously
+    // (last 60s sliding window) without user consent, without any UI
+    // indicator, even for anonymous viewers. That's a privacy issue
+    // (recording someone else's content silently) AND a battery/CPU hit
+    // on mobile. The user now explicitly arms the buffer with the
+    // "Enable Clip" toggle; nothing is recorded until they do.
+    const [clipBufferArmed, setClipBufferArmed] = useState(false);
     const [participants, setParticipants] = useState([]); // FEATURE 6: Split-screen state
     // BUG FIX (L7): track the active giftFlash timer so a new gift arrival
     // cancels the previous one instead of racing to clear the display.
@@ -275,7 +293,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                         ? payload.new : c
                                 );
                             }
-                            return [...prev, payload.new];
+                            // BUG-FIX-DEEP-AUDIT-R4 LSV-14: cap buffer.
+                            // Drop oldest when over MAX_COMMENT_BUFFER.
+                            const next = [...prev, payload.new];
+                            return next.length > MAX_COMMENT_BUFFER
+                                ? next.slice(next.length - MAX_COMMENT_BUFFER)
+                                : next;
                         });
                     }
                 )
@@ -308,9 +331,21 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     }, 4000);
 
                     // Feature 5: Update Top Gifters Leaderboard
+                    //
+                    // BUG-FIX-DEEP-AUDIT-R4 LSV-13: aggregate by sender_id
+                    // rather than sender_name. Two gifters with the same
+                    // display name were previously fused into one row,
+                    // contradicting the server-side /api/live/gifts
+                    // endpoint which (post round-2 G-1) aggregates by
+                    // user_id. The legacy `topGifters` shape is an
+                    // object keyed by name and used elsewhere in this
+                    // file, so we keep it but only fall back to name
+                    // when sender_id is absent. Newer streams will all
+                    // have sender_id present.
                     setTopGifters(prev => {
-                        const currentAmount = prev[payload.sender_name] || 0;
-                        return { ...prev, [payload.sender_name]: currentAmount + payload.amount };
+                        const key = payload.sender_id || payload.sender_name;
+                        const currentAmount = prev[key] || 0;
+                        return { ...prev, [key]: currentAmount + payload.amount };
                     });
                 }
             }).subscribe();
@@ -331,7 +366,18 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     if (payload.new?.comment_id) {
                         const { data: comment } = await supabase.from('live_comments')
                             .select('*').eq('id', payload.new.comment_id).maybeSingle();
-                        if (comment) setPinnedComment(comment);
+                        // BUG-FIX-DEEP-AUDIT-R4 LSV-9: pinned comment
+                        // must respect blocklist. Without this, a
+                        // broadcaster could pin a comment from a user
+                        // who blocked this viewer (or whom this viewer
+                        // blocked) and the comment would appear in the
+                        // pinned slot, bypassing the realtime/insert
+                        // and initial-load block filtering.
+                        if (comment && !blockedSetRef.current?.has(comment.user_id)) {
+                            setPinnedComment(comment);
+                        } else {
+                            setPinnedComment(null);
+                        }
                     }
                 })
                 .subscribe();
@@ -345,7 +391,16 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     if (pin?.comment_id) {
                         const { data: comment } = await supabase.from('live_comments')
                             .select('*').eq('id', pin.comment_id).maybeSingle();
-                        if (comment) setPinnedComment(comment);
+                        // BUG-FIX-DEEP-AUDIT-R4 LSV-9: same blocklist
+                        // guard on initial-load path. blockedSetRef is
+                        // populated by the pre-fetch above; if it
+                        // hasn't resolved yet (race on slow networks),
+                        // the Set is empty so we permissively show the
+                        // pin. Real-time INSERT will correct it once
+                        // the block-set lands.
+                        if (comment && !blockedSetRef.current?.has(comment.user_id)) {
+                            setPinnedComment(comment);
+                        }
                     }
                 });
         }
@@ -400,30 +455,65 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         if (!isConnecting && pendingStreamRef.current && videoRef.current) {
             videoRef.current.srcObject = pendingStreamRef.current;
             videoRef.current.play().catch(() => {});
-            
-            // Feature 3: Start background recording for Clip It (last 60s)
-            try {
-                recordedChunksRef.current = [];
-                const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
-                const mr = new MediaRecorder(pendingStreamRef.current, { mimeType: mime });
-                mr.ondataavailable = (e) => {
-                    if (e.data.size > 0) {
-                        recordedChunksRef.current.push(e.data);
-                        // Keep only approx last 60 chunks (assuming 1 chunk per second)
-                        if (recordedChunksRef.current.length > 60) {
-                            recordedChunksRef.current.shift();
-                        }
-                    }
-                };
-                mr.start(1000); // 1 second chunks
-                mediaRecorderRef.current = mr;
-            } catch (err) {
-                console.warn('[ClipIt] Failed to start MediaRecorder:', err);
-            }
-
+            // BUG-FIX-DEEP-AUDIT-R4 LSV-10: do NOT auto-start MediaRecorder
+            // here. The clip-buffer is now opt-in (see clipBufferArmed
+            // effect below). Previously every viewer recorded the remote
+            // stream continuously without consent.
             pendingStreamRef.current = null;
         }
     }, [isConnecting]);
+
+    // BUG-FIX-DEEP-AUDIT-R4 LSV-10: clip-buffer driven by clipBufferArmed.
+    // When the user toggles "Enable Clip" on, this effect starts a
+    // MediaRecorder against the current remote stream and maintains a
+    // ~60s sliding window of chunks. When the user toggles it off (or
+    // the component unmounts, or the stream changes), the recorder is
+    // stopped and the buffer cleared.
+    useEffect(() => {
+        if (!clipBufferArmed) return;
+        // BUG-FIX-DEEP-AUDIT-R4 LSV-11: anon viewers can't save clips
+        // because storage RLS requires auth.uid() in the path. Refuse
+        // to even start the buffer in that case — cleaner than
+        // recording 60s then erroring on upload.
+        if (!userId) {
+            setClipBufferArmed(false);
+            return;
+        }
+        const stream = remoteStream || pendingStreamRef.current;
+        if (!stream) return;
+
+        let recorder = null;
+        try {
+            recordedChunksRef.current = [];
+            const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+                ? 'video/webm;codecs=vp9,opus'
+                : 'video/webm';
+            recorder = new MediaRecorder(stream, { mimeType: mime });
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    recordedChunksRef.current.push(e.data);
+                    // Keep only the last ~60s (1 chunk/sec).
+                    if (recordedChunksRef.current.length > 60) {
+                        recordedChunksRef.current.shift();
+                    }
+                }
+            };
+            recorder.start(1000);
+            mediaRecorderRef.current = recorder;
+        } catch (err) {
+            console.warn('[ClipIt] Failed to start MediaRecorder:', err);
+            setClipBufferArmed(false);
+            return;
+        }
+
+        return () => {
+            try {
+                if (recorder && recorder.state !== 'inactive') recorder.stop();
+            } catch (_) {}
+            mediaRecorderRef.current = null;
+            recordedChunksRef.current = [];
+        };
+    }, [clipBufferArmed, remoteStream, userId]);
 
     // Cleanup MediaRecorder on unmount
     useEffect(() => {
@@ -436,7 +526,27 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
     // Feature 3: Handle Clip It
     const handleClipIt = async () => {
-        if (!mediaRecorderRef.current || recordedChunksRef.current.length === 0 || isClipping) return;
+        // BUG-FIX-DEEP-AUDIT-R4 LSV-11: anon viewers cannot save clips
+        // (storage RLS requires auth.uid() in path). The button should
+        // be disabled in the UI for anon, but defend the handler too.
+        if (!userId) {
+            setShareToast('Sign in to save clips');
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+            shareToastTimerRef.current = setTimeout(() => setShareToast(''), 2500);
+            return;
+        }
+        // BUG-FIX-DEEP-AUDIT-R4 LSV-10: explicit guard for the case where
+        // the user hits Clip It before arming the buffer. Tells them what
+        // to do rather than silently doing nothing.
+        if (!mediaRecorderRef.current || recordedChunksRef.current.length === 0) {
+            setShareToast(clipBufferArmed
+                ? 'Buffer still filling — try again in a moment'
+                : 'Enable Clip first to start buffering');
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+            shareToastTimerRef.current = setTimeout(() => setShareToast(''), 2500);
+            return;
+        }
+        if (isClipping) return;
         setIsClipping(true);
         try {
             const blob = new Blob(recordedChunksRef.current, { type: mediaRecorderRef.current.mimeType });
@@ -455,7 +565,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             window.open(draftUrl, '_blank');
         } catch (err) {
             console.error('Clip It Error:', err);
-            alert('Failed to create clip.');
+            setShareToast('Failed to create clip');
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+            shareToastTimerRef.current = setTimeout(() => setShareToast(''), 2500);
         } finally {
             setIsClipping(false);
         }
@@ -1013,20 +1125,61 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     </div>
                 )}
 
-                {/* Feature 3: Clip It */}
-                <div style={{ position: 'absolute', bottom: 120, right: 16, zIndex: 20 }}>
-                    <button
-                        onClick={handleClipIt}
-                        disabled={isClipping}
-                        style={{
-                            background: 'rgba(250,56,62,0.85)', border: 'none', color: 'white',
-                            padding: '8px 14px', borderRadius: 8, cursor: isClipping ? 'not-allowed' : 'pointer',
-                            fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
-                            boxShadow: '0 4px 12px rgba(250,56,62,0.4)', opacity: isClipping ? 0.7 : 1
-                        }}
-                    >
-                        ✂️ {isClipping ? 'Clipping...' : 'Clip It'}
-                    </button>
+                {/* Feature 3: Clip It —
+                    BUG-FIX-DEEP-AUDIT-R4 LSV-10 / LSV-11: two-state UX
+                    so the user explicitly opts into clip buffering
+                    (which is a continuous MediaRecorder against the
+                    remote stream). Anon viewers see a sign-in hint
+                    instead. */}
+                <div style={{
+                    position: 'absolute', bottom: 120, right: 16, zIndex: 20,
+                    display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end',
+                }}>
+                    {!userId ? (
+                        <button
+                            disabled
+                            title="Sign in to save clips"
+                            style={{
+                                background: 'rgba(120,120,120,0.6)', border: 'none', color: 'white',
+                                padding: '8px 14px', borderRadius: 8, cursor: 'not-allowed',
+                                fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
+                                opacity: 0.7,
+                            }}
+                        >
+                            ✂️ Sign in to clip
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => setClipBufferArmed(v => !v)}
+                                title={clipBufferArmed
+                                    ? 'Recording last 60s for clipping. Tap to stop.'
+                                    : 'Tap to start recording the last 60s of this stream so you can clip it.'}
+                                style={{
+                                    background: clipBufferArmed ? 'rgba(0,160,80,0.85)' : 'rgba(0,0,0,0.6)',
+                                    border: 'none', color: 'white',
+                                    padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+                                    fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6,
+                                }}
+                            >
+                                {clipBufferArmed ? '● Buffering' : '○ Enable Clip'}
+                            </button>
+                            <button
+                                onClick={handleClipIt}
+                                disabled={isClipping || !clipBufferArmed}
+                                style={{
+                                    background: 'rgba(250,56,62,0.85)', border: 'none', color: 'white',
+                                    padding: '8px 14px', borderRadius: 8,
+                                    cursor: (isClipping || !clipBufferArmed) ? 'not-allowed' : 'pointer',
+                                    fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
+                                    boxShadow: '0 4px 12px rgba(250,56,62,0.4)',
+                                    opacity: (isClipping || !clipBufferArmed) ? 0.6 : 1,
+                                }}
+                            >
+                                ✂️ {isClipping ? 'Clipping...' : 'Clip It'}
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {/* BUG-FIX-LIVE-7 (Quality / PiP / Theatre):
@@ -1345,7 +1498,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 )}
                 <button
                     onClick={handleSendComment}
-                    style={{ padding:'9px 16px', borderRadius:22, border:'none', background:'rgba(0,120,255,.85)', color:'white', fontSize:14, fontWeight:700, cursor:'pointer' }}
+                    disabled={!userId}
+                    style={{
+                        padding:'9px 16px', borderRadius:22, border:'none',
+                        background: userId ? 'rgba(0,120,255,.85)' : 'rgba(100,100,100,.6)',
+                        color:'white', fontSize:14, fontWeight:700,
+                        cursor: userId ? 'pointer' : 'not-allowed',
+                        opacity: userId ? 1 : 0.6,
+                    }}
                 >Send</button>
             </div>
 

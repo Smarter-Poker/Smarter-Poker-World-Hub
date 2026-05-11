@@ -48,6 +48,11 @@ export function LiveStreamCard({ stream, onClick }) {
     const [isHovered, setIsHovered] = useState(false);
     const [previewLoaded, setPreviewLoaded] = useState(false);
     const [previewFailed, setPreviewFailed] = useState(false);
+    // BUG-FIX-DEEP-AUDIT-R4 LSC-4: track thumbnail load failure so a 404
+    // on the static thumbnail URL falls back to the gradient placeholder
+    // rather than displaying a broken-image icon. Mirrors the avatar's
+    // onError pattern below.
+    const [thumbnailFailed, setThumbnailFailed] = useState(false);
     // RIGOR-AUDIT-2 LSC-1: pause off-screen preview videos. With 8+ live
     // broadcasters in the feed, decoding all 8 MP4s simultaneously was a
     // CPU/battery drain on mobile — same class of bug the v2→v3 rewrite
@@ -59,12 +64,15 @@ export function LiveStreamCard({ stream, onClick }) {
     // Cache-buster: when preview_updated_at advances, the URL changes and the
     // browser fetches the fresh clip. Memoised so we don't churn the <video>
     // src on unrelated re-renders.
+    //
+    // BUG-FIX-DEEP-AUDIT-R4 LSC-5: detect existing query string. Signed
+    // CDN URLs may already contain a `?` (e.g. `?signed=xyz`); appending
+    // another `?` yields a malformed URL. Use `&` when one is present.
     const previewSrc = useMemo(() => {
         if (!stream.preview_clip_url) return null;
-        const t = stream.preview_updated_at
-            ? `?t=${encodeURIComponent(stream.preview_updated_at)}`
-            : '';
-        return stream.preview_clip_url + t;
+        if (!stream.preview_updated_at) return stream.preview_clip_url;
+        const sep = stream.preview_clip_url.includes('?') ? '&' : '?';
+        return `${stream.preview_clip_url}${sep}t=${encodeURIComponent(stream.preview_updated_at)}`;
     }, [stream.preview_clip_url, stream.preview_updated_at]);
 
     // Reset preview state when src changes (e.g. broadcaster's rolling clip
@@ -72,6 +80,10 @@ export function LiveStreamCard({ stream, onClick }) {
     useEffect(() => {
         setPreviewLoaded(false);
         setPreviewFailed(false);
+        // BUG-FIX-DEEP-AUDIT-R4 LSC-4: reset thumbnail-failed flag too, so
+        // a card that recovers from a 404 (e.g. CDN warm-up race) tries
+        // again on the next render cycle.
+        setThumbnailFailed(false);
     }, [previewSrc]);
 
     // RIGOR-AUDIT-2 LSC-1: Observe whether the card is on screen. When off
@@ -113,7 +125,8 @@ export function LiveStreamCard({ stream, onClick }) {
     }, [isInView, previewSrc]);
 
     const showPreviewVideo = !!previewSrc && previewLoaded && !previewFailed && isInView;
-    const showThumbnail = !showPreviewVideo && stream.thumbnail_url;
+    // BUG-FIX-DEEP-AUDIT-R4 LSC-4: gate thumbnail render on !thumbnailFailed.
+    const showThumbnail = !showPreviewVideo && stream.thumbnail_url && !thumbnailFailed;
 
     return (
         <div
@@ -147,6 +160,7 @@ export function LiveStreamCard({ stream, onClick }) {
                     <img
                         src={stream.thumbnail_url}
                         alt={stream.title || 'Live stream'}
+                        onError={() => setThumbnailFailed(true)}
                         style={{
                             position: 'absolute', inset: 0,
                             width: '100%', height: '100%',
@@ -257,7 +271,7 @@ export function LiveStreamCard({ stream, onClick }) {
                         zIndex: 2,
                     }}
                 >
-                    👁️ {stream.viewer_count || 0}
+                    👁️ {Number.isFinite(stream.viewer_count) ? stream.viewer_count : 0}
                 </div>
             </div>
 

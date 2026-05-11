@@ -8,6 +8,27 @@ import { supabase } from '../../lib/supabase';
 
 const REACTION_EMOJIS = ['❤️', '🔥', '♠️', '🃏', '🤑', '👏', '😮'];
 
+// BUG-FIX-DEEP-AUDIT-R4 REACT-5: allowlist set for incoming broadcast
+// payload validation. Untrusted channel sender (or compromised client)
+// could send arbitrary strings as `emoji` — a 10MB payload or weird
+// unicode would crash the renderer. We only render reactions that match
+// the exact emoji set we ship in the UI.
+const REACTION_EMOJI_SET = new Set(REACTION_EMOJIS);
+
+// BUG-FIX-DEEP-AUDIT-R4 REACT-1: minimum interval between send events
+// from a single client. Without this, holding any reaction button (or
+// auto-clicking via console) lets one viewer flood the broadcast channel
+// and the DB. 250ms gives a comfortable tap cadence without being a spam
+// surface.
+const SEND_THROTTLE_MS = 250;
+
+// BUG-FIX-DEEP-AUDIT-R4 REACT-3: hard cap on simultaneous floating
+// emojis. Hostile or buggy peers could broadcast 10k reactions/sec; the
+// 4s float-out timer eventually clears them but during a burst we'd be
+// rendering thousands of nodes at once, spiking CPU/GPU. Drop excess
+// rather than render them.
+const MAX_FLOATERS = 60;
+
 function FloatingEmoji({ emoji, id, left, duration }) {
     // FIX: left and duration pre-computed by parent — stable across re-renders
     return (
@@ -29,15 +50,28 @@ function FloatingEmoji({ emoji, id, left, duration }) {
 
 export function LiveReactions({ streamId, userId, isBroadcaster }) {
     const [floaters, setFloaters] = useState([]);
-    const [reactionCounts, setReactionCounts] = useState({});
+    // BUG-FIX-DEEP-AUDIT-R4 REACT-2: `reactionCounts` was set but never
+    // read anywhere in this component. Dead state that grew with every
+    // reaction over the lifetime of a long stream. Removed — the
+    // analytics card consumes the DB-persisted reaction_count via a
+    // different path entirely.
     const channelRef = useRef(null);
     const floaterIdRef = useRef(0);
     // BUG FIX (L2): store active floater timer IDs so we can cancel them on
     // unmount. Without this, if the component unmounts while a floater is
     // in-flight, setFloaters fires on an unmounted component.
     const floaterTimersRef = useRef(new Map());
+    // BUG-FIX-DEEP-AUDIT-R4 REACT-1: last send timestamp for client-side
+    // throttle.
+    const lastSendAtRef = useRef(0);
 
     const addFloater = useCallback((emoji) => {
+        // BUG-FIX-DEEP-AUDIT-R4 REACT-3: hard cap. If we're already at
+        // MAX_FLOATERS, drop the new one rather than render it. The
+        // animation already feels chaotic above ~30 — 60 is the ceiling
+        // before frame drops on mid-range mobile.
+        if (floaterTimersRef.current.size >= MAX_FLOATERS) return;
+
         const id = ++floaterIdRef.current;
         // FIX: compute random values here (stable per floater, not per render)
         const left = 15 + Math.random() * 50;
@@ -63,12 +97,11 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
         });
 
         ch.on('broadcast', { event: 'reaction' }, ({ payload }) => {
-            if (payload?.emoji) {
+            // BUG-FIX-DEEP-AUDIT-R4 REACT-5: validate against allowlist
+            // before rendering. Rejects payloads with arbitrary strings,
+            // huge buffers, or anything that isn't one of our 7 emojis.
+            if (payload?.emoji && REACTION_EMOJI_SET.has(payload.emoji)) {
                 addFloater(payload.emoji);
-                setReactionCounts(prev => ({
-                    ...prev,
-                    [payload.emoji]: (prev[payload.emoji] || 0) + 1,
-                }));
             }
         }).subscribe();
 
@@ -78,8 +111,17 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
 
     const sendReaction = async (emoji) => {
         if (!channelRef.current) return;
+        // BUG-FIX-DEEP-AUDIT-R4 REACT-1: throttle. Drop sends that come
+        // less than SEND_THROTTLE_MS after the previous one. No visible
+        // feedback — a held button just sends at the throttle cadence
+        // rather than queuing.
+        const now = Date.now();
+        if (now - lastSendAtRef.current < SEND_THROTTLE_MS) return;
+        lastSendAtRef.current = now;
+        // Sanity-check the local emoji too (defense in depth).
+        if (!REACTION_EMOJI_SET.has(emoji)) return;
+
         addFloater(emoji); // Show immediately for sender
-        setReactionCounts(prev => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
         // Broadcast to all viewers (ephemeral, instant)
         channelRef.current.send({
             type: 'broadcast',
