@@ -6,14 +6,28 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// STREAM-POLISH-R2 PUSH-1: dedup window. Followers who already received
+// a 'live' notification for this stream_id in the last DEDUP_WINDOW_MS
+// won't be re-notified. Catches: flaky network double-fetch, button-tap
+// races, broadcaster ending + restarting within seconds, server-side
+// retries from the client. 24h is enough to cover a single broadcast
+// session even after several disconnect/reconnect cycles.
+const DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    // STREAM-POLISH-R2 PUSH-2: rate-limit. Sibling /api/live/* routes
+    // all use LIMITS.write; live-notify was the lone outlier with no
+    // limiter — a compromised account could spam every follower of
+    // every broadcaster they imitate.
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     try {
         const { user } = await getServerUserWithFallback(req, supabaseAdmin);
@@ -53,9 +67,27 @@ export default async function handler(req, res) {
         (prefs || []).forEach(p => { prefMap[p.user_id] = p.live_notifications; });
 
         // Filter out followers who opted out
-        const eligible = followers.filter(f => prefMap[f.follower_id] !== false);
+        let eligible = followers.filter(f => prefMap[f.follower_id] !== false);
 
         if (!eligible.length) return res.status(200).json({ notified: 0 });
+
+        // STREAM-POLISH-R2 PUSH-1: dedup against the same stream_id in
+        // the last DEDUP_WINDOW_MS. Skips followers who already received
+        // a 'live' notification for this exact stream.
+        const dedupCutoff = new Date(Date.now() - DEDUP_WINDOW_MS).toISOString();
+        const eligibleIds = eligible.map(f => f.follower_id);
+        const { data: alreadyNotified } = await supabaseAdmin
+            .from('notifications')
+            .select('user_id')
+            .eq('type', 'live')
+            .filter('data->>stream_id', 'eq', String(streamId))
+            .gte('created_at', dedupCutoff)
+            .in('user_id', eligibleIds);
+        const alreadySet = new Set((alreadyNotified || []).map(n => n.user_id));
+        if (alreadySet.size > 0) {
+            eligible = eligible.filter(f => !alreadySet.has(f.follower_id));
+        }
+        if (!eligible.length) return res.status(200).json({ notified: 0, deduped: alreadySet.size });
 
         // Batch insert notifications in chunks of 50
         const notifications = eligible.map(f => ({
