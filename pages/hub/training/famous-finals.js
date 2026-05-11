@@ -18,6 +18,8 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-5c — adoption: feedback hook
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -262,6 +264,7 @@ const SERIES_FILTERS = ['All', 'WSOP', 'EPT', 'WPT', 'SHRB'];
 export default function FamousFinalsPage() {
   const router = useRouter();
   useTrainingBus('famous-finals');
+  const fb = useTrainingFeedback();
 
   const [seriesFilter, setSeriesFilter] = useState('All');
   const [activeEvent, setActiveEvent] = useState(null);
@@ -284,6 +287,7 @@ export default function FamousFinalsPage() {
       setSelectedAnswer(optionId);
       setShowFeedback(true);
       const opt = currentSpot.options.find((o) => o.id === optionId);
+      if (opt?.correct) fb.correct(); else fb.incorrect();
       setResults((prev) => [
         ...prev,
         {

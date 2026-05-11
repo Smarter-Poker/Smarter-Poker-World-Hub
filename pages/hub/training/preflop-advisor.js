@@ -13,6 +13,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-5a — adoption: feedback hook
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -326,6 +328,7 @@ function dealHand() {
 
 export default function PreflopAdvisor() {
   useTrainingBus('preflop-advisor');
+  const fb = useTrainingFeedback();
   const router = useRouter();
 
   const [hand, setHand] = useState(null);
@@ -365,6 +368,7 @@ export default function PreflopAdvisor() {
       setDecision(chosen);
       setShowResult(true);
       const isCorrect = chosen === gtoAction;
+      if (isCorrect) fb.correct(); else fb.incorrect();
 
       setStats((prev) => {
         const next = { correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 };

@@ -950,3 +950,14 @@ TRAIN-WIRE-FX-4c
 # TRAIN-WIRE-FX-4d — pages/hub/training/daily-challenge.js. fb.correct() /
 # fb.incorrect() inside answer handler right after isCorrect derives.
 TRAIN-WIRE-FX-4d
+
+# ─── Phase-2 adoption: useTrainingFeedback batch 7b ─────────────────────────
+# TRAIN-WIRE-FX-5a — pages/hub/training/preflop-advisor.js. fb.correct() /
+# fb.incorrect() inside handleDecision after isCorrect derives.
+TRAIN-WIRE-FX-5a
+# TRAIN-WIRE-FX-5b — pages/hub/training/villain-range.js. fb.correct() /
+# fb.incorrect() inside quiz answer handler after isCorrect derives.
+TRAIN-WIRE-FX-5b
+# TRAIN-WIRE-FX-5c — pages/hub/training/famous-finals.js. fb.correct() /
+# fb.incorrect() inside handleAnswer based on `opt.correct` lookup.
+TRAIN-WIRE-FX-5c
