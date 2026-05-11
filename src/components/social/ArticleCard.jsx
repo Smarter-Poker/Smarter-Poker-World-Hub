@@ -31,10 +31,29 @@ const C = {
 };
 
 // Module-level cache for link-preview metadata (avoids N+1 API calls)
+// Capped at 200 entries to prevent unbounded memory growth on long-lived pages.
+const CACHE_MAX = 200;
 const _metadataCache = new Map();
 const _inflightRequests = new Map();
 // Track which proxy URLs have already been pre-warmed to avoid duplicate fetches
 const _prewarmedUrls = new Set();
+
+// Domains that block server-side proxying (same list as isSocialPlatformUrl + news blockers)
+const PROXY_SKIP_DOMAINS = [
+    'facebook.com', 'instagram.com', 'tiktok.com', 'twitter.com',
+    'x.com', 'threads.net', 'espn.com', 'espnfc.com',
+    'pokernews.com', 'cardplayer.com', 'bleacherreport.com',
+    'si.com', 'pokergo.com', 'globalpokerindex.com', 'gpi.tv',
+];
+
+function setCacheWithEviction(key, value) {
+    if (_metadataCache.size >= CACHE_MAX) {
+        // LRU: delete the oldest (first-inserted) entry
+        const oldest = _metadataCache.keys().next().value;
+        _metadataCache.delete(oldest);
+    }
+    _metadataCache.set(key, value);
+}
 
 /**
  * Pre-warms the Vercel edge cache for an article URL.
@@ -45,10 +64,8 @@ function prewarmProxy(url) {
     if (!url || _prewarmedUrls.has(url)) return;
     try {
         const hostname = new URL(url).hostname.toLowerCase();
-        // Skip social platforms that block server-side proxying anyway
-        if (hostname.includes('facebook.com') || hostname.includes('instagram.com') ||
-            hostname.includes('tiktok.com') || hostname.includes('twitter.com') ||
-            hostname.includes('x.com') || hostname.includes('threads.net')) return;
+        // Skip all domains that block server-side proxying (social + Cloudflare-protected news)
+        if (PROXY_SKIP_DOMAINS.some(d => hostname.includes(d))) return;
     } catch { return; }
     _prewarmedUrls.add(url);
     fetch(`/api/proxy?url=${encodeURIComponent(url)}`, {
@@ -71,7 +88,10 @@ async function fetchLinkPreview(url) {
             const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
             if (response.ok) {
                 const data = await response.json();
-                _metadataCache.set(url, data);
+                // Only cache if we got useful data (image or title) to allow retry on bare fallback
+                if (data && (data.image || data.title)) {
+                    setCacheWithEviction(url, data);
+                }
                 return data;
             }
         } catch (error) {
@@ -171,14 +191,19 @@ export default function ArticleCard({
     const [imageError, setImageError] = useState(false);
 
     // Fetch metadata if not provided (uses shared cache to avoid N+1)
+    // imageError is reset on url change so recycled cards don't inherit prior error state
     useEffect(() => {
+        setImageError(false);
         if (!url || (title && image)) {
             setLoading(false);
             return;
         }
 
+        setLoading(true);
+        let cancelled = false;
         (async () => {
             const data = await fetchLinkPreview(url);
+            if (cancelled) return; // guard against stale effect after url change
             if (data) {
                 setMetadata(prev => ({
                     title: prev.title || data.title,
@@ -189,6 +214,7 @@ export default function ArticleCard({
             }
             setLoading(false);
         })();
+        return () => { cancelled = true; };
     }, [url, title, image]);
 
     // Check if URL is from a social platform that blocks proxying
@@ -349,8 +375,9 @@ export default function ArticleCard({
 
 /**
  * ArticleCardFromPost - Convenience wrapper that extracts data from a post object
+ * IMPORTANT: onClick must be passed through for in-app article reading to work.
  */
-export function ArticleCardFromPost({ post }) {
+export function ArticleCardFromPost({ post, onClick }) {
     // Prioritize stored link metadata, then extract from content
     const url = post.link_url || extractUrlFromContent(post.content);
 
@@ -362,6 +389,7 @@ export function ArticleCardFromPost({ post }) {
             image={post.link_image || post.media_urls?.[0]}
             siteName={post.link_site_name}
             fallbackContent={post.content}
+            onClick={onClick}
         />
     );
 }

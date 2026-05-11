@@ -187,7 +187,7 @@ export default async function handler(req, res) {
         }
 
         // Final fallback: extract metadata from URL
-        const fallback = extractFallbackMetadata(url);
+        const fallback = extractFallbackMetadata(url, req);
         return res.status(200).json(fallback);
     }
 
@@ -285,7 +285,8 @@ function parseOpenGraph(html, originalUrl) {
 }
 
 // Fallback metadata when fetch fails
-function extractFallbackMetadata(url) {
+// req is passed explicitly to avoid the out-of-scope reference bug (Bug #1)
+function extractFallbackMetadata(url, req) {
     try {
         const urlObj = new URL(url);
         const domain = urlObj.hostname.replace(/^www\./, '');

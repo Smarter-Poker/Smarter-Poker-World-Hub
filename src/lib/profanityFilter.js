@@ -28,46 +28,63 @@
 // l33t-normalized. Keep this list FOCUSED on actual slurs + direct
 // self-harm threats. Maintainers can extend conservatively.
 const SLURS = new Set([
-    // n-word variants
-    'nigger', 'nigga', 'niggers', 'niggas',
-    // anti-Asian
-    'chink', 'chinks', 'gook', 'gooks',
-    // anti-Latino
-    'spic', 'spics', 'wetback', 'wetbacks',
-    // anti-Semitic
-    'kike', 'kikes',
-    // anti-LGBTQ
-    'faggot', 'faggots', 'tranny', 'trannies', 'dyke', 'dykes',
-    // ableist
-    'retard', 'retards', 'retarded',
+  // n-word variants
+  'nigger',
+  'nigga',
+  'niggers',
+  'niggas',
+  // anti-Asian
+  'chink',
+  'chinks',
+  'gook',
+  'gooks',
+  // anti-Latino
+  'spic',
+  'spics',
+  'wetback',
+  'wetbacks',
+  // anti-Semitic
+  'kike',
+  'kikes',
+  // anti-LGBTQ
+  'faggot',
+  'faggots',
+  'tranny',
+  'trannies',
+  'dyke',
+  'dykes',
+  // ableist
+  'retard',
+  'retards',
+  'retarded',
 ]);
 
 const THREATS = new Set([
-    // Direct self-harm incitement against another user
-    'kys',
-    'killyourself',
+  // Direct self-harm incitement against another user
+  'kys',
+  'killyourself',
 ]);
 
 function normalizeToken(s) {
-    if (typeof s !== 'string') return '';
-    let t = s.toLowerCase();
-    try {
-        // Strip combining diacritical marks (U+0300..U+036F).
-        t = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
-    } catch (_) {
-        // older runtimes without String.prototype.normalize — fall through
-    }
-    // l33t substitutions
-    t = t
-        .replace(/[4@]/g, 'a')
-        .replace(/3/g, 'e')
-        .replace(/[1!|]/g, 'i')
-        .replace(/0/g, 'o')
-        .replace(/[5$]/g, 's')
-        .replace(/7/g, 't');
-    // Strip non-letters: "n.i.g", "n_i_g", "n i g" all collapse to "nig".
-    t = t.replace(/[^a-z]/g, '');
-    return t;
+  if (typeof s !== 'string') return '';
+  let t = s.toLowerCase();
+  try {
+    // Strip combining diacritical marks (U+0300..U+036F).
+    t = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  } catch (_) {
+    // older runtimes without String.prototype.normalize — fall through
+  }
+  // l33t substitutions
+  t = t
+    .replace(/[4@]/g, 'a')
+    .replace(/3/g, 'e')
+    .replace(/[1!|]/g, 'i')
+    .replace(/0/g, 'o')
+    .replace(/[5$]/g, 's')
+    .replace(/7/g, 't');
+  // Strip non-letters: "n.i.g", "n_i_g", "n i g" all collapse to "nig".
+  t = t.replace(/[^a-z]/g, '');
+  return t;
 }
 
 /**
@@ -77,33 +94,33 @@ function normalizeToken(s) {
  *   { blocked: true,  reason: 'slur' | 'threat' } -- block
  */
 export function checkProfanity(text) {
-    if (typeof text !== 'string' || !text) return { blocked: false, reason: null };
+  if (typeof text !== 'string' || !text) return { blocked: false, reason: null };
 
-    // Per-token check.
-    const tokens = text.split(/[\s.,;:!?'"`()\[\]{}<>\\/|+=]+/);
-    for (const raw of tokens) {
-        if (!raw) continue;
-        const norm = normalizeToken(raw);
-        if (!norm) continue;
-        if (SLURS.has(norm)) return { blocked: true, reason: 'slur' };
-        if (THREATS.has(norm)) return { blocked: true, reason: 'threat' };
-        // "niggerrrr" / "nggggger" — collapse repeated letters then re-check.
-        const collapsed = norm.replace(/(.)\1{2,}/g, '$1');
-        if (collapsed !== norm) {
-            if (SLURS.has(collapsed)) return { blocked: true, reason: 'slur' };
-            if (THREATS.has(collapsed)) return { blocked: true, reason: 'threat' };
-        }
+  // Per-token check.
+  const tokens = text.split(/[\s.,;:!?'"`()\[\]{}<>\\/|+=]+/);
+  for (const raw of tokens) {
+    if (!raw) continue;
+    const norm = normalizeToken(raw);
+    if (!norm) continue;
+    if (SLURS.has(norm)) return { blocked: true, reason: 'slur' };
+    if (THREATS.has(norm)) return { blocked: true, reason: 'threat' };
+    // "niggerrrr" / "nggggger" — collapse repeated letters then re-check.
+    const collapsed = norm.replace(/(.)\1{2,}/g, '$1');
+    if (collapsed !== norm) {
+      if (SLURS.has(collapsed)) return { blocked: true, reason: 'slur' };
+      if (THREATS.has(collapsed)) return { blocked: true, reason: 'threat' };
     }
+  }
 
-    // Whole-string scan for multi-word threats ("kill your self" -> "killyourself").
-    const fullNorm = normalizeToken(text);
-    if (fullNorm) {
-        for (const t of THREATS) {
-            if (fullNorm.includes(t)) return { blocked: true, reason: 'threat' };
-        }
+  // Whole-string scan for multi-word threats ("kill your self" -> "killyourself").
+  const fullNorm = normalizeToken(text);
+  if (fullNorm) {
+    for (const t of THREATS) {
+      if (fullNorm.includes(t)) return { blocked: true, reason: 'threat' };
     }
+  }
 
-    return { blocked: false, reason: null };
+  return { blocked: false, reason: null };
 }
 
 export default checkProfanity;
