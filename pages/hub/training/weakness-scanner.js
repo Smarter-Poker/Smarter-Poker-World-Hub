@@ -148,6 +148,38 @@ function analyzeData(sessions) {
   return { overallAcc, totalHands, leaks, drillRecommendations, engineLeaks };
 }
 
+// BUG FIX (TRAIN-WEAKNESS-A11Y-1): SVG icon components replacing the
+// weakness-scanner emojis (📊 empty state, ← back). Time-filter and CTA
+// buttons gain type+aria. Same surface-specific a11y pattern as PR
+// #320/#322/#324/#327-#346.
+const _WK_ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function WeaknessChartIcon({ size=32 }) {
+  return (
+    <svg {..._WK_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="3" y1="21" x2="21" y2="21"/>
+      <rect x="5" y="13" width="3" height="7"/>
+      <rect x="10" y="8" width="3" height="12"/>
+      <rect x="15" y="4" width="3" height="16"/>
+    </svg>
+  );
+}
+function WeaknessBackArrowIcon({ size=18 }) {
+  return (
+    <svg {..._WK_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+
+
 export default function WeaknessScannerPage() {
   const router = useRouter();
   useTrainingBus('weakness-scanner');
@@ -220,6 +252,8 @@ export default function WeaknessScannerPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -235,10 +269,12 @@ export default function WeaknessScannerPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-WEAKNESS-A11Y-1: SVG back arrow */}
+            <WeaknessBackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Weakness Scanner</div>
+            {/* TRAIN-WEAKNESS-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Weakness Scanner</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>AI leak detection</div>
           </div>
         </div>
@@ -249,6 +285,7 @@ export default function WeaknessScannerPage() {
             {[{ id: '7d', label: 'Last 7 Days' }, { id: '30d', label: 'Last 30 Days' }, { id: 'all', label: 'All Time' }].map(f => (
               <button
                 key={f.id}
+                type="button"
                 onClick={() => setTimeFilter(f.id)}
                 aria-label={`Filter by ${f.label}`}
                 aria-pressed={timeFilter === f.id}
@@ -535,6 +572,8 @@ export default function WeaknessScannerPage() {
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button
+                        type="button"
+                        aria-label={`Practice ${leak.area} leak in spot trainer`}
                         onClick={() => {
                           const params = new URLSearchParams({ game: leak.area.toLowerCase().replace(/\s+/g, '-') });
                           router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
@@ -554,6 +593,8 @@ export default function WeaknessScannerPage() {
                         Practice This Leak
                       </button>
                       <button
+                        type="button"
+                        aria-label={`Ask Jarvis about ${leak.area} leak`}
                         onClick={() => {
                           const q = new URLSearchParams({
                             context: 'weakness',
@@ -586,7 +627,10 @@ export default function WeaknessScannerPage() {
 
           {!loading && !data && !fetchError && (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
+              {/* TRAIN-WEAKNESS-A11Y-1: SVG chart replaces 📊 */}
+              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: '#475569' }} aria-hidden>
+                <WeaknessChartIcon size={32} />
+              </div>
               {rawSessions && rawSessions.length > 0 ? (
                 <>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>No data in this time range</div>
