@@ -181,7 +181,94 @@ jobs:
           echo "✓ No .single() calls found"
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 1b: No .js file may import from an explicit .ts path
+      # ═══════════════════════════════════════════════════════════════
+      # Root cause of the May 2026 auth cascade:
+      #   src/lib/authUtils.js contained `import { ... } from './authUtils.ts'`
+      # Webpack/Next.js cannot resolve explicit .ts extension imports in .js
+      # files, causing every symbol to resolve as undefined — silently breaking
+      # 20+ pages with "Attempted import error: X is not exported from authUtils".
+      # This check catches that pattern before it reaches Vercel.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 1b: No .js file imports from explicit .ts path"
+        run: |
+          echo "Scanning for .js files that import from .ts paths..."
+          HITS=$(grep -rn "from ['\"].*\.ts['\"]" \
+            --include='*.js' --include='*.jsx' \
+            --exclude-dir=node_modules --exclude-dir=.next \
+            pages/ src/ lib/ 2>/dev/null || true)
+
+          if [ -n "$HITS" ]; then
+            echo "::error::FATAL: .js file(s) importing from explicit .ts paths — webpack cannot resolve these."
+            echo ""
+            echo "$HITS"
+            echo ""
+            echo "Fix: Remove the .ts extension from the import path (use './authUtils' not './authUtils.ts')."
+            echo "Why: Webpack resolves .js before .ts for extension-free imports, so the .js shim is always"
+            echo "loaded. If that shim imports ./authUtils.ts with explicit extension, it silently resolves"
+            echo "to nothing, making all exported symbols undefined — breaking every consumer page."
+            exit 1
+          fi
+          echo "✓ No .js→.ts explicit extension imports found"
+
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 1c: All authUtils imports must resolve to actual exports
+      # ═══════════════════════════════════════════════════════════════
+      # Catches "Attempted import error: X is not exported from authUtils"
+      # before the commit reaches Vercel. Scans all consumer files and
+      # verifies each imported symbol exists in authUtils.js.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 1c: authUtils imports match actual exports"
+        run: |
+          AUTHUTILS="src/lib/authUtils.js"
+          if [ ! -f "$AUTHUTILS" ]; then
+            AUTHUTILS="src/lib/authUtils.ts"
+          fi
+          if [ ! -f "$AUTHUTILS" ]; then
+            echo "::warning::authUtils not found at src/lib/authUtils.js or .ts — skipping"
+            exit 0
+          fi
+
+          echo "Checking authUtils exports against consumer imports (source: $AUTHUTILS)..."
+
+          # Extract all exported function/const names from the file
+          EXPORTS=$(grep -oE "^export (async )?function [A-Za-z_][A-Za-z0-9_]+" "$AUTHUTILS" \
+            | grep -oE "[A-Za-z_][A-Za-z0-9_]+$" | sort -u)
+          EXPORT_BLOCK=$(grep -oE "^export \{[^}]+\}" "$AUTHUTILS" | grep -oE "[A-Za-z_][A-Za-z0-9_]+" || true)
+          ALL_EXPORTS=$(echo -e "$EXPORTS\n$EXPORT_BLOCK" | sort -u)
+
+          echo "Exports found in $AUTHUTILS:"
+          echo "$ALL_EXPORTS" | tr '\n' ' '
+          echo ""
+          echo ""
+
+          ERRORS=0
+          while IFS= read -r file; do
+            # Find imports from authUtils in this file
+            IMPORTS=$(grep -oE "import \{[^}]+\} from ['\"].*authUtils['\"]" "$file" 2>/dev/null \
+              | grep -oE "[A-Za-z_][A-Za-z0-9_]+" \
+              | grep -v "^import$" | grep -v "^from$" | sort -u || true)
+
+            for sym in $IMPORTS; do
+              if ! echo "$ALL_EXPORTS" | grep -qx "$sym"; then
+                echo "::error file=${file}::Symbol '${sym}' is imported from authUtils but NOT exported by $AUTHUTILS"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+          done < <(find pages/ src/ -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' \
+            | grep -v node_modules | grep -v .next | grep -v authUtils)
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo ""
+            echo "::error::$ERRORS symbol(s) imported from authUtils that don't exist as exports."
+            echo "Fix: Either add the missing export to authUtils.js, or remove the import."
+            exit 1
+          fi
+          echo "✓ All authUtils imports resolve to actual exports"
+
+      # ═══════════════════════════════════════════════════════════════
       # CHECK 2: No unused hook imports (the ThreePillHeader bug)
+
       # Imported but uncalled hooks = ReferenceError during SSG
       # ═══════════════════════════════════════════════════════════════
       - name: "CHECK 2: No unused React hook imports"

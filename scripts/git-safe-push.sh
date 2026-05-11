@@ -263,6 +263,76 @@ if [ -d ".github/workflows" ]; then
 fi
 echo "✅ Workflow uniqueness check passed"
 
+# ── 0e. .JS → .TS IMPORT GUARD ──
+# Root cause of the May 2026 auth cascade:
+# authUtils.js imported from './authUtils.ts' with explicit .ts extension.
+# Webpack/Next.js CANNOT resolve explicit .ts extension imports from .js files.
+# Result: every exported symbol resolves as undefined, breaking 20+ pages.
+# This check blocks the push before it reaches Vercel.
+TS_IMPORT_HITS=$(grep -rn "from ['\"].*\.ts['\"]" \
+  --include='*.js' --include='*.jsx' \
+  --exclude-dir=node_modules --exclude-dir=.next \
+  pages/ src/ lib/ 2>/dev/null || true)
+
+if [ -n "$TS_IMPORT_HITS" ]; then
+    echo ""
+    echo "🚨🚨🚨 BLOCKED: .js file importing from explicit .ts path! 🚨🚨🚨"
+    echo "═══════════════════════════════════════════════════"
+    echo "$TS_IMPORT_HITS" | head -10 | sed 's/^/   ❌ /'
+    echo ""
+    echo "   WHY: Webpack resolves .js before .ts for extension-free imports."
+    echo "   The .js shim is always loaded. If it imports './authUtils.ts' with"
+    echo "   explicit .ts extension, webpack resolves to nothing — silently"
+    echo "   making all exported symbols undefined. This breaks every consumer page."
+    echo ""
+    echo "   FIX: Remove the .ts extension → use './authUtils' not './authUtils.ts'"
+    echo "═══════════════════════════════════════════════════"
+    git reset HEAD 2>/dev/null || true
+    echo "PUSH_OK:false"
+    echo "REASON:js_imports_ts_explicit_extension"
+    exit 2
+fi
+echo "✅ No .js→.ts explicit extension imports found"
+
+# ── 0f. AUTHUTILS EXPORT COVERAGE GATE ──
+# Catches "Attempted import error: X is not exported from authUtils"
+# before any commit reaches Vercel. Scans all consumer files.
+AUTHUTILS_FILE="src/lib/authUtils.js"
+[ ! -f "$AUTHUTILS_FILE" ] && AUTHUTILS_FILE="src/lib/authUtils.ts"
+
+if [ -f "$AUTHUTILS_FILE" ]; then
+    AU_EXPORTS=$(grep -oE "^export (async )?function [A-Za-z_][A-Za-z0-9_]+" "$AUTHUTILS_FILE" \
+      | grep -oE "[A-Za-z_][A-Za-z0-9_]+$" | sort -u)
+    AU_ERRORS=0
+
+    while IFS= read -r f; do
+        IMPORTED=$(grep -oE "import \{[^}]+\} from ['\"].*authUtils['\"]" "$f" 2>/dev/null \
+          | grep -oE "[A-Za-z_][A-Za-z0-9_]+" \
+          | grep -v "^import$" | grep -v "^from$" | sort -u || true)
+        for sym in $IMPORTED; do
+            if ! echo "$AU_EXPORTS" | grep -qx "$sym"; then
+                echo "   ❌ $f: imports '$sym' which is NOT exported by $AUTHUTILS_FILE"
+                AU_ERRORS=$((AU_ERRORS + 1))
+            fi
+        done
+    done < <(find pages/ src/ -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' \
+      | grep -v node_modules | grep -v .next | grep -v authUtils 2>/dev/null)
+
+    if [ "$AU_ERRORS" -gt 0 ]; then
+        echo ""
+        echo "🚨🚨🚨 BLOCKED: $AU_ERRORS authUtils import(s) don't exist as exports! 🚨🚨🚨"
+        echo "═══════════════════════════════════════════════════"
+        echo "   FIX: Add the missing export(s) to $AUTHUTILS_FILE"
+        echo "        or remove the broken import from the consumer file."
+        echo "═══════════════════════════════════════════════════"
+        git reset HEAD 2>/dev/null || true
+        echo "PUSH_OK:false"
+        echo "REASON:authutils_missing_exports"
+        exit 2
+    fi
+    echo "✅ All authUtils consumer imports resolve to actual exports"
+fi
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 0.5: DESTRUCTIVE CHANGE DETECTION
 # Prevents AI agents from accidentally wiping mobile CSS, @media rules,
