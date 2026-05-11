@@ -14,6 +14,49 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
+
+// BUG FIX (TRAIN-GLOSSARY-A11Y-1): SVG icon components replacing emoji
+// where they appear in interactive controls: back arrow, search empty
+// state, and the per-term favorite star toggle. Same surface-specific
+// a11y pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function BackArrowIcon({ size=18 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+function SearchIcon({ size=32 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="7"/>
+      <line x1="20" y1="20" x2="16.65" y2="16.65"/>
+    </svg>
+  );
+}
+function StarToggleIcon({ filled=false, size=14 }) {
+  // Filled uses currentColor for both fill+stroke; outline uses stroke only.
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  );
+}
+
 const TERMS = [
   {
     term: '3-Bet',
@@ -333,6 +376,8 @@ export default function GlossaryPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -348,10 +393,12 @@ export default function GlossaryPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-GLOSSARY-A11Y-1: SVG arrow + button hardening */}
+            <BackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Glossary</div>
+            {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Glossary</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>
               {TERMS.length} terms · {favorites.size} saved
             </div>
@@ -363,6 +410,8 @@ export default function GlossaryPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search terms..."
+            aria-label="Search glossary terms"
+            type="search"
             style={{
               width: '100%',
               padding: '10px 14px',
@@ -377,10 +426,14 @@ export default function GlossaryPage() {
           />
 
           {/* Category */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }} role="tablist" aria-label="Filter glossary by category">
             {CATS.map((c) => (
               <motion.button
                 key={c}
+                type="button"
+                role="tab"
+                aria-pressed={catFilter === c}
+                aria-label={`Filter by ${c} terms`}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCatFilter(c)}
                 style={{
@@ -401,7 +454,8 @@ export default function GlossaryPage() {
           </div>
 
           {/* Results count */}
-          <div style={{ fontSize: 10, color: '#475569', marginBottom: 10, paddingLeft: 4 }}>
+          {/* TRAIN-GLOSSARY-A11Y-1: live region for filtered count */}
+          <div style={{ fontSize: 10, color: '#475569', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
             {filtered.length} terms
           </div>
 
@@ -439,6 +493,9 @@ export default function GlossaryPage() {
                   {t.cat}
                 </span>
                 <motion.button
+                  type="button"
+                  aria-label={favorites.has(t.term) ? `Remove ${t.term} from favorites` : `Add ${t.term} to favorites`}
+                  aria-pressed={favorites.has(t.term)}
                   whileTap={{ scale: 0.8 }}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -450,10 +507,12 @@ export default function GlossaryPage() {
                     cursor: 'pointer',
                     fontSize: 12,
                     padding: 0,
+                    display: 'inline-flex',
                     color: favorites.has(t.term) ? '#fbbf24' : '#334155',
                   }}
                 >
-                  {favorites.has(t.term) ? '★' : '☆'}
+                  {/* TRAIN-GLOSSARY-A11Y-1: SVG StarToggle replaces ★/☆ */}
+                  <StarToggleIcon filled={favorites.has(t.term)} size={14} />
                 </motion.button>
               </div>
               {expanded === t.term ? (
@@ -485,7 +544,10 @@ export default function GlossaryPage() {
 
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+              {/* TRAIN-GLOSSARY-A11Y-1: SVG search replaces 🔍 */}
+              <div style={{ display: 'inline-flex', marginBottom: 8, color: '#475569' }} aria-hidden>
+                <SearchIcon size={32} />
+              </div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>No matching terms</div>
             </div>
           )}
