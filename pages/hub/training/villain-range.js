@@ -24,6 +24,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-5b — adoption: feedback hook
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 
@@ -386,6 +388,7 @@ function RangeGrid({ activeRange }) {
 
 export default function VillainRange() {
   useTrainingBus('villain-range');
+  const fb = useTrainingFeedback();
   const router = useRouter();
 
   const [villainPos, setVillainPos] = useState('BTN');
@@ -577,6 +580,7 @@ export default function VillainRange() {
       const correct = hitPct >= 40 ? 'hits' : hitPct >= 20 ? 'draw' : 'misses';
       setQuizCorrectAnswer(correct);
       const isCorrect = guess === correct;
+      if (isCorrect) fb.correct(); else fb.incorrect();
       setQuizResult(isCorrect ? 'correct' : 'wrong');
       const newStats = {
         correct: quizStats.correct + (isCorrect ? 1 : 0),
