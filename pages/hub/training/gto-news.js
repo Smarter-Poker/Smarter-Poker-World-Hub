@@ -180,6 +180,50 @@ const ARTICLES = [
 ];
 
 const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Mental'];
+
+// BUG FIX (TRAIN-NEWS-A11Y-1): SVG icon components replacing the GTO news
+// emoji set (🃏 Preflop / 🎯 Postflop / 🧮 Math / 🧠 Mental category icons,
+// 💡 tip banner, ⭐/☆ bookmark toggle, ✓ read indicator, ← back). Same
+// surface-specific a11y pattern as PR #320/#322/#324/#327/#328/#329/#330/
+// #331/#332/#333/#334/#335/#336/#337/#338.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=14, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function CardsIcon({ size=14 })   { return <_Svg size={size}><rect x="3" y="5" width="13" height="16" rx="2"/><path d="M8 5V3a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/></_Svg>; }
+function TargetIcon({ size=14 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function AbacusIcon({ size=14 })  { return <_Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="7" cy="6" r="1"/><circle cx="11" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="18" r="1"/></_Svg>; }
+function BrainIcon({ size=14 })   { return <_Svg size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_Svg>; }
+function LightbulbIcon({ size=14 }) { return <_Svg size={size}><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.65V17h8v-2.35A7 7 0 0 0 12 2z"/></_Svg>; }
+function CheckIcon({ size=12 })   { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
+function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function StarToggleIcon({ filled=false, size=14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24"
+         fill={filled ? 'currentColor' : 'none'}
+         stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  );
+}
+function CategoryIcon({ cat, size=14 }) {
+  switch (cat) {
+    case 'Preflop':  return <CardsIcon size={size}/>;
+    case 'Postflop': return <TargetIcon size={size}/>;
+    case 'Math':     return <AbacusIcon size={size}/>;
+    case 'Mental':   return <BrainIcon size={size}/>;
+    default:         return null;
+  }
+}
+
 const CAT_ICONS = { Preflop: '🃏', Postflop: '🎯', Math: '🧮', Mental: '🧠' };
 const CAT_COLORS = { Preflop: '#3b82f6', Postflop: '#22c55e', Math: '#fbbf24', Mental: '#a855f7' };
 
@@ -318,6 +362,8 @@ export default function GtoNewsPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -333,15 +379,20 @@ export default function GtoNewsPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-NEWS-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>GTO News</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            {/* TRAIN-NEWS-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO News</h1>
+            <div style={{ fontSize: 11, color: '#64748b' }} role="status" aria-label={`${readArticles.size} of ${ARTICLES.length} articles read`}>
               {readArticles.size}/{ARTICLES.length} articles read
             </div>
           </div>
           <button
+            type="button"
+            aria-label={showBookmarksOnly ? 'Show all articles' : 'Show only bookmarked articles'}
+            aria-pressed={showBookmarksOnly}
             onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
             style={{
               background: showBookmarksOnly ? 'rgba(251,191,36,0.1)' : 'transparent',
@@ -354,7 +405,10 @@ export default function GtoNewsPage() {
               cursor: 'pointer',
             }}
           >
-            ⭐ {bookmarks.size}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {/* TRAIN-NEWS-A11Y-1: SVG star filled */}
+              <StarToggleIcon filled size={12} /> {bookmarks.size}
+            </span>
           </button>
         </div>
 
@@ -370,7 +424,8 @@ export default function GtoNewsPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 14 }}>💡</span>
+              {/* TRAIN-NEWS-A11Y-1: SVG lightbulb */}
+              <span style={{ display: 'inline-flex', color: '#fbbf24' }} aria-hidden><LightbulbIcon size={14} /></span>
               <span
                 style={{
                   fontSize: 10,
@@ -388,9 +443,10 @@ export default function GtoNewsPage() {
 
           {/* Search */}
           <input
-            type="text"
+            type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search GTO news articles"
             placeholder="Search articles..."
             style={{
               width: '100%',
@@ -425,7 +481,8 @@ export default function GtoNewsPage() {
                   cursor: 'pointer',
                 }}
               >
-                {c !== 'All' && <span style={{ marginRight: 4 }}>{CAT_ICONS[c]}</span>}
+                {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon replaces emoji */}
+                {c !== 'All' && <span style={{ marginRight: 4, display: 'inline-flex', verticalAlign: 'middle' }} aria-hidden><CategoryIcon cat={c} size={12} /></span>}
                 {c}
               </motion.button>
             ))}
@@ -439,6 +496,11 @@ export default function GtoNewsPage() {
               background: 'rgba(255,255,255,0.05)',
               marginBottom: 16,
             }}
+            role="progressbar"
+            aria-label="Reading progress"
+            aria-valuenow={Math.round((readArticles.size / ARTICLES.length) * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}
           >
             <div
               style={{
@@ -475,7 +537,8 @@ export default function GtoNewsPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 14 }}>{CAT_ICONS[a.cat]}</span>
+                  {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon */}
+                  <span style={{ display: 'inline-flex', color: '#94a3b8' }} aria-hidden><CategoryIcon cat={a.cat} size={14} /></span>
                   <span
                     style={{
                       padding: '1px 6px',
@@ -489,13 +552,19 @@ export default function GtoNewsPage() {
                     {a.cat}
                   </span>
                   {readArticles.has(a.id) && (
-                    <span style={{ fontSize: 8, color: '#22c55e' }}>✓ read</span>
+                    <span style={{ fontSize: 8, color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                      {/* TRAIN-NEWS-A11Y-1: SVG check */}
+                      <CheckIcon size={8} /> read
+                    </span>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span style={{ fontSize: 9, color: '#334155' }}>{a.readTime}m</span>
                   <span style={{ fontSize: 9, color: '#334155' }}>{a.date}</span>
                   <motion.button
+                    type="button"
+                    aria-label={bookmarks.has(a.id) ? `Remove bookmark: ${a.title}` : `Bookmark article: ${a.title}`}
+                    aria-pressed={bookmarks.has(a.id)}
                     whileTap={{ scale: 0.8 }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -507,9 +576,12 @@ export default function GtoNewsPage() {
                       cursor: 'pointer',
                       fontSize: 14,
                       padding: 0,
+                      display: 'inline-flex',
+                      color: bookmarks.has(a.id) ? '#fbbf24' : '#334155',
                     }}
                   >
-                    {bookmarks.has(a.id) ? '⭐' : '☆'}
+                    {/* TRAIN-NEWS-A11Y-1: SVG bookmark star */}
+                    <StarToggleIcon filled={bookmarks.has(a.id)} size={14} />
                   </motion.button>
                 </div>
               </div>

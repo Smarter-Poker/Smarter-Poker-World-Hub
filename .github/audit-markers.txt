@@ -532,3 +532,20 @@ TRAIN-JOURNAL-A11Y-1
 # Input gains aria-label. Same surface-specific pattern as PR #320/#322/
 # #324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337.
 TRAIN-WARMUP-A11Y-1
+
+# ─── /hub/training/gto-news — surface a11y polish ───────────────────────────
+# TRAIN-NEWS-A11Y-1 — pages/hub/training/gto-news.js. GTO news feed had a
+# CAT_ICONS map (🃏 Preflop / 🎯 Postflop / 🧮 Math / 🧠 Mental), 💡 tip
+# banner, ⭐/☆ bookmark toggle (used in two places), ✓ read indicator,
+# and ← back entity. Card-suit glyphs (♠♣♥♦) in article body text remain
+# (semantic). Replacements: new CategoryIcon discriminator (Cards/Target/
+# Abacus/Brain) keyed by article cat, LightbulbIcon (tip), StarToggleIcon
+# with filled prop (bookmark — used in both header counter and per-article
+# toggle), CheckIcon (read), BackArrowIcon. Filter row gains role=tablist
+# with per-button type/aria-pressed/aria-label. Reading progress bar gains
+# role=progressbar with valuenow/min/max. Read-count subtitle gains
+# role=status. Bookmark-only toggle gains type+aria-pressed. Search input
+# gains type=search + aria-label. Title raised to <h1>. Same surface-
+# specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/
+# #333/#334/#335/#336/#337/#338.
+TRAIN-NEWS-A11Y-1
