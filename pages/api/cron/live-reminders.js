@@ -23,6 +23,23 @@ export default async function handler(req, res) {
     }
 
     try {
+        // BUG-FIX-DEEP-AUDIT-R2 LR-1: at the top of every tick, cull
+        // scheduled_lives rows whose scheduled_at is more than 24h in the
+        // past. They never made it onto the reminder window (the cron only
+        // looks at `[now, now+15min]`) but they accumulate in the table
+        // and clutter `/api/live/schedule` GETs for the broadcaster (and
+        // any pre-`gte(now())`-filter consumer). One RPC, no per-row work,
+        // so it's safe to run on every 5-minute tick.
+        try {
+            const { error: cleanupErr } = await supabase
+                .rpc('fn_cleanup_stale_scheduled_lives');
+            if (cleanupErr) {
+                console.warn('[live-reminders] cleanup_stale_scheduled_lives:', cleanupErr.message);
+            }
+        } catch (cleanupThrow) {
+            console.warn('[live-reminders] cleanup_stale_scheduled_lives threw:', cleanupThrow?.message || cleanupThrow);
+        }
+
         const now = new Date();
         const fifteenMinLater = new Date(now.getTime() + 15 * 60 * 1000);
 

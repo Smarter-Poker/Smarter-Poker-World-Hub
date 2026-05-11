@@ -30,6 +30,16 @@ const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message 
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY_MS = 2000;
 
+// BUG-FIX-DEEP-AUDIT-R2 GUEST-1: live_streams.guest_invite_code is the secret
+// that grants co-host publish privileges in /api/live/token. After the v2
+// column-grant lockdown migration (20260510235100) end-user roles cannot
+// SELECT that column at all — they get `permission denied for table
+// live_streams` if it appears anywhere in the column list. Every direct
+// client SELECT must therefore enumerate the safe-columns list (no `*`).
+// This constant matches the GRANT SELECT (...) column set in that migration.
+// The broadcaster's own code is fetched via fn_get_my_guest_invite_code RPC.
+const LIVE_STREAM_SAFE_COLS = 'id, broadcaster_id, title, description, thumbnail_url, status, viewer_count, started_at, ended_at, created_at, video_url, is_posted, is_draft, mime_type, livekit_room, slow_mode, peak_viewers, reaction_count, category, feed_post_id, preview_clip_url, preview_updated_at';
+
 /**
  * LiveStreamService v2 — LiveKit SFU
  */
@@ -200,7 +210,12 @@ class LiveStreamService {
         let { data: stream, error } = await supabase
             .from('live_streams')
             .insert(insertPayload)
-            .select()
+            // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: enumerate safe columns. After
+            // the column-level GRANT lockdown, `.select()` (= '*') raises
+            // permission denied because guest_invite_code is no longer in
+            // the role's column set. The broadcaster's own code is fetched
+            // separately via fn_get_my_guest_invite_code below.
+            .select(LIVE_STREAM_SAFE_COLS)
             .maybeSingle();
 
         if (error?.code === '23505') {
@@ -240,7 +255,8 @@ class LiveStreamService {
                     const retry = await supabase
                         .from('live_streams')
                         .insert(insertPayload)
-                        .select()
+                        // Same safe-column enumeration as above (GUEST-1).
+                        .select(LIVE_STREAM_SAFE_COLS)
                         .maybeSingle();
                     stream = retry.data;
                     error = retry.error;
@@ -255,6 +271,24 @@ class LiveStreamService {
         }
 
         this.currentStreamId = stream.id;
+
+        // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: fetch the broadcaster's own guest
+        // invite code via the SECURITY DEFINER RPC. The column itself is no
+        // longer SELECT-able from a client. The RPC checks auth.uid() ==
+        // broadcaster_id and returns NULL otherwise. We tolerate NULL here
+        // (rare race / RLS regression) — the co-host invite UI will simply
+        // tell the broadcaster the code isn't ready yet and offer a retry.
+        let guestInviteCode = null;
+        try {
+            const { data: codeData } = await supabase.rpc(
+                'fn_get_my_guest_invite_code',
+                { p_stream_id: stream.id }
+            );
+            guestInviteCode = codeData ?? null;
+        } catch (codeErr) {
+            console.warn('[LiveStream] guest_invite_code fetch failed:', codeErr?.message || codeErr);
+        }
+        stream.guest_invite_code = guestInviteCode;
 
         // BUG-FIX-LIVE-LIST-8a: persist active broadcast state to localStorage
         // so if the broadcaster's phone dies / app crashes / they reload the
@@ -669,7 +703,9 @@ class LiveStreamService {
             }
             try { await supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 }); } catch (_) {}
             const { data: stream } = await supabase.from('live_streams')
-                .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
+                // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: enumerate safe columns;
+                // guest_invite_code is no longer readable by end-user roles.
+                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)')
                 .eq('id', streamId).maybeSingle();
             return stream;
         }
@@ -687,7 +723,8 @@ class LiveStreamService {
         // Fetch stream
         const { data: stream, error } = await supabase
             .from('live_streams')
-            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
+            // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
+            .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)')
             .eq('id', streamId)
             .maybeSingle();
 
@@ -1139,7 +1176,8 @@ class LiveStreamService {
             console.warn('[LiveStreamService] get_visible_live_streams RPC missing — falling back to unfiltered SELECT');
             const { data, error } = await supabase
                 .from('live_streams')
-                .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
+                // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
+                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)')
                 .eq('status', 'live')
                 .order('started_at', { ascending: false });
             if (error) throw error;
@@ -1153,7 +1191,8 @@ class LiveStreamService {
     static async getStream(streamId) {
         const { data, error } = await supabase
             .from('live_streams')
-            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
+            // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
+            .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)')
             .eq('id', streamId)
             .maybeSingle();
         if (error) throw error;

@@ -12,6 +12,12 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 
+// BUG-FIX-DEEP-AUDIT-R2 GUEST-1: live_streams.guest_invite_code is no longer
+// readable by anon/authenticated after the v2 column-grant migration. Every
+// SELECT on live_streams from a client must enumerate the safe-column list.
+// Mirrors LiveStreamService.LIVE_STREAM_SAFE_COLS.
+const LIVE_STREAM_SAFE_COLS = 'id, broadcaster_id, title, description, thumbnail_url, status, viewer_count, started_at, ended_at, created_at, video_url, is_posted, is_draft, mime_type, livekit_room, slow_mode, peak_viewers, reaction_count, category, feed_post_id, preview_clip_url, preview_updated_at';
+
 // Colors
 const C = {
     bg: '#000',
@@ -89,7 +95,8 @@ export default function LivesPage() {
             // Get active live streams
             const { data: liveStreams } = await supabase
                 .from('live_streams')
-                .select('*, broadcaster:profiles!broadcaster_id(username, avatar_url, full_name)')
+                // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
+                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, avatar_url, full_name)')
                 .eq('status', 'live')
                 .order('started_at', { ascending: false })
                 .limit(50);
@@ -97,7 +104,8 @@ export default function LivesPage() {
             // Get recorded streams with video URLs (posted ones)
             const { data: recordedStreams } = await supabase
                 .from('live_streams')
-                .select('*, broadcaster:profiles!broadcaster_id(username, avatar_url, full_name)')
+                // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
+                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, avatar_url, full_name)')
                 .eq('status', 'ended')
                 .eq('is_posted', true)
                 .not('video_url', 'is', null)
@@ -164,7 +172,13 @@ export default function LivesPage() {
         try {
             const { data } = await supabase
                 .from('live_streams')
-                .select('*')
+                // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration. This is
+                // the broadcaster's own drafts. They CAN have the invite code
+                // (it's their stream) but the SELECT path still goes through
+                // PostgREST with the authenticated role's column grants, so we
+                // omit guest_invite_code here. The drafts page never needs it
+                // (drafts are ended streams — no co-host re-invite).
+                .select(LIVE_STREAM_SAFE_COLS)
                 .eq('broadcaster_id', userId)
                 .eq('status', 'ended')
                 .eq('is_draft', true)

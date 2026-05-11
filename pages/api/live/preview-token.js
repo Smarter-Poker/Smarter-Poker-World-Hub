@@ -67,8 +67,19 @@ export default async function handler(req, res) {
 
         const token = await at.toJwt();
 
-        // Cache for 2 minutes — card re-hover within that window reuses the same token
-        res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=120');
+        // BUG-FIX-DEEP-AUDIT-R2 PT-1: the previous version set a 120s
+        // public+s-maxage Cache-Control on this response. The response body
+        // contains a randomly-generated LiveKit identity. If two viewers
+        // hover-preview the same room within the cache window, the CDN
+        // serves both of them the SAME identity. LiveKit's policy on
+        // duplicate identities is to disconnect the prior session, so the
+        // first viewer's preview gets kicked when the second one starts.
+        //
+        // Tokens are cheap to mint (signed JWT, one SELECT for stream
+        // existence) and TTL is 5 minutes, so we just disable HTTP caching
+        // entirely. Per-client preview reuse can be done client-side if it
+        // becomes a hot path; for now, fresh token per hover.
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
         return res.json({ token, url: livekitUrl });
     } catch (err) {
         console.error('[live/preview-token]', err.message);

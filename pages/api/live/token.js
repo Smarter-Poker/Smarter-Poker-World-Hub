@@ -120,13 +120,22 @@ export default async function handler(req, res) {
         }
 
         // Get display name from profile
-        let displayName = name;
+        let displayName;
         if (isAnonymous) {
             // BUG-HUNT-9: ignore client-passed `name` for anon. Otherwise an
             // anon caller could impersonate any display name in the viewer
             // list. Always 'Guest viewer'.
             displayName = 'Guest viewer';
-        } else if (!displayName) {
+        } else {
+            // BUG-FIX-DEEP-AUDIT-R2 T-1: authenticated users must also have
+            // their display name resolved from their profile, NOT the request
+            // body. Previously the server only fetched profile when `name`
+            // was falsy — so any direct API call with `name: "Verified Mod"`
+            // would impersonate any identity in the LiveKit viewer list.
+            // BH-9 only fixed the anon path. This fixes the authenticated
+            // path too. The client doesn't send `name` (see
+            // LiveStreamService._getToken), so this is server-side defense
+            // in depth against a malicious direct API call.
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('username, full_name')

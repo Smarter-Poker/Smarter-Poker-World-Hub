@@ -47,15 +47,29 @@ export default async function handler(req, res) {
             .from('live_streams')
             // BUG FIX (CMT-2): slow_mode_delay column does not exist on live_streams.
             // Removed from SELECT — slow mode falls back to DEFAULT_SLOW_MODE_DELAY_SECS (3s).
-            .select('id, status, slow_mode')
+            //
+            // BUG-FIX-DEEP-AUDIT-R2 C-3: add ended_at so we can enforce a
+            // real 60s grace window. The previous comment claimed "60s grace"
+            // but no timestamp gate was implemented — comments on ended
+            // streams were accepted indefinitely.
+            .select('id, status, slow_mode, ended_at')
             .eq('id', stream_id)
             .maybeSingle();
 
         if (streamErr || !stream) return res.status(404).json({ error: 'Stream not found' });
-        // BUG FIX (CMT-1): allow comments for 60s after stream ends to prevent
-        // the race window between EndStream API setting status='ended' and viewers
-        // who are still watching. Was blocking all comments immediately on end.
-        if (stream.status !== 'live' && stream.status !== 'ended') {
+
+        // BUG FIX (CMT-1) + BUG-FIX-DEEP-AUDIT-R2 C-3: allow comments while
+        // live, plus a 60s grace window after ended_at to absorb the race
+        // between EndStream API setting status='ended' and viewers who are
+        // still watching. Beyond 60s, the stream is closed for comments.
+        const POST_END_GRACE_MS = 60_000;
+        if (stream.status === 'ended') {
+            const endedAtMs = stream.ended_at ? new Date(stream.ended_at).getTime() : 0;
+            const sinceEnded = endedAtMs ? Date.now() - endedAtMs : Infinity;
+            if (sinceEnded > POST_END_GRACE_MS) {
+                return res.status(400).json({ error: 'Stream has ended' });
+            }
+        } else if (stream.status !== 'live') {
             return res.status(400).json({ error: 'Stream has not started yet' });
         }
 

@@ -64,6 +64,20 @@ export default async function handler(req, res) {
 
             case 'pin_comment': {
                 if (!comment_id) return res.status(400).json({ error: 'comment_id required' });
+                // BUG-FIX-DEEP-AUDIT-R2 M-1: verify the comment actually
+                // belongs to this stream. Previously the broadcaster could
+                // pin any comment_id from any stream — the upsert went
+                // through and showed in their stream's pin slot. With the
+                // check, pinning is scoped to comments authored against
+                // this stream only. Mirrors the delete_comment guard.
+                const { data: comment } = await supabase
+                    .from('live_comments')
+                    .select('id, stream_id')
+                    .eq('id', comment_id)
+                    .maybeSingle();
+                if (!comment || comment.stream_id !== stream_id) {
+                    return res.status(404).json({ error: 'Comment not found in this stream' });
+                }
                 await supabase.from('live_pins').upsert({
                     stream_id,
                     comment_id,
