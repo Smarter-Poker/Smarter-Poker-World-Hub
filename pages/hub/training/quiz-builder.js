@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-8b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUIZ TEMPLATES
@@ -563,15 +565,12 @@ export default function QuizBuilderPage() {
           {tab === 'saved' && (
             <>
               {savedQuizzes.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#94a3b8' }}>
-                    No quizzes yet
-                  </div>
-                  <div style={{ fontSize: 11, marginTop: 4 }}>
-                    Switch to Build tab to create your first quiz
-                  </div>
-                </div>
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No quizzes yet"
+                  message="Switch to the Build tab to create your first quiz."
+                  compact
+                />
               )}
               {savedQuizzes.map((quiz) => (
                 <motion.div

@@ -1067,3 +1067,11 @@ TRAIN-WIRE-EMPTY-7a
 # TRAIN-WIRE-EMPTY-7b — pages/hub/training/hand-history-upload.js. "No saved
 # sessions yet" inline div replaced with compact TrainerEmptyState.
 TRAIN-WIRE-EMPTY-7b
+
+# ─── Phase-5 adoption: TrainerEmptyState batch 8 (flashcards + quiz-builder) ─
+# TRAIN-WIRE-EMPTY-8a — pages/hub/training/flashcards.js. "🏆 All Caught Up!"
+# block replaced with compact TrainerEmptyState variant="complete".
+TRAIN-WIRE-EMPTY-8a
+# TRAIN-WIRE-EMPTY-8b — pages/hub/training/quiz-builder.js. "📝 No quizzes
+# yet" inline empty state replaced with compact TrainerEmptyState.
+TRAIN-WIRE-EMPTY-8b
