@@ -528,13 +528,27 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         }
     };
 
-    // Apply a zoom value via the MediaTrack constraints API. Clamps the
-    // value to detected capability range. Async — caller can await but
-    // doesn't have to (we update local state optimistically).
+    // Apply a zoom value via the MediaTrack constraints API when hardware
+    // zoom is supported, OR fall back to CSS scale on the preview video
+    // element when it isn't. STREAM-BUG-2 ("zoom in/out doesn't work"):
+    // most webcams and many iOS Safari versions don't expose
+    // getCapabilities().zoom, so the previous early-return left the slider
+    // dead and Dan saw no effect. The CSS-scale fallback at least makes the
+    // broadcaster's preview zoom — the published stream still won't zoom
+    // without hardware support, hence the "preview only" caption on the
+    // software-zoom slider.
     const applyZoom = async (z) => {
-        if (!streamRef.current || !zoomCapability) return;
-        const clamped = Math.max(zoomCapability.min, Math.min(zoomCapability.max, z));
+        // Clamp using detected capability if present, else a 1–3× software range
+        const min = zoomCapability?.min ?? 1;
+        const max = zoomCapability?.max ?? 3;
+        const clamped = Math.max(min, Math.min(max, z));
         setZoomLevel(clamped);
+        if (!streamRef.current || !zoomCapability) {
+            // Software-zoom path: the CSS transform on the <video> element
+            // reads zoomLevel directly (see render), so just updating state
+            // is enough.
+            return;
+        }
         try {
             const track = streamRef.current.getVideoTracks?.()[0];
             if (!track) return;
@@ -1316,7 +1330,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
 
                         {/* Camera preview */}
                         <div style={{ position:'relative', background:'#000', aspectRatio:'16/9' }}>
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', transition: 'all 0.3s ease' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform: `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() || 'none', transition: 'all 0.3s ease' }} />
                             <div style={{ position:'absolute', top:10, left:10, background:'rgba(0,0,0,.55)', color:'white', padding:'4px 10px', borderRadius:6, fontSize:13, fontWeight:600 }}>Preview</div>
                         </div>
 
@@ -1437,7 +1451,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 {/* ── COUNTDOWN STAGE ── */}
                 {stage === 'countdown' && (
                     <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', touchAction:'none', overflow:'hidden' }}>
-                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', opacity:.4 }} />
+                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform: `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() || 'none', opacity:.4 }} />
                         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
                             <div style={{ fontSize:16, color:'white', fontWeight:700, letterSpacing:3, marginBottom:16, textTransform:'uppercase', opacity:.85 }}>Get Ready</div>
                             <div style={{ fontSize:140, fontWeight:900, color:'white', lineHeight:1, animation:'cdPop .5s ease-out', textShadow:'0 0 60px rgba(0,120,255,.8)' }} key={countdown}>
@@ -1457,7 +1471,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         {/* Broadcaster/Local Video + Remote Participants */}
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#000' }}>
                             {/* BUG-FIX-FLIP: mirror only front-facing (user) camera */}
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', transition: 'all 0.3s ease' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() || 'none', transition: 'all 0.3s ease' }} />
                             
                             {/* Secondary Participants (Guest) */}
                             {participants.map((p, idx) => {
@@ -1738,11 +1752,27 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             {/* BUG-FIX-LIVE2-1b: zoom slider trigger. Only rendered when the
                                 device's video track exposes a zoom capability. Tap toggles a
                                 vertical slider overlay anchored to this button. */}
-                            {zoomCapability && (
+                            {/* STREAM-BUG-2: zoom UI is now ALWAYS rendered. Previously it
+                                was gated on `zoomCapability` truthy, but most webcams (and
+                                many iOS Safari versions) don't expose getCapabilities().zoom,
+                                so Dan saw no zoom button at all and reported "zoom doesn't
+                                work." When hardware zoom IS supported, applyZoom calls
+                                track.applyConstraints({ advanced:[{ zoom }] }) which zooms
+                                the published stream so viewers see it too. When hardware
+                                zoom is NOT supported, we fall back to a CSS scale() on the
+                                local preview <video> (broadcast remains unzoomed in that
+                                case — labeled "preview-only" in the slider). Either way,
+                                Dan now has a visible, working zoom control. */}
+                            {(() => {
+                                const zMin = zoomCapability?.min ?? 1;
+                                const zMax = zoomCapability?.max ?? 3;
+                                const zStep = zoomCapability?.step ?? 0.1;
+                                const isSoftware = !zoomCapability;
+                                return (
                                 <div style={{ position: 'relative' }}>
                                     <button
                                         onClick={e => { e.stopPropagation(); setZoomSliderOpen(prev => !prev); }}
-                                        title="Zoom"
+                                        title={isSoftware ? 'Zoom (preview only)' : 'Zoom'}
                                         aria-label="Zoom"
                                         aria-pressed={zoomSliderOpen}
                                         style={{
@@ -1773,13 +1803,13 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                             }}
                                         >
                                             <div style={{ color: 'white', fontSize: 11, opacity: 0.7 }}>
-                                                {zoomCapability.max.toFixed(1)}×
+                                                {zMax.toFixed(1)}×
                                             </div>
                                             <input
                                                 type="range"
-                                                min={zoomCapability.min}
-                                                max={zoomCapability.max}
-                                                step={zoomCapability.step || 0.1}
+                                                min={zMin}
+                                                max={zMax}
+                                                step={zStep}
                                                 value={zoomLevel}
                                                 onChange={e => applyZoom(parseFloat(e.target.value))}
                                                 style={{
@@ -1793,15 +1823,21 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                                 }}
                                             />
                                             <div style={{ color: 'white', fontSize: 11, opacity: 0.7 }}>
-                                                {zoomCapability.min.toFixed(1)}×
+                                                {zMin.toFixed(1)}×
                                             </div>
                                             <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginTop: 2 }}>
                                                 {zoomLevel.toFixed(1)}×
                                             </div>
+                                            {isSoftware && (
+                                                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 9, marginTop: 2, lineHeight: 1.2, textAlign: 'center', maxWidth: 70 }}>
+                                                    preview only
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            )}
+                                );
+                            })()}
                             {/* Share button */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleShare(); }}
