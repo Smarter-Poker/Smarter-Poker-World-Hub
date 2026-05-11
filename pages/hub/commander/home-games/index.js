@@ -4,7 +4,7 @@
  * /hub/commander/home-games - Find and join home games
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { Home, Calendar, Globe, UserPlus, Search, Filter, QrCode } from 'lucide-react';
@@ -35,6 +35,10 @@ export default function PlayerHomeGamesHub() {
     daysAhead: 30
   });
   const [message, setMessage] = useState(null);
+  // bug-hunt-zero/B-IDX-1: in-flight guard for the join-by-code POST so a
+  // host who spam-clicks Submit during the request doesn't fire parallel
+  // joins (which can race in the membership upsert at the DB level).
+  const joinInFlightRef = useRef(false);
   const [discoverGames, setDiscoverGames] = useState([]);
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState([]);
@@ -144,6 +148,9 @@ export default function PlayerHomeGamesHub() {
 
   const handleJoinByCode = async () => {
     if (!joinCode.trim()) return;
+    // bug-hunt-zero/B-IDX-1: re-entry guard
+    if (joinInFlightRef.current) return;
+    joinInFlightRef.current = true;
 
     try {
       const authUser = await ensureAuthReady(supabase);
@@ -155,7 +162,13 @@ export default function PlayerHomeGamesHub() {
 
       const res = await fetch(`/api/commander/home-games/join/${joinCode.trim()}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // bug-hunt-zero/B-IDX-2: idempotency for the join-by-code POST.
+          'X-Idempotency-Key': (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36),
+        }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -171,6 +184,9 @@ export default function PlayerHomeGamesHub() {
     } catch (err) {
       console.warn('Join error:', err);
       setMessage({ type: 'error', text: 'Failed To Join Game' });
+    } finally {
+      // bug-hunt-zero/B-IDX-1: always clear the in-flight ref
+      joinInFlightRef.current = false;
     }
     setTimeout(() => setMessage(null), 4000);
   };

@@ -13,6 +13,14 @@ import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
 
+// Phase 41/bug-hunt-zero: idempotency-token generator. Used on every
+// state-changing POST in this page so a timeout-then-retry doesn't
+// double-create the row server-side once the API honors the header.
+function makeIdemKey() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
 function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);
   const isPast = eventDate < new Date();
@@ -151,6 +159,13 @@ export default function HomeGameDetailPage() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [userReview, setUserReview] = useState(null);
+  // bug-hunt-zero: in-flight guards. rsvpingRef is keyed-by-event so two
+  // different events can rsvp in parallel, but the same event cannot be
+  // double-clicked into a race. postingRef + reviewIdemRef + dmIdemRef
+  // hold stable idempotency tokens for each respective handler.
+  const rsvpingRef = useRef({});
+  const postingRef = useRef(false);
+  const reviewIdemRef = useRef(makeIdemKey());
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
 
@@ -305,23 +320,46 @@ export default function HomeGameDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          // bug-hunt-zero/B-ID-3: idempotency. Server may dedupe on
+          // (group_id, user_id); the header lets it deterministically
+          // collapse retries of the same logical join attempt.
+          'X-Idempotency-Key': makeIdemKey(),
         }
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      // bug-hunt-zero/B-ID-1: surface server-side errors to the user.
+      // The previous catch swallowed everything into console.warn, so
+      // a failed join produced zero UI feedback — clicking the button
+      // looked indistinguishable from a successful join.
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const serverMsg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || data?.message || '';
+        throw new Error(serverMsg || `Couldn't join — please try again (${res.status})`);
+      }
       if (data.success || data.membership) {
+        if (data.membership?.status === 'pending') {
+          toast.success('Request sent — waiting for the host to approve you');
+        } else {
+          toast.success('You joined the group');
+        }
         fetchGroup();
+      } else if (data.error) {
+        throw new Error(data.error?.message || data.error || 'Join failed');
       }
     } catch (error) {
       console.warn('Join failed:', error);
+      toast.error(error && error.message ? error.message : 'Failed to join group');
     } finally {
       setJoining(false);
     }
   }
 
   // RSVP to event
+  // bug-hunt-zero/B-ID-3+4: in-flight guard (rsvpingRef keyed by event id)
+  // prevents spam-click races that could trip the rsvp-capacity trigger in
+  // weird ways (e.g. simultaneous yes-then-no leaving stale waitlist).
+  // X-Idempotency-Key lets the server collapse a timeout-then-retry.
   async function handleRsvp(event, status) {
     const token = getAccessToken();
     if (!token) {
@@ -329,12 +367,17 @@ export default function HomeGameDetailPage() {
       return;
     }
 
+    const key = String(event.id);
+    if (rsvpingRef.current[key]) return; // already in flight for this event
+    rsvpingRef.current[key] = true;
+
     try {
       const res = await fetch(`/api/commander/home-games/events/${event.id}/rsvp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': makeIdemKey(),
         },
         body: JSON.stringify({ response: status })
       });
@@ -376,10 +419,17 @@ export default function HomeGameDetailPage() {
     } catch (error) {
       console.warn('RSVP failed:', error);
       toast.error(error.message || 'Failed to RSVP');
+    } finally {
+      // bug-hunt-zero/B-ID-3: always clear the in-flight marker for this event
+      // so subsequent RSVP changes (e.g. yes → no after a server error) work.
+      delete rsvpingRef.current[String(event.id)];
     }
   }
 
   // Start a direct message with a user
+  // bug-hunt-zero/B-ID-5: same idempotency-key pattern as the manage page
+  // (PR #317). If the server doesn't already dedupe by (host, target),
+  // the header lets a future fix collapse retries deterministically.
   async function handleStartDm(targetUserId) {
     if (targetUserId === currentUserId) return;
     try {
@@ -388,7 +438,8 @@ export default function HomeGameDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': makeIdemKey(),
         },
         body: JSON.stringify({ target_user_id: targetUserId })
       });
@@ -625,21 +676,37 @@ export default function HomeGameDetailPage() {
                   />
                   <button
                     onClick={async () => {
+                      // bug-hunt-zero/B-ID-2: post creation was silently failing.
+                      // Previous code never checked res.ok, so a 4xx/5xx cleared
+                      // the input box and called fetchGroup() — to the user it
+                      // looked like a successful post that mysteriously vanished.
                       if (!newPost.trim()) return;
+                      if (postingRef.current) return; // block double-tap
+                      postingRef.current = true;
+                      const content = newPost.trim();
                       try {
                         const token = getAccessToken();
-                        await fetch(`/api/commander/home-games/${id}/posts`, {
+                        const res = await fetch(`/api/commander/home-games/${id}/posts`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}`
+                            Authorization: `Bearer ${token}`,
+                            'X-Idempotency-Key': makeIdemKey(),
                           },
-                          body: JSON.stringify({ content: newPost.trim() })
+                          body: JSON.stringify({ content })
                         });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || data.error) {
+                          const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't post (${res.status})`;
+                          throw new Error(msg);
+                        }
                         setNewPost('');
                         fetchGroup();
                       } catch (err) {
                         console.warn('Post failed:', err);
+                        toast.error(err && err.message ? err.message : 'Failed to post');
+                      } finally {
+                        postingRef.current = false;
                       }
                     }}
                     disabled={!newPost.trim()}
@@ -690,17 +757,30 @@ export default function HomeGameDetailPage() {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`
+                        Authorization: `Bearer ${token}`,
+                        // bug-hunt-zero/B-ID-6: idempotency for the review POST.
+                        // Stable across retries until the server settles (2xx/4xx);
+                        // network/5xx keep the token so the retry stays deduped.
+                        'X-Idempotency-Key': reviewIdemRef.current,
                       },
                       body: JSON.stringify(reviewData)
                     });
-                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                    if (res.ok || (res.status >= 400 && res.status < 500)) {
+                      reviewIdemRef.current = makeIdemKey();
+                    }
+                    if (!res.ok) {
+                      const errData = await res.json().catch(() => ({}));
+                      const msg = errData?.error?.message || (typeof errData?.error === 'string' ? errData.error : '') || `Couldn't submit review (${res.status})`;
+                      throw new Error(msg);
+                    }
                     const data = await res.json();
                     if (data.success) {
                       setUserReview(reviewData);
+                      toast.success('Review submitted');
                     }
                   } catch (err) {
                     console.warn('Submit review error:', err);
+                    toast.error(err && err.message ? err.message : 'Failed to submit review');
                   } finally {
                     setReviewSubmitting(false);
                   }
