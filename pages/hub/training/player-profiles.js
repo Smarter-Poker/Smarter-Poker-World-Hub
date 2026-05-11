@@ -6,6 +6,10 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// BUG FIX (TRAIN-PROFILES-A11Y-1): button hardening (type=button +
+// aria-label) across the player-profiles surface. Card-suit glyphs
+// (♠♣♥♦) in profile descriptions remain (semantic). Same surface-
+// specific a11y pattern as PR #320/#322/#324/#327-#350.
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -421,6 +425,8 @@ export default function PlayerProfilesPage() {
         >
           <div>
             <button
+              type="button"
+              aria-label="Back to training"
               onClick={() => router.back()}
               style={{
                 background: 'none',
@@ -431,6 +437,7 @@ export default function PlayerProfilesPage() {
                 marginBottom: 4,
               }}
             >
+              {/* TRAIN-PROFILES-A11Y-1: back button hardening */}
               Back to Training
             </button>
             <h1
@@ -850,6 +857,7 @@ export default function PlayerProfilesPage() {
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
               {SCENARIOS.map((s, i) => (
                 <button
+              type="button"
                   key={s.id}
                   onClick={() => setActiveScenario(i)}
                   style={{

@@ -640,3 +640,12 @@ TRAIN-WEAKNESS-A11Y-1
 # replacing the bare '&larr;' HTML entity. Title raised to <h1>. Same
 # surface-specific pattern as PR #320/#322/#324/#327-#346.
 TRAIN-SCORECARD-A11Y-1
+
+# ─── /hub/training/player-profiles — surface a11y polish ────────────────────
+# TRAIN-PROFILES-A11Y-1 — pages/hub/training/player-profiles.js. Custom
+# player profiles surface was already emoji-free in rendered output. Card-
+# suit glyphs (♠♣♥♦) in profile descriptions remain (semantic). Polish:
+# back button gains type="button" + aria-label="Back to training";
+# scenario-tab buttons gain type="button". Same surface-specific pattern
+# as PR #320/#322/#324/#327-#350.
+TRAIN-PROFILES-A11Y-1
