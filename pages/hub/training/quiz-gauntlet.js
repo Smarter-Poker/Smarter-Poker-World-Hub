@@ -12,6 +12,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+// TRAIN-WIRE-PROGRESS-3 — adoption: quiz-gauntlet question progress
 // TRAIN-WIRE-FX-6b — adoption: feedback hook
 
 function saveSession(payload) {
@@ -411,16 +413,24 @@ export default function QuizGauntlet() {
                 transition={{ duration: 0.2 }}
               >
                 {/* HUD */}
+                <ProgressStrip
+                  current={qIdx + 1}
+                  total={TOTAL_Q}
+                  correct={history.filter((e) => e.isCorrect).length}
+                  bestStreak={combo}
+                  difficulty="intermediate"
+                  compact
+                  style={{ marginBottom: 12 }}
+                />
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(4,1fr)',
+                    gridTemplateColumns: 'repeat(3,1fr)',
                     gap: 8,
                     marginBottom: 16,
                   }}
                 >
                   {[
-                    { label: 'Question', value: `${qIdx + 1}/${TOTAL_Q}`, color: '#94a3b8' },
                     { label: 'Score', value: totalScore, color: '#f97316' },
                     {
                       label: 'Combo',

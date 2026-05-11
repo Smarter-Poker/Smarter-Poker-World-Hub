@@ -1104,3 +1104,11 @@ TRAIN-WIRE-EMPTY-9a
 # TRAIN-WIRE-EMPTY-9b — pages/hub/training/study-group-finder.js. "No groups
 # match your filters." inline div replaced with compact TrainerEmptyState.
 TRAIN-WIRE-EMPTY-9b
+
+# ─── Phase-7 adoption: wire ProgressStrip into quiz-gauntlet ────────────────
+# TRAIN-WIRE-PROGRESS-3 — pages/hub/training/quiz-gauntlet.js. Adds
+# <ProgressStrip current total correct bestStreak compact /> above the 4-up
+# stat chip grid; removes the Question chip (its data now lives in the
+# strip's position chip + completion ring). The grid drops from 4 columns to
+# 3 (Score / Combo / Time).
+TRAIN-WIRE-PROGRESS-3
