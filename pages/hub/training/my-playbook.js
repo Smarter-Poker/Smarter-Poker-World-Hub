@@ -17,6 +17,60 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 const TAG_COLORS = ['#ef4444', '#f97316', '#fbbf24', '#34d399', '#0ea5e9', '#8b5cf6'];
 
+// BUG FIX (TRAIN-PLAYBOOK-A11Y-1): SVG icon components replacing the
+// emojis on the my-playbook surface (📖 empty state, 📌 pin marker + pin
+// toggle, ✕ delete) and a bare ← back-button entity. Same surface-
+// specific a11y pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
+// #332/#333/#334/#335.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=14, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function BookOpenIcon({ size=40 }) {
+  return (
+    <_Svg size={size}>
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </_Svg>
+  );
+}
+function PinIcon({ size=14, filled=false }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24"
+         fill={filled ? 'currentColor' : 'none'}
+         stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <line x1="12" y1="17" x2="12" y2="22"/>
+      <path d="M5 17h14l-2-7H7z"/>
+      <path d="M9 10V5h6v5"/>
+    </svg>
+  );
+}
+function CloseIcon({ size=16 }) {
+  return (
+    <_Svg size={size}>
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </_Svg>
+  );
+}
+function BackArrowIcon({ size=18 }) {
+  return (
+    <_Svg size={size}>
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </_Svg>
+  );
+}
+
+
 export default function MyPlaybookPage() {
   const router = useRouter();
   useTrainingBus('my-playbook');
@@ -145,6 +199,8 @@ export default function MyPlaybookPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
+              type="button"
+              aria-label="Back to training"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -160,15 +216,19 @@ export default function MyPlaybookPage() {
                 justifyContent: 'center',
               }}
             >
-              ←
+              {/* TRAIN-PLAYBOOK-A11Y-1: SVG back arrow */}
+              <BackArrowIcon size={18} />
             </button>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>My Playbook</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{plays.length} plays saved</div>
+              {/* TRAIN-PLAYBOOK-A11Y-1: semantic h1 */}
+              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>My Playbook</h1>
+              <div style={{ fontSize: 11, color: '#64748b' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} plays saved</div>
             </div>
           </div>
           {view === 'list' && (
             <button
+              type="button"
+              aria-label="Create a new playbook entry"
               onClick={() => setView('form')}
               style={{
                 background: '#3b82f6',
@@ -190,10 +250,11 @@ export default function MyPlaybookPage() {
           {/* Search (list mode only) */}
           {view === 'list' && plays.length > 0 && (
             <input
-              type="text"
+              type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search plays..."
+              aria-label="Search saved plays"
               style={{
                 width: '100%',
                 padding: '10px 14px',
@@ -376,6 +437,8 @@ export default function MyPlaybookPage() {
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <button
+                  type="button"
+                  aria-label="Cancel and return to playbook list"
                   onClick={() => setView('list')}
                   style={{
                     flex: 1,
@@ -391,6 +454,8 @@ export default function MyPlaybookPage() {
                   Cancel
                 </button>
                 <button
+                  type="button"
+                  aria-label="Save playbook entry"
                   onClick={savePlay}
                   style={{
                     flex: 2,
@@ -411,7 +476,10 @@ export default function MyPlaybookPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {plays.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-                  <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.5 }}>📖</div>
+                  {/* TRAIN-PLAYBOOK-A11Y-1: SVG book replaces 📖 */}
+                  <div style={{ display: 'inline-flex', marginBottom: 16, opacity: 0.5, color: '#64748b' }} aria-hidden>
+                    <BookOpenIcon size={40} />
+                  </div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
                     Your Playbook is empty
                   </div>
@@ -444,11 +512,15 @@ export default function MyPlaybookPage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {p.pinned && <span style={{ fontSize: 12, color: '#fbbf24' }}>📌</span>}
+                      {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin replaces 📌 marker */}
+                      {p.pinned && <span style={{ display: 'inline-flex', color: '#fbbf24' }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
                       <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{p.title}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
+                        type="button"
+                        aria-label={p.pinned ? `Unpin ${p.title}` : `Pin ${p.title}`}
+                        aria-pressed={p.pinned}
                         onClick={() => togglePin(p.id)}
                         style={{
                           background: 'none',
@@ -456,11 +528,15 @@ export default function MyPlaybookPage() {
                           color: p.pinned ? '#fbbf24' : '#334155',
                           fontSize: 14,
                           cursor: 'pointer',
+                          display: 'inline-flex',
                         }}
                       >
-                        {p.pinned ? '📌' : '📌'}
+                        {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin toggle replaces 📌 */}
+                        <PinIcon size={14} filled={p.pinned} />
                       </button>
                       <button
+                        type="button"
+                        aria-label={`Delete playbook entry: ${p.title}`}
                         onClick={() => deletePlay(p.id)}
                         style={{
                           background: 'none',
@@ -468,9 +544,11 @@ export default function MyPlaybookPage() {
                           color: '#64748b',
                           fontSize: 16,
                           cursor: 'pointer',
+                          display: 'inline-flex',
                         }}
                       >
-                        ✕
+                        {/* TRAIN-PLAYBOOK-A11Y-1: SVG close replaces ✕ */}
+                        <CloseIcon size={16} />
                       </button>
                     </div>
                   </div>

@@ -489,3 +489,16 @@ TRAIN-CALENDAR-A11Y-1
 # wrapper gains role="status". Title raised to <h1>. Same surface-specific
 # pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334.
 TRAIN-DAILY-GOALS-A11Y-1
+
+# ─── /hub/training/my-playbook — surface a11y polish ────────────────────────
+# TRAIN-PLAYBOOK-A11Y-1 — pages/hub/training/my-playbook.js. Custom strategy
+# builder had four emoji icons (📖 empty state, 📌 pinned marker, 📌 pin
+# toggle, ✕ delete) and a ← back entity. Replacements: BookOpenIcon (empty
+# state), PinIcon with `filled` prop (marker + toggle), CloseIcon (delete),
+# BackArrowIcon (back). Every interactive button gains type="button" +
+# per-entry aria-label; pin toggle gains aria-pressed. New Play, Cancel,
+# Save buttons get type+aria. Search input gets type="search" + aria-label.
+# Plays-count subtitle gains role="status". Title raised to <h1>. Same
+# surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
+# #332/#333/#334/#335.
+TRAIN-PLAYBOOK-A11Y-1
