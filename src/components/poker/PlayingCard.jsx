@@ -34,6 +34,8 @@
  * Build-safety: no emoji chars in source, no JSX comments inside conditional
  * expressions. Follows the rules from PR #362/#365/#369.
  */
+// TRAIN-PLAYCARD-1 — audit-marker registry token
+
 
 import React from 'react';
 
