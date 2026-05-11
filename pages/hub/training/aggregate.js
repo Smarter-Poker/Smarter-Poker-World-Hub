@@ -14,6 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-5e — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -304,14 +306,11 @@ export default function AggregateReports() {
               </div>
 
               {report.textures.length === 0 && (
-                <div style={styles.emptyState}>
-                  {/* TRAIN-AGGREGATE-A11Y-1: SVG inbox replaces 📭 */}
-                  <span style={{ display: 'inline-flex', color: '#475569' }} aria-hidden><InboxEmptyIcon size={48} /></span>
-                  <p>No solver data found for this configuration.</p>
-                  <p style={{ fontSize: 12, color: '#475569' }}>
-                    Try changing the game type or stack depth.
-                  </p>
-                </div>
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No solver data for this configuration"
+                  message="Try changing the game type or stack depth."
+                />
               )}
 
               {report.textures.map((tex, idx) => (

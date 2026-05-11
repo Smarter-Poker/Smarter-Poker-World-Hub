@@ -1029,3 +1029,23 @@ TRAIN-WIRE-PROGRESS-1
 # "beginner" compact />. The full-width gradient progress bar below is left
 # as-is (it's a visual continuation of the brand header).
 TRAIN-WIRE-PROGRESS-2
+
+# ─── Phase-4 adoption: TrainerEmptyState batch 5 (6 trainers) ───────────────
+# TRAIN-WIRE-EMPTY-5a — pages/hub/training/tournaments.js. "No {tab} tournaments"
+# + TrophyIcon block replaced. Tab-aware message kept.
+TRAIN-WIRE-EMPTY-5a
+# TRAIN-WIRE-EMPTY-5b — pages/hub/training/progress.js. Sign-in gate replaced
+# with locked variant + Sign In CTA.
+TRAIN-WIRE-EMPTY-5b
+# TRAIN-WIRE-EMPTY-5c — pages/hub/training/streaks.js. Sign-in gate replaced
+# with locked variant + Sign In CTA.
+TRAIN-WIRE-EMPTY-5c
+# TRAIN-WIRE-EMPTY-5d — pages/hub/training/jarvis.js. Sign-in gate replaced
+# with locked variant + Sign In CTA.
+TRAIN-WIRE-EMPTY-5d
+# TRAIN-WIRE-EMPTY-5e — pages/hub/training/aggregate.js. "No solver data found
+# for this configuration" + InboxEmptyIcon block replaced.
+TRAIN-WIRE-EMPTY-5e
+# TRAIN-WIRE-EMPTY-5f — pages/hub/training/study-group.js. "No Hand Active"
+# block with Load Demo Hand button replaced; CTA preserved via cta prop.
+TRAIN-WIRE-EMPTY-5f

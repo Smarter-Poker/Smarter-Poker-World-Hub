@@ -18,6 +18,8 @@ import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-TOURNAMENTS-A11Y-1): SVG icon components replacing the
 // tournaments lobby emoji set. Strict rules from PR #362/#365/#369 — NO
@@ -299,13 +301,11 @@ export default function TournamentsPage() {
           {loading ? (
             <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
           ) : tournaments.length === 0 ? (
-            <div style={styles.emptyState}>
-              <span style={{ ...styles.emptyIcon, display: 'inline-flex', color: '#475569' }}><TrophyIcon size={48} /></span>
-              <p>No {activeTab} tournaments</p>
-              {activeTab === 'live' && (
-                <p style={styles.emptyHint}>Check Upcoming Tournaments Or Wait For The Next One!</p>
-              )}
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title={`No ${activeTab} tournaments`}
+              message={activeTab === 'live' ? 'Check upcoming tournaments or wait for the next one.' : 'Check back soon for new tournaments.'}
+            />
           ) : (
             <div style={styles.tournamentList}>
               {tournaments.map((tournament, i) => {
