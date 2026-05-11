@@ -31,6 +31,28 @@ export default async function handler(req, res) {
     }
 
     try {
+        // BUG-FIX-DEEP-AUDIT-R3 L-3: prune live_viewers rows older than 5
+        // minutes since last_seen_at. Heartbeats from named viewers refresh
+        // last_seen_at every ~30s via LiveStreamService. A 5-minute timeout
+        // is enough margin for short cellular dropouts but catches tab
+        // crashes / force-quits. Runs alongside the stream-cleanup below
+        // since both share the same 5-minute schedule. Non-fatal: failures
+        // don't block the stream cleanup that this endpoint primarily
+        // exists for.
+        let viewersDeleted = 0;
+        try {
+            const { data: vResult, error: vErr } = await supabase
+                .rpc('fn_cleanup_stale_viewers', { p_timeout_minutes: 5 });
+            if (vErr) {
+                console.warn('[cron/cleanup-stale-streams] fn_cleanup_stale_viewers:', vErr.message);
+            } else {
+                viewersDeleted = vResult?.deleted_count ?? 0;
+            }
+        } catch (vThrow) {
+            console.warn('[cron/cleanup-stale-streams] fn_cleanup_stale_viewers threw:',
+                vThrow?.message || vThrow);
+        }
+
         // 1. Snapshot stale streams BEFORE we end them so we can flip each
         //    one to is_draft=true (preserving recordings, matching the
         //    explicit 'save' action).
@@ -56,6 +78,7 @@ export default async function handler(req, res) {
                 success: true,
                 ended_count: 0,
                 saved_count: 0,
+                viewers_deleted: viewersDeleted,
                 timestamp: new Date().toISOString(),
             });
         }
@@ -109,6 +132,7 @@ export default async function handler(req, res) {
             success: true,
             ended_count: rpcResult?.ended_count ?? trulyStale.length,
             saved_count: savedCount,
+            viewers_deleted: viewersDeleted,
             timestamp: new Date().toISOString(),
         });
     } catch (err) {

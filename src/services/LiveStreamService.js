@@ -702,6 +702,14 @@ class LiveStreamService {
                 this.onRemoteStream?.(this._remoteMediaStream);
             }
             try { await supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 }); } catch (_) {}
+            // BUG-FIX-DEEP-AUDIT-R3 L-3: ensure heartbeat is running on
+            // fast-path rejoin too. Without this, a viewer who briefly
+            // navigates away and back would have their heartbeat stopped
+            // (via leaveStream) but never restarted because joinStream
+            // returned early.
+            if (userId) {
+                this._startViewerHeartbeat(streamId);
+            }
             const { data: stream } = await supabase.from('live_streams')
                 // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: enumerate safe columns;
                 // guest_invite_code is no longer readable by end-user roles.
@@ -734,11 +742,34 @@ class LiveStreamService {
         // Register viewer — onConflict MUST target the composite unique (stream_id, viewer_id).
         // Without it, Supabase falls back to the PK, so reconnects/StrictMode double-fires
         // created duplicate rows that permanently inflated viewer counts after leaveStream().
+        //
+        // BUG-FIX-DEEP-AUDIT-R3 L-3: use the heartbeat RPC instead of a
+        // direct upsert. The RPC sets last_seen_at=now() on both insert
+        // and conflict-update, which the fn_cleanup_stale_viewers cron
+        // uses to prune ghost viewers. Falls back to the direct upsert
+        // if the RPC is missing (dev environment with stale migrations).
         if (userId) {
-            await supabase.from('live_viewers').upsert(
-                { stream_id: streamId, viewer_id: userId },
-                { onConflict: 'stream_id,viewer_id' }
+            const { error: hbErr } = await supabase.rpc(
+                'fn_heartbeat_live_viewer', { p_stream_id: streamId }
             );
+            if (hbErr && (hbErr.code === 'PGRST202' || hbErr.message?.includes('not exist'))) {
+                // Pre-migration fallback. Production has the RPC; this
+                // branch only fires in older dev DBs.
+                await supabase.from('live_viewers').upsert(
+                    { stream_id: streamId, viewer_id: userId },
+                    { onConflict: 'stream_id,viewer_id' }
+                );
+            }
+        }
+
+        // BUG-FIX-DEEP-AUDIT-R3 L-3: start the periodic heartbeat. Refreshes
+        // last_seen_at every 30 seconds while this viewer is connected. The
+        // server-side cleanup cron prunes viewers older than 5 minutes, so
+        // a 30s heartbeat gives ~10 missed heartbeats of headroom for a
+        // single viewer (cellular dropouts, brief tab background, etc.).
+        // Cleared on leaveStream() via _stopViewerHeartbeat.
+        if (userId) {
+            this._startViewerHeartbeat(streamId);
         }
 
         // Update peak_viewers if needed — wrapped in try/catch because supabase.rpc()
@@ -801,6 +832,11 @@ class LiveStreamService {
         // Capture before nulling
         const leavingStreamId = this.currentStreamId;
         const leavingUserId = this.currentUserId;
+
+        // BUG-FIX-DEEP-AUDIT-R3 L-3: stop the viewer heartbeat. The direct
+        // delete + keepalive leave-stream below removes the row; once the
+        // row is gone, heartbeats would just re-insert it.
+        this._stopViewerHeartbeat();
 
         if (leavingUserId) {
             // BUG FIX (S2): Fire-and-forget call with keepalive to ensure viewer removal.
@@ -873,6 +909,8 @@ class LiveStreamService {
     /**
      * Ban a user from commenting — uses server-side API (service role) to avoid
      * RLS issues and to ensure the broadcaster identity is resolved server-side.
+     *
+     * Ban is broadcaster-only on the server; co-hosts cannot ban.
      */
     async banUser(streamId, bannedUserId) {
         try {
@@ -894,15 +932,21 @@ class LiveStreamService {
      * Delete a comment — must use server-side API (anon key can't delete
      * comments written by other users even as broadcaster; RLS blocks it).
      * Broadcasters can delete any comment in their own stream via the API.
+     *
+     * BUG-FIX-DEEP-AUDIT-R3 M-9: optional `guestInviteCode` arg lets a
+     * verified co-host call this too. The server verifies the code against
+     * live_streams.guest_invite_code.
      */
-    async deleteComment(commentId) {
+    async deleteComment(commentId, guestInviteCode = null) {
         try {
             const token = getAccessToken();
+            const body = { action: 'delete_comment', comment_id: commentId, stream_id: this.currentStreamId };
+            if (guestInviteCode) body.guest_invite_code = guestInviteCode;
             const resp = await fetch('/api/live/moderate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 credentials: 'same-origin',
-                body: JSON.stringify({ action: 'delete_comment', comment_id: commentId, stream_id: this.currentStreamId }),
+                body: JSON.stringify(body),
             });
             if (!resp.ok) {
                 const d = await resp.json().catch(() => ({}));
@@ -913,15 +957,19 @@ class LiveStreamService {
 
     /**
      * Pin a comment (replaces existing pin for the stream)
+     *
+     * BUG-FIX-DEEP-AUDIT-R3 M-9: optional `guestInviteCode` for co-host.
      */
-    async pinComment(streamId, commentId) {
+    async pinComment(streamId, commentId, guestInviteCode = null) {
         try {
             const token = getAccessToken();
+            const body = { action: 'pin_comment', stream_id: streamId, comment_id: commentId };
+            if (guestInviteCode) body.guest_invite_code = guestInviteCode;
             const resp = await fetch('/api/live/moderate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 credentials: 'same-origin',
-                body: JSON.stringify({ action: 'pin_comment', stream_id: streamId, comment_id: commentId }),
+                body: JSON.stringify(body),
             });
             if (!resp.ok) {
                 const d = await resp.json().catch(() => ({}));
@@ -932,15 +980,19 @@ class LiveStreamService {
 
     /**
      * Unpin the current comment for the stream
+     *
+     * BUG-FIX-DEEP-AUDIT-R3 M-9: optional `guestInviteCode` for co-host.
      */
-    async unpinComment(streamId) {
+    async unpinComment(streamId, guestInviteCode = null) {
         try {
             const token = getAccessToken();
+            const body = { action: 'unpin_comment', stream_id: streamId };
+            if (guestInviteCode) body.guest_invite_code = guestInviteCode;
             const resp = await fetch('/api/live/moderate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 credentials: 'same-origin',
-                body: JSON.stringify({ action: 'unpin_comment', stream_id: streamId }),
+                body: JSON.stringify(body),
             });
             if (!resp.ok) {
                 const d = await resp.json().catch(() => ({}));
@@ -967,6 +1019,41 @@ class LiveStreamService {
             name: p.name,
             sid: p.sid,
         }));
+    }
+
+    /**
+     * BUG-FIX-DEEP-AUDIT-R3 L-3: viewer heartbeat. Refreshes the
+     * (stream_id, viewer_id, last_seen_at) row every 30 seconds while the
+     * viewer is connected. The server-side fn_cleanup_stale_viewers cron
+     * deletes rows older than 5 minutes, so a 30s heartbeat gives ~10
+     * missed heartbeats before this viewer is pruned — comfortable for
+     * cellular dropouts, brief tab background, etc.
+     *
+     * Anon viewers don't heartbeat (no profile FK; they're tracked via
+     * the LiveKit participant count, which IS authoritative for
+     * viewer_count).
+     */
+    _startViewerHeartbeat(streamId) {
+        this._stopViewerHeartbeat(); // idempotent: replace any prior timer
+        this._viewerHeartbeatStreamId = streamId;
+        this._viewerHeartbeatTimer = setInterval(() => {
+            if (this._viewerHeartbeatStreamId !== streamId) return;
+            supabase.rpc('fn_heartbeat_live_viewer', { p_stream_id: streamId })
+                .catch((err) => {
+                    // Non-fatal — next tick retries. If the RPC vanishes
+                    // (DB rollback), the user is still in the room, they
+                    // just risk being pruned by the 5-min cleanup.
+                    console.warn('[LiveStream] viewer heartbeat:', err?.message || err);
+                });
+        }, 30_000);
+    }
+
+    _stopViewerHeartbeat() {
+        if (this._viewerHeartbeatTimer) {
+            clearInterval(this._viewerHeartbeatTimer);
+            this._viewerHeartbeatTimer = null;
+        }
+        this._viewerHeartbeatStreamId = null;
     }
 
     /**
