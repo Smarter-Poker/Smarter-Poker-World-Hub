@@ -16,6 +16,8 @@ import { DiamondEngine } from '../../../src/services/DiamondEngine';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-7a — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VILLAIN PROFILES
@@ -742,9 +744,12 @@ export default function NodelockingPage() {
               }}
             >
               {savedProfiles.length === 0 ? (
-                <div style={{ fontSize: 11, color: '#475569', textAlign: 'center', padding: 10 }}>
-                  No saved profiles yet. Adjust sliders and click "Save Custom Profile".
-                </div>
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No saved profiles yet"
+                  message='Adjust sliders and click "Save Custom Profile" to start your library.'
+                  compact
+                />
               ) : (
                 savedProfiles.map((p, i) => (
                   <div

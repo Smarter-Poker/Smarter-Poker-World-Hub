@@ -1059,3 +1059,11 @@ TRAIN-WIRE-EMPTY-6a
 # Data" + DollarIcon block + Start Training motion.button replaced with
 # TrainerEmptyState; CTA preserved via cta prop.
 TRAIN-WIRE-EMPTY-6b
+
+# ─── Phase-4 adoption: TrainerEmptyState batch 7 (nodelocking + history) ────
+# TRAIN-WIRE-EMPTY-7a — pages/hub/training/nodelocking.js. "No saved profiles
+# yet" tip-style inline div replaced with compact TrainerEmptyState.
+TRAIN-WIRE-EMPTY-7a
+# TRAIN-WIRE-EMPTY-7b — pages/hub/training/hand-history-upload.js. "No saved
+# sessions yet" inline div replaced with compact TrainerEmptyState.
+TRAIN-WIRE-EMPTY-7b
