@@ -518,3 +518,17 @@ TRAIN-PLAYBOOK-A11Y-1
 # surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
 # #332/#333/#334/#335/#336.
 TRAIN-JOURNAL-A11Y-1
+
+# ─── /hub/training/session-warmup — surface a11y polish ─────────────────────
+# TRAIN-WARMUP-A11Y-1 — pages/hub/training/session-warmup.js. Pre-session
+# readiness wizard had six emoji step icons (🧠 🎯 📝 ♟️ 🛑 ⏱️) plus ✓
+# completion checkmark and ← back. Replacements: SVG StepIcon discriminator
+# (brain/target/notes/pawn/stop/clock) driven by new `iconKind` field on
+# each PROTOCOL_STEPS entry; CheckIcon for completion; BackArrowIcon for
+# back. Legacy emoji icon string preserved. Back, option, continue, and
+# deploy buttons gain type="button" + aria-label. Per-step title raised
+# to <h1>; completion screen "You are prepared." raised to <h1>. Step
+# indicator dots wrapped in role="progressbar" with valuenow/min/max.
+# Input gains aria-label. Same surface-specific pattern as PR #320/#322/
+# #324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337.
+TRAIN-WARMUP-A11Y-1

@@ -16,9 +16,47 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
+
+// BUG FIX (TRAIN-WARMUP-A11Y-1): SVG icon components replacing the
+// pre-session readiness emoji set (🧠 🎯 📝 ♟️ 🛑 ⏱️ step icons, ✓
+// completion checkmark, ← back). PROTOCOL_STEPS gains iconKind; legacy
+// emoji icon string preserved. Same surface-specific a11y pattern as PR
+// #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=40, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function BrainIcon({ size=40 })  { return <_Svg size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_Svg>; }
+function TargetIcon({ size=40 }) { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function NotesIcon({ size=40 })  { return <_Svg size={size}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></_Svg>; }
+function PawnIcon({ size=40 })   { return <_Svg size={size}><circle cx="12" cy="6" r="3"/><path d="M9 9c0 2 1.5 3 3 3s3-1 3-3"/><path d="M10 12l-1 5h6l-1-5"/><path d="M6 22h12l-1-5H7z"/></_Svg>; }
+function StopIcon({ size=40 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><line x1="6" y1="6" x2="18" y2="18"/></_Svg>; }
+function ClockIcon({ size=40 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></_Svg>; }
+function CheckIcon({ size=36 })  { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
+function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function StepIcon({ kind, size=40 }) {
+  switch (kind) {
+    case 'brain':  return <BrainIcon size={size}/>;
+    case 'target': return <TargetIcon size={size}/>;
+    case 'notes':  return <NotesIcon size={size}/>;
+    case 'pawn':   return <PawnIcon size={size}/>;
+    case 'stop':   return <StopIcon size={size}/>;
+    case 'clock':  return <ClockIcon size={size}/>;
+    default:       return <TargetIcon size={size}/>;
+  }
+}
+
 const PROTOCOL_STEPS = [
   {
     id: 'mental',
+    iconKind: 'brain',
     title: 'Mental State Check',
     desc: 'Are you rested, hydrated, and emotionally neutral? Rate your current readiness.',
     options: ['Locked In', 'Good Enough', 'Slightly Off', 'Tilted'],
@@ -26,6 +64,7 @@ const PROTOCOL_STEPS = [
   },
   {
     id: 'focus',
+    iconKind: 'target',
     title: 'Distractions Cleared',
     desc: 'Is your phone away? Are other browser tabs closed? Have you set your environment for peak focus?',
     options: ['100% Cleared', 'Mostly Clear', 'Still Distracted'],
@@ -33,6 +72,7 @@ const PROTOCOL_STEPS = [
   },
   {
     id: 'review',
+    iconKind: 'notes',
     title: 'Last Session Review',
     desc: 'Think about your last session. What was your biggest mistake? What would you do differently?',
     input: true,
@@ -41,6 +81,7 @@ const PROTOCOL_STEPS = [
   },
   {
     id: 'strategy',
+    iconKind: 'pawn',
     title: 'Strategic Focus',
     desc: 'What is the ONE leak you are actively working on today? Be specific.',
     input: true,
@@ -49,6 +90,7 @@ const PROTOCOL_STEPS = [
   },
   {
     id: 'br',
+    iconKind: 'stop',
     title: 'Bankroll Hard-Stop',
     desc: 'Set your stop-loss. How many buy-ins lost triggers an immediate session end? A hard stop prevents tilt cascades.',
     input: true,
@@ -58,6 +100,7 @@ const PROTOCOL_STEPS = [
   },
   {
     id: 'timer',
+    iconKind: 'clock',
     title: 'Session Duration',
     desc: 'Set your planned session length. Quality drops after 60 minutes for most players. Shorter focused sessions beat long unfocused grinds.',
     options: ['30 min', '45 min', '60 min', '90 min', '120 min'],
@@ -213,6 +256,8 @@ export default function SessionWarmupPage() {
         {/* Back Button */}
         <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -228,7 +273,8 @@ export default function SessionWarmupPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-WARMUP-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
         </div>
 
@@ -300,7 +346,10 @@ export default function SessionWarmupPage() {
                   backdropFilter: 'blur(10px)',
                 }}
               >
-                <div style={{ fontSize: 40, marginBottom: 16 }}>{currentStep.icon}</div>
+                {/* TRAIN-WARMUP-A11Y-1: SVG StepIcon replaces emoji */}
+                <div style={{ fontSize: 40, marginBottom: 16, display: 'inline-flex', justifyContent: 'center', color: '#3b82f6' }} aria-hidden>
+                  <StepIcon kind={currentStep.iconKind} size={40} />
+                </div>
                 <div
                   style={{
                     fontSize: 12,
@@ -313,17 +362,19 @@ export default function SessionWarmupPage() {
                 >
                   System Check {step + 1} of {PROTOCOL_STEPS.length}
                 </div>
-                <div
+                {/* TRAIN-WARMUP-A11Y-1: semantic h1 per active step */}
+                <h1
                   style={{
                     fontSize: 28,
                     fontWeight: 900,
                     color: '#fff',
                     marginBottom: 12,
                     letterSpacing: '-0.5px',
+                    marginTop: 0,
                   }}
                 >
                   {currentStep.title}
-                </div>
+                </h1>
                 <div
                   style={{
                     fontSize: 14,
@@ -353,6 +404,8 @@ export default function SessionWarmupPage() {
                       return (
                         <motion.button
                           key={opt}
+                          type="button"
+                          aria-label={`${currentStep.title}: ${opt}`}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.97 }}
                           onClick={() => selectOption(opt)}
@@ -383,6 +436,7 @@ export default function SessionWarmupPage() {
                       onChange={(e) => setInputVal(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder={currentStep.placeholder}
+                      aria-label={currentStep.title}
                       autoFocus
                       style={{
                         width: '100%',
@@ -399,6 +453,8 @@ export default function SessionWarmupPage() {
                       }}
                     />
                     <motion.button
+                      type="button"
+                      aria-label="Continue to next step"
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                       onClick={submitInput}
@@ -421,7 +477,14 @@ export default function SessionWarmupPage() {
                 )}
 
                 {/* Step indicator dots */}
-                <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 24 }}>
+                <div
+                  style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 24 }}
+                  role="progressbar"
+                  aria-label="Warmup protocol progress"
+                  aria-valuenow={step + 1}
+                  aria-valuemin={1}
+                  aria-valuemax={PROTOCOL_STEPS.length}
+                >
                   {PROTOCOL_STEPS.map((_, i) => (
                     <div
                       key={i}
@@ -454,23 +517,26 @@ export default function SessionWarmupPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 36,
                   margin: '0 auto 24px',
+                  color: '#4ade80',
                 }}
               >
-                ✓
+                {/* TRAIN-WARMUP-A11Y-1: SVG check replaces ✓ */}
+                <CheckIcon size={36} />
               </div>
-              <div
+              {/* TRAIN-WARMUP-A11Y-1: semantic h1 for completion screen */}
+              <h1
                 style={{
                   fontSize: 32,
                   fontWeight: 900,
                   color: '#fff',
                   marginBottom: 8,
                   letterSpacing: '-1px',
+                  marginTop: 0,
                 }}
               >
                 You are prepared.
-              </div>
+              </h1>
               <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 32 }}>
                 Protocol verified. Execute your strategy.
               </div>
@@ -543,6 +609,8 @@ export default function SessionWarmupPage() {
               </div>
 
               <motion.button
+                type="button"
+                aria-label="Deploy to training tables"
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
                 style={{
