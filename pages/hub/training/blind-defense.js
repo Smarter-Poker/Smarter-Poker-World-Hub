@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-2b — adoption: blind-defense fold/call/3-bet feedback
 // TRAIN-WIRE-PLAYCARD-3 — adoption: blind-defense via shared PlayingCard
 
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -67,6 +69,7 @@ function generateScenario() {
 export default function BlindDefensePage() {
   const router = useRouter();
   useTrainingBus('blind-defense');
+  const fb = useTrainingFeedback();
 
   const [scenario, setScenario] = useState(null);
   const [feedback, setFeedback] = useState(null);
@@ -86,6 +89,7 @@ export default function BlindDefensePage() {
     if (feedback) return; // Prevent double click
 
     const isCorrect = action === scenario.correct;
+    if (isCorrect) fb.correct(); else fb.incorrect();
     setFeedback({
       isCorrect,
       chosen: action,

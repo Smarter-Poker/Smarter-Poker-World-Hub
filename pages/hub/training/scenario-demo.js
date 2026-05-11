@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-2a — adoption: scenario-demo quiz answer + nav feedback
 // TRAIN-WIRE-PLAYCARD-2 — adoption: scenario-demo cards via shared PlayingCard
 
 // Tutorial steps
@@ -143,6 +145,7 @@ function FrequencyBars({ freqs }) {
 export default function ScenarioDemoPage() {
   const router = useRouter();
   useTrainingBus('scenario-demo');
+  const fb = useTrainingFeedback();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [quizIdx, setQuizIdx] = useState(0);
@@ -164,12 +167,13 @@ export default function ScenarioDemoPage() {
   }, []);
 
   const nextStep = useCallback(() => {
+    fb.click();
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep((s) => s + 1);
     } else {
       setCompleted(true);
     }
-  }, [currentStep]);
+  }, [currentStep, fb]);
 
   const prevStep = useCallback(() => {
     if (currentStep > 0) setCurrentStep((s) => s - 1);
@@ -179,6 +183,7 @@ export default function ScenarioDemoPage() {
     (opt) => {
       if (quizAnswer !== null) return;
       const isCorrect = opt === quizQ.correct;
+      if (isCorrect) fb.correct(); else fb.incorrect();
       setQuizAnswer(opt);
       setQuizScore((p) => ({ total: p.total + 1, correct: p.correct + (isCorrect ? 1 : 0) }));
     },
@@ -186,13 +191,14 @@ export default function ScenarioDemoPage() {
   );
 
   const nextQuizQ = useCallback(() => {
+    fb.click();
     if (quizIdx < QUIZ_QUESTIONS.length - 1) {
       setQuizIdx((i) => i + 1);
       setQuizAnswer(null);
     } else {
       setCompleted(true);
     }
-  }, [quizIdx]);
+  }, [quizIdx, fb]);
 
   // Save completion
   useEffect(() => {

@@ -915,3 +915,16 @@ TRAIN-WIRE-PLAYCARD-5
 # localStorage prefs sp.training.sound / sp.training.haptics; honors
 # prefers-reduced-motion. No new UI; behavior layer only.
 TRAIN-WIRE-FX-1
+
+# ─── Phase-2 adoption: extend useTrainingFeedback to 3 more trainers ────────
+# TRAIN-WIRE-FX-2a — pages/hub/training/scenario-demo.js. fb.correct() /
+# fb.incorrect() inside answerQuizQ; fb.click() inside nextStep + nextQuizQ.
+# Pure behavior; no UI change. Respects sp.training.sound/haptics + reduced
+# motion.
+TRAIN-WIRE-FX-2a
+# TRAIN-WIRE-FX-2b — pages/hub/training/blind-defense.js. fb.correct() /
+# fb.incorrect() inside handleAction immediately after isCorrect resolves.
+TRAIN-WIRE-FX-2b
+# TRAIN-WIRE-FX-2c — pages/hub/training/hand-lab.js. fb.click() on
+# handleCardSelect + runAnalysis entry to give tactile picker feedback.
+TRAIN-WIRE-FX-2c

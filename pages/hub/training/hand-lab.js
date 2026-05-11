@@ -9,6 +9,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-2c — adoption: hand-lab card-pick + analyze feedback
 // TRAIN-WIRE-PLAYCARD-4 — adoption: hand-lab hero+board slots via shared PlayingCard
 
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -17,6 +19,7 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 export default function HandLabV2() {
   const router = useRouter();
   useTrainingBus('hand-lab');
+  const fb = useTrainingFeedback();
 
   useEffect(() => {
     const h = () => {};
@@ -38,6 +41,7 @@ export default function HandLabV2() {
   const [results, setResults] = useState(null);
 
   const handleCardSelect = (rank, suit) => {
+    fb.click();
     const card = `${rank}${suit}`;
 
     // Prevent duplicates
@@ -67,6 +71,7 @@ export default function HandLabV2() {
   };
 
   const runAnalysis = () => {
+    fb.click();
     if (!heroCards[0] || !heroCards[1]) return;
 
     setAnalyzing(true);
