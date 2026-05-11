@@ -355,3 +355,19 @@ TRAIN-PROGRESS-A11Y-1
 # wired them in. Medal stroke colour preserves the existing gold/silver/
 # bronze theme (#FFD700/#C0C0C0/#CD7F32) via currentColor.
 TRAIN-LEADERBOARD-A11Y-1
+
+# ─── /hub/training/daily-challenge — surface a11y polish ─────────────────────
+# TRAIN-DAILY-CHALLENGE-A11Y-1 — pages/hub/training/daily-challenge.js. The
+# daily-challenge page surface had four anti-patterns vs the May 8 visible-
+# surface a11y guidance (handoff §4): (1) back button used only an HTML
+# entity '&larr;' for label, no aria-label, no explicit type, so screen
+# readers spoke "Training" alone with no semantic context for the icon;
+# (2) inline retry button on the load-error banner had no aria-label or
+# type, presenting as a context-free "Retry"; (3) share-result button
+# (post-answer flow) had no aria-label or type; (4) "About Daily Challenge"
+# section used a styled <div> instead of a semantic heading, breaking the
+# h1→h2 outline for screen-reader navigation. Patch: explicit type="button"
+# + aria-label on all three buttons, and lift the About section to <h2>
+# while preserving its original inline style chrome. Visible surface only,
+# no logic changes.
+TRAIN-DAILY-CHALLENGE-A11Y-1
