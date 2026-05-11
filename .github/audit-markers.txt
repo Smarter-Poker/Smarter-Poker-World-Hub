@@ -734,3 +734,12 @@ TRAIN-TOURNAMENTS-A11Y-1
 # button + aria-pressed + aria-label. Page title raised to <h1>. Follows
 # build-safety rules from PR #362/#365/#369.
 TRAIN-FOCUS-A11Y-1
+
+# ─── /hub/training/tournament-prep — surface a11y polish ────────────────────
+# TRAIN-TPP-A11Y-1 — pages/hub/training/tournament-prep.js. ICM-aware
+# tournament planner had bare '← Hub' back text-arrow + a 💡 lightbulb in
+# the strategy-tip h4. Replacements: TppBackArrowIcon (SVG) for back +
+# button hardening; TppLightbulbIcon (SVG) for strategy tip. Tab buttons
+# gain explicit type="button" (aria already present). Follows build-safety
+# rules from PR #362/#365/#369.
+TRAIN-TPP-A11Y-1

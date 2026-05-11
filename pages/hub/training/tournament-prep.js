@@ -8,6 +8,38 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+// BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow + 💡
+// strategy-tip lightbulb. Strict build-safety rules from PR #362/#365/#369
+// — no JSX comments inside conditional expressions, no emoji chars in
+// legacy fallback strings. Same surface-specific a11y pattern as PR
+// #320/#322/#324/#327-#361/#373/#375.
+const _TPP_ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function TppBackArrowIcon({ size = 14 }) {
+  return (
+    <svg {..._TPP_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+function TppLightbulbIcon({ size = 14 }) {
+  return (
+    <svg {..._TPP_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a7 7 0 0 0-4 12.65V17h8v-2.35A7 7 0 0 0 12 2z" />
+    </svg>
+  );
+}
+
+
 export default function TournamentPrepPlanner() {
   const router = useRouter();
   useTrainingBus('tournament-prep');
@@ -74,8 +106,16 @@ export default function TournamentPrepPlanner() {
 
       <div style={styles.container}>
         <div style={styles.header}>
-          <button onClick={() => router.push('/hub/training')} style={styles.backButton}>
-            ← Hub
+          <button
+            type="button"
+            aria-label="Back to training hub"
+            onClick={() => router.push('/hub/training')}
+            style={styles.backButton}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <TppBackArrowIcon size={14} />
+              Hub
+            </span>
           </button>
           <div>
             <h1 style={styles.title}>TOURNAMENT PREP PLANNER</h1>
@@ -179,6 +219,7 @@ export default function TournamentPrepPlanner() {
           <div style={styles.main}>
             <div style={styles.tabs}>
               <button
+                type="button"
                 aria-label="View Structure Flow"
                 aria-pressed={activeTab === 'structure'}
                 onClick={() => setActiveTab('structure')}
@@ -192,6 +233,7 @@ export default function TournamentPrepPlanner() {
                 Structure Flow
               </button>
               <button
+                type="button"
                 aria-label="View Push/Fold"
                 aria-pressed={activeTab === 'pushfold'}
                 onClick={() => setActiveTab('pushfold')}
@@ -318,7 +360,10 @@ export default function TournamentPrepPlanner() {
                     }}
                   >
                     <h4 style={{ color: '#fff', margin: '0 0 8px 0' }}>
-                      💡 Strategy Tip (Level {currentLevel})
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#fbbf24' }}>
+                        <TppLightbulbIcon size={14} />
+                        Strategy Tip (Level {currentLevel})
+                      </span>
                     </h4>
                     <p style={{ color: '#94a3b8', fontSize: 14, margin: 0 }}>
                       {initialBBs < 20
