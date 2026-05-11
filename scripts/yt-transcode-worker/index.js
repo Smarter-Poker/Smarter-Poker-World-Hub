@@ -1166,33 +1166,45 @@ async function failedReelFallbackSweep() {
   if (Date.now() - lastFailedFallbackAt < FAILED_FALLBACK_INTERVAL_MS) return;
   lastFailedFallbackAt = Date.now();
 
-  // Find public YT reels stuck in failed/queued with valid YT URL and no live job.
-  // Pull failed-state first (most common); queued-orphans handled by orphanedQueuedSweep
-  // for fresh queue insertion; this sweep is the give-up-and-iframe layer.
-  const { data: rows, error } = await supa.rpc ? null : null;
-  // Use plain SELECT — no rpc dependency.
+  // Age gate: only flip rows whose last attempt is older than this. Gives
+  // transientFailureRetrySweep (30-min cadence, 1-h age threshold) a chance
+  // to re-queue before we permanently downgrade to iframe-forever. Without
+  // this, brand-new transient failures (e.g., a single 504) would be flipped
+  // before the retry path even fired.
+  const FAILED_FALLBACK_MIN_AGE_MS = 2 * 60 * 60 * 1000; // 2h
+  const ageCutoff = new Date(Date.now() - FAILED_FALLBACK_MIN_AGE_MS).toISOString();
+
+  // Pull failed/queued public YT reels with a valid YT URL stamp.
+  // (Earlier revision had a dead `const { data: rows, error } = await supa.rpc ? null : null;`
+  // here — `await null` resolves to null, destructure threw, .catch() swallowed it,
+  // and the sweep never functionally ran. Deleted.)
   const { data: candidates, error: selErr } = await supa.from('social_reels')
-    .select('id, video_url, original_youtube_url, source_type, media_status')
+    .select('id, video_url, original_youtube_url, source_type, media_status, updated_at')
     .eq('is_public', true)
     .eq('source_type', 'youtube')
     .in('media_status', ['failed', 'queued'])
     .or('video_url.ilike.%youtube%,original_youtube_url.ilike.%youtube%')
+    .lt('updated_at', ageCutoff)  // BUG-6 fix: respect retry window
     .limit(FAILED_FALLBACK_BATCH);
 
   if (selErr) { warn('failed-fallback: select failed:', selErr.message); return; }
-  if (!candidates?.length) { log('failed-fallback: no failed/queued public YT reels'); return; }
+  if (!candidates?.length) { log('failed-fallback: no aged failed/queued public YT reels'); return; }
 
-  // Filter: skip rows with a live job (orphan sweep / stranded sweep handle those)
-  const eligible = [];
-  for (const r of candidates) {
-    const { data: live } = await supa.from('video_transcode_jobs')
-      .select('id').eq('reel_id', r.id)
-      .in('status', ['queued', 'processing'])
-      .limit(1).maybeSingle();
-    if (live) continue;  // let other sweeps handle in-flight conversions
-    eligible.push(r);
+  // Batch the live-job check (BUG-3 fix: was N+1 query per candidate).
+  // Pull every active job whose reel_id matches any of our candidates,
+  // build a Set in memory, filter locally.
+  const candidateIds = candidates.map((r) => r.id);
+  const { data: liveJobs, error: liveErr } = await supa.from('video_transcode_jobs')
+    .select('reel_id')
+    .in('reel_id', candidateIds)
+    .in('status', ['queued', 'processing']);
+  if (liveErr) { warn('failed-fallback: live-job lookup failed:', liveErr.message); return; }
+  const liveReelIds = new Set((liveJobs || []).map((j) => j.reel_id));
+  const eligible = candidates.filter((r) => !liveReelIds.has(r.id));
+  if (!eligible.length) {
+    log(`failed-fallback: ${candidates.length} candidates, all have live jobs`);
+    return;
   }
-  if (!eligible.length) { log(`failed-fallback: ${candidates.length} candidates, all have live jobs`); return; }
 
   let flipped = 0;
   for (const r of eligible) {
@@ -1205,7 +1217,7 @@ async function failedReelFallbackSweep() {
     if (updErr) { warn(`failed-fallback: flip failed for ${r.id}:`, updErr.message); continue; }
     flipped++;
   }
-  log(`failed-fallback: flipped ${flipped} broken-feed reel(s) to ready+iframe`);
+  log(`failed-fallback: flipped ${flipped} broken-feed reel(s) to ready+iframe (age>${FAILED_FALLBACK_MIN_AGE_MS / 3.6e6}h)`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
