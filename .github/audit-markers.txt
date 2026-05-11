@@ -623,3 +623,12 @@ TRAIN-COACH-A11Y-1
 # type+aria-label. Title raised to <h1>. Same surface-specific pattern as
 # PR #320/#322/#324/#327-#345.
 TRAIN-AUTOPILOT-A11Y-1
+
+# ─── /hub/training/weakness-scanner — surface a11y polish ───────────────────
+# TRAIN-WEAKNESS-A11Y-1 — pages/hub/training/weakness-scanner.js. AI leak-
+# detection surface had a 📊 empty-state emoji and a ← back arrow entity.
+# Replacements: WeaknessChartIcon (SVG) for empty state; WeaknessBackArrow-
+# Icon for back. Back button + time-filter buttons + per-leak Practice/
+# Jarvis CTAs gain type="button" + per-instance aria-label. Title raised
+# to <h1>. Same surface-specific pattern as PR #320/#322/#324/#327-#346.
+TRAIN-WEAKNESS-A11Y-1
