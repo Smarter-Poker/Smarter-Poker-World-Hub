@@ -90,14 +90,16 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().slice(0, 10);
     const { data: upcomingGames } = await supabase
       .from('commander_home_games')
+      // Dan-fix/tournament-buildout: include format + starting_stack + structure
+      // so the client can render tournaments distinctly from cash games.
       .select(
-        'id, title, description, game_type, stakes, buyin_min, buyin_max, scheduled_date, start_time, end_time, max_players, min_players, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
+        'id, title, description, game_type, stakes, format, buyin_min, buyin_max, starting_stack, structure, scheduled_date, start_time, end_time, max_players, min_players, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
       )
       .eq('group_id', group.id)
       .gte('scheduled_date', today)
       .neq('status', 'cancelled')
       .order('scheduled_date', { ascending: true })
-      .limit(10);
+      .limit(20);
 
     // 4. Recent public posts on the social page
     const { data: posts } = await supabase
