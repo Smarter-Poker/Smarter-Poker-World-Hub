@@ -293,6 +293,10 @@ ALL_CRONS = [
     # caught even when no users are loading the social-media feed.
     ('/api/cron/cleanup-stale-streams',           dict(minute='*/5')),       # every 5 min
     ('/api/cron/live-reminders',                  dict(minute='*/5')),       # every 5 min
+    # STREAM-POLISH-R4 STORY-EXPIRY-1: hard-delete stories whose
+    # expires_at + 24h grace has elapsed. Audit found ~23k expired
+    # rows accumulated because nothing was actually deleting them.
+    ('/api/cron/cleanup-expired-stories',         dict(minute='17', hour='*/6')),  # every 6 hours, off-the-hour
 
     # ══ WAVE 5 — Club Arena platform crons (Round 9 + X7.4, 2026-04-29) ═════
     # Wired in Round 23 of the relaunch sweep. All 7 handlers existed in
