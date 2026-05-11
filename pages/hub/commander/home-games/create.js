@@ -24,7 +24,9 @@ import {
   FileText,
   Upload,
   AlertCircle,
-  X
+  X,
+  Trophy,
+  Plus
 } from 'lucide-react';
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
@@ -113,6 +115,12 @@ export default function CreateHomeGamePage() {
     // custom_stakes } and is shipped under settings.tables.
     tables_count: 1,
     tables: [],
+    // Dan-fix/tournaments: optional tournament schedule. host_a_home_game
+    // step 3 surfaces a Yes/No toggle; when on, the host adds 1+ tournaments
+    // with name + buy-in + starting stack + structure + date/time + entries
+    // cap. Persisted to commander_home_groups.settings.tournaments.
+    schedules_tournaments: false,
+    tournaments: [],
   });
 
   // Toggle a day in the schedule_days array
@@ -286,6 +294,24 @@ export default function CreateHomeGamePage() {
                 stakes: t.stakes === 'Custom' ? (t.custom_stakes || '') : t.stakes,
               }))
             : undefined,
+          // Dan-fix/tournaments: persist host's tournament schedule into
+          // commander_home_groups.settings.tournaments. Only ship rows with
+          // a non-empty name (silently drop empty draft rows). Coerce numeric
+          // inputs to numbers; leave entries_cap null when blank = unlimited.
+          schedules_tournaments: !!formData.schedules_tournaments,
+          tournaments: formData.schedules_tournaments && Array.isArray(formData.tournaments) && formData.tournaments.length > 0
+            ? formData.tournaments
+                .filter((t) => t && typeof t.name === 'string' && t.name.trim().length > 0)
+                .map((t) => ({
+                  name: t.name.trim().slice(0, 120),
+                  buy_in: Number(t.buy_in) || 0,
+                  starting_stack: Number(t.starting_stack) || 0,
+                  structure: t.structure || 'standard',
+                  scheduled_date: t.scheduled_date || null,
+                  scheduled_time: t.scheduled_time || null,
+                  entries_cap: t.entries_cap === '' || t.entries_cap == null ? null : (Number(t.entries_cap) || null),
+                }))
+            : undefined,
         },
       };
 
@@ -354,32 +380,38 @@ export default function CreateHomeGamePage() {
       />
 
       <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#64748B]" />
-            </button>
-            <div>
-              <h1 className="font-bold text-white">Host A Home Game</h1>
-              <p className="text-sm text-[#64748B]">{step <= 3 ? `Step ${step} of 3` : 'Schedule First Game'}</p>
+        {/* Dan-fix/sticky-header: header + progress bar share a single sticky
+            wrapper at top of viewport. Wrapped together so they pin as a unit
+            (was previously two siblings; the progress bar's non-sticky parent
+            could push the header out of frame on long pages). z-50 ensures
+            they sit above any panel that might use z-40 elsewhere. */}
+        <div className="sticky top-0 z-50">
+          <header className="cmd-header-bar">
+            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+              <button
+                onClick={() => router.back()}
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+              </button>
+              <div>
+                <h1 className="font-bold text-white">Host A Home Game</h1>
+                <p className="text-sm text-[#64748B]">{step <= 3 ? `Step ${step} of 3` : 'Schedule First Game'}</p>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Progress Bar */}
-        <div className="bg-[#0F1C32] border-b border-[#4A5E78]">
-          <div className="max-w-2xl mx-auto px-4">
-            <div className="flex">
-              {[1, 2, 3].map((s) => (
-                <div
-                  key={s}
-                  className={`flex-1 h-1 ${s <= step ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'}`}
-                />
-              ))}
+          {/* Progress Bar */}
+          <div className="bg-[#0F1C32] border-b border-[#4A5E78]">
+            <div className="max-w-2xl mx-auto px-4">
+              <div className="flex">
+                {[1, 2, 3].map((s) => (
+                  <div
+                    key={s}
+                    className={`flex-1 h-1 ${s <= step ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -933,6 +965,208 @@ export default function CreateHomeGamePage() {
                         <span className="text-sm text-[#C4B5FD] font-medium">{getScheduleSummary()}</span>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+
+              {/* Dan-fix/tournaments: Schedule Tournaments panel.
+                  Yes/No toggle. When on, host adds one or more tournaments
+                  with name/buy-in/starting stack/structure/date+time/cap.
+                  Persists to settings.tournaments as an array of objects. */}
+              <div className="cmd-panel p-6 space-y-4">
+                <h2 className="font-semibold text-white flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-[#F59E0B]" />
+                  Schedule Tournaments
+                  <span className="text-xs font-normal text-[#64748B]">· Optional</span>
+                </h2>
+
+                <div className="flex items-center justify-between p-4 bg-[#0D192E] rounded-lg">
+                  <div>
+                    <p className="font-medium text-white">Tournaments?</p>
+                    <p className="text-sm text-[#64748B]">Run Scheduled Tournaments At This Home Game</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !formData.schedules_tournaments;
+                      updateField('schedules_tournaments', next);
+                      // Seed an empty tournament row when turning on so the
+                      // host doesn't see an empty panel + no obvious action.
+                      if (next && (!formData.tournaments || formData.tournaments.length === 0)) {
+                        updateField('tournaments', [{
+                          name: '',
+                          buy_in: '',
+                          starting_stack: '',
+                          structure: 'standard',
+                          scheduled_date: '',
+                          scheduled_time: formData.start_time || '19:00',
+                          entries_cap: '',
+                        }]);
+                      }
+                    }}
+                    aria-pressed={formData.schedules_tournaments}
+                    className={`w-12 h-6 rounded-full transition-colors ${formData.schedules_tournaments ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.schedules_tournaments ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+
+                {formData.schedules_tournaments && Array.isArray(formData.tournaments) && (
+                  <div className="space-y-4">
+                    {formData.tournaments.map((t, idx) => (
+                      <div key={idx} className="p-4 bg-[#0D192E] rounded-lg border border-[#4A5E78]/40 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-white">Tournament {idx + 1}</p>
+                          {formData.tournaments.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateField('tournaments', formData.tournaments.filter((_, i) => i !== idx));
+                              }}
+                              className="text-xs text-[#EF4444] hover:text-[#FBBF24]"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-1">Tournament Name</label>
+                          <input
+                            type="text"
+                            value={t.name}
+                            onChange={(e) => {
+                              const arr = [...formData.tournaments];
+                              arr[idx] = { ...arr[idx], name: e.target.value };
+                              updateField('tournaments', arr);
+                            }}
+                            placeholder="e.g. Friday Night Freezeout"
+                            maxLength={120}
+                            className="cmd-input w-full h-10 px-4"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-white mb-1">Buy-In ($)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={t.buy_in}
+                              onChange={(e) => {
+                                const arr = [...formData.tournaments];
+                                arr[idx] = { ...arr[idx], buy_in: e.target.value };
+                                updateField('tournaments', arr);
+                              }}
+                              placeholder="100"
+                              className="cmd-input w-full h-10 px-4"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-white mb-1">Starting Stack</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={t.starting_stack}
+                              onChange={(e) => {
+                                const arr = [...formData.tournaments];
+                                arr[idx] = { ...arr[idx], starting_stack: e.target.value };
+                                updateField('tournaments', arr);
+                              }}
+                              placeholder="15000"
+                              className="cmd-input w-full h-10 px-4"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-1">Blind Structure</label>
+                          <select
+                            value={t.structure}
+                            onChange={(e) => {
+                              const arr = [...formData.tournaments];
+                              arr[idx] = { ...arr[idx], structure: e.target.value };
+                              updateField('tournaments', arr);
+                            }}
+                            className="cmd-input w-full h-10 px-4"
+                          >
+                            <option value="turbo">Turbo (10 min levels)</option>
+                            <option value="standard">Standard (15-20 min levels)</option>
+                            <option value="deep">Deep Stack (25-30 min levels)</option>
+                            <option value="bounty">Bounty</option>
+                            <option value="rebuy">Rebuy</option>
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-white mb-1">Date</label>
+                            <input
+                              type="date"
+                              value={t.scheduled_date}
+                              onChange={(e) => {
+                                const arr = [...formData.tournaments];
+                                arr[idx] = { ...arr[idx], scheduled_date: e.target.value };
+                                updateField('tournaments', arr);
+                              }}
+                              className="cmd-input w-full h-10 px-4"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-white mb-1">Start Time</label>
+                            <input
+                              type="time"
+                              value={t.scheduled_time}
+                              onChange={(e) => {
+                                const arr = [...formData.tournaments];
+                                arr[idx] = { ...arr[idx], scheduled_time: e.target.value };
+                                updateField('tournaments', arr);
+                              }}
+                              className="cmd-input w-full h-10 px-4"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-1">
+                            Max Entries <span className="text-xs text-[#64748B]">(blank = unlimited)</span>
+                          </label>
+                          <input
+                            type="number"
+                            min="2"
+                            value={t.entries_cap}
+                            onChange={(e) => {
+                              const arr = [...formData.tournaments];
+                              arr[idx] = { ...arr[idx], entries_cap: e.target.value };
+                              updateField('tournaments', arr);
+                            }}
+                            placeholder="e.g. 30"
+                            className="cmd-input w-full h-10 px-4"
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateField('tournaments', [
+                          ...(formData.tournaments || []),
+                          {
+                            name: '',
+                            buy_in: '',
+                            starting_stack: '',
+                            structure: 'standard',
+                            scheduled_date: '',
+                            scheduled_time: formData.start_time || '19:00',
+                            entries_cap: '',
+                          },
+                        ]);
+                      }}
+                      className="w-full h-10 rounded-lg border-2 border-dashed border-[#4A5E78] text-[#94A3B8] hover:border-[#22D3EE] hover:text-[#22D3EE] flex items-center justify-center gap-2 transition"
+                    >
+                      <Plus className="w-4 h-4" /> Add Another Tournament
+                    </button>
                   </div>
                 )}
               </div>
