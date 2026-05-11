@@ -240,9 +240,23 @@ export default async function handler(req, res) {
         });
     }
 
-    // Per-gift UUID generated up front. Used as the reference_id for both the
-    // credit and (if needed) the compensating refund.
-    const giftId = randomUUID();
+    // STREAM-POLISH-R3 GIFT-1: per-gift UUID is now sourced from the
+    // client's `idempotency_key` when supplied. The deduct + credit RPCs
+    // both honor `p_reference_id` for dedup, but the previous server-
+    // side randomUUID() was generated fresh per request — so a client
+    // retry (network blip, fetch auto-retry, double-fire across tabs)
+    // produced a different reference and double-charged the sender.
+    //
+    // With a stable client-supplied key:
+    //  - deduct dedup kicks in on retry → sender is NOT double-debited
+    //  - credit dedup kicks in on retry → broadcaster is NOT double-credited
+    //  - live_gifts.upsert(onConflict='id') prevents duplicate row insert
+    //
+    // Backward compatible: if `idempotency_key` is absent or not a valid
+    // UUID, fall back to server-generated random UUID (current behavior).
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const clientKey = typeof req.body?.idempotency_key === 'string' ? req.body.idempotency_key.toLowerCase() : null;
+    const giftId = clientKey && UUID_RE.test(clientKey) ? clientKey : randomUUID();
 
     // Initialized to null; assigned after the deduct commits so the catch block
     // can safely call it if something throws between deduct and credit.
@@ -324,15 +338,19 @@ export default async function handler(req, res) {
             console.info(`[live/gift] Idempotent retry detected for gift ${giftId} — skipping refund`);
         }
 
-        // Record the gift
-        const { data: gift } = await supabase.from('live_gifts').insert({
+        // STREAM-POLISH-R3 GIFT-2: upsert the gift row so client retries
+        // (with the same idempotency_key → same giftId) don't fail on a
+        // duplicate primary-key violation. The deduct/credit are already
+        // idempotent via p_reference_id; this closes the last write that
+        // wasn't.
+        const { data: gift } = await supabase.from('live_gifts').upsert({
             id: giftId,
             stream_id,
             sender_id: user.id,
             receiver_id,
             amount: parsedAmount,
             message: message || null,
-        }).select().maybeSingle();
+        }, { onConflict: 'id', ignoreDuplicates: false }).select().maybeSingle();
 
         // Record the IP cluster action — clientIp was parsed once at top of handler
         await supabase.from('anti_farming_ips').insert({
