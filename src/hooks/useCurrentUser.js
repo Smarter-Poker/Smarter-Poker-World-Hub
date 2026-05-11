@@ -24,7 +24,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAvatar } from '../contexts/AvatarContext';
-import supabase from '../lib/supabase.ts';
+import supabase from '../lib/supabase';
 
 const CACHE_KEY = 'sp-social-user';
 const PROFILE_TTL_MS = 5 * 60 * 1000; // 5 minutes — prevents stale avatar displays
