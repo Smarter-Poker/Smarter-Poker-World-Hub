@@ -18,6 +18,8 @@ import Card from '../../../src/components/training/Card';
 import { parseHandHistory as engineParseHandHistory, detectSite } from '../../../src/engines/HandHistoryParser';
 import { analyzeHand, analyzeSession } from '../../../src/engines/HandAnalyzer';
 import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-7b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND HISTORY PARSERS — Multi-Site Support (PokerStars, GGPoker, 888, WPN)
@@ -1512,9 +1514,12 @@ export default function HandHistoryUploadPage() {
           {activeView === 'history' ? (
             <div>
               {savedSessions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 40, color: '#475569', fontSize: 12 }}>
-                  No saved sessions yet. Upload hand histories to get started.
-                </div>
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No saved sessions yet"
+                  message="Upload hand histories to get started."
+                  compact
+                />
               ) : (
                 savedSessions.map((session, i) => (
                   <div
