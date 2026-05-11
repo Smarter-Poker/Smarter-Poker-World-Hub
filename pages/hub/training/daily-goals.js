@@ -19,6 +19,43 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+
+// BUG FIX (TRAIN-DAILY-GOALS-A11Y-1): SVG icon components replacing the
+// seven emojis on the daily-goals surface (header crown/target, streak
+// flame, ← back, ✓ completion). Goal definitions get an `iconKind` field;
+// GoalIcon switches by kind. Legacy `icon` emoji string preserved for
+// back-compat. Same surface-specific a11y pattern as PR #320/#322/#324/
+// #327/#328/#329/#330/#331/#332/#333/#334.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=20, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function TargetIcon({ size })     { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function TrendingUpIcon({ size }) { return <_Svg size={size}><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></_Svg>; }
+function BoltIcon({ size })       { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
+function GamepadIcon({ size })    { return <_Svg size={size}><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="18.5" cy="11.5" r="1"/><rect x="2" y="6" width="20" height="12" rx="3"/></_Svg>; }
+function FlameIcon({ size })      { return <_Svg size={size}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.5-.5-2.5-2-3.5l-2 2c-.5-.5-1-1-1-2 0-1 1.5-2 1.5-2s-3 1-4 3.5C5 14 6 17 8.5 19c1.5 1.5 4 2 5.5 1.5C17 19.5 19 17 19 13c0-3-1-5-2.5-7C15 4 12 2 12 2s1 4-1 7c-.7 1-1.5 1.5-2.5 2.5z"/></_Svg>; }
+function CrownIcon({ size })      { return <_Svg size={size}><path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z"/><path d="M4 19h16"/></_Svg>; }
+function CheckIcon({ size })      { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
+function BackArrowIcon({ size })  { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function GoalIcon({ kind, size=20 }) {
+  switch (kind) {
+    case 'target':      return <TargetIcon size={size}/>;
+    case 'trending-up': return <TrendingUpIcon size={size}/>;
+    case 'bolt':        return <BoltIcon size={size}/>;
+    case 'gamepad':     return <GamepadIcon size={size}/>;
+    case 'flame':       return <FlameIcon size={size}/>;
+    default:            return <TargetIcon size={size}/>;
+  }
+}
+
 function generateGoals(sessionsParams) {
   const today = new Date().toISOString().slice(0, 10);
   const sessions = sessionsParams || [];
@@ -46,6 +83,7 @@ function generateGoals(sessionsParams) {
   const goals = [
     {
       id: 'vol',
+      iconKind: 'target',
       label: 'Play 50 Hands',
       target: 50,
       current: todayHands,
@@ -55,6 +93,7 @@ function generateGoals(sessionsParams) {
     },
     {
       id: 'acc',
+      iconKind: 'trending-up',
       label: '75%+ Accuracy Today',
       target: 75,
       current: todayHands >= 10 ? Math.round((todayCorrect / todayHands) * 100) : 0,
@@ -64,6 +103,7 @@ function generateGoals(sessionsParams) {
     },
     {
       id: 'sesh',
+      iconKind: 'bolt',
       label: 'Complete 3 Sessions',
       target: 3,
       current: todaySessions.length,
@@ -73,6 +113,7 @@ function generateGoals(sessionsParams) {
     },
     {
       id: 'div',
+      iconKind: 'gamepad',
       label: 'Play 3 Different Games',
       target: 3,
       current: uniqueGames.size,
@@ -82,6 +123,7 @@ function generateGoals(sessionsParams) {
     },
     {
       id: 'peak',
+      iconKind: 'flame',
       label: 'Score 90%+ in Any Session',
       target: 90,
       current: bestAccuracy,
@@ -222,6 +264,8 @@ export default function DailyGoalsPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -237,17 +281,19 @@ export default function DailyGoalsPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-DAILY-GOALS-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Daily Goals</div>
+            {/* TRAIN-DAILY-GOALS-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Daily Goals</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>Resets at midnight</div>
           </div>
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {loading && (
-            <div style={{ padding: '20px 0' }}>
+            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading daily goals">
               <SkeletonLoader variant="rows" rows={4} />
             </div>
           )}
@@ -321,8 +367,9 @@ export default function DailyGoalsPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 48, marginBottom: 8 }}>
-                    {data.completeCount === data.totalGoals ? '👑' : '🎯'}
+                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG crown/target replaces 👑/🎯 */}
+                  <div style={{ fontSize: 48, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: data.completeCount === data.totalGoals ? '#4ade80' : '#94a3b8' }} aria-hidden>
+                    {data.completeCount === data.totalGoals ? <CrownIcon size={48} /> : <TargetIcon size={48} />}
                   </div>
                   <div
                     style={{
@@ -330,6 +377,8 @@ export default function DailyGoalsPage() {
                       fontWeight: 900,
                       color: data.completeCount === data.totalGoals ? '#4ade80' : '#e2e8f0',
                     }}
+                    role="status"
+                    aria-label={`${data.completeCount} of ${data.totalGoals} goals completed`}
                   >
                     {data.completeCount}/{data.totalGoals}
                   </div>
@@ -360,13 +409,18 @@ export default function DailyGoalsPage() {
                     justifyContent: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 24 }}>🔥</div>
+                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG flame replaces 🔥 */}
+                  <div style={{ fontSize: 24, color: streakDays > 0 ? '#fbbf24' : '#475569', display: 'inline-flex' }} aria-hidden>
+                    <FlameIcon size={24} />
+                  </div>
                   <div
                     style={{
                       fontSize: 20,
                       fontWeight: 900,
                       color: streakDays > 0 ? '#fbbf24' : '#475569',
                     }}
+                    role="status"
+                    aria-label={`${streakDays} day streak`}
                   >
                     {streakDays}
                   </div>
@@ -425,7 +479,10 @@ export default function DailyGoalsPage() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ fontSize: 20 }}>{g.icon}</div>
+                          {/* TRAIN-DAILY-GOALS-A11Y-1: SVG GoalIcon replaces emoji */}
+                          <div style={{ fontSize: 20, color: isComplete ? g.color : '#94a3b8', display: 'inline-flex' }} aria-hidden>
+                            <GoalIcon kind={g.iconKind} size={20} />
+                          </div>
                           <div
                             style={{
                               fontSize: 14,
@@ -458,6 +515,11 @@ export default function DailyGoalsPage() {
                           background: 'rgba(255,255,255,0.05)',
                           overflow: 'hidden',
                         }}
+                        role="progressbar"
+                        aria-label={`${g.label} progress`}
+                        aria-valuenow={Math.round(percent)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
                       >
                         <motion.div
                           initial={{ width: 0 }}
@@ -486,7 +548,7 @@ export default function DailyGoalsPage() {
                             letterSpacing: 1,
                           }}
                         >
-                          ✓ COMPLETED
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={12} />COMPLETED</span>
                         </motion.div>
                       )}
                     </motion.div>
@@ -495,6 +557,8 @@ export default function DailyGoalsPage() {
               </AnimatePresence>
 
               <motion.button
+                type="button"
+                aria-label="Back to training"
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
                 style={{
