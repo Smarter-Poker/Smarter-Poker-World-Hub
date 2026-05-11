@@ -474,3 +474,18 @@ TRAIN-GLOSSARY-A11Y-1
 # role="status" + aria-label. Same surface-specific pattern as PR #320/
 # #322/#324/#327/#328/#329/#330/#331/#332/#333.
 TRAIN-CALENDAR-A11Y-1
+
+# ─── /hub/training/daily-goals — surface a11y polish ────────────────────────
+# TRAIN-DAILY-GOALS-A11Y-1 — pages/hub/training/daily-goals.js. Daily goals
+# surface had seven emoji icons (🎯 vol / 📈 acc / ⚡ sesh / 🎮 div / 🔥 peak
+# goal icons, 👑/🎯 header summary, 🔥 streak, ✓ completion) plus a ← back
+# entity. Replacements: SVG GoalIcon discriminator (target/trending-up/bolt/
+# gamepad/flame) driven by a new `iconKind` field per goal; CrownIcon &
+# TargetIcon for the header summary; FlameIcon for streak; CheckIcon for
+# completion; BackArrowIcon for back. Legacy emoji `icon` strings preserved.
+# Back button + bottom CTA gain type="button" + aria-label. Header summary
+# counter + streak counter gain role="status" + aria-label. Per-goal
+# progress bar becomes role="progressbar" with valuenow/min/max. Loading
+# wrapper gains role="status". Title raised to <h1>. Same surface-specific
+# pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334.
+TRAIN-DAILY-GOALS-A11Y-1
