@@ -48,6 +48,38 @@ const INTENSITY_COLORS = [
   'rgba(0,212,255,0.75)', // 4 - extreme
 ];
 
+
+// BUG FIX (TRAIN-CALENDAR-A11Y-1): SVG icon components replacing the
+// goal-met 🌟 indicator and the bare ← back arrow entity. Heatmap cells
+// gain per-day aria-labels so screen readers announce date+hands when
+// focused/inspected. Same surface-specific a11y pattern as PR #320/
+// #322/#324/#327/#328/#329/#330/#331/#332/#333.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function StarSparkleIcon({ size=12 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <polygon points="12 2 14 9 22 12 14 15 12 22 10 15 2 12 10 9 12 2"/>
+      <circle cx="20" cy="4" r="1"/>
+      <circle cx="4" cy="20" r="1"/>
+    </svg>
+  );
+}
+function BackArrowIcon({ size=18 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -181,6 +213,8 @@ export default function TrainingCalendarPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -196,16 +230,18 @@ export default function TrainingCalendarPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-CALENDAR-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Training Calendar</div>
+            {/* TRAIN-CALENDAR-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Training Calendar</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>Your activity heatmap</div>
           </div>
         </div>
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {loading && (
-            <div style={{ padding: '20px 0' }}>
+            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading calendar">
               <SkeletonLoader variant="rows" rows={6} />
             </div>
           )}
@@ -230,7 +266,7 @@ export default function TrainingCalendarPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#00d4ff' }}>{streak}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#00d4ff' }} role="status" aria-label={`${streak} day streak`}>{streak}</div>
                   <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
                     DAY STREAK
                   </div>
@@ -285,6 +321,10 @@ export default function TrainingCalendarPage() {
                       {week.map((cell) => (
                         <motion.button
                           key={cell.key}
+                          type="button"
+                          disabled={cell.isFuture}
+                          aria-label={cell.isFuture ? `${cell.date.toDateString()} (future)` : `${cell.date.toDateString()}: ${cell.data?.hands || 0} hands, ${cell.data?.sessions || 0} sessions${cell.isToday ? ' — today' : ''}`}
+                          aria-pressed={selectedDay === cell.key}
                           whileTap={!cell.isFuture ? { scale: 0.8 } : {}}
                           onClick={() =>
                             !cell.isFuture &&
@@ -431,8 +471,10 @@ export default function TrainingCalendarPage() {
                     />
                   </div>
                   {todayHands >= 50 && (
-                    <div style={{ fontSize: 11, color: '#4ade80', marginTop: 8, fontWeight: 600 }}>
-                      🌟 Goal Met! +1 to Streak
+                    <div style={{ fontSize: 11, color: '#4ade80', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces 🌟 */}
+                      <span style={{ display: 'inline-flex' }} aria-hidden><StarSparkleIcon size={12} /></span>
+                      Goal Met! +1 to Streak
                     </div>
                   )}
                 </div>
