@@ -313,7 +313,7 @@ jobs:
           fi
 
           # 6c — GitHub Actions schedule: triggers allowlist
-          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog"
+          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy vercel-uniqueness-check branch-protection-watchdog push-velocity-watchdog vercel-deploy-retry"
           SCHEDULED_WORKFLOWS=$(grep -rlE '^on:|schedule:' .github/workflows/*.yml 2>/dev/null | while read wf; do
             if grep -qE '^\s*-?\s*cron:' "$wf"; then
               basename "$wf" .yml
@@ -426,4 +426,152 @@ jobs:
             head -20 /tmp/ts-errors.txt
           else
             echo "✓ TypeScript compilation passed — zero errors"
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════
+  # VERCEL DEPLOY RETRY — Automatically re-triggers any Vercel deploy
+  # that failed due to a transient GitHub HTTP 500 clone error.
+  #
+  # Pattern observed: GitHub occasionally returns HTTP 500 when Vercel
+  # tries to clone the repo, causing deployments to fail within 8–90s
+  # with "The git provider returned an HTTP 500 error." — even though the
+  # code itself is perfectly valid.
+  #
+  # This job runs AFTER safety-checks on every push to main. It polls
+  # the Vercel API for up to 5 minutes looking for any ERROR deployment
+  # whose error message matches the GitHub-500 pattern. When found, it
+  # immediately fires a new deployment for the same commit.
+  # ═══════════════════════════════════════════════════════════════════
+  vercel-deploy-retry:
+    name: Vercel Deploy Retry (GitHub-500 guard)
+    needs: [safety-checks]
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Watch for GitHub-500 clone failures and auto-retry
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: team_SVD8r7AOPH065G3usBxVvrBc
+          VERCEL_PROJECT_ID: prj_op66GkZyZcygXQKm76iyycfVFAQx
+          VERCEL_REPO_ID: "1132365826"
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN secret not set — Vercel auto-retry is disabled."
+            echo "Add VERCEL_TOKEN in repo Settings → Secrets and variables → Actions to activate."
+            exit 0
+          fi
+
+          echo "Monitoring Vercel for GitHub-500 failures on commit ${COMMIT_SHA:0:7}..."
+          echo "Will poll for up to 5 minutes (10 attempts × 30s)."
+
+          RETRIED=false
+          for ATTEMPT in $(seq 1 10); do
+            sleep 30
+            echo ""
+            echo "--- Poll attempt $ATTEMPT/10 ---"
+
+            # Fetch the 20 most recent deployments for hub-vanguard
+            DEPLOYS=$(curl -s \
+              "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=20" \
+              -H "Authorization: Bearer $VERCEL_TOKEN")
+
+            # Find any deployment matching our commit SHA that is in ERROR state
+            FAILED_ID=$(echo "$DEPLOYS" | node -e "
+              let s=''; process.stdin.on('data',c=>s+=c);
+              process.stdin.on('end',()=>{
+                try {
+                  const sha = process.env.COMMIT_SHA;
+                  const ds = JSON.parse(s).deployments || [];
+                  const failed = ds.find(d =>
+                    d.state === 'ERROR' &&
+                    d.meta && (d.meta.githubCommitSha === sha || (d.meta.githubCommitSha||'').startsWith(sha.substring(0,7)))
+                  );
+                  console.log(failed ? failed.uid : '');
+                } catch(e) { console.log(''); }
+              });
+            " 2>/dev/null || true)
+
+            if [ -z "$FAILED_ID" ]; then
+              # Also check if there's already a READY or BUILDING deploy — success, bail early
+              GOOD=$(echo "$DEPLOYS" | node -e "
+                let s=''; process.stdin.on('data',c=>s+=c);
+                process.stdin.on('end',()=>{
+                  try {
+                    const sha = process.env.COMMIT_SHA;
+                    const ds = JSON.parse(s).deployments || [];
+                    const ok = ds.find(d =>
+                      (d.state === 'READY' || d.state === 'BUILDING' || d.state === 'QUEUED') &&
+                      d.meta && (d.meta.githubCommitSha === sha || (d.meta.githubCommitSha||'').startsWith(sha.substring(0,7)))
+                    );
+                    console.log(ok ? ok.uid : '');
+                  } catch(e) { console.log(''); }
+                });
+              " 2>/dev/null || true)
+              if [ -n "$GOOD" ]; then
+                echo "✓ Deployment already READY/BUILDING/QUEUED ($GOOD) — no retry needed."
+                exit 0
+              fi
+              echo "  No matching ERROR deployment found yet, continuing to poll..."
+              continue
+            fi
+
+            echo "::warning::Found failed deployment $FAILED_ID for commit ${COMMIT_SHA:0:7}"
+
+            # Confirm the failure is GitHub-500 (not a real code error)
+            BUILD_LOGS=$(curl -s \
+              "https://api.vercel.com/v3/deployments/${FAILED_ID}/events?teamId=${VERCEL_TEAM_ID}&limit=50" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" 2>/dev/null || true)
+
+            IS_GH500=$(echo "$BUILD_LOGS" | grep -c "HTTP 500" 2>/dev/null || echo "0")
+            IS_PERM_CLONE=$(echo "$BUILD_LOGS" | grep -c "permanent problem cloning" 2>/dev/null || echo "0")
+
+            if [ "$IS_GH500" -eq 0 ] && [ "$IS_PERM_CLONE" -eq 0 ]; then
+              echo "::error::Deployment $FAILED_ID is in ERROR but NOT due to a GitHub-500 clone failure."
+              echo "This is a real code error — NOT auto-retrying. Check the Vercel dashboard."
+              exit 1
+            fi
+
+            echo "Confirmed GitHub-500 transient clone error. Firing retry deployment..."
+
+            RETRY_RESP=$(curl -s -X POST \
+              "https://api.vercel.com/v13/deployments?teamId=${VERCEL_TEAM_ID}&forceNew=1" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"name\": \"hub-vanguard\",
+                \"project\": \"hub-vanguard\",
+                \"target\": \"production\",
+                \"gitSource\": {
+                  \"type\": \"github\",
+                  \"repoId\": ${VERCEL_REPO_ID},
+                  \"ref\": \"main\",
+                  \"sha\": \"${COMMIT_SHA}\"
+                }
+              }")
+
+            RETRY_ID=$(echo "$RETRY_RESP" | node -e "
+              let s=''; process.stdin.on('data',c=>s+=c);
+              process.stdin.on('end',()=>{
+                try { const d=JSON.parse(s); console.log(d.id||''); }
+                catch(e){ console.log(''); }
+              });
+            " 2>/dev/null || true)
+
+            if [ -n "$RETRY_ID" ]; then
+              echo "✅ Retry deployment triggered: $RETRY_ID"
+              echo "   URL: https://vercel.com/smarter-poker/hub-vanguard/$RETRY_ID"
+              RETRIED=true
+              break
+            else
+              echo "::error::Failed to trigger retry deployment."
+              echo "$RETRY_RESP"
+              exit 1
+            fi
+          done
+
+          if [ "$RETRIED" = false ]; then
+            echo "No GitHub-500 failure detected within 5 minutes — deployment was healthy."
           fi
