@@ -287,3 +287,16 @@ TRAIN-SETUP-MODAL-1
 # TRAIN-CSS-SWEEP-1 leaves them at their intentionally compact size.
 # aria-pressed states + title tooltips added.
 TRAIN-HEADER-CHIPS-1
+
+# ─── /hub/training — sticky NEXT HAND button on mobile (PR2 follow-up) ──────
+# TRAIN-NEXT-HAND-STICKY-1 — src/components/training/games/UniversalDynamicTable.jsx
+# Next Hand / Continue Hand button row. When the feedback panel is long
+# (10+ auxiliary insight cards even after the TRAIN-FB-IA-1 accordion
+# collapse), the primary CTA used to fall below the fold on mobile, forcing
+# users to scroll back down after each answer. Wrapped the button row in
+# position:sticky bottom anchor with env(safe-area-inset-bottom) awareness
+# and a subtle gradient fade so the button stays visible as soon as the
+# feedback panel exceeds the viewport height. Desktop behaviour is unchanged
+# because position:sticky has no effect until content scrolls past the
+# button's natural inline position.
+TRAIN-NEXT-HAND-STICKY-1
