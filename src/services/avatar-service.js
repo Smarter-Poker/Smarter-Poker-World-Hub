@@ -24,14 +24,9 @@ export async function getUserAvatar(userId) {
             throw error;
         }
 
-        // If no avatar set, return default
+        // If no active custom/preset avatar is set, return null so AvatarContext can fall back to profile uploads
         if (!data) {
-            return {
-                type: 'preset',
-                id: 'free_shark',
-                imageUrl: '/avatars/free/shark.png',
-                name: 'Poker Shark'
-            };
+            return null;
         }
 
         // Return formatted avatar
@@ -53,12 +48,7 @@ export async function getUserAvatar(userId) {
         }
     } catch (error) {
         console.warn('Error fetching user avatar:', error);
-        return {
-            type: 'preset',
-            id: 'free_shark',
-            imageUrl: '/avatars/free/shark.png',
-            name: 'Poker Shark'
-        };
+        return null;
     }
 }
 
