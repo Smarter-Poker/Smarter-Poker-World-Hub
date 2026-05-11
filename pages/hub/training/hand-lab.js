@@ -8,6 +8,8 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import PlayingCard from '../../../src/components/poker/PlayingCard';
+// TRAIN-WIRE-PLAYCARD-4 — adoption: hand-lab hero+board slots via shared PlayingCard
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -163,7 +165,7 @@ export default function HandLabV2() {
                   onClick={() => setSelectedSlot('hero1')}
                 >
                   {heroCards[0] ? (
-                    <span style={getColor(heroCards[0])}>{heroCards[0]}</span>
+                    <PlayingCard card={heroCards[0]} size="md" priority />
                   ) : (
                     <span style={styles.placeholder}>Card 1</span>
                   )}
@@ -179,7 +181,7 @@ export default function HandLabV2() {
                   onClick={() => setSelectedSlot('hero2')}
                 >
                   {heroCards[1] ? (
-                    <span style={getColor(heroCards[1])}>{heroCards[1]}</span>
+                    <PlayingCard card={heroCards[1]} size="md" priority />
                   ) : (
                     <span style={styles.placeholder}>Card 2</span>
                   )}
@@ -202,7 +204,7 @@ export default function HandLabV2() {
                     onClick={() => setSelectedSlot(`board${idx + 1}`)}
                   >
                     {boardCards[idx] ? (
-                      <span style={getColor(boardCards[idx])}>{boardCards[idx]}</span>
+                      <PlayingCard card={boardCards[idx]} size="md" priority />
                     ) : (
                       <span style={{ ...styles.placeholder, fontSize: 10 }}>
                         {idx < 3 ? 'Flop' : idx === 3 ? 'Turn' : 'River'}
