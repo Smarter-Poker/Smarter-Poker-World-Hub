@@ -444,3 +444,18 @@ TRAIN-MILESTONES-A11Y-1
 # row gains role="tablist". Loading wrapper gains role="status". Same
 # surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331.
 TRAIN-FEED-A11Y-1
+
+# ─── /hub/training/glossary — surface a11y polish ───────────────────────────
+# TRAIN-GLOSSARY-A11Y-1 — pages/hub/training/glossary.js. GTO glossary page
+# had emoji/glyph icons in interactive controls: ← back arrow (entity),
+# ★/☆ per-term favorite toggle, and 🔍 empty-state. The card-suit glyphs
+# ♠/♥/♦ inside definition text remain (semantically correct in poker
+# context). Replacements: BackArrowIcon, SearchIcon, StarToggleIcon (filled
+# vs outline driven by `favorites.has`). Back button gains type+aria-label.
+# Favorite buttons gain type, aria-label (per-term), and aria-pressed.
+# Category row gains role="tablist" + per-button type/role/aria-pressed/
+# aria-label. Search input gains aria-label + type="search". Title raised
+# to <h1>. Filtered-count region becomes role="status" aria-live="polite"
+# so SR announces search/filter changes. Same surface-specific pattern as
+# PR #320/#322/#324/#327/#328/#329/#330/#331/#332.
+TRAIN-GLOSSARY-A11Y-1
