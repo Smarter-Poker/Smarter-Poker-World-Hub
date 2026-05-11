@@ -649,3 +649,15 @@ TRAIN-SCORECARD-A11Y-1
 # scenario-tab buttons gain type="button". Same surface-specific pattern
 # as PR #320/#322/#324/#327-#350.
 TRAIN-PROFILES-A11Y-1
+
+# ─── /hub/training/jarvis — surface a11y + emoji→SVG ────────────────────────
+# TRAIN-JARVIS-A11Y-1 — pages/hub/training/jarvis.js. JARVIS Dashboard had
+# fifteen distinct emojis: 🧠 hero, six section headings (📊 💡 🔍 🎮 💰
+# 📈), seven StatCard icons (🎮 🎯 🔥 🏅 📈 ⏱ 🟢🟡🔴 trend), and venue
+# annotations 🏆/⚠️. Replacements: BrainIcon (hero), HeadingIcon (chart/
+# lightbulb/search/gamepad/money/trending) wired into each <h2>, StatIcon
+# (gamepad/target/flame/medal/trending/clock + green/red/yellow trend dot)
+# wired into StatCard via new `iconKind` prop, TrophyIcon (best venue),
+# AlertIcon (worst venue). Legacy `icon` emoji prop preserved as fallback.
+# Same surface-specific pattern as PR #320/#322/#324/#327-#352.
+TRAIN-JARVIS-A11Y-1
