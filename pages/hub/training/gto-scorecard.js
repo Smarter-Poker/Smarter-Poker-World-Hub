@@ -242,6 +242,27 @@ function DeviationCell({ userVal, gtoVal, label }) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
+// BUG FIX (TRAIN-SCORECARD-A11Y-1): SVG back arrow + button hardening.
+// The rendered UI was already emoji-free. Same surface-specific a11y
+// pattern as PR #320/#322/#324/#327-#346.
+const _SC_ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function ScorecardBackArrowIcon({ size=18 }) {
+  return (
+    <svg {..._SC_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+
+
 export default function GTOScorecardPage() {
   const router = useRouter();
   useTrainingBus('gto-scorecard');
@@ -349,6 +370,8 @@ export default function GTOScorecardPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -364,10 +387,12 @@ export default function GTOScorecardPage() {
               justifyContent: 'center',
             }}
           >
-            &larr;
+            {/* TRAIN-SCORECARD-A11Y-1: SVG back arrow replaces &larr; */}
+            <ScorecardBackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Scorecard</div>
+            {/* TRAIN-SCORECARD-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Scorecard</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>Frequency deviation analysis</div>
           </div>
         </div>
