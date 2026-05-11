@@ -60,14 +60,15 @@ export default async function handler(req, res) {
         // 1. Load stream — verify it exists and is live
         const { data: stream, error: streamErr } = await supabase
             .from('live_streams')
-            // BUG FIX (CMT-2): slow_mode_delay column does not exist on live_streams.
-            // Removed from SELECT — slow mode falls back to DEFAULT_SLOW_MODE_DELAY_SECS (3s).
+            // STREAM-POLISH-R3 CHAT-MOD-3: slow_mode_delay column now
+            // exists (migration 20260511200000) — read it so broadcasters
+            // can tune the delay (1-120s, default 3). Fallback to
+            // DEFAULT_SLOW_MODE_DELAY_SECS in the throttle block below
+            // protects against ever-null payloads from older clients.
             //
-            // BUG-FIX-DEEP-AUDIT-R2 C-3: add ended_at so we can enforce a
-            // real 60s grace window. The previous comment claimed "60s grace"
-            // but no timestamp gate was implemented — comments on ended
-            // streams were accepted indefinitely.
-            .select('id, status, slow_mode, ended_at')
+            // BUG-FIX-DEEP-AUDIT-R2 C-3: ended_at gates the 60s grace
+            // window for comments on a just-ended stream.
+            .select('id, status, slow_mode, slow_mode_delay, ended_at')
             .eq('id', stream_id)
             .maybeSingle();
 
@@ -99,7 +100,14 @@ export default async function handler(req, res) {
 
         // 3. Slow mode check
         if (stream.slow_mode) {
-            const delaySecs = DEFAULT_SLOW_MODE_DELAY_SECS; // slow_mode_delay column not on live_streams — use default
+            // STREAM-POLISH-R3 CHAT-MOD-3: honor the broadcaster's
+            // configured delay. Defensive fallback if the value is
+            // somehow null / out-of-range (e.g. older rows that
+            // pre-date the migration default backfill).
+            const cfg = stream.slow_mode_delay;
+            const delaySecs = (typeof cfg === 'number' && cfg >= 1 && cfg <= 120)
+                ? cfg
+                : DEFAULT_SLOW_MODE_DELAY_SECS;
             const { data: recent } = await supabase
                 .from('live_comments')
                 .select('created_at')

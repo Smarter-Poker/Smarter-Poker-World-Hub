@@ -963,10 +963,25 @@ class LiveStreamService {
   // ═══════════════════════════════════════════════════
 
   /**
-   * Toggle slow mode for a stream
+   * Toggle slow mode for a stream.
+   *
+   * STREAM-POLISH-R3 CHAT-MOD-3: optional `delay` parameter (seconds)
+   * lets the broadcaster tune the throttle between 1s and 120s. The
+   * column was added in migration 20260511200000_live_streams_slow_mode_delay_column.
+   * If omitted, only the boolean toggles — the column default (3) or
+   * the previously-set value persists.
+   *
+   * @param {string} streamId
+   * @param {boolean} enabled
+   * @param {number} [delay] seconds, integer, 1..120
    */
-  async setSlowMode(streamId, enabled) {
-    await supabase.from('live_streams').update({ slow_mode: enabled }).eq('id', streamId);
+  async setSlowMode(streamId, enabled, delay) {
+    const payload = { slow_mode: enabled };
+    if (typeof delay === 'number' && Number.isFinite(delay)) {
+      const clamped = Math.max(1, Math.min(120, Math.round(delay)));
+      payload.slow_mode_delay = clamped;
+    }
+    await supabase.from('live_streams').update(payload).eq('id', streamId);
   }
 
   /**
