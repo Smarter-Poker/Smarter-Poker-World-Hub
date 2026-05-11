@@ -85,6 +85,11 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
+            // Phase 41/audit-sweep-C1: escape '<' as '\u003c' for consistency with
+            // the sister pages (in/[state]/index.js, in/[state]/[city].js, [slug].js).
+            // The data here is currently static (state codes from a hardcoded map), but
+            // the next contributor who adds user-authored data shouldn't have to remember
+            // to add the escape.
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'CollectionPage',
@@ -96,12 +101,13 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
                 name: `Poker Home Games in ${s.name}`,
                 url: `https://smarter.poker/hub/home-games/in/${s.slug}`,
               })),
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
+            // Phase 41/audit-sweep-C1: same defensive escape as the block above.
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'BreadcrumbList',
@@ -110,7 +116,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
                 { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games' },
                 { '@type': 'ListItem', position: 3, name: 'By State', item: 'https://smarter.poker/hub/home-games/in' },
               ],
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
       </Head>
