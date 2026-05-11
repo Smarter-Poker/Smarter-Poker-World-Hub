@@ -118,8 +118,17 @@ import { feedCache } from '../../../src/lib/feedCache';
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Module-level cache to deduplicate link preview fetches across all cards in a session
+// Capped at 200 entries (LRU eviction) to prevent unbounded memory growth.
+const LINK_PREVIEW_CACHE_MAX = 200;
 const linkPreviewCache = new Map();
 const linkPreviewInflight = new Map();
+
+function setLinkPreviewCache(key, value) {
+  if (linkPreviewCache.size >= LINK_PREVIEW_CACHE_MAX) {
+    linkPreviewCache.delete(linkPreviewCache.keys().next().value); // evict oldest
+  }
+  linkPreviewCache.set(key, value);
+}
 
 function LinkPreviewCard({ url }) {
   const { openExternal } = useExternalLink();
@@ -150,7 +159,10 @@ function LinkPreviewCard({ url }) {
           data = await promise;
           linkPreviewInflight.delete(url);
         }
-        linkPreviewCache.set(url, data);
+        // Only cache if we got useful data (allows retry on empty fallback responses)
+        if (data && (data.image || data.title)) {
+          setLinkPreviewCache(url, data);
+        }
         setMetadata(data);
       } catch (error) {
         console.warn('Failed to fetch link metadata:', error);
