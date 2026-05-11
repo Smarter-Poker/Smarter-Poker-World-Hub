@@ -37,6 +37,23 @@ function useGoogleMaps() {
             return;
         }
 
+        // Dan-fix/maps-2: Google calls window.gm_authFailure() when an API key
+        // fails server-side validation (billing not enabled, key restrictions,
+        // referer rejected, etc.). Without this hook the iframe just shows the
+        // "This page can't load Google Maps correctly" modal and the map area
+        // is dead. With it, we can swap to a clean inline error so the user
+        // sees a clear message and falls through to the manual city/state
+        // inputs without confusion.
+        if (typeof window !== 'undefined' && !window.gm_authFailure) {
+            window.gm_authFailure = () => {
+                setError(
+                    'Google Maps could not authorize. Please enter your city and state ' +
+                    'manually below — your home game will save normally.'
+                );
+                setLoaded(false);
+            };
+        }
+
         if (window.google?.maps) {
             setLoaded(true);
             return;
@@ -345,17 +362,43 @@ export default function GoogleMapPicker({ value, onChange, approximateOnly = tru
                 />
             </div>
 
-            {/* Map */}
-            <div ref={mapRef} style={{ height, width: '100%' }}>
-                {!loaded && (
-                    <div style={{
-                        height: '100%', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', background: C.bg, color: C.textSec, fontSize: 14,
-                    }}>
-                        Loading map...
+            {/* Map — when an error occurs (billing, key restrictions, etc.) we
+                replace the dead Google Maps surface with a clean inline notice
+                so the user knows to use the manual inputs below. The map ref
+                is detached in this case to prevent Google from injecting its
+                own "This page can't load Google Maps correctly" dialog on top
+                of our React surface. */}
+            {error ? (
+                <div style={{
+                    padding: '20px 16px', background: '#FFF7ED',
+                    borderTop: `1px solid ${C.border}`,
+                    color: '#9A3412', fontSize: 13, lineHeight: 1.5,
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div>
+                            <div style={{ fontWeight: 600, marginBottom: 4 }}>Map preview unavailable</div>
+                            <div>{error}</div>
+                        </div>
                     </div>
-                )}
-            </div>
+                </div>
+            ) : (
+                <div ref={mapRef} style={{ height, width: '100%' }}>
+                    {!loaded && (
+                        <div style={{
+                            height: '100%', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', background: C.bg, color: C.textSec, fontSize: 14,
+                        }}>
+                            Loading map...
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Location Info */}
             {locationInfo && (
