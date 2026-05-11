@@ -23,6 +23,8 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 // ── Phase 3 Engine: EV calculation for verification + advanced drills ───
 import { calculateActionEVs, calculateEVLoss, calculatePreflopEV } from '../../../src/engines/EVCalculator';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-3a — adoption: ev-trainer correct/incorrect feedback
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BUS EMITTER (SSR-safe)
@@ -167,6 +169,7 @@ function verifyWithEngine(question) {
 
 export default function EVTrainer() {
   useTrainingBus('ev-trainer');
+  const fb = useTrainingFeedback();
   const router = useRouter();
 
   const [question, setQuestion] = useState(null);
@@ -214,6 +217,7 @@ export default function EVTrainer() {
     setShowBreakdown(true);
 
     const isCorrect = res !== 'wrong';
+    if (isCorrect) fb.correct(); else fb.incorrect();
 
     // FIX: Read from ref for always-fresh value
     const newStreak = isCorrect ? streakRef.current + 1 : 0;

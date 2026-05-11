@@ -928,3 +928,11 @@ TRAIN-WIRE-FX-2b
 # TRAIN-WIRE-FX-2c — pages/hub/training/hand-lab.js. fb.click() on
 # handleCardSelect + runAnalysis entry to give tactile picker feedback.
 TRAIN-WIRE-FX-2c
+
+# ─── Phase-2 adoption: useTrainingFeedback batch 6 ──────────────────────────
+# TRAIN-WIRE-FX-3a — pages/hub/training/ev-trainer.js. fb.correct() /
+# fb.incorrect() right after `const isCorrect = res !== 'wrong';` resolves.
+TRAIN-WIRE-FX-3a
+# TRAIN-WIRE-FX-3b — pages/hub/training/short-deck-trainer.js. fb.correct() /
+# fb.incorrect() inside answerQuiz; fb.click() on nextQuiz.
+TRAIN-WIRE-FX-3b
