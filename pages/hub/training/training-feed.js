@@ -17,6 +17,8 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-2b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FEED EVENT TYPES
@@ -545,16 +547,12 @@ export default function TrainingFeedPage() {
 
           {/* Empty state */}
           {!loading && filteredItems.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              {/* TRAIN-FEED-A11Y-1: SVG antenna replaces 📡 */}
-              <div style={{ display: 'inline-flex', marginBottom: 8, color: '#475569' }} aria-hidden>
-                <AntennaSvg size={32} />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#94a3b8' }}>No activity yet</div>
-              <div style={{ fontSize: 11, marginTop: 4 }}>
-                Complete some training sessions to see activity here
-              </div>
-            </div>
+            <TrainerEmptyState
+              variant="no-data"
+              title="No activity yet"
+              message="Complete some training sessions to see activity here."
+              compact
+            />
           )}
 
           {/* Footer */}

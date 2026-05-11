@@ -975,3 +975,15 @@ TRAIN-WIRE-EMPTY-1b
 # "No entries found in database." inline div with <TrainerEmptyState
 # variant="no-data" compact />.
 TRAIN-WIRE-EMPTY-1c
+
+# ─── Phase-3 adoption: wire TrainerEmptyState batch 2 ───────────────────────
+# TRAIN-WIRE-EMPTY-2a — pages/hub/training/autopilot.js. Replaces 30-line
+# inline "Need More Data" block (ChartIcon + label + cta button) with
+# <TrainerEmptyState variant="no-data" cta={{ label, onClick }} />.
+TRAIN-WIRE-EMPTY-2a
+# TRAIN-WIRE-EMPTY-2b — pages/hub/training/training-feed.js. Replaces inline
+# "No activity yet" + AntennaSvg + helper line with compact TrainerEmptyState.
+TRAIN-WIRE-EMPTY-2b
+# TRAIN-WIRE-EMPTY-2c — pages/hub/training/achievements.js. Replaces
+# user-branching inline div with TrainerEmptyState variant='no-data'|'locked'.
+TRAIN-WIRE-EMPTY-2c
