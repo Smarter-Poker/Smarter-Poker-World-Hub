@@ -15,11 +15,13 @@ function makeIdemKey() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
-import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart, List, Megaphone, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart, List, Megaphone, MessageSquare, Trophy } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import HomeGamesSeatReservation from '../../../../../src/components/home-games/HomeGamesSeatReservation';
 import HostRosterPickerModal from '../../../../../src/components/home-games/HostRosterPickerModal';
 import HostCreateTableModal from '../../../../../src/components/home-games/HostCreateTableModal';
+import TournamentList from '../../../../../src/components/home-games/TournamentList';
+import TournamentEditModal from '../../../../../src/components/home-games/TournamentEditModal';
 import { supabase } from '../../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken, getSafeUser } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
@@ -280,6 +282,11 @@ export default function ManageHomeGamePage() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [expandedEventId, setExpandedEventId] = useState(null);
+  // Dan-fix/tournament-buildout: tournament list + modal state. Loaded
+  // separately via rpc_hg_list_tournaments so we don't depend on the
+  // commander events API returning the new format/structure cols.
+  const [tournaments, setTournaments] = useState([]);
+  const [tournamentModal, setTournamentModal] = useState({ open: false, mode: 'create', target: null });
   const [eventRsvps, setEventRsvps] = useState([]);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [pageSlug, setPageSlug] = useState(null);
@@ -391,6 +398,21 @@ export default function ManageHomeGamePage() {
         setEvents(eventsData.events || eventsData.data.events || []);
       }
 
+      // Dan-fix/tournament-buildout: parallel SECURITY DEFINER RPC fetch.
+      // Independent of the commander events API. Non-fatal if it fails — host
+      // sees an empty tournament list and can add one to start over.
+      try {
+        const { data: trnData, error: trnErr } = await supabase
+          .rpc('rpc_hg_list_tournaments', { p_group_id: id, p_include_past: true });
+        if (!trnErr && Array.isArray(trnData)) {
+          setTournaments(trnData);
+        } else if (trnErr) {
+          console.warn('[home-games/manage] tournaments fetch:', trnErr.message);
+        }
+      } catch (trnErr) {
+        console.warn('[home-games/manage] tournaments fetch threw:', trnErr);
+      }
+
       // Escrow data (may not exist yet)
       if (escrowRes.ok) {
         const escrowData = await escrowRes.json();
@@ -424,6 +446,18 @@ export default function ManageHomeGamePage() {
     fetchData(_c.signal);
     return () => _c.abort();
   }, [fetchData, authChecking]);
+
+  // Dan-fix/tournament-buildout: honor ?tab=tournaments query param.
+  // When the host clicks "Edit" on a tournament from /hub/commander/home-games/[id].js,
+  // they're redirected here with the query param set. Activate the right
+  // tab so they land on the tournaments view instead of the default events.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const wanted = router.query?.tab;
+    if (typeof wanted === 'string' && wanted.length > 0) {
+      setActiveTab(wanted);
+    }
+  }, [router.isReady, router.query?.tab]);
   // Realtime listener — live updates for home-games/[id]/manage.js
   // v2 suffix forces reconnect for browser sessions opened before the
   // 2026-04-26 publication migration.
@@ -765,6 +799,10 @@ export default function ManageHomeGamePage() {
             <div className="flex gap-6">
               {[
                 { id: 'events', label: 'Upcoming Games', icon: Calendar },
+                { id: 'tournaments', label: 'Tournaments', icon: Trophy,
+                  badge: tournaments.filter((t) => t.status === 'scheduled').length > 0
+                           ? tournaments.filter((t) => t.status === 'scheduled').length
+                           : null },
                 { id: 'members', label: `Members (${members.length})`, icon: Users },
                 { id: 'saves', label: 'Audience', icon: Heart, badge: saves.length > 0 ? saves.length : null },
                 { id: 'finances', label: 'Finances', icon: Wallet, badge: pendingEscrow.length > 0 ? pendingEscrow.length : null },
@@ -915,6 +953,76 @@ export default function ManageHomeGamePage() {
                     </div>
                   );
                 })
+              )}
+            </div>
+          )}
+
+          {/* Tournaments Tab — Dan-fix/tournament-buildout
+              Add / Edit / Cancel for tournament events. Tournaments persist
+              as commander_home_games rows with format='tournament'; the
+              backing RPCs are rpc_hg_create_tournament + rpc_hg_update_tournament
+              + cancel_home_game. Realtime listener already subscribes to
+              commander_home_games changes so the list refreshes after each
+              mutation without an explicit refetch. */}
+          {activeTab === 'tournaments' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Tournaments</h2>
+                  <p className="text-sm text-[#64748B] mt-0.5">
+                    {tournaments.filter((t) => t.status === 'scheduled').length} upcoming
+                    {tournaments.filter((t) => t.status === 'cancelled').length > 0 &&
+                      ` · ${tournaments.filter((t) => t.status === 'cancelled').length} cancelled`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTournamentModal({ open: true, mode: 'create', target: null })}
+                  className="cmd-btn cmd-btn-primary h-10 px-4 flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Tournament
+                </button>
+              </div>
+
+              {tournaments.length === 0 ? (
+                <div className="cmd-panel p-8 text-center">
+                  <Trophy className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                  <p className="text-[#64748B]">No Tournaments Scheduled</p>
+                  <p className="text-xs text-[#64748B] mt-1">
+                    Tournaments inherit the RSVP and seat-reservation systems automatically once created.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setTournamentModal({ open: true, mode: 'create', target: null })}
+                    className="mt-4 cmd-btn cmd-btn-primary"
+                  >
+                    Schedule a Tournament
+                  </button>
+                </div>
+              ) : (
+                <TournamentList
+                  tournaments={tournaments}
+                  mode="host"
+                  showTitle={false}
+                  onEdit={(t) => setTournamentModal({ open: true, mode: 'edit', target: t })}
+                  onCancel={async (t) => {
+                    try {
+                      const { error: cancelErr } = await supabase.rpc('cancel_home_game', {
+                        p_game_id: t.id,
+                        p_caller_user_id: currentUserId,
+                        p_reason: 'Cancelled by host from manage page',
+                      });
+                      if (cancelErr) throw cancelErr;
+                      toast.success(`"${t.name}" cancelled`);
+                      // Refresh via fetchData (Realtime should also fire, but
+                      // explicit refetch avoids any race on the toast → render).
+                      fetchData();
+                    } catch (ex) {
+                      toast.error(ex?.message || 'Failed to cancel tournament');
+                    }
+                  }}
+                />
               )}
             </div>
           )}
@@ -1458,6 +1566,22 @@ export default function ManageHomeGamePage() {
           onCreated={() => setSeatRefreshKey((k) => k + 1)}
         />
       )}
+      {/* Dan-fix/tournament-buildout: single modal handles both add and edit.
+          On successful save it refetches via fetchData() — Realtime fires too,
+          but the explicit refetch keeps the modal-close → list-update sequence
+          tight in slow-network conditions. */}
+      <TournamentEditModal
+        open={tournamentModal.open}
+        mode={tournamentModal.mode}
+        groupId={id}
+        tournament={tournamentModal.target}
+        onClose={() => setTournamentModal({ open: false, mode: 'create', target: null })}
+        onSaved={() => {
+          setTournamentModal({ open: false, mode: 'create', target: null });
+          toast.success(tournamentModal.mode === 'create' ? 'Tournament created' : 'Tournament saved');
+          fetchData();
+        }}
+      />
     </>
   );
 }
