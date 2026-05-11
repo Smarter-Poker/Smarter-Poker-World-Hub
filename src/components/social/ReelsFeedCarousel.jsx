@@ -639,6 +639,16 @@ function ReelViewer({ reels, startIndex, onClose }) {
     if (isYT && ytIframeReadyRef.current) {
       const videoId = getYouTubeVideoId(reel.video_url);
       if (videoId) {
+        // MUTE-PIVOT (2026-05-11 — parity with PR #380 on /hub/reels): mute
+        // the player BEFORE loadVideoById so the new video boots muted, which
+        // Chrome unconditionally allows to autoplay. Without this, the new
+        // video tried to autoplay UNMUTED (because the player was unmuted
+        // from the previous reel), Chrome blocked it, and YT paused → user
+        // saw the play button on every swipe. The existing 100ms-deferred
+        // unMute below already handles re-enabling sound after playback
+        // starts. Trade-off: ~100ms of silence at start of each new reel.
+        const wantsSoundAtSwipe = userInteractedRef.current && userWantsSoundRef.current;
+        if (wantsSoundAtSwipe) sendYTCmd('mute');
         // Use loadVideoById — switches video without reloading the player
         sendYTCmd('loadVideoById', [videoId]);
         // Unmute if user has interacted
