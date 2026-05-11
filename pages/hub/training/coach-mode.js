@@ -14,10 +14,58 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
+
+// BUG FIX (TRAIN-COACH-A11Y-1): SVG icon components replacing the
+// coach-mode emoji set across LESSONS data (positions / three-bet /
+// 🧮 preflop-math / 🎯 cbet / 🔄 turn / 🏁 river), results screen
+// (🏆 / 👍 / 💪 based on score), completion ✅, and ← back arrow. Card-
+// suit glyphs (♠♣♥♦) in quiz options remain (semantic). Same surface-
+// specific a11y pattern as PR #320/#322/#324/#327-#343.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=20, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function CrownIcon({ size=20 })   { return <_Svg size={size}><path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z"/><path d="M4 19h16"/></_Svg>; }
+function BoltIcon({ size=20 })    { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
+function AbacusIcon({ size=20 })  { return <_Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="7" cy="6" r="1"/><circle cx="11" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="18" r="1"/></_Svg>; }
+function TargetIcon({ size=20 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function RotateIcon({ size=20 })  { return <_Svg size={size}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></_Svg>; }
+function FlagIcon({ size=20 })    { return <_Svg size={size}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></_Svg>; }
+function TrophyIcon({ size=48 })  { return <_Svg size={size}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></_Svg>; }
+function ThumbsUpIcon({ size=48 }){ return <_Svg size={size}><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H7V10l4-8c1.7 0 3 1.3 3 3v.88z"/></_Svg>; }
+function FlexIcon({ size=48 })    { return <_Svg size={size}><path d="M3 12c2-4 5-6 9-6 4 0 7 3 8 7 0 3-2 5-5 5h-2c-2 0-4-1-5-3l-5-3z"/></_Svg>; }
+function CheckIcon({ size=16 })   { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
+function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function LessonIcon({ kind, size=20 }) {
+  switch (kind) {
+    case 'crown':  return <CrownIcon size={size}/>;
+    case 'bolt':   return <BoltIcon size={size}/>;
+    case 'abacus': return <AbacusIcon size={size}/>;
+    case 'target': return <TargetIcon size={size}/>;
+    case 'rotate': return <RotateIcon size={size}/>;
+    case 'flag':   return <FlagIcon size={size}/>;
+    default:       return <TargetIcon size={size}/>;
+  }
+}
+function ScoreIcon({ score, total, size=48 }) {
+  const pct = total > 0 ? score / total : 0;
+  if (pct >= 0.8 || score >= 4) return <TrophyIcon size={size}/>;
+  if (pct >= 0.6 || score >= 3) return <ThumbsUpIcon size={size}/>;
+  return <FlexIcon size={size}/>;
+}
+
 const LESSONS = [
   {
     id: 'preflop-basics',
     name: 'Preflop Basics',
+    iconKind: 'crown',
     icon: '🃏',
     color: '#3b82f6',
     desc: 'Open ranges, positions, and sizing fundamentals',
@@ -54,6 +102,7 @@ const LESSONS = [
   {
     id: 'three-bet',
     name: '3-Bet Strategy',
+    iconKind: 'bolt',
     icon: '⚡',
     color: '#a855f7',
     desc: 'When and how to re-raise preflop',
@@ -99,6 +148,7 @@ const LESSONS = [
   {
     id: 'cbet-basics',
     name: 'C-Bet Fundamentals',
+    iconKind: 'target',
     icon: '🎯',
     color: '#22c55e',
     desc: 'When to continuation bet and sizing selection',
@@ -148,6 +198,7 @@ const LESSONS = [
   {
     id: 'pot-odds',
     name: 'Pot Odds & MDF',
+    iconKind: 'abacus',
     icon: '🧮',
     color: '#fbbf24',
     desc: 'The math behind calling and defense decisions',
@@ -179,6 +230,7 @@ const LESSONS = [
   {
     id: 'turn-play',
     name: 'Turn Strategy',
+    iconKind: 'rotate',
     icon: '🔄',
     color: '#06b6d4',
     desc: 'Second barrel decisions and range evolution',
@@ -223,6 +275,7 @@ const LESSONS = [
   {
     id: 'river-play',
     name: 'River Mastery',
+    iconKind: 'flag',
     icon: '🏁',
     color: '#ef4444',
     desc: 'Final street value bets, bluffs, and river decisions',
@@ -348,6 +401,8 @@ export default function CoachModePage() {
             }}
           >
             <button
+              type="button"
+              aria-label="Back to lesson list"
               onClick={() => setActiveLesson(null)}
               style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -521,8 +576,9 @@ export default function CoachModePage() {
                 animate={{ opacity: 1, scale: 1 }}
                 style={{ textAlign: 'center', padding: '20px 0' }}
               >
-                <div style={{ fontSize: 48, marginBottom: 12 }}>
-                  {score >= 4 ? '🏆' : score >= 3 ? '👍' : '💪'}
+                <div style={{ fontSize: 48, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: score >= 4 ? '#fbbf24' : score >= 3 ? '#4ade80' : '#a855f7' }} aria-hidden>
+                  {/* TRAIN-COACH-A11Y-1: SVG ScoreIcon replaces 🏆/👍/💪 */}
+                  <ScoreIcon score={score} total={activeLesson.quiz.length} size={48} />
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>
                   Lesson Complete
@@ -590,6 +646,8 @@ export default function CoachModePage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -605,13 +663,15 @@ export default function CoachModePage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-COACH-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Coach Mode</div>
+            {/* TRAIN-COACH-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Coach Mode</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>Guided GTO lessons</div>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b' }}>
+          <div style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b' }} role="status" aria-label={`${completed.size} of ${LESSONS.length} lessons complete`}>
             {completed.size}/{LESSONS.length} complete
           </div>
         </div>
@@ -651,7 +711,10 @@ export default function CoachModePage() {
                   flexShrink: 0,
                 }}
               >
-                {lesson.icon}
+                {/* TRAIN-COACH-A11Y-1: SVG LessonIcon */}
+                <span style={{ display: 'inline-flex', color: lesson.color }} aria-hidden>
+                  <LessonIcon kind={lesson.iconKind} size={20} />
+                </span>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: lesson.color }}>
@@ -662,7 +725,8 @@ export default function CoachModePage() {
                   {lesson.concepts.length} concepts · {lesson.quiz.length} quiz questions
                 </div>
               </div>
-              {completed.has(lesson.id) && <div style={{ fontSize: 16 }}>✅</div>}
+              {/* TRAIN-COACH-A11Y-1: SVG check replaces ✅ */}
+              {completed.has(lesson.id) && <div style={{ fontSize: 16, display: 'inline-flex', color: '#4ade80' }} aria-label="Completed" role="img"><CheckIcon size={16} /></div>}
             </motion.button>
           ))}
         </div>

@@ -596,3 +596,17 @@ TRAIN-TILTGUARD-A11Y-1
 # per-period aria-label. Same surface-specific pattern as PR #320/#322/
 # #324/#327-#342.
 TRAIN-REPORTS-A11Y-1
+
+# ─── /hub/training/coach-mode — surface a11y + emoji→SVG ────────────────────
+# TRAIN-COACH-A11Y-1 — pages/hub/training/coach-mode.js. Guided GTO lesson
+# surface had six LESSONS data icons (🃏 preflop-basics, ⚡ three-bet, 🎯
+# cbet-basics, 🧮 pot-odds, 🔄 turn-play, 🏁 river-play), three results-
+# screen score icons (🏆/👍/💪 by score band), a ✅ completion indicator,
+# and two ← back arrows (header + nested lesson view). Card-suit glyphs
+# (♠♣♥♦) in quiz options remain (semantic). Replacements: SVG LessonIcon
+# discriminator routed through new `iconKind` field on each LESSONS entry;
+# ScoreIcon picks Trophy/ThumbsUp/Flex by score band; CheckIcon for ✅;
+# BackArrowIcon for both back buttons. Buttons gain type+aria-label.
+# Completion counter gains role="status". Title raised to <h1>. Same
+# surface-specific pattern as PR #320/#322/#324/#327-#343.
+TRAIN-COACH-A11Y-1
