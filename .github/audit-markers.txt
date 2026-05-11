@@ -711,3 +711,17 @@ TRAIN-FTS-A11Y-1
 # gains type+aria-label + SVG MslBackArrowIcon replacing bare '← Hub'
 # text-arrow. Same surface-specific pattern as PR #320/#322/#324/#327-#360.
 TRAIN-MSL-A11Y-1
+
+# ─── /hub/training/tournaments — surface a11y + emoji→SVG ───────────────────
+# TRAIN-TOURNAMENTS-A11Y-1 — pages/hub/training/tournaments.js. Tournaments
+# lobby had twelve distinct emojis in the rendered output: 🏆 header +
+# empty state, 🔴 live status, ⏰ scheduled, ✅ complete, 🎯 game-icon
+# fallback, 📚 game, ⏱️ time, ❓ questions, 👥 players, 🥇/🥈/🥉 prize
+# medals, 💎 diamond cost units. Replaced with SVG components (TrophyIcon,
+# DiamondIcon, GoldMedalIcon, SilverMedalIcon, BronzeMedalIcon, LiveDotIcon,
+# ClockIcon, CheckIcon, BookIcon, QuestionIcon, UsersIcon, TargetIcon).
+# Following the safety rules from PR #362/#365/#369: NO JSX comments inside
+# && or ternary expressions, NO emoji characters in legacy fallback strings.
+# All tab/register buttons gain type="button" + per-instance aria-label.
+# Same surface-specific pattern as PR #320/#322/#324/#327-#361.
+TRAIN-TOURNAMENTS-A11Y-1

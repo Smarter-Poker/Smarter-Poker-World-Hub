@@ -1,5 +1,5 @@
 /**
- * 🏆 TRAINING TOURNAMENTS LOBBY
+ * TRAINING TOURNAMENTS LOBBY
  * ═══════════════════════════════════════════════════════════════════════════
  * Competitive timed training challenges vs other players
  * ═══════════════════════════════════════════════════════════════════════════
@@ -18,6 +18,117 @@ import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+
+// BUG FIX (TRAIN-TOURNAMENTS-A11Y-1): SVG icon components replacing the
+// tournaments lobby emoji set. Strict rules from PR #362/#365/#369 — NO
+// JSX comments inside && or ternary expressions, and no emoji characters
+// in legacy fallback strings (SWC's parser chokes on some). Replacements:
+// TrophyIcon (header + empty state + status), DiamondIcon, GoldMedalIcon,
+// SilverMedalIcon, BronzeMedalIcon, LiveDotIcon, ClockIcon, CheckIcon,
+// BookIcon, QuestionIcon, UsersIcon, TargetIcon (game-icon fallback).
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size = 14, vb = '0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function TrophyIcon({ size = 20 }) {
+  return (
+    <_Svg size={size}>
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+    </_Svg>
+  );
+}
+function DiamondIcon({ size = 14 }) {
+  return (
+    <_Svg size={size}>
+      <path d="M6 3h12l4 6-10 12L2 9z" />
+      <path d="M11 3 8 9l4 12 4-12-3-6" />
+      <path d="M2 9h20" />
+    </_Svg>
+  );
+}
+function MedalIcon({ size = 16, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="14" r="7" />
+      <path d="M8.21 13.89 6 22l6-3 6 3-2.21-8.12" />
+      <path d="M9 7h6" />
+    </svg>
+  );
+}
+function GoldMedalIcon({ size = 16 })   { return <MedalIcon size={size} color="#FFD700" />; }
+function SilverMedalIcon({ size = 16 }) { return <MedalIcon size={size} color="#C0C0C0" />; }
+function BronzeMedalIcon({ size = 16 }) { return <MedalIcon size={size} color="#CD7F32" />; }
+function LiveDotIcon({ size = 8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <circle cx="12" cy="12" r="9" fill="#ef4444" />
+    </svg>
+  );
+}
+function ClockIcon({ size = 14 }) {
+  return (
+    <_Svg size={size}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </_Svg>
+  );
+}
+function CheckIcon({ size = 14 }) {
+  return (
+    <_Svg size={size}>
+      <polyline points="20 6 9 17 4 12" />
+    </_Svg>
+  );
+}
+function BookIcon({ size = 14 }) {
+  return (
+    <_Svg size={size}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </_Svg>
+  );
+}
+function QuestionIcon({ size = 14 }) {
+  return (
+    <_Svg size={size}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </_Svg>
+  );
+}
+function UsersIcon({ size = 14 }) {
+  return (
+    <_Svg size={size}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </_Svg>
+  );
+}
+function TargetIcon({ size = 16 }) {
+  return (
+    <_Svg size={size}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </_Svg>
+  );
+}
+
 
 export default function TournamentsPage() {
   useTrainingBus('tournaments');
@@ -91,7 +202,7 @@ export default function TournamentsPage() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
-        alert('🎉 Registered successfully!');
+        alert('Registered successfully!');
         refreshTournaments(); // Refresh
         // Emit bus event if tournament had an entry fee
         if (data.entryFee > 0) {
@@ -123,13 +234,19 @@ export default function TournamentsPage() {
   };
 
   const getStatusBadge = (status) => {
+    // TRAIN-TOURNAMENTS-A11Y-1: SVG status badges replace emoji prefixes.
+    const wrap = (children, bg) => (
+      <span style={{ ...styles.badge, background: bg, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {children}
+      </span>
+    );
     switch (status) {
       case 'live':
-        return <span style={{ ...styles.badge, background: '#31A24C' }}>🔴 LIVE</span>;
+        return wrap(<><LiveDotIcon size={8} /> LIVE</>, '#31A24C');
       case 'scheduled':
-        return <span style={{ ...styles.badge, background: '#00E0FF' }}>⏰ Upcoming</span>;
+        return wrap(<><ClockIcon size={12} /> Upcoming</>, '#00E0FF');
       case 'complete':
-        return <span style={{ ...styles.badge, background: '#6b7280' }}>✅ Complete</span>;
+        return wrap(<><CheckIcon size={12} /> Complete</>, '#6b7280');
       default:
         return null;
     }
@@ -150,7 +267,12 @@ export default function TournamentsPage() {
         <div style={styles.content}>
           {/* Header */}
           <div style={styles.header}>
-            <h1 style={styles.title}>🏆 Training Tournaments</h1>
+            <h1 style={styles.title}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#fbbf24' }}>
+                <TrophyIcon size={22} />
+                Training Tournaments
+              </span>
+            </h1>
             <p style={styles.subtitle}>Compete Against Other Players In Timed GTO Challenges</p>
           </div>
 
@@ -159,6 +281,7 @@ export default function TournamentsPage() {
             {['live', 'upcoming', 'completed'].map((tab) => (
               <button
                 key={tab}
+                type="button"
                 aria-label={`Filter by ${tab}`}
                 aria-pressed={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
@@ -167,7 +290,7 @@ export default function TournamentsPage() {
                   ...(activeTab === tab ? styles.tabActive : {}),
                 }}
               >
-                {tab === 'live' ? '🔴 Live' : tab === 'upcoming' ? '⏰ Upcoming' : '✅ Past'}
+                tab === 'live' ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LiveDotIcon size={8} /> Live</span>) : tab === 'upcoming' ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Upcoming</span>) : (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={12} /> Past</span>)
               </button>
             ))}
           </div>
@@ -177,7 +300,7 @@ export default function TournamentsPage() {
             <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
           ) : tournaments.length === 0 ? (
             <div style={styles.emptyState}>
-              <span style={styles.emptyIcon}>🏆</span>
+              <span style={{ ...styles.emptyIcon, display: 'inline-flex', color: '#475569' }}><TrophyIcon size={48} /></span>
               <p>No {activeTab} tournaments</p>
               {activeTab === 'live' && (
                 <p style={styles.emptyHint}>Check Upcoming Tournaments Or Wait For The Next One!</p>
@@ -192,7 +315,7 @@ export default function TournamentsPage() {
                   <div key={tournament.id} style={styles.tournamentCard}>
                     <div style={styles.cardHeader}>
                       <div style={styles.cardTitle}>
-                        <span style={styles.gameIcon}>{game?.icon || '🎯'}</span>
+                        <span style={{ ...styles.gameIcon, display: 'inline-flex' }}>{game?.icon ? game.icon : <TargetIcon size={16} />}</span>
                         {tournament.name}
                       </div>
                       {getStatusBadge(tournament.status)}
@@ -200,21 +323,21 @@ export default function TournamentsPage() {
 
                     <div style={styles.cardDetails}>
                       <div style={styles.detailRow}>
-                        <span>📚 Game:</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BookIcon size={12} /> Game:</span>
                         <span>{game?.name || tournament.game_id}</span>
                       </div>
                       <div style={styles.detailRow}>
-                        <span>⏱️ Time:</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Time:</span>
                         <span>
                           {formatDate(tournament.start_time)} at {formatTime(tournament.start_time)}
                         </span>
                       </div>
                       <div style={styles.detailRow}>
-                        <span>❓ Questions:</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><QuestionIcon size={12} /> Questions:</span>
                         <span>{tournament.questions_count}</span>
                       </div>
                       <div style={styles.detailRow}>
-                        <span>👥 Players:</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><UsersIcon size={12} /> Players:</span>
                         <span>
                           {tournament.entry_count}
                           {tournament.max_entries ? `/${tournament.max_entries}` : ''}
@@ -224,25 +347,27 @@ export default function TournamentsPage() {
 
                     <div style={styles.prizes}>
                       <div style={styles.prizeItem}>
-                        <span>🥇</span>
-                        <span style={styles.prizeAmount}>{tournament.prize_1st}💎</span>
+                        <span style={{ display: 'inline-flex' }}><GoldMedalIcon size={14} /></span>
+                        <span style={{ ...styles.prizeAmount, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{tournament.prize_1st}<DiamondIcon size={12} /></span>
                       </div>
                       <div style={styles.prizeItem}>
-                        <span>🥈</span>
-                        <span style={styles.prizeAmount}>{tournament.prize_2nd}💎</span>
+                        <span style={{ display: 'inline-flex' }}><SilverMedalIcon size={14} /></span>
+                        <span style={{ ...styles.prizeAmount, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{tournament.prize_2nd}<DiamondIcon size={12} /></span>
                       </div>
                       <div style={styles.prizeItem}>
-                        <span>🥉</span>
-                        <span style={styles.prizeAmount}>{tournament.prize_3rd}💎</span>
+                        <span style={{ display: 'inline-flex' }}><BronzeMedalIcon size={14} /></span>
+                        <span style={{ ...styles.prizeAmount, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{tournament.prize_3rd}<DiamondIcon size={12} /></span>
                       </div>
                     </div>
 
                     {tournament.entry_fee_diamonds > 0 && (
-                      <div style={styles.entryFee}>Entry: {tournament.entry_fee_diamonds}💎</div>
+                      <div style={{ ...styles.entryFee, display: 'inline-flex', alignItems: 'center', gap: 4 }}>Entry: {tournament.entry_fee_diamonds}<DiamondIcon size={12} /></div>
                     )}
 
                     {tournament.status === 'scheduled' && (
                       <button
+                        type="button"
+                        aria-label={`Register for tournament: ${tournament.name}`}
                         onClick={() => registerForTournament(tournament.id)}
                         disabled={registering === tournament.id}
                         style={styles.registerBtn}
