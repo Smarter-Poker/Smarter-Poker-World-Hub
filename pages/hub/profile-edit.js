@@ -1119,6 +1119,14 @@ export default function ProfilePage() {
                 console.warn('Save error:', errText);
                 return;
             }
+
+            // ── DEACTIVATE AI/PRESET AVATARS ──
+            // If the user manually uploaded a photo, it should override any AI or preset avatars.
+            await fetch(`${_supabaseUrl}/rest/v1/user_avatars?user_id=eq.${user.id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': _supabaseKey, 'Authorization': `Bearer ${_avatarToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
+            });
         } catch (fetchErr) {
             setAvatarUploadPhase(null);
             setMessage('Error saving avatar: ' + fetchErr.message);

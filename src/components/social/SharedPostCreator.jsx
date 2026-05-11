@@ -8,6 +8,7 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import toast from '../../../src/stores/toastStore';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import CheckInModal from './CheckInModal';
 import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
@@ -39,6 +40,7 @@ export function SharedPostCreator({
   authorOverride,
   context = 'social-media',
 }) {
+  const { avatar: contextAvatar } = useAvatar();
   const [postVisibility, setPostVisibility] = useState('public');
   const [content, setContent] = useState('');
   const [media, setMedia] = useState([]);
@@ -1484,7 +1486,7 @@ export function SharedPostCreator({
                     e.currentTarget.style.background = 'transparent';
                 }}
               >
-                <Avatar src={user?.avatar} name={user?.name} size={36} />
+                <Avatar src={contextAvatar?.imageUrl || user?.avatar} name={user?.name} size={36} />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
                     {user?.name || 'You'}
@@ -1661,7 +1663,7 @@ export function SharedPostCreator({
           </Link>
         ) : (
           <Link href="/hub/profile" style={{ display: 'block', cursor: 'pointer' }}>
-            <Avatar src={user?.avatar} name={user?.name} size={40} />
+            <Avatar src={contextAvatar?.imageUrl || user?.avatar} name={user?.name} size={40} />
           </Link>
         )}
         <div style={{ flex: 1, position: 'relative' }}>

@@ -405,14 +405,36 @@ export function AvatarProvider({ children }) {
         setLoading(true);
         try {
             const avatarData = await getUserAvatar(user.id);
-            setAvatar(avatarData);
+            if (avatarData) {
+                setAvatar(avatarData);
+            } else {
+                // ── NO ACTIVE CUSTOM/PRESET: Fallback to uploaded profile photo ──
+                const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle();
+                if (profile?.avatar_url) {
+                    setAvatar({ type: 'profile_upload', imageUrl: profile.avatar_url });
+                } else if (user.user_metadata?.avatar_url) {
+                    setAvatar({ type: 'profile_upload', imageUrl: user.user_metadata.avatar_url });
+                } else {
+                    setAvatar({
+                        type: 'preset',
+                        id: 'free_shark',
+                        imageUrl: '/avatars/free/shark.png',
+                        name: 'Poker Shark'
+                    });
+                }
+            }
         } catch (error) {
             console.warn('Error loading avatar:', error);
-            // ── CRITICAL FALLBACK: If avatar service fails (AbortError on Safari),
-            // use the user's actual profile picture instead of a generic preset ──
             const profilePic = user.user_metadata?.avatar_url;
             if (profilePic) {
                 setAvatar({ type: 'profile_upload', imageUrl: profilePic });
+            } else {
+                setAvatar({
+                    type: 'preset',
+                    id: 'free_shark',
+                    imageUrl: '/avatars/free/shark.png',
+                    name: 'Poker Shark'
+                });
             }
         } finally {
             setLoading(false);
