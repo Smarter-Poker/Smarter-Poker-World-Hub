@@ -20,6 +20,61 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// BRANCH ICONS — TRAIN-SKILL-TREE-A11Y-1
+// SVG replacements for the previous emoji icons (🃏, 🎯, ⚡, 👑) per handoff
+// §4 'no-emoji-icons' anti-pattern. Stroke colour inherits via currentColor
+// so each branch's existing colour token still drives the visual.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function BranchIcon({ branchId, size = 16, color = 'currentColor' }) {
+  const common = {
+    width: size, height: size, viewBox: '0 0 24 24',
+    fill: 'none', stroke: color, strokeWidth: 2,
+    strokeLinecap: 'round', strokeLinejoin: 'round',
+    'aria-hidden': true, focusable: 'false',
+  };
+  switch (branchId) {
+    case 'preflop':
+      // Layered cards icon (Lucide-style)
+      return (
+        <svg {...common}>
+          <rect x="4" y="8" width="13" height="13" rx="2" />
+          <path d="M9 8V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9" />
+        </svg>
+      );
+    case 'postflop':
+      // Target / crosshair
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+      );
+    case 'advanced':
+      // Lightning bolt
+      return (
+        <svg {...common}>
+          <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      );
+    case 'mastery':
+      // Crown
+      return (
+        <svg {...common}>
+          <path d="M2 19h20l-2-12-5 4-5-7-5 7-5-4 2 12z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SKILL TREE DATA
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -255,7 +310,28 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
             fontSize: 14,
           }}
         >
-          {isLocked ? '🔒' : isMastered ? '✅' : '🎯'}
+          {/* TRAIN-SKILL-TREE-A11Y-1: SVG status icon (was emoji 🔒/✅/🎯). */}
+          {isLocked ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true" focusable="false">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          ) : isMastered ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true" focusable="false">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+          )}
         </div>
         <div>
           <div
@@ -388,8 +464,12 @@ export default function SkillTreePage() {
             gap: 12,
           }}
         >
+          {/* TRAIN-SKILL-TREE-A11Y-1: aria-label + SVG arrow (was bare '←' text
+              which screen readers announce as 'left pointing arrow'). */}
           <button
+            type="button"
             onClick={() => router.push('/hub/training')}
+            aria-label="Back to training"
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
@@ -404,13 +484,31 @@ export default function SkillTreePage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
           </button>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Skill Tree</div>
+            {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Skill Tree</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>Master your GTO progression</div>
           </div>
+          {/* TRAIN-SKILL-TREE-A11Y-1: status role + readable aria-label */}
           <div
+            role="status"
+            aria-label={`${xp} experience points earned`}
             style={{
               padding: '6px 12px',
               borderRadius: 8,
@@ -418,7 +516,7 @@ export default function SkillTreePage() {
               border: '1px solid rgba(251,191,36,0.2)',
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24' }}>{xp}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontVariantNumeric: 'tabular-nums' }}>{xp}</span>
             <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>XP</span>
           </div>
         </div>
@@ -509,10 +607,13 @@ export default function SkillTreePage() {
                     padding: '0 4px',
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>{branch.icon}</span>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: branch.color }}>
+                  {/* TRAIN-SKILL-TREE-A11Y-1: SVG icon (was emoji); semantic <h2> */}
+                  <span style={{ color: branch.color, display: 'inline-flex' }}>
+                    <BranchIcon branchId={branch.id} size={18} color={branch.color} />
+                  </span>
+                  <h2 style={{ fontSize: 13, fontWeight: 700, color: branch.color, margin: 0 }}>
                     {branch.name}
-                  </div>
+                  </h2>
                   <div
                     style={{
                       marginLeft: 'auto',
