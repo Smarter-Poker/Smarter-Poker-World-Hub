@@ -696,3 +696,11 @@ TRAIN-STUDYGROUP-A11Y-1
 # BackArrowIcon for back. Legacy `avatar` emoji string preserved. Same
 # surface-specific pattern as PR #320/#322/#324/#327-#357.
 TRAIN-STUDYFINDER-A11Y-1
+
+# ─── /hub/training/final-table-sim — surface a11y polish ────────────────────
+# TRAIN-FTS-A11Y-1 — pages/hub/training/final-table-sim.js. ICM final-table
+# simulator was already emoji-free in rendered output. Polish: back button
+# gains type+aria-label + SVG FtsBackArrowIcon replacing bare '← Hub' text-
+# arrow; deal-proposal CTA gains type+aria-label. Same surface-specific
+# pattern as PR #320/#322/#324/#327-#359.
+TRAIN-FTS-A11Y-1
