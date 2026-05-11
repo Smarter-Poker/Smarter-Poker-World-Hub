@@ -686,3 +686,13 @@ TRAIN-COMMUNITY-A11Y-1
 # Input fields gain aria-label. Same surface-specific pattern as PR
 # #320/#322/#324/#327-#356.
 TRAIN-STUDYGROUP-A11Y-1
+
+# ─── /hub/training/study-group-finder — surface a11y + emoji→SVG ────────────
+# TRAIN-STUDYFINDER-A11Y-1 — pages/hub/training/study-group-finder.js. The
+# study-group finder had six avatar emojis (🦈 🏆 📚 ⚡ 🎯 ⚔️) per group
+# entry, a ✓ applied indicator, and a ← back arrow. Replacements: AvatarIcon
+# discriminator (shark/trophy/book/bolt/target/swords) routed through new
+# `avatarKind` field on each group entry; CheckIcon for applied state;
+# BackArrowIcon for back. Legacy `avatar` emoji string preserved. Same
+# surface-specific pattern as PR #320/#322/#324/#327-#357.
+TRAIN-STUDYFINDER-A11Y-1

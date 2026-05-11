@@ -30,6 +30,7 @@ const MOCK_GROUPS = [
     focus: 'Postflop spots review',
     schedule: 'Mon/Wed 7PM',
     level: 'Advanced',
+    avatarKind: 'shark',
     avatar: '🦈',
   },
   {
@@ -44,6 +45,7 @@ const MOCK_GROUPS = [
     focus: 'ICM deep dives',
     schedule: 'Tue/Thu 8PM',
     level: 'Advanced',
+    avatarKind: 'trophy',
     avatar: '🏆',
   },
   {
@@ -86,6 +88,7 @@ const MOCK_GROUPS = [
     focus: 'Fundamentals & leaks',
     schedule: 'Mon/Fri 8PM',
     level: 'Beginner',
+    avatarKind: 'book',
     avatar: '📚',
   },
   {
@@ -100,6 +103,7 @@ const MOCK_GROUPS = [
     focus: '3-max push/fold charts',
     schedule: 'Wed/Sun 4PM',
     level: 'Intermediate',
+    avatarKind: 'bolt',
     avatar: '⚡',
   },
   {
@@ -114,6 +118,7 @@ const MOCK_GROUPS = [
     focus: 'Weekly tournament prep',
     schedule: 'Sat 12PM',
     level: 'Any',
+    avatarKind: 'target',
     avatar: '🎯',
   },
   {
@@ -128,12 +133,50 @@ const MOCK_GROUPS = [
     focus: 'HU solver work',
     schedule: 'Tue/Thu 9PM',
     level: 'Advanced',
+    avatarKind: 'swords',
     avatar: '⚔️',
   },
 ];
 
 const FORMATS = ['All', 'Cash', 'Tournament', 'Live Cash', 'PLO', 'Spins'];
 const LEVELS = ['Any', 'Beginner', 'Intermediate', 'Advanced'];
+
+// BUG FIX (TRAIN-STUDYFINDER-A11Y-1): SVG icons replacing the study-group
+// avatar emoji set (🦈 🏆 📚 ⚡ 🎯 ⚔️) plus ✓ applied indicator and ← back.
+// Groups gain avatarKind discriminator; AvatarIcon renders by kind. Legacy
+// `avatar` emoji string preserved. Same surface-specific a11y pattern as
+// PR #320/#322/#324/#327-#357.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=24, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function SharkIcon({ size=24 })    { return <_Svg size={size}><path d="M2 12c4-6 9-7 13-5 3 2 5 5 7 8-3 1-7 1-10-1-3-2-7-2-10-2z"/><circle cx="9" cy="11" r="0.6" fill="currentColor"/></_Svg>; }
+function TrophyIcon({ size=24 })   { return <_Svg size={size}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></_Svg>; }
+function BookIcon({ size=24 })     { return <_Svg size={size}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></_Svg>; }
+function BoltIcon({ size=24 })     { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
+function TargetIcon({ size=24 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function SwordsIcon({ size=24 })   { return <_Svg size={size}><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polyline points="19 21 21 21 21 19 14 12"/></_Svg>; }
+function CheckIcon({ size=12 })    { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
+function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function AvatarIcon({ kind, size=24 }) {
+  switch (kind) {
+    case 'shark':  return <SharkIcon size={size}/>;
+    case 'trophy': return <TrophyIcon size={size}/>;
+    case 'book':   return <BookIcon size={size}/>;
+    case 'bolt':   return <BoltIcon size={size}/>;
+    case 'target': return <TargetIcon size={size}/>;
+    case 'swords': return <SwordsIcon size={size}/>;
+    default:       return <TargetIcon size={size}/>;
+  }
+}
+
 
 export default function StudyGroupFinderPage() {
   const router = useRouter();
@@ -257,6 +300,8 @@ export default function StudyGroupFinderPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
+              type="button"
+              aria-label="Back to training"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -264,15 +309,12 @@ export default function StudyGroupFinderPage() {
                 color: '#94a3b8',
                 fontSize: 18,
                 cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                padding: '6px 10px',
+                borderRadius: 6,
               }}
             >
-              ←
+              {/* TRAIN-STUDYFINDER-A11Y-1: SVG back arrow */}
+              <BackArrowIcon size={18} />
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Study Group Finder</div>
@@ -523,7 +565,10 @@ export default function StudyGroupFinderPage() {
                       <div
                         style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}
                       >
-                        <span style={{ fontSize: 24 }}>{g.avatar}</span>
+                        {/* TRAIN-STUDYFINDER-A11Y-1: SVG AvatarIcon */}
+                        <span style={{ fontSize: 24, display: 'inline-flex' }} aria-hidden>
+                          <AvatarIcon kind={g.avatarKind} size={24} />
+                        </span>
                         <div>
                           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
                             {g.name}
@@ -597,7 +642,7 @@ export default function StudyGroupFinderPage() {
                           minWidth: 120,
                         }}
                       >
-                        {isApplied ? 'Applied ✓' : isFull ? 'Full' : 'Apply'}
+                        {isApplied ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Applied <CheckIcon size={12} /></span> : isFull ? 'Full' : 'Apply'}
                       </motion.button>
                     </div>
                   </div>
