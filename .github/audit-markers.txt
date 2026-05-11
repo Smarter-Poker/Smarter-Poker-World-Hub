@@ -385,3 +385,15 @@ TRAIN-DAILY-CHALLENGE-A11Y-1
 # gain role="progressbar" with aria-valuenow/min/max. Filter row gets
 # role="tablist". Same surface-specific pattern as PR #320/#322/#324/#327.
 TRAIN-ACHIEVEMENTS-A11Y-1
+
+# ─── /hub/training/challenges — surface a11y + emoji→SVG ────────────────────
+# TRAIN-CHALLENGES-A11Y-1 — pages/hub/training/challenges.js. Goals/challenges
+# page had six emoji icons: 🎯 (header, sign-in prompt, empty state), 📅
+# weekly badge, 📆 monthly badge, 💎 diamond reward, ✅ claimed badge. Five
+# SVG components replace them (TargetIcon, CalendarIcon, CalendarMonthIcon,
+# DiamondIcon, CheckIcon) via aria-hidden inline-flex wrappers. The "Claim
+# Reward" button gains explicit type="button" + per-challenge aria-label
+# (was an unlabeled button). Progress bar gains role=progressbar +
+# aria-valuenow/min/max. Skeleton loader wrapper gains role=status. Same
+# surface-specific pattern as PR #320/#322/#324/#327/#328.
+TRAIN-CHALLENGES-A11Y-1
