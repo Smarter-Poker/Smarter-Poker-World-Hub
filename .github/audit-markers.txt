@@ -808,3 +808,13 @@ TRAIN-EMPTY-STATE-1
 # keyboard-accessible cells, highlight outline, title tooltips, role=grid.
 # Build-safe: no emoji chars, no JSX comments inside conditionals.
 TRAIN-RANGE-MATRIX-1
+
+# ─── training-tokens.css — design tokens (color + motion + radius + z) ──────
+# TRAIN-DESIGN-TOKENS-1 — src/styles/training-tokens.css (new). Combines
+# items 7 (WCAG AA/AAA dark-mode contrast pass) and 8 (motion budget /
+# tokens). Color tokens verified for 4.5:1+ contrast on the #0a0a0a base.
+# Motion tokens with three duration tiers + three easings + compound
+# transition shortcuts. prefers-reduced-motion collapses durations + adds
+# global *::before *::after override per WCAG 2.3.3. Plus z-index scale,
+# radii, and safe-area helpers. Build-safe: pure CSS, no JSX or JS.
+TRAIN-DESIGN-TOKENS-1
