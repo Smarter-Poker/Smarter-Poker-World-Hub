@@ -15,6 +15,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { sniffMimeType, getYouTubeVideoId } from '../../lib/socialHelpers';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
+import { checkProfanity } from '../../lib/profanityFilter';
 import toast from '../../stores/toastStore';
 
 const C = {
@@ -811,6 +812,21 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
             setError('You must be logged in to post a story');
             console.debug('[Stories] No userId!');
             return;
+        }
+
+        // STREAM-POLISH-R4 STORY-CREATE-2: profanity filter on caption.
+        // Mirrors the chat filter added in R3-2 — blocks slurs + direct
+        // self-harm threats client-side. The 500-char length cap added
+        // in fn_create_story (migration 20260511210000) gives server-
+        // side enforcement; this provides immediate UX feedback.
+        if (text) {
+            const profanity = checkProfanity(text);
+            if (profanity.blocked) {
+                setError(profanity.reason === 'threat'
+                    ? 'That story violates community guidelines and cannot be posted'
+                    : 'That story contains a slur and cannot be posted');
+                return;
+            }
         }
 
         setCreating(true);
