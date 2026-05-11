@@ -23,41 +23,95 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 // TILT DETECTION
 // ═══════════════════════════════════════════════════════════════════════════
 
+
+// BUG FIX (TRAIN-TILTGUARD-A11Y-1): SVG icons replacing the tilt-guard
+// emoji set. MENTAL_TIPS + WARMUP_GAMES gain iconKind discriminator;
+// TipIcon/WarmupIcon switch by kind. Standalone CheckSquareIcon for the
+// ✅ "exercise complete" indicator, MeditateIcon for the 🧘 breathing
+// CTA. Same surface-specific a11y pattern as PR #320/#322/#324/#327-#341.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=20, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function MeditateIcon({ size=20 })    { return <_Svg size={size}><circle cx="12" cy="6" r="3"/><path d="M9 11l-4 5 4 4 3-4 3 4 4-4-4-5"/></_Svg>; }
+function TargetIcon({ size=20 })      { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function WalkIcon({ size=20 })        { return <_Svg size={size}><circle cx="13" cy="4" r="2"/><path d="M4 22l4-9 4 3 3-4 3 5"/></_Svg>; }
+function LightbulbIcon({ size=20 })   { return <_Svg size={size}><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.65V17h8v-2.35A7 7 0 0 0 12 2z"/></_Svg>; }
+function WaterIcon({ size=20 })       { return <_Svg size={size}><path d="M12 2c4 4 7 8 7 13a7 7 0 0 1-14 0c0-5 3-9 7-13z"/></_Svg>; }
+function StopIcon({ size=20 })        { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><line x1="6" y1="6" x2="18" y2="18"/></_Svg>; }
+function CardsIcon({ size=20 })       { return <_Svg size={size}><rect x="3" y="5" width="13" height="16" rx="2"/><path d="M8 5V3a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/></_Svg>; }
+function AbacusIcon({ size=20 })      { return <_Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="7" cy="6" r="1"/><circle cx="11" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="18" r="1"/></_Svg>; }
+function CompassIcon({ size=20 })     { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></_Svg>; }
+function CheckSquareIcon({ size=40 }) { return <_Svg size={size}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></_Svg>; }
+function BackArrowIcon({ size=18 })   { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function TipIcon({ kind, size=20 }) {
+  switch (kind) {
+    case 'meditate':  return <MeditateIcon size={size}/>;
+    case 'target':    return <TargetIcon size={size}/>;
+    case 'walk':      return <WalkIcon size={size}/>;
+    case 'lightbulb': return <LightbulbIcon size={size}/>;
+    case 'water':     return <WaterIcon size={size}/>;
+    case 'stop':      return <StopIcon size={size}/>;
+    default:          return <LightbulbIcon size={size}/>;
+  }
+}
+function WarmupIcon({ kind, size=20 }) {
+  switch (kind) {
+    case 'cards':   return <CardsIcon size={size}/>;
+    case 'abacus':  return <AbacusIcon size={size}/>;
+    case 'compass': return <CompassIcon size={size}/>;
+    default:        return null;
+  }
+}
+
 const TILT_THRESHOLD = -15; // 15% accuracy drop triggers alert
 const MENTAL_TIPS = [
   {
     title: 'Box Breathing',
     desc: 'Inhale 4s → Hold 4s → Exhale 4s → Hold 4s. Repeat 4 cycles.',
+    iconKind: 'meditate',
     icon: '🧘',
     color: '#3b82f6',
   },
   {
     title: 'Process Over Results',
     desc: 'Focus on making GTO-correct decisions, not outcomes. Variance is temporary.',
+    iconKind: 'target',
     icon: '🎯',
     color: '#22c55e',
   },
   {
     title: 'Take a Walk',
     desc: 'Physical movement resets your nervous system. Even 5 minutes helps.',
+    iconKind: 'walk',
     icon: '🚶',
     color: '#f97316',
   },
   {
     title: 'Reframe the Mistake',
     desc: 'Every mistake reveals a pattern to fix. More data = faster improvement.',
+    iconKind: 'lightbulb',
     icon: '💡',
     color: '#a855f7',
   },
   {
     title: 'Drink Water',
     desc: 'Dehydration impairs decision-making by up to 12%. Stay hydrated.',
+    iconKind: 'water',
     icon: '💧',
     color: '#06b6d4',
   },
   {
     title: 'Set a Stop-Loss',
     desc: 'Decide in advance: if accuracy drops below 60%, stop for 30 minutes.',
+    iconKind: 'stop',
     icon: '🛑',
     color: '#ef4444',
   },
@@ -68,15 +122,17 @@ const WARMUP_GAMES = [
     id: 'easy-preflop',
     name: 'Easy Preflop Warmup',
     desc: 'Low-stress opening decisions',
+    iconKind: 'cards',
     icon: '🃏',
   },
   {
     id: 'easy-math',
     name: 'Pot Odds Refresher',
     desc: 'Simple math to rebuild confidence',
+    iconKind: 'abacus',
     icon: '🧮',
   },
-  { id: 'easy-position', name: 'Position Review', desc: 'Fundamental seat awareness', icon: '🧭' },
+  { id: 'easy-position', name: 'Position Review', desc: 'Fundamental seat awareness', iconKind: 'compass', icon: '🧭' },
 ];
 
 function analyzeTiltRisk(sessions) {
@@ -183,7 +239,10 @@ function BreathingExercise({ onClose }) {
           border: '1px solid rgba(34,197,94,0.15)',
         }}
       >
-        <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+        {/* TRAIN-TILTGUARD-A11Y-1: SVG check-square replaces ✅ */}
+        <div style={{ display: 'inline-flex', marginBottom: 12, color: '#4ade80' }} aria-hidden>
+          <CheckSquareIcon size={40} />
+        </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 6 }}>
           Exercise Complete
         </div>
@@ -316,6 +375,8 @@ export default function TiltGuardPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -331,7 +392,8 @@ export default function TiltGuardPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-TILTGUARD-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Tilt Guard</div>
@@ -495,7 +557,11 @@ export default function TiltGuardPage() {
                   gap: 8,
                 }}
               >
-                🧘 Start Breathing Exercise
+                {/* TRAIN-TILTGUARD-A11Y-1: SVG meditate replaces 🧘 */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <MeditateIcon size={18} />
+                  Start Breathing Exercise
+                </span>
               </motion.button>
 
               {/* Mental Tips */}
@@ -529,7 +595,10 @@ export default function TiltGuardPage() {
                       gap: 10,
                     }}
                   >
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>{tip.icon}</span>
+                    {/* TRAIN-TILTGUARD-A11Y-1: SVG TipIcon */}
+                    <span style={{ fontSize: 18, flexShrink: 0, color: tip.color, display: 'inline-flex' }} aria-hidden>
+                      <TipIcon kind={tip.iconKind} size={18} />
+                    </span>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: tip.color }}>
                         {tip.title}
@@ -576,7 +645,10 @@ export default function TiltGuardPage() {
                         textAlign: 'left',
                       }}
                     >
-                      <span style={{ fontSize: 18 }}>{game.icon}</span>
+                      {/* TRAIN-TILTGUARD-A11Y-1: SVG WarmupIcon */}
+                      <span style={{ fontSize: 18, display: 'inline-flex', color: '#94a3b8' }} aria-hidden>
+                        <WarmupIcon kind={game.iconKind} size={18} />
+                      </span>
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>
                           {game.name}
