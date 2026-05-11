@@ -838,3 +838,17 @@ TRAIN-BOTTOMSHEET-1
 # pulse). WebAudio synthesis means zero asset loads + no autoplay-policy
 # issues. iOS Safari has no Vibration API — silent no-op. Build-safe.
 TRAIN-FEEDBACK-FX-1
+
+# ─── SQL data improvements — rollup table + leaderboard MV + replay table ───
+# TRAIN-DATA-ROLLUPS-1 — supabase/migrations/20260511180000_training_rollups.sql
+# Three deliverables: training_user_progress rollup (PK user_id, updated by
+# AFTER INSERT trigger on jarvis_training_sessions, generated accuracy
+# column), training_leaderboard_top materialized view (top-500, ROW_NUMBER
+# rank, refreshable via training_leaderboard_refresh() SECURITY DEFINER
+# RPC), training_hand_replay table (per-hand replay events with
+# user_id/question_id/board_cards/actions JSONB) + training_hand_replay_
+# recent(p_limit) RPC. RLS self-read/insert/delete on both new tables.
+# Backfill from existing jarvis_training_sessions in-place.
+# Migration file checked in because the live Supabase MCP connection timed
+# out — apply via supabase db push or psql -f.
+TRAIN-DATA-ROLLUPS-1
