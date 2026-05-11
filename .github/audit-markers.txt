@@ -818,3 +818,12 @@ TRAIN-RANGE-MATRIX-1
 # global *::before *::after override per WCAG 2.3.3. Plus z-index scale,
 # radii, and safe-area helpers. Build-safe: pure CSS, no JSX or JS.
 TRAIN-DESIGN-TOKENS-1
+
+# ─── Shared BottomSheet — mobile-first panel primitive ──────────────────────
+# TRAIN-BOTTOMSHEET-1 — src/components/ui/BottomSheet.jsx (new). Controlled
+# mobile bottom-sheet (also supports placement=right for desktop side rail).
+# Backdrop-click + Escape close. Focus trap + body scroll lock while open.
+# Drag-handle visual + safe-area-inset-bottom padding. Slide-up / slide-left
+# keyframes with prefers-reduced-motion collapse. Build-safe: no emoji
+# chars, no JSX comments in conditional expressions.
+TRAIN-BOTTOMSHEET-1
