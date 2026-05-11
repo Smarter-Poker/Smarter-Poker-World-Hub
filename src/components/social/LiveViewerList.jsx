@@ -11,6 +11,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getAccessToken } from '../../lib/authUtils';
 
 export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, currentUser, inviteCode }) {
     const [viewers, setViewers] = useState([]);
@@ -62,38 +63,62 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
             setLoading(false);
         };
 
-        // STREAM-BUG-11: pull 10 most recent messenger contacts so the
-        // broadcaster can invite friends who aren't currently watching.
-        // RLS restricts the query to the current user's conversations.
+        // STREAM-BUG-11 + AUDIT-FIX-1: pull recent messenger contacts via the
+        // canonical API. The previous code queried a non-existent
+        // 'messenger_messages' table (the real schema is social_conversations
+        // + social_conversation_participants + social_messages) so the
+        // recent-chats section was always empty in production.
+        // /api/messenger/get-conversations returns the user's 1-on-1
+        // conversations sorted by last_message_at desc, with otherUser
+        // already joined to the profile.
         const loadRecentChats = async () => {
             if (!currentUser?.id) return;
             try {
-                const { data: msgs } = await supabase
-                    .from('messenger_messages')
-                    .select('sender_id, recipient_id, created_at')
-                    .or(`sender_id.eq.${currentUser.id},recipient_id.eq.${currentUser.id}`)
-                    .order('created_at', { ascending: false })
-                    .limit(60);
-                if (!mounted || !msgs?.length) { setRecentChats([]); return; }
-                const partnerIds = [];
+                const token = getAccessToken();
+                if (!token) { setRecentChats([]); return; }
+                const resp = await fetch('/api/messenger/get-conversations', {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const json = await resp.json().catch(() => ({}));
+                if (!mounted) return;
+                if (!resp.ok || !Array.isArray(json?.conversations)) {
+                    setRecentChats([]); return;
+                }
+                const partners = [];
                 const seen = new Set([currentUser.id]);
-                for (const m of msgs) {
-                    const other = m.sender_id === currentUser.id ? m.recipient_id : m.sender_id;
-                    if (other && !seen.has(other)) {
-                        seen.add(other);
-                        partnerIds.push(other);
-                        if (partnerIds.length >= 10) break;
+                for (const c of json.conversations) {
+                    if (c.is_group) continue;
+                    // get-conversations shapes each row as
+                    //   { id, otherUser:{ id, username, full_name, avatar_url }, ... }
+                    const o = c.otherUser || c.other_user || null;
+                    const otherId = o?.id || c.other_user_id || null;
+                    if (!otherId || seen.has(otherId)) continue;
+                    seen.add(otherId);
+                    partners.push({
+                        id: otherId,
+                        username: o?.username || c.other_user_username || null,
+                        full_name: o?.full_name || o?.display_name || null,
+                        avatar_url: o?.avatar_url || c.other_user_avatar || null,
+                    });
+                    if (partners.length >= 10) break;
+                }
+                // Hydrate any partner whose API row lacked a username/full_name.
+                const needsHydrate = partners.filter(p => !p.username && !p.full_name).map(p => p.id);
+                if (needsHydrate.length) {
+                    const { data: profiles } = await supabase
+                        .from('profiles')
+                        .select('id, username, full_name, avatar_url')
+                        .in('id', needsHydrate);
+                    if (!mounted) return;
+                    const pmap = new Map((profiles || []).map(p => [p.id, p]));
+                    for (const p of partners) {
+                        const fresh = pmap.get(p.id);
+                        if (fresh) Object.assign(p, fresh);
                     }
                 }
-                if (!partnerIds.length) { setRecentChats([]); return; }
-                const { data: profiles } = await supabase
-                    .from('profiles')
-                    .select('id, username, full_name, avatar_url')
-                    .in('id', partnerIds);
-                if (!mounted) return;
-                const pmap = new Map((profiles || []).map(p => [p.id, p]));
-                setRecentChats(partnerIds.map(id => pmap.get(id)).filter(Boolean));
-            } catch (_) { /* non-fatal */ }
+                setRecentChats(partners);
+            } catch (_) { /* non-fatal — recent-chats is a nice-to-have */ }
         };
 
         loadViewers();
@@ -148,24 +173,59 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
         });
     }, [recentChats, watcherIdSet, search, currentUser?.id]);
 
-    // STREAM-BUG-11: send-invite-to-stream helper. Mirrors
-    // GoLiveModal.GuestInviteModal.sendInvite — composes a stream URL
-    // with the broadcaster's guestInviteCode and DMs it via the existing
-    // /api/messenger/send-message endpoint pattern (writes to
-    // messenger_messages). Idempotent per session: once you tap, the
-    // button switches to Invited.
+    // STREAM-BUG-11 + AUDIT-FIX-1: send-invite-to-stream helper.
+    // Uses the canonical two-step messenger API path (identical to
+    // GoLiveModal.GuestInviteModal.sendInvite):
+    //   1. POST /api/messenger/start-conversation { otherUserId }
+    //      → returns { success, conversationId } (server RPC handles
+    //        get-or-create + participant rows + friend/request gating).
+    //   2. POST /api/messenger/send-message { conversationId, content,
+    //        message_type:'text' } with Authorization: Bearer <token>.
+    //        Content uses [LIVE_INVITE]room=…&invite=… so the messenger
+    //        UI renders a live-stream invite card.
+    //
+    // The previous version did a direct supabase insert into a phantom
+    // 'messenger_messages' table — wrong name, no conversation_id FK,
+    // no participant validation, errors silently swallowed.
     const sendStreamInvite = async (recipientId) => {
         if (!recipientId || !currentUser?.id || !inviteCode || !streamId) return;
         if (invitedIds.has(recipientId) || invitingIds.has(recipientId)) return;
         setInvitingIds(prev => new Set([...prev, recipientId]));
         try {
-            const url = `${window.location.origin}/hub/social-media?stream=${streamId}&invite=${encodeURIComponent(inviteCode)}`;
-            const message = `Watch my live stream: ${url}`;
-            await supabase.from('messenger_messages').insert({
-                sender_id: currentUser.id,
-                recipient_id: recipientId,
-                content: message,
+            const token = getAccessToken();
+            if (!token) throw new Error('Not authenticated');
+
+            const convResp = await fetch('/api/messenger/start-conversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ otherUserId: recipientId }),
             });
+            const convData = await convResp.json().catch(() => ({}));
+            if (!convResp.ok || !convData?.conversationId) {
+                throw new Error(convData?.error || 'Could not open conversation');
+            }
+            const convId = convData.conversationId;
+
+            const inviteQs = `room=${streamId}&invite=${inviteCode}`;
+            const msgResp = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    conversationId: convId,
+                    content: `[LIVE_INVITE]${inviteQs}`,
+                    message_type: 'text',
+                }),
+            });
+            if (!msgResp.ok) {
+                const msgData = await msgResp.json().catch(() => ({}));
+                throw new Error(msgData?.error || 'Send failed');
+            }
             setInvitedIds(prev => new Set([...prev, recipientId]));
         } catch (err) {
             console.warn('[LiveViewerList] sendStreamInvite failed:', err?.message || err);
