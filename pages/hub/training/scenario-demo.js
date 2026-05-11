@@ -17,6 +17,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+// TRAIN-WIRE-PROGRESS-2 — adoption: scenario-demo tutorial step progress
 // TRAIN-WIRE-FX-2a — adoption: scenario-demo quiz answer + nav feedback
 // TRAIN-WIRE-PLAYCARD-2 — adoption: scenario-demo cards via shared PlayingCard
 
@@ -291,9 +293,14 @@ export default function ScenarioDemoPage() {
           </button>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Training Tutorial</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
-              Step {currentStep + 1} of {TUTORIAL_STEPS.length}
-            </div>
+            <ProgressStrip
+              current={currentStep + 1}
+              total={TUTORIAL_STEPS.length}
+              correct={quizScore.correct}
+              difficulty="beginner"
+              compact
+              style={{ marginTop: 4 }}
+            />
           </div>
         </div>
 

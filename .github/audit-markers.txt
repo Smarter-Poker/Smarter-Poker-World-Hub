@@ -1021,3 +1021,11 @@ TRAIN-WIRE-EMPTY-4a
 # existing streak state. Difficulty pinned to "intermediate" (matches the
 # trainer's MDF level).
 TRAIN-WIRE-PROGRESS-1
+
+# ─── Phase-3 adoption: wire ProgressStrip into scenario-demo ───────────────
+# TRAIN-WIRE-PROGRESS-2 — pages/hub/training/scenario-demo.js. Replaces the
+# "Step N of M" subtitle line with <ProgressStrip current={currentStep+1}
+# total={TUTORIAL_STEPS.length} correct={quizScore.correct} difficulty=
+# "beginner" compact />. The full-width gradient progress bar below is left
+# as-is (it's a visual continuation of the brand header).
+TRAIN-WIRE-PROGRESS-2
