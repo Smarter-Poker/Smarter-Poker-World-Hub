@@ -961,3 +961,17 @@ TRAIN-WIRE-FX-5b
 # TRAIN-WIRE-FX-5c — pages/hub/training/famous-finals.js. fb.correct() /
 # fb.incorrect() inside handleAnswer based on `opt.correct` lookup.
 TRAIN-WIRE-FX-5c
+
+# ─── Phase-3 adoption: wire TrainerEmptyState into 3 trainers ───────────────
+# TRAIN-WIRE-EMPTY-1a — pages/hub/training/session-dashboard.js. Replaces the
+# inline "No sessions found. Start training to see your progress!" div with
+# <TrainerEmptyState variant="no-data" compact />.
+TRAIN-WIRE-EMPTY-1a
+# TRAIN-WIRE-EMPTY-1b — pages/hub/training/reports.js. Replaces the
+# "No training data found for this period." block + "REPORT" emoji label with
+# <TrainerEmptyState variant="no-data" />.
+TRAIN-WIRE-EMPTY-1b
+# TRAIN-WIRE-EMPTY-1c — pages/hub/training/mental-journal.js. Replaces the
+# "No entries found in database." inline div with <TrainerEmptyState
+# variant="no-data" compact />.
+TRAIN-WIRE-EMPTY-1c

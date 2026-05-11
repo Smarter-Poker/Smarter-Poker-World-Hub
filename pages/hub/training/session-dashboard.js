@@ -17,6 +17,8 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 // ── Phase 3 Engine: Session tracking with trends + leak identification ──
 import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG LINE CHART COMPONENT
@@ -921,9 +923,12 @@ export default function SessionDashboard() {
                 </div>
                 <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                   {filteredSessions.length === 0 ? (
-                    <div style={{ padding: 30, textAlign: 'center', color: '#475569', fontSize: 12 }}>
-                      No sessions found. Start training to see your progress!
-                    </div>
+                    <TrainerEmptyState
+                      variant="no-data"
+                      title="No sessions yet"
+                      message="Start training to see your progress here."
+                      compact
+                    />
                   ) : (
                     [...filteredSessions]
                       .sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp))
