@@ -7,6 +7,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-5f — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-STUDYGROUP-A11Y-1): SVG icon components replacing the
 // study-group emoji set: crown admin marker, upload empty hand viewer, close,
@@ -261,17 +263,12 @@ export default function StudyGroupRoom() {
                   </motion.div>
                 ) : (
                   <div style={styles.emptyHandViewer}>
-                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG upload replaces emoji */}
-                    <div style={{ fontSize: 48, marginBottom: 16, display: 'inline-flex', justifyContent: 'center', color: '#475569' }} aria-hidden>
-                      <UploadIcon size={48} />
-                    </div>
-                    <h3 style={{ margin: '0 0 8px 0' }}>No Hand Active</h3>
-                    <p style={{ color: '#94a3b8', margin: '0 0 24px 0' }}>
-                      Upload a hand history or load a saved bookmark to begin group analysis.
-                    </p>
-                    <button type="button" aria-label="Load a demo hand" onClick={loadDemoHand} style={styles.loadBtn}>
-                      Load Demo Hand
-                    </button>
+                    <TrainerEmptyState
+                      variant="no-data"
+                      title="No hand active"
+                      message="Upload a hand history or load a saved bookmark to begin group analysis."
+                      cta={{ label: 'Load Demo Hand', onClick: loadDemoHand }}
+                    />
                   </div>
                 )}
               </div>

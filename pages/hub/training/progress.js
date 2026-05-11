@@ -17,6 +17,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-5b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ICON COMPONENTS — TRAIN-PROGRESS-A11Y-1
@@ -269,12 +271,12 @@ export default function TrainingProgress() {
       <PageTransition>
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
-          <div style={styles.emptyState}>
-            <h2>Sign In To View Your Progress</h2>
-            <Link href="/auth/login" style={styles.button}>
-              Sign In
-            </Link>
-          </div>
+          <TrainerEmptyState
+            variant="locked"
+            title="Sign in to view your progress"
+            message="Track your accuracy, streaks, and weak spots once you sign in."
+            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) {} } }}
+          />
         </div>
       </PageTransition>
     );

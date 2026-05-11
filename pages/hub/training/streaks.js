@@ -19,6 +19,8 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-5c — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-STREAKS-A11Y-1): SVG icon components replacing the page's
 // emoji set. The milestone data structure adds an `iconKind` discriminator
@@ -311,12 +313,12 @@ export default function StreaksPage() {
       <PageTransition>
         <div style={styles.container}>
           <UniversalHeader pageDepth={2} />
-          <div style={styles.emptyState}>
-            <h2>Sign In To View Your Streak</h2>
-            <Link href="/auth/login" style={styles.button}>
-              Sign In
-            </Link>
-          </div>
+          <TrainerEmptyState
+            variant="locked"
+            title="Sign in to view your streak"
+            message="Daily streaks unlock once you sign in to track your training."
+            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) {} } }}
+          />
         </div>
       </PageTransition>
     );

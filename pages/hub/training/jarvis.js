@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+// TRAIN-WIRE-EMPTY-5d — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-JARVIS-A11Y-1): SVG icon components replacing the Jarvis
 // dashboard emoji set across hero (🧠), section headings (📊 💡 🔍 🎮 💰
@@ -162,12 +164,12 @@ export default function JarvisDashboard() {
               <p>Analyzing Your Training Data...</p>
             </div>
           ) : !user ? (
-            <div style={styles.emptyState}>
-              <p>Sign In To See Your Personalized Insights</p>
-              <Link href="/auth/login" style={styles.signInBtn}>
-                Sign In
-              </Link>
-            </div>
+            <TrainerEmptyState
+              variant="locked"
+              title="Sign in for personalized insights"
+              message="Jarvis tracks your patterns and surfaces tailored coaching once you sign in."
+              cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) {} } }}
+            />
           ) : (
             <div style={styles.dashboard}>
               {/* Overview Stats */}
