@@ -319,3 +319,77 @@ export async function getFreshAccessToken(): Promise<string | null> {
 
     return inFlightRefresh;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKWARDS-COMPAT SHIMS
+// These exports were removed during a refactor but are still imported by
+// 20+ pages. Adding them back as thin aliases prevents webpack import errors.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * getSafeUser — alias for getAuthUser().
+ * Returns the current authenticated user or null. Never throws.
+ */
+export function getSafeUser() {
+    return getAuthUser();
+}
+
+/**
+ * useRequireAuth — React hook shim for auth-gated pages.
+ * Pages that import this use it to early-return when not authenticated.
+ * Since our auth is synchronous (localStorage), this simply returns the
+ * current user synchronously. Callers check for null to gate rendering.
+ */
+export function useRequireAuth() {
+    return getAuthUser();
+}
+
+/**
+ * ensureAuthReady — async shim for pages that await auth initialization.
+ * Our localStorage-based auth is synchronous, so this resolves immediately.
+ */
+export async function ensureAuthReady(): Promise<void> {
+    // localStorage auth is synchronous — no async init needed.
+    return;
+}
+
+/**
+ * authedFetch — convenience wrapper for authenticated API calls.
+ * Automatically injects the Authorization header from getAccessToken().
+ * Usage: const data = await authedFetch('/api/some-endpoint', { method: 'POST', body: ... });
+ */
+export async function authedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const token = getAccessToken();
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string> || {}),
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { ...options, headers });
+}
+
+/**
+ * useAuthUser — React hook alias for getAuthUser().
+ * Returns the current authenticated user synchronously, or null.
+ */
+export function useAuthUser() {
+    return getAuthUser();
+}
+
+/**
+ * getSessionToken — alias for getAccessToken().
+ * Used by training components and hooks to authenticate API calls.
+ */
+export function getSessionToken(): string | null {
+    return getAccessToken();
+}
+
+/**
+ * getAuthToken — alias for getAccessToken().
+ * Legacy name referenced in doc comments and some older components.
+ */
+export function getAuthToken(): string | null {
+    return getAccessToken();
+}
