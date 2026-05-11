@@ -8,6 +8,36 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+// BUG FIX (TRAIN-STUDYGROUP-A11Y-1): SVG icon components replacing the
+// study-group emoji set: 👑 admin marker, 📤 empty hand viewer, ✕ close,
+// ➤ send arrow, ← back. Card-suit glyphs (♠♣♥♦) in hand strings remain
+// (semantic). Same surface-specific a11y pattern as PR #320/#322/#324/
+// #327-#356.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=16, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function CrownIcon({ size=12 })    { return <_Svg size={size}><path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z"/><path d="M4 19h16"/></_Svg>; }
+function UploadIcon({ size=48 })   { return <_Svg size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></_Svg>; }
+function CloseIcon({ size=16 })    { return <_Svg size={size}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></_Svg>; }
+function SendIcon({ size=16 })     { return <_Svg size={size}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></_Svg>; }
+function BackArrowIcon({ size=14 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function StarIcon({ size=14 })     {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" aria-hidden>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  );
+}
+
+
 export default function StudyGroupRoom() {
   const router = useRouter();
   const { roomId } = router.query;
@@ -110,8 +140,17 @@ export default function StudyGroupRoom() {
 
       <div style={styles.container}>
         <div style={styles.header}>
-          <button onClick={() => router.push('/hub/training')} style={styles.backButton}>
-            ← Hub
+          <button
+            type="button"
+            aria-label="Back to training hub"
+            onClick={() => router.push('/hub/training')}
+            style={styles.backButton}
+          >
+            {/* TRAIN-STUDYGROUP-A11Y-1: SVG back arrow + visible label */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <BackArrowIcon size={14} />
+              Hub
+            </span>
           </button>
           <div>
             <h1 style={styles.title}>COLLABORATIVE STUDY ROOM</h1>
@@ -135,9 +174,10 @@ export default function StudyGroupRoom() {
               placeholder="Enter Room Name (e.g. Sunday Million Review)..."
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
+              aria-label="Study room name"
               style={styles.roomInput}
             />
-            <button onClick={handleCreateRoom} style={styles.createBtn}>
+            <button type="button" aria-label="Start study room" onClick={handleCreateRoom} style={styles.createBtn}>
               Start Room
             </button>
           </motion.div>
@@ -162,11 +202,14 @@ export default function StudyGroupRoom() {
                     />
                     {p.name}{' '}
                     {p.role === 'Admin' && (
-                      <span style={{ color: '#fbbf24', marginLeft: 4 }}>👑</span>
+                      {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces 👑 */}
+                      <span style={{ color: '#fbbf24', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
+                        <CrownIcon size={12} />
+                      </span>
                     )}
                   </div>
                 ))}
-                <button style={styles.inviteBtn}>+ Invite Link</button>
+                <button type="button" aria-label="Generate invite link" style={styles.inviteBtn}>+ Invite Link</button>
               </div>
 
               <div style={styles.handViewer}>
@@ -178,8 +221,14 @@ export default function StudyGroupRoom() {
                   >
                     <div style={styles.handHeader}>
                       <h3 style={{ margin: 0 }}>{activeHandInfo.id} Overview</h3>
-                      <button style={styles.closeBtn} onClick={() => setActiveHandInfo(null)}>
-                        ✕
+                      <button
+                        type="button"
+                        aria-label="Close active hand viewer"
+                        style={styles.closeBtn}
+                        onClick={() => setActiveHandInfo(null)}
+                      >
+                        {/* TRAIN-STUDYGROUP-A11Y-1: SVG close replaces ✕ */}
+                        <CloseIcon size={16} />
                       </button>
                     </div>
 
@@ -202,16 +251,25 @@ export default function StudyGroupRoom() {
                       <strong>Action:</strong> {activeHandInfo.actionSummary}
                     </div>
 
-                    <div style={styles.solverEval}>⭐ {activeHandInfo.solverEval}</div>
+                    <div style={styles.solverEval}>
+                      {/* TRAIN-STUDYGROUP-A11Y-1: SVG star replaces ⭐ */}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#fbbf24' }} aria-hidden>
+                        <StarIcon size={14} />
+                        {activeHandInfo.solverEval}
+                      </span>
+                    </div>
                   </motion.div>
                 ) : (
                   <div style={styles.emptyHandViewer}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>📤</div>
+                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG upload replaces 📤 */}
+                    <div style={{ fontSize: 48, marginBottom: 16, display: 'inline-flex', justifyContent: 'center', color: '#475569' }} aria-hidden>
+                      <UploadIcon size={48} />
+                    </div>
                     <h3 style={{ margin: '0 0 8px 0' }}>No Hand Active</h3>
                     <p style={{ color: '#94a3b8', margin: '0 0 24px 0' }}>
                       Upload a hand history or load a saved bookmark to begin group analysis.
                     </p>
-                    <button onClick={loadDemoHand} style={styles.loadBtn}>
+                    <button type="button" aria-label="Load a demo hand" onClick={loadDemoHand} style={styles.loadBtn}>
                       Load Demo Hand
                     </button>
                   </div>
@@ -271,10 +329,12 @@ export default function StudyGroupRoom() {
                   value={inputMsg}
                   onChange={(e) => setInputMsg(e.target.value)}
                   placeholder="Type your strategic thoughts..."
+                  aria-label="Chat message"
                   style={styles.chatInput}
                 />
-                <button type="submit" style={styles.sendBtn}>
-                  ➤
+                <button type="submit" aria-label="Send chat message" style={styles.sendBtn}>
+                  {/* TRAIN-STUDYGROUP-A11Y-1: SVG send replaces ➤ */}
+                  <SendIcon size={16} />
                 </button>
               </form>
             </div>
