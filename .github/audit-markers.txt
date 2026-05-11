@@ -781,3 +781,12 @@ TRAIN-ACTIONBTN-1
 # optional secondary REVIEW CTA. stickyNext prop for mobile bottom-sheet.
 # Build-safe: no emoji chars, no JSX comments in conditional expressions.
 TRAIN-FEEDBACK-V2
+
+# ─── Shared ProgressStrip — in-play progress affordance ─────────────────────
+# TRAIN-PROGRESS-STRIP-1 — src/components/poker/ProgressStrip.jsx (new).
+# Slim persistent strip that lives above the action bar showing position
+# (3 / 10), an SVG completion ring (tinted yellow if accuracy <60%), an
+# accuracy chip, a difficulty chip with color band (beginner..expert),
+# best-streak flame chip, and an optional elapsed-time chip. Build-safe:
+# no emoji chars, no JSX comments in conditional expressions.
+TRAIN-PROGRESS-STRIP-1
