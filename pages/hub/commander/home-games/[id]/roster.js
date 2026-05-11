@@ -122,7 +122,16 @@ export default function HomeGameRosterPage() {
       const token = await getAccessToken();
       const res = await fetch(`/api/commander/home-games/groups/${id}/dm-player`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          // bug-hunt-zero/B-ROSTER-2: parity with handleStartDm in [id].js
+          // and manage.js. Network retry that creates a second DM session
+          // is wasteful even if not destructive.
+          'X-Idempotency-Key': (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36),
+        },
         body: JSON.stringify({ target_user_id: targetUserId })
       });
       const data = await res.json();
