@@ -585,3 +585,14 @@ TRAIN-BANKROLL-A11Y-1
 # breathing CTA. BackArrowIcon replaces ←. Same surface-specific pattern
 # as PR #320/#322/#324/#327-#341.
 TRAIN-TILTGUARD-A11Y-1
+
+# ─── /hub/training/reports — surface a11y polish ────────────────────────────
+# TRAIN-REPORTS-A11Y-1 — pages/hub/training/reports.js. GTO performance
+# reports surface was already emoji-free in the rendered UI (the four
+# emojis present in source are inside comments only). Polish: back button
+# gains type+aria-label + SVG arrow (ReportsBackArrowIcon) replacing the
+# bare '←' character before the visible "Training" label. Period selector
+# buttons (Week / Month / All Time) gain type=button + aria-pressed +
+# per-period aria-label. Same surface-specific pattern as PR #320/#322/
+# #324/#327-#342.
+TRAIN-REPORTS-A11Y-1

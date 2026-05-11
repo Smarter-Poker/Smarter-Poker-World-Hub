@@ -173,6 +173,28 @@ function ClassificationBar({ classifications, total }) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
+// BUG FIX (TRAIN-REPORTS-A11Y-1): SVG back arrow + button hardening for
+// the GTO reports surface. The rendered UI is already emoji-free
+// (all emojis present are inside source comments). Same surface-specific
+// a11y pattern as PR #320/#322/#324/#327-#342.
+const _RPT_ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function ReportsBackArrowIcon({ size=14 }) {
+  return (
+    <svg {..._RPT_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+
+
 export default function GTOReports() {
   const router = useRouter();
   useTrainingBus('gto-reports');
@@ -282,6 +304,8 @@ export default function GTOReports() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
+              type="button"
+              aria-label="Back to training"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.06)',
@@ -294,7 +318,11 @@ export default function GTOReports() {
                 fontWeight: 600,
               }}
             >
-              ← Training
+              {/* TRAIN-REPORTS-A11Y-1: SVG back arrow + visible label */}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <ReportsBackArrowIcon size={14} />
+                Training
+              </span>
             </button>
             <h1
               style={{
@@ -320,6 +348,9 @@ export default function GTOReports() {
             ].map((p) => (
               <button
                 key={p.value}
+                type="button"
+                aria-pressed={period === p.value}
+                aria-label={`Show ${p.label}`}
                 onClick={() => setPeriod(p.value)}
                 style={{
                   padding: '6px 14px',
