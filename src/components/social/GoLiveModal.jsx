@@ -9,6 +9,7 @@ import { liveStreamService } from '../../services/LiveStreamService';
 import { EndStreamModal } from './EndStreamModal';
 import { LiveAnalyticsCard } from './LiveAnalyticsCard';
 import { LiveReactions } from './LiveReactions';
+import { LiveViewerList } from './LiveViewerList';
 import { ScheduleLiveModal } from './ScheduleLiveModal';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
@@ -264,6 +265,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [title, setTitle] = useState('');
     const [error, setError] = useState('');
     const [viewerCount, setViewerCount] = useState(0);
+    // STREAM-BUG-11: open the viewer list panel when the broadcaster taps the
+    // viewer-count badge. Previously the badge was a static div and tapping
+    // did nothing — Dan: "WHEN A USER CLICKS ON THE VIEWER LIST DURING MY
+    // LIVE BROADCAST, NOTHING HAPPENS."
+    const [showViewerList, setShowViewerList] = useState(false);
     const [streamId, setStreamId] = useState(initialRoomId || null);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [countdown, setCountdown] = useState(5);
@@ -1563,12 +1569,17 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             />
                         </div>
 
-                        {/* TOP-RIGHT: viewer count */}
-                        <div style={{ position:'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:600, zIndex:10, display:'flex', alignItems:'center', gap:6 }}>
+                        {/* TOP-RIGHT: viewer count (tap to open viewer list — STREAM-BUG-11) */}
+                        <button
+                            type="button"
+                            onClick={() => setShowViewerList(true)}
+                            aria-label="Open viewer list"
+                            style={{ position:'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:600, zIndex:10, display:'flex', alignItems:'center', gap:6, border:'none', cursor:'pointer' }}
+                        >
                             <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                             {viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}
-                            {isMuted && <span style={{ marginLeft:6, opacity:0.7 }}>🔇</span>}
-                        </div>
+                            {isMuted && <span style={{ marginLeft:6, opacity:0.7 }} aria-hidden>(muted)</span>}
+                        </button>
 
                         {/* STREAM-BUG-1: clock pinned BOTTOM-LEFT, just above the chat scroll
                             zone. Chat scroll lives at bottom:110 + maxHeight:200, so its top edge
@@ -1624,12 +1635,25 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         <LiveReactions streamId={streamId} userId={user?.id} isBroadcaster />
 
                         {/* New feature: Guest Invite Modal overlay */}
-                        <GuestInviteModal 
-                            isOpen={guestInviteModalOpen} 
+                        <GuestInviteModal
+                            isOpen={guestInviteModalOpen}
                             onClose={() => setGuestInviteModalOpen(false)}
                             streamId={streamId}
                             inviteCode={guestInviteCode}
                             currentUser={user}
+                        />
+
+                        {/* STREAM-BUG-11: viewer list sheet for the broadcaster.
+                            Tapping the top-right viewer-count badge opens this.
+                            LiveViewerList already supports search + invite when
+                            currentUser + inviteCode are present (see component). */}
+                        <LiveViewerList
+                            streamId={streamId}
+                            viewerCount={viewerCount}
+                            isOpen={showViewerList}
+                            onClose={() => setShowViewerList(false)}
+                            currentUser={user}
+                            inviteCode={guestInviteCode}
                         />
 
                         {/* #18: PINNED COMMENT */}
