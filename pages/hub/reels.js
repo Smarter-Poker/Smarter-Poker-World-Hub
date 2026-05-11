@@ -364,11 +364,29 @@ export default function ReelsPage() {
       // BUG FIX: With persistent iframe (stable key), we must loadVideoById to switch
       // videos. The old approach (key={currentReel.id}) remounted the entire player on
       // every swipe — expensive and caused 2-3s black flash while YT reinitialised.
+      //
+      // MUTE-PIVOT (2026-05-11 — TikTok/Instagram pattern): mute the player BEFORE
+      // loadVideoById so the new video boots muted, which Chrome unconditionally
+      // allows to autoplay. After playback confirms via onStateChange(1) (or the
+      // 200ms retry below), we unMute — Chrome accepts unMute on a video that's
+      // already playing without requiring fresh transient activation. Without
+      // this, the new video tried to autoplay UNMUTED (because the player was
+      // unmuted from the previous reel), Chrome blocked it, and YT paused →
+      // user saw the play button. Trade-off: ~200ms of silence at swipe start.
+      // The wantsSound capture freezes the user's preference at swipe time so
+      // the deferred unMute calls don't race with user-toggled mute changes.
+      const wantsSoundAtSwipe = userWantsSoundRef.current;
+      if (wantsSoundAtSwipe) sendYouTubeCommand('mute');
       sendYouTubeCommand('loadVideoById', [{ videoId: ytId, startSeconds: 0 }]);
-      // Retry playVideo — YT API may not be ready immediately after loadVideoById
+      // Retry playVideo + unMute — YT API may not be ready immediately after loadVideoById.
+      // The unMute fires AFTER playVideo so Chrome sees an already-playing video.
       playVideoOnLoadTimersRef.current = [200, 500, 1000, 2000].map((delay) =>
         setTimeout(() => {
           sendYouTubeCommand('playVideo');
+          if (wantsSoundAtSwipe) {
+            sendYouTubeCommand('unMute');
+            sendYouTubeCommand('setVolume', [100]);
+          }
           autoUnmute();
         }, delay)
       );
@@ -735,12 +753,10 @@ export default function ReelsPage() {
         // again. brokenUrlsRef is session-scoped, lost on reload — which
         // is correct because the worker may have transcoded HEVC by then.
         const broken = brokenUrlsRef.current;
-        const filteredFresh = broken.size > 0
-          ? fresh.filter((r) => !broken.has(r.video_url))
-          : fresh;
-        const filteredStale = broken.size > 0
-          ? stale.filter((r) => !broken.has(r.video_url))
-          : stale;
+        const filteredFresh =
+          broken.size > 0 ? fresh.filter((r) => !broken.has(r.video_url)) : fresh;
+        const filteredStale =
+          broken.size > 0 ? stale.filter((r) => !broken.has(r.video_url)) : stale;
         const finalReels = [...filteredFresh, ...filteredStale];
         setReels(finalReels);
 
@@ -1048,9 +1064,8 @@ export default function ReelsPage() {
           // Skip any URL already known broken in this session (HEVC stalls,
           // corrupt MP4s, dead URLs). Same filter as initial loadReels.
           const broken = brokenUrlsRef.current;
-          const mappedFiltered = broken.size > 0
-            ? mapped.filter((r) => !broken.has(r.video_url))
-            : mapped;
+          const mappedFiltered =
+            broken.size > 0 ? mapped.filter((r) => !broken.has(r.video_url)) : mapped;
           setReels((prev) => [...prev, ...mappedFiltered]);
           const lc = {},
             cc = {},
@@ -1847,7 +1862,12 @@ export default function ReelsPage() {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
 
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      if (
+        e.key === 'ArrowDown' ||
+        e.key === 'ArrowRight' ||
+        e.key === 'ArrowUp' ||
+        e.key === 'ArrowLeft'
+      ) {
         // BUG FIX (2026-05-11): sync-unmute inside the keypress gesture so
         // Chrome accepts the unMute postMessage. Without this, the new
         // iframe's onStateChange(1) autoUnmute runs after gesture expiry
@@ -5203,6 +5223,64 @@ export default function ReelsPage() {
               </>
             ) : null;
           })()}
+
+        {/*
+          TIKTOK-STYLE PREFETCH (2026-05-11): warm the browser cache for the
+          NEXT 10 reels so swiping feels instant. Three preload strategies:
+            1. Native MP4 reels → <link rel="preload" as="video">. The browser
+               pre-downloads (or at least pre-resolves + pre-fetches start) the
+               file. Crucial for /hub/reels which previously had NO preload at
+               all — every native swipe cold-loaded. ReelsFeedCarousel.jsx
+               already does this; we're achieving parity.
+            2. YouTube reels → <img> hqdefault.jpg prefetch. YT serves these
+               from a separate CDN; pre-fetching skips ~100-200ms latency on
+               the swipe-thumbnail render path. (Pre-loading the actual YT
+               iframe for >1 ahead would trigger YT's anti-throttling limits.)
+            3. <link rel="dns-prefetch"> + <link rel="preconnect"> for YT
+               domains so the TLS handshake is cached for any iframe load.
+        */}
+        {(() => {
+          if (typeof window === 'undefined') return null;
+          const upcoming = reels.slice(currentIndex + 1, currentIndex + 11);
+          if (upcoming.length === 0) return null;
+          return (
+            <>
+              {/* DNS preconnect for YT — done once, cheap, helps every YT swipe */}
+              <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+              <link rel="preconnect" href="https://www.youtube-nocookie.com" crossOrigin="anonymous" />
+              <link rel="dns-prefetch" href="https://img.youtube.com" />
+              {upcoming.map((r) => {
+                const url = r?.video_url || '';
+                if (!url) return null;
+                const ytId = getYouTubeVideoId(url);
+                if (ytId) {
+                  // YT reel — prefetch thumbnail only (NOT the iframe — would
+                  // trigger YT's per-page iframe quota and degrade everything).
+                  return (
+                    <img
+                      key={`spw-prefetch-${r.id}`}
+                      src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                      alt=""
+                      style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                    />
+                  );
+                }
+                // Native MP4 — full preload hint to the browser. <link as=video>
+                // is a valid hint anywhere in the DOM (not just <head>) per
+                // HTML5 spec — Chrome/Safari honor it and pre-fetch the start
+                // of the file. Result: native swipes feel instant.
+                return (
+                  <link
+                    key={`spw-prefetch-${r.id}`}
+                    rel="preload"
+                    href={url}
+                    as="video"
+                  />
+                );
+              })}
+            </>
+          );
+        })()}
 
         {/* Pull-to-refresh indicator */}
         {refreshing && (
