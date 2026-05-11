@@ -37,14 +37,43 @@ export default async function handler(req, res) {
         const { title, description, thumbnail_url, scheduled_at } = req.body;
         if (!title || !scheduled_at) return res.status(400).json({ error: 'title and scheduled_at required' });
 
+        // BUG-FIX-DEEP-AUDIT-R2 S-1: validate scheduled_at. The previous
+        // version accepted any string from the client — past dates, year
+        // 3000, malformed strings all stored. Past-dated rows then never
+        // get reminded (live-reminders cron filters by `>= now()`) but
+        // still bloat the table. Far-future rows clutter UIs. Hard window:
+        // must parse, must be at least 1 minute in the future, must be at
+        // most 90 days out. Reasonable for live broadcasting context.
+        const parsedAt = new Date(scheduled_at);
+        if (isNaN(parsedAt.getTime())) {
+            return res.status(400).json({ error: 'scheduled_at must be a valid ISO 8601 timestamp' });
+        }
+        const nowMs = Date.now();
+        const parsedMs = parsedAt.getTime();
+        if (parsedMs < nowMs + 60_000) {
+            return res.status(400).json({ error: 'scheduled_at must be at least 1 minute in the future' });
+        }
+        if (parsedMs > nowMs + 90 * 24 * 60 * 60 * 1000) {
+            return res.status(400).json({ error: 'scheduled_at must be within 90 days' });
+        }
+
+        // BUG-FIX-DEEP-AUDIT-R2 S-2 / S-3: cap title/description length.
+        // These flow directly into notification bodies for followers. An
+        // unbounded title can be used to spam followers with an enormous
+        // payload or break notification UIs.
+        const safeTitle = String(title).trim().slice(0, 140);
+        const safeDescription = description ? String(description).trim().slice(0, 500) : null;
+        const safeThumb = thumbnail_url ? String(thumbnail_url).trim().slice(0, 2048) : null;
+        if (!safeTitle) return res.status(400).json({ error: 'title cannot be blank' });
+
         const { data, error } = await supabase
             .from('scheduled_lives')
             .insert({
                 broadcaster_id: user.id,
-                title,
-                description,
-                thumbnail_url,
-                scheduled_at,
+                title: safeTitle,
+                description: safeDescription,
+                thumbnail_url: safeThumb,
+                scheduled_at: parsedAt.toISOString(),
             })
             .select()
             .maybeSingle();
@@ -64,7 +93,7 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         const displayName = profile?.username || profile?.full_name || 'Someone you follow';
-        const scheduledDate = new Date(scheduled_at).toLocaleString('en-US', {
+        const scheduledDate = parsedAt.toLocaleString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric',
             hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
         });
@@ -74,7 +103,7 @@ export default async function handler(req, res) {
                 user_id: f.follower_id,
                 type: 'live_scheduled',
                 title: 'Upcoming Live Stream',
-                message: `${displayName} is going live: "${title}" on ${scheduledDate}`,
+                message: `${displayName} is going live: "${safeTitle}" on ${scheduledDate}`,
                 link: `/hub/lives`,
                 actor_id: user.id,
                 read: false,

@@ -74,14 +74,21 @@ export default async function handler(req, res) {
         //    - Mark its feed post as 'ended' (badge transitions LIVE NOW → STREAM ENDED)
         //    - Flip the live_streams row to is_draft=true so the recording is
         //      preserved as a draft (matches explicit 'save' action behavior)
+        //
+        // BUG-FIX-DEEP-AUDIT-R2 CSS-1: was previously
+        //   .update({ metadata: { stream_id, stream_status: 'ended' } })
+        // which (a) overwrote the entire metadata JSONB and (b) used the
+        // wrong key — PostCard checks metadata.ended. Auto-cleaned streams
+        // stayed stuck on "LIVE NOW" badge. Now uses fn_mark_feed_post_ended
+        // which atomically merges {ended: true} into existing metadata.
         let savedCount = 0;
         for (const s of trulyStale) {
             try {
-                await supabase
-                    .from('social_posts')
-                    .update({ metadata: { stream_id: s.id, stream_status: 'ended' } })
-                    .eq('content_type', 'live')
-                    .contains('metadata', { stream_id: s.id });
+                const { error: rpcErr2 } = await supabase
+                    .rpc('fn_mark_feed_post_ended', { p_stream_id: s.id });
+                if (rpcErr2) {
+                    console.warn(`[cron/cleanup-stale-streams] fn_mark_feed_post_ended ${s.id}:`, rpcErr2.message);
+                }
 
                 await supabase
                     .from('live_streams')

@@ -21,56 +21,59 @@ const supabase = createClient(
 
 /**
  * Update the live broadcast feed post to reflect stream-ended state.
- * Merges { ended: true } into the existing metadata JSONB without overwriting other fields.
- * Also updates media_urls with the final recording URL (if available).
  *
- * Strategy: use feed_post_id FK (direct O(1) PK lookup) stored on live_streams.
- * Fall back to metadata JSONB contains() scan for streams created before feed_post_id existed.
+ * BUG-FIX-DEEP-AUDIT-R2 CSS-1: this used to do its own fetch + JSONB merge
+ * in JS. It now defers to fn_mark_feed_post_ended (SECURITY DEFINER RPC)
+ * which does the merge atomically in SQL. That eliminates a TOCTOU window
+ * where a parallel writer could clobber a fresh JSONB merge between the
+ * SELECT and the UPDATE here.
+ *
+ * The RPC handles both the FK fast path (live_streams.feed_post_id) and
+ * the legacy JSONB-scan fallback. media_urls is still updated from this
+ * handler when videoUrl is available, because the RPC doesn't know about
+ * the recording URL.
  */
 async function markFeedPostEnded(stream_id, videoUrl = null) {
     try {
-        // BUG FIX (#10): Use feed_post_id stored on the stream row for a direct PK lookup.
-        // The old code used .contains('metadata', { stream_id }) which is a slow JSONB scan
-        // and silently returns null if the JSON key is missing or the index is stale.
-        const { data: streamRow } = await supabase.from('live_streams')
-            .select('feed_post_id')
-            .eq('id', stream_id)
-            .maybeSingle();
-
-        let livePost = null;
-
-        if (streamRow?.feed_post_id) {
-            // Fast path: direct PK lookup via stored FK
-            const { data } = await supabase.from('social_posts')
-                .select('id, metadata, media_urls')
-                .eq('id', streamRow.feed_post_id)
-                .maybeSingle();
-            livePost = data;
+        // Atomic merge of {ended: true} via SQL. Replaces the previous
+        // {fetch, merge, update} sequence — see migration
+        // 20260510235000 + 20260510235100 for the RPC definition.
+        const { error: rpcErr } = await supabase
+            .rpc('fn_mark_feed_post_ended', { p_stream_id: stream_id });
+        if (rpcErr) {
+            console.warn('[end-stream] fn_mark_feed_post_ended:', rpcErr.message);
+            return;
         }
 
-        if (!livePost) {
-            // Fallback: JSONB scan (for streams created before feed_post_id column existed)
-            const { data } = await supabase.from('social_posts')
-                .select('id, metadata, media_urls')
-                .eq('content_type', 'live')
-                .contains('metadata', { stream_id })
-                .maybeSingle();
-            livePost = data;
-        }
-
-        if (!livePost) return; // No live post to update — silently skip
-
-        const mergedMetadata = { ...(livePost.metadata || {}), ended: true };
-        const updatePayload = { metadata: mergedMetadata };
-
-        // If the replay video is available, update media_urls so the post shows the replay
+        // If we have a recording URL, write it into media_urls so the
+        // post renders the replay video. This is a separate update from
+        // the metadata merge — keeping them separate so a media_urls
+        // failure can't block the metadata transition.
         if (videoUrl) {
-            updatePayload.media_urls = [videoUrl];
-        }
+            // Look up the post id (RPC didn't return it). FK fast path
+            // first, JSONB fallback if needed.
+            let postId = null;
+            const { data: streamRow } = await supabase.from('live_streams')
+                .select('feed_post_id')
+                .eq('id', stream_id)
+                .maybeSingle();
+            postId = streamRow?.feed_post_id || null;
 
-        await supabase.from('social_posts')
-            .update(updatePayload)
-            .eq('id', livePost.id);
+            if (!postId) {
+                const { data: legacyMatch } = await supabase.from('social_posts')
+                    .select('id')
+                    .eq('content_type', 'live')
+                    .contains('metadata', { stream_id })
+                    .maybeSingle();
+                postId = legacyMatch?.id || null;
+            }
+
+            if (postId) {
+                await supabase.from('social_posts')
+                    .update({ media_urls: [videoUrl] })
+                    .eq('id', postId);
+            }
+        }
     } catch (e) {
         console.warn('[end-stream] markFeedPostEnded failed:', e?.message || e);
     }

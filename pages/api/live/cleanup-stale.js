@@ -68,14 +68,21 @@ export default async function handler(req, res) {
         // 3. For each ended stream, mark its feed post as ended (badge
         //    transitions from "LIVE NOW" → "STREAM ENDED") and flip the
         //    stream into draft state so the recording is preserved.
+        //
+        // BUG-FIX-DEEP-AUDIT-R2 CSS-1: previously this did
+        //   .update({ metadata: { stream_id, stream_status: 'ended' } })
+        // which (a) overwrote the ENTIRE metadata JSONB and (b) used the
+        // wrong key — PostCard at /hub/social-media checks metadata.ended,
+        // not metadata.stream_status. So the "LIVE NOW" badge stayed on
+        // every auto-cleaned stream forever. Now uses fn_mark_feed_post_ended
+        // which atomically merges {ended: true} into the existing metadata.
         for (const s of trulyStale) {
             try {
-                // Update the feed post status badge
-                await supabase
-                    .from('social_posts')
-                    .update({ metadata: { stream_id: s.id, stream_status: 'ended' } })
-                    .eq('content_type', 'live')
-                    .contains('metadata', { stream_id: s.id });
+                const { error: rpcErr2 } = await supabase
+                    .rpc('fn_mark_feed_post_ended', { p_stream_id: s.id });
+                if (rpcErr2) {
+                    console.warn(`[live/cleanup-stale] fn_mark_feed_post_ended ${s.id}:`, rpcErr2.message);
+                }
 
                 // Auto-save: keep recording as draft (matches explicit 'save' action)
                 await supabase
