@@ -15,6 +15,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { checkProfanity } from '../../../src/lib/profanityFilter';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -39,6 +40,20 @@ export default async function handler(req, res) {
     if (!trimmed) return res.status(400).json({ error: 'Comment cannot be empty' });
     if (trimmed.length > MAX_COMMENT_LENGTH) {
         return res.status(400).json({ error: `Comment too long (max ${MAX_COMMENT_LENGTH} chars)` });
+    }
+
+    // STREAM-POLISH-R3 CHAT-MOD-2: server-side egregious-term filter.
+    // Blocks slurs + direct self-harm incitement before the comment
+    // hits the chat. Generic profanity is intentionally NOT blocked
+    // here — broadcasters can mute/ban via /api/live/moderate. The
+    // matched term is NOT echoed back to the client.
+    const profanity = checkProfanity(trimmed);
+    if (profanity.blocked) {
+        return res.status(400).json({
+            error: profanity.reason === 'threat'
+                ? 'That message violates community guidelines and cannot be sent'
+                : 'That message contains a slur and cannot be sent',
+        });
     }
 
     try {
