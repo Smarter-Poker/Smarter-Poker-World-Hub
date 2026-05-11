@@ -871,25 +871,43 @@ export function GoLiveModal({
       console.warn(`[GoLive] thumbnail too large: ${file.size} bytes; skipping upload`);
       return null;
     }
-    try {
-      const ext = file.name.split('.').pop();
-      const path = `live-thumbnails/${user.id}/${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('live-recordings')
-        .upload(path, file, { contentType: file.type, upsert: true });
-      if (uploadErr) throw uploadErr;
-      const { data } = supabase.storage.from('live-recordings').getPublicUrl(path);
-      return data.publicUrl;
-    } catch (err) {
-      // BUG-FIX-DEEP-AUDIT-R5 SLM-1: louder logging. Includes the
-      // bucket name + MIME so a future allowlist regression is
-      // immediately diagnosable from the console.
-      console.warn(
-        `[GoLive] thumbnail upload failed (bucket=live-recordings mime=${file.type}):`,
-        err?.message || err
-      );
-      return null;
+    // STREAM-POLISH-R3 THUMB-3: retry up to 3x on transient failures.
+    // Supabase storage occasionally returns 503 / network errors during
+    // brief regional hiccups; without retry, a one-off blip ships the
+    // stream thumbnail-less. Backoff 250ms, 500ms. We do NOT retry on
+    // 4xx (auth/permission/MIME-disallow) — those won't fix themselves.
+    const ext = file.name.split('.').pop();
+    const path = `live-thumbnails/${user.id}/${Date.now()}.${ext}`;
+    const MAX_ATTEMPTS = 3;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const { error: uploadErr } = await supabase.storage
+          .from('live-recordings')
+          .upload(path, file, { contentType: file.type, upsert: true });
+        if (uploadErr) throw uploadErr;
+        const { data } = supabase.storage.from('live-recordings').getPublicUrl(path);
+        return data.publicUrl;
+      } catch (err) {
+        lastErr = err;
+        const msg = err?.message || String(err);
+        // 4xx is not retryable — fail fast on auth/permission/MIME issues.
+        if (/40[0-9]|41[0-8]|UNAUTHORIZED|FORBIDDEN|InvalidMime/i.test(msg)) {
+          break;
+        }
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 250 * attempt));
+        }
+      }
     }
+    // BUG-FIX-DEEP-AUDIT-R5 SLM-1: louder logging. Includes the bucket
+    // name + MIME so a future allowlist regression is immediately
+    // diagnosable from the console. Now also includes attempt count.
+    console.warn(
+      `[GoLive] thumbnail upload failed after ${MAX_ATTEMPTS} attempts (bucket=live-recordings mime=${file.type}):`,
+      lastErr?.message || lastErr
+    );
+    return null;
   };
 
   const startRecording = () => {
