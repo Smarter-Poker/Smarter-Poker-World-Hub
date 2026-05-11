@@ -25,11 +25,53 @@ import useSWR, { useSWRConfig } from 'swr';
 // CATEGORIES
 // ═══════════════════════════════════════════════════════════════════════════
 
+
+// BUG FIX (TRAIN-COMMUNITY-A11Y-1): SVG icon components replacing the
+// community-leaderboard emojis. CATEGORIES gain iconKind discriminator;
+// CategoryIcon renders by kind. Medal podium emojis (🥇🥈🥉) → SVG
+// MedalIcon with rank-tinted color. ← back arrow → SVG. Same surface-
+// specific a11y pattern as PR #320/#322/#324/#327-#355.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=14, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function TrophyIcon({ size=14 })  { return <_Svg size={size}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></_Svg>; }
+function CardsIcon({ size=14 })   { return <_Svg size={size}><rect x="3" y="5" width="13" height="16" rx="2"/><path d="M8 5V3a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/></_Svg>; }
+function TargetIcon({ size=14 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
+function FlameIcon({ size=14 })   { return <_Svg size={size}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.5-.5-2.5-2-3.5l-2 2c-.5-.5-1-1-1-2 0-1 1.5-2 1.5-2s-3 1-4 3.5C5 14 6 17 8.5 19c1.5 1.5 4 2 5.5 1.5C17 19.5 19 17 19 13c0-3-1-5-2.5-7C15 4 12 2 12 2s1 4-1 7c-.7 1-1.5 1.5-2.5 2.5z"/></_Svg>; }
+function MedalIcon({ size=18 })   {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="14" r="7"/>
+      <path d="M8.21 13.89 6 22l6-3 6 3-2.21-8.12"/>
+      <path d="M9 7h6"/>
+    </svg>
+  );
+}
+function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+function CategoryIcon({ kind, size=14 }) {
+  switch (kind) {
+    case 'trophy': return <TrophyIcon size={size}/>;
+    case 'cards':  return <CardsIcon size={size}/>;
+    case 'target': return <TargetIcon size={size}/>;
+    case 'flame':  return <FlameIcon size={size}/>;
+    default:       return null;
+  }
+}
+
 const CATEGORIES = [
-  { id: 'overall', label: 'Overall', icon: '🏆' },
-  { id: 'preflop', label: 'Preflop', icon: '🃏' },
-  { id: 'postflop', label: 'Postflop', icon: '🎯' },
-  { id: 'streaks', label: 'Streaks', icon: '🔥' },
+  { id: 'overall', label: 'Overall', iconKind: 'trophy', icon: '🏆' },
+  { id: 'preflop', label: 'Preflop', iconKind: 'cards', icon: '🃏' },
+  { id: 'postflop', label: 'Postflop', iconKind: 'target', icon: '🎯' },
+  { id: 'streaks', label: 'Streaks', iconKind: 'flame', icon: '🔥' },
 ];
 
 function getAvatarColor(str) {
@@ -121,6 +163,8 @@ export default function CommunityLeaderboardPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -136,10 +180,12 @@ export default function CommunityLeaderboardPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-COMMUNITY-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Community Leaderboard</div>
+            {/* TRAIN-COMMUNITY-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Community Leaderboard</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>Global GTO rankings</div>
           </div>
         </div>
@@ -150,6 +196,7 @@ export default function CommunityLeaderboardPage() {
             {['weekly', 'alltime'].map((p) => (
               <motion.button
                 key={p}
+                type="button"
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setPeriod(p)}
                 aria-label={p === 'weekly' ? 'Show weekly rankings' : 'Show all-time rankings'}
@@ -176,6 +223,9 @@ export default function CommunityLeaderboardPage() {
             {CATEGORIES.map((c) => (
               <motion.button
                 key={c.id}
+                type="button"
+                aria-pressed={category === c.id}
+                aria-label={`Filter by ${c.label}`}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCategory(c.id)}
                 style={{
@@ -190,7 +240,10 @@ export default function CommunityLeaderboardPage() {
                   cursor: 'pointer',
                 }}
               >
-                {c.icon} {c.label}
+                {/* TRAIN-COMMUNITY-A11Y-1: SVG CategoryIcon */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, verticalAlign: 'middle' }} aria-hidden>
+                  <CategoryIcon kind={c.iconKind} size={12} /> {c.label}
+                </span>
               </motion.button>
             ))}
           </div>
@@ -214,7 +267,9 @@ export default function CommunityLeaderboardPage() {
             >
               {[topThree[1], topThree[0], topThree[2]].map((p, i) => {
                 const heights = [80, 100, 65];
-                const medals = ['🥈', '🥇', '🥉'];
+                // TRAIN-COMMUNITY-A11Y-1: rank ordering for podium slots 0,1,2 = 2nd, 1st, 3rd
+                const medalColors = ['#C0C0C0', '#FFD700', '#CD7F32'];
+                const medalLabels = ['Second place', 'First place', 'Third place'];
 
                 if (!p) return <div key={`empty-podium-${i}`} style={{ flex: 1 }} />;
 
@@ -237,7 +292,10 @@ export default function CommunityLeaderboardPage() {
                       justifyContent: 'flex-end',
                     }}
                   >
-                    <div style={{ fontSize: 18, marginBottom: 4 }}>{medals[i]}</div>
+                    {/* TRAIN-COMMUNITY-A11Y-1: SVG medal replaces 🥈/🥇/🥉 */}
+                    <div style={{ fontSize: 18, marginBottom: 4, display: 'inline-flex', justifyContent: 'center', color: medalColors[i] }} role="img" aria-label={medalLabels[i]}>
+                      <MedalIcon size={18} />
+                    </div>
                     <div
                       style={{
                         fontSize: 10,
