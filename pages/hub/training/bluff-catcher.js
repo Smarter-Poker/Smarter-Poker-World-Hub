@@ -8,6 +8,8 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-1 — adoption: bluff-catcher answer + completion feedback (audio + haptics)
 // TRAIN-WIRE-PLAYCARD-1 — first adoption of shared PlayingCard
 
 // Pseudo-MDF based bluff-catching scenarios
@@ -64,6 +66,7 @@ export default function BluffCatcherTrainer() {
   const [streak, setStreak] = useState(0);
 
   const scenario = SCENARIOS[currentScenarioIndex];
+  const fb = useTrainingFeedback();
 
   const handleAction = async (action) => {
     const isCorrect = action === scenario.optimal;
@@ -75,9 +78,11 @@ export default function BluffCatcherTrainer() {
     setShowFeedback(true);
 
     if (isCorrect) {
+      fb.correct();
       setScore((prev) => prev + 10);
       setStreak((prev) => prev + 1);
     } else {
+      fb.incorrect();
       setStreak(0);
     }
 
@@ -102,6 +107,7 @@ export default function BluffCatcherTrainer() {
   };
 
   const nextScenario = () => {
+    fb.click();
     setShowFeedback(false);
     setLastAnswer(null);
     setCurrentScenarioIndex((prev) => (prev + 1) % SCENARIOS.length);

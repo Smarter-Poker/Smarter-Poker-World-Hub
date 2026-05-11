@@ -906,3 +906,12 @@ TRAIN-WIRE-PLAYCARD-4
 # Build-safe: no JSX comments inside conditionals; BOARD_TEXTURES data with
 # its unicode strings unchanged.
 TRAIN-WIRE-PLAYCARD-5
+
+# ─── Phase-2 adoption: wire useTrainingFeedback into bluff-catcher ─────────
+# TRAIN-WIRE-FX-1 — pages/hub/training/bluff-catcher.js. Adds the shared
+# useTrainingFeedback hook (TRAIN-FEEDBACK-FX-1) — WebAudio chord + nav
+# vibration. fb.correct() runs after a correct answer; fb.incorrect() runs
+# after an incorrect answer; fb.click() runs on Next Hand. Gated by
+# localStorage prefs sp.training.sound / sp.training.haptics; honors
+# prefers-reduced-motion. No new UI; behavior layer only.
+TRAIN-WIRE-FX-1
