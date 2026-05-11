@@ -42,15 +42,37 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
     const handleThumbnailUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file || !user?.id) return;
-        // FIX: supabase now statically imported (was wasteful dynamic import on every click)
+        // BUG-FIX-DEEP-AUDIT-R5 SLM-1: client-side MIME + size validation.
+        // Round 2 locked the live-recordings bucket to video MIME types
+        // which silently broke this thumbnail upload until R5's migration
+        // restored image/jpeg, image/png, image/webp. Defend the client
+        // side too: a 50MB camera-roll image is a slow upload + a waste
+        // of bandwidth + the bucket's separate file size cap may reject it.
+        const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!ALLOWED.includes(file.type)) {
+            setError('Please choose a JPEG, PNG, or WebP image');
+            return;
+        }
+        const MAX_BYTES = 8 * 1024 * 1024;  // 8 MB
+        if (file.size > MAX_BYTES) {
+            setError('Image is too large (max 8 MB)');
+            return;
+        }
+        setError('');
         const filename = `${user.id}/scheduled-${Date.now()}.jpg`;
-        const { data, error } = await supabase.storage
+        const { error: uploadErr } = await supabase.storage
             .from('live-recordings')
             .upload(filename, file, { contentType: file.type, upsert: true });
-        if (!error) {
-            const { data: urlData } = supabase.storage.from('live-recordings').getPublicUrl(filename);
-            setThumbnailUrl(urlData.publicUrl);
+        if (uploadErr) {
+            // BUG-FIX-DEEP-AUDIT-R5 SLM-1: surface the failure to the user.
+            // The previous code silently no-op'd which is how the round-2
+            // bucket regression went undetected for so long.
+            console.warn('[ScheduleLiveModal] thumbnail upload failed:', uploadErr.message);
+            setError(`Thumbnail upload failed: ${uploadErr.message}`);
+            return;
         }
+        const { data: urlData } = supabase.storage.from('live-recordings').getPublicUrl(filename);
+        setThumbnailUrl(urlData.publicUrl);
     };
 
     const handleSchedule = async () => {

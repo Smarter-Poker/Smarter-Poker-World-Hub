@@ -7,7 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../lib/authUtils';
 import dynamic from 'next/dynamic';
 
 const SpectatorView = dynamic(() => import('./SpectatorView'), { ssr: false });
@@ -38,7 +38,12 @@ export default function LiveActivityFeed({ currentUser }) {
 
     const fetchSessions = useCallback(async () => {
         try {
-            const token = getAccessToken();
+            // BUG-FIX-DEEP-AUDIT-R5 LAF-3: this component is long-running
+            // (60s polling interval) so a viewer leaving the tab open for
+            // an hour will have a stale token. Use getFreshAccessToken
+            // to refresh before the request — falling back to the cached
+            // one if the refresh path isn't available.
+            const token = (await getFreshAccessToken()) || getAccessToken();
             if (!token) { setLoading(false); return; }
             const headers = { Authorization: `Bearer ${token}` };
 
@@ -144,7 +149,13 @@ export default function LiveActivityFeed({ currentUser }) {
 
             {/* Session cards */}
             {activeSessions.map(s => {
-                const profit = s.current_profit || 0;
+                // BUG-FIX-DEEP-AUDIT-R5 LAF-4: coerce to number and gate
+                // NaN/Infinity. The previous `|| 0` lets NaN through
+                // because `NaN || 0` → 0, but `s.current_profit` could
+                // be a string from API ('+12.5'), which numerically is
+                // already fine for `>=` but renders unchanged. Defend.
+                const rawProfit = s.current_profit;
+                const profit = Number.isFinite(rawProfit) ? rawProfit : (Number.isFinite(Number(rawProfit)) ? Number(rawProfit) : 0);
                 return (
                     <div key={s.id} style={{
                         background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 12,
