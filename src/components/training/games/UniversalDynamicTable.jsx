@@ -2397,32 +2397,67 @@ function UniversalDynamicTable({
                 );
             })()}
 
-            {/* Phase 3: RNG / Study Mode Toggles */}
-            <div style={{ display: 'flex', gap: 6, padding: '0 16px 4px', justifyContent: 'flex-end' }}>
-                <button
-                    onClick={() => setRngMode(v => !v)}
+            {/* BUG FIX (TRAIN-HEADER-CHIPS-1): RNG and TRAIN/STUDY were two
+                independent floating pills creating visual noise — the May 8
+                training-overhaul handoff specifically called them out:
+                "fold related ones (SOLVER+FULL into one mode chip; RNG OFF
+                + TRAIN into one)". Consolidated into a single segmented
+                pill: one rounded outer container, two flush-joined inner
+                buttons with a shared center divider. Reads as one
+                "mode status" control instead of two competing chips. Both
+                inner buttons carry `data-compact` so the global mobile-
+                touch-target rule from TRAIN-CSS-SWEEP-1 leaves them at
+                their intentionally compact size. */}
+            <div
+                style={{
+                    display: 'flex',
+                    padding: '0 16px 4px',
+                    justifyContent: 'flex-end',
+                }}
+                role="group"
+                aria-label="Session mode toggles"
+            >
+                <div
                     style={{
-                        padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                        border: `1px solid ${rngMode ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                        background: rngMode ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.03)',
-                        color: rngMode ? '#a855f7' : '#64748b', cursor: 'pointer',
-                        letterSpacing: 0.5, transition: 'all 0.15s ease',
+                        display: 'inline-flex',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        background: 'rgba(255,255,255,0.02)',
                     }}
                 >
-                    RNG {rngMode ? 'ON' : 'OFF'}
-                </button>
-                <button
-                    onClick={() => setStudyMode(v => !v)}
-                    style={{
-                        padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                        border: `1px solid ${studyMode ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                        background: studyMode ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
-                        color: studyMode ? '#3b82f6' : '#64748b', cursor: 'pointer',
-                        letterSpacing: 0.5, transition: 'all 0.15s ease',
-                    }}
-                >
-                    {studyMode ? 'STUDY' : 'TRAIN'}
-                </button>
+                    <button
+                        data-compact
+                        onClick={() => setRngMode(v => !v)}
+                        aria-pressed={rngMode}
+                        title={rngMode ? 'RNG mode on — drill rolls die for randomized actions' : 'RNG mode off'}
+                        style={{
+                            padding: '3px 10px', fontSize: 10, fontWeight: 700,
+                            border: 'none',
+                            borderRight: '1px solid rgba(255,255,255,0.08)',
+                            background: rngMode ? 'rgba(168,85,247,0.18)' : 'transparent',
+                            color: rngMode ? '#a855f7' : '#64748b', cursor: 'pointer',
+                            letterSpacing: 0.5, transition: 'background 0.15s ease, color 0.15s ease',
+                        }}
+                    >
+                        RNG {rngMode ? 'ON' : 'OFF'}
+                    </button>
+                    <button
+                        data-compact
+                        onClick={() => setStudyMode(v => !v)}
+                        aria-pressed={studyMode}
+                        title={studyMode ? 'Study mode — see GTO frequencies before answering' : 'Train mode — answer first, see GTO after'}
+                        style={{
+                            padding: '3px 10px', fontSize: 10, fontWeight: 700,
+                            border: 'none',
+                            background: studyMode ? 'rgba(59,130,246,0.18)' : 'transparent',
+                            color: studyMode ? '#3b82f6' : '#64748b', cursor: 'pointer',
+                            letterSpacing: 0.5, transition: 'background 0.15s ease, color 0.15s ease',
+                        }}
+                    >
+                        {studyMode ? 'STUDY' : 'TRAIN'}
+                    </button>
+                </div>
             </div>
 
             {/* Phase 3: Session EV Progress Bar */}

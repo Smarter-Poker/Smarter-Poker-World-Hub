@@ -274,3 +274,16 @@ TRAIN-DB-DASHBOARD-1
 # A11y: role=dialog, aria-modal, aria-labelledby, ESC dismisses, focus
 # rings, pills are real <button role="radio" aria-checked> elements.
 TRAIN-SETUP-MODAL-1
+
+# ─── /hub/training — header chip consolidation (PR4 follow-up) ──────────────
+# TRAIN-HEADER-CHIPS-1 — src/components/training/games/UniversalDynamicTable.jsx
+# RNG and TRAIN/STUDY chips. The May 8 training-overhaul handoff §2E
+# specifically called out: "fold related ones (SOLVER+FULL into one mode
+# chip; RNG OFF + TRAIN into one)". Consolidated the RNG + TRAIN/STUDY pair
+# into a single segmented pill: outer rounded container + two flush-joined
+# inner buttons with a shared center divider. Reads as one "session mode"
+# control instead of two competing chips. Both inner buttons carry
+# data-compact so the global mobile 44px touch-target rule from
+# TRAIN-CSS-SWEEP-1 leaves them at their intentionally compact size.
+# aria-pressed states + title tooltips added.
+TRAIN-HEADER-CHIPS-1
