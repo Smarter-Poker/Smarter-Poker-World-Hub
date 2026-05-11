@@ -4621,8 +4621,35 @@ function UniversalDynamicTable({
                         </motion.div>
                     )}
 
+                    {/* BUG FIX (TRAIN-NEXT-HAND-STICKY-1): When the feedback panel is
+                        long (10+ aux insight cards even after the TRAIN-FB-IA-1
+                        accordion collapse), the primary 'Next Hand →' CTA used
+                        to fall below the fold on mobile, forcing users to
+                        scroll back down after reading each answer. Wrapped the
+                        button row in position:sticky bottom anchor with
+                        env(safe-area-inset-bottom) awareness and a subtle
+                        gradient fade so the button stays visible as soon as
+                        feedback exceeds the viewport. Desktop behaviour is
+                        unchanged because position:sticky has no effect until
+                        scrolling past the natural inline position. */}
                     {/* Next Hand / Continue Hand buttons — GTOW-style prominent green */}
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, justifyContent: 'center' }}>
+                    <div
+                        style={{
+                            display: 'flex',
+                            gap: 8,
+                            alignItems: 'center',
+                            marginTop: 6,
+                            justifyContent: 'center',
+                            position: 'sticky',
+                            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+                            paddingTop: 8,
+                            paddingBottom: 4,
+                            zIndex: 50,
+                            background: 'linear-gradient(180deg, rgba(10,14,28,0) 0%, rgba(10,14,28,0.85) 32%, rgba(10,14,28,0.95) 100%)',
+                            backdropFilter: 'blur(2px)',
+                            WebkitBackdropFilter: 'blur(2px)',
+                        }}
+                    >
                         {onNextHand ? (
                             <>
                                 <motion.button
