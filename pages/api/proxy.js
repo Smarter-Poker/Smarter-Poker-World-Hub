@@ -145,8 +145,15 @@ export default async function handler(req, res) {
       const { url } = req.query;
 
       // Rate limit by IP
+      // Use rightmost x-forwarded-for (set by Vercel infra, not spoofable by client).
+      // The leftmost value is client-controlled and can be spoofed to bypass rate limits.
       const fwd = req.headers['x-forwarded-for'];
-      const clientIp = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || 'unknown';
+      const realIp = req.headers['x-real-ip'];
+      const clientIp = realIp
+          ? realIp.trim()
+          : fwd
+              ? fwd.split(',').map(s => s.trim()).filter(Boolean).pop() // rightmost
+              : req.socket?.remoteAddress || 'unknown';
       if (!checkProxyRate(clientIp)) {
           return res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many proxy requests. Please slow down.' });
       }
@@ -353,6 +360,7 @@ export default async function handler(req, res) {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
           res.setHeader('X-Frame-Options', 'SAMEORIGIN');
           res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+          res.setHeader('X-Content-Type-Options', 'nosniff');
           res.setHeader('X-Proxy-Source', targetOrigin);
           res.setHeader('X-Proxy-Success', 'true');
           // Edge cache: Vercel CDN will serve cached HTML for 5 min,
@@ -503,11 +511,26 @@ function rewriteHtml(html, pageUrl, originUrl) {
 }
 
 /**
+ * Escape HTML special characters to prevent XSS in template strings.
+ */
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
  * Returns a styled HTML fallback page when the external site blocks our proxy (403/404/451).
  * Shows a friendly prompt to open the article directly instead of a raw JSON error blob.
  */
 function buildBlockedFallback(url, status) {
     const domain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } })();
+    const safeDomain = escapeHtml(domain);
+    const safeUrl = escapeHtml(url);
     const statusMessages = {
         403: 'This publisher requires you to open the article directly.',
         404: 'This article could not be found.',
@@ -542,7 +565,7 @@ function buildBlockedFallback(url, status) {
     .icon { font-size: 48px; margin-bottom: 16px; }
     h2 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 10px; }
     p { font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 28px; }
-    .domain { font-size: 12px; color: #555; margin-bottom: 8px; }
+    .domain { font-size: 12px; color: #555; margin-bottom: 20px; }
     .btn {
       display: inline-block;
       background: linear-gradient(135deg, #c8a43c, #e6c96a);
@@ -561,20 +584,26 @@ function buildBlockedFallback(url, status) {
   <div class="card">
     <div class="icon">📰</div>
     <h2>Article Unavailable</h2>
-    <p>This publisher restricts third-party readers. The original article must be viewed outside the platform.</p>
-    <div class="domain">${domain}</div>
+    <p>${escapeHtml(msg)}</p>
+    <div class="domain">${safeDomain}</div>
+    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="btn">Open Article ↗</a>
   </div>
 </body>
 </html>`;
 }
 
 function buildArticleReaderView(title, content, originalUrl) {
+    // Escape title to prevent XSS from malicious RSS feed data
+    const safeTitle = escapeHtml(title);
+    // content is trusted RSS HTML from cardplayer.com — allow it through
+    // but sanitize any <script> tags as a safety measure
+    const safeContent = content.replace(/<script[\s\S]*?<\/script>/gi, '');
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
+    <title>${safeTitle}</title>
     <style>
         body { margin: 0; background: #0a0e1a; color: #f2f4f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; }
         .reader-container { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
@@ -594,9 +623,9 @@ function buildArticleReaderView(title, content, originalUrl) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
             Smarter.Poker Reader
         </div>
-        <h1 class="article-title">${title}</h1>
+        <h1 class="article-title">${safeTitle}</h1>
         <div class="article-content">
-            ${content}
+            ${safeContent}
         </div>
     </div>
 </body>

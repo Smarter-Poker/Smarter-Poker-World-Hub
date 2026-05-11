@@ -277,7 +277,7 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                             setError(true);
                         }}
                         // No sandbox restrictions needed since content comes from our proxy
-                        referrerPolicy="no-referrer"
+                        referrerPolicy="origin-when-cross-origin"
                     />
                 )}
 
