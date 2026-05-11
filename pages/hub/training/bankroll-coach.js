@@ -107,6 +107,25 @@ function calculateLeakImpact(sessions, bbSize) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
+// BUG FIX (TRAIN-BANKROLL-A11Y-1): SVG icon components replacing the
+// bankroll-coach emojis (💰 empty-state, ← back). Stakes selector +
+// CTA buttons gain type+aria-label. Same surface-specific a11y pattern
+// as PR #320/#322/#324/#327-#340.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size=18, vb='0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function DollarIcon({ size=40 })   { return <_Svg size={size}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></_Svg>; }
+function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
+
+
 export default function BankrollCoachPage() {
   const router = useRouter();
   useTrainingBus('bankroll-coach');
@@ -178,6 +197,8 @@ export default function BankrollCoachPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -193,12 +214,14 @@ export default function BankrollCoachPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            {/* TRAIN-BANKROLL-A11Y-1: SVG back arrow */}
+            <BackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
+            {/* TRAIN-BANKROLL-A11Y-1: semantic h1 */}
+            <h1 style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', margin: 0 }}>
               Bankroll Impact Coach
-            </div>
+            </h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>
               See what your leaks cost in real dollars
             </div>
@@ -225,6 +248,9 @@ export default function BankrollCoachPage() {
               {STAKES.map((s) => (
                 <motion.button
                   key={s.id}
+                  type="button"
+                  aria-pressed={selectedStake?.id === s.id}
+                  aria-label={`Select stakes: ${s.label || s.id}`}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedStake(s)}
                   style={{
@@ -522,6 +548,8 @@ export default function BankrollCoachPage() {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
+                type="button"
+                aria-label="Open Autopilot to fix detected leaks"
                 onClick={() => router.push('/hub/training/autopilot')}
                 style={{
                   width: '100%',
@@ -545,7 +573,10 @@ export default function BankrollCoachPage() {
           {/* No data */}
           {!loading && !impact && (
             <div style={{ textAlign: 'center', padding: '80px 20px', color: '#64748b' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>💰</div>
+              {/* TRAIN-BANKROLL-A11Y-1: SVG dollar replaces 💰 */}
+              <div style={{ display: 'inline-flex', marginBottom: 12, color: '#fbbf24' }} aria-hidden>
+                <DollarIcon size={40} />
+              </div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
                 Need Training Data
               </div>
@@ -555,6 +586,8 @@ export default function BankrollCoachPage() {
                 We&apos;ll calculate the dollar impact of your leaks.
               </div>
               <motion.button
+                type="button"
+                aria-label="Start training"
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
                 style={{
