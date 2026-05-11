@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-6b — adoption: feedback hook
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -115,6 +117,7 @@ function calcScore(isCorrect, timeLeft, combo) {
 
 export default function QuizGauntlet() {
   useTrainingBus('quiz-gauntlet');
+  const fb = useTrainingFeedback();
   const router = useRouter();
 
   const [phase, setPhase] = useState('splash'); // splash | playing | results
@@ -187,6 +190,7 @@ export default function QuizGauntlet() {
         if (diff === 0) res = 'correct';
         else if (diff <= q.tolerance) res = 'close';
         isCorrect = res !== 'wrong';
+        if (isCorrect) fb.correct(); else fb.incorrect();
         const newCombo = isCorrect ? combo + 1 : 0;
         pts = calcScore(isCorrect, timeLeft, combo + 1);
         setCombo(newCombo);
