@@ -827,3 +827,14 @@ TRAIN-DESIGN-TOKENS-1
 # keyframes with prefers-reduced-motion collapse. Build-safe: no emoji
 # chars, no JSX comments in conditional expressions.
 TRAIN-BOTTOMSHEET-1
+
+# ─── Shared useTrainingFeedback hook — sound + haptics ──────────────────────
+# TRAIN-FEEDBACK-FX-1 — src/hooks/useTrainingFeedback.js (new). Unified
+# audio + vibration feedback for trainer surfaces, both gated by per-user
+# localStorage preferences (sp.training.sound, sp.training.haptics) and
+# globally respecting prefers-reduced-motion (skip vibration + halve
+# audio gain). Five primitives: correct (C-E-G chord), incorrect (low G3
+# buzz), click (A5 tick), complete (C-E-G-C arpeggio), warning (E4 double
+# pulse). WebAudio synthesis means zero asset loads + no autoplay-policy
+# issues. iOS Safari has no Vibration API — silent no-op. Build-safe.
+TRAIN-FEEDBACK-FX-1
