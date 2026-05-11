@@ -632,3 +632,11 @@ TRAIN-AUTOPILOT-A11Y-1
 # Jarvis CTAs gain type="button" + per-instance aria-label. Title raised
 # to <h1>. Same surface-specific pattern as PR #320/#322/#324/#327-#346.
 TRAIN-WEAKNESS-A11Y-1
+
+# ─── /hub/training/gto-scorecard — surface a11y polish ──────────────────────
+# TRAIN-SCORECARD-A11Y-1 — pages/hub/training/gto-scorecard.js. Frequency
+# deviation analysis surface was already emoji-free in rendered output.
+# Polish: back button gains type+aria-label + SVG ScorecardBackArrowIcon
+# replacing the bare '&larr;' HTML entity. Title raised to <h1>. Same
+# surface-specific pattern as PR #320/#322/#324/#327-#346.
+TRAIN-SCORECARD-A11Y-1
