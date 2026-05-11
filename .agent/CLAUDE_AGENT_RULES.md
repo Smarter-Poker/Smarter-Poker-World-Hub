@@ -6,6 +6,11 @@ This file is the authoritative source for behavior rules that apply to ANY
 Claude-family agent working on the Smarter-Poker codebase — Cowork, Claude
 Code, Antigravity, or any other coding agent.
 
+> **NEW (2026-05-10):** for the SHORT bookmarkable rules on push, publish,
+> and branch protection, see `.agent/AGENT_BINDING_RULES.md`. That file is
+> the bookmark you keep open during work. This file (longer, 12 rules) is
+> the deep reference.
+
 Read this file at the start of every session. If a session is long, re-read
 it before any "I'm done" or wrap-up message.
 
