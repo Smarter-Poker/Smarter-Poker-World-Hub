@@ -725,3 +725,12 @@ TRAIN-MSL-A11Y-1
 # All tab/register buttons gain type="button" + per-instance aria-label.
 # Same surface-specific pattern as PR #320/#322/#324/#327-#361.
 TRAIN-TOURNAMENTS-A11Y-1
+
+# ─── /hub/training/focus-timer — surface a11y polish ────────────────────────
+# TRAIN-FOCUS-A11Y-1 — pages/hub/training/focus-timer.js. Pomodoro training
+# timer had ← back arrow entity, bell/bell-off emoji toggle, and a check
+# glyph in the session log. Replacements: FtBackArrowIcon, BellIcon /
+# BellOffIcon (conditional render), FtCheckIcon. Bell toggle gains type=
+# button + aria-pressed + aria-label. Page title raised to <h1>. Follows
+# build-safety rules from PR #362/#365/#369.
+TRAIN-FOCUS-A11Y-1
