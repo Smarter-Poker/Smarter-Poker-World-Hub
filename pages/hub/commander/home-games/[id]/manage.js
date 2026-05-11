@@ -456,12 +456,22 @@ export default function ManageHomeGamePage() {
   async function handleRemoveMember(member) {
     if (!confirm(`Remove ${member.display_name || 'this member'}?`)) return;
 
+    // bug-hunt-zero/B-MGR-6: same silent-failure pattern. DELETE goes
+    // through, server says no (403 — not the host, 404 — already gone,
+    // 409 — protected member), but fetchData() reloads the list with
+    // the member still in it and no error toast. Host re-clicks Remove
+    // forever and wonders why it doesn't work.
     try {
         const token = getAccessToken();
-      await fetch(`/api/commander/home-games/groups/${id}/members?member_id=${member.id}`, {
+      const res = await fetch(`/api/commander/home-games/groups/${id}/members?member_id=${member.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't remove member (${res.status})`;
+        throw new Error(msg);
+      }
       busEmit.dataMutated('home-games');
       fetchData();
     } catch (error) {
@@ -483,15 +493,22 @@ export default function ManageHomeGamePage() {
     } catch (err) {
       console.warn('Load RSVPs failed:', err);
       setEventRsvps([]);
+      // bug-hunt-zero/B-MGR-5: an empty RSVP list could mean "no RSVPs yet"
+      // OR "load failed". Without a toast the host can't tell which, so
+      // they might think nobody's coming when really the request 500'd.
+      toast.error(err && err.message ? `Couldn't load RSVPs: ${err.message}` : 'Failed to load RSVPs');
     } finally {
       setRsvpLoading(false);
     }
   }
 
   async function handleRsvpAction(rsvpId, action) {
+    // bug-hunt-zero/B-MGR-3: was a silent-failure factory — host clicks
+    // approve/decline, server 4xx's, list silently reloads showing no
+    // change. Now we check res.ok and surface the error.
     try {
         const token = getAccessToken();
-      await fetch(`/api/commander/home-games/rsvps/${rsvpId}`, {
+      const res = await fetch(`/api/commander/home-games/rsvps/${rsvpId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -499,22 +516,38 @@ export default function ManageHomeGamePage() {
         },
         body: JSON.stringify({ status: action })
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't update RSVP (${res.status})`;
+        throw new Error(msg);
+      }
       if (expandedEventId) loadEventRsvps(expandedEventId);
     } catch (err) {
       setRsvpLoading(false);
       console.warn('RSVP action failed:', err);
+      toast.error(err && err.message ? err.message : 'Failed to update RSVP');
     }
   }
 
   async function handleDeleteEvent(event) {
     if (!confirm('Delete this scheduled game?')) return;
 
+    // bug-hunt-zero/B-MGR-4: silent-failure fix. await fetch with no
+    // res.ok check meant a 403/409/500 left the event in place, but
+    // fetchData() reloaded the same list so the UI looked unchanged
+    // with no indication of failure to the host.
     try {
         const token = getAccessToken();
-      await fetch(`/api/commander/home-games/events/${event.id}`, {
+      const res = await fetch(`/api/commander/home-games/events/${event.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't delete event (${res.status})`;
+        throw new Error(msg);
+      }
+      toast.success('Event deleted');
       fetchData();
     } catch (error) {
       setRsvpLoading(false);
@@ -527,13 +560,21 @@ export default function ManageHomeGamePage() {
     if (!confirm(`Release $${transaction.amount} to ${transaction.player_name || 'player'}?`)) return;
 
     setProcessingEscrow(transaction.id);
+    // bug-hunt-zero/B-MGR-1: idempotency on a FINANCIAL operation.
+    // A timeout-then-retry on a release that actually succeeded could
+    // double-credit the player. processingEscrow already blocks local
+    // re-entry; this defends against network-layer retries.
+    const idemKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
     try {
         const token = getAccessToken();
       const res = await fetch(`/api/commander/escrow/${transaction.id}/release`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': idemKey,
         }
       });
 
@@ -557,13 +598,19 @@ export default function ManageHomeGamePage() {
     if (!confirm(`Refund $${transaction.amount} to ${transaction.player_name || 'player'}?`)) return;
 
     setProcessingEscrow(transaction.id);
+    // bug-hunt-zero/B-MGR-2: idempotency on the matching financial op.
+    // Parity with B-MGR-1. Same retry risk, same fix.
+    const idemKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
     try {
         const token = getAccessToken();
       const res = await fetch(`/api/commander/escrow/${transaction.id}/refund`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'X-Idempotency-Key': idemKey,
         },
         body: JSON.stringify({ reason: 'Host initiated refund' })
       });
