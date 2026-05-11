@@ -132,10 +132,15 @@ jobs:
           # Catch-all: no bucket in the project should EVER have NULL file_size_limit
           echo ""
           echo "Running catch-all NULL guard across all buckets..."
+          # bug-hunt-zero/B-SAFETY-2: same fix as B-SAFETY-1 but for the
+          # catch-all curl. When the Supabase storage API is slow, this curl
+          # also exits 28 and set -e bombs the step. The `|| true` keeps the
+          # step alive; the parse step below handles non-JSON gracefully via
+          # the parse_err branch.
           ALL_RESP=$(curl -sS --max-time 25 \
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-            "https://${PROJECT_REF}.supabase.co/storage/v1/bucket")
+            "https://${PROJECT_REF}.supabase.co/storage/v1/bucket" || true)
 
           NULL_BUCKETS=$(echo "$ALL_RESP" | node -e "
             let s='';process.stdin.on('data',c=>s+=c);
@@ -232,7 +237,13 @@ jobs:
           echo "Checking authUtils exports against consumer imports (source: $AUTHUTILS)..."
 
           # Extract all exported function/const names from the file
-          EXPORTS=$(grep -oE "^export (async )?function [A-Za-z_][A-Za-z0-9_]+" "$AUTHUTILS" \
+          # bug-hunt-zero/B-SAFETY-4: the previous regex only matched
+          # `export function` and `export async function`. It missed
+          # `export const`, `export let`, `export var`, and `export class`,
+          # which made SUPABASE_URL / SUPABASE_ANON_KEY invisible to the
+          # check even though they are real exports. Widened to cover all
+          # named-export declaration forms.
+          EXPORTS=$(grep -oE "^export (const|let|var|class|async function|function) [A-Za-z_][A-Za-z0-9_]+" "$AUTHUTILS" \
             | grep -oE "[A-Za-z_][A-Za-z0-9_]+$" | sort -u)
           EXPORT_BLOCK=$(grep -oE "^export \{[^}]+\}" "$AUTHUTILS" | grep -oE "[A-Za-z_][A-Za-z0-9_]+" || true)
           ALL_EXPORTS=$(echo -e "$EXPORTS\n$EXPORT_BLOCK" | sort -u)
@@ -245,9 +256,16 @@ jobs:
           ERRORS=0
           while IFS= read -r file; do
             # Find imports from authUtils in this file
-            IMPORTS=$(grep -oE "import \{[^}]+\} from ['\"].*authUtils['\"]" "$file" 2>/dev/null \
-              | grep -oE "[A-Za-z_][A-Za-z0-9_]+" \
-              | grep -v "^import$" | grep -v "^from$" | sort -u || true)
+            # bug-hunt-zero/B-SAFETY-3: the previous regex extracted identifiers
+            # from the WHOLE import line including the file path, treating path
+            # segments like 'src', 'lib', 'authUtils' as imported symbols. Now
+            # we extract ONLY what's inside the {} braces.
+            IMPORTS=$(grep -oE "import \{[^}]+\} from ['\"][^'\"]*authUtils['\"]" "$file" 2>/dev/null \
+              | grep -oE "\{[^}]+\}" \
+              | tr -d '{}' | tr ',' '\n' \
+              | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+              | grep -E "^[A-Za-z_][A-Za-z0-9_]+$" \
+              | sort -u || true)
 
             for sym in $IMPORTS; do
               if ! echo "$ALL_EXPORTS" | grep -qx "$sym"; then

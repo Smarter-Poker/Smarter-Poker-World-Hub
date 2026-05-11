@@ -10,7 +10,7 @@ import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import { useFeatureGate } from '../gates/FeatureGatePopup';
 import { broadcastSync } from '../../lib/broadcastSync';
-import supabase from '../../lib/supabase.ts';
+import supabase from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 
 function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {

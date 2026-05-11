@@ -22,6 +22,56 @@ const PHASES = {
   LONG_BREAK: { id: 'long', label: 'Long Break', mins: 15, color: '#fbbf24' },
 };
 
+// BUG FIX (TRAIN-FOCUS-A11Y-1): SVG icons replacing back arrow, bell toggle,
+// and ✓ check. Strict build-safety rules from PR #362/#365/#369 — no JSX
+// comments inside conditional expressions, no emoji chars in fallback
+// strings. Same surface-specific a11y pattern as PR #320/#322/#324/
+// #327-#361/#373.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function _Svg({ size = 14, vb = '0 0 24 24', children }) {
+  return <svg {...ICON_PROPS} width={size} height={size} viewBox={vb}>{children}</svg>;
+}
+function FtBackArrowIcon({ size = 18 }) {
+  return (
+    <_Svg size={size}>
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </_Svg>
+  );
+}
+function BellIcon({ size = 20 }) {
+  return (
+    <_Svg size={size}>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </_Svg>
+  );
+}
+function BellOffIcon({ size = 20 }) {
+  return (
+    <_Svg size={size}>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      <line x1="3" y1="3" x2="21" y2="21" />
+    </_Svg>
+  );
+}
+function FtCheckIcon({ size = 12 }) {
+  return (
+    <_Svg size={size}>
+      <polyline points="20 6 9 17 4 12" />
+    </_Svg>
+  );
+}
+
+
 export default function FocusTimerPage() {
   const router = useRouter();
   useTrainingBus('focus-timer');
@@ -155,6 +205,8 @@ export default function FocusTimerPage() {
           }}
         >
           <button
+            type="button"
+            aria-label="Back to training"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -170,10 +222,10 @@ export default function FocusTimerPage() {
               justifyContent: 'center',
             }}
           >
-            ←
+            <FtBackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Focus Timer</div>
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Focus Timer</h1>
             <div style={{ fontSize: 11, color: '#64748b' }}>Pomodoro training</div>
           </div>
         </div>
@@ -366,10 +418,13 @@ export default function FocusTimerPage() {
               }}
             >
               <button
+                type="button"
+                aria-label={notify ? 'Disable notifications' : 'Enable notifications'}
+                aria-pressed={notify}
                 onClick={() => setNotify(!notify)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: notify ? '#4ade80' : '#94a3b8' }}
               >
-                {notify ? '🔔' : '🔕'}
+                {notify ? <BellIcon size={20} /> : <BellOffIcon size={20} />}
               </button>
               <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>
                 {notify ? 'on' : 'off'}
@@ -410,7 +465,7 @@ export default function FocusTimerPage() {
                 >
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>{s.time}</span>
                   <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>
-                    {s.duration}min focus ✓
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{s.duration}min focus <FtCheckIcon size={12} /></span>
                   </span>
                 </div>
               ))}

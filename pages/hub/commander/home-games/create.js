@@ -29,7 +29,12 @@ import {
   Plus
 } from 'lucide-react';
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
-import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
+// Dan-fix/maps-leaflet: swapped from GoogleMapPicker (which needs Google Maps
+// Platform billing) to LeafletLocationPicker. Same stack Poker Near Me uses —
+// Leaflet + CartoDB tiles + Nominatim geocoding. Zero cost, no API key, no
+// Google Cloud project dependency. The component exposes the same prop
+// interface as GoogleMapPicker so this is a drop-in replacement.
+import LeafletLocationPicker from '../../../../src/components/maps/LeafletLocationPicker';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 
 const GAME_TYPES = [
@@ -847,7 +852,7 @@ export default function CreateHomeGamePage() {
                   </div>
                 </div>
 
-                <GoogleMapPicker
+                <LeafletLocationPicker
                   value={{ city: formData.city, state: formData.state }}
                   onChange={(loc) => {
                     if (loc.city) updateField('city', loc.city);

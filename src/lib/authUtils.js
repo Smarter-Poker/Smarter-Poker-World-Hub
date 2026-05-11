@@ -24,14 +24,29 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 // Supabase credentials — use env vars with hardcoded fallback for production stability
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+// Dan-fix/authutils-exports (B-AUTH-EXPORTS-1): these were declared without
+// `export` even though 7+ call sites across the codebase do
+// `import { SUPABASE_ANON_KEY } from '.../authUtils'`. Silent undefined import
+// — the build-safety check correctly flags this. Adding `export` makes the
+// actual symbol available without changing runtime behavior in files that
+// already had fallbacks.
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
 
 /**
  * Get the current authenticated user from localStorage
  * Uses explicit 'smarter-poker-auth' key (primary) with fallback to legacy sb-* keys
  */
+// Dan-fix/authutils-exports (B-AUTH-EXPORTS-2): getAuthUserId was exported
+// from authUtils.ts but missing from the .js shim. webpack resolves .js first
+// for extension-free imports, so safeSupabase.ts importing getAuthUserId from
+// './authUtils' was silently getting undefined.
+export function getAuthUserId() {
+    const u = getAuthUser();
+    return u?.id || u?.user_id || null;
+}
+
 export function getAuthUser() {
     if (typeof window === 'undefined') return null;
 

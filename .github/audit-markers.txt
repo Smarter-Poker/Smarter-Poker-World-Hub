@@ -725,3 +725,105 @@ TRAIN-MSL-A11Y-1
 # All tab/register buttons gain type="button" + per-instance aria-label.
 # Same surface-specific pattern as PR #320/#322/#324/#327-#361.
 TRAIN-TOURNAMENTS-A11Y-1
+
+# ─── /hub/training/focus-timer — surface a11y polish ────────────────────────
+# TRAIN-FOCUS-A11Y-1 — pages/hub/training/focus-timer.js. Pomodoro training
+# timer had ← back arrow entity, bell/bell-off emoji toggle, and a check
+# glyph in the session log. Replacements: FtBackArrowIcon, BellIcon /
+# BellOffIcon (conditional render), FtCheckIcon. Bell toggle gains type=
+# button + aria-pressed + aria-label. Page title raised to <h1>. Follows
+# build-safety rules from PR #362/#365/#369.
+TRAIN-FOCUS-A11Y-1
+
+# ─── /hub/training/tournament-prep — surface a11y polish ────────────────────
+# TRAIN-TPP-A11Y-1 — pages/hub/training/tournament-prep.js. ICM-aware
+# tournament planner had bare '← Hub' back text-arrow + a 💡 lightbulb in
+# the strategy-tip h4. Replacements: TppBackArrowIcon (SVG) for back +
+# button hardening; TppLightbulbIcon (SVG) for strategy tip. Tab buttons
+# gain explicit type="button" (aria already present). Follows build-safety
+# rules from PR #362/#365/#369.
+TRAIN-TPP-A11Y-1
+
+# ─── Shared PlayingCard component — canonical 52-deck PNG everywhere ────────
+# TRAIN-PLAYCARD-1 — src/components/poker/PlayingCard.jsx (new). Shared
+# React component that renders any single playing card using the canonical
+# custom 52-deck PNG asset set at /public/cards/{suit}_{rank}.png (same
+# deck used by Club Arena, sandbox, hand-replayer). Accepts shorthand
+# strings ('As', '10h'), explicit rank+suit, or engine cardId 0-51.
+# Five size presets (xs 24px / sm 36px / md 60px / lg 90px / xl 120px),
+# faceDown + cardBack support, highlighted + dimmed states, onClick with
+# role=button + keyboard handler, aria-label derived from full card name.
+# Aspect ratio locked at 150:210. Build-safe: no emoji chars (suit glyph
+# parsing uses \u escapes), no JSX comments in conditional expressions.
+# This unblocks subsequent PRs that replace inline unicode-string card
+# rendering across all 89 training surfaces with the shared component.
+TRAIN-PLAYCARD-1
+
+# ─── Shared ActionButton — GTO-Wizard 4-button display ──────────────────────
+# TRAIN-ACTIONBTN-1 — src/components/poker/ActionButton.jsx (new). Shared
+# React component for poker action buttons (Fold / Check / Call / Bet /
+# Raise / All-in) modeled on GTO Wizard's 4-button display. Six action
+# themes with distinct colors. Three size presets (sm/md/lg) — md uses
+# 44+px touch target. Optional amount sub-line ("Call 100"), keyboard
+# shortcut chip (e.g. 1/2/3/4), selected (last-chosen) ring, recommended
+# (solver-optimal) glow, disabled state. Includes <ActionButtonRow> for
+# equal-flex layout. Parent owns global keydown wiring — this just renders
+# the kbd hint chip. Build-safe: no emoji chars, no JSX comments in
+# conditional expressions.
+TRAIN-ACTIONBTN-1
+
+# ─── Shared FeedbackCard v2 — GTO-Wizard 1:1 ────────────────────────────────
+# TRAIN-FEEDBACK-V2 — src/components/poker/FeedbackCard.jsx (new). Shared
+# post-answer feedback card with two-tier layout modeled on GTO Wizard:
+# verdict band (correct/incorrect/mixed pill + action chosen vs solver +
+# EV cost), chips row (accuracy, streak), short why paragraph with Read-
+# More expand to full, optional rangeSlot + detailsSlot, primary NEXT +
+# optional secondary REVIEW CTA. stickyNext prop for mobile bottom-sheet.
+# Build-safe: no emoji chars, no JSX comments in conditional expressions.
+TRAIN-FEEDBACK-V2
+
+# ─── Shared ProgressStrip — in-play progress affordance ─────────────────────
+# TRAIN-PROGRESS-STRIP-1 — src/components/poker/ProgressStrip.jsx (new).
+# Slim persistent strip that lives above the action bar showing position
+# (3 / 10), an SVG completion ring (tinted yellow if accuracy <60%), an
+# accuracy chip, a difficulty chip with color band (beginner..expert),
+# best-streak flame chip, and an optional elapsed-time chip. Build-safe:
+# no emoji chars, no JSX comments in conditional expressions.
+TRAIN-PROGRESS-STRIP-1
+
+# ─── Shared TrainerEmptyState — empty/lock/retry/complete primitive ─────────
+# TRAIN-EMPTY-STATE-1 — src/components/training/TrainerEmptyState.jsx (new).
+# Replaces ad-hoc empty-state blocks across trainer surfaces with one
+# consistent primitive. Four built-in variants (no-data, locked, retry,
+# complete) each with default icon + tone, plus custom override. Optional
+# primary + secondary CTAs (44+ touch). Build-safe: no emoji chars, no
+# JSX comments in conditional expressions.
+TRAIN-EMPTY-STATE-1
+
+# ─── Shared RangeMatrix — unified 13x13 hand grid ───────────────────────────
+# TRAIN-RANGE-MATRIX-1 — src/components/poker/RangeMatrix.jsx (new). Drop-
+# in 13x13 starting-hand grid with consistent layout (pairs on diagonal,
+# suited top-right, offsuit bottom-left), probability-heat fill 0..1 or
+# split-fill raise/call/fold gradient bars, optional cell click handler,
+# keyboard-accessible cells, highlight outline, title tooltips, role=grid.
+# Build-safe: no emoji chars, no JSX comments inside conditionals.
+TRAIN-RANGE-MATRIX-1
+
+# ─── training-tokens.css — design tokens (color + motion + radius + z) ──────
+# TRAIN-DESIGN-TOKENS-1 — src/styles/training-tokens.css (new). Combines
+# items 7 (WCAG AA/AAA dark-mode contrast pass) and 8 (motion budget /
+# tokens). Color tokens verified for 4.5:1+ contrast on the #0a0a0a base.
+# Motion tokens with three duration tiers + three easings + compound
+# transition shortcuts. prefers-reduced-motion collapses durations + adds
+# global *::before *::after override per WCAG 2.3.3. Plus z-index scale,
+# radii, and safe-area helpers. Build-safe: pure CSS, no JSX or JS.
+TRAIN-DESIGN-TOKENS-1
+
+# ─── Shared BottomSheet — mobile-first panel primitive ──────────────────────
+# TRAIN-BOTTOMSHEET-1 — src/components/ui/BottomSheet.jsx (new). Controlled
+# mobile bottom-sheet (also supports placement=right for desktop side rail).
+# Backdrop-click + Escape close. Focus trap + body scroll lock while open.
+# Drag-handle visual + safe-area-inset-bottom padding. Slide-up / slide-left
+# keyframes with prefers-reduced-motion collapse. Build-safe: no emoji
+# chars, no JSX comments in conditional expressions.
+TRAIN-BOTTOMSHEET-1
