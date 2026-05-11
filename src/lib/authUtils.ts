@@ -390,11 +390,29 @@ export async function authedFetch(url: string, options: RequestInit = {}): Promi
 }
 
 /**
- * useAuthUser — React hook alias for getAuthUser().
- * Returns the current authenticated user synchronously, or null.
+ * useAuthUser — React hook returning { user, loading }.
+ * Matches the shape in authUtils.js. Cross-tab storage sync included.
  */
-export function useAuthUser() {
-    return getAuthUser();
+export function useAuthUser(): { user: any; loading: boolean } {
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setUser(getAuthUser());
+        setLoading(false);
+
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'smarter-poker-auth' || (e.key?.startsWith('sb-') && e.key?.endsWith('-auth-token'))) {
+                setUser(getAuthUser());
+            }
+        };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('storage', handleStorage);
+            return () => window.removeEventListener('storage', handleStorage);
+        }
+    }, []);
+
+    return { user, loading };
 }
 
 /**
