@@ -363,6 +363,59 @@ export default function CreateHomeGamePage() {
           setCreatedSocialPage(data.group.social_page);
         }
 
+        // Dan-fix/tournaments-wiring: create each planned tournament as a
+        // real commander_home_games row via rpc_hg_create_tournament. The
+        // jsonb shadow in commander_home_groups.settings.tournaments stays
+        // as the host's original schedule-at-signup; these rows are the
+        // canonical event surface for RSVPs, public pages, and host
+        // management.
+        //
+        // Non-fatal: if any tournament INSERT fails, group is still created
+        // and host can re-add via the manage page. We log to console for
+        // observability but advance to step 4 regardless.
+        if (formData.schedules_tournaments &&
+            Array.isArray(formData.tournaments) &&
+            formData.tournaments.length > 0 &&
+            data.group?.id) {
+          const validRows = formData.tournaments.filter(
+            (t) => t && typeof t.name === 'string' && t.name.trim().length > 0
+                   && t.scheduled_date && t.scheduled_time
+          );
+          if (validRows.length > 0) {
+            try {
+              const results = await Promise.allSettled(
+                validRows.map((t) =>
+                  sb.rpc('rpc_hg_create_tournament', {
+                    p_group_id:       data.group.id,
+                    p_name:           t.name.trim().slice(0, 120),
+                    p_buy_in:         Number(t.buy_in) || 0,
+                    p_starting_stack: t.starting_stack === '' || t.starting_stack == null
+                                        ? null : (Number(t.starting_stack) || null),
+                    p_structure:      t.structure || 'standard',
+                    p_scheduled_date: t.scheduled_date,
+                    p_scheduled_time: t.scheduled_time,
+                    p_entries_cap:    (t.entries_cap === '' || t.entries_cap == null)
+                                        ? null : (Number(t.entries_cap) || null),
+                  })
+                )
+              );
+              const failures = results.filter(
+                (r) => r.status === 'rejected' ||
+                       (r.status === 'fulfilled' && r.value?.error)
+              );
+              if (failures.length > 0) {
+                console.warn(
+                  '[home-games-create] tournament create failures:',
+                  failures.length, 'of', validRows.length,
+                  failures.map((f) => f.reason || f.value?.error?.message || 'unknown')
+                );
+              }
+            } catch (tErr) {
+              console.warn('[home-games-create] tournament batch failed:', tErr);
+            }
+          }
+        }
+
         setStep(4);
       } else {
         setError(data.error?.message || (typeof data.error === 'string' ? data.error : null) || 'Failed to create group');

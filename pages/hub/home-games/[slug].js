@@ -26,6 +26,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken, getSafeUser } from '../../../src/lib/authUtils';
 import HomeGamesSeatReservation from '../../../src/components/home-games/HomeGamesSeatReservation';
+import TournamentList from '../../../src/components/home-games/TournamentList';
 import { safeCopyToClipboard } from '../../../src/lib/clipboard';
 
 const GAME_TYPE_LABELS = {
@@ -453,13 +454,24 @@ export default function PublicHomeGamePage({ data, serverError }) {
               </section>
             )}
 
+            {/* Dan-fix/tournament-buildout: tournaments (format='tournament')
+                surface in their own section above cash games. Tournaments use
+                the shared TournamentList component which renders structure,
+                buy-in, starting stack, and entries-cap. The Upcoming Games
+                section below now shows only cash games to avoid duplication. */}
+            <TournamentList
+              tournaments={(upcoming_games || []).filter((g) => g.format === 'tournament')}
+              mode="public"
+              title="Upcoming Tournaments"
+            />
+
             <section className="hgs-section">
               <h2>Upcoming Games</h2>
-              {upcoming_games.length === 0 ? (
+              {(upcoming_games || []).filter((g) => g.format !== 'tournament').length === 0 ? (
                 <div className="hgs-empty">No upcoming games scheduled. Check back soon.</div>
               ) : (
                 <div className="hgs-games-list">
-                  {upcoming_games.map((g) => {
+                  {(upcoming_games || []).filter((g) => g.format !== 'tournament').map((g) => {
                     const seatsLeft = g.max_players ? Math.max(0, g.max_players - (g.rsvp_yes || 0)) : null;
                     const dparts = formatDate(g.scheduled_date).split(' ');
                     return (

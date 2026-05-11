@@ -24,8 +24,21 @@ import {
   ThumbsUp,
   Send,
   Home,
-  Repeat
+  Repeat,
+  Trophy
 } from 'lucide-react';
+
+// Dan-fix/tournament-buildout: lookup table for tournament structures.
+// Used by UpcomingGameCard when game.format === 'tournament' to render
+// a colored pill identifying the format. Centralized here so the same
+// palette can be reused if tournaments are surfaced on other cards.
+const TOURNAMENT_STRUCTURE_LABELS = {
+  turbo:    { label: 'Turbo',    color: '#F97316' },
+  standard: { label: 'Standard', color: '#1877F2' },
+  deep:     { label: 'Deep',     color: '#A78BFA' },
+  bounty:   { label: 'Bounty',   color: '#EF4444' },
+  rebuy:    { label: 'Rebuy',    color: '#10B981' },
+};
 
 const GAME_TYPE_LABELS = {
   nlh: 'No-Limit Hold\'em',
@@ -45,10 +58,41 @@ const FREQUENCY_LABELS = {
 
 function UpcomingGameCard({ game }) {
   const gameDate = new Date(game.scheduled_date);
-  const spotsLeft = game.max_players - (game.rsvp_yes || 0);
+  // Dan-fix/tournament-buildout: tournaments use max_players as their entries
+  // cap (which may be null = unlimited). For cash games, an undefined
+  // max_players is still rendered as 0 spots; preserved that behavior here.
+  const isTournament = game.format === 'tournament';
+  const spotsLeft = game.max_players ? game.max_players - (game.rsvp_yes || 0) : null;
+  const structureMeta = isTournament
+    ? (TOURNAMENT_STRUCTURE_LABELS[game.structure] || TOURNAMENT_STRUCTURE_LABELS.standard)
+    : null;
 
   return (
     <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+      {/* Tournament header strip — visible only for format='tournament' */}
+      {isTournament && (
+        <div
+          className="px-4 py-2 flex items-center gap-2 border-b border-[#E5E7EB]"
+          style={{ background: `${structureMeta.color}10` }}
+        >
+          <Trophy className="w-4 h-4" style={{ color: structureMeta.color }} />
+          <span className="text-xs font-semibold uppercase tracking-wide"
+                style={{ color: structureMeta.color }}>
+            Tournament
+          </span>
+          <span
+            className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{
+              background: `${structureMeta.color}20`,
+              color: structureMeta.color,
+              border: `1px solid ${structureMeta.color}55`,
+            }}
+          >
+            {structureMeta.label}
+          </span>
+        </div>
+      )}
+
       <div className="flex">
         {/* Date Column */}
         <div className="w-20 bg-[#1877F2] text-white flex flex-col items-center justify-center py-4">
@@ -66,22 +110,33 @@ function UpcomingGameCard({ game }) {
         {/* Game Details */}
         <div className="flex-1 p-4">
           <h3 className="font-semibold text-[#1F2937]">
-            {game.title || `${GAME_TYPE_LABELS[game.game_type] || game.game_type?.toUpperCase()} ${game.stakes}`}
+            {game.title || `${GAME_TYPE_LABELS[game.game_type] || game.game_type?.toUpperCase()} ${game.stakes || ''}`.trim()}
           </h3>
+          {/* Tournament description, if any */}
+          {isTournament && game.description && (
+            <p className="text-sm text-[#6B7280] mt-1 line-clamp-2">{game.description}</p>
+          )}
           <div className="flex flex-wrap gap-3 mt-2 text-sm text-[#6B7280]">
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
               {game.start_time}
             </span>
-            {game.stakes && (
+            {!isTournament && game.stakes && (
               <span className="flex items-center gap-1">
                 <DollarSign className="w-4 h-4" />
                 {game.stakes}
               </span>
             )}
-            {game.buyin_min && (
+            {game.buyin_min != null && (
               <span className="flex items-center gap-1">
-                ${game.buyin_min}{game.buyin_max && game.buyin_max !== game.buyin_min ? `-$${game.buyin_max}` : ''} buy-in
+                {isTournament
+                  ? `${game.buyin_min === 0 ? 'Free' : `$${Number(game.buyin_min).toLocaleString()}`} buy-in`
+                  : `$${game.buyin_min}${game.buyin_max && game.buyin_max !== game.buyin_min ? `-$${game.buyin_max}` : ''} buy-in`}
+              </span>
+            )}
+            {isTournament && game.starting_stack != null && (
+              <span className="flex items-center gap-1">
+                {Number(game.starting_stack).toLocaleString()} starting stack
               </span>
             )}
           </div>
@@ -102,8 +157,14 @@ function UpcomingGameCard({ game }) {
                 {game.rsvp_maybe > 0 && ` | ${game.rsvp_maybe} maybe`}
               </span>
             </div>
-            <span className={`text-sm font-medium ${spotsLeft > 0 ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
-              {spotsLeft > 0 ? `${spotsLeft} spots left` : 'Full'}
+            <span className={`text-sm font-medium ${
+              spotsLeft == null
+                ? 'text-[#6B7280]'
+                : spotsLeft > 0 ? 'text-[#10B981]' : 'text-[#EF4444]'
+            }`}>
+              {spotsLeft == null
+                ? 'Open registration'
+                : spotsLeft > 0 ? `${spotsLeft} spots left` : 'Full'}
             </span>
           </div>
         </div>

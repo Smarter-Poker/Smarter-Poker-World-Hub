@@ -112,15 +112,22 @@ export default async function handler(req, res) {
       }
 
       // For public groups, fetch upcoming games
+      // Dan-fix/tournament-buildout: include format + starting_stack + structure
+      // + description so the client can render tournaments separately.
+      // Limit raised from 5 → 20 to surface a host's full upcoming schedule.
       const { data: upcomingGames } = await getSupabase()
         .from('commander_home_games')
         .select(`
           id,
           title,
+          description,
           game_type,
           stakes,
+          format,
           buyin_min,
           buyin_max,
+          starting_stack,
+          structure,
           scheduled_date,
           start_time,
           max_players,
@@ -132,7 +139,7 @@ export default async function handler(req, res) {
         .in('status', ['scheduled', 'confirmed'])
         .gte('scheduled_date', new Date().toISOString().split('T')[0])
         .order('scheduled_date', { ascending: true })
-        .limit(5);
+        .limit(20);
 
       // Get recent game history (count only)
       const { count: recentGamesCount } = await getSupabase()

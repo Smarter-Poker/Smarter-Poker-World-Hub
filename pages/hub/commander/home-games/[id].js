@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, MapPin, Clock, DollarSign, Share2, Settings, UserPlus, Check, X, Copy, Loader2, MessageSquare, Star } from 'lucide-react';
 import RsvpForm from '../../../../src/components/commander/home-games/RsvpForm';
+import TournamentList from '../../../../src/components/home-games/TournamentList';
 import PlayerRating from '../../../../src/components/commander/home-games/PlayerRating';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
@@ -146,6 +147,10 @@ export default function HomeGameDetailPage() {
 
   const [group, setGroup] = useState(null);
   const [events, setEvents] = useState([]);
+  // Dan-fix/tournament-buildout: tournaments fetched separately via
+  // rpc_hg_list_tournaments — independent of the commander events API
+  // so we don't depend on it returning the new format/structure cols.
+  const [tournaments, setTournaments] = useState([]);
   const [members, setMembers] = useState([]);
   const [userMembership, setUserMembership] = useState(null);
   const [rsvps, setRsvps] = useState({});
@@ -214,6 +219,22 @@ export default function HomeGameDetailPage() {
       }
       if (eventsData.success || eventsData.events) {
         setEvents(eventsData.events || eventsData.data?.events || []);
+      }
+
+      // Dan-fix/tournament-buildout: parallel fetch of structured tournament
+      // data via SECURITY DEFINER RPC. Non-fatal if it fails — the page still
+      // renders with an empty tournaments list.
+      try {
+        const { data: trnData, error: trnErr } = await supabase
+          .rpc('rpc_hg_list_tournaments', { p_group_id: id, p_include_past: false });
+        if (!trnErr && Array.isArray(trnData)) {
+          setTournaments(trnData);
+        } else if (trnErr) {
+          // Caller may not be group staff — that's fine, just leave it empty.
+          console.warn('[home-games/[id]] tournaments fetch:', trnErr.message);
+        }
+      } catch (trnErr) {
+        console.warn('[home-games/[id]] tournaments fetch threw:', trnErr);
       }
       if (membersData.success || membersData.members) {
         setMembers(membersData.members || membersData.data?.members || []);
@@ -613,6 +634,31 @@ export default function HomeGameDetailPage() {
             )}
           </div>
 
+          {/* Tournaments (host mode = Edit + Cancel buttons).
+              Edit navigates to the manage page; Cancel calls cancel_home_game
+              directly. Tournament IDs that surface here ARE filtered out of
+              the cash-games list below so they don't appear twice. */}
+          <TournamentList
+            tournaments={tournaments}
+            mode="host"
+            title="Upcoming Tournaments"
+            onEdit={() => router.push(`/hub/commander/home-games/${id}/manage?tab=tournaments`)}
+            onCancel={async (t) => {
+              try {
+                const { error: cancelErr } = await supabase.rpc('cancel_home_game', {
+                  p_game_id: t.id,
+                  p_caller_user_id: currentUserId,
+                  p_reason: 'Cancelled by host from group detail page',
+                });
+                if (cancelErr) throw cancelErr;
+                toast.success(`"${t.name}" cancelled`);
+                fetchGroup();
+              } catch (ex) {
+                toast.error(ex?.message || 'Failed to cancel tournament');
+              }
+            }}
+          />
+
           {/* Upcoming Events */}
           <div>
             <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
@@ -620,29 +666,40 @@ export default function HomeGameDetailPage() {
               Upcoming Games
             </h3>
 
-            {events.length === 0 ? (
-              <div className="cmd-panel p-8 text-center">
-                <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No Upcoming Games Scheduled</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {events.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onRsvp={(evt, status) => {
-                      if (status) {
-                        handleRsvp(evt, status);
-                      } else {
-                        setSelectedRsvpEvent(evt);
-                      }
-                    }}
-                    userRsvp={rsvps[event.id] || event.user_rsvp}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Filter out events that are already represented in the
+                tournament list above (matched by id) to avoid double-render. */}
+            {(() => {
+              const tournamentIds = new Set((tournaments || []).map((t) => t.id));
+              const cashEvents = (events || []).filter(
+                (e) => e.format !== 'tournament' && !tournamentIds.has(e.id)
+              );
+              if (cashEvents.length === 0) {
+                return (
+                  <div className="cmd-panel p-8 text-center">
+                    <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                    <p className="text-[#64748B]">No Upcoming Games Scheduled</p>
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-3">
+                  {cashEvents.map((event) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onRsvp={(evt, status) => {
+                        if (status) {
+                          handleRsvp(evt, status);
+                        } else {
+                          setSelectedRsvpEvent(evt);
+                        }
+                      }}
+                      userRsvp={rsvps[event.id] || event.user_rsvp}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Members */}
