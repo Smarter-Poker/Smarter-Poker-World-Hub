@@ -3,7 +3,7 @@
  * Allows players to create and host their own poker home games
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -73,6 +73,58 @@ export default function CreateHomeGamePage() {
   const [createdGroup, setCreatedGroup] = useState(null);
   const [createdSocialPage, setCreatedSocialPage] = useState(null);
   const [eventSubmitting, setEventSubmitting] = useState(false);
+
+  // Dan-fix/banner-existing-host (2026-05-11): track whether the user
+  // already owns at least one home group. `null` = still checking, `0` = new
+  // host (show welcome banner), `>0` = existing host (suppress banner +
+  // switch wizard copy from "first" to "additional"). Loaded once on mount
+  // from the user's own auth session — no PII leakage since the query is
+  // restricted to caller via RLS.
+  const [existingGroupCount, setExistingGroupCount] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { ensureAuthReady } = await import('../../../../src/lib/authUtils');
+        const { supabase: sb } = await import('../../../../src/lib/supabase');
+        const authUser = await ensureAuthReady(sb);
+        if (!authUser || !authUser.id) return; // unauthenticated — submit path handles redirect
+        const { count, error: cntErr } = await sb
+          .from('commander_home_groups')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', authUser.id);
+        if (cancelled) return;
+        if (cntErr) {
+          console.warn('[home-games-create] existing group count failed:', cntErr.message);
+          setExistingGroupCount(0); // fall back to "new host" copy on error
+        } else {
+          setExistingGroupCount(count || 0);
+        }
+      } catch (ex) {
+        if (!cancelled) {
+          console.warn('[home-games-create] existing group count threw:', ex);
+          setExistingGroupCount(0);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Dan-fix/error-visibility (2026-05-11): when a submit fails on step 3
+  // and the error message renders in the top of <main>, the user is
+  // typically scrolled near the bottom (where the Create button lives) and
+  // never sees the failure. Scrolling top on error so the failure surfaces.
+  const errorRef = useRef(null);
+
+  // Dan-fix/error-visibility (2026-05-11): whenever an error message appears,
+  // scroll it into view smoothly. Without this, submit failures on step 3
+  // are invisible because the user is scrolled near the Create button at the
+  // bottom and the error renders at the top of <main>.
+  useEffect(() => {
+    if (error && errorRef.current && typeof errorRef.current.scrollIntoView === 'function') {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   // ── PHASE 17 — hard logo requirement ──────────────────────────────
   // profile_photo_url is filled in by the Supabase Storage upload
@@ -478,8 +530,15 @@ export default function CreateHomeGamePage() {
             Shown identically whether the user arrived from Poker Near Me,
             Social Pages, or Club Commander. The `from` query param (set by
             the redirect links in each entry port) is surfaced as a small
-            badge so the user sees continuity, not a cold cut-over. */}
-        {step === 1 && (
+            badge so the user sees continuity, not a cold cut-over.
+
+            Dan-fix/banner-existing-host (2026-05-11): only show the
+            "Signup complete / first home game" copy when the user is
+            genuinely new to hosting (existingGroupCount === 0). Existing
+            hosts who already have 1+ groups get a different, non-misleading
+            banner. While we're still checking (existingGroupCount === null)
+            we show nothing to avoid a flash of misleading copy. */}
+        {step === 1 && existingGroupCount === 0 && (
           <div className="max-w-2xl mx-auto px-4 pt-4">
             <div className="rounded-lg border border-[#22D3EE]/30 bg-[#0F1C32] p-4">
               <div className="flex items-start gap-3">
@@ -513,11 +572,55 @@ export default function CreateHomeGamePage() {
           </div>
         )}
 
+        {/* Dan-fix/banner-existing-host (2026-05-11): existing-host banner.
+            Shown to users who already have 1+ home groups. Honest about what
+            this flow does — creates an additional home game, no "signup
+            complete" misnomer. Links back to their existing groups list so
+            they can manage what they already have instead of starting over. */}
+        {step === 1 && existingGroupCount !== null && existingGroupCount > 0 && (
+          <div className="max-w-2xl mx-auto px-4 pt-4">
+            <div className="rounded-lg border border-[#22D3EE]/30 bg-[#0F1C32] p-4">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-10 h-10 rounded-md bg-[#22D3EE]/10 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-[#22D3EE]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-semibold text-white">
+                    Add another home game
+                  </h2>
+                  <p className="text-sm text-[#94A3B8] mt-1">
+                    You already host {existingGroupCount === 1 ? '1 home group' : `${existingGroupCount} home groups`}.
+                    This 3-step form will create an additional group with its own location, schedule, and members.
+                    {' '}
+                    <button
+                      type="button"
+                      onClick={() => router.push('/hub/commander/home-games')}
+                      className="text-[#22D3EE] hover:underline"
+                    >
+                      Or manage your existing groups
+                    </button>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Form Content */}
         <main className="max-w-2xl mx-auto px-4 py-6">
+          {/* Dan-fix/error-visibility (2026-05-11): wrap the error banner with
+              a ref so handleSubmit can scrollIntoView on failure. On step 3 the
+              error renders at the top of <main> but the user is typically
+              scrolled near the bottom (where the Create button lives) and
+              never sees the failure. */}
           {error && (
-            <div className="mb-4 p-3 bg-[#EF4444]/10 rounded-lg">
-              <p className="text-sm text-[#EF4444]">{error}</p>
+            <div
+              ref={errorRef}
+              className="mb-4 p-3 bg-[#EF4444]/10 border border-[#EF4444]/40 rounded-lg"
+              role="alert"
+            >
+              <p className="text-sm font-semibold text-[#EF4444]">Submission failed</p>
+              <p className="text-sm text-[#FCA5A5] mt-1">{error}</p>
             </div>
           )}
 
@@ -1332,6 +1435,35 @@ export default function CreateHomeGamePage() {
               </div>
             </div>
           )}
+          {/* Step 4 fallback — Dan-fix/post-submit (2026-05-11)
+              If we reached step 4 but `createdGroup` happens to be null
+              (API returned success without the group payload, or a race
+              cleared it), still show a minimal success screen so the user
+              isn't dropped onto a blank page. They can navigate to their
+              home groups list to see what was created. Previously: step 4
+              with null createdGroup → empty <main> → looked like the
+              wizard reset. */}
+          {step === 4 && !createdGroup && (
+            <div className="space-y-6">
+              <div className="cmd-panel p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-[#10B981]" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Group Created</h2>
+                <p className="text-[#64748B] mt-1">
+                  Your home game group has been created. View it in your dashboard to add tournaments, photos, and invite members.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push('/hub/commander/home-games')}
+                  className="mt-4 cmd-btn cmd-btn-primary h-12 px-6"
+                >
+                  Go to My Home Games
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Step 4: Group Created + Social Page + Schedule */}
           {step === 4 && createdGroup && (
             <div className="space-y-6">

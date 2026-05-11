@@ -291,6 +291,34 @@
   color: var(--cmd-text-muted);
 }
 
+/* Dan-fix/select-display (2026-05-11): on iOS Safari and macOS Safari, native
+   <select> elements use OS-level styling for the closed-state text that does
+   NOT inherit `color` from the CSS class. On dark backgrounds the selected
+   value ends up rendered as dark-grey-on-dark and is effectively invisible.
+   The fix is `appearance: none` (so the browser doesn't draw native chrome)
+   plus an explicit `color` override that wins over UA defaults, plus a
+   custom chevron drawn via background-image so the user still sees a hint
+   that the input is a dropdown. The `select.cmd-input option` rule ensures
+   the open-state list items also render with our dark theme palette
+   (without it, Safari/Chrome on some OSes render the dropdown list with
+   the system default which clashes hard with the surrounding UI). */
+select.cmd-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color: var(--cmd-text-white) !important;
+  background-color: var(--cmd-bg-input);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1L6 6L11 1' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 12px 8px;
+  padding-right: 44px; /* room for the chevron */
+}
+select.cmd-input option {
+  background: #0D192E;
+  color: var(--cmd-text-white);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    BUTTONS — Beveled metallic with glow
    ═══════════════════════════════════════════════════════════════════════════ */
