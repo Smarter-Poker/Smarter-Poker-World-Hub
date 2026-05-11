@@ -17,6 +17,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import ActionButton, { ActionButtonRow } from '../../../src/components/poker/ActionButton';
+// TRAIN-WIRE-ACTIONBTN-1 — adoption: blind-defense action row
 // TRAIN-WIRE-FX-2b — adoption: blind-defense fold/call/3-bet feedback
 // TRAIN-WIRE-PLAYCARD-3 — adoption: blind-defense via shared PlayingCard
 
@@ -278,73 +280,12 @@ export default function BlindDefensePage() {
               style={{ transform: 'rotate(5deg)' }}
             />
           </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: 12 }}>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleAction('Fold')}
-              disabled={!!feedback}
-              style={{
-                flex: 1,
-                padding: '20px',
-                borderRadius: 12,
-                border: 'none',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#fca5a5',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                fontSize: 16,
-                fontWeight: 800,
-                cursor: feedback ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              FOLD
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleAction('Call')}
-              disabled={!!feedback}
-              style={{
-                flex: 1,
-                padding: '20px',
-                borderRadius: 12,
-                border: 'none',
-                background: 'rgba(52, 211, 153, 0.15)',
-                color: '#6ee7b7',
-                border: '1px solid rgba(52, 211, 153, 0.3)',
-                fontSize: 16,
-                fontWeight: 800,
-                cursor: feedback ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              CALL
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleAction('3-Bet')}
-              disabled={!!feedback}
-              style={{
-                flex: 1,
-                padding: '20px',
-                borderRadius: 12,
-                border: 'none',
-                background: 'rgba(251, 191, 36, 0.15)',
-                color: '#fcd34d',
-                border: '1px solid rgba(251, 191, 36, 0.3)',
-                fontSize: 16,
-                fontWeight: 800,
-                cursor: feedback ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              3-BET
-            </motion.button>
-          </div>
+          {/* Action Buttons (TRAIN-WIRE-ACTIONBTN-1) */}
+          <ActionButtonRow gap={12}>
+            <ActionButton action="fold" label="Fold" shortcut={1} disabled={!!feedback} onClick={() => handleAction('Fold')} size="lg" />
+            <ActionButton action="call" label="Call" shortcut={2} disabled={!!feedback} onClick={() => handleAction('Call')} size="lg" />
+            <ActionButton action="raise" label="3-Bet" shortcut={3} disabled={!!feedback} onClick={() => handleAction('3-Bet')} size="lg" />
+          </ActionButtonRow>
         </div>
       </div>
     </>
