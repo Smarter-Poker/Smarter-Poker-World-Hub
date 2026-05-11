@@ -799,3 +799,12 @@ TRAIN-PROGRESS-STRIP-1
 # primary + secondary CTAs (44+ touch). Build-safe: no emoji chars, no
 # JSX comments in conditional expressions.
 TRAIN-EMPTY-STATE-1
+
+# ─── Shared RangeMatrix — unified 13x13 hand grid ───────────────────────────
+# TRAIN-RANGE-MATRIX-1 — src/components/poker/RangeMatrix.jsx (new). Drop-
+# in 13x13 starting-hand grid with consistent layout (pairs on diagonal,
+# suited top-right, offsuit bottom-left), probability-heat fill 0..1 or
+# split-fill raise/call/fold gradient bars, optional cell click handler,
+# keyboard-accessible cells, highlight outline, title tooltips, role=grid.
+# Build-safe: no emoji chars, no JSX comments inside conditionals.
+TRAIN-RANGE-MATRIX-1
