@@ -1677,6 +1677,24 @@ export function ReelsViewer({ onClose }) {
     const handleKey = (e) => {
       const tag = e.target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        // BUG FIX (2026-05-11): sync-unmute inside the keypress gesture so
+        // Chrome accepts the unMute postMessage for the next iframe.
+        // The global gesture-capture effect unmutes the CURRENT media, but
+        // when the user keys to advance, the new iframe inherits no gesture
+        // context — onPlaying / IO unmute runs post-expiry. Sync-call here.
+        if (userWantsSoundRef.current) {
+          try {
+            if (videoRef.current) {
+              videoRef.current.muted = false;
+              if (videoRef.current.volume === 0) videoRef.current.volume = 1.0;
+            }
+            sendYTCmd('unMute');
+            sendYTCmd('setVolume', [100]);
+            setMuted(false);
+          } catch (_) { /* best-effort */ }
+        }
+      }
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
       if (e.key === 'Escape') onClose();

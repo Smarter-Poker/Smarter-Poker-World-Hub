@@ -1662,6 +1662,25 @@ function ReelViewer({ reels, startIndex, onClose }) {
       // Don't intercept keyboard while typing in an input/textarea
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        // BUG FIX (2026-05-11): sync-unmute inside the keypress gesture so
+        // Chrome accepts the unMute postMessage for the next iframe. Without
+        // this the new iframe's onStateChange(1) unmute runs after the
+        // keypress gesture has expired and YouTube silently rejects it.
+        // Mirrors the existing window-level gesture-capture pattern (which
+        // only unmutes the CURRENT iframe, not the next one).
+        if (userWantsSoundRef.current) {
+          try {
+            if (videoRef.current) {
+              videoRef.current.muted = false;
+              if (videoRef.current.volume === 0) videoRef.current.volume = 1.0;
+            }
+            sendYTCmd('unMute');
+            sendYTCmd('setVolume', [100]);
+            setMuted(false);
+          } catch (_) { /* best-effort */ }
+        }
+      }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         setSlideDir('up');
         goNext();
