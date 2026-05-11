@@ -348,8 +348,14 @@ export default function DailyChallengePage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {/* BUG FIX (TRAIN-DAILY-CHALLENGE-A11Y-1): explicit aria-label so
+                screen readers don't read the HTML entity '&larr;' as 'left
+                pointing arrow'; the visible label 'Training' alone reads
+                ambiguously without context. */}
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
+              aria-label="Back to training"
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.1)',
@@ -520,8 +526,11 @@ export default function DailyChallengePage() {
               }}
             >
               {error}
+              {/* TRAIN-DAILY-CHALLENGE-A11Y-1: aria-label disambiguates Retry */}
               <button
+                type="button"
                 onClick={fetchChallenge}
+                aria-label="Retry loading today's challenge"
                 style={{
                   marginLeft: 12,
                   background: 'rgba(234,179,8,0.2)',
@@ -871,7 +880,10 @@ export default function DailyChallengePage() {
                             </div>
                           </motion.div>
                         )}
+                        {/* TRAIN-DAILY-CHALLENGE-A11Y-1: share button has type+aria */}
                         <button
+                          type="button"
+                          aria-label="Share result to your social feed"
                           disabled={sharingResult}
                           onClick={async () => {
                             if (sharingResult) return;
@@ -981,19 +993,21 @@ export default function DailyChallengePage() {
                   border: '1px solid rgba(255,255,255,0.06)',
                 }}
               >
-                <div
+                {/* TRAIN-DAILY-CHALLENGE-A11Y-1: semantic h2 for section heading */}
+                <h2
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
                     color: '#64748b',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
+                    marginTop: 0,
                     marginBottom: 6,
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >
                   About Daily Challenge
-                </div>
+                </h2>
                 <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
                   A new solver-verified GTO spot every day at midnight UTC. Answer correctly to
                   extend your streak and earn {DAILY_CHALLENGE_DIAMOND_REWARD} diamonds. Compete with players worldwide for the
