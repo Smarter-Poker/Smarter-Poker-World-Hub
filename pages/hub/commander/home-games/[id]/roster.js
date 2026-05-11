@@ -160,7 +160,17 @@ export default function HomeGameRosterPage() {
       const token = await getAccessToken();
       const res = await fetch(`/api/commander/home-games/groups/${id}/broadcast`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          // bug-hunt-zero/B-ROSTER-1: parallel to the manage.js broadcast fix
+          // (PR #317). Without this header a timeout-then-retry could
+          // double-notify every member + follower. setSending already blocks
+          // local re-entry; this defends against network retries.
+          'X-Idempotency-Key': (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'idem_' + Math.random().toString(36).slice(2) + Date.now().toString(36),
+        },
         body: JSON.stringify({ message_text: message })
       });
       const data = await res.json();
