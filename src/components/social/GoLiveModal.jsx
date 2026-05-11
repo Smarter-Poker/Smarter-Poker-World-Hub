@@ -9,6 +9,7 @@ import { liveStreamService } from '../../services/LiveStreamService';
 import { EndStreamModal } from './EndStreamModal';
 import { LiveAnalyticsCard } from './LiveAnalyticsCard';
 import { LiveReactions } from './LiveReactions';
+import { LiveViewerList } from './LiveViewerList';
 import { ScheduleLiveModal } from './ScheduleLiveModal';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
@@ -264,6 +265,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     const [title, setTitle] = useState('');
     const [error, setError] = useState('');
     const [viewerCount, setViewerCount] = useState(0);
+    // STREAM-BUG-11: open the viewer list panel when the broadcaster taps the
+    // viewer-count badge. Previously the badge was a static div and tapping
+    // did nothing — Dan: "WHEN A USER CLICKS ON THE VIEWER LIST DURING MY
+    // LIVE BROADCAST, NOTHING HAPPENS."
+    const [showViewerList, setShowViewerList] = useState(false);
     const [streamId, setStreamId] = useState(initialRoomId || null);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [countdown, setCountdown] = useState(5);
@@ -528,13 +534,27 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
         }
     };
 
-    // Apply a zoom value via the MediaTrack constraints API. Clamps the
-    // value to detected capability range. Async — caller can await but
-    // doesn't have to (we update local state optimistically).
+    // Apply a zoom value via the MediaTrack constraints API when hardware
+    // zoom is supported, OR fall back to CSS scale on the preview video
+    // element when it isn't. STREAM-BUG-2 ("zoom in/out doesn't work"):
+    // most webcams and many iOS Safari versions don't expose
+    // getCapabilities().zoom, so the previous early-return left the slider
+    // dead and Dan saw no effect. The CSS-scale fallback at least makes the
+    // broadcaster's preview zoom — the published stream still won't zoom
+    // without hardware support, hence the "preview only" caption on the
+    // software-zoom slider.
     const applyZoom = async (z) => {
-        if (!streamRef.current || !zoomCapability) return;
-        const clamped = Math.max(zoomCapability.min, Math.min(zoomCapability.max, z));
+        // Clamp using detected capability if present, else a 1–3× software range
+        const min = zoomCapability?.min ?? 1;
+        const max = zoomCapability?.max ?? 3;
+        const clamped = Math.max(min, Math.min(max, z));
         setZoomLevel(clamped);
+        if (!streamRef.current || !zoomCapability) {
+            // Software-zoom path: the CSS transform on the <video> element
+            // reads zoomLevel directly (see render), so just updating state
+            // is enough.
+            return;
+        }
         try {
             const track = streamRef.current.getVideoTracks?.()[0];
             if (!track) return;
@@ -1098,21 +1118,29 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
     };
 
     const handleShare = async () => {
+        // STREAM-BUG-3: while LIVE, the broadcaster's "share" action should pop
+        // the in-app friend picker (GuestInviteModal) so they can DM the stream
+        // to friends inside the app — not OS share sheet that surfaces iMessage,
+        // WhatsApp, etc. The internal picker also reuses the live-stream invite
+        // code, which generates an in-app deep link that re-opens the stream.
+        if (guestInviteCode) {
+            setGuestInviteModalOpen(true);
+            return;
+        }
+        // Fallback (pre-live or post-live, no invite code yet) — clipboard only.
+        // Deliberately skip navigator.share even when available: Dan was clear
+        // that external messengers should not be surfaced from the live UI.
         const url = `${window.location.origin}/hub/social-media?stream=${streamId}`;
         try {
-            if (navigator.share) {
-                await navigator.share({ title: title || 'Live Stream', url });
-            } else {
-                await navigator.clipboard.writeText(url);
-                // BUG FIX (GLM-3): use dedicated toast state + tracked timer, not error state
-                if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
-                setShareToast('Link copied to clipboard!');
-                shareToastTimerRef.current = setTimeout(() => {
-                    shareToastTimerRef.current = null;
-                    setShareToast('');
-                }, 2500);
-            }
-        } catch { /* ignore user cancel */ }
+            await navigator.clipboard.writeText(url);
+            // BUG FIX (GLM-3): use dedicated toast state + tracked timer, not error state
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+            setShareToast('Link copied to clipboard!');
+            shareToastTimerRef.current = setTimeout(() => {
+                shareToastTimerRef.current = null;
+                setShareToast('');
+            }, 2500);
+        } catch { /* ignore */ }
     };
 
     const handleToggleMute = async () => {
@@ -1308,7 +1336,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
 
                         {/* Camera preview */}
                         <div style={{ position:'relative', background:'#000', aspectRatio:'16/9' }}>
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', transition: 'all 0.3s ease' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ width:'100%', height:'100%', objectFit:'cover', transform: `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() || 'none', transition: 'all 0.3s ease' }} />
                             <div style={{ position:'absolute', top:10, left:10, background:'rgba(0,0,0,.55)', color:'white', padding:'4px 10px', borderRadius:6, fontSize:13, fontWeight:600 }}>Preview</div>
                         </div>
 
@@ -1429,7 +1457,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                 {/* ── COUNTDOWN STAGE ── */}
                 {stage === 'countdown' && (
                     <div style={{ position:'relative', width:'100%', height:'100%', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', touchAction:'none', overflow:'hidden' }}>
-                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', opacity:.4 }} />
+                        <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform: `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() || 'none', opacity:.4 }} />
                         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
                             <div style={{ fontSize:16, color:'white', fontWeight:700, letterSpacing:3, marginBottom:16, textTransform:'uppercase', opacity:.85 }}>Get Ready</div>
                             <div style={{ fontSize:140, fontWeight:900, color:'white', lineHeight:1, animation:'cdPop .5s ease-out', textShadow:'0 0 60px rgba(0,120,255,.8)' }} key={countdown}>
@@ -1449,7 +1477,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         {/* Broadcaster/Local Video + Remote Participants */}
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#000' }}>
                             {/* BUG-FIX-FLIP: mirror only front-facing (user) camera */}
-                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: isMirrored ? 'scaleX(-1)' : 'none', transition: 'all 0.3s ease' }} />
+                            <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture controls={false} style={{ flex: 1, width: '100%', height: '100%', objectFit: 'cover', transform: `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() || 'none', transition: 'all 0.3s ease' }} />
                             
                             {/* Secondary Participants (Guest) */}
                             {participants.map((p, idx) => {
@@ -1541,18 +1569,24 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             />
                         </div>
 
-                        {/* TOP-RIGHT: viewer count */}
-                        <div style={{ position:'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:600, zIndex:10, display:'flex', alignItems:'center', gap:6 }}>
+                        {/* TOP-RIGHT: viewer count (tap to open viewer list — STREAM-BUG-11) */}
+                        <button
+                            type="button"
+                            onClick={() => setShowViewerList(true)}
+                            aria-label="Open viewer list"
+                            style={{ position:'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:600, zIndex:10, display:'flex', alignItems:'center', gap:6, border:'none', cursor:'pointer' }}
+                        >
                             <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                             {viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}
-                            {isMuted && <span style={{ marginLeft:6, opacity:0.7 }}>🔇</span>}
-                        </div>
+                            {isMuted && <span style={{ marginLeft:6, opacity:0.7 }} aria-hidden>(muted)</span>}
+                        </button>
 
-                        {/* BUG-FIX-LIVE2-2: elapsed timer — moved from bottom-right to LEFT side
-                            (per Dan: "TIME IS ACTUALLY BLOCKING OTHER THINGS"). Tappable to
-                            hide. When hidden, a small ⏱ button reappears in the same spot to
-                            bring it back. Mid-screen vertical so it doesn't collide with top
-                            description bar or bottom comment input. */}
+                        {/* STREAM-BUG-1: clock pinned BOTTOM-LEFT, just above the chat scroll
+                            zone. Chat scroll lives at bottom:110 + maxHeight:200, so its top edge
+                            is at bottom:310. Placing the timer at bottom:316 puts it one row
+                            above the chat. If a pinned-comment banner is occupying bottom:320,
+                            the timer bumps up to bottom:380 to avoid collision. Tappable to hide;
+                            when hidden, a small ⏱ chip returns in the same corner. */}
                         {!timeOverlayHidden ? (
                             <button
                                 onClick={() => setTimeOverlayHidden(true)}
@@ -1560,7 +1594,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                 aria-label="Hide stream timer"
                                 style={{
                                     position: 'absolute',
-                                    top: '50%', transform: 'translateY(-50%)',
+                                    bottom: pinnedComment ? 380 : 316,
                                     left: 16,
                                     background: 'rgba(0,0,0,.55)', color: 'white',
                                     padding: '6px 12px', borderRadius: 8,
@@ -1578,7 +1612,7 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                 aria-label="Show stream timer"
                                 style={{
                                     position: 'absolute',
-                                    top: '50%', transform: 'translateY(-50%)',
+                                    bottom: pinnedComment ? 380 : 316,
                                     left: 16,
                                     background: 'rgba(0,0,0,.35)', color: 'white',
                                     padding: '6px 9px', borderRadius: 8,
@@ -1601,12 +1635,25 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                         <LiveReactions streamId={streamId} userId={user?.id} isBroadcaster />
 
                         {/* New feature: Guest Invite Modal overlay */}
-                        <GuestInviteModal 
-                            isOpen={guestInviteModalOpen} 
+                        <GuestInviteModal
+                            isOpen={guestInviteModalOpen}
                             onClose={() => setGuestInviteModalOpen(false)}
                             streamId={streamId}
                             inviteCode={guestInviteCode}
                             currentUser={user}
+                        />
+
+                        {/* STREAM-BUG-11: viewer list sheet for the broadcaster.
+                            Tapping the top-right viewer-count badge opens this.
+                            LiveViewerList already supports search + invite when
+                            currentUser + inviteCode are present (see component). */}
+                        <LiveViewerList
+                            streamId={streamId}
+                            viewerCount={viewerCount}
+                            isOpen={showViewerList}
+                            onClose={() => setShowViewerList(false)}
+                            currentUser={user}
+                            inviteCode={guestInviteCode}
                         />
 
                         {/* #18: PINNED COMMENT */}
@@ -1685,7 +1732,11 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                 onKeyDown={e => { e.stopPropagation(); if(e.key==='Enter') handleSendComment(); }}
                                 onClick={e => e.stopPropagation()}
                                 placeholder="Say something..."
-                                style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.45)', color:'white', fontSize:14, outline:'none' }}
+                                // STREAM-BUG-12a: fontSize must be ≥16px. iOS Safari auto-zooms
+                                // when a tapped input has font-size <16px, which Dan saw as the
+                                // page zooming in AND broke perceived typing because the input
+                                // gets re-positioned offscreen during the zoom animation.
+                                style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.45)', color:'white', fontSize:16, outline:'none' }}
                             />
                             <button
                                 onClick={e => { e.stopPropagation(); handleSendComment(); }}
@@ -1725,11 +1776,27 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                             {/* BUG-FIX-LIVE2-1b: zoom slider trigger. Only rendered when the
                                 device's video track exposes a zoom capability. Tap toggles a
                                 vertical slider overlay anchored to this button. */}
-                            {zoomCapability && (
+                            {/* STREAM-BUG-2: zoom UI is now ALWAYS rendered. Previously it
+                                was gated on `zoomCapability` truthy, but most webcams (and
+                                many iOS Safari versions) don't expose getCapabilities().zoom,
+                                so Dan saw no zoom button at all and reported "zoom doesn't
+                                work." When hardware zoom IS supported, applyZoom calls
+                                track.applyConstraints({ advanced:[{ zoom }] }) which zooms
+                                the published stream so viewers see it too. When hardware
+                                zoom is NOT supported, we fall back to a CSS scale() on the
+                                local preview <video> (broadcast remains unzoomed in that
+                                case — labeled "preview-only" in the slider). Either way,
+                                Dan now has a visible, working zoom control. */}
+                            {(() => {
+                                const zMin = zoomCapability?.min ?? 1;
+                                const zMax = zoomCapability?.max ?? 3;
+                                const zStep = zoomCapability?.step ?? 0.1;
+                                const isSoftware = !zoomCapability;
+                                return (
                                 <div style={{ position: 'relative' }}>
                                     <button
                                         onClick={e => { e.stopPropagation(); setZoomSliderOpen(prev => !prev); }}
-                                        title="Zoom"
+                                        title={isSoftware ? 'Zoom (preview only)' : 'Zoom'}
                                         aria-label="Zoom"
                                         aria-pressed={zoomSliderOpen}
                                         style={{
@@ -1760,13 +1827,13 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                             }}
                                         >
                                             <div style={{ color: 'white', fontSize: 11, opacity: 0.7 }}>
-                                                {zoomCapability.max.toFixed(1)}×
+                                                {zMax.toFixed(1)}×
                                             </div>
                                             <input
                                                 type="range"
-                                                min={zoomCapability.min}
-                                                max={zoomCapability.max}
-                                                step={zoomCapability.step || 0.1}
+                                                min={zMin}
+                                                max={zMax}
+                                                step={zStep}
                                                 value={zoomLevel}
                                                 onChange={e => applyZoom(parseFloat(e.target.value))}
                                                 style={{
@@ -1780,15 +1847,21 @@ export function GoLiveModal({ isOpen, onClose, user, guestMode = false, initialR
                                                 }}
                                             />
                                             <div style={{ color: 'white', fontSize: 11, opacity: 0.7 }}>
-                                                {zoomCapability.min.toFixed(1)}×
+                                                {zMin.toFixed(1)}×
                                             </div>
                                             <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginTop: 2 }}>
                                                 {zoomLevel.toFixed(1)}×
                                             </div>
+                                            {isSoftware && (
+                                                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 9, marginTop: 2, lineHeight: 1.2, textAlign: 'center', maxWidth: 70 }}>
+                                                    preview only
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            )}
+                                );
+                            })()}
                             {/* Share button */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleShare(); }}

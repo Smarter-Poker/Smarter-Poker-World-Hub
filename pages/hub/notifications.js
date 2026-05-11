@@ -756,6 +756,22 @@ function NotificationsPage() {
                                 if (n.link) { navigate(n.link); return; }
                                 if (n.action_url) { navigate(n.action_url); return; }
 
+                                // ── STREAM-BUG-8: live-stream notifications deep-link to viewer ─────
+                                // pages/api/notifications/live-notify.js emits type='live' with
+                                // data.stream_id. Without an explicit branch we fall through to
+                                // /hub/social-media (no ?stream= query) and tapping the alert
+                                // lands on the feed root instead of the actual broadcast.
+                                // /hub/social-media?stream=<id> is the same route GoLiveModal's
+                                // share link uses — the existing viewer mount path picks it up.
+                                if (t === 'live' || t === 'live_started' || t === 'live_now') {
+                                    const sid = d.stream_id || d.streamId;
+                                    if (sid) { navigate(`/hub/social-media?stream=${sid}`); return; }
+                                    navigate('/hub/lives'); return;
+                                }
+                                if (t === 'live_scheduled') {
+                                    navigate('/hub/lives'); return;
+                                }
+
                                 // ── Home Games / Groups ──────────────────────────────
                                 if (t.startsWith('home_group') || t.startsWith('home_game') || t === 'member_joined') {
                                     if (d.group_id) navigate(`/hub/home-games/${d.group_id}`);

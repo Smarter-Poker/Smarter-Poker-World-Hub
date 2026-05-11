@@ -26,6 +26,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRef, useState, useEffect, useMemo } from 'react';
+import { supabase } from '../../lib/supabase';
 
 const C = {
     card: '#FFFFFF',
@@ -34,6 +35,11 @@ const C = {
     border: '#DADDE1',
     red: '#FA383E',
 };
+
+// STREAM-BUG-4: Module-scope cache so multiple cards for the same stream
+// don't each re-query the same row. Keyed by stream id, value is
+// { preview_clip_url, preview_updated_at }. Implicitly cleared on page reload.
+const _previewCache = new Map();
 
 /**
  * @param {object} props
@@ -61,6 +67,45 @@ export function LiveStreamCard({ stream, onClick }) {
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
 
+    // STREAM-BUG-4: lazy-fetched preview clip data. The feed render at
+    // pages/hub/social-media/index.js passes only { id, thumbnail_url, title }
+    // to LiveStreamCard, so without fetching the live_streams row we never
+    // have a preview_clip_url and the <video> stays hidden — Dan's symptom
+    // ("no preview was playing, only the small live box"). When the caller
+    // already provides preview_clip_url we skip the fetch entirely.
+    const initialCached = stream.id ? _previewCache.get(stream.id) : null;
+    const [fetched, setFetched] = useState(initialCached || null);
+
+    useEffect(() => {
+        // Skip if caller already provided preview, or we have nothing to query.
+        if (stream.preview_clip_url) return;
+        if (!stream.id) return;
+        const cached = _previewCache.get(stream.id);
+        if (cached) {
+            setFetched(cached);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('live_streams')
+                    .select('preview_clip_url, preview_updated_at')
+                    .eq('id', stream.id)
+                    .maybeSingle();
+                if (cancelled) return;
+                if (error || !data) return;
+                _previewCache.set(stream.id, data);
+                setFetched(data);
+            } catch (_) { /* non-fatal — thumbnail fallback already covers this */ }
+        })();
+        return () => { cancelled = true; };
+    }, [stream.id, stream.preview_clip_url]);
+
+    // Resolve the effective preview values from prop or fetched state.
+    const effClipUrl = stream.preview_clip_url || fetched?.preview_clip_url || null;
+    const effUpdatedAt = stream.preview_updated_at || fetched?.preview_updated_at || null;
+
     // Cache-buster: when preview_updated_at advances, the URL changes and the
     // browser fetches the fresh clip. Memoised so we don't churn the <video>
     // src on unrelated re-renders.
@@ -69,11 +114,11 @@ export function LiveStreamCard({ stream, onClick }) {
     // CDN URLs may already contain a `?` (e.g. `?signed=xyz`); appending
     // another `?` yields a malformed URL. Use `&` when one is present.
     const previewSrc = useMemo(() => {
-        if (!stream.preview_clip_url) return null;
-        if (!stream.preview_updated_at) return stream.preview_clip_url;
-        const sep = stream.preview_clip_url.includes('?') ? '&' : '?';
-        return `${stream.preview_clip_url}${sep}t=${encodeURIComponent(stream.preview_updated_at)}`;
-    }, [stream.preview_clip_url, stream.preview_updated_at]);
+        if (!effClipUrl) return null;
+        if (!effUpdatedAt) return effClipUrl;
+        const sep = effClipUrl.includes('?') ? '&' : '?';
+        return `${effClipUrl}${sep}t=${encodeURIComponent(effUpdatedAt)}`;
+    }, [effClipUrl, effUpdatedAt]);
 
     // Reset preview state when src changes (e.g. broadcaster's rolling clip
     // moved to a new window).
