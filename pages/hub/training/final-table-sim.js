@@ -8,6 +8,27 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+// BUG FIX (TRAIN-FTS-A11Y-1): SVG back-arrow + button hardening for the
+// final-table simulator. Page was already emoji-free in rendered output.
+// Same surface-specific a11y pattern as PR #320/#322/#324/#327-#359.
+const _FTS_ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+function FtsBackArrowIcon({ size=14 }) {
+  return (
+    <svg {..._FTS_ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+
+
 export default function FinalTableSimulator() {
   const router = useRouter();
   useTrainingBus('final-table-sim');
@@ -101,8 +122,17 @@ export default function FinalTableSimulator() {
 
       <div style={styles.container}>
         <div style={styles.header}>
-          <button onClick={() => router.push('/hub/training')} style={styles.backButton}>
-            ← Hub
+          <button
+            type="button"
+            aria-label="Back to training hub"
+            onClick={() => router.push('/hub/training')}
+            style={styles.backButton}
+          >
+            {/* TRAIN-FTS-A11Y-1: SVG back arrow + visible label */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <FtsBackArrowIcon size={14} />
+              Hub
+            </span>
           </button>
           <div>
             <h1 style={styles.title}>FINAL TABLE SIMULATOR</h1>
@@ -219,7 +249,7 @@ export default function FinalTableSimulator() {
                   Players often make deals using ICM numbers. If everyone agreed to chop the prize
                   pool right now based on skill equity:
                 </p>
-                <button style={styles.dealBtn}>Generate Deal Proposal</button>
+                <button type="button" aria-label="Generate chip-chop deal proposal" style={styles.dealBtn}>Generate Deal Proposal</button>
               </div>
             </div>
           </div>
