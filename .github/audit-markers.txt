@@ -863,3 +863,14 @@ TRAIN-DATA-ROLLUPS-1
 # data still contains card-suit glyphs (♠♣♦♥) in string literals which is
 # the same form that was on main pre-patch.
 TRAIN-WIRE-PLAYCARD-1
+
+# ─── Phase-2 adoption: wire shared PlayingCard into scenario-demo ────────────
+# TRAIN-WIRE-PLAYCARD-2 — pages/hub/training/scenario-demo.js. Replaces the
+# per-card inline div (c[0] rank + c[1] suit, manual ♥/♦ color check) in the
+# `{step.example?.board && (...)}` conditional with a row of <PlayingCard />.
+# Board cards use size=md priority. Hero cards (when present in the tutorial
+# step, e.g. step 1 with hero: ['A♠','K♦']) now also render as PlayingCards
+# with highlighted=true — previously the data was in TUTORIAL_STEPS but never
+# rendered. Build-safe: no JSX comments inside conditionals, suit glyphs in
+# the TUTORIAL_STEPS data are unchanged from main.
+TRAIN-WIRE-PLAYCARD-2

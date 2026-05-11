@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import PlayingCard from '../../../src/components/poker/PlayingCard';
+// TRAIN-WIRE-PLAYCARD-2 — adoption: scenario-demo cards via shared PlayingCard
 
 // Tutorial steps
 const TUTORIAL_STEPS = [
@@ -347,34 +349,15 @@ export default function ScenarioDemoPage() {
 
                 {/* Example Cards */}
                 {step.example?.board && (
-                  <div
-                    style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}
-                  >
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
                     {step.example.board.map((c, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          width: 50,
-                          height: 70,
-                          background: '#fff',
-                          borderRadius: 6,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          padding: 4,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <span style={{ fontSize: 18, fontWeight: 900, color: '#000' }}>{c[0]}</span>
-                        <span
-                          style={{
-                            fontSize: 16,
-                            color: c.includes('♥') || c.includes('♦') ? '#ef4444' : '#000',
-                          }}
-                        >
-                          {c[1]}
-                        </span>
-                      </div>
+                      <PlayingCard key={'b'+i} card={c} size="md" priority />
+                    ))}
+                    {step.example.hero ? (
+                      <div style={{ width: 12 }} aria-hidden />
+                    ) : null}
+                    {step.example.hero && step.example.hero.map((c, i) => (
+                      <PlayingCard key={'h'+i} card={c} size="md" highlighted priority />
                     ))}
                   </div>
                 )}
