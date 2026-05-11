@@ -1,5 +1,5 @@
 /**
- * 🔥 TRAINING STREAKS PAGE
+ * TRAINING STREAKS PAGE
  * ═══════════════════════════════════════════════════════════════════════════
  * Visual streak calendar, milestone progress, and reward claiming
  * ═══════════════════════════════════════════════════════════════════════════
@@ -20,15 +20,140 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
-// Milestone definitions (must match API)
+// BUG FIX (TRAIN-STREAKS-A11Y-1): SVG icon components replacing the page's
+// emoji set. The milestone data structure adds an `iconKind` discriminator
+// so the visual icon comes from a typed SVG component (MilestoneIcon)
+// instead of an emoji string. Same surface-specific a11y pattern as PR
+// #320/#322/#324/#327/#328/#329.
+const ICON_PROPS = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+};
+
+function FlameIcon({ size = 64 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.5-.5-2.5-2-3.5l-2 2c-.5-.5-1-1-1-2 0-1 1.5-2 1.5-2s-3 1-4 3.5C5 14 6 17 8.5 19c1.5 1.5 4 2 5.5 1.5C17 19.5 19 17 19 13c0-3-1-5-2.5-7C15 4 12 2 12 2s1 4-1 7c-.7 1-1.5 1.5-2.5 2.5z" />
+    </svg>
+  );
+}
+function BoltIcon({ size = 32 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+function MuscleIcon({ size = 32 }) {
+  // simple flexed-arm pictograph
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M4 14c2-4 6-6 9-6 4 0 7 3 7 7 0 3-2 5-5 5h-2c-2 0-4-1-5-3l-4-3z" />
+      <path d="M9 15c1-1 2-1 3 0" />
+    </svg>
+  );
+}
+function TrophyIcon({ size = 32 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+    </svg>
+  );
+}
+function CrownIcon({ size = 32 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z" />
+      <path d="M4 19h16" />
+    </svg>
+  );
+}
+function StarIcon({ size = 32 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+function MedalIcon({ size = 32 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <circle cx="12" cy="14" r="7" />
+      <path d="M8.21 13.89 6 22l6-3 6 3-2.21-8.12" />
+      <path d="M9 7h6" />
+    </svg>
+  );
+}
+function DiamondIcon({ size = 14 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M6 3h12l4 6-10 12L2 9z" />
+      <path d="M11 3 8 9l4 12 4-12-3-6" />
+      <path d="M2 9h20" />
+    </svg>
+  );
+}
+function CalendarIcon({ size = 18 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+function CheckIcon({ size = 14 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+function LightbulbIcon({ size = 14 }) {
+  return (
+    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a7 7 0 0 0-4 12.65V17h8v-2.35A7 7 0 0 0 12 2z" />
+    </svg>
+  );
+}
+
+function MilestoneIcon({ kind, size = 32 }) {
+  switch (kind) {
+    case 'flame':  return <FlameIcon size={size} />;
+    case 'bolt':   return <BoltIcon size={size} />;
+    case 'muscle': return <MuscleIcon size={size} />;
+    case 'trophy': return <TrophyIcon size={size} />;
+    case 'crown':  return <CrownIcon size={size} />;
+    case 'star':   return <StarIcon size={size} />;
+    case 'medal':  return <MedalIcon size={size} />;
+    default:       return <FlameIcon size={size} />;
+  }
+}
+
+// Milestone definitions (must match API). `iconKind` is the visual
+// discriminator — kept alongside legacy `icon` emoji string so that
+// downstream consumers reading from the API (which still ships the
+// emoji) continue to function until the API migrates.
 const STREAK_MILESTONES = [
-  { days: 3, diamonds: 25, name: '3-Day Streak', icon: '🔥' },
-  { days: 7, diamonds: 75, name: 'Week Warrior', icon: '⚡' },
-  { days: 14, diamonds: 150, name: 'Two Week Champion', icon: '💪' },
-  { days: 30, diamonds: 400, name: 'Monthly Master', icon: '🏆' },
-  { days: 60, diamonds: 800, name: 'Double Month Legend', icon: '👑' },
-  { days: 100, diamonds: 2000, name: 'Century Grinder', icon: '🌟' },
-  { days: 365, diamonds: 10000, name: 'Year of Dedication', icon: '🎖️' },
+  { days: 3,   diamonds: 25,    name: '3-Day Streak',         icon: '🔥',  iconKind: 'flame'  },
+  { days: 7,   diamonds: 75,    name: 'Week Warrior',         icon: '⚡',  iconKind: 'bolt'   },
+  { days: 14,  diamonds: 150,   name: 'Two Week Champion',    icon: '💪',  iconKind: 'muscle' },
+  { days: 30,  diamonds: 400,   name: 'Monthly Master',       icon: '🏆',  iconKind: 'trophy' },
+  { days: 60,  diamonds: 800,   name: 'Double Month Legend',  icon: '👑',  iconKind: 'crown'  },
+  { days: 100, diamonds: 2000,  name: 'Century Grinder',      icon: '🌟',  iconKind: 'star'   },
+  { days: 365, diamonds: 10000, name: 'Year of Dedication',   icon: '🎖️', iconKind: 'medal'  },
 ];
 
 export default function StreaksPage() {
@@ -174,7 +299,7 @@ export default function StreaksPage() {
 
   if (loading) {
     return (
-      <div style={{ ...styles.loadingContainer, padding: 24 }}>
+      <div style={{ ...styles.loadingContainer, padding: 24 }} role="status" aria-label="Loading streak data">
         <SkeletonLoader variant="profile" style={{ maxWidth: 480, margin: '0 auto 24px' }} />
         <SkeletonLoader variant="card" count={2} style={{ maxWidth: 480, margin: '0 auto' }} />
       </div>
@@ -238,6 +363,7 @@ export default function StreaksPage() {
                   justifyContent: 'space-between',
                   gap: 12,
                 }}
+                role="alert"
               >
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>
@@ -275,9 +401,13 @@ export default function StreaksPage() {
             transition={{ duration: 0.5 }}
           >
             <div style={styles.flameContainer}>
-              <span style={styles.flame}>🔥</span>
+              {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces 🔥 hero icon.
+                  Color drives the gradient; CSS keeps the pulse animation. */}
+              <span style={{ ...styles.flame, color: '#FF6B35', display: 'inline-flex' }} aria-hidden>
+                <FlameIcon size={64} />
+              </span>
             </div>
-            <div style={styles.streakNumber}>{streak.currentStreak}</div>
+            <div style={styles.streakNumber} role="status" aria-label={`${streak.currentStreak} day streak`}>{streak.currentStreak}</div>
             <div style={styles.streakLabel}>Day Streak</div>
             {streak.longestStreak > streak.currentStreak && (
               <div style={styles.longestStreak}>Best: {streak.longestStreak} days</div>
@@ -298,7 +428,10 @@ export default function StreaksPage() {
                   border: `1px solid ${multColor}30`,
                   marginTop: 12,
                 }}>
-                  <span style={{ fontSize: 14 }}>💎</span>
+                  {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces 💎 fontSize:14 */}
+                  <span style={{ display: 'inline-flex', color: multColor }} aria-hidden>
+                    <DiamondIcon size={14} />
+                  </span>
                   <span style={{ fontSize: 14, fontWeight: 800, color: multColor }}>{mult}</span>
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>Diamond Multiplier</span>
                 </div>
@@ -306,7 +439,10 @@ export default function StreaksPage() {
             })()}
 
             {streak.currentStreak >= 3 && (
+              /* TRAIN-STREAKS-A11Y-1: type+aria-label on share-streak button */
               <button
+                type="button"
+                aria-label={`Share your ${streak.currentStreak}-day streak to your feed`}
                 disabled={sharing}
                 onClick={async () => {
                   if (sharing) return;
@@ -368,8 +504,15 @@ export default function StreaksPage() {
                   color: '#94a3b8',
                   lineHeight: 1.5,
                   fontStyle: 'italic',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
                 }}>
-                  💡 {tips[dayIdx]}
+                  {/* TRAIN-STREAKS-A11Y-1: SVG lightbulb replaces 💡 inline emoji */}
+                  <span style={{ display: 'inline-flex', color: '#fbbf24', flexShrink: 0, marginTop: 1 }} aria-hidden>
+                    <LightbulbIcon size={14} />
+                  </span>
+                  <span>{tips[dayIdx]}</span>
                 </div>
               );
             })()}
@@ -379,12 +522,29 @@ export default function StreaksPage() {
           {nextMilestone && (
             <div style={styles.nextMilestoneCard}>
               <div style={styles.nextMilestoneHeader}>
-                <span>
-                  {nextMilestone.icon} Next: {nextMilestone.name}
+                {/* TRAIN-STREAKS-A11Y-1: route milestone icon via MilestoneIcon */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'inline-flex', color: '#fbbf24' }} aria-hidden>
+                    <MilestoneIcon kind={nextMilestone.iconKind} size={20} />
+                  </span>
+                  Next: {nextMilestone.name}
                 </span>
-                <span style={styles.diamondReward}>💎 {nextMilestone.diamonds}</span>
+                <span style={styles.diamondReward}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces 💎 */}
+                    <span aria-hidden style={{ display: 'inline-flex' }}><DiamondIcon size={14} /></span>
+                    {nextMilestone.diamonds}
+                  </span>
+                </span>
               </div>
-              <div style={styles.progressBarContainer}>
+              <div
+                style={styles.progressBarContainer}
+                role="progressbar"
+                aria-label={`Progress to ${nextMilestone.name}`}
+                aria-valuenow={Math.round((streak.currentStreak / nextMilestone.days) * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
                 <div
                   style={{
                     ...styles.progressBarFill,
@@ -400,7 +560,15 @@ export default function StreaksPage() {
 
           {/* 30-Day Calendar */}
           <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>📅 Last 30 Days</h2>
+            {/* TRAIN-STREAKS-A11Y-1: SVG calendar icon in section heading */}
+            <h2 style={styles.sectionTitle}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
+                  <CalendarIcon size={18} />
+                </span>
+                Last 30 Days
+              </span>
+            </h2>
             <div style={styles.calendarGrid}>
               {calendar.map((day, i) => (
                 <motion.div
@@ -417,9 +585,15 @@ export default function StreaksPage() {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.02 }}
+                  aria-label={`${day.date}${day.trained ? ', trained' : ''}${day.isToday ? ', today' : ''}`}
                 >
                   <span style={styles.calendarDayNumber}>{day.dayOfMonth}</span>
-                  {day.trained && <span style={styles.trainedIndicator}>🔥</span>}
+                  {/* TRAIN-STREAKS-A11Y-1: SVG flame indicator replaces 🔥 */}
+                  {day.trained && (
+                    <span style={styles.trainedIndicator} aria-hidden>
+                      <FlameIcon size={10} />
+                    </span>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -435,7 +609,15 @@ export default function StreaksPage() {
 
           {/* Milestones */}
           <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>🏆 Milestones</h2>
+            {/* TRAIN-STREAKS-A11Y-1: SVG trophy in section heading */}
+            <h2 style={styles.sectionTitle}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'inline-flex', color: '#FFD700' }} aria-hidden>
+                  <TrophyIcon size={18} />
+                </span>
+                Milestones
+              </span>
+            </h2>
             <div style={styles.milestonesGrid}>
               {(
                 streak.allMilestones ||
@@ -446,8 +628,12 @@ export default function StreaksPage() {
                 }))
               ).map((milestone) => {
                 const isClaimable = milestone.achieved && !milestone.claimed;
-                const baseData =
-                  STREAK_MILESTONES.find((m) => m.days === milestone.days) || milestone;
+                // Merge legacy server payload with our local iconKind metadata.
+                const baseData = {
+                  ...(STREAK_MILESTONES.find((m) => m.days === milestone.days) || milestone),
+                  ...milestone,
+                };
+                const kind = baseData.iconKind || (STREAK_MILESTONES.find((m) => m.days === milestone.days) || {}).iconKind || 'flame';
 
                 return (
                   <motion.div
@@ -459,16 +645,33 @@ export default function StreaksPage() {
                     }}
                     whileHover={isClaimable ? { scale: 1.02 } : {}}
                   >
-                    <div style={styles.milestoneIcon}>{baseData.icon}</div>
+                    {/* TRAIN-STREAKS-A11Y-1: SVG milestone icon via MilestoneIcon */}
+                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#FFD700' : '#9ca3af', display: 'inline-flex' }} aria-hidden>
+                      <MilestoneIcon kind={kind} size={32} />
+                    </div>
                     <div style={styles.milestoneInfo}>
                       <div style={styles.milestoneName}>{baseData.name}</div>
                       <div style={styles.milestoneDays}>{baseData.days} days</div>
                     </div>
-                    <div style={styles.milestoneReward}>💎 {baseData.diamonds}</div>
+                    <div style={styles.milestoneReward}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span aria-hidden style={{ display: 'inline-flex', color: '#00E0FF' }}><DiamondIcon size={14} /></span>
+                        {baseData.diamonds}
+                      </span>
+                    </div>
                     {milestone.claimed ? (
-                      <div style={styles.claimedBadge}>✅ Claimed</div>
+                      <div style={styles.claimedBadge}>
+                        {/* TRAIN-STREAKS-A11Y-1: SVG check replaces ✅ */}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <CheckIcon size={12} />
+                          Claimed
+                        </span>
+                      </div>
                     ) : isClaimable ? (
+                      /* TRAIN-STREAKS-A11Y-1: type+aria-label on milestone claim */
                       <button
+                        type="button"
+                        aria-label={`Claim ${baseData.diamonds} diamonds for ${baseData.name}`}
                         onClick={() => claimMilestone(milestone.days)}
                         disabled={claiming === milestone.days}
                         style={styles.claimButton}
@@ -618,6 +821,8 @@ const styles = {
     fontSize: '10px',
     position: 'absolute',
     bottom: '2px',
+    color: '#fff',
+    display: 'inline-flex',
   },
   calendarLegend: {
     display: 'flex',

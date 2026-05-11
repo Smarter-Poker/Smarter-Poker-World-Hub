@@ -397,3 +397,20 @@ TRAIN-ACHIEVEMENTS-A11Y-1
 # aria-valuenow/min/max. Skeleton loader wrapper gains role=status. Same
 # surface-specific pattern as PR #320/#322/#324/#327/#328.
 TRAIN-CHALLENGES-A11Y-1
+
+# ─── /hub/training/streaks — surface a11y + emoji→SVG ───────────────────────
+# TRAIN-STREAKS-A11Y-1 — pages/hub/training/streaks.js. Streak dashboard had
+# nine distinct emoji icons (🔥 hero flame + trained-day indicators, ⚡ 💪 🏆
+# 👑 🌟 🎖 milestone icons, 💎 diamond reward, ✅ claimed badge, 💡 daily tip,
+# 📅 calendar section, 🏆 milestones section). Replacements: FlameIcon,
+# BoltIcon, MuscleIcon, TrophyIcon, CrownIcon, StarIcon, MedalIcon,
+# DiamondIcon, CheckIcon, LightbulbIcon, CalendarIcon — plus a MilestoneIcon
+# discriminator component that switches by an `iconKind` field added to the
+# STREAK_MILESTONES array. Legacy `icon` emoji string preserved for any
+# server-side allMilestones payload that still ships it. Share button +
+# milestone claim buttons gain type="button" + per-instance aria-label.
+# Streak number gains role="status". Progress bar becomes role="progressbar"
+# with valuenow/min/max. At-Risk banner gains role="alert". Loading wrapper
+# gains role="status". Calendar days gain per-day aria-label. Same surface-
+# specific pattern as PR #320/#322/#324/#327/#328/#329.
+TRAIN-STREAKS-A11Y-1
