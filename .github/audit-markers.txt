@@ -1086,3 +1086,12 @@ TRAIN-WIRE-EMPTY-8b
 # preserves the existing selectedHand state + click-to-select handler via
 # onCellClick + highlight props. The Details Panel below is unchanged.
 TRAIN-WIRE-RANGE-MATRIX-1
+
+# ─── Phase-6 adoption: useTrainingFeedback batch 6 ──────────────────────────
+# TRAIN-WIRE-FX-6a — pages/hub/training/bounty-trainer.js. fb.correct() /
+# fb.incorrect() inside handleAnswer based on `action === scenario.correctAction`.
+TRAIN-WIRE-FX-6a
+# TRAIN-WIRE-FX-6b — pages/hub/training/quiz-gauntlet.js. fb.correct() /
+# fb.incorrect() right after `isCorrect = res !== 'wrong'` derives — covers
+# both 'correct' and 'close' as correct, 'wrong' and 'timeout' as incorrect.
+TRAIN-WIRE-FX-6b

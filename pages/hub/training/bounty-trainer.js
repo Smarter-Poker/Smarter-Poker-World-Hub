@@ -13,6 +13,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+// TRAIN-WIRE-FX-6a — adoption: feedback hook
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOUNTY FORMAT DEFINITIONS
@@ -203,6 +205,7 @@ export default function BountyTrainerPage() {
   const [calcPot, setCalcPot] = useState(1.5);
 
   useTrainingBus('bounty-trainer');
+  const fb = useTrainingFeedback();
 
   useEffect(() => {
     try {
@@ -235,10 +238,13 @@ export default function BountyTrainerPage() {
       setShowResult(true);
       setTotalAnswered((prev) => prev + 1);
       if (action === scenario.correctAction) {
+        fb.correct();
         setScore((prev) => prev + 1);
+      } else {
+        fb.incorrect();
       }
     },
-    [scenario]
+    [scenario, fb]
   );
 
   const nextScenario = useCallback(() => {
