@@ -573,3 +573,15 @@ TRAIN-AGGREGATE-A11Y-1
 # gain type+aria-label. Title raised to <h1>. Same surface-specific
 # pattern as PR #320/#322/#324/#327-#340.
 TRAIN-BANKROLL-A11Y-1
+
+# ─── /hub/training/tilt-guard — surface a11y polish ─────────────────────────
+# TRAIN-TILTGUARD-A11Y-1 — pages/hub/training/tilt-guard.js. Tilt guard
+# surface had ten emoji icons across MENTAL_TIPS (🧘 🎯 🚶 💡 💧 🛑) and
+# WARMUP_GAMES (🃏 🧮 🧭) plus a 🧘 breathing CTA, ✅ exercise-complete,
+# and ← back. Replacements: SVG TipIcon (meditate/target/walk/lightbulb/
+# water/stop) and WarmupIcon (cards/abacus/compass) discriminators routed
+# through new `iconKind` fields on each data row; legacy emoji preserved.
+# CheckSquareIcon replaces ✅. MeditateIcon used standalone for the
+# breathing CTA. BackArrowIcon replaces ←. Same surface-specific pattern
+# as PR #320/#322/#324/#327-#341.
+TRAIN-TILTGUARD-A11Y-1
