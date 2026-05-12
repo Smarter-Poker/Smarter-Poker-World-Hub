@@ -1753,3 +1753,20 @@ TRAIN-WIRE-FEEDBACK-V2-5
 # pattern — verdict band routed through FeedbackCard, leaving the GTO
 # Frequencies breakdown body inline.
 TRAIN-WIRE-FEEDBACK-V2-6
+
+# ─── Phase-31: Trivia consolidation — shared TriviaAnswerOption ─────────────
+# TRAIN-TRIVIA-ANSWER-OPTION-1 — src/components/trivia/TriviaAnswerOption.jsx.
+# New shared answer-button primitive for all trivia game-mode pages. Wraps
+# the bg/border/letter/✓/✗/eliminated pattern that was previously copy-
+# pasted across five 1,000+ line files (mixed/pvp/tournaments/endless/
+# survival-game). Render contract is intentionally identical to the prior
+# inline JSX so existing trivia CSS (.option, .option.correct, .option.wrong,
+# .option.selected) keeps working unchanged. Lucide React icons reused.
+TRAIN-TRIVIA-ANSWER-OPTION-1
+# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1 — pages/hub/trivia/mixed.js. Replaces
+# 30-line inline options.map block with <TriviaAnswerOption /> usage.
+TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1
+# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2 — pages/hub/trivia/pvp.js. Same swap.
+TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2
+# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3 — pages/hub/trivia/tournaments.js. Same.
+TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3
