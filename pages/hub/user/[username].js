@@ -2087,6 +2087,7 @@ export default function UserProfilePage() {
       if (!profile?.id) return;
       const uid = currentUser?.id;
       const sid = socialIdRef.current || profile.id;
+      const pid = profile.id; // Always include profile.id (socialId may differ - BUG-6 FIX)
       // Two-direction queries (matches Friends API pattern) — refresh count AND button state
       Promise.all([
         supabase
@@ -2101,18 +2102,17 @@ export default function UserProfilePage() {
           .eq('status', 'accepted'),
         ...(uid
           ? [
+              // BUG-6 FIX: check both socialId and profile.id so friendship detection is symmetric
               supabase
                 .from('friendships')
                 .select('status')
                 .eq('user_id', uid)
-                .eq('friend_id', sid)
-                .maybeSingle(),
+                .or(`friend_id.eq.${sid}${pid !== sid ? `,friend_id.eq.${pid}` : ''}`),
               supabase
                 .from('friendships')
                 .select('status')
-                .eq('user_id', sid)
-                .eq('friend_id', uid)
-                .maybeSingle(),
+                .or(`user_id.eq.${sid}${pid !== sid ? `,user_id.eq.${pid}` : ''}`)
+                .eq('friend_id', uid),
             ]
           : []),
       ])
@@ -2123,7 +2123,7 @@ export default function UserProfilePage() {
           setStats((prev) => ({ ...prev, friends: friendSet.size }));
           // Also sync button state if logged in
           if (uid) {
-            const allF = [f1?.data, f2?.data].filter(Boolean);
+            const allF = [...(f1?.data || []), ...(f2?.data || [])];
             if (allF.some((f) => f.status === 'accepted')) {
               setIsFriend(true);
               setFriendRequestSent(false);
@@ -2819,23 +2819,23 @@ export default function UserProfilePage() {
       };
       refreshContent();
       // Also re-query friendship status (button state can go stale on accept/remove)
+      // BUG-6 FIX: check both socialId (horse identity) AND profile.id for complete coverage
       if (currentUser?.id && profile?.id) {
         const sid2 = socialIdRef.current || profile.id;
+        const pid2 = profile.id;
         const [f1, f2] = await Promise.all([
           supabase
             .from('friendships')
             .select('status')
             .eq('user_id', currentUser.id)
-            .eq('friend_id', sid2)
-            .maybeSingle(),
+            .or(`friend_id.eq.${sid2}${pid2 !== sid2 ? `,friend_id.eq.${pid2}` : ''}`),
           supabase
             .from('friendships')
             .select('status')
-            .eq('user_id', sid2)
-            .eq('friend_id', currentUser.id)
-            .maybeSingle(),
+            .or(`user_id.eq.${sid2}${pid2 !== sid2 ? `,user_id.eq.${pid2}` : ''}`)
+            .eq('friend_id', currentUser.id),
         ]);
-        const allF = [f1.data, f2.data].filter(Boolean);
+        const allF = [...(f1.data || []), ...(f2.data || [])];
         if (allF.some((f) => f.status === 'accepted')) {
           setIsFriend(true);
           setFriendRequestSent(false);
