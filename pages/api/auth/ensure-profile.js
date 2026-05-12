@@ -246,6 +246,30 @@ export default async function handler(req, res) {
 
           console.info(`[ANTIGRAVITY] ✓ Profile created — username: ${finalUsername}`);
 
+          // ── MySpace Tom: Auto-friend + auto-follow Dan Bekavac for every new user ──
+          const DAN_BEKAVAC_ID = '47965354-0e56-43ef-931c-ddaab82af765';
+          if (user_id !== DAN_BEKAVAC_ID) {
+            (async () => {
+              try {
+                await Promise.all([
+                  // Bidirectional friendship (accepted immediately)
+                  getSupabase().from('friendships').upsert(
+                    [{ user_id, friend_id: DAN_BEKAVAC_ID, status: 'accepted' },
+                     { user_id: DAN_BEKAVAC_ID, friend_id: user_id, status: 'accepted' }],
+                    { onConflict: 'user_id,friend_id', ignoreDuplicates: true }
+                  ),
+                  // Auto-follow Dan
+                  getSupabase().from('social_follows').upsert(
+                    { follower_id: user_id, following_id: DAN_BEKAVAC_ID },
+                    { onConflict: 'follower_id,following_id', ignoreDuplicates: true }
+                  ),
+                ]);
+              } catch (e) {
+                console.warn('[ANTIGRAVITY] MySpace Tom auto-connect failed (non-fatal):', e?.message || e);
+              }
+            })();
+          }
+
           return res.json({
               status: 'CREATED',
               profile: newProfile,
