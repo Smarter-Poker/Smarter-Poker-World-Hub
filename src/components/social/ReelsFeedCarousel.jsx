@@ -245,7 +245,23 @@ function ReelViewer({ reels, startIndex, onClose }) {
   };
 
   const [currentIndex, setCurrentIndex] = useState(startIndex);
-  const [muted, setMuted] = useState(true); // Start MUTED for mobile autoplay compliance — unmute after playback confirmed
+  const [muted, setMuted] = useState(() => {
+    // BUG FIX (2026-05-12 autoplay-final): muted is now bound to React state
+    // (JSX uses muted={muted}, not muted={true}). Initialize from localStorage
+    // so the user's unmute decision STICKS across reloads — same pattern
+    // TikTok / Facebook use. First load defaults to muted=true (cold autoplay
+    // is allowed without gesture); after the first gesture the preference
+    // flips and persists indefinitely.
+    if (typeof window === 'undefined') return true;
+    try { return localStorage.getItem('sp:reels:muted') !== '0'; }
+    catch (_) { return true; }
+  });
+  // Persist muted preference across reloads — see useState initializer above.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { localStorage.setItem('sp:reels:muted', muted ? '1' : '0'); }
+    catch (_) { /* sandboxed contexts may throw */ }
+  }, [muted]);
   const [liked, setLiked] = useState({});
   const [disliked, setDisliked] = useState({});
   const [following, setFollowing] = useState({});
@@ -2049,7 +2065,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
           // synchronously inside the playing event IF the user has
           // gestured this tab session — see the global gesture-capture
           // useEffect added above.
-          muted={true}
+          muted={muted}
           playsInline
           poster={currentReel.thumbnail_url || undefined}
           style={{

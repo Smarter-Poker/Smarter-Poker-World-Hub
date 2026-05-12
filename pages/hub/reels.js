@@ -63,7 +63,23 @@ export default function ReelsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [muted, setMuted] = useState(true); // Start MUTED — required for mobile autoplay (mute=1 in URL)
+  const [muted, setMuted] = useState(() => {
+    // BUG FIX (2026-05-12 autoplay-final): muted is now bound to React state
+    // (JSX uses muted={muted}, not muted={true}). Initialize from localStorage
+    // so the user's unmute decision STICKS across reloads — same pattern
+    // TikTok / Facebook use. First load defaults to muted=true (cold autoplay
+    // is allowed without gesture); after the first gesture the preference
+    // flips and persists indefinitely.
+    if (typeof window === 'undefined') return true;
+    try { return localStorage.getItem('sp:reels:muted') !== '0'; }
+    catch (_) { return true; }
+  });
+  // Persist muted preference across reloads — see useState initializer above.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { localStorage.setItem('sp:reels:muted', muted ? '1' : '0'); }
+    catch (_) { /* sandboxed contexts may throw */ }
+  }, [muted]);
   const [userWantsSound, setUserWantsSound] = useState(true); // User preference — auto-unmute after YT confirms playing
   // Auto-play immediately - videos start muted per browser policy, unmute after onStateChange confirms playing
   const [liked, setLiked] = useState({});
@@ -2769,7 +2785,7 @@ export default function ReelsPage() {
                 // muted=false synchronously inside the playing event IF
                 // the user has gestured this tab session (see the global
                 // gesture-capture useEffect above).
-                muted={true}
+                muted={muted}
                 onPlay={() => setIsPaused(false)}
                 onPlaying={(e) => {
                   // Successful playback — clear the stall watchdog so it
