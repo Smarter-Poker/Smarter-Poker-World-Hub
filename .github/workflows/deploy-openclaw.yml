@@ -1,17 +1,15 @@
 name: Deploy Open Claw Cron Dispatcher
 
-# Auto-deploys scripts/openclaw-cron-dispatcher.py to the openclaw-dispatcher
-# VM on Hetzner when it changes on main, and restarts systemd openclaw.service.
+# Auto-deploys scripts/openclaw-cron-dispatcher.py to the openclaw VM on
+# Hetzner whenever it changes on main, and restarts systemd openclaw.service.
 #
-# Required secrets (set once via GitHub Settings → Secrets):
-#   OPENCLAW_SSH_PRIVATE_KEY — private key authorized on the openclaw VM
-#   OPENCLAW_HOST            — public IP or hostname
-#   OPENCLAW_SSH_USER        — defaults to 'root' if unset
+# Uses the SAME repo secrets as the YT worker deploy
+# (HETZNER_SSH_PRIVATE_KEY, HETZNER_HOST, HETZNER_SSH_USER) — Open Claw runs
+# on the same Hetzner CX22 box as the worker, just under a different systemd
+# unit (openclaw.service) and a different install path (/opt/openclaw/).
 #
-# Until those secrets are set the workflow runs but skips deploy (no-op).
-# That means we can ship the dispatcher change to main today and the
-# auto-deploy starts working as soon as Dan adds the secrets — no code
-# change needed.
+# Note: this workflow uses `on: push`, NOT `schedule:`, so it does not
+# violate the cron-governance rule in CLAUDE.md §11.5.
 
 on:
   push:
@@ -33,47 +31,57 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Detect whether secrets are configured (skip if not)
-        id: gate
-        env:
-          KEY: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
-          HOST: ${{ secrets.OPENCLAW_HOST }}
-        run: |
-          if [ -z "$KEY" ] || [ -z "$HOST" ]; then
-            echo "::notice::OPENCLAW_SSH_PRIVATE_KEY or OPENCLAW_HOST not set — skipping deploy."
-            echo "::notice::To enable: set both repo secrets and re-run this workflow."
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Set up SSH agent
-        if: steps.gate.outputs.configured == 'true'
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
 
-      - name: Trust openclaw host key
-        if: steps.gate.outputs.configured == 'true'
+      - name: Trust Hetzner host key
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.OPENCLAW_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Diff local dispatcher vs remote (idempotent skip if same)
+        id: diff
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          LOCAL_SHA=$(sha256sum scripts/openclaw-cron-dispatcher.py | cut -d' ' -f1)
+          # tolerate missing remote file (first deploy) — sha256sum exits 1 then,
+          # which would `set -e` us out without the `|| echo`
+          REMOTE_SHA=$(ssh -o BatchMode=yes "$USER@$HOST" \
+            "sudo sha256sum /opt/openclaw/dispatcher.py 2>/dev/null | cut -d' ' -f1 || echo missing")
+          echo "local:  $LOCAL_SHA"
+          echo "remote: $REMOTE_SHA"
+          if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::dispatcher SHA unchanged — skipping scp + restart"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: scp dispatcher + restart systemd + verify
-        if: steps.gate.outputs.configured == 'true'
+        if: steps.diff.outputs.skip != 'true'
         env:
-          HOST: ${{ secrets.OPENCLAW_HOST }}
-          USER: ${{ secrets.OPENCLAW_SSH_USER || 'root' }}
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
         run: |
+          # Use a staging path the openclaw user can write to without sudo,
+          # then move into /opt/openclaw/ as root via sudo.
           scp scripts/openclaw-cron-dispatcher.py \
             "$USER@$HOST:/tmp/openclaw-cron-dispatcher.py"
           ssh "$USER@$HOST" '
             set -e
+            # Make sure the install dir exists (idempotent — first deploy safe)
+            sudo mkdir -p /opt/openclaw
             sudo mv /tmp/openclaw-cron-dispatcher.py /opt/openclaw/dispatcher.py
             sudo chmod 0644 /opt/openclaw/dispatcher.py
+            # Restart the systemd unit. is-active check before we move on so a
+            # crashed dispatcher fails this step instead of silently dying.
             sudo systemctl restart openclaw.service
             sleep 3
             sudo systemctl is-active openclaw.service
-            echo "--- last 25 dispatcher log lines ---"
-            sudo journalctl -u openclaw.service -n 25 --no-pager
+            echo "--- last 30 dispatcher log lines ---"
+            sudo journalctl -u openclaw.service -n 30 --no-pager
           '
