@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       type: 'live',
       title: 'Live Now',
       message: `${displayName} is live: ${title || 'Live Stream'}`,
-      link: `/hub/social-media?stream=${streamId}`,
+      link: `/hub/lives?id=${streamId}`,
       actor_id: user.id,
       read: false,
       data: { stream_id: streamId, actor_avatar: profile?.avatar_url || null },

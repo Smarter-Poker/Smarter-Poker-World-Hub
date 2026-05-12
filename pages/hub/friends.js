@@ -604,12 +604,15 @@ function FriendsPage() {
         setIsSearching(true);
         const timer = setTimeout(async () => {
             try {
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
-                    .neq('id', user?.id || '')
-                    .limit(50);
+                // BUG FIX: Previously used client-side Supabase query which is
+                // subject to RLS policies that silently return empty results.
+                // Now uses server-side API with service_role to bypass RLS.
+                const token = getAccessToken();
+                const res = await fetch(`/api/friends?action=search&q=${encodeURIComponent(searchQuery.trim())}`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                const json = await res.json().catch(() => ({}));
+                const data = json?.data || [];
 
                 if (data && mounted.current) {
                     // Apply friend filter

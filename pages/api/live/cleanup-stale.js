@@ -6,9 +6,9 @@
  * user pulling their feed sweeps any stale (timed-out) live streams to
  * status='ended'. Cheap, requires no dedicated infrastructure.
  *
- * Stale = status='live' AND no preview_updated_at activity in 60 seconds.
+ * Stale = status='live' AND no preview_updated_at activity in 180 seconds (Bug25: increased from 60s).
  * The broadcaster's StreamPreviewCapture uploads every ~25s while alive,
- * so a 60s gap means they're disconnected (lost connection / power /
+ * so a 180s gap means they're disconnected (lost connection / power /
  * closed app).
  *
  * Auto-saves recordings rather than deleting them — the recording is
@@ -45,12 +45,12 @@ export default async function handler(req, res) {
             .from('live_streams')
             .select('id, broadcaster_id, video_url, started_at, preview_updated_at')
             .eq('status', 'live')
-            .lt('started_at', new Date(Date.now() - 60_000).toISOString());
+            .lt('started_at', new Date(Date.now() - 180_000).toISOString());
 
         // Filter to those that are also stale by preview_updated_at threshold
         const trulyStale = (stale || []).filter(s => {
             if (!s.preview_updated_at) return true; // never had a preview update
-            return new Date(s.preview_updated_at).getTime() < Date.now() - 60_000;
+            return new Date(s.preview_updated_at).getTime() < Date.now() - 180_000;
         });
 
         if (trulyStale.length === 0) {
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
 
         // 2. Use the SQL function to atomically end them all (server clock).
         const { data: rpcResult, error: rpcErr } = await supabase
-            .rpc('fn_auto_end_stale_streams', { p_timeout_seconds: 60 });
+            .rpc('fn_auto_end_stale_streams', { p_timeout_seconds: 180 });
         if (rpcErr) {
             console.warn('[live/cleanup-stale] RPC error:', rpcErr.message);
             return res.status(500).json({ error: rpcErr.message });

@@ -66,6 +66,7 @@ class LiveStreamService {
     this.onReconnected = null;
     this.onParticipantListChange = null;
     this.onParticipantsUpdate = null; // FEATURE 6: Expose participant map for split-screen
+    this.onStreamEndedExternally = null; // Bug25: broadcaster notified when stream is externally ended
     this.onConnectionQualityChange = null;
     this.onGiftReceived = null;
     this._viewerCountDebounceTimer = null;
@@ -627,6 +628,27 @@ class LiveStreamService {
       this.cameraMode = this.cameraMode === 'user' ? 'environment' : 'user'; // Revert
       throw err;
     }
+  }
+
+  /**
+   * Bug20: Replace the outgoing video track with a new one (used for canvas beauty filter).
+   * Identical pattern to flipCamera — unpublish current video track, publish replacement.
+   * @param {MediaStreamTrack} newTrack - the new video track (e.g. from canvas.captureStream(30))
+   */
+  async replaceVideoTrack(newTrack) {
+    if (!this.room?.localParticipant) return;
+    const localParticipant = this.room.localParticipant;
+    const videoPublications = [...localParticipant.trackPublications.values()].filter(
+      (pub) => pub.track?.kind === Track.Kind.Video
+    );
+    for (const pub of videoPublications) {
+      if (pub.track) await localParticipant.unpublishTrack(pub.track);
+    }
+    await localParticipant.publishTrack(newTrack, {
+      name: 'camera',
+      simulcast: true,
+      videoResolution: VideoPresets.h720,
+    });
   }
 
   /**
@@ -1267,6 +1289,10 @@ class LiveStreamService {
               } else {
                 this.leaveStream();
               }
+            }
+            // Bug25: notify broadcaster when stream is externally ended (lost connection / power / closed app)
+            if (payload.new.status === 'ended' && this.isBroadcaster) {
+              this.onStreamEndedExternally?.();
             }
           }
         }

@@ -117,12 +117,18 @@ export default async function handler(req, res) {
                 const convId = c.conversation_id || c.id;
                 const meta = convMetaMap[convId];
                 const otherUserId = c.other_user_id || null;
+                // RPC returns COALESCE(display_name, username, full_name) as
+                // other_user_username — this is the best human-readable name.
+                // Map it to display_name + full_name so the client can prefer
+                // display names over raw usernames (critical for Google OAuth
+                // users who update their profile name after sign-up).
+                const displayName = c.other_user_username || null;
                 const otherUser = otherUserId
                     ? {
                           id: otherUserId,
-                          username: c.other_user_username || null,
-                          display_name: c.other_user_username || null,
-                          full_name: c.other_user_username || null,
+                          username: displayName,
+                          display_name: displayName,
+                          full_name: displayName,
                           avatar_url: c.other_user_avatar || null,
                       }
                     : null;

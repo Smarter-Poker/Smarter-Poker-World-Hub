@@ -2161,7 +2161,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
 
             <Avatar
                 src={otherUser?.avatar_url}
-                name={otherUser?.username || otherUser?.display_name || otherUser?.full_name || otherUser?.name}
+                name={otherUser?.full_name || otherUser?.display_name || otherUser?.username || otherUser?.name}
                 size={56}
                 online={isOtherOnline}
             />
@@ -2182,7 +2182,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                             <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
                         </svg>
                     )}
-                    {otherUser?.username || otherUser?.display_name || otherUser?.full_name || otherUser?.name || 'Unknown'}
+                    {otherUser?.full_name || otherUser?.display_name || otherUser?.username || otherUser?.name || 'Unknown'}
                 </div>
                 <div style={{
                     fontSize: 13,
@@ -4352,7 +4352,7 @@ function MessengerPage() {
                 const errData = await resp.json().catch(() => ({}));
                 throw new Error(errData.error || `Forward failed (${resp.status})`);
             }
-            setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.username || 'Conversation'}` });
+            setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.full_name || targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
             // Update the target conversation's sidebar preview (global listener skips own messages)
             const forwardedAt = new Date().toISOString();
             setConversations(prev => prev.map(c =>
@@ -4421,7 +4421,7 @@ function MessengerPage() {
             created_at: new Date().toISOString(),
             sender_id: user.id,
             status: 'sending',
-            profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
+            profiles: { id: user.id, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url },
             _blobUrl: mediaPreview, // Track for cleanup
         };
         setMessages(prev => [...prev, tempMessage]);
@@ -4530,7 +4530,7 @@ function MessengerPage() {
             created_at: new Date().toISOString(),
             sender_id: user.id,
             status: 'sending',
-            profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
+            profiles: { id: user.id, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url },
         };
         setMessages(prev => [...prev, tempMessage]);
         setToast({ type: 'success', message: 'Sending Voice Message...' });
@@ -4955,8 +4955,11 @@ function MessengerPage() {
 
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
-        const callerName = user.user_metadata?.full_name || user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
-        const callerAvatar = user.user_metadata?.avatar_url || null;
+        // BUG FIX: Use profile-fetched name (user.full_name from line 2651), not
+        // user.user_metadata.full_name which is stale Google OAuth data for Google
+        // sign-in users who changed their profile name after registration.
+        const callerName = user.full_name || user.username || user.user_metadata?.full_name || user.user_metadata?.username || 'Someone';
+        const callerAvatar = user.avatar_url || user.user_metadata?.avatar_url || null;
 
         // Set calling state to show "Calling..." UI
         setCallingUser(otherUser);
@@ -5409,9 +5412,9 @@ function MessengerPage() {
                                     onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.username} size={36} />
+                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.full_name || conv.otherUser?.display_name || conv.otherUser?.username} size={36} />
                                     <div>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.username || conv.otherUser?.display_name || conv.otherUser?.full_name}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.full_name || conv.otherUser?.display_name || conv.otherUser?.username}</div>
                                     </div>
                                 </button>
                             ))}
@@ -5785,7 +5788,7 @@ function MessengerPage() {
                             {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
                             <div>
                                 <div style={{ color: 'white', fontWeight: 600 }}>
-                                    {callType === 'video' ? 'Video' : 'Voice'} Call with {activeConversation?.otherUser?.username || 'User'}
+                                    {callType === 'video' ? 'Video' : 'Voice'} Call with {activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
                                 </div>
                                 <div style={{ color: '#888', fontSize: 12 }}>Smarter Poker Video</div>
                             </div>
@@ -5811,10 +5814,10 @@ function MessengerPage() {
                     {/* LiveKit Video Component — BUG-1 FIX: Pass auth token for API calls */}
                     <LiveKitCall
                         roomName={callRoomName}
-                        participantName={user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User'}
+                        participantName={user?.full_name || user?.username || user?.user_metadata?.username || 'User'}
                         participantId={user?.id}
                         callType={callType}
-                        otherUserName={activeConversation?.otherUser?.username}
+                        otherUserName={activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username}
                         onEnd={endCall}
                         authToken={getAccessToken()}
                     />

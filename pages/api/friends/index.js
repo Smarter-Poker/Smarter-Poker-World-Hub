@@ -38,6 +38,23 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
       const { action = 'list' } = req.query;
 
+      // ═══ SEARCH: Server-side profile search (bypasses RLS) ═══
+      if (action === 'search') {
+        const q = (req.query.q || '').trim();
+        if (!q) return res.status(200).json({ success: true, data: [] });
+        const { data, error } = await getSupabase()
+          .from('profiles')
+          .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, is_vip')
+          .or(`username.ilike.%${q}%,full_name.ilike.%${q}%,display_name.ilike.%${q}%`)
+          .neq('id', userId)
+          .limit(50);
+        if (error) {
+          console.warn('[Friends] Search error:', error);
+          return res.status(500).json({ success: false, error: 'Search failed' });
+        }
+        return res.status(200).json({ success: true, data: data || [] });
+      }
+
       try {
         // ═══════════════════════════════════════════════════════════════════
         // HELPER: Resolve friend IDs → profile objects (two-query approach)
