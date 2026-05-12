@@ -342,22 +342,8 @@ try{
         # For plain .ts — skip (TypeScript type errors need tsc, not node -c)
         echo "$file" | grep -qE '\.ts$' && continue
 
-        # For .js files — MUST detect JSX before deciding parser.
-        # node -c is JSX-blind: it passes broken JSX silently (confirmed May 12, 2026).
-        # If the file contains JSX angle-bracket syntax, use Babel.
-        # Heuristic: presence of <ComponentName or JSX-style attributes in a return/render context.
-        JS_HAS_JSX=0
-        if grep -qE '\breturn\s*\(' "$file" 2>/dev/null && \
-           grep -qE '<[A-Za-z][A-Za-z0-9.]*[\s/>]' "$file" 2>/dev/null; then
-            JS_HAS_JSX=1
-        fi
-        # Also flag pages/ and components/ .js files unconditionally (always JSX in Next.js)
-        if echo "$file" | grep -qE '^(pages/|components/|src/components/)'; then
-            JS_HAS_JSX=1
-        fi
-
-        if [ "$JS_HAS_JSX" -eq 1 ] && [ -n "$BABEL_PARSER" ]; then
-            # Use Babel for JSX-containing .js files
+        if [ -n "$BABEL_PARSER" ]; then
+            # Use Babel for ALL .js files (node -c is blind to JSX and CJS/ESM mixed syntax errors)
             PARSE_OUTPUT=$(node -e "
 const fs=require('fs');
 const {parse}=require('$BABEL_PARSER');
@@ -372,8 +358,8 @@ try{
   process.exit(1);
 }" 2>&1)
             if [ $? -ne 0 ]; then
-                echo -e "${RED}  ✗ JSX SYNTAX ERROR in .js file: ${file}${NC}"
-                echo "    (node -c is JSX-blind — Babel caught this; node -c would have missed it)"
+                echo -e "${RED}  ✗ SYNTAX ERROR in .js file: ${file}${NC}"
+                echo "    (node -c is blind — Babel caught this; node -c would have missed it)"
                 echo "    $PARSE_OUTPUT" | head -3
                 echo ""
                 SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
