@@ -308,15 +308,27 @@ export default function CreateHomeGamePage() {
         router.push('/auth/login?redirect=/hub/commander/home-games/create');
         return;
       }
-      // Dan-fix/bearer-null (2026-05-12): use async getFreshAccessToken which
-      // auto-refreshes when the JWT is near expiry; getAccessToken returned null
-      // when token was being refreshed in the background, producing literal
-      // "Bearer null" which commander rejects -> silent 401.
-      const { getFreshAccessToken } = await import('../../../../src/lib/authUtils');
-      const token = await getFreshAccessToken();
+      // Dan-fix/diag-no-redirect (2026-05-12): the PR #491 hard-redirect on
+      // null token was the silent submit reset. PageErrorBoundary keys on
+      // router.asPath — any router.push remounts the page and wipes form state.
+      // Strategy: gather the token best-effort, never redirect from submit,
+      // and surface every failure inline + console for diagnosis.
+      let token = null;
+      try {
+        const { getFreshAccessToken } = await import('../../../../src/lib/authUtils');
+        token = await getFreshAccessToken();
+        console.log('[home-games-create] getFreshAccessToken returned:', token ? `${token.substring(0,20)}... (length ${token.length})` : 'NULL');
+      } catch (tokenErr) {
+        console.error('[home-games-create] getFreshAccessToken threw:', tokenErr);
+      }
       if (!token) {
-        setError('Session expired. Please sign in again.');
-        router.push('/auth/login?redirect=/hub/commander/home-games/create');
+        // Fall back to sync token; might be stale but at least makes the network call
+        token = getAccessToken();
+        console.warn('[home-games-create] using sync getAccessToken fallback:', token ? 'ok' : 'NULL');
+      }
+      if (!token) {
+        setError('Could not retrieve authentication token. Open DevTools console for details, then try again.');
+        console.error('[home-games-create] BOTH token paths returned null. Auth state:', { authUser, hasLocalStorage: typeof localStorage !== 'undefined', localStorageAuth: typeof localStorage !== 'undefined' ? localStorage.getItem('smarter-poker-auth')?.slice(0,80) : 'n/a' });
         return;
       }
 
@@ -382,18 +394,25 @@ export default function CreateHomeGamePage() {
         },
       };
 
-      const res = await fetch('/api/commander/home-games/groups', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          // Phase 41/audit-fix-B9: opportunistic idempotency. Server may not
-          // honor it yet, but sending it now means once it does, retries
-          // after a flaky network won't duplicate the group.
-          'X-Idempotency-Key': submissionTokenRef.current,
-        },
-        body: JSON.stringify(payload)
-      });
+      console.log('[home-games-create] About to POST to /api/commander/home-games/groups', { payloadKeys: Object.keys(payload), tokenLen: token ? token.length : 0 });
+      let res;
+      try {
+        res = await fetch('/api/commander/home-games/groups', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'X-Idempotency-Key': submissionTokenRef.current,
+          },
+          body: JSON.stringify(payload)
+        });
+        console.log('[home-games-create] fetch returned:', { status: res.status, ok: res.ok, url: res.url });
+      } catch (fetchErr) {
+        console.error('[home-games-create] fetch threw:', fetchErr);
+        setError(`Network error: ${fetchErr.message || fetchErr}. Check DevTools Network tab for details.`);
+        setSubmitting(false);
+        return;
+      }
 
       // Rotate the token on 2xx (success) or 4xx (server saw & rejected our input).
       // Keep it on 5xx / network errors so a safe retry doesn't duplicate.
