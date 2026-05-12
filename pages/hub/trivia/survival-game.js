@@ -26,7 +26,6 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
-import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
@@ -35,6 +34,7 @@ import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diam
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
+import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 const DAILY_DIAMOND_CAP = 10;
@@ -67,9 +67,11 @@ export default function SurvivalGamePage() {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [correctCount, setCorrectCount] = useState(0);
     const [incorrectCount, setIncorrectCount] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [showResult, setShowResult] = useState(false);
     const [totalDiamondsEarned, setTotalDiamondsEarned] = useState(0);
+
+    // TRAIN-WIRE-TRIVIA-HOOK-5 — selectedAnswer/showResult managed by shared hook
+    const currentQuestion = questions[currentQuestionIndex];
+    const trivia = useTriviaQuestion(currentQuestion);
 
     // 50/50 Lifeline state
     const [fiftyFiftyUsedFree, setFiftyFiftyUsedFree] = useState(false); // One free per level
@@ -184,7 +186,7 @@ export default function SurvivalGamePage() {
 
     // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake (respects settings)
     useEffect(() => {
-        if (!isTimerRunning || showResult) {
+        if (!isTimerRunning || trivia.showResult) {
             if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setScreenShake(false);
@@ -234,7 +236,7 @@ export default function SurvivalGamePage() {
             if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
             closeHeartbeatAudio();
         };
-    }, [isTimerRunning, showResult, timeLeft, settings]);
+    }, [isTimerRunning, trivia.showResult, timeLeft, settings]);
 
     // Handle timeout - count as wrong answer
     function handleTimeOut() {
@@ -244,7 +246,7 @@ export default function SurvivalGamePage() {
 
         setIncorrectCount(prev => prev + 1);
         answersRef.current.push(false); // Track timed-out answer as incorrect
-        setShowResult(true);
+        trivia.setShowResult(true);
 
         const config = LEVEL_CONFIG[currentLevel - 1];
         const remainingQuestions = QUESTIONS_PER_LEVEL - currentQuestionIndex - 1;
@@ -257,8 +259,7 @@ export default function SurvivalGamePage() {
                 setGameState('gameOver');
             } else {
                 setCurrentQuestionIndex(prev => prev + 1);
-                setSelectedAnswer(null);
-                setShowResult(false);
+                trivia.reset();
                 setEliminatedOptions([]);
                 setSkipUsedThisQuestion(false);
                 setDoubleChanceActive(false);
@@ -391,8 +392,7 @@ export default function SurvivalGamePage() {
         setCurrentQuestionIndex(0);
         setCorrectCount(0);
         setIncorrectCount(0);
-        setSelectedAnswer(null);
-        setShowResult(false);
+        trivia.reset();
         answersRef.current = []; // Reset per-question tracking for new level
         idempotencyRefs.current = {}; // Reset idempotency keys for new level
         setFiftyFiftyUsedFree(false);
@@ -412,7 +412,7 @@ export default function SurvivalGamePage() {
 
     // 50/50 Lifeline - removes 2 wrong answers
     async function useFiftyFifty() {
-        if (eliminatedOptions.length > 0 || showResult) return; // Already used on this question or answered
+        if (eliminatedOptions.length > 0 || trivia.showResult) return; // Already used on this question or answered
 
         const currentQuestion = questions[currentQuestionIndex];
         if (!currentQuestion) return;
@@ -470,7 +470,7 @@ export default function SurvivalGamePage() {
 
     // Skip Question Function (costs 5💎)
     async function useSkipQuestion() {
-        if (showResult || skipUsedThisQuestion) return;
+        if (trivia.showResult || skipUsedThisQuestion) return;
         if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) {
             // Lifeline limit reached — silently prevent
             return;
@@ -505,8 +505,7 @@ export default function SurvivalGamePage() {
 
         if (currentQuestionIndex < QUESTIONS_PER_LEVEL - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
-            setSelectedAnswer(null);
-            setShowResult(false);
+            trivia.reset();
             setEliminatedOptions([]);
             setSkipUsedThisQuestion(false);
             setDoubleChanceActive(false);
@@ -518,7 +517,7 @@ export default function SurvivalGamePage() {
     }
 
     async function useDoubleChance() {
-        if (showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
+        if (trivia.showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
         if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) {
             // Lifeline limit reached — silently prevent
             return;
@@ -554,7 +553,7 @@ export default function SurvivalGamePage() {
 
     function selectAnswer(index) {
 
-        if (selectedAnswer !== null || showResult) return;
+        if (trivia.selectedAnswer !== null || trivia.showResult) return;
 
         // Stop timer immediately on answer
         setIsTimerRunning(false);
@@ -577,8 +576,8 @@ export default function SurvivalGamePage() {
         const currentQuestion = questions[currentQuestionIndex];
         const isCorrect = index === currentQuestion?.correct_index;
 
-        setSelectedAnswer(index);
-        setShowResult(true);
+        trivia.setSelectedAnswer(index);
+        trivia.setShowResult(true);
 
         if (isCorrect) {
             setCorrectCount(prev => prev + 1);
@@ -613,8 +612,7 @@ export default function SurvivalGamePage() {
                 setGameState('gameOver');
             } else {
                 setCurrentQuestionIndex(prev => prev + 1);
-                setSelectedAnswer(null);
-                setShowResult(false);
+                trivia.reset();
                 setEliminatedOptions([]);
                 setSkipUsedThisQuestion(false);
                 setDoubleChanceActive(false);
@@ -803,7 +801,6 @@ export default function SurvivalGamePage() {
         router.push('/hub/trivia');
     }
 
-    const currentQuestion = questions[currentQuestionIndex];
     const config = LEVEL_CONFIG[currentLevel - 1];
     const progressPercent = ((currentQuestionIndex + 1) / QUESTIONS_PER_LEVEL) * 100;
 
@@ -1282,7 +1279,7 @@ export default function SurvivalGamePage() {
                                         color: correctCount >= config.minCorrect ? '#22c55e' :
                                             incorrectCount > (QUESTIONS_PER_LEVEL - config.minCorrect) ? '#ef4444' : '#fbbf24'
                                     }}>
-                                        Current: {correctCount}/{currentQuestionIndex + (showResult ? 1 : 0)}
+                                        Current: {correctCount}/{currentQuestionIndex + (trivia.showResult ? 1 : 0)}
                                     </span>
                                 </div>
 
@@ -1302,25 +1299,68 @@ export default function SurvivalGamePage() {
                                     </h2>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-5 — shared option primitive (inline variant) */}
-                                        {currentQuestion.options?.map((option, index) => (
-                                            <TriviaAnswerOption
-                                                variant="inline"
-                                                key={index}
-                                                index={index}
-                                                option={toTitleCase(option)}
-                                                selectedAnswer={selectedAnswer}
-                                                correctIndex={currentQuestion.correct_index}
-                                                showResult={showResult}
-                                                eliminated={eliminatedOptions.includes(index)}
-                                                disabled={selectedAnswer !== null || eliminatedOptions.includes(index)}
-                                                onSelect={selectAnswer}
-                                            />
-                                        ))}
+                                        {currentQuestion.options?.map((option, index) => {
+                                            const isEliminated = eliminatedOptions.includes(index);
+                                            let bg = 'rgba(255,255,255,0.05)';
+                                            let borderColor = 'rgba(255,255,255,0.1)';
+
+                                            if (isEliminated && !trivia.showResult) {
+                                                // Eliminated by 50/50
+                                                bg = 'rgba(100, 100, 100, 0.1)';
+                                                borderColor = 'rgba(100, 100, 100, 0.2)';
+                                            } else if (trivia.showResult) {
+                                                if (index === currentQuestion.correct_index) {
+                                                    bg = 'rgba(34, 197, 94, 0.2)';
+                                                    borderColor = '#22c55e';
+                                                } else if (index === trivia.selectedAnswer) {
+                                                    bg = 'rgba(239, 68, 68, 0.2)';
+                                                    borderColor = '#ef4444';
+                                                }
+                                            }
+
+                                            return (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => selectAnswer(index)}
+                                                    disabled={trivia.selectedAnswer !== null || isEliminated}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '14px',
+                                                        padding: '14px 18px',
+                                                        background: bg,
+                                                        border: `2px solid ${borderColor}`,
+                                                        borderRadius: '10px',
+                                                        color: isEliminated ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.9)',
+                                                        fontSize: '15px',
+                                                        textAlign: 'left',
+                                                        cursor: (trivia.selectedAnswer !== null || isEliminated) ? 'default' : 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        textDecoration: isEliminated ? 'line-through' : 'none',
+                                                        opacity: isEliminated ? 0.5 : 1
+                                                    }}
+                                                >
+                                                    <span style={{
+                                                        width: '28px',
+                                                        height: '28px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        background: isEliminated ? 'rgba(100,100,100,0.2)' : 'rgba(255,255,255,0.1)',
+                                                        borderRadius: '6px',
+                                                        fontWeight: 700,
+                                                        fontSize: '13px'
+                                                    }}>
+                                                        {isEliminated ? '✗' : String.fromCharCode(65 + index)}
+                                                    </span>
+                                                    <span style={{ flex: 1 }}>{toTitleCase(option)}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
 
                                     {/* Lifeline Buttons Row */}
-                                    {!showResult && (
+                                    {!trivia.showResult && (
                                         <div style={{
                                             display: 'flex',
                                             gap: '10px',
