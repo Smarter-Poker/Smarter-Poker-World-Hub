@@ -322,7 +322,7 @@ export default function CreateHomeGamePage() {
           console.error('[home-games-create] localStorage parse failed:', lsErr);
         }
         if (!lsUser) {
-          setError('We can''t verify your session. Please sign in again and try once more. If this keeps happening, send a screenshot of DevTools console.');
+          setError('Cannot verify your session. Please sign in again and try once more. If this keeps happening, send a screenshot of DevTools console.');
           setSubmitting(false);
           return;
         }
