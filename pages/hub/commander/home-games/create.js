@@ -28,13 +28,31 @@ import {
   Trophy,
   Plus
 } from 'lucide-react';
-import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
+// SSR-TDZ-FIX: CreateGameForm re-exports from @smarter-poker/commander-shared
+// which pulls in its own authUtils/supabase modules. When statically imported
+// those create a circular-dep chain with World Hub's src/lib/* modules,
+// producing `ReferenceError: Cannot access 'O' before initialization` during
+// Next.js static prerendering. Dynamic import with ssr:false breaks the chain.
+// CreateGameForm is only rendered at Step 4 (after group creation succeeds),
+// so lazy loading is semantically correct with zero UX impact.
+import dynamic from 'next/dynamic';
+const CreateGameForm = dynamic(
+  () => import('../../../../src/components/commander/home-games/CreateGameForm'),
+  { ssr: false }
+);
 // Dan-fix/maps-leaflet: swapped from GoogleMapPicker (which needs Google Maps
 // Platform billing) to LeafletLocationPicker. Same stack Poker Near Me uses —
 // Leaflet + CartoDB tiles + Nominatim geocoding. Zero cost, no API key, no
 // Google Cloud project dependency. The component exposes the same prop
 // interface as GoogleMapPicker so this is a drop-in replacement.
-import LeafletLocationPicker from '../../../../src/components/maps/LeafletLocationPicker';
+// SSR-TDZ-FIX: Leaflet is a browser-only CDN library. Static import pulls it
+// into the SSR bundle even though ensureLeaflet() guards server-side execution.
+// Dynamic import with ssr:false excludes it from the SSR bundle entirely,
+// eliminating any residual TDZ risk from the Leaflet module tree.
+const LeafletLocationPicker = dynamic(
+  () => import('../../../../src/components/maps/LeafletLocationPicker'),
+  { ssr: false }
+);
 import { getAccessToken } from '../../../../src/lib/authUtils';
 
 const GAME_TYPES = [
@@ -85,6 +103,20 @@ export default function CreateHomeGamePage() {
   // of field-name mismatches between CreateGameForm and /api/home-games/events).
   // Surface failures inline so the host knows what to fix.
   const [firstGameError, setFirstGameError] = useState(null);
+  // Phase 41/audit-fix-B9 + Audit-fix/event-idempotency: shared token factory.
+  // Moved here (before first use) to avoid TDZ — `const` arrow functions are
+  // not hoisted; calling makeToken() before this line was a runtime
+  // `ReferenceError: Cannot access 'makeToken' before initialization`.
+  // Used for both the group submission token (submissionTokenRef) and the
+  // per-event submission token (eventSubmissionTokenRef) below.
+  const makeToken = () => (typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'tok_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+
+  // Audit-fix/event-idempotency (2026-05-12): per-submission idempotency token
+  // so a double-click never creates two events. Rotated after a 2xx or
+  // parseable 4xx (server processed and rejected).
+  const eventSubmissionTokenRef = useRef(makeToken());
 
   // Dan-fix/banner-existing-host (2026-05-11): track whether the user
   // already owns at least one home group. `null` = still checking, `0` = new
@@ -151,18 +183,8 @@ export default function CreateHomeGamePage() {
   // (= it processed our input and rejected it). Network errors / 5xx keep
   // the token so a retry doesn't create a duplicate group if the original
   // request actually succeeded server-side.
-  const makeToken = () => (typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : 'tok_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+  // NOTE: makeToken is declared above, before eventSubmissionTokenRef, to avoid TDZ.
   const submissionTokenRef = useRef(makeToken());
-  // Hotfix/tdz-event-token-ref (2026-05-12): eventSubmissionTokenRef was
-  // initially placed near firstGameError state (line ~91) which is BEFORE
-  // makeToken is declared on line 158. That triggered
-  // "ReferenceError: Cannot access \'O\' before initialization" at
-  // prerender time, breaking the entire build. Sitting next to the existing
-  // submissionTokenRef — which already proves the post-declaration position
-  // works — fixes it.
-  const eventSubmissionTokenRef = useRef(makeToken());
 
   // Form state
   const [formData, setFormData] = useState({
