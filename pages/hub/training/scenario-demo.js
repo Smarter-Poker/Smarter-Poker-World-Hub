@@ -21,6 +21,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 
 // TRAIN-CSS-MOTION-ADOPT-7 — durations routed through MOTION tokens matched to
@@ -156,6 +157,8 @@ function FrequencyBars({ freqs }) {
 
 export default function ScenarioDemoPage() {
   const router = useRouter();
+  // TRAIN-WIRE-BOTTOMSHEET-6 — info sheet state
+  const [infoOpen, setInfoOpen] = useState(false);
   useTrainingBus('scenario-demo');
   const fb = useTrainingFeedback();
 
@@ -301,6 +304,43 @@ export default function ScenarioDemoPage() {
           >
             ←
           </button>
+          <button
+            onClick={() => setInfoOpen(true)}
+            aria-label="How GTO Training Tutorial works"
+            style={{
+              background: 'rgba(var(--sp-accent-cyan-rgb), 0.08)',
+              border: '1px solid rgba(var(--sp-accent-cyan-rgb), 0.25)',
+              color: 'var(--sp-accent-cyan)',
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '4px 12px',
+              borderRadius: 12,
+              cursor: 'pointer',
+              letterSpacing: 0.4,
+              textTransform: 'uppercase',
+            }}
+          >
+            How it works
+          </button>
+          <BottomSheet
+            open={infoOpen}
+            onClose={() => setInfoOpen(false)}
+            title="How GTO Training Tutorial Works"
+            subtitle="Step-by-step intro to GTO concepts"
+          >
+            <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
+              <p style={{ marginTop: 0 }}>
+                Walk through {/* num steps */} short concept lessons covering
+                pot odds, ranges, frequencies, board texture, position, and
+                solver-vs-exploit theory. Each step ends with a quick comprehension
+                quiz before unlocking the next one.
+              </p>
+              <p>
+                Aim for at least 70&#37; accuracy on the quizzes before stepping
+                up to the full Trainer hub. Progress saves automatically.
+              </p>
+            </div>
+          </BottomSheet>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Training Tutorial</div>
             <ProgressStrip

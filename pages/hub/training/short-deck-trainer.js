@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
@@ -139,6 +140,8 @@ function generateQuiz(round) {
 export default function ShortDeckTrainerPage() {
   const router = useRouter();
   useTrainingBus('short-deck-trainer');
+  // TRAIN-WIRE-BOTTOMSHEET-7 — info sheet state
+  const [infoOpen, setInfoOpen] = useState(false);
   const fb = useTrainingFeedback();
 
   // Equity Calculator State
@@ -275,6 +278,27 @@ export default function ShortDeckTrainerPage() {
         }}
       >
         {/* Header */}
+        <BottomSheet
+          open={infoOpen}
+          onClose={() => setInfoOpen(false)}
+          title="How Short Deck Trainer Works"
+          subtitle="36-Card Dynamics"
+        >
+          <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
+            <p style={{ marginTop: 0 }}>
+              Short Deck removes 2-5 from the deck (36 cards total). That shifts
+              hand probabilities significantly: <strong>flushes beat full houses</strong>,
+              straights are far more common, and equity vs. ranges shifts. Calc
+              mode lets you simulate equity; Quiz mode drills the rule changes
+              and rank-order shifts.
+            </p>
+            <p>
+              Use Quiz mode to hammer the rule changes until they're automatic
+              before stacking off in real games.
+            </p>
+          </div>
+        </BottomSheet>
+
         <div
           style={{
             padding: '16px 20px',
@@ -299,6 +323,24 @@ export default function ShortDeckTrainerPage() {
               }}
             >
               ←
+            </button>
+            <button
+              onClick={() => setInfoOpen(true)}
+              aria-label="How Short Deck Trainer works"
+              style={{
+                background: 'rgba(var(--sp-accent-red-rgb), 0.08)',
+                border: '1px solid rgba(var(--sp-accent-red-rgb), 0.25)',
+                color: 'var(--sp-accent-red)',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 12px',
+                borderRadius: 12,
+                cursor: 'pointer',
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+              }}
+            >
+              How it works
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
