@@ -135,7 +135,11 @@ export default async function handler(req, res) {
 
         // 1. Insert the ban row (existing behavior — blocks future
         //    comments/reactions via RLS + ban-check in /api/live/*).
-        await supabase.from('live_bans').upsert(
+        // MOD-1 FIX: check upsert error and return 500 BEFORE attempting the
+        // LiveKit kick — kicking without a persisted ban row would evict the
+        // user from the current session but allow immediate re-entry via a
+        // fresh token request (no ban row to block them).
+        const { error: banUpsertErr } = await supabase.from('live_bans').upsert(
           {
             stream_id,
             banned_user_id: target_user_id,
@@ -143,6 +147,10 @@ export default async function handler(req, res) {
           },
           { onConflict: 'stream_id,banned_user_id' }
         );
+        if (banUpsertErr) {
+          console.warn('[live/moderate] live_bans upsert error:', banUpsertErr.message);
+          return res.status(500).json({ error: `Failed to persist ban: ${banUpsertErr.message}` });
+        }
 
         // 2. BUG-FIX-DEEP-AUDIT-R3 M-3 + STREAM-POLISH-R2 BAN-1:
         //    kick the banned user from the LiveKit room immediately.

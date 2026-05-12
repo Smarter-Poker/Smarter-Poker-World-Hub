@@ -120,7 +120,16 @@ export default async function handler(req, res) {
             .remove([path])
             .catch(() => {});
       }
-      await supabase.from('live_streams').delete().eq('id', stream_id);
+      // ES-1 FIX: check error so a failed delete surfaces as a 500 instead of
+      // silently returning { success: true } while the row still exists.
+      const { error: streamDeleteErr } = await supabase
+        .from('live_streams')
+        .delete()
+        .eq('id', stream_id);
+      if (streamDeleteErr) {
+        console.warn('[end-stream] live_streams delete error:', streamDeleteErr.message);
+        return res.status(500).json({ error: streamDeleteErr.message });
+      }
       return res.json({ success: true, action: 'deleted' });
     }
 
@@ -129,7 +138,9 @@ export default async function handler(req, res) {
 
       // BUG-FIX AUDIT-B3: write critical state FIRST so a crash between these
       // two updates can't leave the stream in a contradictory live+draft state.
-      await supabase
+      // ES-2 FIX: check error so a failed update surfaces as a 500 instead of
+      // silently returning { success: true } with the stream still marked live.
+      const { error: saveStreamErr } = await supabase
         .from('live_streams')
         .update({
           status: 'ended',
@@ -137,6 +148,10 @@ export default async function handler(req, res) {
           is_draft: true,
         })
         .eq('id', stream_id);
+      if (saveStreamErr) {
+        console.warn('[end-stream] live_streams save update error:', saveStreamErr.message);
+        return res.status(500).json({ error: saveStreamErr.message });
+      }
 
       // Best-effort: only stamp ended_at if force_end hasn't already written it —
       // preserves the original force_end timestamp for accurate stream-duration calc.
@@ -214,7 +229,9 @@ export default async function handler(req, res) {
       }
 
       // BUG-FIX AUDIT-B3: critical state first — prevents contradictory live+posted state on crash.
-      await supabase
+      // ES-3 FIX: check error so a failed update surfaces as a 500 instead of
+      // silently returning { success: true } with the stream still marked live.
+      const { error: postStreamErr } = await supabase
         .from('live_streams')
         .update({
           status: 'ended',
@@ -222,6 +239,10 @@ export default async function handler(req, res) {
           is_draft: false,
         })
         .eq('id', stream_id);
+      if (postStreamErr) {
+        console.warn('[end-stream] live_streams post update error:', postStreamErr.message);
+        return res.status(500).json({ error: postStreamErr.message });
+      }
 
       // Best-effort: stamp ended_at only if force_end hasn't already written it.
       await supabase

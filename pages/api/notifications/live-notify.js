@@ -37,13 +37,17 @@ export default async function handler(req, res) {
     if (!streamId) return res.status(400).json({ error: 'streamId required' });
 
     // Get broadcaster display name
+    // LN-1 FIX: include display_name in the select and at the front of the
+    // priority chain — matches the platform-wide convention of
+    // display_name > username > full_name > fallback.
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('username, full_name, avatar_url')
+      .select('display_name, username, full_name, avatar_url')
       .eq('id', user.id)
       .maybeSingle();
 
-    const displayName = profile?.username || profile?.full_name || 'Someone you follow';
+    const displayName =
+      profile?.display_name || profile?.username || profile?.full_name || 'Someone you follow';
 
     // Get all followers
     const { data: followers, error } = await supabaseAdmin
