@@ -313,6 +313,15 @@ select.cmd-input {
   background-position: right 16px center;
   background-size: 12px 8px;
   padding-right: 44px; /* room for the chevron */
+  /* Dan-fix/select-h10 (2026-05-12): when select.cmd-input is sized with
+     Tailwind h-10 (40px) + .cmd-input's default padding 16px top/bottom,
+     the content-box collapses to 8px which clips the 15px selected-value
+     text to invisibility on Chrome with appearance:none. Reduce vertical
+     padding so the value renders inside h-10 boxes (used heavily in the
+     home-games create flow: Blind Structure dropdown, etc.). */
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1.2;
 }
 select.cmd-input option {
   background: #0D192E;
