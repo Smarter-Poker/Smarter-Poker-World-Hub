@@ -6256,8 +6256,8 @@ export default function UserProfilePage() {
                             aspectRatio: '16/9',
                           }}
                         >
-                          {/* Bug8: fall back to social_posts thumbnail if live_streams.thumbnail_url is missing */
-                          (() => {
+                          {/* Bug8: fall back to social_posts thumbnail if live_streams.thumbnail_url is missing */}
+                          {(() => {
                             const effectiveThumbnail =
                               live.thumbnail_url ||
                               live.social_posts?.thumbnail_url ||
@@ -6286,7 +6286,7 @@ export default function UserProfilePage() {
                                 📺
                               </div>
                             );
-                          })()
+                          })()}
                           <div
                             style={{
                               position: 'absolute',
