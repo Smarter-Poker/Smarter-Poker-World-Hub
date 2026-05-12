@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAccessToken, getFreshAccessToken } from '../../lib/authUtils';
 import { LiveDiamondIcon } from './LiveDiamondIcon';
+import CapHitPopup from '../diamonds/CapHitPopup';
 
 const GIFT_AMOUNTS = [
   { amount: 5, label: '5', emoji: '💎' },
@@ -26,6 +27,7 @@ export function LiveDiamondGift({
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [popupData, setPopupData] = useState(null);
   // BUG FIX (L4): track success timeout so we can cancel it on unmount.
   // Without this, if the parent unmounts within 1.5s of a successful gift,
   // onGiftSent and onClose fire on a stale closed component.
@@ -94,6 +96,11 @@ export function LiveDiamondGift({
         throw new Error(`Server error: ${resp.status} ${resp.statusText}`);
       }
       if (!resp.ok) {
+        if (resp.status === 429 && data?.gateType) {
+          const err = new Error(data.error || 'Gift failed');
+          err.popupData = data;
+          throw err;
+        }
         // Surface the exact API error (includes anti-farming reason)
         const apiError = data?.error || 'Gift failed';
         throw new Error(apiError);
@@ -109,33 +116,46 @@ export function LiveDiamondGift({
         onClose();
       }, 1500);
     } catch (err) {
-      if (isMounted.current) setError(err.message);
+      if (isMounted.current) {
+        if (err.popupData) {
+          setPopupData(err.popupData);
+          setError('');
+        } else {
+          setError(err.message);
+        }
+      }
     } finally {
       if (isMounted.current) setSending(false);
     }
   };
 
   return (
-    <div
-      onClick={() => {
-        // BUG-FIX-DEEP-AUDIT-R5 DG-3: prevent backdrop dismiss
-        // while a gift is in-flight. Otherwise the user can tap
-        // outside mid-send, the modal closes, and the API
-        // succeeds without ever showing the confirmation. The
-        // diamonds are deducted but the user thinks nothing
-        // happened.
-        if (sending) return;
-        onClose();
-      }}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'flex-end',
-      }}
-    >
+    <>
+      <CapHitPopup
+        open={!!popupData}
+        data={popupData}
+        onClose={() => { setPopupData(null); onClose(); }}
+      />
+      <div
+        onClick={() => {
+          // BUG-FIX-DEEP-AUDIT-R5 DG-3: prevent backdrop dismiss
+          // while a gift is in-flight. Otherwise the user can tap
+          // outside mid-send, the modal closes, and the API
+          // succeeds without ever showing the confirmation. The
+          // diamonds are deducted but the user thinks nothing
+          // happened.
+          if (sending) return;
+          onClose();
+        }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'flex-end',
+        }}
+      >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -308,6 +328,7 @@ export function LiveDiamondGift({
         )}
       </div>
     </div>
+    </>
   );
 }
 

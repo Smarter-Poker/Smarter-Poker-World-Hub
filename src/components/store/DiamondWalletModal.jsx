@@ -58,9 +58,11 @@ import {
     Send, RotateCcw, Settings,
     Search, X, BarChart3, ChevronDown, Copy,
     Clock, Filter as FilterIcon, ArrowUpRight, ArrowDownRight,
+import {
     ChevronsUpDown, Sparkles, Eye,
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
+import CapHitPopup from '../diamonds/CapHitPopup';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction type config — Lucide icons, labels, colors (R8-I10)
@@ -556,6 +558,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── R8-I2: Persistent recent recipients ──
     const [recentRecipients, setRecentRecipients] = useState(() => getPersistedRecipients());
     const [dailyLimitInfo, setDailyLimitInfo] = useState(null);   // P2-4: Daily limit display
+    const [popupData, setPopupData] = useState(null);
 
     // ── R8-I4: Date range filter ──
     const [dateRange, setDateRange] = useState(() => {
@@ -882,30 +885,35 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setTimeout(() => setTransferSuccess(''), 4000);
             } else {
                 const errMsg = data.error || 'Transfer failed';
-                // R8-I3: Parse rate-limit error and start countdown
-                const rateLimit = parseRateLimitError(errMsg);
-                if (rateLimit?.type === 'cooldown' && rateLimit.seconds > 0) {
-                    setCooldownSeconds(rateLimit.seconds);
-                    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
-                    cooldownTimerRef.current = setInterval(() => {
-                        setCooldownSeconds(prev => {
-                            if (prev <= 1) {
-                                clearInterval(cooldownTimerRef.current);
-                                cooldownTimerRef.current = null;
-                                return 0;
-                            }
-                            return prev - 1;
-                        });
-                    }, 1000);
-                    setTransferError(`Cooldown: ${rateLimit.seconds}s remaining`);
-                } else if (rateLimit?.type === 'daily_limit') {
-                    setTransferError('Daily transfer limit reached. Try again tomorrow.');
-                } else if (rateLimit?.type === 'friend_limit') {
-                    setTransferError('Per-friend transfer limit reached. Wait 5 minutes.');
+                if (data?.gateType) {
+                    setPopupData(data);
+                    setTransferError('');
                 } else {
-                    setTransferError(errMsg);
+                    // R8-I3: Parse rate-limit error and start countdown
+                    const rateLimit = parseRateLimitError(errMsg);
+                    if (rateLimit?.type === 'cooldown' && rateLimit.seconds > 0) {
+                        setCooldownSeconds(rateLimit.seconds);
+                        if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+                        cooldownTimerRef.current = setInterval(() => {
+                            setCooldownSeconds(prev => {
+                                if (prev <= 1) {
+                                    clearInterval(cooldownTimerRef.current);
+                                    cooldownTimerRef.current = null;
+                                    return 0;
+                                }
+                                return prev - 1;
+                            });
+                        }, 1000);
+                        setTransferError(`Cooldown: ${rateLimit.seconds}s remaining`);
+                    } else if (rateLimit?.type === 'daily_limit') {
+                        setTransferError('Daily transfer limit reached. Try again tomorrow.');
+                    } else if (rateLimit?.type === 'friend_limit') {
+                        setTransferError('Per-friend transfer limit reached. Wait 5 minutes.');
+                    } else {
+                        setTransferError(errMsg);
+                    }
+                    showStoreToast('error', errMsg);
                 }
-                showStoreToast('error', errMsg);
             }
         } catch (err) {
             setTransferError(err.message || 'Transfer failed');
@@ -927,6 +935,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setFriendSearch('');
             setConfirmTransfer(null);
             setDailyLimitInfo(null);
+            setPopupData(null);
             // R8-I3: Clear cooldown timer
             setCooldownSeconds(0);
             if (cooldownTimerRef.current) {
@@ -1120,6 +1129,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
     return (
         <>
+            <CapHitPopup open={!!popupData} data={popupData} onClose={() => setPopupData(null)} />
             {/* Backdrop */}
             <div
                 onClick={onClose}

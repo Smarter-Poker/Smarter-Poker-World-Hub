@@ -391,7 +391,6 @@ export default async function handler(req, res) {
         const effectiveAlreadySent = Math.max(alreadySent30Day, ipAlreadySent30Day);
 
         const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
-        const isGraduated = senderAgeDays >= GRADUATION_DAYS;
 
         if (!isKingfish && !isFullyUnrestricted) {
             // Determine which pool the sender qualifies for
