@@ -17,6 +17,7 @@ import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
+import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -53,9 +54,10 @@ export default function TournamentsPage() {
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     // TRAIN-WIRE-TRIVIA-HOOK-3 - shared trivia answer-state plumbing
+    const timerCtrlRef = useRef({});
     const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
         onAnswer: ({ index, isCorrect }) => {
-            setIsTimerRunning(false);
+            timerCtrlRef.current.stop?.();
 
             // Track answer accuracy per question for history recording
             answersRef.current[currentQuestionIndex] = isCorrect;
@@ -77,19 +79,17 @@ export default function TournamentsPage() {
                 } else {
                     setCurrentQuestionIndex(prev => prev + 1);
                     trivia.reset();
-                    setTimeLeft(40);
-                    setIsTimerRunning(true);
+                    timerCtrlRef.current.reset?.();
                 }
             }, 500);
         }
     });
     const { selectedAnswer, showResult } = trivia;
     const [score, setScore] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(40);
     const [startTime, setStartTime] = useState(null);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-
-    const timerRef = useRef(null);
+    // TRAIN-WIRE-TRIVIA-TIMER-3 - shared shot-clock hook
+    const timer = useTriviaTimer({ initialTime: 40, showResult: trivia.showResult, gameState, onTimeout: handleTimeout });
+    timerCtrlRef.current = { stop: () => timer.setIsTimerRunning(false), reset: timer.resetTimer };
     const scoreRef = useRef(0); // Accurate score outside React closures
     const answersRef = useRef([]); // Track correct/incorrect per question
     const realtimeChannelRef = useRef(null);
@@ -101,7 +101,6 @@ export default function TournamentsPage() {
         if (authLoading) return;
         loadData();
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
             if (deadlineTimerRef.current) clearInterval(deadlineTimerRef.current);
             // Cleanup realtime channel
             if (realtimeChannelRef.current) {
@@ -111,46 +110,8 @@ export default function TournamentsPage() {
         };
     }, [avatarUser?.id, authLoading]);
 
-    // Visibility-based timer pause + auto-resume on tab-return.
-    // Phase 57: previously paused timer on tab-switch but never resumed —
-    // user could leave tab open, look up answer, return, click. In a
-    // tournament round (24h deadline + bracket scoring), tab-switching for
-    // unlimited time was a cheating vector. Now auto-resumes when game is
-    // in 'playing' state.
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.hidden && isTimerRunning) {
-                setIsTimerRunning(false);
-            } else if (!document.hidden && !isTimerRunning && gameState === 'playing' && !showResult) {
-                setIsTimerRunning(true);
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning, gameState, showResult]);
-
-    // Timer effect
-    useEffect(() => {
-        if (!isTimerRunning || showResult) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return;
-        }
-
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    handleTimeout();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [isTimerRunning, showResult, currentQuestionIndex]);
+    // Visibility-change pause + shot-clock countdown now handled by
+    // useTriviaTimer (TRAIN-WIRE-TRIVIA-TIMER-3) — removed inline effects.
 
     // Request browser notification permission
     useEffect(() => {
@@ -456,19 +417,18 @@ export default function TournamentsPage() {
         scoreRef.current = 0;
         answersRef.current = [];
         trivia.reset();
-        setTimeLeft(40);
         setStartTime(Date.now());
-        setIsTimerRunning(true);
         setGameState('playing');
+        timer.resetTimer();
     }
 
     function handleTimeout() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         trivia.selectAnswer(-1); // Wrong answer - delegates to shared hook
     }
 
     async function finishRoundPlay() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         setSubmitError(null);
 
         // Server-side score submission via /api/trivia/tournament-submit-round.
@@ -667,7 +627,7 @@ export default function TournamentsPage() {
                                 <div key={n.id} className={`notification ${n.notification_type}`}>
                                     <Bell size={16} />
                                     <span>{n.message}</span>
-                                    <button onClick={() => dismissNotification(n.id)} className="dismiss">✕</button>
+                                    <button onClick={() => dismissNotification(n.id)} className="dismiss">X</button>
                                 </div>
                             ))}
                         </div>
@@ -757,7 +717,7 @@ export default function TournamentsPage() {
 
                                             {myMatchup.winner_id && (
                                                 <div className={`match-result ${myMatchup.winner_id === userId ? 'won' : 'lost'}`}>
-                                                    {myMatchup.winner_id === userId ? '🏆 You Won!' : '❌ Eliminated'}
+                                                    {myMatchup.winner_id === userId ? 'You Won!' : 'Eliminated'}
                                                 </div>
                                             )}
                                         </div>
@@ -908,8 +868,8 @@ export default function TournamentsPage() {
                                 <div className="current-score">
                                     Score: {score}
                                 </div>
-                                <div className={`timer ${timeLeft <= 10 ? 'danger' : ''}`}>
-                                    {timeLeft}s
+                                <div className={`timer ${timer.timeLeft <= 10 ? 'danger' : ''}`}>
+                                    {timer.timeLeft}s
                                 </div>
                             </div>
 
