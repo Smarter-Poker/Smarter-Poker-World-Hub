@@ -25,6 +25,7 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
+import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
@@ -47,6 +48,14 @@ export default function EndlessModePage() {
     // TRAIN-WIRE-TRIVIA-HOOK-4 — selectedAnswer/showResult managed by shared hook
     const currentQuestion = questions[currentIndex];
     const trivia = useTriviaQuestion(currentQuestion);
+    // TRAIN-WIRE-TRIVIA-TIMER-4 — shared shot-clock hook (autoResumeOnVisible=false: explicit Resume UI)
+    const timer = useTriviaTimer({
+        initialTime: 24,
+        showResult: trivia.showResult,
+        gameState,
+        onTimeout: handleTimeOut,
+        autoResumeOnVisible: false,
+    });
     const [streak, setStreak] = useState(0);
     const [diamondsEarned, setDiamondsEarned] = useState(0);
     const [multiplier, setMultiplier] = useState(1);
@@ -75,11 +84,8 @@ export default function EndlessModePage() {
     const [firstAttemptWrong, setFirstAttemptWrong] = useState(null);
 
     // 24-Second Shot Clock State
-    const [timeLeft, setTimeLeft] = useState(24);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [screenShake, setScreenShake] = useState(false);
     const [isPaused, setIsPaused] = useState(false); // Visibility-based pause
-    const timerRef = useRef(null);
     const heartbeatIntervalRef = useRef(null);
 
     // Refs to avoid stale closures in setTimeout-triggered saveGameResult
@@ -179,17 +185,14 @@ export default function EndlessModePage() {
         } catch (e) { console.warn("[endless.js]", e); }
     }, [settings]);
 
-    // Visibility-based timer pause (when user leaves app/tab)
+    // Visibility-based pause: sets overlay UI (timer stopped by useTriviaTimer; resume is explicit here)
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (document.hidden && isTimerRunning) {
-                setIsPaused(true);
-                setIsTimerRunning(false);
-            }
+            if (document.hidden && timer.isTimerRunning) setIsPaused(true);
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning]);
+    }, [timer.isTimerRunning]);
 
     // Load more questions when running low
     useEffect(() => {
@@ -282,8 +285,7 @@ export default function EndlessModePage() {
         setFirstAttemptWrong(null);
         setLifelinesUsedThisGame(0);
         // Start shot clock
-        setTimeLeft(24);
-        setIsTimerRunning(true);
+        timer.resetTimer();
         setScreenShake(false);
         startTimeRef.current = Date.now();
         } finally {
@@ -291,62 +293,50 @@ export default function EndlessModePage() {
         }
     }
 
-    // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake (respects settings)
+    // Side-effects of timer tick: haptics, screenShake, heartbeat audio.
+    // useTriviaTimer owns the countdown; this effect only reacts to timer.timeLeft changes.
     useEffect(() => {
-        if (!isTimerRunning || trivia.showResult) {
-            if (timerRef.current) clearInterval(timerRef.current);
+        if (!timer.isTimerRunning || trivia.showResult) {
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setScreenShake(false);
             return;
         }
 
-        // Intensity multipliers
         const intensityMultiplier = settings.intensity === 'high' ? 1 : settings.intensity === 'medium' ? 0.6 : 0.3;
+        const t = timer.timeLeft;
 
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                const newTime = prev - 1;
+        // Haptic feedback (if enabled)
+        if (settings.haptics && 'vibrate' in navigator) {
+            const baseVibration = t <= 3 ? 100 : t <= 8 ? 50 : 20;
+            navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
+        }
 
-                // Haptic feedback (if enabled)
-                if (settings.haptics && 'vibrate' in navigator) {
-                    const baseVibration = newTime <= 3 ? 100 : newTime <= 8 ? 50 : 20;
-                    navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
-                }
-
-                // Screen shake (if enabled)
-                if (settings.screenShake && newTime <= 3 && newTime > 0) setScreenShake(true);
-                else setScreenShake(false);
-
-                if (newTime <= 0) {
-                    clearInterval(timerRef.current);
-                    clearInterval(heartbeatIntervalRef.current);
-                    handleTimeOut();
-                    return 0;
-                }
-                return newTime;
-            });
-        }, 1000);
+        // Screen shake (if enabled)
+        if (settings.screenShake && t <= 3 && t > 0) setScreenShake(true);
+        else setScreenShake(false);
 
         // Heartbeat audio (if enabled)
-        if (settings.audio && timeLeft <= 8 && timeLeft > 0) {
+        if (settings.audio && t <= 8 && t > 0) {
             const volume = 0.3 * intensityMultiplier;
-            const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
+            const speed = Math.max(200, 600 - ((8 - t) * 50));
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             heartbeatIntervalRef.current = setInterval(() => playHeartbeat(volume), speed);
             playHeartbeat(volume);
+        } else {
+            if (heartbeatIntervalRef.current) { clearInterval(heartbeatIntervalRef.current); heartbeatIntervalRef.current = null; }
+            closeHeartbeatAudio();
         }
 
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
             closeHeartbeatAudio();
         };
-    }, [isTimerRunning, trivia.showResult, timeLeft, settings]);
+    }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings]);
 
     // Handle timeout - game over
     function handleTimeOut() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         setScreenShake(false);
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         trivia.setShowResult(true);
@@ -440,7 +430,7 @@ export default function EndlessModePage() {
         }
 
         setSkipUsedThisQuestion(true);
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
 
         // Move to next question without penalty (keep streak)
         setCurrentIndex(prev => prev + 1);
@@ -450,8 +440,7 @@ export default function EndlessModePage() {
         setDoubleChanceActive(false);
         setDoubleChanceUsedThisQuestion(false);
         setFirstAttemptWrong(null);
-        setTimeLeft(24);
-        setIsTimerRunning(true);
+        timer.resetTimer();
     }
 
     async function useDoubleChance() {
@@ -493,8 +482,8 @@ export default function EndlessModePage() {
         if (trivia.selectedAnswer !== null) return;
 
         // Stop timer
-        setIsTimerRunning(false);
-        const answerTime = 24 - timeLeft; // How many seconds it took to answer
+        timer.setIsTimerRunning(false);
+        const answerTime = 24 - timer.timeLeft; // How many seconds it took to answer
 
         // If Double Chance active and this is first attempt
         if (doubleChanceActive && firstAttemptWrong === null) {
@@ -504,8 +493,7 @@ export default function EndlessModePage() {
             if (!correct) {
                 // First wrong attempt - allow second try, reset timer
                 setFirstAttemptWrong(index);
-                setTimeLeft(24);
-                setIsTimerRunning(true);
+                timer.resetTimer();
                 return;
             }
         }
@@ -540,8 +528,7 @@ export default function EndlessModePage() {
                 setDoubleChanceActive(false);
                 setDoubleChanceUsedThisQuestion(false);
                 setFirstAttemptWrong(null);
-                setTimeLeft(24);
-                setIsTimerRunning(true);
+                timer.resetTimer();
             }, 1000);
         } else {
             busEmit.decisionIncorrect(streak);
@@ -860,10 +847,10 @@ export default function EndlessModePage() {
                                         <span style={{ fontSize: '48px', marginBottom: '20px' }}>⏸️</span>
                                         <h2 style={{ color: 'white', marginBottom: '10px' }}>Game Paused</h2>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px' }}>
-                                            You left the screen. Time remaining: {timeLeft}s
+                                            You left the screen. Time remaining: {timer.timeLeft}s
                                         </p>
                                         <button
-                                            onClick={() => { setIsPaused(false); setIsTimerRunning(true); }}
+                                            onClick={() => { setIsPaused(false); timer.setIsTimerRunning(true); }}
                                             style={{
                                                 padding: '16px 48px',
                                                 background: 'linear-gradient(135deg, #22c55e, #16a34a)',
@@ -945,11 +932,11 @@ export default function EndlessModePage() {
                                         alignItems: 'center',
                                         gap: '10px',
                                         padding: '12px 24px',
-                                        background: timeLeft <= 3 ? 'rgba(239, 68, 68, 0.3)' :
-                                            timeLeft <= 8 ? 'rgba(251, 191, 36, 0.2)' :
+                                        background: timer.timeLeft <= 3 ? 'rgba(239, 68, 68, 0.3)' :
+                                            timer.timeLeft <= 8 ? 'rgba(251, 191, 36, 0.2)' :
                                                 'rgba(139, 92, 246, 0.15)',
-                                        border: `2px solid ${timeLeft <= 3 ? '#ef4444' :
-                                            timeLeft <= 8 ? '#fbbf24' : '#8b5cf6'}`,
+                                        border: `2px solid ${timer.timeLeft <= 3 ? '#ef4444' :
+                                            timer.timeLeft <= 8 ? '#fbbf24' : '#8b5cf6'}`,
                                         borderRadius: '50px'
                                     }}>
                                         <span style={{ fontSize: '18px' }}>⏱️</span>
@@ -957,12 +944,12 @@ export default function EndlessModePage() {
                                             fontSize: '28px',
                                             fontWeight: 'bold',
                                             fontFamily: 'monospace',
-                                            color: timeLeft <= 3 ? '#ef4444' :
-                                                timeLeft <= 8 ? '#fbbf24' : '#8b5cf6',
+                                            color: timer.timeLeft <= 3 ? '#ef4444' :
+                                                timer.timeLeft <= 8 ? '#fbbf24' : '#8b5cf6',
                                             minWidth: '40px',
                                             textAlign: 'center'
                                         }}>
-                                            {timeLeft}
+                                            {timer.timeLeft}
                                         </span>
                                         {lifelinesUsedThisGame > 0 && (
                                             <span style={{
