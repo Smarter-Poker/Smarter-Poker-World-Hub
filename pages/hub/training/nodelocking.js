@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-7 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-27 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -639,7 +640,7 @@ export default function NodelockingPage() {
               fontSize: 20,
               fontWeight: 800,
               margin: 0,
-              background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+              background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontFamily: "'Orbitron', monospace",
@@ -721,7 +722,7 @@ export default function NodelockingPage() {
                   fontWeight: 700,
                   border: 'none',
                   cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)',
                   color: '#fff',
                 }}
               >
@@ -840,7 +841,7 @@ export default function NodelockingPage() {
                       fontWeight: 700,
                       border: 'none',
                       cursor: 'pointer',
-                      background: newProfileName.trim() ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'rgba(255,255,255,0.05)',
+                      background: newProfileName.trim() ? 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)' : 'rgba(255,255,255,0.05)',
                       color: newProfileName.trim() ? '#fff' : 'var(--sp-fg-faint)',
                     }}
                   >
@@ -1049,7 +1050,7 @@ export default function NodelockingPage() {
                 padding: '14px',
                 borderRadius: 10,
                 border: 'none',
-                background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
                 color: '#fff',
                 fontSize: 13,
                 fontWeight: 800,

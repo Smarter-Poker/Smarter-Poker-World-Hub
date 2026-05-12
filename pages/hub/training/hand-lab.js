@@ -1,5 +1,6 @@
 // TRAIN-CSS-TOKENS-ADOPT-9 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-9 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-19 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -524,7 +525,7 @@ const styles = {
   },
   analyzeBtn: {
     width: '100%',
-    background: 'linear-gradient(135deg, #00d4ff, #3b82f6)',
+    background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
     color: '#fff',
     padding: '20px',
     borderRadius: 16,

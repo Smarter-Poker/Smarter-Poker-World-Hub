@@ -1,3 +1,4 @@
+// TRAIN-CSS-TOKENS-BATCH5-31 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -126,8 +127,8 @@ export default function MixedStrategyLab() {
 
             <div style={styles.interactiveArea}>
               <div style={styles.labelRow}>
-                <div style={{ ...styles.statLabel, color: '#ef4444' }}>BLUFFS: {bluffFreq}%</div>
-                <div style={{ ...styles.statLabel, color: '#4ade80' }}>
+                <div style={{ ...styles.statLabel, color: 'var(--sp-accent-red)' }}>BLUFFS: {bluffFreq}%</div>
+                <div style={{ ...styles.statLabel, color: 'var(--sp-accent-green)' }}>
                   VALUE: {100 - bluffFreq}%
                 </div>
               </div>
@@ -150,7 +151,7 @@ export default function MixedStrategyLab() {
                   <div
                     style={{
                       ...styles.resultValue,
-                      color: currentEV > 9 ? '#4ade80' : currentEV > 6 ? '#fbbf24' : '#ef4444',
+                      color: currentEV > 9 ? 'var(--sp-accent-green)' : currentEV > 6 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                     }}
                   >
                     {currentEV} bb/100
@@ -158,13 +159,13 @@ export default function MixedStrategyLab() {
                 </div>
                 <div style={styles.resultBox}>
                   <div style={styles.resultLabel}>EV LOSS VS GTO</div>
-                  <div style={{ ...styles.resultValue, color: evLoss > 0 ? '#ef4444' : '#4ade80' }}>
+                  <div style={{ ...styles.resultValue, color: evLoss > 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)' }}>
                     -{evLoss} bb/100
                   </div>
                 </div>
                 <div style={styles.resultBox}>
                   <div style={styles.resultLabel}>VILLAIN'S BEST RESPONSE</div>
-                  <div style={{ ...styles.resultValue, color: '#00d4ff' }}>
+                  <div style={{ ...styles.resultValue, color: 'var(--sp-accent-cyan)' }}>
                     {bluffFreq > 33.3
                       ? 'Pure Call (Exploits You)'
                       : bluffFreq < 33.3
@@ -195,7 +196,7 @@ export default function MixedStrategyLab() {
                   <YAxis stroke="#64748b" domain={[0, 11]} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155' }}
-                    itemStyle={{ color: '#00d4ff' }}
+                    itemStyle={{ color: 'var(--sp-accent-cyan)' }}
                     formatter={(value) => [`${value} bb`, 'EV']}
                     labelFormatter={(label) => `Bluff Frequency: ${label}%`}
                   />
@@ -250,11 +251,11 @@ const styles = {
     fontWeight: 900,
     fontFamily: 'Orbitron, sans-serif',
     letterSpacing: 1,
-    color: '#a855f7', // Purple theme for theory/mixed strategy
+    color: 'var(--sp-accent-purple)', // Purple theme for theory/mixed strategy
   },
   subtitle: {
     margin: 0,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
   },
   content: {
@@ -272,7 +273,7 @@ const styles = {
     position: 'relative',
   },
   scenarioBadge: {
-    background: '#a855f7',
+    background: 'var(--sp-accent-purple)',
     color: '#fff',
     padding: '6px 16px',
     borderRadius: 20,
@@ -291,7 +292,7 @@ const styles = {
   scenarioDesc: {
     fontSize: 16,
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: 'var(--sp-fg)',
     marginBottom: 40,
     maxWidth: '80%',
   },
@@ -317,7 +318,7 @@ const styles = {
   },
   slider: {
     width: '100%',
-    accentColor: '#a855f7',
+    accentColor: 'var(--sp-accent-purple)',
     cursor: 'pointer',
     height: 6,
   },
@@ -327,7 +328,7 @@ const styles = {
     left: 'calc(33.3% - 2px)',
     width: 4,
     height: 26,
-    background: '#4ade80',
+    background: 'var(--sp-accent-green)',
     boxShadow: '0 0 10px rgba(74, 222, 128, 0.8)',
     pointerEvents: 'none',
   },
@@ -344,7 +345,7 @@ const styles = {
   },
   resultLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontWeight: 700,
     letterSpacing: 1,
     marginBottom: 8,
@@ -367,7 +368,7 @@ const styles = {
     fontFamily: 'Orbitron, sans-serif',
   },
   chartDesc: {
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
     margin: '0 0 24px 0',
   },

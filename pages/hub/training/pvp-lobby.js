@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-13 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-33 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -657,7 +658,7 @@ export default function PvPLobbyPage() {
               fontSize: 20,
               fontWeight: 800,
               margin: 0,
-              background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+              background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontFamily: "'Orbitron', monospace",
@@ -688,7 +689,7 @@ export default function PvPLobbyPage() {
                     fontSize: 20,
                     fontWeight: 800,
                     fontFamily: "'Orbitron', monospace",
-                    background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                   }}
@@ -813,7 +814,7 @@ export default function PvPLobbyPage() {
                   fontFamily: "'Orbitron', monospace",
                   background: isSearching
                     ? 'rgba(239,68,68,0.2)'
-                    : 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                    : 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
                   color: '#fff',
                   boxShadow: isSearching ? 'none' : '0 4px 20px rgba(239,68,68,0.3)',
                 }}
@@ -905,7 +906,7 @@ export default function PvPLobbyPage() {
                     fontSize: 16,
                     fontWeight: 800,
                     fontFamily: "'Orbitron', monospace",
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)',
                     color: '#fff',
                     boxShadow: '0 4px 20px rgba(34,197,94,0.3)',
                   }}

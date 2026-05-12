@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-62 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -30,11 +31,11 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // consumer reading the data shape. Same surface-specific a11y pattern as
 // PR #320/#322/#324/#327/#328/#329/#330/#331.
 const EVENT_TYPES = {
-  session:     { icon: '🎯', iconKind: 'target',  color: '#3b82f6', label: 'Training' },
-  streak:      { icon: '🔥', iconKind: 'flame',   color: '#f97316', label: 'Streak' },
-  achievement: { icon: '🏆', iconKind: 'trophy',  color: '#fbbf24', label: 'Badge' },
-  mastery:     { icon: '⭐', iconKind: 'star',    color: '#a855f7', label: 'Mastery' },
-  leaderboard: { icon: '📊', iconKind: 'chart',   color: '#22c55e', label: 'Rank Up' },
+  session:     { icon: '🎯', iconKind: 'target',  color: 'var(--sp-accent-blue)', label: 'Training' },
+  streak:      { icon: '🔥', iconKind: 'flame',   color: 'var(--sp-accent-orange)', label: 'Streak' },
+  achievement: { icon: '🏆', iconKind: 'trophy',  color: 'var(--sp-accent-amber)', label: 'Badge' },
+  mastery:     { icon: '⭐', iconKind: 'star',    color: 'var(--sp-accent-purple)', label: 'Mastery' },
+  leaderboard: { icon: '📊', iconKind: 'chart',   color: 'var(--sp-accent-green)', label: 'Rank Up' },
 };
 
 const ICON_PROPS = {
@@ -121,7 +122,7 @@ function generateFeedItems(userSessions) {
           s.accuracy || Math.round((s.correct_count / Math.max(s.hands_played, 1)) * 100) || 0,
         handsPlayed: s.hands_played || s.total_questions || 0,
         timestamp: new Date(s.created_at).getTime(),
-        avatarColor: '#00d4ff',
+        avatarColor: 'var(--sp-accent-cyan)',
       });
     });
   }
@@ -188,19 +189,19 @@ function FeedItem({ item, onChallenge }) {
       case 'session':
         return (
           <>
-            <span style={{ fontWeight: 700, color: item.isYou ? '#00d4ff' : '#e2e8f0' }}>
+            <span style={{ fontWeight: 700, color: item.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)' }}>
               {item.user}
             </span>
             {' completed a '}
             <span style={{ fontWeight: 700, color: eventType.color }}>{item.handsPlayed}-hand</span>
             {' session on '}
-            <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.game}</span>
+            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.game}</span>
             {' — '}
             <span
               style={{
                 fontWeight: 800,
                 color:
-                  item.accuracy >= 80 ? '#4ade80' : item.accuracy >= 65 ? '#fbbf24' : '#f87171',
+                  item.accuracy >= 80 ? 'var(--sp-accent-green)' : item.accuracy >= 65 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
               }}
             >
               {item.accuracy}%
@@ -211,29 +212,29 @@ function FeedItem({ item, onChallenge }) {
       case 'streak':
         return (
           <>
-            <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.user}</span>
+            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
             {' hit a '}
-            <span style={{ fontWeight: 800, color: '#f97316' }}>{item.streakDays}-day streak</span>
+            <span style={{ fontWeight: 800, color: 'var(--sp-accent-orange)' }}>{item.streakDays}-day streak</span>
             {' milestone!'}
           </>
         );
       case 'achievement':
         return (
           <>
-            <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.user}</span>
+            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
             {' unlocked the '}
-            <span style={{ fontWeight: 800, color: '#fbbf24' }}>{item.badge}</span>
+            <span style={{ fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{item.badge}</span>
             {' badge'}
           </>
         );
       case 'mastery':
         return (
           <>
-            <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.user}</span>
+            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
             {' mastered Level '}
-            <span style={{ fontWeight: 800, color: '#a855f7' }}>{item.level}</span>
+            <span style={{ fontWeight: 800, color: 'var(--sp-accent-purple)' }}>{item.level}</span>
             {' of '}
-            <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.game}</span>
+            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.game}</span>
           </>
         );
       default:
@@ -274,7 +275,7 @@ function FeedItem({ item, onChallenge }) {
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5, marginBottom: 6 }}>
+        <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 6 }}>
           {renderContent()}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -304,7 +305,7 @@ function FeedItem({ item, onChallenge }) {
                 borderRadius: 3,
                 background: 'rgba(100,116,139,0.1)',
                 border: '1px solid rgba(100,116,139,0.15)',
-                color: '#475569',
+                color: 'var(--sp-fg-faint)',
                 fontSize: 8,
                 fontWeight: 600,
                 letterSpacing: 0.3,
@@ -313,7 +314,7 @@ function FeedItem({ item, onChallenge }) {
               COMMUNITY
             </span>
           )}
-          <span style={{ fontSize: 10, color: '#475569' }}>{formatTimeAgo(item.timestamp)}</span>
+          <span style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>{formatTimeAgo(item.timestamp)}</span>
           {!item.isYou && item.type === 'session' && (
             <motion.button
               type="button"
@@ -326,7 +327,7 @@ function FeedItem({ item, onChallenge }) {
                 borderRadius: 6,
                 border: '1px solid rgba(168,85,247,0.2)',
                 background: 'rgba(168,85,247,0.06)',
-                color: '#a855f7',
+                color: 'var(--sp-accent-purple)',
                 fontSize: 9,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -403,7 +404,7 @@ export default function TrainingFeedPage() {
               : 0),
           handsPlayed: payload.questionsAnswered || payload.total_questions || 0,
           timestamp: Date.now(),
-          avatarColor: '#00d4ff',
+          avatarColor: 'var(--sp-accent-cyan)',
           isLiveInjection: true,
         };
 
@@ -439,7 +440,7 @@ export default function TrainingFeedPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -460,7 +461,7 @@ export default function TrainingFeedPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -475,8 +476,8 @@ export default function TrainingFeedPage() {
             <BackArrowSvg size={18} />
           </button>
           <div>
-            <h1 style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', margin: 0 }}>Training Feed</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>See what your network is training</div>
+            <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)', margin: 0 }}>Training Feed</h1>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>See what your network is training</div>
           </div>
         </div>
 
@@ -506,7 +507,7 @@ export default function TrainingFeedPage() {
                 borderRadius: 6,
                 border: `1px solid ${filter === f.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                 background: filter === f.id ? 'rgba(0,212,255,0.06)' : 'transparent',
-                color: filter === f.id ? '#00d4ff' : '#64748b',
+                color: filter === f.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -522,7 +523,7 @@ export default function TrainingFeedPage() {
 
           {/* Loading */}
           {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }} role="status" aria-label="Loading training feed">
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--sp-fg-dim)' }} role="status" aria-label="Loading training feed">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -531,7 +532,7 @@ export default function TrainingFeedPage() {
                   height: 32,
                   margin: '0 auto 12px',
                   border: '2px solid rgba(255,255,255,0.05)',
-                  borderTopColor: '#00d4ff',
+                  borderTopColor: 'var(--sp-accent-cyan)',
                   borderRadius: '50%',
                 }}
               />
@@ -561,7 +562,7 @@ export default function TrainingFeedPage() {
               textAlign: 'center',
               padding: '20px 16px',
               fontSize: 10,
-              color: '#334155',
+              color: 'var(--sp-fg-faint)',
             }}
           >
             Feed updates automatically when you or friends complete sessions

@@ -19,6 +19,7 @@
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 // TRAIN-CSS-TOKENS-BATCH4-12 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-52 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -27,6 +28,10 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+
+// TRAIN-CSS-MOTION-ADOPT-29 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-FX-5b — adoption: feedback hook
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
@@ -702,7 +707,7 @@ export default function VillainRange() {
                   fontSize: 22,
                   fontWeight: 900,
                   fontFamily: "'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #ec4899)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -859,7 +864,7 @@ export default function VillainRange() {
                   key={villainPos + action}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: MOTION.standard }}
                   style={{
                     background: 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.07)',
@@ -1051,7 +1056,7 @@ export default function VillainRange() {
                           width: '100%',
                           padding: '12px',
                           borderRadius: 10,
-                          background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                          background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #ec4899)',
                           border: 'none',
                           color: '#fff',
                           fontWeight: 900,
@@ -1301,7 +1306,7 @@ export default function VillainRange() {
                         padding: '12px',
                         borderRadius: 10,
                         border: 'none',
-                        background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                        background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #ec4899)',
                         color: '#fff',
                         fontSize: 13,
                         fontWeight: 800,

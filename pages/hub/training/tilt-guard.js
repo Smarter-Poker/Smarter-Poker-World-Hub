@@ -20,6 +20,10 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+// TRAIN-CSS-MOTION-ADOPT-28 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TILT DETECTION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -505,7 +509,7 @@ export default function TiltGuardPage() {
                         key={i}
                         initial={{ height: 0 }}
                         animate={{ height: `${t.accuracy}%` }}
-                        transition={{ delay: i * 0.05, duration: 0.4 }}
+                        transition={{ delay: i * 0.05, duration: MOTION.standard }}
                         style={{
                           flex: 1,
                           borderRadius: 3,

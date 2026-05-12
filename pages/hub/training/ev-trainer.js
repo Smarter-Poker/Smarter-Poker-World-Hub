@@ -15,6 +15,7 @@
  */
 
 // TRAIN-CSS-MOBILE-ADOPT-3 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-9 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -422,7 +423,7 @@ export default function EVTrainer() {
                   fontSize: 22,
                   fontWeight: 900,
                   fontFamily: "'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -700,7 +701,7 @@ export default function EVTrainer() {
                           width: '100%',
                           padding: '14px',
                           borderRadius: 12,
-                          background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                          background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                           border: 'none',
                           color: '#000',
                           fontWeight: 900,

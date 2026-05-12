@@ -13,6 +13,8 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-1 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH5-54 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-47 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -142,7 +144,7 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark })
           fontSize: 16,
           padding: 2,
           lineHeight: 1,
-          color: isBookmarked ? 'var(--sp-accent-amber)' : '#334155',
+          color: isBookmarked ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
           transition: 'color 0.15s',
         }}
         title={isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'}
@@ -766,7 +768,7 @@ function SolutionsBrowserInner({ setError }) {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -806,7 +808,7 @@ function SolutionsBrowserInner({ setError }) {
                   transition: 'all 0.2s',
                   background:
                     gameType === gt.value
-                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
                       : 'rgba(255,255,255,0.06)',
                   color: gameType === gt.value ? '#fff' : 'var(--sp-fg-muted)',
                 }}
@@ -1334,7 +1336,7 @@ function SolutionsBrowserInner({ setError }) {
                           transition: 'all 0.15s',
                           background:
                             activeTab === tab.key
-                              ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                              ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
                               : 'rgba(255,255,255,0.06)',
                           color: activeTab === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                         }}

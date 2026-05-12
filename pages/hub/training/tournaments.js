@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-60 — hex sweep batch 5: literals routed to --sp-* tokens
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -270,7 +271,7 @@ export default function TournamentsPage() {
           {/* Header */}
           <div style={styles.header}>
             <h1 style={styles.title}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#fbbf24' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--sp-accent-amber)' }}>
                 <TrophyIcon size={22} />
                 Training Tournaments
               </span>
@@ -432,7 +433,7 @@ const styles = {
   },
   subtitle: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   tabs: {
     display: 'flex',
@@ -448,7 +449,7 @@ const styles = {
     background: 'transparent',
     border: 'none',
     borderRadius: '8px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
@@ -461,12 +462,12 @@ const styles = {
   loading: {
     textAlign: 'center',
     padding: '60px 20px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   emptyState: {
     textAlign: 'center',
     padding: '60px 20px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   emptyIcon: {
     fontSize: '48px',
@@ -521,7 +522,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: '13px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginBottom: '6px',
   },
   prizes: {
@@ -545,7 +546,7 @@ const styles = {
   entryFee: {
     textAlign: 'center',
     fontSize: '13px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginBottom: '12px',
   },
   registerBtn: {
@@ -579,7 +580,7 @@ const styles = {
     background: '#2a2a2a',
     border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: '10px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     fontSize: '16px',
     fontWeight: 500,
     textAlign: 'center',

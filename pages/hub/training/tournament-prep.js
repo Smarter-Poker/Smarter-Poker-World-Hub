@@ -1,3 +1,4 @@
+// TRAIN-CSS-TOKENS-BATCH5-59 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -180,7 +181,7 @@ export default function TournamentPrepPlanner() {
                 />
                 <div style={styles.rangeLabels}>
                   <span>Lvl 1</span>
-                  <span style={{ color: '#00d4ff', fontWeight: 'bold' }}>Level {currentLevel}</span>
+                  <span style={{ color: 'var(--sp-accent-cyan)', fontWeight: 'bold' }}>Level {currentLevel}</span>
                   <span>Lvl 12</span>
                 </div>
               </div>
@@ -201,7 +202,7 @@ export default function TournamentPrepPlanner() {
               <div style={styles.statusRow}>
                 <span style={styles.statusLabel}>Starting Stack in BBs</span>
                 <span
-                  style={{ ...styles.statusValue, color: initialBBs < 20 ? '#ef4444' : '#4ade80' }}
+                  style={{ ...styles.statusValue, color: initialBBs < 20 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)' }}
                 >
                   {Number.isFinite(initialBBs) ? (Number.isFinite(Number(initialBBs)) ? Number(initialBBs) : 0).toFixed(1) : '0.0'} BB
                 </span>
@@ -227,7 +228,7 @@ export default function TournamentPrepPlanner() {
                   ...styles.tab,
                   borderBottom:
                     activeTab === 'structure' ? '2px solid #00d4ff' : '2px solid transparent',
-                  color: activeTab === 'structure' ? '#fff' : '#64748b',
+                  color: activeTab === 'structure' ? '#fff' : 'var(--sp-fg-dim)',
                 }}
               >
                 Structure Flow
@@ -241,7 +242,7 @@ export default function TournamentPrepPlanner() {
                   ...styles.tab,
                   borderBottom:
                     activeTab === 'pushfold' ? '2px solid #00d4ff' : '2px solid transparent',
-                  color: activeTab === 'pushfold' ? '#fff' : '#64748b',
+                  color: activeTab === 'pushfold' ? '#fff' : 'var(--sp-fg-dim)',
                 }}
               >
                 Push/Fold Engine
@@ -280,12 +281,12 @@ export default function TournamentPrepPlanner() {
                               : 'Red (Push/Fold)';
                       let zColor =
                         bbCount > 40
-                          ? '#4ade80'
+                          ? 'var(--sp-accent-green)'
                           : bbCount > 20
-                            ? '#fbbf24'
+                            ? 'var(--sp-accent-amber)'
                             : bbCount > 10
-                              ? '#f97316'
-                              : '#ef4444';
+                              ? 'var(--sp-accent-orange)'
+                              : 'var(--sp-accent-red)';
 
                       return (
                         <div
@@ -320,7 +321,7 @@ export default function TournamentPrepPlanner() {
               {activeTab === 'pushfold' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <h3 style={{ color: '#fff', marginBottom: 16 }}>Nash Equilibrium Push/Fold</h3>
-                  <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 20 }}>
+                  <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13, marginBottom: 20 }}>
                     Calculated for your estimated stack depth at Level {currentLevel} (
                     {Number.isFinite(initialBBs) ? (Number.isFinite(Number(initialBBs)) ? Number(initialBBs) : 0).toFixed(1) : '0.0'} BB initial,
                     currently ~
@@ -332,20 +333,20 @@ export default function TournamentPrepPlanner() {
 
                   <div style={{ display: 'flex', gap: 16 }}>
                     <div style={{ ...styles.card, flex: 1 }}>
-                      <h4 style={{ color: '#00d4ff', margin: '0 0 12px 0' }}>UTG/Early Position</h4>
-                      <p style={{ color: '#e2e8f0', fontSize: 13, lineHeight: 1.5 }}>
+                      <h4 style={{ color: 'var(--sp-accent-cyan)', margin: '0 0 12px 0' }}>UTG/Early Position</h4>
+                      <p style={{ color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.5 }}>
                         Push: 77+, A9s+, AJo+, KTs+, KQo
                         <br />
-                        <span style={{ color: '#ef4444' }}>Fold everything else.</span> The danger
+                        <span style={{ color: 'var(--sp-accent-red)' }}>Fold everything else.</span> The danger
                         of calling off with medium stacks is immense.
                       </p>
                     </div>
                     <div style={{ ...styles.card, flex: 1 }}>
-                      <h4 style={{ color: '#4ade80', margin: '0 0 12px 0' }}>BTN/Late Position</h4>
-                      <p style={{ color: '#e2e8f0', fontSize: 13, lineHeight: 1.5 }}>
+                      <h4 style={{ color: 'var(--sp-accent-green)', margin: '0 0 12px 0' }}>BTN/Late Position</h4>
+                      <p style={{ color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.5 }}>
                         Push: 22+, A2s+, A2o+, K2s+, K8o+, Q8s+, QTo+, J8s+, T8s+, 98s
                         <br />
-                        <span style={{ color: '#4ade80' }}>Expand shoving range</span> to exploit
+                        <span style={{ color: 'var(--sp-accent-green)' }}>Expand shoving range</span> to exploit
                         tight blinds.
                       </p>
                     </div>
@@ -360,12 +361,12 @@ export default function TournamentPrepPlanner() {
                     }}
                   >
                     <h4 style={{ color: '#fff', margin: '0 0 8px 0' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#fbbf24' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--sp-accent-amber)' }}>
                         <TppLightbulbIcon size={14} />
                         Strategy Tip (Level {currentLevel})
                       </span>
                     </h4>
-                    <p style={{ color: '#94a3b8', fontSize: 14, margin: 0 }}>
+                    <p style={{ color: 'var(--sp-fg-muted)', fontSize: 14, margin: 0 }}>
                       {initialBBs < 20
                         ? 'You are in the pure Push/Fold territory. Do not open-raise to fold. Only shove or fold preflop to maximize fold equity.'
                         : 'You have room to maneuver. Use smaller open sizes (2x - 2.2x) to preserve your stack while stealing blinds.'}
@@ -415,11 +416,11 @@ const styles = {
     fontWeight: 900,
     fontFamily: 'Orbitron, sans-serif',
     letterSpacing: 1,
-    color: '#00d4ff',
+    color: 'var(--sp-accent-cyan)',
   },
   subtitle: {
     margin: 0,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
   },
   content: {
@@ -450,7 +451,7 @@ const styles = {
     fontSize: 14,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: '#00d4ff',
+    color: 'var(--sp-accent-cyan)',
     fontWeight: 700,
   },
   inputGroup: {
@@ -459,7 +460,7 @@ const styles = {
   label: {
     display: 'block',
     fontSize: 12,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     marginBottom: 6,
     fontWeight: 600,
   },
@@ -475,14 +476,14 @@ const styles = {
   },
   range: {
     width: '100%',
-    accentColor: '#00d4ff',
+    accentColor: 'var(--sp-accent-cyan)',
     cursor: 'pointer',
   },
   rangeLabels: {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: 10,
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
     marginTop: 6,
   },
   statusRow: {
@@ -492,7 +493,7 @@ const styles = {
     borderBottom: '1px solid rgba(255,255,255,0.05)',
   },
   statusLabel: {
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 13,
   },
   statusValue: {
@@ -526,7 +527,7 @@ const styles = {
     padding: '10px 16px',
     borderRadius: 8,
     fontWeight: 700,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     marginBottom: 8,
   },
   tableRow: {
@@ -535,5 +536,5 @@ const styles = {
     borderBottom: '1px solid rgba(255,255,255,0.03)',
   },
   cellH: { flex: 1 },
-  cell: { flex: 1, color: '#e2e8f0' },
+  cell: { flex: 1, color: 'var(--sp-fg)' },
 };

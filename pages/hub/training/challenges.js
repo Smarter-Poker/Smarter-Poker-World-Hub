@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-5 — hex sweep batch 5: literals routed to --sp-* tokens
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -346,17 +347,17 @@ const styles = {
   },
   subtitle: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   loading: {
     textAlign: 'center',
     padding: '60px 20px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   emptyState: {
     textAlign: 'center',
     padding: '60px 20px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   emptyHint: {
     fontSize: '13px',
@@ -403,7 +404,7 @@ const styles = {
     borderRadius: '8px',
     fontSize: '11px',
     fontWeight: 600,
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginBottom: '12px',
   },
   challengeTitle: {
@@ -413,7 +414,7 @@ const styles = {
   },
   challengeDesc: {
     fontSize: '13px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     margin: '0 0 16px 0',
   },
   progressContainer: {
@@ -432,7 +433,7 @@ const styles = {
   },
   progressText: {
     fontSize: '12px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '6px',
     textAlign: 'right',
   },

@@ -2,6 +2,8 @@
  * Range Advisor — GTO Wizard-Style Range Selector
  * Phase 27 — Route: /hub/training/range-advisor
  */
+// TRAIN-CSS-TOKENS-BATCH5-46 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-37 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -411,9 +413,9 @@ function handKey(r1, r2, suited) {
 }
 
 const ACTION_COLORS = {
-  raise: { bg: 'rgba(34,197,94,0.75)', border: '#22c55e', text: '#fff' },
-  call: { bg: 'rgba(59,130,246,0.65)', border: '#3b82f6', text: '#fff' },
-  fold: { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.07)', text: '#334155' },
+  raise: { bg: 'rgba(34,197,94,0.75)', border: 'var(--sp-accent-green)', text: '#fff' },
+  call: { bg: 'rgba(59,130,246,0.65)', border: 'var(--sp-accent-blue)', text: '#fff' },
+  fold: { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.07)', text: 'var(--sp-fg-faint)' },
 };
 
 const TIPS = {
@@ -597,7 +599,7 @@ export default function RangeAdvisor() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(135deg,#0a0f1e 0%,#0d1629 60%,#0a0f1e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter',sans-serif",
         }}
       >
@@ -613,7 +615,7 @@ export default function RangeAdvisor() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -626,7 +628,7 @@ export default function RangeAdvisor() {
                 fontSize: 20,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg,#22c55e,#00d4ff)',
+                background: 'linear-gradient(135deg,rgba(var(--sp-accent-green-rgb), 1),rgba(var(--sp-accent-cyan-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron',monospace",
@@ -637,7 +639,7 @@ export default function RangeAdvisor() {
             <span
               style={{
                 fontSize: 10,
-                color: '#22c55e',
+                color: 'var(--sp-accent-green)',
                 background: 'rgba(34,197,94,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -659,7 +661,7 @@ export default function RangeAdvisor() {
                 style={{
                   fontSize: 9,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 6,
@@ -682,9 +684,9 @@ export default function RangeAdvisor() {
                       border: 'none',
                       background:
                         position === pos
-                          ? 'linear-gradient(135deg,#22c55e,#00d4ff)'
+                          ? 'linear-gradient(135deg,rgba(var(--sp-accent-green-rgb), 1),rgba(var(--sp-accent-cyan-rgb), 1))'
                           : 'rgba(255,255,255,0.06)',
-                      color: position === pos ? '#000' : '#94a3b8',
+                      color: position === pos ? '#000' : 'var(--sp-fg-muted)',
                       fontFamily: "'Orbitron',monospace",
                     }}
                   >
@@ -698,7 +700,7 @@ export default function RangeAdvisor() {
                 style={{
                   fontSize: 9,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 6,
@@ -721,9 +723,9 @@ export default function RangeAdvisor() {
                       border: 'none',
                       background:
                         action === s.id
-                          ? 'linear-gradient(135deg,#22c55e,#00d4ff)'
+                          ? 'linear-gradient(135deg,rgba(var(--sp-accent-green-rgb), 1),rgba(var(--sp-accent-cyan-rgb), 1))'
                           : 'rgba(255,255,255,0.06)',
-                      color: action === s.id ? '#000' : '#94a3b8',
+                      color: action === s.id ? '#000' : 'var(--sp-fg-muted)',
                     }}
                   >
                     {s.icon} {s.label}
@@ -743,9 +745,9 @@ export default function RangeAdvisor() {
             }}
           >
             {[
-              { label: 'Raise / Open', value: raiseCount, color: '#22c55e' },
-              { label: 'Call / Defend', value: callCount, color: '#3b82f6' },
-              { label: 'Total Hands', value: raiseCount + callCount, color: '#00d4ff' },
+              { label: 'Raise / Open', value: raiseCount, color: 'var(--sp-accent-green)' },
+              { label: 'Call / Defend', value: callCount, color: 'var(--sp-accent-blue)' },
+              { label: 'Total Hands', value: raiseCount + callCount, color: 'var(--sp-accent-cyan)' },
             ].map((s) => (
               <div
                 key={s.label}
@@ -770,7 +772,7 @@ export default function RangeAdvisor() {
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 1,
@@ -804,7 +806,7 @@ export default function RangeAdvisor() {
                 style={{
                   fontSize: 9,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1.5,
                   marginBottom: 10,
@@ -835,7 +837,7 @@ export default function RangeAdvisor() {
                     <span
                       style={{
                         fontSize: 9,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         fontWeight: 600,
                         textTransform: 'capitalize',
                       }}
@@ -902,7 +904,7 @@ export default function RangeAdvisor() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1.5,
                     marginBottom: 12,
@@ -924,14 +926,14 @@ export default function RangeAdvisor() {
                       style={{
                         fontSize: 11,
                         fontWeight: 800,
-                        color: '#22c55e',
+                        color: 'var(--sp-accent-green)',
                         marginBottom: 3,
                         fontFamily: "'Orbitron',monospace",
                       }}
                     >
                       {item.hand}
                     </div>
-                    <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>{item.r}</div>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>{item.r}</div>
                   </div>
                 ))}
               </div>
@@ -948,7 +950,7 @@ export default function RangeAdvisor() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#22c55e',
+                    color: 'var(--sp-accent-green)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
@@ -957,7 +959,7 @@ export default function RangeAdvisor() {
                 >
                   GTO Principle
                 </div>
-                <p style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
                   {TIPS[action]}
                 </p>
               </div>

@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-45 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -15,6 +16,10 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+
+// TRAIN-CSS-MOTION-ADOPT-21 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RAKE STRUCTURE PRESETS
@@ -27,7 +32,7 @@ const RAKE_PRESETS = [
     pct: 0,
     cap: 0,
     desc: 'Pure GTO (freeroll/private)',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
   },
   {
     id: 'micro-5-1',
@@ -35,16 +40,16 @@ const RAKE_PRESETS = [
     pct: 5,
     cap: 1,
     desc: '2NL-10NL online',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
   },
-  { id: 'low-5-3', label: 'Low 5%/$3', pct: 5, cap: 3, desc: '25NL-50NL online', color: '#8b5cf6' },
+  { id: 'low-5-3', label: 'Low 5%/$3', pct: 5, cap: 3, desc: '25NL-50NL online', color: 'var(--sp-accent-purple)' },
   {
     id: 'mid-5-5',
     label: 'Mid 5%/$5',
     pct: 5,
     cap: 5,
     desc: '100NL-200NL online',
-    color: '#f59e0b',
+    color: 'var(--sp-accent-amber)',
   },
   {
     id: 'live-10-5',
@@ -52,7 +57,7 @@ const RAKE_PRESETS = [
     pct: 10,
     cap: 5,
     desc: 'Live $1/$2 casino',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
   },
   {
     id: 'live-5-15',
@@ -106,7 +111,7 @@ function FreqBar({ value, maxVal = 80, color, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
       <div
-        style={{ width: 36, fontSize: 11, fontWeight: 700, color: '#94a3b8', textAlign: 'right' }}
+        style={{ width: 36, fontSize: 11, fontWeight: 700, color: 'var(--sp-fg-muted)', textAlign: 'right' }}
       >
         {label}
       </div>
@@ -122,7 +127,7 @@ function FreqBar({ value, maxVal = 80, color, label }) {
       >
         <motion.div
           animate={{ width: `${width}%` }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+          transition={{ duration: MOTION.slow, ease: 'easeOut' }}
           style={{ height: '100%', background: color, borderRadius: 4 }}
         />
       </div>
@@ -199,7 +204,7 @@ export default function RakeSolutionsPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
           paddingBottom: 60,
         }}
@@ -219,7 +224,7 @@ export default function RakeSolutionsPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -234,7 +239,7 @@ export default function RakeSolutionsPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Rake-Aware Solutions</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>How rake changes optimal strategy</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>How rake changes optimal strategy</div>
           </div>
         </div>
 
@@ -244,7 +249,7 @@ export default function RakeSolutionsPage() {
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 12,
@@ -270,19 +275,19 @@ export default function RakeSolutionsPage() {
                   cursor: 'pointer',
                   background: activeRake.id === rk.id ? `${rk.color}15` : 'rgba(255,255,255,0.02)',
                   border: `1px solid ${activeRake.id === rk.id ? `${rk.color}55` : 'rgba(255,255,255,0.05)'}`,
-                  color: activeRake.id === rk.id ? rk.color : '#94a3b8',
+                  color: activeRake.id === rk.id ? rk.color : 'var(--sp-fg-muted)',
                 }}
               >
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 2 }}>{rk.label}</div>
                 <div
                   style={{
                     fontSize: 10,
-                    color: activeRake.id === rk.id ? `${rk.color}aa` : '#64748b',
+                    color: activeRake.id === rk.id ? `${rk.color}aa` : 'var(--sp-fg-dim)',
                   }}
                 >
                   {rk.desc}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6, color: '#e2e8f0' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6, color: 'var(--sp-fg)' }}>
                   {rk.pct}% / ${rk.cap} cap
                 </div>
               </motion.button>
@@ -291,7 +296,7 @@ export default function RakeSolutionsPage() {
 
           {/* Compare toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>Compare with:</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>Compare with:</span>
             <select
               value={compareRake?.id || ''}
               onChange={(e) =>
@@ -302,7 +307,7 @@ export default function RakeSolutionsPage() {
                 borderRadius: 6,
                 background: 'rgba(0,0,0,0.3)',
                 border: '1px solid rgba(255,255,255,0.1)',
-                color: '#e2e8f0',
+                color: 'var(--sp-fg)',
                 fontSize: 12,
               }}
             >
@@ -329,7 +334,7 @@ export default function RakeSolutionsPage() {
                   fontWeight: 700,
                   cursor: 'pointer',
                   background: selectedPosition === p ? activeRake.color : 'rgba(255,255,255,0.04)',
-                  color: selectedPosition === p ? '#fff' : '#94a3b8',
+                  color: selectedPosition === p ? '#fff' : 'var(--sp-fg-muted)',
                 }}
               >
                 {p}
@@ -350,7 +355,7 @@ export default function RakeSolutionsPage() {
             <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
               {selectedPosition} — {activeRake.label}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 20 }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
               Optimal frequencies adjusted for rake pressure
             </div>
 
@@ -370,18 +375,18 @@ export default function RakeSolutionsPage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span>{stat.icon}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                         {stat.label}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>GTO: {baseVal}%</span>
+                      <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>GTO: {baseVal}%</span>
                       {delta !== 0 && (
                         <span
                           style={{
                             fontSize: 11,
                             fontWeight: 700,
-                            color: delta > 0 ? '#4ade80' : '#f87171',
+                            color: delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                           }}
                         >
                           {delta > 0 ? '+' : ''}
@@ -408,7 +413,7 @@ export default function RakeSolutionsPage() {
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 12,
@@ -436,7 +441,7 @@ export default function RakeSolutionsPage() {
                     border: `1px solid ${selectedPosition === pos ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.05)'}`,
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0' }}>{pos}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-fg)' }}>{pos}</div>
                   <div
                     style={{ fontSize: 22, fontWeight: 900, color: activeRake.color, marginTop: 4 }}
                   >
@@ -447,7 +452,7 @@ export default function RakeSolutionsPage() {
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: delta > 0 ? '#4ade80' : '#f87171',
+                        color: delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         marginTop: 2,
                       }}
                     >
@@ -474,14 +479,14 @@ export default function RakeSolutionsPage() {
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#fbbf24',
+                color: 'var(--sp-accent-amber)',
                 textTransform: 'uppercase',
                 marginBottom: 8,
               }}
             >
               Strategy Insight
             </div>
-            <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
               {activeRake.pct === 0
                 ? 'Without rake, pure GTO frequencies are optimal. You can play wider ranges and see more flops profitably.'
                 : `With ${activeRake.pct}% rake capped at $${activeRake.cap}, your effective winrate is reduced by approximately ${(Number.isFinite(Number(activeRake.pct * 0.4)) ? Number(activeRake.pct * 0.4) : 0).toFixed(1)} bb/100. Tighten opening ranges by ${Math.round(activeRake.pct * 0.7)}%, increase fold-to-3bet, and reduce speculative calls.`}

@@ -7,6 +7,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-25 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-21 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -118,7 +120,7 @@ export default function IcmSimulatorPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0a0a1a',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -135,7 +137,7 @@ export default function IcmSimulatorPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -148,7 +150,7 @@ export default function IcmSimulatorPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>ICM Simulator</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Final Table Math & Deal Calculator</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Final Table Math & Deal Calculator</div>
           </div>
         </div>
 
@@ -177,7 +179,7 @@ export default function IcmSimulatorPage() {
                 style={{
                   fontSize: 13,
                   fontWeight: 700,
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 16,
@@ -197,11 +199,11 @@ export default function IcmSimulatorPage() {
                     borderRadius: 8,
                   }}
                 >
-                  <div style={{ width: 40, fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+                  <div style={{ width: 40, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                     {i + 1}
                     {i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}
                   </div>
-                  <div style={{ fontSize: 14, color: '#4ade80', marginRight: 8 }}>$</div>
+                  <div style={{ fontSize: 14, color: 'var(--sp-accent-green)', marginRight: 8 }}>$</div>
                   <input
                     type="number"
                     value={p}
@@ -231,10 +233,10 @@ export default function IcmSimulatorPage() {
                   marginTop: 8,
                 }}
               >
-                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700 }}>
+                <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700 }}>
                   Total Prizepool:
                 </span>
-                <span style={{ fontSize: 14, color: '#4ade80', fontWeight: 800 }}>
+                <span style={{ fontSize: 14, color: 'var(--sp-accent-green)', fontWeight: 800 }}>
                   ${totalPrizePool.toLocaleString()}
                 </span>
               </div>
@@ -260,14 +262,14 @@ export default function IcmSimulatorPage() {
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
-                    color: '#fbbf24',
+                    color: 'var(--sp-accent-amber)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
                 >
                   Player Stacks
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
                   Total: {totalChips.toLocaleString()}
                 </div>
               </div>
@@ -289,7 +291,7 @@ export default function IcmSimulatorPage() {
                       background: 'rgba(255,255,255,0.05)',
                       border:
                         p.id === 1 ? '1px solid rgba(0,212,255,0.3)' : '1px solid transparent',
-                      color: p.id === 1 ? '#00d4ff' : '#cbd5e1',
+                      color: p.id === 1 ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
                       padding: '10px',
                       borderRadius: 8,
                       fontSize: 13,
@@ -329,7 +331,7 @@ export default function IcmSimulatorPage() {
                   width: '100%',
                   marginTop: 24,
                   padding: 16,
-                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #8b5cf6)',
                   border: 'none',
                   borderRadius: 12,
                   color: '#fff',
@@ -358,7 +360,7 @@ export default function IcmSimulatorPage() {
               <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 8, color: '#fff' }}>
                 ICM Value Distribution
               </div>
-              <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5, marginBottom: 32 }}>
+              <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 32 }}>
                 Independent Chip Model converts raw tournament chips into actual dollar equity
                 mapped to the remaining prize pool structure.
               </div>
@@ -400,12 +402,12 @@ export default function IcmSimulatorPage() {
                               style={{
                                 fontSize: 15,
                                 fontWeight: isHero ? 800 : 600,
-                                color: isHero ? '#00d4ff' : '#e2e8f0',
+                                color: isHero ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
                               }}
                             >
                               {p.name}
                             </div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: '#4ade80' }}>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
                               $
                               {p.eq.toLocaleString('en-US', {
                                 minimumFractionDigits: 2,
@@ -414,13 +416,13 @@ export default function IcmSimulatorPage() {
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: 24, fontSize: 11, color: '#94a3b8' }}>
+                          <div style={{ display: 'flex', gap: 24, fontSize: 11, color: 'var(--sp-fg-muted)' }}>
                             <div>
-                              <span style={{ fontWeight: 700, color: '#cbd5e1' }}>Chips:</span>{' '}
+                              <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>Chips:</span>{' '}
                               {(Number.isFinite(Number(chipPct)) ? Number(chipPct) : 0).toFixed(1)}% ({Number(p.stack).toLocaleString()})
                             </div>
                             <div>
-                              <span style={{ fontWeight: 700, color: '#cbd5e1' }}>Prize EQ:</span>{' '}
+                              <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>Prize EQ:</span>{' '}
                               {(Number.isFinite(Number(eqPct)) ? Number(eqPct) : 0).toFixed(1)}%
                             </div>
                           </div>
@@ -438,7 +440,7 @@ export default function IcmSimulatorPage() {
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${eqPct}%` }}
-                              style={{ height: '100%', background: isHero ? '#00d4ff' : '#8b5cf6' }}
+                              style={{ height: '100%', background: isHero ? 'var(--sp-accent-cyan)' : 'var(--sp-accent-purple)' }}
                             />
                           </div>
                         </motion.div>
@@ -448,8 +450,8 @@ export default function IcmSimulatorPage() {
               ) : (
                 <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
                   <div style={{ fontSize: 48, marginBottom: 16 }}>🧮</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>Run Solver</div>
-                  <div style={{ fontSize: 13, color: '#94a3b8' }}>Fill in stacks and payouts.</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>Run Solver</div>
+                  <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)' }}>Fill in stacks and payouts.</div>
                 </div>
               )}
             </div>

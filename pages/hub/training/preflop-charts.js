@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-39 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-32 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -22,6 +24,10 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { simplifyActions, DIFFICULTY } from '../../../src/engines/DifficultyEngine';
 import { calculatePreflopEV } from '../../../src/engines/EVCalculator';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+
+// TRAIN-CSS-MOTION-ADOPT-18 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-CSS-MOBILE-ADOPT-2 — adoption of mobile data-attr patterns from TRAIN-CSS-MOBILE-1
 
 function saveSession(payload) {
@@ -58,12 +64,12 @@ const STACK_DEPTHS = {
 };
 
 const ACTION_COLORS = {
-  Raise: '#22c55e',
-  Fold: '#64748b',
-  Call: '#3b82f6',
-  '3-Bet': '#ef4444',
-  '4-Bet': '#f97316',
-  Push: '#ef4444',
+  Raise: 'var(--sp-accent-green)',
+  Fold: 'var(--sp-fg-dim)',
+  Call: 'var(--sp-accent-blue)',
+  '3-Bet': 'var(--sp-accent-red)',
+  '4-Bet': 'var(--sp-accent-orange)',
+  Push: 'var(--sp-accent-red)',
 };
 
 
@@ -216,7 +222,7 @@ export default function PreflopCharts() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -296,7 +302,7 @@ export default function PreflopCharts() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -307,7 +313,7 @@ export default function PreflopCharts() {
             <span
               style={{
                 fontSize: 10,
-                color: '#00d4ff',
+                color: 'var(--sp-accent-cyan)',
                 background: 'rgba(0,212,255,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -336,9 +342,9 @@ export default function PreflopCharts() {
                   transition: 'all 0.2s',
                   background:
                     gameType === gt.value
-                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
                       : 'rgba(255,255,255,0.06)',
-                  color: gameType === gt.value ? '#fff' : '#94a3b8',
+                  color: gameType === gt.value ? '#fff' : 'var(--sp-fg-muted)',
                 }}
               >
                 {gt.icon} {gt.label}
@@ -352,7 +358,7 @@ export default function PreflopCharts() {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -375,7 +381,7 @@ export default function PreflopCharts() {
                     transition: 'all 0.15s',
                     background:
                       scenario === sc.value ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: scenario === sc.value ? '#00d4ff' : '#64748b',
+                    color: scenario === sc.value ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   }}
                 >
                   {sc.label}
@@ -389,7 +395,7 @@ export default function PreflopCharts() {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -411,7 +417,7 @@ export default function PreflopCharts() {
                     transition: 'all 0.15s',
                     background:
                       stackDepth === sd ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: stackDepth === sd ? '#00d4ff' : '#64748b',
+                    color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >
@@ -448,7 +454,7 @@ export default function PreflopCharts() {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -471,9 +477,9 @@ export default function PreflopCharts() {
                     transition: 'all 0.2s',
                     background:
                       position === pos
-                        ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
                         : 'rgba(255,255,255,0.06)',
-                    color: position === pos ? '#fff' : '#94a3b8',
+                    color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >
@@ -502,7 +508,7 @@ export default function PreflopCharts() {
                   ? '1px solid rgba(0,212,255,0.4)'
                   : '1px solid rgba(255,255,255,0.1)',
                 background: compareMode ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.04)',
-                color: compareMode ? '#00d4ff' : '#94a3b8',
+                color: compareMode ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
               }}
             >
               {compareMode ? '✕ Close Compare' : '⇄ Compare Positions'}
@@ -534,7 +540,7 @@ export default function PreflopCharts() {
                   <span
                     style={{
                       fontSize: 10,
-                      color: '#a78bfa',
+                      color: 'var(--sp-accent-purple)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: 1,
@@ -559,9 +565,9 @@ export default function PreflopCharts() {
                           transition: 'all 0.15s',
                           background:
                             comparePosition === pos
-                              ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
+                              ? 'linear-gradient(135deg, #7c3aed, rgba(var(--sp-accent-purple-rgb), 1))'
                               : 'rgba(255,255,255,0.06)',
-                          color: comparePosition === pos ? '#fff' : '#94a3b8',
+                          color: comparePosition === pos ? '#fff' : 'var(--sp-fg-muted)',
                           fontFamily: "'Orbitron', monospace",
                         }}
                       >
@@ -589,7 +595,7 @@ export default function PreflopCharts() {
                 style={{
                   fontSize: 12,
                   fontWeight: 800,
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                   fontFamily: "'Orbitron', monospace",
                   marginBottom: 8,
                   padding: '4px 12px',
@@ -614,7 +620,7 @@ export default function PreflopCharts() {
                       margin: '0 auto',
                     }}
                   />
-                  <p style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>Loading range...</p>
+                  <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 8 }}>Loading range...</p>
                   <style>{`
                     @keyframes spin {
                       to {
@@ -628,7 +634,7 @@ export default function PreflopCharts() {
                   key={`${position}-${scenario}-${stackDepth}`}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: MOTION.standard }}
                 >
                   <RangeGrid
                     gridData={rangeData}
@@ -642,7 +648,7 @@ export default function PreflopCharts() {
                   style={{
                     padding: 60,
                     textAlign: 'center',
-                    color: '#475569',
+                    color: 'var(--sp-fg-faint)',
                     fontSize: 13,
                   }}
                 >
@@ -664,7 +670,7 @@ export default function PreflopCharts() {
                     style={{
                       fontSize: 12,
                       fontWeight: 800,
-                      color: '#a855f7',
+                      color: 'var(--sp-accent-purple)',
                       fontFamily: "'Orbitron', monospace",
                       marginBottom: 8,
                       padding: '4px 12px',
@@ -738,7 +744,7 @@ export default function PreflopCharts() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
@@ -747,7 +753,7 @@ export default function PreflopCharts() {
             >
               About This Chart
             </div>
-            <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
               {scenario === 'rfi' && (
                 <>
                   Open-raising range (RFI) shows which hands to raise with when folded to you in

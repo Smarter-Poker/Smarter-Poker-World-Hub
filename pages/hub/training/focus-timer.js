@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-16 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -17,9 +18,9 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
 const PHASES = {
-  FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: '#3b82f6' },
-  SHORT_BREAK: { id: 'short', label: 'Short Break', mins: 5, color: '#22c55e' },
-  LONG_BREAK: { id: 'long', label: 'Long Break', mins: 15, color: '#fbbf24' },
+  FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: 'var(--sp-accent-blue)' },
+  SHORT_BREAK: { id: 'short', label: 'Short Break', mins: 5, color: 'var(--sp-accent-green)' },
+  LONG_BREAK: { id: 'long', label: 'Long Break', mins: 15, color: 'var(--sp-accent-amber)' },
 };
 
 // BUG FIX (TRAIN-FOCUS-A11Y-1): SVG icons replacing back arrow, bell toggle,
@@ -191,7 +192,7 @@ export default function FocusTimerPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -211,7 +212,7 @@ export default function FocusTimerPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -226,7 +227,7 @@ export default function FocusTimerPage() {
           </button>
           <div>
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Focus Timer</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Pomodoro training</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Pomodoro training</div>
           </div>
         </div>
 
@@ -254,7 +255,7 @@ export default function FocusTimerPage() {
                   borderRadius: 8,
                   border: 'none',
                   background: phase.id === p.id ? `${p.color}15` : 'transparent',
-                  color: phase.id === p.id ? p.color : '#64748b',
+                  color: phase.id === p.id ? p.color : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -311,7 +312,7 @@ export default function FocusTimerPage() {
                   fontWeight: 900,
                   fontFamily: 'monospace',
                   letterSpacing: -2,
-                  color: isActive ? phase.color : '#e2e8f0',
+                  color: isActive ? phase.color : 'var(--sp-fg)',
                   textShadow: isActive ? `0 0 20px ${phase.color}40` : 'none',
                 }}
               >
@@ -320,7 +321,7 @@ export default function FocusTimerPage() {
               <div
                 style={{
                   fontSize: 14,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 2,
                   marginTop: 4,
@@ -344,7 +345,7 @@ export default function FocusTimerPage() {
                 background: isActive
                   ? 'rgba(239,68,68,0.1)'
                   : `linear-gradient(135deg, ${phase.color}, ${phase.color}aa)`,
-                color: isActive ? '#f87171' : '#fff',
+                color: isActive ? 'var(--sp-accent-red)' : '#fff',
                 fontSize: 16,
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -362,7 +363,7 @@ export default function FocusTimerPage() {
                 borderRadius: 16,
                 border: '1px solid rgba(255,255,255,0.1)',
                 background: 'rgba(0,0,0,0.2)',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 20,
                 cursor: 'pointer',
               }}
@@ -383,10 +384,10 @@ export default function FocusTimerPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#e2e8f0' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-fg)' }}>
                 {completedBlocks}
               </div>
-              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                 blocks
               </div>
             </div>
@@ -400,10 +401,10 @@ export default function FocusTimerPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#4ade80' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
                 {Math.round(((completedBlocks * 25) / 60) * 10) / 10}
               </div>
-              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                 hours
               </div>
             </div>
@@ -422,11 +423,11 @@ export default function FocusTimerPage() {
                 aria-label={notify ? 'Disable notifications' : 'Enable notifications'}
                 aria-pressed={notify}
                 onClick={() => setNotify(!notify)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: notify ? '#4ade80' : '#94a3b8' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: notify ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)' }}
               >
                 {notify ? <BellIcon size={20} /> : <BellOffIcon size={20} />}
               </button>
-              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                 {notify ? 'on' : 'off'}
               </div>
             </div>
@@ -445,7 +446,7 @@ export default function FocusTimerPage() {
               <div
                 style={{
                   fontSize: 10,
-                  color: '#475569',
+                  color: 'var(--sp-fg-faint)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 8,
@@ -463,8 +464,8 @@ export default function FocusTimerPage() {
                     borderBottom: '1px solid rgba(255,255,255,0.02)',
                   }}
                 >
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{s.time}</span>
-                  <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{s.time}</span>
+                  <span style={{ fontSize: 11, color: 'var(--sp-accent-green)', fontWeight: 600 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{s.duration}min focus <FtCheckIcon size={12} /></span>
                   </span>
                 </div>

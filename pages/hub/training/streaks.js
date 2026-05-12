@@ -6,6 +6,7 @@
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH5-55 — hex sweep batch 5: literals routed to --sp-* tokens
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -21,6 +22,10 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+
+// TRAIN-CSS-MOTION-ADOPT-26 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-5c — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-STREAKS-A11Y-1): SVG icon components replacing the page's
@@ -369,10 +374,10 @@ export default function StreaksPage() {
                 role="alert"
               >
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
                     Your {streak.currentStreak}-Day Streak Is At Risk!
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                     Train today to keep it alive.
                   </div>
                 </div>
@@ -383,7 +388,7 @@ export default function StreaksPage() {
                     borderRadius: 8,
                     background: 'rgba(239,68,68,0.12)',
                     border: '1px solid rgba(239,68,68,0.3)',
-                    color: '#ef4444',
+                    color: 'var(--sp-accent-red)',
                     fontSize: 11,
                     fontWeight: 700,
                     textDecoration: 'none',
@@ -401,7 +406,7 @@ export default function StreaksPage() {
             style={styles.heroSection}
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: MOTION.slow }}
           >
             <div style={styles.flameContainer}>
               {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces 🔥 hero icon.
@@ -419,7 +424,7 @@ export default function StreaksPage() {
             {/* Diamond Multiplier Badge */}
             {streak.currentStreak >= 3 && (() => {
               const mult = streak.currentStreak >= 30 ? '5x' : streak.currentStreak >= 14 ? '3x' : streak.currentStreak >= 7 ? '2x' : '1.5x';
-              const multColor = streak.currentStreak >= 30 ? '#fbbf24' : streak.currentStreak >= 14 ? '#a855f7' : streak.currentStreak >= 7 ? '#3b82f6' : '#22c55e';
+              const multColor = streak.currentStreak >= 30 ? 'var(--sp-accent-amber)' : streak.currentStreak >= 14 ? 'var(--sp-accent-purple)' : streak.currentStreak >= 7 ? 'var(--sp-accent-blue)' : 'var(--sp-accent-green)';
               return (
                 <div style={{
                   display: 'inline-flex',
@@ -436,7 +441,7 @@ export default function StreaksPage() {
                     <DiamondIcon size={14} />
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 800, color: multColor }}>{mult}</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>Diamond Multiplier</span>
+                  <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>Diamond Multiplier</span>
                 </div>
               );
             })()}
@@ -504,7 +509,7 @@ export default function StreaksPage() {
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.06)',
                   fontSize: 11,
-                  color: '#94a3b8',
+                  color: 'var(--sp-fg-muted)',
                   lineHeight: 1.5,
                   fontStyle: 'italic',
                   display: 'flex',
@@ -512,7 +517,7 @@ export default function StreaksPage() {
                   gap: 8,
                 }}>
                   {/* TRAIN-STREAKS-A11Y-1: SVG lightbulb replaces 💡 inline emoji */}
-                  <span style={{ display: 'inline-flex', color: '#fbbf24', flexShrink: 0, marginTop: 1 }} aria-hidden>
+                  <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)', flexShrink: 0, marginTop: 1 }} aria-hidden>
                     <LightbulbIcon size={14} />
                   </span>
                   <span>{tips[dayIdx]}</span>
@@ -527,7 +532,7 @@ export default function StreaksPage() {
               <div style={styles.nextMilestoneHeader}>
                 {/* TRAIN-STREAKS-A11Y-1: route milestone icon via MilestoneIcon */}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ display: 'inline-flex', color: '#fbbf24' }} aria-hidden>
+                  <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-hidden>
                     <MilestoneIcon kind={nextMilestone.iconKind} size={20} />
                   </span>
                   Next: {nextMilestone.name}
@@ -649,7 +654,7 @@ export default function StreaksPage() {
                     whileHover={isClaimable ? { scale: 1.02 } : {}}
                   >
                     {/* TRAIN-STREAKS-A11Y-1: SVG milestone icon via MilestoneIcon */}
-                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#FFD700' : '#9ca3af', display: 'inline-flex' }} aria-hidden>
+                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#FFD700' : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
                       <MilestoneIcon kind={kind} size={32} />
                     </div>
                     <div style={styles.milestoneInfo}>
@@ -732,7 +737,7 @@ const styles = {
   },
   streakLabel: {
     fontSize: '20px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '8px',
   },
   longestStreak: {
@@ -790,7 +795,7 @@ const styles = {
   },
   progressText: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     textAlign: 'center',
   },
   section: {
@@ -832,7 +837,7 @@ const styles = {
     gap: '20px',
     justifyContent: 'center',
     fontSize: '12px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   legendDot: {
     display: 'inline-block',
@@ -867,7 +872,7 @@ const styles = {
   },
   milestoneDays: {
     fontSize: '13px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   milestoneReward: {
     fontSize: '16px',
@@ -907,7 +912,7 @@ const styles = {
     background: '#0a0a0a',
   },
   loadingText: {
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   emptyState: {
     textAlign: 'center',

@@ -5,6 +5,8 @@
  * Deal 2 hole cards + position → decide Raise / Call / Fold
  * Validates against GTO canonical ranges · Tracks per-position accuracy
  */
+// TRAIN-CSS-TOKENS-BATCH5-38 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-31 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -412,14 +414,14 @@ export default function PreflopAdvisor() {
 
   const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
 
-  const ACTION_COLORS = { raise: '#22c55e', call: '#f97316', fold: '#ef4444' };
+  const ACTION_COLORS = { raise: 'var(--sp-accent-green)', call: 'var(--sp-accent-orange)', fold: 'var(--sp-accent-red)' };
   const ACTION_ICONS = { raise: '⬆️', call: '📞', fold: '❌' };
 
   const C = {
     page: {
       minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
       background: 'linear-gradient(135deg,#0a0f1e,#0d1629,#0a0f1e)',
-      color: '#e2e8f0',
+      color: 'var(--sp-fg)',
       fontFamily: "'Inter',sans-serif",
       padding: '20px 16px 40px',
     },
@@ -453,7 +455,7 @@ export default function PreflopAdvisor() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               fontSize: 12,
               cursor: 'pointer',
               marginBottom: 16,
@@ -485,14 +487,14 @@ export default function PreflopAdvisor() {
                   fontSize: 22,
                   fontWeight: 900,
                   ...C.orb,
-                  background: 'linear-gradient(135deg,#22c55e,#00d4ff)',
+                  background: 'linear-gradient(135deg,rgba(var(--sp-accent-green-rgb), 1),rgba(var(--sp-accent-cyan-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
               >
                 PREFLOP ADVISOR
               </h1>
-              <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                 GTO Decision Trainer · 6-Max · 100BB
               </p>
             </div>
@@ -511,10 +513,10 @@ export default function PreflopAdvisor() {
               {
                 label: 'Accuracy',
                 value: `${accuracy}%`,
-                color: accuracy >= 70 ? '#22c55e' : accuracy >= 50 ? '#f97316' : '#ef4444',
+                color: accuracy >= 70 ? 'var(--sp-accent-green)' : accuracy >= 50 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-red)',
               },
-              { label: 'Correct', value: stats.correct, color: '#22c55e' },
-              { label: 'Hands', value: stats.total, color: '#94a3b8' },
+              { label: 'Correct', value: stats.correct, color: 'var(--sp-accent-green)' },
+              { label: 'Hands', value: stats.total, color: 'var(--sp-fg-muted)' },
             ].map((s) => (
               <div
                 key={s.label}
@@ -532,7 +534,7 @@ export default function PreflopAdvisor() {
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#475569',
+                    color: 'var(--sp-fg-faint)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                   }}
@@ -553,7 +555,7 @@ export default function PreflopAdvisor() {
                     width: 10,
                     height: 10,
                     borderRadius: '50%',
-                    background: ok ? '#22c55e' : '#ef4444',
+                    background: ok ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                   }}
                 />
               ))}
@@ -587,13 +589,13 @@ export default function PreflopAdvisor() {
                         padding: '4px 14px',
                         fontSize: 12,
                         fontWeight: 800,
-                        color: '#a855f7',
+                        color: 'var(--sp-accent-purple)',
                         ...C.orb,
                       }}
                     >
                       {hand.pos}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                       6-Max · 100BB · No Limpers
                     </div>
                   </div>
@@ -612,10 +614,10 @@ export default function PreflopAdvisor() {
                       textAlign: 'center',
                       fontSize: 14,
                       fontWeight: 600,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                     }}
                   >
-                    Folded to you in <strong style={{ color: '#a855f7' }}>{hand.pos}</strong>. What
+                    Folded to you in <strong style={{ color: 'var(--sp-accent-purple)' }}>{hand.pos}</strong>. What
                     is your action?
                   </p>
                 </div>
@@ -670,7 +672,7 @@ export default function PreflopAdvisor() {
                         background:
                           decision === gtoAction ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
                         border: `1px solid ${decision === gtoAction ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
-                        color: decision === gtoAction ? '#22c55e' : '#ef4444',
+                        color: decision === gtoAction ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                       }}
                     >
                       {decision === gtoAction
@@ -682,13 +684,13 @@ export default function PreflopAdvisor() {
                         ...C.card,
                         background: 'rgba(255,255,255,0.02)',
                         fontSize: 13,
-                        color: '#94a3b8',
+                        color: 'var(--sp-fg-muted)',
                         lineHeight: 1.7,
                       }}
                     >
                       <strong
                         style={{
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           display: 'block',
                           marginBottom: 6,
                           fontSize: 10,
@@ -698,7 +700,7 @@ export default function PreflopAdvisor() {
                       >
                         📚 GTO Reasoning
                       </strong>
-                      <strong style={{ color: '#a855f7' }}>{canonical}</strong> —{' '}
+                      <strong style={{ color: 'var(--sp-accent-purple)' }}>{canonical}</strong> —{' '}
                       {getRangeNote(hand.pos, canonical)}
                     </div>
 
@@ -708,7 +710,7 @@ export default function PreflopAdvisor() {
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           textTransform: 'uppercase',
                           letterSpacing: 1,
                           marginBottom: 10,
@@ -727,12 +729,12 @@ export default function PreflopAdvisor() {
                                 justifyContent: 'space-between',
                                 fontSize: 11,
                                 fontWeight: 700,
-                                color: '#64748b',
+                                color: 'var(--sp-fg-dim)',
                                 marginBottom: 3,
                               }}
                             >
                               <span>{p}</span>
-                              <span style={{ color: acc >= 70 ? '#22c55e' : '#f97316' }}>
+                              <span style={{ color: acc >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-orange)' }}>
                                 {acc}% ({ps.total} hands)
                               </span>
                             </div>
@@ -749,7 +751,7 @@ export default function PreflopAdvisor() {
                                 style={{
                                   height: '100%',
                                   borderRadius: 3,
-                                  background: acc >= 70 ? '#22c55e' : '#f97316',
+                                  background: acc >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-orange)',
                                 }}
                               />
                             </div>
@@ -764,7 +766,7 @@ export default function PreflopAdvisor() {
                         width: '100%',
                         padding: 14,
                         borderRadius: 12,
-                        background: 'linear-gradient(135deg,#22c55e,#00d4ff)',
+                        background: 'linear-gradient(135deg,rgba(var(--sp-accent-green-rgb), 1),rgba(var(--sp-accent-cyan-rgb), 1))',
                         border: 'none',
                         color: '#000',
                         fontWeight: 900,

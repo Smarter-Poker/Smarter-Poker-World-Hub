@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-61 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-51 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -199,7 +201,7 @@ export default function TrainingCalendarPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -219,7 +221,7 @@ export default function TrainingCalendarPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -236,7 +238,7 @@ export default function TrainingCalendarPage() {
           <div>
             {/* TRAIN-CALENDAR-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Training Calendar</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Your activity heatmap</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your activity heatmap</div>
           </div>
         </div>
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
@@ -266,8 +268,8 @@ export default function TrainingCalendarPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#00d4ff' }} role="status" aria-label={`${streak} day streak`}>{streak}</div>
-                  <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }} role="status" aria-label={`${streak} day streak`}>{streak}</div>
+                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     DAY STREAK
                   </div>
                 </div>
@@ -280,8 +282,8 @@ export default function TrainingCalendarPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#a855f7' }}>{totalDays}</div>
-                  <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>{totalDays}</div>
+                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     ACTIVE DAYS
                   </div>
                 </div>
@@ -294,10 +296,10 @@ export default function TrainingCalendarPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#4ade80' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                     {totalHands}
                   </div>
-                  <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     TOTAL HANDS
                   </div>
                 </div>
@@ -309,7 +311,7 @@ export default function TrainingCalendarPage() {
                   {DAYS.map((d, i) => (
                     <div
                       key={i}
-                      style={{ width: 16, textAlign: 'center', fontSize: 8, color: '#334155' }}
+                      style={{ width: 16, textAlign: 'center', fontSize: 8, color: 'var(--sp-fg-faint)' }}
                     >
                       {d}
                     </div>
@@ -359,14 +361,14 @@ export default function TrainingCalendarPage() {
                     justifyContent: 'flex-end',
                   }}
                 >
-                  <span style={{ fontSize: 8, color: '#334155' }}>Less</span>
+                  <span style={{ fontSize: 8, color: 'var(--sp-fg-faint)' }}>Less</span>
                   {INTENSITY_COLORS.map((c, i) => (
                     <div
                       key={i}
                       style={{ width: 10, height: 10, borderRadius: 2, background: c }}
                     />
                   ))}
-                  <span style={{ fontSize: 8, color: '#334155' }}>More</span>
+                  <span style={{ fontSize: 8, color: 'var(--sp-fg-faint)' }}>More</span>
                 </div>
               </div>
 
@@ -383,7 +385,7 @@ export default function TrainingCalendarPage() {
                     marginBottom: 16,
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 6 }}>
                     {new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', {
                       weekday: 'long',
                       month: 'long',
@@ -393,16 +395,16 @@ export default function TrainingCalendarPage() {
                   {selectedData ? (
                     <div style={{ display: 'flex', gap: 16 }}>
                       <div>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: '#00d4ff' }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                           {selectedData.hands}
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: '#64748b' }}>hands</span>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>hands</span>
                       </div>
                       <div>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: '#a855f7' }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
                           {selectedData.sessions}
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: '#64748b' }}>sessions</span>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>sessions</span>
                       </div>
                       <div>
                         <span
@@ -413,9 +415,9 @@ export default function TrainingCalendarPage() {
                               selectedData.hands > 0
                                 ? Math.round((selectedData.correct / selectedData.hands) * 100) >=
                                   75
-                                  ? '#4ade80'
-                                  : '#fbbf24'
-                                : '#64748b',
+                                  ? 'var(--sp-accent-green)'
+                                  : 'var(--sp-accent-amber)'
+                                : 'var(--sp-fg-dim)',
                           }}
                         >
                           {selectedData.hands > 0
@@ -423,11 +425,11 @@ export default function TrainingCalendarPage() {
                             : 0}
                           %
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: '#64748b' }}>accuracy</span>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>accuracy</span>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: 11, color: '#475569' }}>No training on this day</div>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-faint)' }}>No training on this day</div>
                   )}
                 </motion.div>
               )}
@@ -446,10 +448,10 @@ export default function TrainingCalendarPage() {
                   <div
                     style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                       Daily Training Goal
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#00d4ff' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>
                       {todayHands} / 50 Hands
                     </div>
                   </div>
@@ -466,12 +468,12 @@ export default function TrainingCalendarPage() {
                       animate={{ width: `${Math.min(100, (todayHands / 50) * 100)}%` }}
                       style={{
                         height: '100%',
-                        background: 'linear-gradient(90deg, #00d4ff, #3b82f6)',
+                        background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                       }}
                     />
                   </div>
                   {todayHands >= 50 && (
-                    <div style={{ fontSize: 11, color: '#4ade80', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces 🌟 */}
                       <span style={{ display: 'inline-flex' }} aria-hidden><StarSparkleIcon size={12} /></span>
                       Goal Met! +1 to Streak
@@ -489,30 +491,30 @@ export default function TrainingCalendarPage() {
                   }}
                 >
                   <div
-                    style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}
+                    style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 12 }}
                   >
                     Last 7 Days Summary
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>Sessions</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#a855f7' }}>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Sessions</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
                         {weeklyStats.sessions}
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>Hands Played</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#4ade80' }}>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Hands Played</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                         {weeklyStats.hands}
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>Avg Accuracy</div>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Avg Accuracy</div>
                       <div
                         style={{
                           fontSize: 16,
                           fontWeight: 800,
-                          color: weeklyStats.accuracy >= 75 ? '#4ade80' : '#fbbf24',
+                          color: weeklyStats.accuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                         }}
                       >
                         {weeklyStats.accuracy}%

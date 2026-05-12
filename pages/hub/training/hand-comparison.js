@@ -17,6 +17,7 @@
 
 // TRAIN-CSS-TOKENS-ADOPT-12 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-10 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-17 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -596,7 +597,7 @@ export default function HandComparison() {
                   fontSize: 22,
                   fontWeight: 900,
                   fontFamily: "'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, #22c55e, #00d4ff)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -749,7 +750,7 @@ export default function HandComparison() {
               marginBottom: 20,
               background:
                 canRun && !isRunning
-                  ? 'linear-gradient(135deg, #22c55e, #00d4ff)'
+                  ? 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))'
                   : 'rgba(255,255,255,0.05)',
               border: 'none',
               color: canRun && !isRunning ? '#000' : '#374151',

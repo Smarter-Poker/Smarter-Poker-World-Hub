@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-9 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -88,7 +89,7 @@ function generateGoals(sessionsParams) {
       target: 50,
       current: todayHands,
       type: 'count',
-      color: '#3b82f6',
+      color: 'var(--sp-accent-blue)',
       icon: '🎯',
     },
     {
@@ -98,7 +99,7 @@ function generateGoals(sessionsParams) {
       target: 75,
       current: todayHands >= 10 ? Math.round((todayCorrect / todayHands) * 100) : 0,
       type: 'percent',
-      color: '#4ade80',
+      color: 'var(--sp-accent-green)',
       icon: '📈',
     },
     {
@@ -108,7 +109,7 @@ function generateGoals(sessionsParams) {
       target: 3,
       current: todaySessions.length,
       type: 'count',
-      color: '#fbbf24',
+      color: 'var(--sp-accent-amber)',
       icon: '⚡',
     },
     {
@@ -118,7 +119,7 @@ function generateGoals(sessionsParams) {
       target: 3,
       current: uniqueGames.size,
       type: 'count',
-      color: '#a855f7',
+      color: 'var(--sp-accent-purple)',
       icon: '🎮',
     },
     {
@@ -128,7 +129,7 @@ function generateGoals(sessionsParams) {
       target: 90,
       current: bestAccuracy,
       type: 'percent',
-      color: '#ef4444',
+      color: 'var(--sp-accent-red)',
       icon: '🔥',
     },
   ];
@@ -250,7 +251,7 @@ export default function DailyGoalsPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -270,7 +271,7 @@ export default function DailyGoalsPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -287,7 +288,7 @@ export default function DailyGoalsPage() {
           <div>
             {/* TRAIN-DAILY-GOALS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Daily Goals</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Resets at midnight</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Resets at midnight</div>
           </div>
         </div>
 
@@ -319,17 +320,17 @@ export default function DailyGoalsPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
                       Daily Bonus Available
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                       Complete all goals to claim +{dailyBonus.totalBonus} diamonds
                       {dailyBonus.streakBonus > 0 && (
-                        <span style={{ color: '#fbbf24' }}> (includes {dailyBonus.streakBonus} streak bonus)</span>
+                        <span style={{ color: 'var(--sp-accent-amber)' }}> (includes {dailyBonus.streakBonus} streak bonus)</span>
                       )}
                     </div>
                   </div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: '#fbbf24' }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--sp-accent-amber)' }}>
                     +{dailyBonus.totalBonus}
                   </div>
                 </motion.div>
@@ -343,7 +344,7 @@ export default function DailyGoalsPage() {
                     border: '1px solid rgba(34,197,94,0.15)',
                     marginBottom: 16,
                     fontSize: 12,
-                    color: '#4ade80',
+                    color: 'var(--sp-accent-green)',
                     fontWeight: 600,
                     textAlign: 'center',
                   }}
@@ -368,14 +369,14 @@ export default function DailyGoalsPage() {
                   }}
                 >
                   {/* TRAIN-DAILY-GOALS-A11Y-1: SVG crown/target replaces 👑/🎯 */}
-                  <div style={{ fontSize: 48, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: data.completeCount === data.totalGoals ? '#4ade80' : '#94a3b8' }} aria-hidden>
+                  <div style={{ fontSize: 48, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: data.completeCount === data.totalGoals ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)' }} aria-hidden>
                     {data.completeCount === data.totalGoals ? <CrownIcon size={48} /> : <TargetIcon size={48} />}
                   </div>
                   <div
                     style={{
                       fontSize: 24,
                       fontWeight: 900,
-                      color: data.completeCount === data.totalGoals ? '#4ade80' : '#e2e8f0',
+                      color: data.completeCount === data.totalGoals ? 'var(--sp-accent-green)' : 'var(--sp-fg)',
                     }}
                     role="status"
                     aria-label={`${data.completeCount} of ${data.totalGoals} goals completed`}
@@ -385,7 +386,7 @@ export default function DailyGoalsPage() {
                   <div
                     style={{
                       fontSize: 11,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginTop: 4,
@@ -410,21 +411,21 @@ export default function DailyGoalsPage() {
                   }}
                 >
                   {/* TRAIN-DAILY-GOALS-A11Y-1: SVG flame replaces 🔥 */}
-                  <div style={{ fontSize: 24, color: streakDays > 0 ? '#fbbf24' : '#475569', display: 'inline-flex' }} aria-hidden>
+                  <div style={{ fontSize: 24, color: streakDays > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)', display: 'inline-flex' }} aria-hidden>
                     <FlameIcon size={24} />
                   </div>
                   <div
                     style={{
                       fontSize: 20,
                       fontWeight: 900,
-                      color: streakDays > 0 ? '#fbbf24' : '#475569',
+                      color: streakDays > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
                     }}
                     role="status"
                     aria-label={`${streakDays} day streak`}
                   >
                     {streakDays}
                   </div>
-                  <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     day streak
                   </div>
                 </div>
@@ -445,7 +446,7 @@ export default function DailyGoalsPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
                     All goals complete! +25 diamonds earned
                   </div>
                 </motion.div>
@@ -480,14 +481,14 @@ export default function DailyGoalsPage() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           {/* TRAIN-DAILY-GOALS-A11Y-1: SVG GoalIcon replaces emoji */}
-                          <div style={{ fontSize: 20, color: isComplete ? g.color : '#94a3b8', display: 'inline-flex' }} aria-hidden>
+                          <div style={{ fontSize: 20, color: isComplete ? g.color : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
                             <GoalIcon kind={g.iconKind} size={20} />
                           </div>
                           <div
                             style={{
                               fontSize: 14,
                               fontWeight: 700,
-                              color: isComplete ? '#fff' : '#e2e8f0',
+                              color: isComplete ? '#fff' : 'var(--sp-fg)',
                             }}
                           >
                             {g.label}
@@ -497,11 +498,11 @@ export default function DailyGoalsPage() {
                           style={{
                             fontSize: 14,
                             fontWeight: 800,
-                            color: isComplete ? g.color : '#94a3b8',
+                            color: isComplete ? g.color : 'var(--sp-fg-muted)',
                           }}
                         >
                           {g.current}{' '}
-                          <span style={{ fontSize: 10, fontWeight: 600, color: '#64748b' }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--sp-fg-dim)' }}>
                             / {g.target}
                             {g.type === 'percent' ? '%' : ''}
                           </span>
@@ -567,7 +568,7 @@ export default function DailyGoalsPage() {
                   borderRadius: 12,
                   border: 'none',
                   background: 'rgba(255,255,255,0.05)',
-                  color: '#e2e8f0',
+                  color: 'var(--sp-fg)',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',

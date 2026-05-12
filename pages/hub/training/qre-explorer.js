@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-41 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -170,7 +171,7 @@ export default function QREExplorerPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
           paddingBottom: 60,
         }}
@@ -190,7 +191,7 @@ export default function QREExplorerPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -205,7 +206,7 @@ export default function QREExplorerPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>QRE Explorer</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               Population Tendencies — Quantal Response Equilibrium
             </div>
           </div>
@@ -235,18 +236,18 @@ export default function QREExplorerPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#a78bfa',
+                    color: 'var(--sp-accent-purple)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
                 >
                   Rationality Parameter (λ)
                 </div>
-                <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                   0 = random play → ∞ = perfect GTO
                 </div>
               </div>
-              <div style={{ fontSize: 32, fontWeight: 900, color: '#a78bfa' }}>
+              <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--sp-accent-purple)' }}>
                 {(Number.isFinite(Number(lambda)) ? Number(lambda) : 0).toFixed(1)}
               </div>
             </div>
@@ -260,14 +261,14 @@ export default function QREExplorerPage() {
                 setLambda(parseFloat(e.target.value));
                 setActivePreset(null);
               }}
-              style={{ width: '100%', accentColor: '#a78bfa' }}
+              style={{ width: '100%', accentColor: 'var(--sp-accent-purple)' }}
             />
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 fontSize: 9,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 marginTop: 4,
               }}
             >
@@ -284,7 +285,7 @@ export default function QREExplorerPage() {
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 12,
@@ -311,13 +312,13 @@ export default function QREExplorerPage() {
                   border: `1px solid ${activePreset === p.id ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.05)'}`,
                   background:
                     activePreset === p.id ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.02)',
-                  color: activePreset === p.id ? '#a78bfa' : '#94a3b8',
+                  color: activePreset === p.id ? 'var(--sp-accent-purple)' : 'var(--sp-fg-muted)',
                   cursor: 'pointer',
                   textAlign: 'center',
                 }}
               >
                 <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 2 }}>{p.label}</div>
-                <div style={{ fontSize: 9, color: '#64748b' }}>λ = {p.lambda}</div>
+                <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>λ = {p.lambda}</div>
               </motion.button>
             ))}
           </div>
@@ -327,7 +328,7 @@ export default function QREExplorerPage() {
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 12,
@@ -356,8 +357,8 @@ export default function QREExplorerPage() {
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  background: selectedSpot === key ? '#a78bfa' : 'rgba(255,255,255,0.04)',
-                  color: selectedSpot === key ? '#fff' : '#94a3b8',
+                  background: selectedSpot === key ? 'var(--sp-accent-purple)' : 'rgba(255,255,255,0.04)',
+                  color: selectedSpot === key ? '#fff' : 'var(--sp-fg-muted)',
                 }}
               >
                 {info.icon} {info.label}
@@ -393,7 +394,7 @@ export default function QREExplorerPage() {
                   padding: '3px 8px',
                   borderRadius: 4,
                   background: 'rgba(167,139,250,0.1)',
-                  color: '#a78bfa',
+                  color: 'var(--sp-accent-purple)',
                 }}
               >
                 {spotInfo.street}
@@ -408,14 +409,14 @@ export default function QREExplorerPage() {
                 marginBottom: 8,
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>ACTION</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-fg-dim)' }}>ACTION</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-green)', textAlign: 'center' }}>
                 GTO
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-purple)', textAlign: 'center' }}>
                 QRE
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#fbbf24', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-amber)', textAlign: 'center' }}>
                 DELTA
               </div>
             </div>
@@ -437,18 +438,18 @@ export default function QREExplorerPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                       {a.action}
                     </div>
-                    <div style={{ fontSize: 10, color: '#64748b' }}>EV: {a.ev}</div>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>EV: {a.ev}</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#22c55e' }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                       {a.gtoFreq}%
                     </div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#a78bfa' }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
                       {a.qreFreq}%
                     </div>
                   </div>
@@ -457,7 +458,7 @@ export default function QREExplorerPage() {
                       style={{
                         fontSize: 13,
                         fontWeight: 700,
-                        color: Math.abs(delta) < 3 ? '#94a3b8' : delta > 0 ? '#4ade80' : '#f87171',
+                        color: Math.abs(delta) < 3 ? 'var(--sp-fg-muted)' : delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                       }}
                     >
                       {delta > 0 ? '+' : ''}
@@ -479,12 +480,12 @@ export default function QREExplorerPage() {
               marginBottom: 24,
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
               Frequency Distribution
             </div>
             {currentActions.map((a) => (
               <div key={a.action} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)', marginBottom: 6 }}>
                   {a.action}
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -501,7 +502,7 @@ export default function QREExplorerPage() {
                       <motion.div
                         animate={{ width: `${a.gtoFreq}%` }}
                         transition={{ duration: MOTION.slow }}
-                        style={{ height: '100%', background: '#22c55e', borderRadius: 3 }}
+                        style={{ height: '100%', background: 'var(--sp-accent-green)', borderRadius: 3 }}
                       />
                     </div>
                     <div
@@ -515,7 +516,7 @@ export default function QREExplorerPage() {
                       <motion.div
                         animate={{ width: `${a.qreFreq}%` }}
                         transition={{ duration: MOTION.slow }}
-                        style={{ height: '100%', background: '#a78bfa', borderRadius: 3 }}
+                        style={{ height: '100%', background: 'var(--sp-accent-purple)', borderRadius: 3 }}
                       />
                     </div>
                   </div>
@@ -531,8 +532,8 @@ export default function QREExplorerPage() {
                 marginTop: 8,
               }}
             >
-              <span style={{ color: '#22c55e', fontWeight: 700 }}>■ GTO (Nash)</span>
-              <span style={{ color: '#a78bfa', fontWeight: 700 }}>■ QRE (Population)</span>
+              <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>■ GTO (Nash)</span>
+              <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700 }}>■ QRE (Population)</span>
             </div>
           </div>
 
@@ -549,14 +550,14 @@ export default function QREExplorerPage() {
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#fbbf24',
+                color: 'var(--sp-accent-amber)',
                 textTransform: 'uppercase',
                 marginBottom: 8,
               }}
             >
               Exploit Recommendation
             </div>
-            <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
               {lambda < 1.5
                 ? 'This population plays nearly randomly. Exploit by value-betting thinner, bluffing less (they call too much), and sizing up for value.'
                 : lambda < 3

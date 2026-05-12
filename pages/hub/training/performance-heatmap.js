@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-11 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH5-35 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -39,9 +40,9 @@ function getHeatColor(accuracy) {
 function getTextColor(accuracy) {
   if (accuracy === null || accuracy === undefined) return 'var(--sp-fg-faint)';
   if (accuracy >= 85) return 'var(--sp-accent-green)';
-  if (accuracy >= 75) return '#86efac';
+  if (accuracy >= 75) return 'var(--sp-accent-green)';
   if (accuracy >= 65) return 'var(--sp-accent-amber)';
-  if (accuracy >= 55) return '#fb923c';
+  if (accuracy >= 55) return 'var(--sp-accent-orange)';
   return 'var(--sp-accent-red)';
 }
 
@@ -910,9 +911,9 @@ export default function PerformanceHeatmapPage() {
           >
             {[
               { label: '85%+', color: 'var(--sp-accent-green)' },
-              { label: '75-84%', color: '#86efac' },
+              { label: '75-84%', color: 'var(--sp-accent-green)' },
               { label: '65-74%', color: 'var(--sp-accent-amber)' },
-              { label: '55-64%', color: '#fb923c' },
+              { label: '55-64%', color: 'var(--sp-accent-orange)' },
               { label: '<55%', color: 'var(--sp-accent-red)' },
             ].map((l) => (
               <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

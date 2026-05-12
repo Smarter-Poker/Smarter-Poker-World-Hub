@@ -15,6 +15,10 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
+
+// TRAIN-CSS-MOTION-ADOPT-27 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-PLAYCARD-5 — adoption: three-way-postflop board via shared PlayingCard
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -131,7 +135,7 @@ function ActionBar({ label, pct, color }) {
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${safePct}%` }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: MOTION.slow }}
           style={{ position: 'absolute', height: '100%', background: color, borderRadius: 4 }}
         />
       </div>

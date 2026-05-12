@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-43 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-35 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -80,7 +82,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
           marginBottom: 12,
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff' }}>Q{index + 1}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>Q{index + 1}</div>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => onRemove(index)}
@@ -90,7 +92,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             borderRadius: 6,
             background: 'rgba(239,68,68,0.1)',
             border: 'none',
-            color: '#f87171',
+            color: 'var(--sp-accent-red)',
             fontSize: 12,
             cursor: 'pointer',
             display: 'flex',
@@ -110,7 +112,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
           <div
             style={{
               fontSize: 9,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               fontWeight: 700,
               textTransform: 'uppercase',
               marginBottom: 4,
@@ -127,7 +129,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
               borderRadius: 6,
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
-              color: '#e2e8f0',
+              color: 'var(--sp-fg)',
               fontSize: 12,
             }}
           >
@@ -142,7 +144,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
           <div
             style={{
               fontSize: 9,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               fontWeight: 700,
               textTransform: 'uppercase',
               marginBottom: 4,
@@ -159,7 +161,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
               borderRadius: 6,
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
-              color: '#e2e8f0',
+              color: 'var(--sp-fg)',
               fontSize: 12,
             }}
           >
@@ -174,7 +176,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
           <div
             style={{
               fontSize: 9,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               fontWeight: 700,
               textTransform: 'uppercase',
               marginBottom: 4,
@@ -191,7 +193,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
               borderRadius: 6,
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
-              color: '#e2e8f0',
+              color: 'var(--sp-fg)',
               fontSize: 12,
             }}
           >
@@ -209,7 +211,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
         <div
           style={{
             fontSize: 9,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             fontWeight: 700,
             textTransform: 'uppercase',
             marginBottom: 4,
@@ -228,7 +230,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             borderRadius: 6,
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.08)',
-            color: '#e2e8f0',
+            color: 'var(--sp-fg)',
             fontSize: 12,
             resize: 'vertical',
             fontFamily: 'Inter, sans-serif',
@@ -241,7 +243,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
         <div
           style={{
             fontSize: 9,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             fontWeight: 700,
             textTransform: 'uppercase',
             marginBottom: 4,
@@ -258,7 +260,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             borderRadius: 6,
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.08)',
-            color: '#4ade80',
+            color: 'var(--sp-accent-green)',
             fontSize: 12,
             fontWeight: 700,
           }}
@@ -276,7 +278,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
         <div
           style={{
             fontSize: 9,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             fontWeight: 700,
             textTransform: 'uppercase',
             marginBottom: 4,
@@ -295,7 +297,7 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             borderRadius: 6,
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.08)',
-            color: '#e2e8f0',
+            color: 'var(--sp-fg)',
             fontSize: 12,
             resize: 'vertical',
             fontFamily: 'Inter, sans-serif',
@@ -383,7 +385,7 @@ export default function QuizBuilderPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -402,7 +404,7 @@ export default function QuizBuilderPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -417,7 +419,7 @@ export default function QuizBuilderPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Quiz Builder</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Create custom GTO scenarios</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Create custom GTO scenarios</div>
           </div>
         </div>
 
@@ -445,7 +447,7 @@ export default function QuizBuilderPage() {
                 borderRadius: 6,
                 border: `1px solid ${tab === t.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                 background: tab === t.id ? 'rgba(0,212,255,0.06)' : 'transparent',
-                color: tab === t.id ? '#00d4ff' : '#64748b',
+                color: tab === t.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -465,7 +467,7 @@ export default function QuizBuilderPage() {
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
@@ -484,7 +486,7 @@ export default function QuizBuilderPage() {
                     borderRadius: 8,
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 14,
                     fontWeight: 600,
                     fontFamily: 'Inter, sans-serif',
@@ -497,7 +499,7 @@ export default function QuizBuilderPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 8,
@@ -529,7 +531,7 @@ export default function QuizBuilderPage() {
                     borderRadius: 10,
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'rgba(255,255,255,0.03)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -547,9 +549,9 @@ export default function QuizBuilderPage() {
                     borderRadius: 10,
                     border: 'none',
                     background: quizName.trim()
-                      ? 'linear-gradient(135deg, #00d4ff, #3b82f6)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))'
                       : 'rgba(255,255,255,0.05)',
-                    color: quizName.trim() ? '#fff' : '#475569',
+                    color: quizName.trim() ? '#fff' : 'var(--sp-fg-faint)',
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: quizName.trim() ? 'pointer' : 'not-allowed',
@@ -589,10 +591,10 @@ export default function QuizBuilderPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
                       {quiz.name}
                     </div>
-                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                       {quiz.questions.length} questions · Created{' '}
                       {new Date(quiz.createdAt).toLocaleDateString()}
                     </div>
@@ -606,7 +608,7 @@ export default function QuizBuilderPage() {
                         borderRadius: 6,
                         background: 'rgba(239,68,68,0.08)',
                         border: '1px solid rgba(239,68,68,0.15)',
-                        color: '#f87171',
+                        color: 'var(--sp-accent-red)',
                         fontSize: 10,
                         fontWeight: 600,
                         cursor: 'pointer',

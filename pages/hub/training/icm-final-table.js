@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-24 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -66,37 +67,37 @@ function generateFTScenarios(structure, payoutType) {
     {
       label: 'Premium (AA-QQ, AKs)',
       action: 'SHOVE',
-      color: '#22c55e',
+      color: 'var(--sp-accent-green)',
       detail: 'Always +chipEV and +$EV. Shove every time.',
     },
     {
       label: 'Mid Pairs (JJ-88)',
       action: 'SHOVE',
-      color: '#4ade80',
+      color: 'var(--sp-accent-green)',
       detail: 'Positive ICM shove in most stack configurations.',
     },
     {
       label: 'Small Pairs (77-22)',
       action: 'DEPENDS',
-      color: '#f59e0b',
+      color: 'var(--sp-accent-amber)',
       detail: 'Profitable shove only when fold equity is high or stacks are short.',
     },
     {
       label: 'Broadway (AQo-KJs)',
       action: 'DEPENDS',
-      color: '#f59e0b',
+      color: 'var(--sp-accent-amber)',
       detail: 'ICM pressure makes these marginal. Consider stack depth and position.',
     },
     {
       label: 'Suited Connectors',
       action: 'FOLD',
-      color: '#ef4444',
+      color: 'var(--sp-accent-red)',
       detail: 'Not enough equity to overcome ICM risk at most stack depths.',
     },
     {
       label: 'Offsuit Trash (72o-T4o)',
       action: 'FOLD',
-      color: '#ef4444',
+      color: 'var(--sp-accent-red)',
       detail: 'Never profitable in ICM spots. Preserve chips for better opportunities.',
     },
   ];
@@ -322,7 +323,7 @@ export default function ICMFinalTableLibrary() {
                     fontWeight: 700,
                     background: i === 0 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.06)',
-                    color: i === 0 ? '#f59e0b' : '#b0b3b8',
+                    color: i === 0 ? 'var(--sp-accent-amber)' : '#b0b3b8',
                   }}
                 >
                   {i + 1}st: {p}%

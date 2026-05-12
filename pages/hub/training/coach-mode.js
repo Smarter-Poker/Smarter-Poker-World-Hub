@@ -8,6 +8,8 @@
  */
 
 // TRAIN-CSS-MOBILE-ADOPT-16 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-TOKENS-BATCH5-6 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-6 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -68,7 +70,7 @@ const LESSONS = [
     name: 'Preflop Basics',
     iconKind: 'crown',
     icon: '🃏',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
     desc: 'Open ranges, positions, and sizing fundamentals',
     concepts: [
       'In 6-max poker, there are 6 positions: UTG, HJ, CO, BTN, SB, BB. Each has a different opening range — tighter from early position, wider from late.',
@@ -105,7 +107,7 @@ const LESSONS = [
     name: '3-Bet Strategy',
     iconKind: 'bolt',
     icon: '⚡',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     desc: 'When and how to re-raise preflop',
     concepts: [
       "A 3-bet is a re-raise over an initial open raise. It's the most powerful preflop weapon for building pots with strong hands and isolating players.",
@@ -151,7 +153,7 @@ const LESSONS = [
     name: 'C-Bet Fundamentals',
     iconKind: 'target',
     icon: '🎯',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     desc: 'When to continuation bet and sizing selection',
     concepts: [
       "A continuation bet (c-bet) is a bet by the preflop raiser on the flop. It's profitable because you have range advantage on most boards as the preflop aggressor.",
@@ -201,7 +203,7 @@ const LESSONS = [
     name: 'Pot Odds & MDF',
     iconKind: 'abacus',
     icon: '🧮',
-    color: '#fbbf24',
+    color: 'var(--sp-accent-amber)',
     desc: 'The math behind calling and defense decisions',
     concepts: [
       'Pot odds = bet size / (pot + bet size). A half-pot bet gives 25% odds, meaning you need 25% equity to break even on a call.',
@@ -233,7 +235,7 @@ const LESSONS = [
     name: 'Turn Strategy',
     iconKind: 'rotate',
     icon: '🔄',
-    color: '#06b6d4',
+    color: 'var(--sp-accent-cyan)',
     desc: 'Second barrel decisions and range evolution',
     concepts: [
       'The turn is where the pot grows significantly. Betting 66% pot on the turn after a 33% flop c-bet means the pot is now 3x the original flop size.',
@@ -278,7 +280,7 @@ const LESSONS = [
     name: 'River Mastery',
     iconKind: 'flag',
     icon: '🏁',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
     desc: 'Final street value bets, bluffs, and river decisions',
     concepts: [
       'On the river, hands have fixed equity — no more draws. Your range should be polarized: bet with very strong hands (value) and some bluffs, check medium hands.',
@@ -388,7 +390,7 @@ export default function CoachModePage() {
           style={{
             minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
             background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-            color: '#e2e8f0',
+            color: 'var(--sp-fg)',
             fontFamily: "'Inter', -apple-system, sans-serif",
           }}
         >
@@ -408,7 +410,7 @@ export default function CoachModePage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -423,7 +425,7 @@ export default function CoachModePage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{activeLesson.name}</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
                 {isConceptPhase
                   ? `Concept ${step + 1}/${activeLesson.concepts.length}`
                   : isQuizPhase
@@ -478,7 +480,7 @@ export default function CoachModePage() {
                   >
                     CONCEPT {step + 1}
                   </div>
-                  <div style={{ fontSize: 14, color: '#e2e8f0', lineHeight: 1.7 }}>
+                  <div style={{ fontSize: 14, color: 'var(--sp-fg)', lineHeight: 1.7 }}>
                     {activeLesson.concepts[step]}
                   </div>
                 </div>
@@ -532,12 +534,12 @@ export default function CoachModePage() {
                                 : 'rgba(0,0,0,0.1)',
                         color:
                           selected === null
-                            ? '#e2e8f0'
+                            ? 'var(--sp-fg)'
                             : i === activeLesson.quiz[quizIdx].answer
-                              ? '#4ade80'
+                              ? 'var(--sp-accent-green)'
                               : selected === i
-                                ? '#f87171'
-                                : '#475569',
+                                ? 'var(--sp-accent-red)'
+                                : 'var(--sp-fg-faint)',
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: selected === null ? 'pointer' : 'default',
@@ -577,26 +579,26 @@ export default function CoachModePage() {
                 animate={{ opacity: 1, scale: 1 }}
                 style={{ textAlign: 'center', padding: '20px 0' }}
               >
-                <div style={{ fontSize: 48, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: score >= 4 ? '#fbbf24' : score >= 3 ? '#4ade80' : '#a855f7' }} aria-hidden>
+                <div style={{ fontSize: 48, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: score >= 4 ? 'var(--sp-accent-amber)' : score >= 3 ? 'var(--sp-accent-green)' : 'var(--sp-accent-purple)' }} aria-hidden>
                   {/* TRAIN-COACH-A11Y-1: SVG ScoreIcon replaces 🏆/👍/💪 */}
                   <ScoreIcon score={score} total={activeLesson.quiz.length} size={48} />
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>
                   Lesson Complete
                 </div>
-                <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 24 }}>
+                <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
                   {activeLesson.name}
                 </div>
                 <div
                   style={{
                     fontSize: 36,
                     fontWeight: 900,
-                    color: score >= 4 ? '#4ade80' : '#fbbf24',
+                    color: score >= 4 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                   }}
                 >
                   {score}/{activeLesson.quiz.length}
                 </div>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 24 }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 24 }}>
                   Questions Correct
                 </div>
                 <motion.button
@@ -606,7 +608,7 @@ export default function CoachModePage() {
                     padding: '14px 32px',
                     borderRadius: 12,
                     border: 'none',
-                    background: 'linear-gradient(135deg, #00d4ff, #3b82f6)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                     color: '#fff',
                     fontSize: 14,
                     fontWeight: 800,
@@ -633,7 +635,7 @@ export default function CoachModePage() {
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -653,7 +655,7 @@ export default function CoachModePage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -670,9 +672,9 @@ export default function CoachModePage() {
           <div>
             {/* TRAIN-COACH-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Coach Mode</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Guided GTO lessons</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Guided GTO lessons</div>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b' }} role="status" aria-label={`${completed.size} of ${LESSONS.length} lessons complete`}>
+          <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${completed.size} of ${LESSONS.length} lessons complete`}>
             {completed.size}/{LESSONS.length} complete
           </div>
         </div>
@@ -721,13 +723,13 @@ export default function CoachModePage() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: lesson.color }}>
                   {lesson.name}
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{lesson.desc}</div>
-                <div style={{ fontSize: 9, color: '#475569', marginTop: 3 }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>{lesson.desc}</div>
+                <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 3 }}>
                   {lesson.concepts.length} concepts · {lesson.quiz.length} quiz questions
                 </div>
               </div>
               {/* TRAIN-COACH-A11Y-1: SVG check replaces ✅ */}
-              {completed.has(lesson.id) && <div style={{ fontSize: 16, display: 'inline-flex', color: '#4ade80' }} aria-label="Completed" role="img"><CheckIcon size={16} /></div>}
+              {completed.has(lesson.id) && <div style={{ fontSize: 16, display: 'inline-flex', color: 'var(--sp-accent-green)' }} aria-label="Completed" role="img"><CheckIcon size={16} /></div>}
             </motion.button>
           ))}
         </div>

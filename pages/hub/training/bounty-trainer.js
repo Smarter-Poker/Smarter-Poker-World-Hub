@@ -8,6 +8,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH4-18 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-MOBILE-ADOPT-17 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-5 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -720,7 +721,7 @@ export default function BountyTrainerPage() {
                     marginTop: 12,
                     fontSize: 15,
                     fontWeight: 700,
-                    background: 'linear-gradient(135deg, #22c55e, #10b981)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-emerald-rgb), 1))',
                     border: 'none',
                     color: '#000',
                     cursor: 'pointer',

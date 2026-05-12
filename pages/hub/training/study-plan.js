@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-16 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-50 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -673,10 +674,10 @@ export default function StudyPlanPage() {
                   borderRadius: 3,
                   background:
                     progress >= 80
-                      ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+                      ? 'linear-gradient(90deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))'
                       : progress >= 40
-                        ? 'linear-gradient(90deg, #fbbf24, #f97316)'
-                        : 'linear-gradient(90deg, #00d4ff, #3b82f6)',
+                        ? 'linear-gradient(90deg, rgba(var(--sp-accent-amber-rgb), 1), rgba(var(--sp-accent-orange-rgb), 1))'
+                        : 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                 }}
               />
             </div>
