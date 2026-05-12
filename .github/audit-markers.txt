@@ -1141,3 +1141,25 @@ TRAIN-WIRE-ACTIONBTN-1
 # renders as the same bottom sheet for consistency. Build-safe: no JSX
 # comments inside conditionals; no emoji chars.
 TRAIN-WIRE-BOTTOMSHEET-1
+
+# ─── Phase-9 adoption: UDT migrates action bar to shared ActionButton ───────
+# TRAIN-WIRE-UDT-ACTIONBTN-1 — src/components/training/games/UniversalDynamic
+# Table.jsx + src/components/poker/ActionButton.jsx (v1.1.0). ActionButton
+# extended with slot props: topLeftSlot, topRightSlot, children, footerSlot,
+# shortcutPosition, and two new size presets (compact, veryCompact) matching
+# UDT's existing responsive sizing math. UDT's displayOptions.map(option)
+# motion.button render replaced with <ActionButton> that:
+#   * uses size = veryCompact | compact | md based on optionCount
+#   * passes UDT's existing shortcut badge JSX as topLeftSlot (preserves
+#     exact pixel-level styling)
+#   * passes per-action EV chip JSX as topRightSlot
+#   * passes BB-sizing sublabel + frequency label motion.span as children
+#   * keeps FrequencyBar as a sibling AFTER the ActionButton (not via
+#     footerSlot, since UDT's existing wrapper div pattern is preserved)
+#   * inherits getActionButtonStyle's bespoke per-option colors via the
+#     style prop
+# whileHover/whileTap framer-motion mics are replaced by ActionButton's
+# onMouseDown translateY(1px) microinteraction; functionally equivalent.
+# This closes the deferred Task #88 epic that required widening
+# ActionButton's prop surface before UDT migration was safe.
+TRAIN-WIRE-UDT-ACTIONBTN-1

@@ -21,6 +21,8 @@ import {
     classifyMove,
 } from '../../../hooks/useGTOWScore';
 import { busEmit } from '../../../engine/EventBus';
+import ActionButton from '../../poker/ActionButton';
+// TRAIN-WIRE-UDT-ACTIONBTN-1 — adoption: UDT action bar uses shared ActionButton
 import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3270,6 +3272,48 @@ function UniversalDynamicTable({
                     const isCompact = optionCount > 4;
                     const isVeryCompact = optionCount > 6;
 
+                    // TRAIN-WIRE-UDT-ACTIONBTN-1: precomputed slots fed into shared ActionButton
+                    const betMatch = text.match(/(\d+\.?\d*)\s*(bb|BB)/i);
+                    const betSizeNum = betMatch ? parseFloat(betMatch[1]) : null;
+                    const evRaw = (showFeedback && question?.evData?.actionEVs)
+                        ? (question.evData.actionEVs[optionId] ?? question.evData.actionEVs[optionId?.toLowerCase()])
+                        : null;
+                    const evNum = typeof evRaw === 'number' ? evRaw : null;
+                    const sizeKey = isVeryCompact ? 'veryCompact' : (isCompact ? 'compact' : 'md');
+                    const shortcutChip = (!showFeedback && shortcutKey <= 9) ? (
+                        <span style={{
+                            fontSize: isCompact ? 7 : 8,
+                            color: 'rgba(255,255,255,0.55)',
+                            fontWeight: 'bold',
+                            background: 'rgba(255,255,255,0.06)',
+                            borderRadius: 3,
+                            padding: '0 3px',
+                            lineHeight: '14px',
+                            minWidth: 12,
+                            display: 'inline-block',
+                            textAlign: 'center',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                        }}>
+                            {shortcutKey}
+                        </span>
+                    ) : null;
+                    const evChip = evNum !== null ? (
+                        <motion.span
+                            initial={{ opacity: 0, x: -5 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5 }}
+                            style={{
+                                fontSize: isCompact ? 7 : 8,
+                                fontWeight: 800,
+                                fontFamily: "'Inter', monospace",
+                                color: evNum >= 0 ? '#22c55e' : '#ef4444',
+                                letterSpacing: 0.3,
+                            }}
+                        >
+                            {evNum >= 0 ? '+' : ''}{evNum.toFixed(2)}
+                        </motion.span>
+                    ) : null;
+
                     return (
                         <div key={optionId} style={{
                             ...styles.actionButtonWrapper,
@@ -3277,70 +3321,33 @@ function UniversalDynamicTable({
                             flex: isVeryCompact ? '0 0 auto' : 1,
                             minWidth: isVeryCompact ? `${Math.floor(100 / optionCount) - 1}%` : undefined,
                         }}>
-                            <motion.button
+                            <ActionButton
+                                action="fold"
+                                size={sizeKey}
+                                label={text}
                                 onClick={() => handleAnswerWithGrouping(optionId)}
                                 disabled={showFeedback}
+                                fullWidth
+                                topLeftSlot={shortcutChip}
+                                topRightSlot={evChip}
                                 style={{
                                     ...getActionButtonStyle(option, index),
-                                    // Scale down padding/font for many buttons
                                     ...(isCompact ? { padding: '8px 4px', minHeight: 52 } : {}),
                                     ...(isVeryCompact ? { padding: '6px 2px', minHeight: 44, borderRadius: 6 } : {}),
                                 }}
-                                whileHover={!showFeedback ? { scale: 1.04, y: -3 } : {}}
-                                whileTap={!showFeedback ? { scale: 0.96 } : {}}
                             >
-                                {/* Keyboard shortcut hint (1-9) — GTO Wizard-style badge */}
-                                {!showFeedback && shortcutKey <= 9 && (
-                                    <span style={{
-                                        position: 'absolute',
-                                        top: 3,
-                                        left: 4,
-                                        fontSize: isCompact ? 7 : 8,
-                                        color: 'rgba(255,255,255,0.55)',
-                                        fontWeight: 'bold',
-                                        background: 'rgba(255,255,255,0.06)',
-                                        borderRadius: 3,
-                                        padding: '0 3px',
-                                        lineHeight: '14px',
-                                        minWidth: 12,
-                                        textAlign: 'center',
-                                        border: '1px solid rgba(255,255,255,0.08)',
-                                    }}>
-                                        {shortcutKey}
-                                    </span>
-                                )}
-                                <span style={styles.actionText}>
-                                    {/* GTO WIZARD STYLE: Show the ACTUAL action text from solver.
-                                        "Bet 33%", "Bet 67%", "Check", "Fold" — exactly as solver provides.
-                                        No more generic "BET / RAISE" override. */}
+                                {betSizeNum !== null ? (
                                     <div style={{
-                                        fontSize: isVeryCompact ? 10 : isCompact ? 11 : 13,
-                                        fontWeight: '800',
-                                        letterSpacing: 0.5,
-                                        lineHeight: 1.1,
+                                        display: 'block',
+                                        fontSize: isCompact ? 12 : 16,
+                                        fontWeight: '900',
+                                        color: '#ffffff',
+                                        marginTop: 2,
                                     }}>
-                                        {text.toUpperCase()}
+                                        {betSizeNum} BB
                                     </div>
-                                    {/* BB sizing beneath action label (if present in text) */}
-                                    {(() => {
-                                        const betMatch = text.match(/(\d+\.?\d*)\s*(bb|BB)/i);
-                                        if (!betMatch) return null;
-                                        const betSize = parseFloat(betMatch[1]);
-                                        return (
-                                            <div style={{
-                                                display: 'block',
-                                                fontSize: isCompact ? 12 : 16,
-                                                fontWeight: '900',
-                                                color: '#ffffff',
-                                                marginTop: 2,
-                                            }}>
-                                                {betSize} BB
-                                            </div>
-                                        );
-                                    })()}
-                                </span>
-                                {/* Frequency label on feedback OR study mode */}
-                                {(showFeedback || (studyMode && computedFrequencies)) && (
+                                ) : null}
+                                {(showFeedback || (studyMode && computedFrequencies)) ? (
                                     <motion.span
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
@@ -3353,32 +3360,8 @@ function UniversalDynamicTable({
                                     >
                                         {freq}%
                                     </motion.span>
-                                )}
-                                {/* Per-Action EV Value */}
-                                {showFeedback && question?.evData?.actionEVs && (() => {
-                                    const ev = question.evData.actionEVs[optionId] ?? question.evData.actionEVs[optionId?.toLowerCase()];
-                                    if (typeof ev !== 'number') return null;
-                                    return (
-                                        <motion.span
-                                            initial={{ opacity: 0, x: -5 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.5 }}
-                                            style={{
-                                                position: 'absolute',
-                                                top: 3,
-                                                right: 6,
-                                                fontSize: isCompact ? 7 : 8,
-                                                fontWeight: 800,
-                                                fontFamily: "'Inter', monospace",
-                                                color: ev >= 0 ? '#22c55e' : '#ef4444',
-                                                letterSpacing: 0.3,
-                                            }}
-                                        >
-                                            {ev >= 0 ? '+' : ''}{ev.toFixed(2)}
-                                        </motion.span>
-                                    );
-                                })()}
-                            </motion.button>
+                                ) : null}
+                            </ActionButton>
                             {/* Frequency bar under button */}
                             <FrequencyBar
                                 frequency={freq}

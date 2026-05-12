@@ -8,25 +8,44 @@
  * trainer that needs a row of action choices.
  *
  * Props
- *   action      'fold' | 'check' | 'call' | 'bet' | 'raise' | 'allin'
- *   label       optional override (default derived from action)
- *   amount      optional number/string — rendered below the label
- *               (e.g. amount='100' for "Call 100" or "Bet 100")
- *   shortcut    number/string — keyboard shortcut chip (e.g. 1, 2, 3, 4)
- *   disabled    boolean
- *   selected    boolean — last action chosen (subtle ring)
- *   recommended boolean — solver-optimal action (subtle glow)
- *   onClick     handler
- *   size        'sm' | 'md' | 'lg'  (default 'md', md uses min 44px touch)
- *   fullWidth   boolean — expand to 100% width inside its row
- *   ariaLabel   override
- *   className   string
- *   style       object — merged AFTER built-in styles
+ *   action            'fold' | 'check' | 'call' | 'bet' | 'raise' | 'allin'
+ *   label             optional override (default derived from action)
+ *   amount            optional number/string — rendered below the label
+ *                     (e.g. amount='100' for "Call 100" or "Bet 100")
+ *   shortcut          number/string — keyboard shortcut chip (e.g. 1, 2, 3, 4)
+ *   shortcutPosition  'top-left' | 'top-right' (default 'top-right')
+ *   disabled          boolean
+ *   selected          boolean — last action chosen (subtle ring)
+ *   recommended       boolean — solver-optimal action (subtle glow)
+ *   onClick           handler
+ *   size              'sm' | 'md' | 'lg' | 'compact' | 'veryCompact'
+ *                     (default 'md', md uses min 44px touch)
+ *   fullWidth         boolean — expand to 100% width inside its row
+ *   topLeftSlot       ReactNode — overlay rendered absolutely positioned top-left
+ *                     inside the button. When present, the shortcut chip moves
+ *                     to top-right unless `shortcutPosition` says otherwise.
+ *   topRightSlot      ReactNode — overlay rendered absolutely positioned
+ *                     top-right inside the button. When present, the shortcut
+ *                     chip moves to top-left unless `shortcutPosition` overrides.
+ *   children          ReactNode — extra content rendered AFTER the label/amount
+ *                     inside the button (e.g. frequency label, sublabels).
+ *   footerSlot        ReactNode — rendered as a SIBLING after the button
+ *                     (outside the <button>), in a wrapping flex column. Use
+ *                     for FrequencyBar or similar under-the-button affordances.
+ *   ariaLabel         override
+ *   className         string
+ *   style             object — merged AFTER built-in styles
  *
  * Keyboard shortcut handling: the parent should still wire up the global
  * keydown listener (number keys 1/2/3/4) — this component just RENDERS
  * the kbd hint chip. That separation keeps the button reusable in contexts
  * where the parent has different shortcut assignments.
+ *
+ * Slot-prop expansion (`children` / `topLeftSlot` / `topRightSlot` /
+ * `footerSlot` / `compact` / `veryCompact` size presets) unlocks adoption
+ * inside UniversalDynamicTable.jsx, which carries per-button overlays
+ * (BB-size sublabel, frequency label, per-action EV chip, FrequencyBar) that
+ * the flat prop surface couldn't accommodate.
  *
  * Build-safety: no emoji chars, no JSX comments inside conditional
  * expressions. Follows the rules from PR #362/#365/#369.
@@ -45,9 +64,11 @@ const ACTION_THEMES = {
 };
 
 const SIZE_PRESETS = {
-  sm: { height: 40, fontSize: 13, labelSize: 13, amountSize: 11, padX: 12, kbdSize: 10 },
-  md: { height: 56, fontSize: 15, labelSize: 15, amountSize: 12, padX: 16, kbdSize: 11 },
-  lg: { height: 72, fontSize: 17, labelSize: 17, amountSize: 13, padX: 20, kbdSize: 12 },
+  sm:          { height: 40, fontSize: 13, labelSize: 13, amountSize: 11, padX: 12, kbdSize: 10, radius: 10 },
+  md:          { height: 56, fontSize: 15, labelSize: 15, amountSize: 12, padX: 16, kbdSize: 11, radius: 10 },
+  lg:          { height: 72, fontSize: 17, labelSize: 17, amountSize: 13, padX: 20, kbdSize: 12, radius: 10 },
+  compact:     { height: 52, fontSize: 13, labelSize: 11, amountSize: 9,  padX: 8,  kbdSize: 8,  radius: 10 },
+  veryCompact: { height: 44, fontSize: 11, labelSize: 10, amountSize: 8,  padX: 4,  kbdSize: 7,  radius: 6 },
 };
 
 function deriveAriaLabel({ action, label, amount, shortcut, recommended }) {
@@ -65,12 +86,17 @@ const ActionButton = React.forwardRef(function ActionButton(
     label,
     amount,
     shortcut,
+    shortcutPosition,
     disabled = false,
     selected = false,
     recommended = false,
     onClick,
     size = 'md',
     fullWidth = false,
+    topLeftSlot = null,
+    topRightSlot = null,
+    children,
+    footerSlot = null,
     ariaLabel,
     className,
     style,
@@ -84,6 +110,12 @@ const ActionButton = React.forwardRef(function ActionButton(
   const displayLabel = label || theme.label;
   const computedAria = ariaLabel || deriveAriaLabel({ action, label: displayLabel, amount, shortcut, recommended });
 
+  // Default shortcut position: top-right unless topRightSlot is present, in which case
+  // shortcut moves to top-left (unless topLeftSlot is present, then it's hidden).
+  // Caller can always override with explicit shortcutPosition.
+  const resolvedShortcutPosition = shortcutPosition
+    || (topRightSlot ? (topLeftSlot ? null : 'top-left') : 'top-right');
+
   const baseStyle = {
     position: 'relative',
     display: 'inline-flex',
@@ -91,14 +123,14 @@ const ActionButton = React.forwardRef(function ActionButton(
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 88,
-    width: fullWidth ? '100%' : undefined,
+    width: fullWidth && !footerSlot ? '100%' : undefined,
     minHeight: sz.height,
     height: sz.height,
     padding: `0 ${sz.padX}px`,
     border: `1px solid ${selected || recommended ? theme.border : 'rgba(255,255,255,0.08)'}`,
     background: disabled ? 'rgba(255,255,255,0.04)' : theme.fill,
     color: disabled ? '#475569' : theme.text,
-    borderRadius: 10,
+    borderRadius: sz.radius,
     fontFamily: "'Inter', -apple-system, sans-serif",
     fontWeight: 700,
     letterSpacing: 0.3,
@@ -130,10 +162,9 @@ const ActionButton = React.forwardRef(function ActionButton(
     fontVariantNumeric: 'tabular-nums',
   };
 
-  const kbdStyle = {
+  const kbdBaseStyle = {
     position: 'absolute',
     top: 4,
-    right: 6,
     fontSize: sz.kbdSize,
     fontWeight: 800,
     color: 'rgba(255,255,255,0.45)',
@@ -145,6 +176,24 @@ const ActionButton = React.forwardRef(function ActionButton(
     lineHeight: 1,
     pointerEvents: 'none',
   };
+  const kbdStyle = resolvedShortcutPosition === 'top-left'
+    ? { ...kbdBaseStyle, left: 4 }
+    : { ...kbdBaseStyle, right: 6 };
+
+  const topLeftStyle = {
+    position: 'absolute',
+    top: 3,
+    left: 4,
+    pointerEvents: 'none',
+    zIndex: 2,
+  };
+  const topRightStyle = {
+    position: 'absolute',
+    top: 3,
+    right: 6,
+    pointerEvents: 'none',
+    zIndex: 2,
+  };
 
   const onMouseDown = (e) => {
     if (disabled) return;
@@ -154,7 +203,9 @@ const ActionButton = React.forwardRef(function ActionButton(
     e.currentTarget.style.transform = 'translateY(0)';
   };
 
-  return (
+  const showShortcut = shortcut !== undefined && shortcut !== null && resolvedShortcutPosition !== null;
+
+  const buttonEl = (
     <button
       ref={ref}
       type={type}
@@ -175,11 +226,36 @@ const ActionButton = React.forwardRef(function ActionButton(
       {amount !== undefined && amount !== null && amount !== '' ? (
         <span style={amountStyle}>{amount}</span>
       ) : null}
-      {shortcut !== undefined && shortcut !== null ? (
+      {showShortcut ? (
         <span style={kbdStyle} aria-hidden>{shortcut}</span>
       ) : null}
+      {topLeftSlot ? (
+        <span style={topLeftStyle} aria-hidden>{topLeftSlot}</span>
+      ) : null}
+      {topRightSlot ? (
+        <span style={topRightStyle} aria-hidden>{topRightSlot}</span>
+      ) : null}
+      {children}
     </button>
   );
+
+  if (footerSlot) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          width: fullWidth ? '100%' : undefined,
+          flex: fullWidth ? 1 : undefined,
+        }}
+      >
+        {buttonEl}
+        {footerSlot}
+      </div>
+    );
+  }
+
+  return buttonEl;
 });
 
 export default ActionButton;
@@ -213,4 +289,4 @@ export function ActionButtonRow({ children, gap = 8, style, className }) {
   );
 }
 
-export const ACTION_BUTTON_VERSION = '1.0.0';
+export const ACTION_BUTTON_VERSION = '1.1.0';
