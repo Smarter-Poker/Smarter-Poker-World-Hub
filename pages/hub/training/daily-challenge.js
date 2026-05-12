@@ -22,6 +22,7 @@ import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
+import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 // TRAIN-WIRE-FX-4d — adoption: feedback hook for daily-challenge.fresh.js
 
 /**
@@ -757,16 +758,16 @@ export default function DailyChallengePage() {
                       marginBottom: 14,
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 800,
-                        marginBottom: 6,
-                        color: selected === correctAnswer ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                        fontFamily: "'Orbitron', monospace",
-                      }}
-                    >
-                      {selected === correctAnswer ? 'CORRECT' : 'INCORRECT'}
+                    {/* TRAIN-WIRE-FEEDBACK-V2-6 — verdict via FeedbackCard compact */}
+                    <div style={{ marginBottom: 6 }}>
+                      <FeedbackCard
+                        verdict={selected === correctAnswer ? 'correct' : 'incorrect'}
+                        userAction={selected || ''}
+                        solverAction={correctAnswer}
+                        evLoss={0}
+                        whyShort={selected === correctAnswer ? "Solver-correct." : `Solver prefers ${correctAnswer}.`}
+                        compact
+                      />
                     </div>
                     <div
                       style={{

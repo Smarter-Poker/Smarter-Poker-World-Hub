@@ -20,6 +20,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 // TRAIN-WIRE-FX-4a — adoption: feedback hook for spot-trainer.fresh.js
 
@@ -674,16 +675,16 @@ export default function SpotTrainerPage() {
                         marginBottom: 14,
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 800,
-                          marginBottom: 6,
-                          color: selected === spot.gtoAction ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                          fontFamily: "'Orbitron', monospace",
-                        }}
-                      >
-                        {selected === spot.gtoAction ? 'CORRECT' : 'INCORRECT'}
+                      {/* TRAIN-WIRE-FEEDBACK-V2-5 — verdict via FeedbackCard compact */}
+                      <div style={{ marginBottom: 8 }}>
+                        <FeedbackCard
+                          verdict={selected === spot.gtoAction ? 'correct' : 'incorrect'}
+                          userAction={selected || ''}
+                          solverAction={spot.gtoAction}
+                          evLoss={0}
+                          whyShort={selected === spot.gtoAction ? 'Optimal play.' : `Solver prefers ${spot.gtoAction}.`}
+                          compact
+                        />
                       </div>
 
                       {/* Action Breakdown */}
