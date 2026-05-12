@@ -1223,3 +1223,24 @@ TRAIN-WIRE-BOTTOMSHEET-3
 # all 89 training pages, replacing hand-rolled hex literals. Adoption is
 # tracked separately by TRAIN-CSS-TOKENS-ADOPT-* markers as files migrate.
 TRAIN-CSS-TOKENS-1
+
+# ─── Phase-15a adoption: --sp-* token adoption in trainers ──────────────────
+# TRAIN-CSS-TOKENS-ADOPT-1 — pages/hub/training/bluff-catcher.js. Replaces
+# 17 quoted hex literals with var(--sp-*) tokens from PR #470's contract:
+#   '#00d4ff' (x6)  -> var(--sp-accent-cyan)
+#   '#94a3b8' (x4)  -> var(--sp-fg-muted)
+#   '#ef4444' (x2)  -> var(--sp-accent-red)
+#   '#4ade80' (x1)  -> var(--sp-accent-green)
+#   '#cbd5e1' (x1)  -> var(--sp-fg)
+#   '#e2e8f0' (x1)  -> var(--sp-fg)
+#   '#fbbf24' (x1)  -> var(--sp-accent-amber)
+#   '#f97316' (x1)  -> var(--sp-accent-orange)
+# Page-bg darks (#05050a, #0a0a15) preserved — outside the accent contract.
+# String-interpolation contexts (e.g. `${color}33` hex-alpha suffix) left for
+# follow-up using rgba(var(--sp-*-rgb), 0.x).
+TRAIN-CSS-TOKENS-ADOPT-1
+# TRAIN-CSS-TOKENS-ADOPT-2 — pages/hub/training/ev-trainer.js. Replaces 31
+# quoted hex literals with var(--sp-*) tokens spanning the full accent +
+# neutral ramp. Page-bg darks (#0a0f1e, #0d1629, #1e2d3d) and string-interp
+# accent literals (#00d4ff, #a855f7 in gradient template strings) preserved.
+TRAIN-CSS-TOKENS-ADOPT-2

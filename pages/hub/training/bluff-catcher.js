@@ -13,6 +13,7 @@ import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import ActionButton, { ActionButtonRow } from '../../../src/components/poker/ActionButton';
+// TRAIN-CSS-TOKENS-ADOPT-1 — first adoption of --sp-* token contract
 // TRAIN-WIRE-FEEDBACK-V2-2 — adoption: bluff-catcher full feedback panel
 // TRAIN-WIRE-BOTTOMSHEET-1 — adoption: bluff-catcher MDF info sheet
 // TRAIN-WIRE-PROGRESS-1 — adoption: bluff-catcher in-play progress strip
@@ -142,13 +143,13 @@ export default function BluffCatcherTrainer() {
         title="How Bluff-Catcher Works"
         subtitle="Pseudo-MDF scenarios"
       >
-        <div style={{ padding: '0 4px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.6 }}>
+        <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
           <p style={{ marginTop: 0 }}>
             Each scenario presents a river spot where villain takes an aggressive line. Your job:
             decide whether to call down (defending against the bluff) or fold.
           </p>
           <p>
-            <strong style={{ color: '#00d4ff' }}>MDF</strong> = the minimum frequency at which you must
+            <strong style={{ color: 'var(--sp-accent-cyan)' }}>MDF</strong> = the minimum frequency at which you must
             call to make villain's bluffs unprofitable. Below MDF villain prints money by bluffing more.
           </p>
           <p>
@@ -172,7 +173,7 @@ export default function BluffCatcherTrainer() {
                 type="button"
                 onClick={() => setInfoOpen(true)}
                 aria-label="How this trainer works"
-                style={{ background: 'transparent', border: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff', borderRadius: 4, padding: '0 6px', cursor: 'pointer', fontSize: 11, fontWeight: 700, marginLeft: 6 }}
+                style={{ background: 'transparent', border: '1px solid rgba(0,212,255,0.4)', color: 'var(--sp-accent-cyan)', borderRadius: 4, padding: '0 6px', cursor: 'pointer', fontSize: 11, fontWeight: 700, marginLeft: 6 }}
               >
                 ?
               </button>
@@ -185,7 +186,7 @@ export default function BluffCatcherTrainer() {
             </div>
             <div style={styles.statBox}>
               <div style={styles.statLabel}>STREAK</div>
-              <div style={{ ...styles.statValue, color: '#f97316' }}>🔥 {streak}</div>
+              <div style={{ ...styles.statValue, color: 'var(--sp-accent-orange)' }}>🔥 {streak}</div>
             </div>
           </div>
         </div>
@@ -230,11 +231,11 @@ export default function BluffCatcherTrainer() {
           <div style={styles.mathPanel}>
             <div style={styles.mathItem}>
               <span>Pot Odds (Req. Equity):</span>
-              <span style={{ color: '#00d4ff' }}>{requiredEquity}%</span>
+              <span style={{ color: 'var(--sp-accent-cyan)' }}>{requiredEquity}%</span>
             </div>
             <div style={styles.mathItem}>
               <span>MDF (Min Defense Freq):</span>
-              <span style={{ color: '#4ade80' }}>{mdf}%</span>
+              <span style={{ color: 'var(--sp-accent-green)' }}>{mdf}%</span>
             </div>
           </div>
 
@@ -308,11 +309,11 @@ const styles = {
     fontWeight: 900,
     fontFamily: 'Orbitron, sans-serif',
     letterSpacing: 1,
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
   },
   subtitle: {
     margin: 0,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
   },
   statsPanel: {
@@ -327,7 +328,7 @@ const styles = {
   },
   statLabel: {
     fontSize: 10,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontWeight: 700,
     letterSpacing: 1,
   },
@@ -352,7 +353,7 @@ const styles = {
     top: -12,
     left: '50%',
     transform: 'translateX(-50%)',
-    background: '#00d4ff',
+    background: 'var(--sp-accent-cyan)',
     color: '#000',
     padding: '4px 16px',
     borderRadius: 20,
@@ -365,7 +366,7 @@ const styles = {
     textAlign: 'center',
     margin: '24px 0',
     lineHeight: 1.5,
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
   },
   potInfo: {
     display: 'flex',
@@ -376,8 +377,8 @@ const styles = {
     padding: 16,
     borderRadius: 12,
   },
-  potValue: { fontSize: 20, fontWeight: 700, color: '#fbbf24' },
-  betValue: { fontSize: 20, fontWeight: 700, color: '#ef4444' },
+  potValue: { fontSize: 20, fontWeight: 700, color: 'var(--sp-accent-amber)' },
+  betValue: { fontSize: 20, fontWeight: 700, color: 'var(--sp-accent-red)' },
   cardsRow: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -394,7 +395,7 @@ const styles = {
   },
   cardGroupLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontWeight: 700,
     letterSpacing: 2,
     marginBottom: 12,
@@ -407,7 +408,7 @@ const styles = {
   heroCards: {
     fontSize: 32,
     letterSpacing: 4,
-    color: '#00d4ff',
+    color: 'var(--sp-accent-cyan)',
   },
   mathPanel: {
     display: 'flex',
@@ -423,7 +424,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     fontSize: 12,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     gap: 4,
     fontWeight: 600,
   },
@@ -453,7 +454,7 @@ const styles = {
   nextBtn: {
     marginTop: 24,
     padding: '12px 32px',
-    background: '#00d4ff',
+    background: 'var(--sp-accent-cyan)',
     color: '#000',
     border: 'none',
     borderRadius: 12,
