@@ -51,16 +51,17 @@
  * expressions. Follows the rules from PR #362/#365/#369.
  */
 // TRAIN-ACTIONBTN-1 — audit-marker registry token
+// TRAIN-CSS-TOKENS-SHARED-1 — adoption of --sp-* token contract in shared component
 
 import React from 'react';
 
 const ACTION_THEMES = {
-  fold:    { fill: '#1f2937', border: '#374151', text: '#94a3b8', label: 'Fold' },
-  check:   { fill: '#0f3a52', border: '#0891b2', text: '#67e8f9', label: 'Check' },
-  call:    { fill: '#063d33', border: '#10b981', text: '#6ee7b7', label: 'Call' },
-  bet:     { fill: '#3b2d00', border: '#f59e0b', text: '#fcd34d', label: 'Bet' },
-  raise:   { fill: '#4a1010', border: '#ef4444', text: '#fca5a5', label: 'Raise' },
-  allin:   { fill: '#3b0a3b', border: '#a855f7', text: '#d8b4fe', label: 'All-in' },
+  fold:    { fill: '#1f2937', border: '#374151', text: 'var(--sp-fg-muted)', label: 'Fold' },
+  check:   { fill: '#0f3a52', border: 'var(--sp-accent-cyan)', text: 'var(--sp-accent-cyan)', label: 'Check' },
+  call:    { fill: '#063d33', border: 'var(--sp-accent-emerald)', text: 'var(--sp-accent-green)', label: 'Call' },
+  bet:     { fill: '#3b2d00', border: 'var(--sp-accent-amber)', text: 'var(--sp-accent-amber)', label: 'Bet' },
+  raise:   { fill: '#4a1010', border: 'var(--sp-accent-red)', text: 'var(--sp-accent-red)', label: 'Raise' },
+  allin:   { fill: '#3b0a3b', border: 'var(--sp-accent-purple)', text: 'var(--sp-accent-purple)', label: 'All-in' },
 };
 
 const SIZE_PRESETS = {
@@ -129,7 +130,7 @@ const ActionButton = React.forwardRef(function ActionButton(
     padding: `0 ${sz.padX}px`,
     border: `1px solid ${selected || recommended ? theme.border : 'rgba(255,255,255,0.08)'}`,
     background: disabled ? 'rgba(255,255,255,0.04)' : theme.fill,
-    color: disabled ? '#475569' : theme.text,
+    color: disabled ? 'var(--sp-fg-faint)' : theme.text,
     borderRadius: sz.radius,
     fontFamily: "'Inter', -apple-system, sans-serif",
     fontWeight: 700,
@@ -156,7 +157,7 @@ const ActionButton = React.forwardRef(function ActionButton(
   const amountStyle = {
     fontSize: sz.amountSize,
     fontWeight: 600,
-    color: disabled ? '#475569' : 'rgba(255,255,255,0.85)',
+    color: disabled ? 'var(--sp-fg-faint)' : 'rgba(255,255,255,0.85)',
     marginTop: 2,
     letterSpacing: 0,
     fontVariantNumeric: 'tabular-nums',

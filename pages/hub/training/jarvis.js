@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -168,7 +169,7 @@ export default function JarvisDashboard() {
               variant="locked"
               title="Sign in for personalized insights"
               message="Jarvis tracks your patterns and surfaces tailored coaching once you sign in."
-              cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) {} } }}
+              cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[jarvis] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ } } }}
             />
           ) : (
             <div style={styles.dashboard}>

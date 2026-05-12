@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -275,7 +276,7 @@ export default function TrainingProgress() {
             variant="locked"
             title="Sign in to view your progress"
             message="Track your accuracy, streaks, and weak spots once you sign in."
-            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) {} } }}
+            cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[progress] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ } } }}
           />
         </div>
       </PageTransition>

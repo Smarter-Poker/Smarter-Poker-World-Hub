@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -197,7 +198,7 @@ export default function DailyChallengePage() {
 
         // Load streak data from local storage
         let streakData = [];
-        try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch { /* corrupted */ }
+        try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[daily-challenge] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
         setLoading(false);
         setCompletedDays(streakData);
 
@@ -259,7 +260,7 @@ export default function DailyChallengePage() {
 
       // Update streak
       let streakData = [];
-      try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch { /* corrupted */ }
+      try { streakData = JSON.parse(localStorage.getItem('daily-challenge-streak') || '[]'); } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[daily-challenge] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
       if (!streakData.includes(today)) {
         streakData.push(today);
         localStorage.setItem('daily-challenge-streak', JSON.stringify(streakData));

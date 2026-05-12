@@ -14,6 +14,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-SHARED-4 — adoption of --sp-* token contract in shared component
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getClassificationColor } from '../../utils/pokerHandEvaluator';
@@ -27,18 +28,18 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 // ═══════════════════════════════════════════════════════════════════════════
 const BET_SIZE_COLORS = {
     // Small bets (16-33%) — Green spectrum
-    'b16': '#22c55e', 'b20': '#22c55e', 'b25': '#16a34a', 'b33': '#16a34a',
+    'b16': 'var(--sp-accent-green)', 'b20': 'var(--sp-accent-green)', 'b25': 'var(--sp-accent-emerald)', 'b33': 'var(--sp-accent-emerald)',
     // Medium bets (40-55%) — Teal/Cyan
-    'b40': '#06b6d4', 'b45': '#06b6d4', 'b50': '#0891b2', 'b55': '#0891b2',
+    'b40': 'var(--sp-accent-cyan)', 'b45': 'var(--sp-accent-cyan)', 'b50': 'var(--sp-accent-cyan)', 'b55': 'var(--sp-accent-cyan)',
     // Large bets (60-80%) — Blue
-    'b60': '#3b82f6', 'b66': '#3b82f6', 'b75': '#2563eb', 'b80': '#2563eb',
+    'b60': 'var(--sp-accent-blue)', 'b66': 'var(--sp-accent-blue)', 'b75': 'var(--sp-accent-blue)', 'b80': 'var(--sp-accent-blue)',
     // Pot bets (100%) — Red
-    'b100': '#ef4444',
+    'b100': 'var(--sp-accent-red)',
     // Overbets (125%+) — Orange/Amber
-    'b125': '#f97316', 'b150': '#f59e0b', 'b200': '#f59e0b', 'b300': '#eab308',
+    'b125': 'var(--sp-accent-orange)', 'b150': 'var(--sp-accent-amber)', 'b200': 'var(--sp-accent-amber)', 'b300': 'var(--sp-accent-amber)',
     // Raises — sized similarly
-    'r50': '#8b5cf6', 'r75': '#7c3aed', 'r100': '#6d28d9',
-    'r125': '#a855f7', 'r150': '#a855f7', 'r200': '#c084fc', 'r300': '#c084fc',
+    'r50': 'var(--sp-accent-purple)', 'r75': 'var(--sp-accent-purple)', 'r100': 'var(--sp-accent-purple)',
+    'r125': 'var(--sp-accent-purple)', 'r150': 'var(--sp-accent-purple)', 'r200': 'var(--sp-accent-purple)', 'r300': 'var(--sp-accent-purple)',
 };
 
 /**
@@ -46,51 +47,51 @@ const BET_SIZE_COLORS = {
  * Bet sizes get unique colors by percentage bucket.
  */
 function getActionColor(action) {
-    if (typeof action !== 'string') return '#64748b';
+    if (typeof action !== 'string') return 'var(--sp-fg-dim)';
     const a = action.toLowerCase();
-    if (!a) return '#64748b';
+    if (!a) return 'var(--sp-fg-dim)';
 
     // Direct match for sized bets/raises
     if (BET_SIZE_COLORS[a]) return BET_SIZE_COLORS[a];
 
     // Check / Call / Fold / All-in
-    if (a === 'c' || a === 'x' || a === 'check') return '#3b82f6';  // Check = Blue
-    if (a === 'call') return '#22c55e';                               // Call = Green
-    if (a === 'f' || a === 'fold') return '#64748b';                  // Fold = Slate gray
-    if (a === 'allin') return '#dc2626';                              // All-in = Dark Red
+    if (a === 'c' || a === 'x' || a === 'check') return 'var(--sp-accent-blue)';  // Check = Blue
+    if (a === 'call') return 'var(--sp-accent-green)';                               // Call = Green
+    if (a === 'f' || a === 'fold') return 'var(--sp-fg-dim)';                  // Fold = Slate gray
+    if (a === 'allin') return 'var(--sp-accent-red)';                              // All-in = Dark Red
 
     // Generic bet — parse percentage if present
     const betMatch = a.match(/^b(\d+)$/);
     if (betMatch) {
         const pct = parseInt(betMatch[1]);
-        if (pct <= 33) return '#16a34a';       // Small = Green
-        if (pct <= 55) return '#0891b2';       // Medium = Teal
-        if (pct <= 80) return '#2563eb';       // Large = Blue
-        if (pct <= 100) return '#ef4444';      // Pot = Red
-        return '#f59e0b';                       // Overbet = Amber
+        if (pct <= 33) return 'var(--sp-accent-emerald)';       // Small = Green
+        if (pct <= 55) return 'var(--sp-accent-cyan)';       // Medium = Teal
+        if (pct <= 80) return 'var(--sp-accent-blue)';       // Large = Blue
+        if (pct <= 100) return 'var(--sp-accent-red)';      // Pot = Red
+        return 'var(--sp-accent-amber)';                       // Overbet = Amber
     }
 
     // Generic raise
     const raiseMatch = a.match(/^r(\d+)$/);
     if (raiseMatch) {
         const pct = parseInt(raiseMatch[1]);
-        if (pct <= 75) return '#7c3aed';       // Small raise = Purple
-        if (pct <= 100) return '#6d28d9';      // Pot raise = Dark Purple
-        return '#a855f7';                       // Big raise = Light Purple
+        if (pct <= 75) return 'var(--sp-accent-purple)';       // Small raise = Purple
+        if (pct <= 100) return 'var(--sp-accent-purple)';      // Pot raise = Dark Purple
+        return 'var(--sp-accent-purple)';                       // Big raise = Light Purple
     }
 
-    if (a === 'r' || a === 'raise') return '#7c3aed';
-    if (a === 'b' || a === 'bet') return '#3b82f6';
+    if (a === 'r' || a === 'raise') return 'var(--sp-accent-purple)';
+    if (a === 'b' || a === 'bet') return 'var(--sp-accent-blue)';
 
     // Preflop chart actions
-    if (action === 'Raise') return '#22c55e';
-    if (action === 'Fold') return '#64748b';
-    if (action === 'Call') return '#3b82f6';
-    if (action === '3-Bet') return '#ef4444';
-    if (action === '4-Bet') return '#f97316';
-    if (action === 'Push') return '#dc2626';
+    if (action === 'Raise') return 'var(--sp-accent-green)';
+    if (action === 'Fold') return 'var(--sp-fg-dim)';
+    if (action === 'Call') return 'var(--sp-accent-blue)';
+    if (action === '3-Bet') return 'var(--sp-accent-red)';
+    if (action === '4-Bet') return 'var(--sp-accent-orange)';
+    if (action === 'Push') return 'var(--sp-accent-red)';
 
-    return '#64748b';
+    return 'var(--sp-fg-dim)';
 }
 
 // Backwards-compatible lookup (used by getDominantAction)
@@ -100,11 +101,11 @@ const ACTION_COLORS = new Proxy({}, {
 
 // Get action display info with GTOW-style colors
 function getActionDisplay(action) {
-    if (typeof action !== 'string') return { label: '?', short: '?', color: '#64748b' };
+    if (typeof action !== 'string') return { label: '?', short: '?', color: 'var(--sp-fg-dim)' };
     const a = action.toLowerCase();
     const color = getActionColor(action);
 
-    if (!a) return { label: action || '?', short: '?', color: '#64748b' };
+    if (!a) return { label: action || '?', short: '?', color: 'var(--sp-fg-dim)' };
 
     // Check
     if (a === 'c' || a === 'x' || a === 'check') return { label: 'Check', short: 'X', color };
@@ -184,7 +185,7 @@ function getDominantAction(handFreqs) {
 
     // Determine if it's a mixed strategy (no single action > 80%)
     const isMixed = maxFreq < 80 && entries.length > 1;
-    const color = ACTION_COLORS[maxAction] || ACTION_COLORS[maxAction?.toLowerCase()] || '#64748b';
+    const color = ACTION_COLORS[maxAction] || ACTION_COLORS[maxAction?.toLowerCase()] || 'var(--sp-fg-dim)';
     const opacity = Math.max(0.3, maxFreq / 100);
 
     return { action: maxAction, color, opacity, isMixed, maxFreq };
@@ -204,7 +205,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
     let baseOpacity = actionOpacity;
 
     if (useBlocker) {
-        color = blockerScore > 0 ? '#ef4444' : '#1a1a2e';
+        color = blockerScore > 0 ? 'var(--sp-accent-red)' : '#1a1a2e';
         baseOpacity = blockerScore > 0 ? Math.max(0.2, blockerScore) : 0.15;
     } else if (useClassification) {
         color = getClassificationColor(classificationInfo.classification);
@@ -248,7 +249,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     position: 'absolute', bottom: 1, right: 3,
                     fontSize: '0.65em', fontWeight: 800,
                     opacity: 0.9, letterSpacing: -0.5,
-                    color: handEV >= 0 ? '#4ade80' : '#f87171',
+                    color: handEV >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                 }}>
                     {handEV > 0 ? '+' : ''}{handEV.toFixed(2)}
                 </div>
@@ -266,7 +267,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                 <div style={{
                     position: 'absolute', bottom: 1, right: 1,
                     width: 4, height: 4, borderRadius: '50%',
-                    backgroundColor: '#fbbf24',
+                    backgroundColor: 'var(--sp-accent-amber)',
                 }} />
             )}
             {/* Hover tooltip */}
@@ -285,7 +286,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     whiteSpace: 'nowrap',
                 }}
                 >
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#00d4ff', marginBottom: 3, fontFamily: "'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 3, fontFamily: "'Orbitron', monospace" }}>
                         {hand}
                     </div>
                     {classificationInfo && (
@@ -297,12 +298,12 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                         </div>
                     )}
                     {handEV !== undefined && handEV !== null && !useBlocker && (
-                        <div style={{ fontSize: 9, color: handEV >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                        <div style={{ fontSize: 9, color: handEV >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)', fontWeight: 600 }}>
                             EV: {handEV >= 0 ? '+' : ''}{(typeof handEV === 'number' ? handEV.toFixed(2) : handEV)} BB
                         </div>
                     )}
                     {useBlocker && blockerScore !== null && (
-                        <div style={{ fontSize: 9, color: '#f87171', fontWeight: 600 }}>
+                        <div style={{ fontSize: 9, color: 'var(--sp-accent-red)', fontWeight: 600 }}>
                             Blocked: {Math.round(blockerScore * 100)}% combos
                         </div>
                     )}
@@ -313,7 +314,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                                 return (
                                     <div key={act} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, gap: 6 }}>
                                         <span style={{ color: d.color, fontWeight: 700 }}>{d.short}</span>
-                                        <span style={{ color: '#94a3b8' }}>{freq.toFixed(1)}%</span>
+                                        <span style={{ color: 'var(--sp-fg-muted)' }}>{freq.toFixed(1)}%</span>
                                     </div>
                                 );
                             })}
@@ -359,7 +360,7 @@ function FrequencyBar({ action, frequency, color }) {
                 </span>
             </div>
             <div style={{
-                width: 50, fontSize: 10, color: '#94a3b8', textAlign: 'right',
+                width: 50, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right',
             }}>
                 {display.label}
             </div>
@@ -398,14 +399,14 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
-                        fontSize: 22, fontWeight: 800, color: '#00d4ff',
+                        fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)',
                         fontFamily: "'Orbitron', monospace",
                     }}>
                         {hand}
                     </span>
                     {isMixed && (
                         <span style={{
-                            fontSize: 10, color: '#fbbf24',
+                            fontSize: 10, color: 'var(--sp-accent-amber)',
                             background: 'rgba(251, 191, 36, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
@@ -416,7 +417,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                 <button
                     onClick={onClose}
                     style={{
-                        background: 'none', border: 'none', color: '#64748b',
+                        background: 'none', border: 'none', color: 'var(--sp-fg-dim)',
                         cursor: 'pointer', fontSize: 16, padding: 4,
                     }}
                 >✕</button>
@@ -438,12 +439,12 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                         {classificationInfo.subType || classificationInfo.classification}
                     </span>
                 ) : (
-                    <span style={{ fontSize: 10, color: '#64748b' }}>—</span>
+                    <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>—</span>
                 )}
                 {handEV !== undefined && handEV !== null && (
                     <span style={{
                         fontSize: 12, fontWeight: 800, fontFamily: "'Orbitron', monospace",
-                        color: handEV >= 0 ? '#4ade80' : '#f87171',
+                        color: handEV >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                     }}>
                         {handEV >= 0 ? '+' : ''}{(typeof handEV === 'number' ? handEV.toFixed(2) : handEV)} BB
                     </span>
@@ -454,9 +455,9 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
             {bestAction && (
                 <div style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    marginBottom: 8, fontSize: 10, color: '#94a3b8',
+                    marginBottom: 8, fontSize: 10, color: 'var(--sp-fg-muted)',
                 }}>
-                    <span style={{ color: '#fbbf24' }}>★</span>
+                    <span style={{ color: 'var(--sp-accent-amber)' }}>★</span>
                     <span>Best:</span>
                     <span style={{ color: bestDisplay.color, fontWeight: 700 }}>
                         {bestDisplay.label} ({bestAction[1].toFixed(1)}%)
@@ -483,7 +484,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                             {evDelta !== null && (
                                 <div style={{
                                     position: 'absolute', right: 58, top: 4,
-                                    fontSize: 9, fontWeight: 700, color: '#f87171',
+                                    fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-red)',
                                     background: 'rgba(0,0,0,0.5)', padding: '1px 4px', borderRadius: 4,
                                 }}>
                                     {evDelta.toFixed(2)} BB
@@ -492,7 +493,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                             {index === 0 && handEV !== undefined && handEV !== null && sorted.length > 1 && (
                                 <div style={{
                                     position: 'absolute', right: 58, top: 4,
-                                    fontSize: 9, fontWeight: 700, color: '#4ade80',
+                                    fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-green)',
                                     background: 'rgba(0,0,0,0.5)', padding: '1px 4px', borderRadius: 4,
                                 }}>
                                     BEST
@@ -504,7 +505,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
             </div>
 
             <div style={{
-                marginTop: 8, fontSize: 10, color: '#475569',
+                marginTop: 8, fontSize: 10, color: 'var(--sp-fg-faint)',
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 paddingTop: 6,
             }}>
@@ -660,10 +661,10 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
                     padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 8,
                 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', fontFamily: "'Orbitron', monospace" }}>
                         Range: {rangeStats.rangePercent.toFixed(1)}%
                     </div>
-                    <div style={{ fontSize: 9, color: '#64748b' }}>
+                    <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>
                         ({Math.round(rangeStats.activeCombos)}/{Math.round(rangeStats.totalCombos)} combos)
                     </div>
                 </div>
@@ -685,7 +686,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                             background: !actionFilter ? 'rgba(0,212,255,0.1)' : 'transparent',
                         }}
                     >
-                        <span style={{ fontSize: 10, color: !actionFilter ? '#00d4ff' : '#94a3b8', fontWeight: 600 }}>All</span>
+                        <span style={{ fontSize: 10, color: !actionFilter ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)', fontWeight: 600 }}>All</span>
                     </button>
                     {activeActions.map(a => {
                         const isActive = actionFilter === a.code;
@@ -707,7 +708,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                                     width: 10, height: 10, borderRadius: 2,
                                     backgroundColor: a.color, opacity: 0.85,
                                 }} />
-                                <span style={{ fontSize: 10, color: isActive ? a.color : '#94a3b8', fontWeight: 600 }}>
+                                <span style={{ fontSize: 10, color: isActive ? a.color : 'var(--sp-fg-muted)', fontWeight: 600 }}>
                                     {a.label}{pct ? ` ${pct}%` : ''}
                                 </span>
                             </button>
@@ -716,9 +717,9 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 4px' }}>
                         <div style={{
                             width: 6, height: 6, borderRadius: '50%',
-                            backgroundColor: '#fbbf24',
+                            backgroundColor: 'var(--sp-accent-amber)',
                         }} />
-                        <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Mixed</span>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>Mixed</span>
                     </div>
                 </div>
             )}
