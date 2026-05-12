@@ -16,6 +16,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 
+// TRAIN-CSS-MOTION-ADOPT-12 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -526,7 +532,7 @@ function EquityBar({ results }) {
             key={i}
             initial={{ width: `${100 / results.length}%` }}
             animate={{ width: `${(r.equity / total) * 100}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            transition={{ duration: MOTION.slow, ease: 'easeOut' }}
             style={{
               height: '100%',
               background: `linear-gradient(90deg, ${PLAYER_COLORS[i]}80, ${PLAYER_COLORS[i]})`,

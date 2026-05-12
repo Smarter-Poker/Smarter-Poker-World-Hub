@@ -16,6 +16,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
+// TRAIN-CSS-MOTION-ADOPT-11 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PRESETS & CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -558,7 +564,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${a.freq}%` }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: MOTION.slow }}
                 style={{
                   height: '100%',
                   borderRadius: 3,

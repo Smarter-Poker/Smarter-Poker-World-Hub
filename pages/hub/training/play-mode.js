@@ -22,6 +22,12 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import DeckCard from '../../../src/components/training/Card';
 
+// TRAIN-CSS-MOTION-ADOPT-15 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1364,7 +1370,7 @@ export default function PlayModePage() {
                           initial={{ opacity: 0, y: 10, scale: 0.5 }}
                           animate={{ opacity: 1, y: -40, scale: 1.2 }}
                           exit={{ opacity: 0, scale: 1.5 }}
-                          transition={{ duration: 0.5, ease: 'easeOut' }}
+                          transition={{ duration: MOTION.slow, ease: 'easeOut' }}
                           style={{
                             position: 'absolute',
                             top: 0,

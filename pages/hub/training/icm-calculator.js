@@ -16,6 +16,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 
+// TRAIN-CSS-MOTION-ADOPT-4 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
     method: 'POST',
@@ -1106,7 +1112,7 @@ export default function ICMCalculatorPage() {
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.min(r.chipPct, 100)}%` }}
-                          transition={{ duration: 0.6, delay: i * 0.05 }}
+                          transition={{ duration: MOTION.slow, delay: i * 0.05 }}
                           style={{
                             height: '100%',
                             borderRadius: 3,
@@ -1126,7 +1132,7 @@ export default function ICMCalculatorPage() {
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.min(r.icmPct, 100)}%` }}
-                          transition={{ duration: 0.6, delay: i * 0.05 + 0.1 }}
+                          transition={{ duration: MOTION.slow, delay: i * 0.05 + 0.1 }}
                           style={{
                             height: '100%',
                             borderRadius: 3,

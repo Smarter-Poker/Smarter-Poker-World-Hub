@@ -16,6 +16,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
+// TRAIN-CSS-MOTION-ADOPT-8 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 
 // BUG FIX (TRAIN-WARMUP-A11Y-1): SVG icon components replacing the
 // pre-session readiness emoji set (🧠 🎯 📝 ♟️ 🛑 ⏱️ step icons, ✓
@@ -307,7 +313,7 @@ export default function SessionWarmupPage() {
           >
             <motion.div
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: MOTION.standard }}
               style={{
                 height: '100%',
                 background: 'linear-gradient(90deg, #3b82f6, #a855f7)',
@@ -334,7 +340,7 @@ export default function SessionWarmupPage() {
                 initial={{ opacity: 0, scale: 0.92, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 1.05, y: -20 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: MOTION.standard }}
                 style={{
                   background: 'rgba(255,255,255,0.02)',
                   border: '1px solid rgba(255,255,255,0.05)',

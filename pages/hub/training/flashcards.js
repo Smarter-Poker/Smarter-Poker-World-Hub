@@ -15,6 +15,12 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+
+// TRAIN-CSS-MOTION-ADOPT-13 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-8a — adoption: shared empty-state primitive
 
 const CARDS = [
@@ -578,7 +584,7 @@ export default function FlashcardsPage() {
                 initial={{ opacity: 0, rotateY: flipped ? 180 : 0 }}
                 animate={{ opacity: 1, rotateY: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: MOTION.standard }}
                 onClick={() => !flipped && setFlipped(true)}
                 style={{
                   minHeight: 220,

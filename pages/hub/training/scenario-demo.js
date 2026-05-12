@@ -20,6 +20,12 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+
+// TRAIN-CSS-MOTION-ADOPT-7 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-PROGRESS-2 — adoption: scenario-demo tutorial step progress
 // TRAIN-WIRE-FX-2a — adoption: scenario-demo quiz answer + nav feedback
 // TRAIN-WIRE-PLAYCARD-2 — adoption: scenario-demo cards via shared PlayingCard
@@ -135,7 +141,7 @@ function FrequencyBars({ freqs }) {
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              transition={{ duration: MOTION.glacial, delay: 0.2 }}
               style={{ height: '100%', borderRadius: 4, background: colors[action] || 'var(--sp-accent-blue)' }}
             />
           </div>
@@ -335,7 +341,7 @@ export default function ScenarioDemoPage() {
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: MOTION.standard }}
                 style={{ maxWidth: 520, width: '100%', textAlign: 'center' }}
               >
                 <div style={{ fontSize: 40, marginBottom: 16 }}>{step.icon}</div>

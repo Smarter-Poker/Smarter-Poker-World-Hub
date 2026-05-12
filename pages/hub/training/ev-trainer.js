@@ -27,6 +27,12 @@ import { calculateActionEVs, calculateEVLoss, calculatePreflopEV } from '../../.
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+
+// TRAIN-CSS-MOTION-ADOPT-2 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-FEEDBACK-V2-3 — adoption: ev-trainer result badge
 // TRAIN-WIRE-FX-3a — adoption: ev-trainer correct/incorrect feedback
 
@@ -493,7 +499,7 @@ export default function EVTrainer() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: MOTION.standard }}
               >
                 {/* DRILL TYPE BADGE */}
                 <div
@@ -624,7 +630,7 @@ export default function EVTrainer() {
                     <motion.div
                       initial={{ opacity: 0, scale: 0.97 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.25 }}
+                      transition={{ duration: MOTION.standard }}
                     >
                       {/* Result badge — TRAIN-WIRE-FEEDBACK-V2-3 */}
                       <FeedbackCard

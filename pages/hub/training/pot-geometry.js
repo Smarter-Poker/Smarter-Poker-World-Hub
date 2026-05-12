@@ -12,6 +12,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+
+// TRAIN-CSS-MOTION-ADOPT-5 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-FX-4b — adoption: feedback hook for pot-geometry.fresh.js
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -536,7 +542,7 @@ export default function PotGeometry() {
                 key={spr}
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: MOTION.standard }}
                 style={{
                   background: `linear-gradient(135deg,${cat.color}18,${cat.color}08)`,
                   border: `2px solid ${cat.color}40`,
@@ -772,7 +778,7 @@ export default function PotGeometry() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -16 }}
-                    transition={{ duration: 0.22 }}
+                    transition={{ duration: MOTION.standard }}
                   >
                     {/* Scenario */}
                     <div
