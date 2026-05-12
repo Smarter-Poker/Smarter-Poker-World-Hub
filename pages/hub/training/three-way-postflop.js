@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-11 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-TOKENS-BATCH6-19 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -261,7 +262,7 @@ export default function ThreeWayPostflopPage() {
                   cursor: 'pointer',
                   background:
                     selectedPlayer === i ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: `2px solid ${selectedPlayer === i ? '#818cf8' : 'rgba(255,255,255,0.06)'}`,
+                  border: `2px solid ${selectedPlayer === i ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.06)'}`,
                 }}
               >
                 <div
@@ -276,7 +277,7 @@ export default function ThreeWayPostflopPage() {
                     style={{
                       fontSize: 12,
                       fontWeight: 700,
-                      color: selectedPlayer === i ? '#818cf8' : '#b0b3b8',
+                      color: selectedPlayer === i ? 'var(--sp-accent-blue)' : '#b0b3b8',
                       letterSpacing: '0.06em',
                     }}
                   >
@@ -344,8 +345,8 @@ export default function ThreeWayPostflopPage() {
                         selectedTexture === t.id
                           ? 'rgba(99,102,241,0.15)'
                           : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${selectedTexture === t.id ? '#818cf8' : 'rgba(255,255,255,0.08)'}`,
-                      color: selectedTexture === t.id ? '#818cf8' : '#b0b3b8',
+                      border: `1px solid ${selectedTexture === t.id ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
+                      color: selectedTexture === t.id ? 'var(--sp-accent-blue)' : '#b0b3b8',
                     }}
                   >
                     {t.label}
@@ -461,7 +462,7 @@ export default function ThreeWayPostflopPage() {
                   fontSize: 11,
                   fontWeight: 700,
                   background: 'rgba(99,102,241,0.15)',
-                  color: '#818cf8',
+                  color: 'var(--sp-accent-blue)',
                   letterSpacing: '0.08em',
                 }}
               >
@@ -487,7 +488,7 @@ export default function ThreeWayPostflopPage() {
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#818cf8',
+                  color: 'var(--sp-accent-blue)',
                   letterSpacing: '0.08em',
                   marginBottom: 4,
                 }}
@@ -530,7 +531,7 @@ export default function ThreeWayPostflopPage() {
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: selectedPlayer === i ? '#818cf8' : '#b0b3b8',
+                        color: selectedPlayer === i ? 'var(--sp-accent-blue)' : '#b0b3b8',
                       }}
                     >
                       Player {i + 1}: {p.pos}

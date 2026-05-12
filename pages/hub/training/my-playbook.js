@@ -8,6 +8,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-34 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-11 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -18,7 +19,7 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-3b — adoption: shared empty-state primitive
 
-const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', '#34d399', '#0ea5e9', 'var(--sp-accent-purple)'];
+const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', 'var(--sp-accent-emerald)', '#0ea5e9', 'var(--sp-accent-purple)'];
 
 // BUG FIX (TRAIN-PLAYBOOK-A11Y-1): SVG icon components replacing the
 // emojis on the my-playbook surface (📖 empty state, 📌 pin marker + pin

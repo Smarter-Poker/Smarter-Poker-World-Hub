@@ -12,6 +12,7 @@
 // TRAIN-CSS-TOKENS-BATCH4-14 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-47 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-38 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CSS-TOKENS-BATCH6-14 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -68,7 +69,7 @@ const GRADE_COLORS = {
   'A-': 'var(--sp-accent-green)',
   'B+': 'var(--sp-accent-blue)',
   B: 'var(--sp-accent-blue)',
-  'B-': '#60a5fa',
+  'B-': 'var(--sp-accent-blue)',
   'C+': 'var(--sp-accent-amber)',
   C: 'var(--sp-accent-amber)',
   'C-': 'var(--sp-accent-amber)',

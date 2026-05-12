@@ -10,6 +10,7 @@
 // TRAIN-CSS-TOKENS-BATCH4-8 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-MOBILE-ADOPT-15 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-28 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CSS-TOKENS-BATCH6-12 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -1648,7 +1649,7 @@ export default function PlayModePage() {
                           background: `rgba(124,58,237,${0.1 + (1 - r.width / 100) * 0.3})`,
                           fontSize: 9,
                           fontWeight: 700,
-                          color: '#c4b5fd',
+                          color: 'var(--sp-accent-purple)',
                           fontFamily: "'Orbitron', monospace",
                         }}>
                           {r.width}%

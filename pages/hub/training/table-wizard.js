@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-58 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-18 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -266,8 +267,8 @@ export default function TableWizardPage() {
                   cursor: 'pointer',
                   background:
                     filterStakes === 'ALL' ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${filterStakes === 'ALL' ? '#818cf8' : 'rgba(255,255,255,0.08)'}`,
-                  color: filterStakes === 'ALL' ? '#818cf8' : '#b0b3b8',
+                  border: `1px solid ${filterStakes === 'ALL' ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
+                  color: filterStakes === 'ALL' ? 'var(--sp-accent-blue)' : '#b0b3b8',
                 }}
               >
                 All Stakes
@@ -284,8 +285,8 @@ export default function TableWizardPage() {
                     cursor: 'pointer',
                     background:
                       filterStakes === s ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${filterStakes === s ? '#818cf8' : 'rgba(255,255,255,0.08)'}`,
-                    color: filterStakes === s ? '#818cf8' : '#b0b3b8',
+                    border: `1px solid ${filterStakes === s ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
+                    color: filterStakes === s ? 'var(--sp-accent-blue)' : '#b0b3b8',
                   }}
                 >
                   {s}
@@ -472,7 +473,7 @@ export default function TableWizardPage() {
                               <div
                                 style={{
                                   fontSize: 9,
-                                  color: '#6b7280',
+                                  color: 'var(--sp-fg-dim)',
                                   fontWeight: 600,
                                   letterSpacing: '0.06em',
                                 }}

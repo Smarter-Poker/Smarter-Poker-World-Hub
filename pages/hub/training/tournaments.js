@@ -6,6 +6,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-60 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-20 — hex sweep batch 6: extended palette literals routed
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -249,7 +250,7 @@ export default function TournamentsPage() {
       case 'scheduled':
         return wrap(<><ClockIcon size={12} /> Upcoming</>, '#00E0FF');
       case 'complete':
-        return wrap(<><CheckIcon size={12} /> Complete</>, '#6b7280');
+        return wrap(<><CheckIcon size={12} /> Complete</>, 'var(--sp-fg-dim)');
       default:
         return null;
     }
@@ -476,7 +477,7 @@ const styles = {
   },
   emptyHint: {
     fontSize: '13px',
-    color: '#6b7280',
+    color: 'var(--sp-fg-dim)',
     marginTop: '8px',
   },
   tournamentList: {

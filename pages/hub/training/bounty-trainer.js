@@ -9,6 +9,7 @@
 // TRAIN-CSS-TOKENS-BATCH4-18 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-MOBILE-ADOPT-17 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-5 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CSS-TOKENS-BATCH6-1 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -503,7 +504,7 @@ export default function BountyTrainerPage() {
                     }}
                   >
                     <div
-                      style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 2 }}
+                      style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-blue)', marginBottom: 2 }}
                     >
                       ADJUST ICM
                     </div>

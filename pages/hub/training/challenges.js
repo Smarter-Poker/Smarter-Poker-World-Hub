@@ -6,6 +6,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-5 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-2 — hex sweep batch 6: extended palette literals routed
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -361,7 +362,7 @@ const styles = {
   },
   emptyHint: {
     fontSize: '13px',
-    color: '#6b7280',
+    color: 'var(--sp-fg-dim)',
     marginTop: '8px',
   },
   signInPrompt: {
@@ -469,7 +470,7 @@ const styles = {
   },
   inProgress: {
     fontSize: '13px',
-    color: '#6b7280',
+    color: 'var(--sp-fg-dim)',
   },
   actions: {
     textAlign: 'center',

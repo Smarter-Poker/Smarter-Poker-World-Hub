@@ -1696,3 +1696,28 @@ TRAIN-WIRE-FEEDBACK-HOOK-2
 # and fires fb.correct() (when totalEVLoss >= -0.2 BB) or fb.incorrect()
 # at hand-completion in the showdownResult set point.
 TRAIN-WIRE-FEEDBACK-HOOK-3
+
+# ─── Phase-26b: hex sweep batch 6 — extended palette ────────────────────────
+# 54 quoted hex literals routed to --sp-* tokens via extended palette map:
+#   '#00e0ff' -> cyan, '#818cf8' -> blue, '#6b7280' -> fg-dim, '#60a5fa' -> blue,
+#   '#34d399' -> emerald, '#a5b4fc' -> blue, '#c4b5fd' -> purple, '#0066ff' -> blue
+TRAIN-CSS-TOKENS-BATCH6-1
+TRAIN-CSS-TOKENS-BATCH6-2
+TRAIN-CSS-TOKENS-BATCH6-3
+TRAIN-CSS-TOKENS-BATCH6-4
+TRAIN-CSS-TOKENS-BATCH6-5
+TRAIN-CSS-TOKENS-BATCH6-6
+TRAIN-CSS-TOKENS-BATCH6-7
+TRAIN-CSS-TOKENS-BATCH6-8
+TRAIN-CSS-TOKENS-BATCH6-9
+TRAIN-CSS-TOKENS-BATCH6-10
+TRAIN-CSS-TOKENS-BATCH6-11
+TRAIN-CSS-TOKENS-BATCH6-12
+TRAIN-CSS-TOKENS-BATCH6-13
+TRAIN-CSS-TOKENS-BATCH6-14
+TRAIN-CSS-TOKENS-BATCH6-15
+TRAIN-CSS-TOKENS-BATCH6-16
+TRAIN-CSS-TOKENS-BATCH6-17
+TRAIN-CSS-TOKENS-BATCH6-18
+TRAIN-CSS-TOKENS-BATCH6-19
+TRAIN-CSS-TOKENS-BATCH6-20

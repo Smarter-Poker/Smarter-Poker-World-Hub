@@ -11,6 +11,7 @@
 // (♠♣♥♦) in profile descriptions remain (semantic). Same surface-
 // specific a11y pattern as PR #320/#322/#324/#327-#350.
 // TRAIN-CSS-TOKENS-BATCH4-20 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-13 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -704,14 +705,14 @@ export default function PlayerProfilesPage() {
               style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: '#a5b4fc',
+                color: 'var(--sp-accent-blue)',
                 fontFamily: "'Rajdhani', sans-serif",
                 letterSpacing: '0.08em',
               }}
             >
               GTO ADAPTATION ENGINE
             </span>
-            <span style={{ fontSize: 12, color: '#818cf8' }}>
+            <span style={{ fontSize: 12, color: 'var(--sp-accent-blue)' }}>
               {showAdaptation ? 'Hide' : 'Show'} Counter-Strategy
             </span>
           </motion.button>
@@ -745,7 +746,7 @@ export default function PlayerProfilesPage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 700,
-                          color: '#818cf8',
+                          color: 'var(--sp-accent-blue)',
                           margin: '0 0 10px',
                           letterSpacing: '0.1em',
                         }}
@@ -785,7 +786,7 @@ export default function PlayerProfilesPage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 700,
-                          color: '#818cf8',
+                          color: 'var(--sp-accent-blue)',
                           margin: '0 0 10px',
                           letterSpacing: '0.1em',
                         }}

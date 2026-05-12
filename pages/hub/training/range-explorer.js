@@ -8,6 +8,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-48 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-15 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -113,7 +114,7 @@ function generateFrequencies(hand, pos) {
 function getGridColor(freqs) {
   if (freqs.raise > 80) return 'var(--sp-accent-red)'; // Pure Raise (Red)
   if (freqs.raise > 40) return 'var(--sp-accent-orange)'; // Mixed Raise (Orange)
-  if (freqs.call > 50) return '#34d399'; // Mostly Call (Green)
+  if (freqs.call > 50) return 'var(--sp-accent-emerald)'; // Mostly Call (Green)
   if (freqs.raise > 10 || freqs.call > 10) return 'var(--sp-accent-amber)'; // Weak mixed (Yellow)
   return 'var(--sp-bg-elev2)'; // Fold (Dark Slate)
 }
@@ -377,8 +378,8 @@ export default function RangeExplorerPage() {
                         marginBottom: 4,
                       }}
                     >
-                      <span style={{ color: '#34d399' }}>Call</span>
-                      <span style={{ color: '#34d399' }}>{selectedHand.freqs.call}%</span>
+                      <span style={{ color: 'var(--sp-accent-emerald)' }}>Call</span>
+                      <span style={{ color: 'var(--sp-accent-emerald)' }}>{selectedHand.freqs.call}%</span>
                     </div>
                     <div
                       style={{
@@ -391,7 +392,7 @@ export default function RangeExplorerPage() {
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${selectedHand.freqs.call}%` }}
-                        style={{ height: '100%', background: '#34d399' }}
+                        style={{ height: '100%', background: 'var(--sp-accent-emerald)' }}
                       />
                     </div>
                   </div>
@@ -478,7 +479,7 @@ export default function RangeExplorerPage() {
               Mixed Call/Fold
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 2, background: '#34d399' }} /> Pure
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--sp-accent-emerald)' }} /> Pure
               Call
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
