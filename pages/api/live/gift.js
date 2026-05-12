@@ -185,8 +185,33 @@ export default async function handler(req, res) {
     senderProfile?.full_name?.toLowerCase().includes('dan bekavac') ||
     senderProfile?.username?.toLowerCase() === 'kingfish';
 
+  // ── Trust signal: completed non-refunded diamond purchase ──
+  // Mirrors the DB-side cap function (fn_check_anti_farming_gift_cap) which
+  // grants trusted_purchaser_bypass for any user with a completed non-refunded
+  // diamond_purchases row. Service-role bypasses RLS; idx_diamond_purchases_user_id
+  // makes this O(1).
+  const { data: paidPurchases } = await supabase
+    .from('diamond_purchases')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('status', 'completed')
+    .is('refunded_at', null)
+    .limit(1);
+  const hasPaid = (paidPurchases?.length || 0) > 0;
+
+  // ── Trust signal: graduated OR paid, AND not flagged ──
+  // Logical NOT correctly treats NULL and false identically — only true is
+  // restricted. Mirrors fn_check_anti_farming_gift_cap exactly so the DB
+  // trigger never blocks what the JS layer admits (and vice versa).
+  const isGraduated = senderAgeDays >= GRADUATION_DAYS;
+  const isFullyUnrestricted =
+    (isGraduated || hasPaid) && !senderProfile?.is_farming_flagged;
+
   // ── GUARD: Hard block — new users (< 30 days) cannot send live gifts ──
-  if (!isKingfish && senderAgeDays < NEW_USER_BLOCK_DAYS) {
+  // Trusted senders (paid OR graduated unflagged) bypass the new-user block.
+  // Per platform rule: "unlimited gifting for paid users and 120d+ unflagged
+  // senders". KINGFISH bypass remains independent.
+  if (!isKingfish && !isFullyUnrestricted && senderAgeDays < NEW_USER_BLOCK_DAYS) {
     const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
     return res.status(403).json({
       error: `New accounts cannot send live gifts until your 30-Day VIP Card expires. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`,
@@ -195,13 +220,8 @@ export default async function handler(req, res) {
     });
   }
 
-  // ── GUARD: Source-tier rolling 30-day cap (accounts < 120 days or flagged) ──
-  const isGraduated = senderAgeDays >= GRADUATION_DAYS;
-  // isFullyUnrestricted: graduated AND not flagged. Strict `=== false` previously
-  // excluded accounts where is_farming_flagged is NULL (the column default), so every
-  // account that had never been explicitly cleared was still capped even after 120 days.
-  // Logical NOT correctly treats NULL and false identically — only true is restricted.
-  const isFullyUnrestricted = isGraduated && !senderProfile?.is_farming_flagged;
+  // ── GUARD: Source-tier rolling 30-day cap (accounts < 120 days, not paid, or flagged) ──
+  const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   if (!isKingfish && !isFullyUnrestricted) {
