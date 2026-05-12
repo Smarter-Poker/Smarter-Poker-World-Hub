@@ -1289,3 +1289,13 @@ TRAIN-WIRE-BOTTOMSHEET-4
 # "How it works" BottomSheet explaining RFI / Vs RFI / 3-bet chart usage.
 # Toggle pill in the trainer accent (#00d4ff). Purely additive.
 TRAIN-WIRE-BOTTOMSHEET-5
+
+# ─── Phase-SQL audit: training_sessions UPDATE/DELETE RLS ───────────────────
+# TRAIN-SQL-RLS-1 — supabase/migrations/20260512100000_training_sessions_owner_update_delete_rls.sql.
+# Closes the UPDATE/DELETE RLS gap on public.training_sessions. Pre-state: the
+# table had only INSERT + SELECT policies; UPDATE/DELETE from the frontend
+# silently no-opped. Migration adds two owner-scoped policies that pin the
+# subject to (SELECT auth.uid()) = user_id. The existing SECURITY DEFINER
+# rollup trigger tup_after_session_delete continues to revert tup totals on
+# legitimate self-deletes.
+TRAIN-SQL-RLS-1
