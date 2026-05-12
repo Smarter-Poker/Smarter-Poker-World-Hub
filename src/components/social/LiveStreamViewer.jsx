@@ -76,7 +76,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [showGifts, setShowGifts] = useState(false);
     const [userDiamondBalance, setUserDiamondBalance] = useState(0);
     const [giftFlash, setGiftFlash] = useState(null);
-    const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters
+    const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters — keyed by user_id, value is { name, amount, avatar }
+    // Leaderboard is hidden until a gift arrives during this session, then auto-hides
+    // 20 seconds after the last gift so it does not permanently obscure the stream.
+    const [topGiftersVisible, setTopGiftersVisible] = useState(false);
+    const topGiftersHideTimerRef = useRef(null);
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false); // #7: follow broadcaster
@@ -140,12 +144,22 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             })();
         }
 
-        // Fetch historical gifts for leaderboard (public read, anon-safe)
+        // Fetch historical gifts for leaderboard (public read, anon-safe).
+        // Use the `leaderboard` array (keyed by user_id with display names)
+        // rather than the legacy `topGifters` name→amount map so we always
+        // show the real display name, never a UUID.
         fetch(`/api/live/gifts?stream_id=${stream.id}`)
             .then(res => res.json())
             .then(data => {
-                if (data.topGifters) {
-                    setTopGifters(data.topGifters);
+                const source = data.leaderboard || [];
+                if (source.length > 0) {
+                    const byUser = {};
+                    source.forEach(r => {
+                        byUser[r.user_id] = { name: r.name, amount: r.amount, avatar: r.avatar_url || null };
+                    });
+                    setTopGifters(byUser);
+                    // Historical leaderboard is loaded silently; the widget only
+                    // becomes visible when a live gift arrives this session.
                 }
             })
             .catch(err => console.error('Failed to load gifts', err));
@@ -342,11 +356,21 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     // file, so we keep it but only fall back to name
                     // when sender_id is absent. Newer streams will all
                     // have sender_id present.
+                    // Update leaderboard keyed by user_id (falls back to sender_name
+                    // for legacy events without a sender_id, but modern events always
+                    // include it so UUIDs never appear as display names).
                     setTopGifters(prev => {
                         const key = payload.sender_id || payload.sender_name;
-                        const currentAmount = prev[key] || 0;
-                        return { ...prev, [key]: currentAmount + payload.amount };
+                        const existing = prev[key] || { name: payload.sender_name, avatar: payload.sender_avatar || null, amount: 0 };
+                        return { ...prev, [key]: { ...existing, amount: existing.amount + payload.amount } };
                     });
+                    // Show leaderboard and (re-)start the 20-second auto-hide countdown.
+                    setTopGiftersVisible(true);
+                    if (topGiftersHideTimerRef.current) clearTimeout(topGiftersHideTimerRef.current);
+                    topGiftersHideTimerRef.current = setTimeout(() => {
+                        topGiftersHideTimerRef.current = null;
+                        setTopGiftersVisible(false);
+                    }, 20000);
                 }
             }).subscribe();
             giftChannelRef.current = giftCh;
@@ -800,73 +824,75 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
             {/* Video Container - Split Screen Logic */}
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: isTheaterMode ? 'row' : 'column', background: '#000' }}>
-                <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    onLoadedMetadata={(e) => {
-                        // BUG-FIX-LIVE-LIST-2: some Safari/iOS combos don't honor
-                        // autoPlay when srcObject is set AFTER initial mount (the
-                        // pendingStreamRef path). Force play on metadata-ready.
-                        try { e.currentTarget.play?.(); } catch (_) {}
-                    }}
-                    style={{
-                        // BUG-FIX-LIVE-LIST-2: explicit absolute fill instead of flex:1.
-                        // flex:1 inside a flex container can collapse to 0 height in
-                        // the brief window between mount and metadata-ready, causing
-                        // the "tiny box" symptom. Absolute fill always claims 100%.
-                        position: 'absolute',
-                        inset: 0,
-                        width: '100%',
-                        height: '100%',
-                        // BUG-FIX-LIVE-3 (viewer side): cover not contain, so the
-                        // broadcaster's portrait video fills the viewer's portrait
-                        // viewport edge-to-edge instead of letterboxing.
-                        objectFit: 'cover',
-                        // BUG-FIX-VIEWER-MIRROR: do NOT mirror on viewer side.
-                        // Mirroring is a broadcaster-local UX aid (selfie preview).
-                        // Viewers should see the natural broadcast orientation.
-                        transition: 'all 0.3s ease'
-                    }}
-                />
-                
-                {/* Secondary Participants (Guest) */}
-                {participants.map((p) => {
-                    const isHost = String(p.identity) === String(stream?.broadcaster_id);
-                    
-                    const pubs = Array.from(p.videoTrackPublications.values());
-                    const videoPub = pubs.find(pub => pub.track);
-                    if (!videoPub?.track) return null;
+            {(() => {
+                // Compute guests with active video tracks before rendering so we can
+                // conditionally switch the host video between absolute-fill (solo) and
+                // flex-item (split) mode. When the host video is position:absolute it
+                // is removed from the flex flow, making the guest the sole flex item
+                // and giving it 100% of the container — the root cause of Bug 7.
+                const guestParticipants = participants.filter(p => {
+                    if (String(p.identity) === String(stream?.broadcaster_id)) return false;
+                    return Array.from(p.videoTrackPublications.values()).some(pub => pub.track);
+                });
+                const hasGuests = guestParticipants.length > 0;
+                return (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: isTheaterMode ? 'row' : 'column', background: '#000' }}>
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            onLoadedMetadata={(e) => {
+                                try { e.currentTarget.play?.(); } catch (_) {}
+                            }}
+                            style={hasGuests ? {
+                                // Split mode: host is a flex item so both host and guest
+                                // receive an equal share of the container (50/50).
+                                flex: 1,
+                                minHeight: 0,
+                                minWidth: 0,
+                                width: '100%',
+                                objectFit: 'cover',
+                                transition: 'all 0.3s ease',
+                            } : {
+                                // Solo mode: absolute fill so the broadcaster's portrait
+                                // video fills the viewport edge-to-edge without letterboxing.
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transition: 'all 0.3s ease',
+                            }}
+                        />
 
-                    // Host video is handled by a separate useEffect to prevent render loop spam
-                    if (isHost) return null;
-
-                    return (
-                        <div key={p.identity} style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>
-                            <video
-                                autoPlay
-                                playsInline
-                                muted
-                                ref={el => {
-                                    if (el) {
-                                        try { videoPub.track.attach(el); } catch(e){}
-                                    }
-                                }}
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover'
-                                }}
-                            />
-                            <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
-                                {p.name || 'Guest'}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        {/* Guest participants — each gets an equal flex share */}
+                        {guestParticipants.map((p) => {
+                            const pubs = Array.from(p.videoTrackPublications.values());
+                            const videoPub = pubs.find(pub => pub.track);
+                            if (!videoPub) return null;
+                            return (
+                                <div key={p.identity} style={{ flex: 1, minHeight: 0, minWidth: 0, position: 'relative', width: '100%' }}>
+                                    <video
+                                        autoPlay
+                                        playsInline
+                                        muted
+                                        ref={el => {
+                                            if (el) {
+                                                try { videoPub.track.attach(el); } catch(e){}
+                                            }
+                                        }}
+                                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                    <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, color: 'white', fontSize: 12 }}>
+                                        {p.name || 'Guest'}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            })()}
 
             {/* Loading/Connecting Overlay */}
             {(isConnecting || isReconnecting) && !error && (
@@ -1435,7 +1461,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             )}
 
             {/* COMMENTS OVERLAY */}
-            <div style={{ position:'absolute', bottom:80, left:0, width:'min(320px,60vw)', maxHeight:200, overflowY:'auto', padding:'0 12px', scrollbarWidth:'none', zIndex:5 }}>
+            <div style={{ position:'absolute', bottom:175, left:0, width:'min(320px,60vw)', maxHeight:200, overflowY:'auto', padding:'0 12px', scrollbarWidth:'none', zIndex:5 }}>
                 {/* Load more comments button */}
                 {hasMoreComments && (
                     <button
@@ -1517,15 +1543,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             {/* Emoji reactions */}
             <LiveReactions streamId={stream?.id} userId={userId} />
 
-            {/* Feature 5: Top Supporters Leaderboard */}
-            {Object.keys(topGifters).length > 0 && (
+            {/* Feature 5: Top Supporters Leaderboard — visible for 20s after each gift */}
+            {topGiftersVisible && Object.keys(topGifters).length > 0 && (
                 <div style={{ position: 'absolute', top: 120, right: 16, background: 'rgba(0,0,0,0.5)', padding: '10px 14px', borderRadius: 12, zIndex: 15, backdropFilter: 'blur(8px)', minWidth: 140 }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Top Supporters</div>
                     {Object.entries(topGifters)
-                        .sort(([, a], [, b]) => b - a)
+                        .sort(([, a], [, b]) => b.amount - a.amount)
                         .slice(0, 3)
-                        .map(([name, amount], idx) => (
-                            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
+                        .map(([userId, { name, amount }], idx) => (
+                            <div key={userId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'white', marginBottom: 4, alignItems: 'center' }}>
                                 <span style={{ opacity: 0.9, display: 'flex', gap: 6, alignItems: 'center' }}>
                                     <span style={{ fontSize: 11, opacity: 0.7 }}>#{idx + 1}</span> {name}
                                 </span>
