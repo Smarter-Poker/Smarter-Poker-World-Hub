@@ -23,6 +23,7 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
+import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -61,10 +62,14 @@ export default function MixedModePage() {
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    // Ref forwarding: populated after useTriviaTimer runs so onAnswer can call
+    // timer controls even though timer is defined after this hook invocation.
+    const timerCtrlRef = useRef({});
+
     // TRAIN-WIRE-TRIVIA-HOOK-1 - shared trivia answer-state plumbing
     const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
         onAnswer: ({ index, isCorrect }) => {
-            setIsTimerRunning(false);
+            timerCtrlRef.current.stop?.();
 
             const currentQuestion = questions[currentQuestionIndex];
             const category = currentQuestion?.displayCategory || 'poker_history';
@@ -94,13 +99,17 @@ export default function MixedModePage() {
                 } else {
                     setCurrentQuestionIndex(prev => prev + 1);
                     trivia.reset();
-                    setTimeLeft(24);
-                    setIsTimerRunning(true);
+                    timerCtrlRef.current.reset?.();
                 }
             }, 1200);
         }
     });
     const { selectedAnswer, showResult } = trivia;
+
+    // TRAIN-WIRE-TRIVIA-TIMER-1 - shared shot-clock hook
+    const timer = useTriviaTimer({ initialTime: 24, showResult: trivia.showResult, gameState, onTimeout: handleTimeout });
+    // Sync ref so onAnswer callback (defined before timer) can call timer controls.
+    timerCtrlRef.current = { stop: () => timer.setIsTimerRunning(false), reset: timer.resetTimer };
 
     // Per-category stats for current session
     const [categoryStats, setCategoryStats] = useState({
@@ -120,10 +129,6 @@ export default function MixedModePage() {
     const [diamondsEarned, setDiamondsEarned] = useState(0);
     const answersRef = useRef([]); // Track per-question correctness
 
-    // 24-second shot clock
-    const [timeLeft, setTimeLeft] = useState(24);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const timerRef = useRef(null);
     const isStartingRef = useRef(false); // Prevent double-click race
 
     useEffect(() => {
@@ -192,45 +197,6 @@ export default function MixedModePage() {
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
-
-    // Visibility-based timer pause + auto-resume on tab-return.
-    // Phase 57: previously paused on tab-switch but never resumed → user stuck
-    // forever on the question with no countdown. Now auto-resumes if game is
-    // still in 'playing' state and showResult hasn't fired.
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.hidden && isTimerRunning) {
-                setIsTimerRunning(false);
-            } else if (!document.hidden && !isTimerRunning && gameState === 'playing' && !showResult) {
-                setIsTimerRunning(true);
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning, gameState, showResult]);
-
-    // Shot clock effect
-    useEffect(() => {
-        if (!isTimerRunning || showResult) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return;
-        }
-
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    handleTimeout();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [isTimerRunning, showResult]);
 
     async function loadMixedQuestions(uid) {
         try {
@@ -331,8 +297,7 @@ export default function MixedModePage() {
             icm_chip_ev: { answered: 0, correct: 0 },
             gto_scenarios: { answered: 0, correct: 0 }
         });
-        setTimeLeft(24);
-        setIsTimerRunning(true);
+        timer.resetTimer();
         setGameState('playing');
         } finally {
             isStartingRef.current = false;
@@ -340,7 +305,7 @@ export default function MixedModePage() {
     }
 
     function handleTimeout() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         trivia.selectAnswer(-1); // Wrong answer - delegates to shared hook
     }
 
@@ -348,7 +313,7 @@ export default function MixedModePage() {
     const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=mastery, 3=history, 4=score
 
     async function finishGame() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         setGameState('saving');
 
         if (!userId) {
@@ -625,8 +590,8 @@ export default function MixedModePage() {
                                     <CategoryIcon size={18} color={currentCategory.color} />
                                     <span style={{ color: currentCategory.color }}>{currentCategory.name}</span>
                                 </div>
-                                <div className={`timer ${timeLeft <= 8 ? 'warning' : ''} ${timeLeft <= 3 ? 'danger' : ''}`}>
-                                    {timeLeft}s
+                                <div className={`timer ${timer.timeLeft <= 8 ? 'warning' : ''} ${timer.timeLeft <= 3 ? 'danger' : ''}`}>
+                                    {timer.timeLeft}s
                                 </div>
                             </div>
 
