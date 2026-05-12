@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 // TRAIN-WIRE-FX-4b — adoption: feedback hook for pot-geometry.fresh.js
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -249,6 +250,8 @@ function generateDrill() {
 
 export default function PotGeometry() {
   const router = useRouter();
+  // TRAIN-WIRE-BOTTOMSHEET-4 — info sheet state
+  const [infoOpen, setInfoOpen] = useState(false);
   useTrainingBus('pot-geometry');
   const fb = useTrainingFeedback();
 
@@ -338,6 +341,33 @@ export default function PotGeometry() {
           fontFamily: "'Inter',sans-serif",
         }}
       >
+        <BottomSheet
+          open={infoOpen}
+          onClose={() => setInfoOpen(false)}
+          title="How Pot Geometry Works"
+          subtitle="Bet sizing and SPR planning"
+        >
+          <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
+            <p style={{ marginTop: 0 }}>
+              Pot geometry is about planning the SPR you want to face on later
+              streets given today's bet sizing. Smaller bets keep SPR high and
+              preserve future bluffing leverage. Bigger bets shrink SPR so you
+              can profitably stack off on the river with your value range.
+            </p>
+            <p>
+              Each spot presents a board, stacks, and a target. Pick the bet
+              size that lands you at the right SPR on the next street so your
+              value range can comfortably commit and your bluffs still have
+              room to run. The solver answer plus EV-loss surfaces after each
+              attempt.
+            </p>
+            <p>
+              Aim for sub-1 BB EV loss across a full session before stepping
+              up to wider or deeper stack configurations.
+            </p>
+          </div>
+        </BottomSheet>
+
         {/* Header */}
         <div
           style={{ padding: '20px 24px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
@@ -357,6 +387,24 @@ export default function PotGeometry() {
               }}
             >
               ← Training
+            </button>
+            <button
+              onClick={() => setInfoOpen(true)}
+              aria-label="How Pot Geometry works"
+              style={{
+                background: 'rgba(249,115,22,0.10)',
+                border: '1px solid rgba(249,115,22,0.30)',
+                color: 'var(--sp-accent-orange)',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '6px 12px',
+                borderRadius: 12,
+                cursor: 'pointer',
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+              }}
+            >
+              How it works
             </button>
             <h1
               style={{

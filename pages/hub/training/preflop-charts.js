@@ -21,6 +21,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 // ── Phase 2 Engine: Difficulty modes for chart simplification ───────────
 import { simplifyActions, DIFFICULTY } from '../../../src/engines/DifficultyEngine';
 import { calculatePreflopEV } from '../../../src/engines/EVCalculator';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -71,6 +72,8 @@ const ACTION_COLORS = {
 
 export default function PreflopCharts() {
   const router = useRouter();
+  // TRAIN-WIRE-BOTTOMSHEET-5 — info sheet state
+  const [infoOpen, setInfoOpen] = useState(false);
   useTrainingBus('preflop-charts');
 
   // Filters
@@ -217,6 +220,36 @@ export default function PreflopCharts() {
         }}
       >
         {/* ─── Header ─────────────────────────────────────────────── */}
+        <BottomSheet
+          open={infoOpen}
+          onClose={() => setInfoOpen(false)}
+          title="How Preflop Charts Work"
+          subtitle="Solver-correct opening + 3-bet ranges"
+        >
+          <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
+            <p style={{ marginTop: 0 }}>
+              Each chart shows the solver-correct mix for a given position,
+              opening size, and stack depth. Highlighted cells are the
+              hands you should open, raise, 3-bet, call, or fold — colored
+              by frequency for mixed strategies.
+            </p>
+            <p>
+              <strong style={{ color: 'var(--sp-accent-cyan)' }}>RFI</strong>
+              charts show your first-in raising range.
+              <strong style={{ color: 'var(--sp-accent-purple)' }}> Vs RFI</strong>
+              charts show how to respond to an opener.
+              <strong style={{ color: 'var(--sp-accent-green)' }}> 3-bet</strong>
+              charts show 3-bet ranges when facing an open.
+            </p>
+            <p>
+              Use the position selector to step through every hot seat. The
+              difficulty controls simplify the mix so you can drill the
+              high-EV approximations first before learning the optimal
+              mixed-frequencies.
+            </p>
+          </div>
+        </BottomSheet>
+
         <div
           style={{
             padding: '20px 24px 16px',
@@ -231,13 +264,31 @@ export default function PreflopCharts() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
               }}
             >
               ← Training
+            </button>
+            <button
+              onClick={() => setInfoOpen(true)}
+              aria-label="How Preflop Charts work"
+              style={{
+                background: 'rgba(0,212,255,0.10)',
+                border: '1px solid rgba(0,212,255,0.30)',
+                color: 'var(--sp-accent-cyan)',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '6px 12px',
+                borderRadius: 12,
+                cursor: 'pointer',
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+              }}
+            >
+              How it works
             </button>
             <h1
               style={{
