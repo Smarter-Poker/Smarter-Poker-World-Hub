@@ -1770,3 +1770,13 @@ TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1
 TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2
 # TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3 — pages/hub/trivia/tournaments.js. Same.
 TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3
+
+# ─── Phase-32: useTriviaQuestion hook ───────────────────────────────────────
+# TRAIN-TRIVIA-HOOK-1 — src/hooks/useTriviaQuestion.js. New shared hook
+# encapsulating the selectedAnswer / showResult / isCorrect / selectAnswer /
+# reset state plumbing duplicated across 5 trivia mode files. Adopters
+# call useTriviaQuestion(currentQuestion, {onAnswer}) and skip ~25 lines
+# of state boilerplate per file. Hook also adds an internal lockedRef to
+# prevent the double-fire race that several trivia pages hand-rolled with
+# different inline guards. Adoption can land incrementally.
+TRAIN-TRIVIA-HOOK-1
