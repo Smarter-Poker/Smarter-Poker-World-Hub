@@ -265,7 +265,10 @@ export default ActionButton;
  * Convenience wrapper that lays out 2–4 ActionButtons in a row with
  * GTO-Wizard-style equal flex distribution, mobile-first spacing.
  */
-export function ActionButtonRow({ children, gap = 8, style, className }) {
+// TRAIN-CSS-MOBILE-1 — accepts arbitrary data-* attrs so trainers can opt into
+// mobile patterns (data-sticky-action-bar) without wrapping the row in an extra
+// div. Forwards everything after the named props to the underlying container.
+export function ActionButtonRow({ children, gap = 8, style, className, ...rest }) {
   return (
     <div
       className={className}
@@ -278,6 +281,7 @@ export function ActionButtonRow({ children, gap = 8, style, className }) {
       }}
       role="group"
       aria-label="Poker actions"
+      {...rest}
     >
       {React.Children.map(children, (child) => {
         if (!child) return null;
@@ -289,4 +293,4 @@ export function ActionButtonRow({ children, gap = 8, style, className }) {
   );
 }
 
-export const ACTION_BUTTON_VERSION = '1.1.0';
+export const ACTION_BUTTON_VERSION = '1.2.0';

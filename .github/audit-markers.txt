@@ -1311,3 +1311,25 @@ TRAIN-SQL-RLS-1
 # blanket override above. Adoption tracked separately under
 # TRAIN-CSS-MOTION-ADOPT-* markers.
 TRAIN-CSS-MOTION-1
+
+# ─── Phase-19 infrastructure: mobile-optimization data-attr patterns ────────
+# TRAIN-CSS-MOBILE-1 — src/styles/worlds/training.css. Adds three semantic
+# mobile-optimization patterns:
+#   [data-pills-row]         horizontal-scroll selector below 600px
+#   [data-stats-grid]        4-col → 2-col below 480px
+#   [data-sticky-action-bar] pin action row to bottom + safe-area inset
+# Each pattern is opt-in via data-attr; no global behavior change.
+# Also widens ActionButtonRow's prop surface to forward arbitrary attrs to
+# the underlying container so trainers can apply data-sticky-action-bar
+# directly to the row without wrapping it.
+TRAIN-CSS-MOBILE-1
+# TRAIN-CSS-MOBILE-ADOPT-1 — pages/hub/training/bluff-catcher.js. Marks the
+# 2-stat panel with data-stats-grid and the ActionButtonRow with
+# data-sticky-action-bar. ActionButton bumped to v1.2.0 to expose ...rest
+# spread on ActionButtonRow.
+TRAIN-CSS-MOBILE-ADOPT-1
+# TRAIN-CSS-MOBILE-ADOPT-2 — pages/hub/training/preflop-charts.js. Marks the
+# game-type pill row and the scenario+stack pill row with data-pills-row.
+# Long pill sequences scroll horizontally with snap below 600px instead of
+# wrapping into multiple visual rows.
+TRAIN-CSS-MOBILE-ADOPT-2

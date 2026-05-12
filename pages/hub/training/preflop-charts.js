@@ -22,6 +22,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { simplifyActions, DIFFICULTY } from '../../../src/engines/DifficultyEngine';
 import { calculatePreflopEV } from '../../../src/engines/EVCalculator';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+// TRAIN-CSS-MOBILE-ADOPT-2 — adoption of mobile data-attr patterns from TRAIN-CSS-MOBILE-1
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -320,7 +321,7 @@ export default function PreflopCharts() {
           </div>
 
           {/* ─── Filters ─────────────────────────────────────────── */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          <div data-pills-row style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
             {GAME_TYPES.map((gt) => (
               <button
                 key={gt.value}
@@ -346,7 +347,7 @@ export default function PreflopCharts() {
           </div>
 
           {/* Scenario + Stack */}
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div data-pills-row style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
                 style={{

@@ -13,6 +13,7 @@ import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import ActionButton, { ActionButtonRow } from '../../../src/components/poker/ActionButton';
+// TRAIN-CSS-MOBILE-ADOPT-1 — adoption of mobile data-attr patterns from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-TOKENS-ADOPT-1 — first adoption of --sp-* token contract
 // TRAIN-WIRE-FEEDBACK-V2-2 — adoption: bluff-catcher full feedback panel
 // TRAIN-WIRE-BOTTOMSHEET-1 — adoption: bluff-catcher MDF info sheet
@@ -179,7 +180,7 @@ export default function BluffCatcherTrainer() {
               </button>
             </p>
           </div>
-          <div style={styles.statsPanel}>
+          <div data-stats-grid style={styles.statsPanel}>
             <div style={styles.statBox}>
               <div style={styles.statLabel}>SCORE</div>
               <div style={styles.statValue}>{score}</div>
@@ -240,7 +241,7 @@ export default function BluffCatcherTrainer() {
           </div>
 
           {!showFeedback ? (
-            <ActionButtonRow style={styles.actionsBox} gap={10}>
+            <ActionButtonRow data-sticky-action-bar style={styles.actionsBox} gap={10}>
               {/* TRAIN-WIRE-ACTIONBTN-2 — call/fold via shared ActionButton */}
               <ActionButton
                 action="call"

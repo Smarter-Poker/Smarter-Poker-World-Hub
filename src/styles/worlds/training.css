@@ -635,3 +635,83 @@ body.world-training {
     }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAIN-CSS-MOBILE-1 — semantic mobile-optimization patterns
+   ═══════════════════════════════════════════════════════════════════════════
+   Adopters opt-in by setting data-attrs on their containers. The CSS does the
+   responsive heavy lifting so trainer code stays declarative. Three patterns:
+
+   [data-pills-row]
+     A horizontal selector row (positions / scenarios / chart types). Below
+     600px the row becomes a horizontal-scroll strip with momentum + snap,
+     so 8 positions don't wrap into 4 visual rows of pills. Scrollbar is
+     hidden but the row stays keyboard- and swipe-navigable. Above 600px the
+     row keeps its normal flex-wrap behavior — no change for tablet/desktop.
+
+   [data-stats-grid]
+     A small stats strip (Accuracy / Correct / EV-loss / Streak). Below 480px
+     drops from 4 columns to 2 columns so the values stay readable instead of
+     shrinking past comprehension. Gap also shrinks proportionally.
+
+   [data-sticky-action-bar]
+     The poker action row (Fold / Check / Call / Raise) when pinned to the
+     viewport bottom on mobile. Adds iOS safe-area-inset-bottom so the bar
+     sits above the gesture bar / home indicator instead of underneath it,
+     and adds a top blur fade so cards/text underneath the bar are visually
+     suppressed.
+
+   Each pattern is opt-in. Trainers that DON'T set the data-attr are
+   completely unaffected.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* [data-pills-row] — horizontal scroll on narrow viewports */
+@media (max-width: 600px) {
+    body.world-training [data-pills-row] {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        /* Bleed into safe-areas left/right so first/last pill can fully scroll on */
+        scroll-padding-inline: 16px;
+        padding-bottom: 4px; /* keep focus rings from being clipped by overflow */
+    }
+    body.world-training [data-pills-row]::-webkit-scrollbar {
+        display: none;
+    }
+    body.world-training [data-pills-row] > * {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+    }
+}
+
+/* [data-stats-grid] — drop 4-col → 2-col below 480px */
+@media (max-width: 480px) {
+    body.world-training [data-stats-grid] {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+    }
+}
+
+/* [data-sticky-action-bar] — pin to viewport bottom with safe-area */
+@media (max-width: 768px) {
+    body.world-training [data-sticky-action-bar] {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+        background: linear-gradient(
+            to top,
+            rgba(5, 10, 8, 0.95) 0%,
+            rgba(5, 10, 8, 0.80) 60%,
+            rgba(5, 10, 8, 0) 100%
+        );
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 20;
+    }
+}
+
