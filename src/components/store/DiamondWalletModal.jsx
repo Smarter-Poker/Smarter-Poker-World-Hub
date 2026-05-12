@@ -58,7 +58,6 @@ import {
     Send, RotateCcw, Settings,
     Search, X, BarChart3, ChevronDown, Copy,
     Clock, Filter as FilterIcon, ArrowUpRight, ArrowDownRight,
-import {
     ChevronsUpDown, Sparkles, Eye,
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
