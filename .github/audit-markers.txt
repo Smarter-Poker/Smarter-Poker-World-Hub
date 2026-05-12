@@ -1500,3 +1500,23 @@ TRAIN-WIRE-QUIZ-ANSWER-3
 # Replaces the 2-col motion.button action options (CALL/FOLD/etc.) with
 # QuizAnswer instances. Parent grid container preserves the 2-col layout.
 TRAIN-WIRE-QUIZ-ANSWER-4
+
+# ─── Phase-23: mobile data-attr long-tail sweep (6 GAME files) ──────────────
+# TRAIN-CSS-MOBILE-ADOPT-13 — pages/hub/training/famous-finals.js.
+# data-pills-row on the filter-pill row.
+TRAIN-CSS-MOBILE-ADOPT-13
+# TRAIN-CSS-MOBILE-ADOPT-14 — pages/hub/training/multiway-preflop.js.
+# data-stats-grid + data-pills-row on the position + scenario rows.
+TRAIN-CSS-MOBILE-ADOPT-14
+# TRAIN-CSS-MOBILE-ADOPT-15 — pages/hub/training/play-mode.js. data-stats-grid
+# on the session-stats panel.
+TRAIN-CSS-MOBILE-ADOPT-15
+# TRAIN-CSS-MOBILE-ADOPT-16 — pages/hub/training/coach-mode.js. Marker-only
+# (no qualifying patterns; layout is single-column).
+TRAIN-CSS-MOBILE-ADOPT-16
+# TRAIN-CSS-MOBILE-ADOPT-17 — pages/hub/training/bounty-trainer.js.
+# data-pills-row x2 on the bounty-type + difficulty pill rows.
+TRAIN-CSS-MOBILE-ADOPT-17
+# TRAIN-CSS-MOBILE-ADOPT-18 — pages/hub/training/quiz-gauntlet.js. Marker-only
+# (numeric-input UI doesn't have pill rows or stat grids).
+TRAIN-CSS-MOBILE-ADOPT-18

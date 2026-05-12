@@ -8,6 +8,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-8 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-MOBILE-ADOPT-15 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -1452,7 +1453,7 @@ export default function PlayModePage() {
                       style={{ width: '100%', marginBottom: 16, accentColor: 'var(--sp-accent-red)' }}
                     />
 
-                    <div
+                    <div data-stats-grid
                       style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(5, 1fr)',

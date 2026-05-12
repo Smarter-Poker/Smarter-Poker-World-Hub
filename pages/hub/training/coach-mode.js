@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-MOBILE-ADOPT-16 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
