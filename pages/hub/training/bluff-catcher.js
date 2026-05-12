@@ -12,6 +12,7 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+import ActionButton, { ActionButtonRow } from '../../../src/components/poker/ActionButton';
 // TRAIN-WIRE-FEEDBACK-V2-2 — adoption: bluff-catcher full feedback panel
 // TRAIN-WIRE-BOTTOMSHEET-1 — adoption: bluff-catcher MDF info sheet
 // TRAIN-WIRE-PROGRESS-1 — adoption: bluff-catcher in-play progress strip
@@ -238,30 +239,23 @@ export default function BluffCatcherTrainer() {
           </div>
 
           {!showFeedback ? (
-            <div style={styles.actionsBox}>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            <ActionButtonRow style={styles.actionsBox} gap={10}>
+              {/* TRAIN-WIRE-ACTIONBTN-2 — call/fold via shared ActionButton */}
+              <ActionButton
+                action="call"
+                label="CALL"
+                shortcut={1}
+                size="lg"
                 onClick={() => handleAction('CALL')}
-                style={{
-                  ...styles.actionBtn,
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                }}
-              >
-                CALL
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              />
+              <ActionButton
+                action="fold"
+                label="FOLD"
+                shortcut={2}
+                size="lg"
                 onClick={() => handleAction('FOLD')}
-                style={{
-                  ...styles.actionBtn,
-                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                }}
-              >
-                FOLD
-              </motion.button>
-            </div>
+              />
+            </ActionButtonRow>
           ) : (
             <FeedbackCard
               verdict={lastAnswer.isCorrect ? 'correct' : 'incorrect'}
