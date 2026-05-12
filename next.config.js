@@ -84,7 +84,14 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // when injecting fallback handlers into runtimeCaching entries. All PWA caching remains intact.
   cacheOnFrontEndNav: false, // Don't cache client-side navigations — prevents stale page renders
   reloadOnOnline: false,     // DISABLED — mobile devices constantly toggle online/offline causing unwanted auto-refresh loops
-  runtimeCaching: [
+  // Dan-fix/pwa-v10-workbox (2026-05-12): @ducanh2912/next-pwa@10+ requires custom
+  // rules to live under workboxOptions.runtimeCaching, with extendDefaultRuntimeCaching=false
+  // to prevent library defaults from overriding our NetworkOnly rules. The top-level
+  // `runtimeCaching` parameter is silently ignored in v10 — that's why the mobile
+  // white-screen fix from PR #503 was not taking effect.
+  extendDefaultRuntimeCaching: false,
+  workboxOptions: {
+    runtimeCaching: [
     // ─── CRITICAL: Override next-pwa defaults that cause stale pages on mobile ───
     // next-pwa defaults use CacheFirst for /_next/static JS, which means mobile
     // browsers (especially Safari) serve old page JS from SW cache indefinitely.
@@ -166,7 +173,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         cacheName: 'no-cache-auth',
       },
     },
-  ],
+    ],
+  },
   buildExcludes: [/middleware-manifest\.json$/],
 });
 
