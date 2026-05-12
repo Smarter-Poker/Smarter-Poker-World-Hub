@@ -1199,3 +1199,17 @@ TRAIN-WIRE-PROGRESS-STRIP-2
 # <ProgressStrip current total correct compact />. Total ramps in steps of 10
 # to match the existing 10-question save cadence. Calc mode is unaffected.
 TRAIN-WIRE-PROGRESS-STRIP-3
+
+# ─── Phase-13 adoption: BottomSheet "How it works" sheets ───────────────────
+# TRAIN-WIRE-BOTTOMSHEET-2 — pages/hub/training/ev-trainer.js. Adds a
+# "How it works" BottomSheet that explains Pot Odds / MDF / EV mechanics,
+# wired to a small toggle pill on the header row next to "← Training Hub".
+# Sheet state is local (infoOpen / setInfoOpen) — matches the bluff-catcher
+# pattern from TRAIN-WIRE-BOTTOMSHEET-1. Purely additive — no behavior change
+# on existing answer flow.
+TRAIN-WIRE-BOTTOMSHEET-2
+# TRAIN-WIRE-BOTTOMSHEET-3 — pages/hub/training/spr-trainer.js. Adds the
+# same "How it works" BottomSheet pattern explaining SPR (Stack-to-Pot
+# Ratio) commitment decisions. Wired to a header-row toggle pill in the
+# trainer's accent color (#fbbf24). Purely additive.
+TRAIN-WIRE-BOTTOMSHEET-3

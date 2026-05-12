@@ -13,6 +13,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 // TRAIN-WIRE-FX-4c — adoption: feedback hook for spr-trainer.fresh.js
 
 function saveSession(payload) {
@@ -123,6 +124,8 @@ export default function SPRTrainer() {
   useTrainingBus('spr-trainer');
   const fb = useTrainingFeedback();
   const router = useRouter();
+  // TRAIN-WIRE-BOTTOMSHEET-3 — info sheet state
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const [scenario, setScenario] = useState(null);
   const [choice, setChoice] = useState(null);
@@ -222,21 +225,69 @@ export default function SPRTrainer() {
           rel="stylesheet"
         />
       </Head>
+      <BottomSheet
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        title="How SPR Trainer Works"
+        subtitle="Stack-to-Pot Ratio commitment decisions"
+      >
+        <div style={{ padding: '0 4px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.6 }}>
+          <p style={{ marginTop: 0 }}>
+            <strong style={{ color: '#fbbf24' }}>SPR</strong> (Stack-to-Pot Ratio) =
+            effective stack / pot size. It tells you how committed you are with the
+            current pot and informs whether you can profitably stack off, play
+            cautiously, or fold a marginal hand.
+          </p>
+          <p>
+            <strong style={{ color: '#22c55e' }}>Commit</strong> when SPR is low and
+            your hand can stack off (overpairs on dry boards, sets, two-pair+ on most
+            boards). <strong style={{ color: '#f97316' }}>Neutral</strong> when SPR is
+            mid-range — control pot, deny equity, but don't blast off.
+            <strong style={{ color: '#ef4444' }}> Fold</strong> when SPR is high and
+            your hand can't survive a big bet tree.
+          </p>
+          <p>
+            Each scenario surfaces SPR, board texture, and your hand. Pick the
+            commitment level. Correct answers move the streak forward; wrong answers
+            show the solver-correct choice so you can recalibrate.
+          </p>
+        </div>
+      </BottomSheet>
+
       <div style={C.page}>
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#64748b',
-              fontSize: 12,
-              cursor: 'pointer',
-              marginBottom: 16,
-            }}
-          >
-            ← Training Hub
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <button
+              onClick={() => router.push('/hub/training')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              ← Training Hub
+            </button>
+            <button
+              onClick={() => setInfoOpen(true)}
+              aria-label="How SPR Trainer works"
+              style={{
+                background: 'rgba(251,191,36,0.08)',
+                border: '1px solid rgba(251,191,36,0.25)',
+                color: '#fbbf24',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 12px',
+                borderRadius: 12,
+                cursor: 'pointer',
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+              }}
+            >
+              How it works
+            </button>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <div
