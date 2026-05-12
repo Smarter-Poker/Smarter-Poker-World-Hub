@@ -536,3 +536,57 @@ body.world-training .sp-skeleton-block {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAIN-CSS-TOKENS-1 — semantic accent + neutral tokens for training pages
+   ═══════════════════════════════════════════════════════════════════════════
+   These --sp-* tokens are the source-of-truth color contract for new training
+   UI code. Inline JS styles can read them via `var(--sp-accent-cyan)` and
+   stay in sync with future theme adjustments without touching 89 files.
+   Existing --world-* tokens are preserved above for backwards compatibility.
+   Each token has a paired -rgb form for use in rgba(var(--sp-*-rgb) / .12).
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.world-training {
+    /* Trainer accent palette */
+    --sp-accent-cyan:   #00d4ff;
+    --sp-accent-purple: #a855f7;
+    --sp-accent-green:  #22c55e;
+    --sp-accent-emerald:#10b981;
+    --sp-accent-amber:  #fbbf24;
+    --sp-accent-orange: #f97316;
+    --sp-accent-red:    #ef4444;
+    --sp-accent-blue:   #3b82f6;
+
+    /* RGB triplets (use with rgba(var(--sp-accent-cyan-rgb), 0.12)) */
+    --sp-accent-cyan-rgb:    0, 212, 255;
+    --sp-accent-purple-rgb:  168, 85, 247;
+    --sp-accent-green-rgb:   34, 197, 94;
+    --sp-accent-emerald-rgb: 16, 185, 129;
+    --sp-accent-amber-rgb:   251, 191, 36;
+    --sp-accent-orange-rgb:  249, 115, 22;
+    --sp-accent-red-rgb:     239, 68, 68;
+    --sp-accent-blue-rgb:    59, 130, 246;
+
+    /* Neutral ramp (Tailwind slate) */
+    --sp-fg:       #e2e8f0;
+    --sp-fg-muted: #94a3b8;
+    --sp-fg-dim:   #64748b;
+    --sp-fg-faint: #475569;
+
+    /* Surface ramp */
+    --sp-bg-elev0: rgba(255, 255, 255, 0.03);
+    --sp-bg-elev1: rgba(255, 255, 255, 0.05);
+    --sp-bg-elev2: rgba(255, 255, 255, 0.08);
+    --sp-border:        rgba(255, 255, 255, 0.08);
+    --sp-border-strong: rgba(255, 255, 255, 0.18);
+
+    /* Semantic verdict colors */
+    --sp-verdict-correct:   var(--sp-accent-green);
+    --sp-verdict-mixed:     var(--sp-accent-amber);
+    --sp-verdict-incorrect: var(--sp-accent-red);
+
+    /* Spacing scale already covered by --sp-space-* tokens elsewhere; not
+       redeclared here to avoid drift. */
+}
+

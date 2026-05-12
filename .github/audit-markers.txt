@@ -1213,3 +1213,13 @@ TRAIN-WIRE-BOTTOMSHEET-2
 # Ratio) commitment decisions. Wired to a header-row toggle pill in the
 # trainer's accent color (#fbbf24). Purely additive.
 TRAIN-WIRE-BOTTOMSHEET-3
+
+# ─── Phase-14 infrastructure: semantic --sp-* token contract ────────────────
+# TRAIN-CSS-TOKENS-1 — src/styles/worlds/training.css. Adds a complete
+# semantic token contract on body.world-training (accent palette + RGB
+# triplets + neutral ramp + surface ramp + verdict semantic aliases).
+# Backwards compatible — no existing --world-* tokens are removed. New
+# tokens become the source-of-truth contract for inline JS styles across
+# all 89 training pages, replacing hand-rolled hex literals. Adoption is
+# tracked separately by TRAIN-CSS-TOKENS-ADOPT-* markers as files migrate.
+TRAIN-CSS-TOKENS-1
