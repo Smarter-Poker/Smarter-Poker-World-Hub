@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-18 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-MOBILE-ADOPT-17 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -329,7 +330,7 @@ export default function BountyTrainerPage() {
 
         <div style={{ padding: '16px 20px', maxWidth: 900, margin: '0 auto' }}>
           {/* Format Selector */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div data-pills-row style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             {Object.values(BOUNTY_FORMATS || {}).map((f) => (
               <button
                 key={f.id}
@@ -575,7 +576,7 @@ export default function BountyTrainerPage() {
                 </p>
 
                 {/* Stack Info */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div data-pills-row style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                   {[
                     { label: 'Hero Stack', value: `${scenario.heroStack}BB` },
                     { label: 'Villain Stack', value: `${scenario.villainStack}BB` },

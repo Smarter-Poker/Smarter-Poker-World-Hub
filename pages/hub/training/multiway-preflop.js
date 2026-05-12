@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-MOBILE-ADOPT-14 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -228,7 +229,7 @@ function RangeGrid({ rangeStr, color, label }) {
         <span style={{ fontSize: 11, fontWeight: 700, color }}>{label}</span>
         <span style={{ fontSize: 10, color: '#64748b' }}>{pct}% of hands</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
+      <div data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
         {grid.map((cell, i) => (
           <div
             key={i}
@@ -530,7 +531,7 @@ export default function MultiwayPreflopPage() {
             <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
               Action Flow
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {scenario.positions.map((pos, i) => {
                 const rangeData = scenario.ranges[pos] || {};
                 const action = Object.keys(rangeData || {})[0] || '';

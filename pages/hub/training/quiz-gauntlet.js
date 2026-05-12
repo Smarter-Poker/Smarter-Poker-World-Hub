@@ -4,6 +4,7 @@
  *
  * 10 questions · 30s shot clock · combo multiplier · leaderboard-ready
  */
+// TRAIN-CSS-MOBILE-ADOPT-18 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';

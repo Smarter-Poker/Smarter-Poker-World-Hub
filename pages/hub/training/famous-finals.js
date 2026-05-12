@@ -9,6 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-MOBILE-ADOPT-13 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -501,7 +502,7 @@ export default function FamousFinalsPage() {
                     </div>
 
                     {/* Players */}
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div data-pills-row style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                       {ft.players.map((p) => (
                         <div
                           key={p.name}
