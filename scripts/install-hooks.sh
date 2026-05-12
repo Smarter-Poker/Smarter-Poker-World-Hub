@@ -25,7 +25,7 @@ git config --unset core.hooksPath 2>/dev/null || true
 if [ -f "$SCRIPT_DIR/pre-push-hook.sh" ]; then
     cp "$SCRIPT_DIR/pre-push-hook.sh" "$HOOKS_DIR/pre-push"
     chmod +x "$HOOKS_DIR/pre-push"
-    echo "✓ Pre-push safety gate installed (CHECK 1-9)"
+    echo "✓ Pre-push safety gate installed (CHECK 1-12)"
 fi
 
 # Copy pre-commit hook (Club Arena + Supabase auth)
@@ -37,11 +37,12 @@ fi
 
 echo ""
 echo "Pre-push checks:"
-echo "  1. Unused hook imports        5. node -c syntax validation"
+echo "  1. Unused hook imports        5. Babel/node-c JSX-aware syntax"
 echo "  2. SSG-unsafe browser APIs    6. Auth route canonicalization"
 echo "  3. No .single() calls         7. Unauth'd API fetch calls"
 echo "  4. No raw Supabase imports    8. Broken import resolution"
-echo "  9. Catch-block corruption detection"
+echo "  9. Catch-block corruption     10. TypeScript new-error gate"
+echo "  11. Vercel/Next.js config     12. JSX comment expression guard"
 echo ""
 echo "Pre-commit checks:"
 echo "  A. Club Arena build enforcement"

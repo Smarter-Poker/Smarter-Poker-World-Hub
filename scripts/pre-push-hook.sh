@@ -11,7 +11,12 @@
 # 2. Module-scope browser API usage without window guards (SSG bombs)
 # 3. No .single() calls (must use .maybeSingle())
 # 4. No raw @supabase/supabase-js imports in API routes
-# 5. Syntax validation: node -c for .js, Babel for .jsx/.tsx
+# 5. Syntax validation: Babel for .jsx/.tsx AND .js files containing JSX;
+#    node -c for plain .js files with no JSX. NOTE: node -c is JSX-BLIND —
+#    it passes broken JSX syntax silently. All Next.js .js pages use JSX
+#    so Babel MUST be the parser for them.
+#    (the May 12, 2026 incident: 14 failed deploys — node -c passed a .js
+#    page with a broken {/* JSX comment */} + IIFE pattern that webpack rejected)
 # 6. Auth route canonicalization (/auth/login not /auth/signin)
 # 7. Pages with /api/ fetch calls must import auth (getAccessToken/authedFetch)
 # 8. Broken imports — all import paths resolve to existing files
@@ -23,6 +28,10 @@
 #     Also checks next.config.js for deprecated keys (swcMinify, serverComponentsExternalPackages)
 #     that cause hard build errors in Next.js 15+.
 #     (the May 2026 incident: 10+ consecutive Vercel failures from Next.js 16 Turbopack upgrade)
+# 12. JSX comment expression guard — catches unclosed {/* ... */ (missing closing })
+#     and bare IIFE-after-comment patterns that Babel catches but node -c misses.
+#     Fast grep pass that runs in <100ms before full Babel parse.
+#     (the May 12, 2026 incident: the exact root cause of check 12)
 #
 # INSTALL: Run `bash scripts/install-hooks.sh` from the project root
 # ═══════════════════════════════════════════════════════════════════════════
@@ -259,8 +268,12 @@ if [ -z "$UNAUTH_HITS" ]; then
 fi
 echo ""
 
-# ─── CHECK 5: Syntax validation (node -c for .js, Babel for .jsx/.tsx) ──
-echo "CHECK 5: Syntax validation (node -c)..."
+# ─── CHECK 5: Syntax validation (Babel for JSX files, node -c for plain .js) ──
+# CRITICAL: node -c is JSX-BLIND. It passes broken JSX syntax silently.
+# ALL .js files under pages/ or components/ contain JSX and MUST use Babel.
+# The May 12, 2026 incident (14 failed deploys) was caused by node -c passing
+# a .js page file with broken JSX — webpack rejected it, node -c did not.
+echo "CHECK 5: Syntax validation (Babel for JSX-containing .js, node -c for pure .js)..."
 
 if command -v node &> /dev/null; then
     SYNTAX_ERRORS=0
@@ -272,8 +285,8 @@ if command -v node &> /dev/null; then
         # Skip files with import assertions (assert { type: 'json' }) — valid in webpack
         grep -q 'assert {' "$file" 2>/dev/null && continue
 
-        # For .jsx and .tsx — use Babel parser if available (catches JSX errors node -c misses)
-        if echo "$file" | grep -qE '\.(jsx|tsx)$'; then
+        # For .tsx — always use Babel (TypeScript JSX)
+        if echo "$file" | grep -qE '\.tsx$'; then
             if [ -n "$BABEL_PARSER" ]; then
                 PARSE_OUTPUT=$(node -e "
 const fs=require('fs');
@@ -285,7 +298,34 @@ try{
   });
   process.exit(0);
 }catch(e){
-  console.error(e.message+' (line '+e.loc?.line+')');
+  console.error(e.message+' (line '+e.loc?.line+', col '+e.loc?.column+')');
+  process.exit(1);
+}" 2>&1)
+                if [ $? -ne 0 ]; then
+                    echo -e "${RED}  ✗ TSX SYNTAX ERROR: ${file}${NC}"
+                    echo "    $PARSE_OUTPUT" | head -3
+                    echo ""
+                    SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
+                    ERRORS=$((ERRORS + 1))
+                fi
+            fi
+            continue
+        fi
+
+        # For .jsx — always use Babel
+        if echo "$file" | grep -qE '\.jsx$'; then
+            if [ -n "$BABEL_PARSER" ]; then
+                PARSE_OUTPUT=$(node -e "
+const fs=require('fs');
+const {parse}=require('$BABEL_PARSER');
+try{
+  parse(fs.readFileSync('$file','utf8'),{
+    sourceType:'module',
+    plugins:['jsx','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
+  });
+  process.exit(0);
+}catch(e){
+  console.error(e.message+' (line '+e.loc?.line+', col '+e.loc?.column+')');
   process.exit(1);
 }" 2>&1)
                 if [ $? -ne 0 ]; then
@@ -299,22 +339,61 @@ try{
             continue
         fi
 
-        # For .ts — skip (TypeScript type errors need tsc, not node -c)
-        echo "$file" | grep -qE '\.tsx?$' && continue
+        # For plain .ts — skip (TypeScript type errors need tsc, not node -c)
+        echo "$file" | grep -qE '\.ts$' && continue
 
-        # Plain .js — use node -c (fast, reliable)
-        PARSE_OUTPUT=$(node -c "$file" 2>&1)
-        if [ $? -ne 0 ]; then
-            echo -e "${RED}  ✗ SYNTAX ERROR: ${file}${NC}"
-            echo "    $PARSE_OUTPUT" | head -3
-            echo ""
-            SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
-            ERRORS=$((ERRORS + 1))
+        # For .js files — MUST detect JSX before deciding parser.
+        # node -c is JSX-blind: it passes broken JSX silently (confirmed May 12, 2026).
+        # If the file contains JSX angle-bracket syntax, use Babel.
+        # Heuristic: presence of <ComponentName or JSX-style attributes in a return/render context.
+        JS_HAS_JSX=0
+        if grep -qE '\breturn\s*\(' "$file" 2>/dev/null && \
+           grep -qE '<[A-Za-z][A-Za-z0-9.]*[\s/>]' "$file" 2>/dev/null; then
+            JS_HAS_JSX=1
+        fi
+        # Also flag pages/ and components/ .js files unconditionally (always JSX in Next.js)
+        if echo "$file" | grep -qE '^(pages/|components/|src/components/)'; then
+            JS_HAS_JSX=1
+        fi
+
+        if [ "$JS_HAS_JSX" -eq 1 ] && [ -n "$BABEL_PARSER" ]; then
+            # Use Babel for JSX-containing .js files
+            PARSE_OUTPUT=$(node -e "
+const fs=require('fs');
+const {parse}=require('$BABEL_PARSER');
+try{
+  parse(fs.readFileSync('$file','utf8'),{
+    sourceType:'module',
+    plugins:['jsx','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
+  });
+  process.exit(0);
+}catch(e){
+  console.error(e.message+' (line '+e.loc?.line+', col '+e.loc?.column+')');
+  process.exit(1);
+}" 2>&1)
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}  ✗ JSX SYNTAX ERROR in .js file: ${file}${NC}"
+                echo "    (node -c is JSX-blind — Babel caught this; node -c would have missed it)"
+                echo "    $PARSE_OUTPUT" | head -3
+                echo ""
+                SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
+                ERRORS=$((ERRORS + 1))
+            fi
+        else
+            # Pure .js with no JSX — node -c is fine and faster
+            PARSE_OUTPUT=$(node -c "$file" 2>&1)
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}  ✗ SYNTAX ERROR: ${file}${NC}"
+                echo "    $PARSE_OUTPUT" | head -3
+                echo ""
+                SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
+                ERRORS=$((ERRORS + 1))
+            fi
         fi
     done
 
     if [ $SYNTAX_ERRORS -eq 0 ]; then
-        echo -e "${GREEN}  ✓ All .js files pass node -c syntax check.${NC}"
+        echo -e "${GREEN}  ✓ All files pass syntax check (Babel for JSX-containing, node -c for pure .js).${NC}"
     fi
 else
     echo -e "${YELLOW}  ⚠ Node.js not found. Skipping syntax validation.${NC}"
@@ -586,6 +665,68 @@ fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════"
+
+# ─── CHECK 12: JSX comment expression guard ──────────────────────────────
+# Root cause of May 12, 2026 incident (14 failed deploys):
+# A JSX block comment was written as {/* text */  (missing closing })
+# followed by an IIFE and then a bare <div> sibling element.
+# webpack/SWC rejected this but node -c (Check 5 fallback) passed it silently.
+#
+# This check is a fast grep pass that catches TWO related patterns:
+#   Pattern A: {/* ... */ at end-of-line without a closing } on the same line
+#              AND the next non-empty line starts with a JS expression (IIFE, var, etc.)
+#   Pattern B: {/* ... */ immediately followed on the SAME line by a ( or identifier
+#              — indicates the comment was never closed as a JSX expression
+#
+# This runs in <100ms across the entire repo and catches the bug before Babel.
+echo ""
+echo "CHECK 12: JSX comment expression guard (unclosed {/* */} patterns)..."
+
+# NOTE on grep compatibility: macOS BSD grep rejects \{ in ERE (-E) as invalid.
+# Use [{ ] bracket character class to match a literal { on both GNU and BSD grep.
+JSX_COMMENT_ERRORS=0
+for file in $JS_FILES; do
+    [ -f "$file" ] || continue
+
+    # Pattern A: Line ends with {/* ... */ (no closing }) — means the JSX expression
+    # was never terminated. Matches {/* anything */ at EOL without trailing }.
+    # This is the EXACT pattern from the May 12, 2026 incident (14 failed deploys).
+    # Using [{ ] instead of \{ and [*] instead of \* for BSD grep compatibility.
+    BAD_COMMENT_LINES=$(grep -nE '[{]/[*].*[*]/[[:space:]]*$' "$file" 2>/dev/null | grep -v '[{]/[*].*[*]/[[:space:]]*[}]')
+    if [ -n "$BAD_COMMENT_LINES" ]; then
+        echo -e "${RED}  ✗ UNCLOSED JSX COMMENT EXPRESSION: ${file}${NC}"
+        echo "$BAD_COMMENT_LINES" | while IFS= read -r line; do
+            echo "    Line $line"
+        done
+        echo "    ↳ Pattern: '{/* comment */' at end of line — missing closing '}'"
+        echo "    ↳ JSX parser sees the next element as a bare sibling (webpack ERROR)"
+        echo "    ↳ Fix: Change '{/* comment */' to '{/* comment */}' (add closing brace)"
+        echo "    ↳ Then wrap the expression after it in its own {expression} block"
+        echo ""
+        JSX_COMMENT_ERRORS=$((JSX_COMMENT_ERRORS + 1))
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Pattern B: {/* comment */ immediately followed by (() => or (function on the SAME line
+    # — the IIFE was placed inside the comment expression without being wrapped in {}.
+    BAD_IIFE_LINES=$(grep -nE '[{]/[*].*[*]/[[:space:]]*[((]' "$file" 2>/dev/null | grep -E '[{]/[*].*[*]/[[:space:]]*\(\(')
+    if [ -n "$BAD_IIFE_LINES" ]; then
+        echo -e "${RED}  ✗ IIFE MERGED WITH JSX COMMENT: ${file}${NC}"
+        echo "$BAD_IIFE_LINES" | while IFS= read -r line; do
+            echo "    Line $line"
+        done
+        echo "    ↳ Pattern: '{/* comment */ (() =>' — IIFE is inside the comment expression"
+        echo "    ↳ The IIFE result is not a valid JSX expression sibling (webpack ERROR)"
+        echo "    ↳ Fix: '{/* comment */}' then '{(() => { ... })()}' as separate expressions"
+        echo ""
+        JSX_COMMENT_ERRORS=$((JSX_COMMENT_ERRORS + 1))
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+if [ $JSX_COMMENT_ERRORS -eq 0 ]; then
+    echo -e "${GREEN}  ✓ No unclosed JSX comment expression patterns found.${NC}"
+fi
 
 # ─── VERDICT ─────────────────────────────────────────────────────────────
 if [ $ERRORS -gt 0 ]; then
