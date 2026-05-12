@@ -516,6 +516,7 @@ export function GoLiveModal({
   const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
   const hideControlsRef = useRef(null);
   const commentChannelRef = useRef(null);
+  const pinChannelRef = useRef(null); // AUDIT-B: live-pins broadcaster sync
   // BUG FIX (GLM-1): track giftFlash timer ref to prevent broadcaster-side timer storm
   const giftFlashTimerRef = useRef(null);
   const topGiftersHideTimerRef = useRef(null); // Bug3
@@ -636,9 +637,20 @@ export function GoLiveModal({
             // Don't double-add own comments
             setComments((prev) => {
               if (prev.some((c) => c.id === payload.new.id)) return prev;
-              return [...prev, payload.new];
+              // AUDIT-C: cap comment buffer to prevent memory leak on long streams
+              const next = [...prev, payload.new];
+              return next.length > 200 ? next.slice(next.length - 200) : next;
             });
           }
+        }
+      )
+      // AUDIT-D: broadcaster's own chat must reflect deleted comments
+      .on('postgres_changes', {
+          event: 'DELETE', schema: 'public', table: 'live_comments',
+          filter: `stream_id=eq.${streamId}`,
+        },
+        (payload) => {
+          setComments((prev) => prev.filter((c) => c.id !== payload.old.id));
         }
       )
       .subscribe();
@@ -703,6 +715,62 @@ export function GoLiveModal({
       if (giftFlashTimerRef.current) {
         clearTimeout(giftFlashTimerRef.current);
         giftFlashTimerRef.current = null;
+      }
+    };
+  }, [streamId]);
+
+  // AUDIT-B: GoLiveModal must subscribe to live-pins so co-host pin/unpin
+  // events (and server-side failures that leave local state stale) are
+  // reflected on the broadcaster's screen — same pattern as LiveStreamViewer.
+  useEffect(() => {
+    if (!streamId) return;
+    const pinCh = supabase
+      .channel(`live-pins-broadcaster-${streamId}`)
+      .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'live_pins',
+          filter: `stream_id=eq.${streamId}`,
+        },
+        async (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setPinnedComment(null);
+            return;
+          }
+          if (payload.new?.comment_id) {
+            const { data: comment } = await supabase
+              .from('live_comments')
+              .select('*')
+              .eq('id', payload.new.comment_id)
+              .maybeSingle();
+            setPinnedComment(comment || null);
+          }
+        }
+      )
+      .subscribe();
+    pinChannelRef.current = pinCh;
+
+    // Pre-fetch existing pin on mount (stream may already have one)
+    supabase
+      .from('live_pins')
+      .select('comment_id')
+      .eq('stream_id', streamId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(async ({ data: pin }) => {
+        if (pin?.comment_id) {
+          const { data: comment } = await supabase
+            .from('live_comments')
+            .select('*')
+            .eq('id', pin.comment_id)
+            .maybeSingle();
+          if (comment) setPinnedComment(comment);
+        }
+      });
+
+    return () => {
+      if (pinChannelRef.current) {
+        supabase.removeChannel(pinChannelRef.current);
+        pinChannelRef.current = null;
       }
     };
   }, [streamId]);
