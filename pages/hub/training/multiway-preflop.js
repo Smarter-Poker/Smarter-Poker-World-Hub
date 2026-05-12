@@ -16,6 +16,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -265,6 +266,9 @@ function RangeGrid({ rangeStr, color, label }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function MultiwayPreflopPage() {
+  // TRAIN-WIRE-FEEDBACK-HOOK-2 — wire useTrainingFeedback
+  const fb = useTrainingFeedback();
+
   const router = useRouter();
   useTrainingBus('multiway-preflop');
 
@@ -677,6 +681,7 @@ export default function MultiwayPreflopPage() {
                       fullWidth
                       onClick={() => {
                         setQuizAnswer(true);
+                        if (quizHand.correct) fb.correct(); else fb.incorrect();
                         setQuizScore((p) => ({
                           total: p.total + 1,
                           correct: p.correct + (quizHand.correct ? 1 : 0),
@@ -692,6 +697,7 @@ export default function MultiwayPreflopPage() {
                       fullWidth
                       onClick={() => {
                         setQuizAnswer(false);
+                        if (!quizHand.correct) fb.correct(); else fb.incorrect();
                         setQuizScore((p) => ({
                           total: p.total + 1,
                           correct: p.correct + (!quizHand.correct ? 1 : 0),

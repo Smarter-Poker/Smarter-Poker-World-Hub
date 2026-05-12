@@ -1683,3 +1683,16 @@ TRAIN-CSS-MOTION-ADOPT-26
 TRAIN-CSS-MOTION-ADOPT-27
 TRAIN-CSS-MOTION-ADOPT-28
 TRAIN-CSS-MOTION-ADOPT-29
+
+# ─── Phase-26: useTrainingFeedback hook wiring (last 3 holdouts) ────────────
+# TRAIN-WIRE-FEEDBACK-HOOK-1 — pages/hub/training/coach-mode.js. Adds
+# `const fb = useTrainingFeedback()` and fires fb.correct() / fb.incorrect()
+# in handleAnswer based on lesson-quiz correctness.
+TRAIN-WIRE-FEEDBACK-HOOK-1
+# TRAIN-WIRE-FEEDBACK-HOOK-2 — pages/hub/training/multiway-preflop.js. Adds
+# fb hook and fires fb.correct/incorrect on YES/NO QuizAnswer click handlers.
+TRAIN-WIRE-FEEDBACK-HOOK-2
+# TRAIN-WIRE-FEEDBACK-HOOK-3 — pages/hub/training/play-mode.js. Adds fb hook
+# and fires fb.correct() (when totalEVLoss >= -0.2 BB) or fb.incorrect()
+# at hand-completion in the showdownResult set point.
+TRAIN-WIRE-FEEDBACK-HOOK-3
