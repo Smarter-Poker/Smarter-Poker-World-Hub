@@ -2,6 +2,7 @@
  * Pot Geometry Trainer — SPR Mastery & Optimal Bet Sizing
  * Phase 27 — Route: /hub/training/pot-geometry
  */
+// TRAIN-CSS-TOKENS-ADOPT-7 — adoption of --sp-* token contract from PR #470
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -24,14 +25,14 @@ function getSPRCategory(spr) {
   if (spr <= 1.5)
     return {
       label: 'Micro SPR',
-      color: '#ef4444',
+      color: 'var(--sp-accent-red)',
       icon: '🔥',
       desc: 'All-in situations. Any pair/draw = auto-commit. Pot odds dictate decisions entirely.',
     };
   if (spr <= 4)
     return {
       label: 'Low SPR',
-      color: '#f97316',
+      color: 'var(--sp-accent-orange)',
       icon: '⚡',
       desc: 'Set-mining unfavorable. Top pair is a strong commitment hand. Raise/fold dynamics dominate.',
     };
@@ -45,13 +46,13 @@ function getSPRCategory(spr) {
   if (spr <= 15)
     return {
       label: 'High SPR',
-      color: '#22c55e',
+      color: 'var(--sp-accent-green)',
       icon: '🎯',
       desc: 'Deep play. Sets = nut hands. Top pair = marginal at best. Implied odds make draws valuable.',
     };
   return {
     label: 'Very Deep',
-    color: '#00d4ff',
+    color: 'var(--sp-accent-cyan)',
     icon: '🌊',
     desc: 'Extremely deep stacks. Only nutted hands and high-equity draws have clear commitment lines.',
   };
@@ -333,7 +334,7 @@ export default function PotGeometry() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(135deg,#0a0f1e 0%,#0d1629 60%,#0a0f1e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter',sans-serif",
         }}
       >
@@ -349,7 +350,7 @@ export default function PotGeometry() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -373,7 +374,7 @@ export default function PotGeometry() {
             <span
               style={{
                 fontSize: 10,
-                color: '#f97316',
+                color: 'var(--sp-accent-orange)',
                 background: 'rgba(249,115,22,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -408,7 +409,7 @@ export default function PotGeometry() {
                     mode === m.id
                       ? 'linear-gradient(135deg,#f97316,#eab308)'
                       : 'rgba(255,255,255,0.06)',
-                  color: mode === m.id ? '#000' : '#94a3b8',
+                  color: mode === m.id ? '#000' : 'var(--sp-fg-muted)',
                   fontFamily: "'Orbitron',monospace",
                 }}
               >
@@ -448,7 +449,7 @@ export default function PotGeometry() {
                       style={{
                         fontSize: 9,
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                         display: 'block',
@@ -470,7 +471,7 @@ export default function PotGeometry() {
                         border: '1px solid rgba(255,255,255,0.12)',
                         borderRadius: 8,
                         padding: '10px 12px',
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         fontSize: 20,
                         fontWeight: 800,
                         outline: 'none',
@@ -510,7 +511,7 @@ export default function PotGeometry() {
                 <div
                   style={{
                     fontSize: 11,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 1.5,
@@ -530,7 +531,7 @@ export default function PotGeometry() {
                 >
                   {cat.icon} {cat.label}
                 </div>
-                <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
                   {cat.desc}
                 </p>
               </motion.div>
@@ -549,7 +550,7 @@ export default function PotGeometry() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 8,
@@ -561,7 +562,7 @@ export default function PotGeometry() {
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#eab308', marginBottom: 4 }}>
                   {commitment.hand}
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>{commitment.note}</div>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{commitment.note}</div>
               </div>
 
               {/* Optimal Bet Sizes */}
@@ -578,7 +579,7 @@ export default function PotGeometry() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
@@ -605,7 +606,7 @@ export default function PotGeometry() {
                         style={{
                           fontSize: 11,
                           fontWeight: 800,
-                          color: '#f97316',
+                          color: 'var(--sp-accent-orange)',
                           minWidth: 70,
                           fontFamily: "'Orbitron',monospace",
                         }}
@@ -617,7 +618,7 @@ export default function PotGeometry() {
                       >
                         {b.size} BB
                       </span>
-                      <span style={{ fontSize: 11, color: '#94a3b8', flex: 1 }}>
+                      <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)', flex: 1 }}>
                         {b.label} — {b.note}
                       </span>
                     </div>
@@ -638,7 +639,7 @@ export default function PotGeometry() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
@@ -647,7 +648,7 @@ export default function PotGeometry() {
                 >
                   What is SPR?
                 </div>
-                <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
                   Stack-to-Pot Ratio (SPR) = Effective Stack ÷ Pot Size at flop. SPR determines your
                   commitment threshold: how strong a hand you need to put all your chips in. Low SPR
                   = commit with top pair. High SPR = need two pair or better. Mastering SPR lets you
@@ -673,11 +674,11 @@ export default function PotGeometry() {
                   {
                     label: 'Accuracy',
                     value: `${accuracy}%`,
-                    color: accuracy >= 70 ? '#22c55e' : '#ef4444',
+                    color: accuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                   },
-                  { label: 'Correct', value: correct, color: '#22c55e' },
-                  { label: 'Streak', value: streak, color: '#a855f7' },
-                  { label: 'Best', value: bestStreak, color: '#00d4ff' },
+                  { label: 'Correct', value: correct, color: 'var(--sp-accent-green)' },
+                  { label: 'Streak', value: streak, color: 'var(--sp-accent-purple)' },
+                  { label: 'Best', value: bestStreak, color: 'var(--sp-accent-cyan)' },
                 ].map((s) => (
                   <div
                     key={s.label}
@@ -702,7 +703,7 @@ export default function PotGeometry() {
                     <div
                       style={{
                         fontSize: 9,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         letterSpacing: 0.5,
@@ -738,7 +739,7 @@ export default function PotGeometry() {
                         style={{
                           fontSize: 9,
                           fontWeight: 700,
-                          color: '#f97316',
+                          color: 'var(--sp-accent-orange)',
                           textTransform: 'uppercase',
                           letterSpacing: 1.5,
                           marginBottom: 12,
@@ -756,8 +757,8 @@ export default function PotGeometry() {
                         }}
                       >
                         {[
-                          { label: 'Hero Hand', value: drill.hero, color: '#f97316' },
-                          { label: 'Eff. Stack', value: `${drill.stack}BB`, color: '#00d4ff' },
+                          { label: 'Hero Hand', value: drill.hero, color: 'var(--sp-accent-orange)' },
+                          { label: 'Eff. Stack', value: `${drill.stack}BB`, color: 'var(--sp-accent-cyan)' },
                           { label: 'Pot Size', value: `${drill.pot}BB`, color: '#eab308' },
                         ].map((s) => (
                           <div key={s.label} style={{ textAlign: 'center' }}>
@@ -774,7 +775,7 @@ export default function PotGeometry() {
                             <div
                               style={{
                                 fontSize: 9,
-                                color: '#64748b',
+                                color: 'var(--sp-fg-dim)',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
                                 letterSpacing: 0.5,
@@ -788,7 +789,7 @@ export default function PotGeometry() {
                       <div
                         style={{
                           fontSize: 11,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           textAlign: 'center',
                           fontStyle: 'italic',
                         }}
@@ -802,7 +803,7 @@ export default function PotGeometry() {
                       style={{
                         fontSize: 15,
                         fontWeight: 700,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         textAlign: 'center',
                         marginBottom: 12,
                       }}
@@ -819,18 +820,18 @@ export default function PotGeometry() {
                         const isCorrect = opt === drill.cat.label;
                         let bg = 'rgba(255,255,255,0.06)',
                           border = 'rgba(255,255,255,0.1)',
-                          color = '#e2e8f0';
+                          color = 'var(--sp-fg)';
                         if (showResult) {
                           if (isCorrect) {
                             bg = 'rgba(34,197,94,0.15)';
-                            border = '#22c55e';
-                            color = '#22c55e';
+                            border = 'var(--sp-accent-green)';
+                            color = 'var(--sp-accent-green)';
                           } else if (isSelected) {
                             bg = 'rgba(239,68,68,0.15)';
-                            border = '#ef4444';
-                            color = '#ef4444';
+                            border = 'var(--sp-accent-red)';
+                            color = 'var(--sp-accent-red)';
                           } else {
-                            color = '#475569';
+                            color = 'var(--sp-fg-faint)';
                           }
                         }
                         return (
@@ -855,7 +856,7 @@ export default function PotGeometry() {
                           >
                             {opt}
                             {showResult && isCorrect && (
-                              <span style={{ marginLeft: 8, fontSize: 11, color: '#22c55e' }}>
+                              <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--sp-accent-green)' }}>
                                 ✓ SPR: {drill.spr}
                               </span>
                             )}
@@ -887,7 +888,7 @@ export default function PotGeometry() {
                               fontSize: 13,
                               fontWeight: 800,
                               marginBottom: 6,
-                              color: selected === drill.cat.label ? '#22c55e' : '#ef4444',
+                              color: selected === drill.cat.label ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                               fontFamily: "'Orbitron',monospace",
                             }}
                           >
@@ -903,7 +904,7 @@ export default function PotGeometry() {
                           >
                             {drill.cat.icon} {drill.cat.label} (SPR: {drill.spr})
                           </div>
-                          <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
+                          <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
                             {drill.cat.desc}
                           </div>
                         </motion.div>

@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-ADOPT-5 — adoption of --sp-* token contract from PR #470
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -21,7 +22,7 @@ import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
 const SUITS = ['♠', '♥', '♦', '♣'];
-const SUIT_COLORS = { '♠': '#e2e8f0', '♥': '#ef4444', '♦': '#3b82f6', '♣': '#22c55e' };
+const SUIT_COLORS = { '♠': 'var(--sp-fg)', '♥': 'var(--sp-accent-red)', '♦': 'var(--sp-accent-blue)', '♣': 'var(--sp-accent-green)' };
 const UNICODE_TO_SUIT = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
 const SHORT_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6'];
 
@@ -266,7 +267,7 @@ export default function ShortDeckTrainerPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #1e0b0b 0%, #0a0a0a 50%, #120808 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -286,7 +287,7 @@ export default function ShortDeckTrainerPage() {
               style={{
                 background: 'rgba(239,68,68,0.1)',
                 border: 'none',
-                color: '#fca5a5',
+                color: 'var(--sp-accent-red)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -300,7 +301,7 @@ export default function ShortDeckTrainerPage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
                 Short Deck (Six Plus)
               </div>
-              <div style={{ fontSize: 11, color: '#ef4444' }}>36-Card Dynamics Trainer</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-accent-red)' }}>36-Card Dynamics Trainer</div>
             </div>
           </div>
           {/* Mode Toggle */}
@@ -314,7 +315,7 @@ export default function ShortDeckTrainerPage() {
                   borderRadius: 6,
                   border: `1px solid ${mode === m ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
                   background: mode === m ? 'rgba(239,68,68,0.08)' : 'transparent',
-                  color: mode === m ? '#fca5a5' : '#64748b',
+                  color: mode === m ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -341,10 +342,10 @@ export default function ShortDeckTrainerPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#fca5a5' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                 Rule Shift: Flush BEATS Full House
               </div>
-              <span style={{ fontSize: 10, color: '#64748b' }}>
+              <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
                 {showRules ? '▲ Hide' : '▼ Show All'}
               </span>
             </div>
@@ -366,10 +367,10 @@ export default function ShortDeckTrainerPage() {
                           background: 'rgba(0,0,0,0.2)',
                         }}
                       >
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#fca5a5' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
                           {r.rule}
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                           {r.reason}
                         </div>
                       </div>
@@ -400,7 +401,7 @@ export default function ShortDeckTrainerPage() {
                     borderRadius: 6,
                     background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 11,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -416,7 +417,7 @@ export default function ShortDeckTrainerPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
@@ -433,7 +434,7 @@ export default function ShortDeckTrainerPage() {
                     margin: '8px auto',
                     background: 'rgba(0,0,0,0.4)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     padding: 12,
                     borderRadius: 8,
                     fontSize: 14,
@@ -490,7 +491,7 @@ export default function ShortDeckTrainerPage() {
                     <div
                       style={{
                         fontSize: 11,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         letterSpacing: 2,
@@ -503,14 +504,14 @@ export default function ShortDeckTrainerPage() {
                       style={{
                         fontSize: 64,
                         fontWeight: 900,
-                        color: equity > 50 ? '#4ade80' : '#ef4444',
+                        color: equity > 50 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         letterSpacing: -2,
                         fontFamily: "'Orbitron', monospace",
                       }}
                     >
                       {equity}%
                     </div>
-                    <div style={{ fontSize: 10, color: '#475569', marginTop: 8 }}>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 8 }}>
                       Estimated via Short Deck Monte Carlo (36 cards)
                     </div>
                   </motion.div>
@@ -554,7 +555,7 @@ export default function ShortDeckTrainerPage() {
                     style={{
                       fontSize: 15,
                       fontWeight: 700,
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       marginBottom: 20,
                       lineHeight: 1.5,
                       padding: '0 12px',
@@ -603,7 +604,7 @@ export default function ShortDeckTrainerPage() {
                             borderRadius: 10,
                             background: bg,
                             border: `1px solid ${border}`,
-                            color: '#e2e8f0',
+                            color: 'var(--sp-fg)',
                             fontSize: 14,
                             fontWeight: 600,
                             cursor: showResult ? 'default' : 'pointer',
@@ -629,7 +630,7 @@ export default function ShortDeckTrainerPage() {
                         borderRadius: 8,
                         background: 'rgba(239,68,68,0.12)',
                         border: '1px solid rgba(239,68,68,0.3)',
-                        color: '#fca5a5',
+                        color: 'var(--sp-accent-red)',
                         fontSize: 13,
                         fontWeight: 700,
                         cursor: 'pointer',

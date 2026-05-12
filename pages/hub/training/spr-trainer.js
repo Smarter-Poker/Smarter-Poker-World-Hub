@@ -5,6 +5,7 @@
  * Given stack, pot, position, and hand strength → decide Commit / Neutral / Fold
  * SPR = Effective Stack / Pot · Teaches postflop commitment logic
  */
+// TRAIN-CSS-TOKENS-ADOPT-3 — adoption of --sp-* token contract from PR #470
 import React, { useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -115,9 +116,9 @@ function genScenario() {
 }
 
 const ACTION_CONFIG = {
-  commit: { label: '💪 COMMIT', color: '#22c55e', sub: 'Stack off / Call all-in' },
-  neutral: { label: '💧 NEUTRAL', color: '#f97316', sub: 'Play carefully, control pot' },
-  fold: { label: '❌ FOLD', color: '#ef4444', sub: 'Give up — SPR too high' },
+  commit: { label: '💪 COMMIT', color: 'var(--sp-accent-green)', sub: 'Stack off / Call all-in' },
+  neutral: { label: '💧 NEUTRAL', color: 'var(--sp-accent-orange)', sub: 'Play carefully, control pot' },
+  fold: { label: '❌ FOLD', color: 'var(--sp-accent-red)', sub: 'Give up — SPR too high' },
 };
 
 export default function SPRTrainer() {
@@ -177,13 +178,13 @@ export default function SPRTrainer() {
   // SPR color coding
   const sprColor = scenario
     ? scenario.spr <= 1
-      ? '#ef4444'
+      ? 'var(--sp-accent-red)'
       : scenario.spr <= 4
-        ? '#f97316'
+        ? 'var(--sp-accent-orange)'
         : scenario.spr <= 13
-          ? '#fbbf24'
-          : '#22c55e'
-    : '#94a3b8';
+          ? 'var(--sp-accent-amber)'
+          : 'var(--sp-accent-green)'
+    : 'var(--sp-fg-muted)';
   const sprZoneLabel = scenario
     ? scenario.spr <= 1
       ? 'MICRO'
@@ -198,7 +199,7 @@ export default function SPRTrainer() {
     page: {
       minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
       background: 'linear-gradient(135deg,#0a0f1e,#0d1629,#0a0f1e)',
-      color: '#e2e8f0',
+      color: 'var(--sp-fg)',
       fontFamily: "'Inter',sans-serif",
       padding: '20px 16px 40px',
     },
@@ -231,19 +232,19 @@ export default function SPRTrainer() {
         title="How SPR Trainer Works"
         subtitle="Stack-to-Pot Ratio commitment decisions"
       >
-        <div style={{ padding: '0 4px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.6 }}>
+        <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
           <p style={{ marginTop: 0 }}>
-            <strong style={{ color: '#fbbf24' }}>SPR</strong> (Stack-to-Pot Ratio) =
+            <strong style={{ color: 'var(--sp-accent-amber)' }}>SPR</strong> (Stack-to-Pot Ratio) =
             effective stack / pot size. It tells you how committed you are with the
             current pot and informs whether you can profitably stack off, play
             cautiously, or fold a marginal hand.
           </p>
           <p>
-            <strong style={{ color: '#22c55e' }}>Commit</strong> when SPR is low and
+            <strong style={{ color: 'var(--sp-accent-green)' }}>Commit</strong> when SPR is low and
             your hand can stack off (overpairs on dry boards, sets, two-pair+ on most
-            boards). <strong style={{ color: '#f97316' }}>Neutral</strong> when SPR is
+            boards). <strong style={{ color: 'var(--sp-accent-orange)' }}>Neutral</strong> when SPR is
             mid-range — control pot, deny equity, but don't blast off.
-            <strong style={{ color: '#ef4444' }}> Fold</strong> when SPR is high and
+            <strong style={{ color: 'var(--sp-accent-red)' }}> Fold</strong> when SPR is high and
             your hand can't survive a big bet tree.
           </p>
           <p>
@@ -262,7 +263,7 @@ export default function SPRTrainer() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontSize: 12,
                 cursor: 'pointer',
               }}
@@ -275,7 +276,7 @@ export default function SPRTrainer() {
               style={{
                 background: 'rgba(251,191,36,0.08)',
                 border: '1px solid rgba(251,191,36,0.25)',
-                color: '#fbbf24',
+                color: 'var(--sp-accent-amber)',
                 fontSize: 11,
                 fontWeight: 700,
                 padding: '4px 12px',
@@ -319,7 +320,7 @@ export default function SPRTrainer() {
               >
                 SPR TRAINER
               </h1>
-              <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                 Stack-to-Pot Ratio · Commitment Decisions
               </p>
             </div>
@@ -338,10 +339,10 @@ export default function SPRTrainer() {
               {
                 label: 'Accuracy',
                 value: `${accuracy}%`,
-                color: accuracy >= 70 ? '#22c55e' : '#f97316',
+                color: accuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-orange)',
               },
-              { label: 'Correct', value: stats.correct, color: '#22c55e' },
-              { label: 'Total', value: stats.total, color: '#94a3b8' },
+              { label: 'Correct', value: stats.correct, color: 'var(--sp-accent-green)' },
+              { label: 'Total', value: stats.total, color: 'var(--sp-fg-muted)' },
             ].map((s) => (
               <div
                 key={s.label}
@@ -359,7 +360,7 @@ export default function SPRTrainer() {
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#475569',
+                    color: 'var(--sp-fg-faint)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                   }}
@@ -393,7 +394,7 @@ export default function SPRTrainer() {
                       <div
                         style={{
                           fontSize: 10,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           marginBottom: 2,
@@ -418,14 +419,14 @@ export default function SPRTrainer() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div
-                        style={{ fontSize: 10, color: '#64748b', fontWeight: 700, marginBottom: 4 }}
+                        style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 700, marginBottom: 4 }}
                       >
                         STACKS / POT
                       </div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#94a3b8', ...C.orb }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-fg-muted)', ...C.orb }}>
                         {scenario.stacks} / {scenario.pot}
                       </div>
-                      <div style={{ fontSize: 10, color: '#475569', marginTop: 4 }}>
+                      <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 4 }}>
                         Eff. Stack ÷ Pot Size
                       </div>
                     </div>
@@ -438,7 +439,7 @@ export default function SPRTrainer() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         fontSize: 9,
-                        color: '#475569',
+                        color: 'var(--sp-fg-faint)',
                         fontWeight: 700,
                         marginBottom: 3,
                       }}
@@ -473,7 +474,7 @@ export default function SPRTrainer() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         fontSize: 8,
-                        color: '#475569',
+                        color: 'var(--sp-fg-faint)',
                         fontWeight: 600,
                         marginTop: 3,
                       }}
@@ -497,7 +498,7 @@ export default function SPRTrainer() {
                       <div
                         style={{
                           fontSize: 9,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           marginBottom: 4,
@@ -505,10 +506,10 @@ export default function SPRTrainer() {
                       >
                         Your Hand
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)' }}>
                         {scenario.hs.label}
                       </div>
-                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 3 }}>
                         {scenario.hs.desc}
                       </div>
                     </div>
@@ -522,7 +523,7 @@ export default function SPRTrainer() {
                       <div
                         style={{
                           fontSize: 9,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           marginBottom: 4,
@@ -530,10 +531,10 @@ export default function SPRTrainer() {
                       >
                         Board Texture
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', ...C.orb }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)', ...C.orb }}>
                         {scenario.board.texture}
                       </div>
-                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 3 }}>
                         {scenario.board.label}
                       </div>
                     </div>
@@ -544,7 +545,7 @@ export default function SPRTrainer() {
                   style={{
                     textAlign: 'center',
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontWeight: 600,
                     marginBottom: 14,
                   }}
@@ -611,7 +612,7 @@ export default function SPRTrainer() {
                             ? 'rgba(34,197,94,0.12)'
                             : 'rgba(239,68,68,0.12)',
                         border: `1px solid ${choice === correctAction ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
-                        color: choice === correctAction ? '#22c55e' : '#ef4444',
+                        color: choice === correctAction ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                       }}
                     >
                       {choice === correctAction
@@ -625,7 +626,7 @@ export default function SPRTrainer() {
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           textTransform: 'uppercase',
                           letterSpacing: 1,
                           marginBottom: 8,
@@ -638,7 +639,7 @@ export default function SPRTrainer() {
                           key={i}
                           style={{
                             fontSize: 13,
-                            color: '#94a3b8',
+                            color: 'var(--sp-fg-muted)',
                             lineHeight: 1.7,
                             marginBottom: 4,
                             fontWeight: 600,
@@ -665,7 +666,7 @@ export default function SPRTrainer() {
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           textTransform: 'uppercase',
                           marginBottom: 8,
                         }}
@@ -677,25 +678,25 @@ export default function SPRTrainer() {
                           range: '0–1',
                           zone: 'MICRO',
                           rule: 'Always commit any made hand',
-                          color: '#ef4444',
+                          color: 'var(--sp-accent-red)',
                         },
                         {
                           range: '1–4',
                           zone: 'LOW',
                           rule: 'Commit 2-pair+, neutral with TPTK',
-                          color: '#f97316',
+                          color: 'var(--sp-accent-orange)',
                         },
                         {
                           range: '4–13',
                           zone: 'MEDIUM',
                           rule: 'Commit sets+, fold TPTK vs heavy action',
-                          color: '#fbbf24',
+                          color: 'var(--sp-accent-amber)',
                         },
                         {
                           range: '13+',
                           zone: 'HIGH',
                           rule: 'Commit monsters only (straight, flush+)',
-                          color: '#22c55e',
+                          color: 'var(--sp-accent-green)',
                         },
                       ].map((row) => (
                         <div
@@ -718,7 +719,7 @@ export default function SPRTrainer() {
                           >
                             {row.range}
                           </div>
-                          <div style={{ flex: 1, fontSize: 11, color: '#64748b' }}>{row.rule}</div>
+                          <div style={{ flex: 1, fontSize: 11, color: 'var(--sp-fg-dim)' }}>{row.rule}</div>
                         </div>
                       ))}
                     </div>

@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-ADOPT-4 — adoption of --sp-* token contract from PR #470
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -248,7 +249,7 @@ export default function SpotTrainerPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -274,7 +275,7 @@ export default function SpotTrainerPage() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -298,7 +299,7 @@ export default function SpotTrainerPage() {
             <span
               style={{
                 fontSize: 10,
-                color: '#f97316',
+                color: 'var(--sp-accent-orange)',
                 background: 'rgba(249,115,22,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -329,14 +330,14 @@ export default function SpotTrainerPage() {
             }}
           >
             {[
-              { label: 'Streak', value: streak, color: streak >= 5 ? '#22c55e' : '#f97316' },
-              { label: 'Best', value: bestStreak, color: '#a855f7' },
+              { label: 'Streak', value: streak, color: streak >= 5 ? 'var(--sp-accent-green)' : 'var(--sp-accent-orange)' },
+              { label: 'Best', value: bestStreak, color: 'var(--sp-accent-purple)' },
               {
                 label: 'Accuracy',
                 value: `${accuracy}%`,
-                color: accuracy >= 70 ? '#22c55e' : '#ef4444',
+                color: accuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
               },
-              { label: 'Drills', value: totalDrills, color: '#00d4ff' },
+              { label: 'Drills', value: totalDrills, color: 'var(--sp-accent-cyan)' },
             ].map((stat) => (
               <div key={stat.label} style={{ textAlign: 'center', flex: '1 1 60px' }}>
                 <div
@@ -352,7 +353,7 @@ export default function SpotTrainerPage() {
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 1,
@@ -393,7 +394,7 @@ export default function SpotTrainerPage() {
                       format === opt.value
                         ? 'linear-gradient(135deg, #f97316, #ef4444)'
                         : 'rgba(255,255,255,0.06)',
-                    color: format === opt.value ? '#fff' : '#94a3b8',
+                    color: format === opt.value ? '#fff' : 'var(--sp-fg-muted)',
                   }}
                 >
                   {opt.label}
@@ -420,7 +421,7 @@ export default function SpotTrainerPage() {
                       position === opt.value
                         ? 'linear-gradient(135deg, #f97316, #ef4444)'
                         : 'rgba(255,255,255,0.06)',
-                    color: position === opt.value ? '#fff' : '#94a3b8',
+                    color: position === opt.value ? '#fff' : 'var(--sp-fg-muted)',
                   }}
                 >
                   {opt.label}
@@ -437,7 +438,7 @@ export default function SpotTrainerPage() {
                 background: 'rgba(239,68,68,0.1)',
                 border: '1px solid rgba(239,68,68,0.3)',
                 borderRadius: 8,
-                color: '#ef4444',
+                color: 'var(--sp-accent-red)',
                 fontSize: 12,
                 fontWeight: 600,
                 marginBottom: 14,
@@ -452,7 +453,7 @@ export default function SpotTrainerPage() {
                   border: '1px solid rgba(249,115,22,0.4)',
                   borderRadius: 6,
                   padding: '4px 12px',
-                  color: '#f97316',
+                  color: 'var(--sp-accent-orange)',
                   cursor: 'pointer',
                   fontSize: 11,
                   fontWeight: 700,
@@ -469,7 +470,7 @@ export default function SpotTrainerPage() {
               style={{
                 textAlign: 'center',
                 padding: 40,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontFamily: "'Orbitron', monospace",
                 fontSize: 12,
                 fontWeight: 700,
@@ -502,7 +503,7 @@ export default function SpotTrainerPage() {
                       style={{
                         fontSize: 10,
                         fontWeight: 800,
-                        color: '#f97316',
+                        color: 'var(--sp-accent-orange)',
                         background: 'rgba(249,115,22,0.1)',
                         padding: '3px 8px',
                         borderRadius: 6,
@@ -515,7 +516,7 @@ export default function SpotTrainerPage() {
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: '#94a3b8',
+                        color: 'var(--sp-fg-muted)',
                         background: 'rgba(255,255,255,0.04)',
                         padding: '3px 8px',
                         borderRadius: 6,
@@ -527,7 +528,7 @@ export default function SpotTrainerPage() {
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                       }}
                     >
                       {spot.stackDepth}BB {spot.gameType?.replace('_', ' ')}
@@ -540,7 +541,7 @@ export default function SpotTrainerPage() {
                       border: '1px solid rgba(255,255,255,0.1)',
                       borderRadius: 6,
                       padding: '5px 10px',
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       cursor: 'pointer',
                       fontSize: 10,
                       fontWeight: 700,
@@ -566,7 +567,7 @@ export default function SpotTrainerPage() {
                     style={{
                       fontSize: 9,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1.5,
                       marginBottom: 10,
@@ -597,7 +598,7 @@ export default function SpotTrainerPage() {
                     style={{
                       fontSize: 9,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1.5,
                       marginBottom: 8,
@@ -614,7 +615,7 @@ export default function SpotTrainerPage() {
                   style={{
                     fontSize: 14,
                     fontWeight: 700,
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     textAlign: 'center',
                     marginBottom: 14,
                   }}
@@ -636,19 +637,19 @@ export default function SpotTrainerPage() {
                     const isCorrect = action === spot.gtoAction;
                     let bg = 'rgba(255,255,255,0.06)';
                     let borderColor = 'rgba(255,255,255,0.1)';
-                    let textColor = '#e2e8f0';
+                    let textColor = 'var(--sp-fg)';
 
                     if (showResult) {
                       if (isCorrect) {
                         bg = 'rgba(34,197,94,0.15)';
-                        borderColor = '#22c55e';
-                        textColor = '#22c55e';
+                        borderColor = 'var(--sp-accent-green)';
+                        textColor = 'var(--sp-accent-green)';
                       } else if (isSelected && !isCorrect) {
                         bg = 'rgba(239,68,68,0.15)';
-                        borderColor = '#ef4444';
-                        textColor = '#ef4444';
+                        borderColor = 'var(--sp-accent-red)';
+                        textColor = 'var(--sp-accent-red)';
                       } else {
-                        textColor = '#475569';
+                        textColor = 'var(--sp-fg-faint)';
                       }
                     }
 
@@ -706,7 +707,7 @@ export default function SpotTrainerPage() {
                           fontSize: 14,
                           fontWeight: 800,
                           marginBottom: 6,
-                          color: selected === spot.gtoAction ? '#22c55e' : '#ef4444',
+                          color: selected === spot.gtoAction ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                           fontFamily: "'Orbitron', monospace",
                         }}
                       >
@@ -718,7 +719,7 @@ export default function SpotTrainerPage() {
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           marginBottom: 4,
                           textTransform: 'uppercase',
                           letterSpacing: 1,
@@ -735,7 +736,7 @@ export default function SpotTrainerPage() {
                               style={{
                                 fontSize: 11,
                                 fontWeight: 600,
-                                color: action === spot.gtoAction ? '#22c55e' : '#94a3b8',
+                                color: action === spot.gtoAction ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
                                 background:
                                   action === spot.gtoAction
                                     ? 'rgba(34,197,94,0.1)'
@@ -752,7 +753,7 @@ export default function SpotTrainerPage() {
                       <div
                         style={{
                           fontSize: 10,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           marginTop: 6,
                         }}
                       >
@@ -800,7 +801,7 @@ export default function SpotTrainerPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
@@ -809,7 +810,7 @@ export default function SpotTrainerPage() {
             >
               About Spot Trainer
             </div>
-            <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
               Rapid-fire postflop GTO drills using solver-verified spots. Each spot shows you a
               board texture, your hand, and 4 action options. Choose the highest-frequency GTO play
               to build your streak. Filter by format and position to target specific leaks. The GTO
