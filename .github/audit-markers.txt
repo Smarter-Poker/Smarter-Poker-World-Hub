@@ -1299,3 +1299,15 @@ TRAIN-WIRE-BOTTOMSHEET-5
 # rollup trigger tup_after_session_delete continues to revert tup totals on
 # legitimate self-deletes.
 TRAIN-SQL-RLS-1
+
+# ─── Phase-18 infrastructure: semantic motion tokens ────────────────────────
+# TRAIN-CSS-MOTION-1 — src/styles/worlds/training.css. Adds a complete
+# motion-token contract on body.world-training: duration ramp
+# (--sp-motion-instant/fast/standard/slow/glacial) plus easing curve presets
+# (--sp-ease-standard/in/out/in-out/spring-soft/spring-snap). A second
+# @media (prefers-reduced-motion: reduce) block collapses the duration
+# tokens to 0.01ms so any code that reads them is reduced-motion-safe by
+# construction. Belt-and-braces with the existing TRAIN-CSS-SWEEP-1
+# blanket override above. Adoption tracked separately under
+# TRAIN-CSS-MOTION-ADOPT-* markers.
+TRAIN-CSS-MOTION-1
