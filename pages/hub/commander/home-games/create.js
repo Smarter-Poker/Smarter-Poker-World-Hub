@@ -303,10 +303,30 @@ export default function CreateHomeGamePage() {
     try {
       const { ensureAuthReady } = await import('../../../../src/lib/authUtils');
       const { supabase: sb } = await import('../../../../src/lib/supabase');
+      // Dan-fix/no-auth-redirect (2026-05-12): the previous router.push triggered
+      // PageErrorBoundary remount (keyed on router.asPath) which wiped form state
+      // and looked like a silent submit reset. Instead: log the auth state, use
+      // sync localStorage fallback, and let the SERVER decide via 401 response.
       const authUser = await ensureAuthReady(sb);
+      console.log('[home-games-create] ensureAuthReady returned:', authUser ? `user ${authUser.id || authUser.user_id}` : 'NULL');
       if (!authUser) {
-        router.push('/auth/login?redirect=/hub/commander/home-games/create');
-        return;
+        // Fall back to sync localStorage read — if user is genuinely logged in,
+        // smarter-poker-auth localStorage entry has their session even if the
+        // Supabase client failed to validate it.
+        let lsUser = null;
+        try {
+          const lsRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('smarter-poker-auth') : null;
+          lsUser = lsRaw ? JSON.parse(lsRaw).user : null;
+          console.log('[home-games-create] localStorage fallback user:', lsUser ? `id ${lsUser.id}` : 'NULL');
+        } catch (lsErr) {
+          console.error('[home-games-create] localStorage parse failed:', lsErr);
+        }
+        if (!lsUser) {
+          setError('We can''t verify your session. Please sign in again and try once more. If this keeps happening, send a screenshot of DevTools console.');
+          setSubmitting(false);
+          return;
+        }
+        console.warn('[home-games-create] proceeding with localStorage user despite ensureAuthReady=null');
       }
       // Dan-fix/diag-no-redirect (2026-05-12): the PR #491 hard-redirect on
       // null token was the silent submit reset. PageErrorBoundary keys on
