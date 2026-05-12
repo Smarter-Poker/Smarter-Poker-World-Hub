@@ -58,6 +58,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [error, setError] = useState('');
     const [commentError, setCommentError] = useState('');
     const [comments, setComments] = useState([]);
+    const [chatExpanded, setChatExpanded] = useState(false); // Bug21: collapsed by default, tap overlay to expand
     const [isTheaterMode, setIsTheaterMode] = useState(false);
     const [isPiP, setIsPiP] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
@@ -1460,12 +1461,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 </div>
             )}
 
-            {/* COMMENTS OVERLAY */}
-            <div style={{ position:'absolute', bottom:175, left:0, width:'min(320px,60vw)', maxHeight:200, overflowY:'auto', padding:'0 12px', scrollbarWidth:'none', zIndex:5 }}>
-                {/* Load more comments button */}
-                {hasMoreComments && (
+            {/* COMMENTS OVERLAY — Bug21: collapsed (last 5) by default, tap to expand */}
+            <div
+                onClick={() => setChatExpanded(e => !e)}
+                style={{ position:'absolute', bottom:175, left:0, width:'min(320px,60vw)', maxHeight: chatExpanded ? 300 : 160, overflowY: chatExpanded ? 'auto' : 'hidden', padding:'0 12px', scrollbarWidth:'none', zIndex:5, cursor:'pointer' }}
+            >
+                {/* Load more comments button — only shown when expanded */}
+                {chatExpanded && hasMoreComments && (
                     <button
-                        onClick={loadMoreComments}
+                        onClick={e => { e.stopPropagation(); loadMoreComments(); }}
                         disabled={loadingMoreComments}
                         style={{
                             display:'block', width:'100%', padding:'6px', marginBottom:8,
@@ -1476,12 +1480,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         {loadingMoreComments ? 'Loading...' : 'Load Earlier Comments'}
                     </button>
                 )}
-                {comments.map((c, i) => (
+                {(chatExpanded ? comments : comments.slice(-5)).map((c, i) => (
                     <div key={c.id || i} style={{ marginBottom:6, display:'flex', alignItems:'flex-start', gap:6 }}>
                         <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap', flexShrink:0, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis' }}>{c.author_name || 'User'}</span>
                         <span style={{ color:'white', fontSize:13, lineHeight:1.4, wordBreak:'break-word', overflowWrap:'anywhere', flex:1 }}>{c.text}</span>
                     </div>
                 ))}
+                {!chatExpanded && comments.length > 5 && (
+                    <div style={{ color:'rgba(255,255,255,0.4)', fontSize:11, marginTop:2 }}>tap to see all {comments.length} messages</div>
+                )}
                 <div ref={commentsEndRef} />
             </div>
 
@@ -1506,6 +1513,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     // BUG FIX (LSV-4): if not authed, show a hint instead of silently failing
                     placeholder={userId ? 'Say something...' : 'Sign in to chat...'}
                     disabled={!userId}
+                    // Bug22: inputMode + enterKeyHint prevent iPad keyboard error on focus
+                    inputMode="text"
+                    enterKeyHint="send"
                     // STREAM-BUG-12a: 16px minimum so iOS Safari does not auto-zoom on focus.
                     style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background: userId ? 'rgba(0,0,0,.5)' : 'rgba(0,0,0,.3)', color:'white', fontSize:16, outline:'none', opacity: userId ? 1 : 0.6 }}
                 />
@@ -1546,7 +1556,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             {/* Feature 5: Top Supporters Leaderboard — visible for 20s after each gift */}
             {topGiftersVisible && Object.keys(topGifters).length > 0 && (
                 <div style={{ position: 'absolute', top: 120, right: 16, background: 'rgba(0,0,0,0.5)', padding: '10px 14px', borderRadius: 12, zIndex: 15, backdropFilter: 'blur(8px)', minWidth: 140 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Top Supporters</div>
+                    {/* Bug23: dismiss button so the panel doesn't permanently block stream content */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', textTransform: 'uppercase', letterSpacing: 1 }}>Top Supporters</div>
+                        <button
+                            onClick={() => setTopGiftersVisible(false)}
+                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 14, cursor: 'pointer', padding: '0 0 0 8px', lineHeight: 1 }}
+                            aria-label="Dismiss top supporters"
+                        >✕</button>
+                    </div>
                     {Object.entries(topGifters)
                         .sort(([, a], [, b]) => b.amount - a.amount)
                         .slice(0, 3)
