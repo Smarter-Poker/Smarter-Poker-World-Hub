@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-10 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -45,7 +46,7 @@ const PRESETS = [
       stackMax: 200,
       scenarios: ['vs_raise'],
     },
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
   },
   {
     id: 'btn-opens',
@@ -59,7 +60,7 @@ const PRESETS = [
       stackMax: 200,
       scenarios: ['rfi'],
     },
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
   },
   {
     id: '3bet-pots',
@@ -73,7 +74,7 @@ const PRESETS = [
       stackMax: 200,
       scenarios: ['3bet_pot'],
     },
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
   },
   {
     id: 'cbet-spots',
@@ -87,7 +88,7 @@ const PRESETS = [
       stackMax: 200,
       scenarios: ['cbet'],
     },
-    color: '#f97316',
+    color: 'var(--sp-accent-orange)',
   },
   {
     id: 'mtt-push-fold',
@@ -101,7 +102,7 @@ const PRESETS = [
       stackMax: 20,
       scenarios: ['push_fold'],
     },
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
   },
   {
     id: 'river-decisions',
@@ -115,7 +116,7 @@ const PRESETS = [
       stackMax: 200,
       scenarios: ['river'],
     },
-    color: '#fbbf24',
+    color: 'var(--sp-accent-amber)',
   },
 ];
 
@@ -138,7 +139,7 @@ const STREETS = [
 // CHIP BUTTON
 // ═══════════════════════════════════════════════════════════════════════════
 
-function Chip({ label, selected, onClick, color = '#00d4ff' }) {
+function Chip({ label, selected, onClick, color = 'var(--sp-accent-cyan)' }) {
   return (
     <motion.button
       whileTap={{ scale: 0.95 }}
@@ -148,7 +149,7 @@ function Chip({ label, selected, onClick, color = '#00d4ff' }) {
         borderRadius: 8,
         border: `1px solid ${selected ? `${color}55` : 'rgba(255,255,255,0.08)'}`,
         background: selected ? `${color}15` : 'rgba(255,255,255,0.03)',
-        color: selected ? color : '#94a3b8',
+        color: selected ? color : 'var(--sp-fg-muted)',
         fontSize: 13,
         fontWeight: 600,
         cursor: 'pointer',
@@ -284,7 +285,7 @@ export default function DrillBuilderPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -303,7 +304,7 @@ export default function DrillBuilderPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -317,10 +318,10 @@ export default function DrillBuilderPage() {
             \u2190
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Custom Drill Builder
             </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Create focused practice sessions</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Create focused practice sessions</div>
           </div>
         </div>
 
@@ -331,7 +332,7 @@ export default function DrillBuilderPage() {
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 10,
@@ -359,7 +360,7 @@ export default function DrillBuilderPage() {
                   >
                     {preset.name}
                   </div>
-                  <div style={{ fontSize: 10, color: '#64748b' }}>{preset.desc}</div>
+                  <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{preset.desc}</div>
                 </motion.button>
               ))}
             </div>
@@ -381,7 +382,7 @@ export default function DrillBuilderPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -399,7 +400,7 @@ export default function DrillBuilderPage() {
                   borderRadius: 8,
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#e2e8f0',
+                  color: 'var(--sp-fg)',
                   fontSize: 13,
                   outline: 'none',
                   fontFamily: "'Inter', -apple-system, sans-serif",
@@ -413,7 +414,7 @@ export default function DrillBuilderPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -439,7 +440,7 @@ export default function DrillBuilderPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -466,7 +467,7 @@ export default function DrillBuilderPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -493,7 +494,7 @@ export default function DrillBuilderPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -512,13 +513,13 @@ export default function DrillBuilderPage() {
                     borderRadius: 8,
                     background: 'rgba(255,255,255,0.03)',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 13,
                     textAlign: 'center',
                     outline: 'none',
                   }}
                 />
-                <span style={{ color: '#475569' }}>to</span>
+                <span style={{ color: 'var(--sp-fg-faint)' }}>to</span>
                 <input
                   type="number"
                   value={stackMax}
@@ -529,13 +530,13 @@ export default function DrillBuilderPage() {
                     borderRadius: 8,
                     background: 'rgba(255,255,255,0.03)',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 13,
                     textAlign: 'center',
                     outline: 'none',
                   }}
                 />
-                <span style={{ fontSize: 11, color: '#475569' }}>BB</span>
+                <span style={{ fontSize: 11, color: 'var(--sp-fg-faint)' }}>BB</span>
               </div>
             </div>
 
@@ -551,7 +552,7 @@ export default function DrillBuilderPage() {
                   borderRadius: 10,
                   border: '1px solid rgba(255,255,255,0.1)',
                   background: 'rgba(255,255,255,0.05)',
-                  color: drillName.trim() ? '#e2e8f0' : '#475569',
+                  color: drillName.trim() ? 'var(--sp-fg)' : 'var(--sp-fg-faint)',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -577,7 +578,7 @@ export default function DrillBuilderPage() {
                   border: '1px solid rgba(0,212,255,0.3)',
                   background:
                     'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -595,7 +596,7 @@ export default function DrillBuilderPage() {
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 10,
@@ -623,10 +624,10 @@ export default function DrillBuilderPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                       {drill.name}
                     </div>
-                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                       {drill.config?.format?.toUpperCase()} |{' '}
                       {(drill.config?.positions || []).join(', ') || 'All Positions'} |{' '}
                       {(drill.config?.streets || []).join(', ') || 'All Streets'}
@@ -638,7 +639,7 @@ export default function DrillBuilderPage() {
                       borderRadius: 6,
                       background: 'rgba(0,212,255,0.08)',
                       border: '1px solid rgba(0,212,255,0.15)',
-                      color: '#00d4ff',
+                      color: 'var(--sp-accent-cyan)',
                       fontSize: 11,
                       fontWeight: 700,
                     }}

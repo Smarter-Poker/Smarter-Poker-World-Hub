@@ -5,6 +5,8 @@
  * 10 questions · 30s shot clock · combo multiplier · leaderboard-ready
  */
 // TRAIN-CSS-MOBILE-ADOPT-18 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-TOKENS-BATCH5-44 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-36 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -15,6 +17,10 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+
+// TRAIN-CSS-MOTION-ADOPT-20 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-FEEDBACK-V2-1 — adoption: quiz-gauntlet feedback panel
 // TRAIN-WIRE-PROGRESS-3 — adoption: quiz-gauntlet question progress
 // TRAIN-WIRE-FX-6b — adoption: feedback hook
@@ -36,7 +42,7 @@ function genPotOdds() {
   return {
     topic: 'Pot Odds',
     icon: '📐',
-    color: '#00d4ff',
+    color: 'var(--sp-accent-cyan)',
     answer,
     unit: '%',
     tolerance: 2,
@@ -52,7 +58,7 @@ function genMDF() {
   return {
     topic: 'MDF',
     icon: '🛡️',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     answer,
     unit: '%',
     tolerance: 2,
@@ -69,7 +75,7 @@ function genEV() {
   return {
     topic: 'EV of Call',
     icon: '⚡',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     answer,
     unit: ' chips',
     tolerance: 2,
@@ -85,7 +91,7 @@ function genBreakEven() {
   return {
     topic: 'Break-Even',
     icon: '⚖️',
-    color: '#f97316',
+    color: 'var(--sp-accent-orange)',
     answer,
     unit: '%',
     tolerance: 2,
@@ -247,7 +253,7 @@ export default function QuizGauntlet() {
     page: {
       minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
       background: 'linear-gradient(135deg,#0a0f1e,#0d1629,#0a0f1e)',
-      color: '#e2e8f0',
+      color: 'var(--sp-fg)',
       fontFamily: "'Inter',sans-serif",
       padding: '20px 16px 40px',
     },
@@ -281,7 +287,7 @@ export default function QuizGauntlet() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               fontSize: 12,
               cursor: 'pointer',
               marginBottom: 16,
@@ -314,14 +320,14 @@ export default function QuizGauntlet() {
                   fontSize: 22,
                   fontWeight: 900,
                   ...C.orb,
-                  background: 'linear-gradient(135deg,#f97316,#ef4444)',
+                  background: 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),rgba(var(--sp-accent-red-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
               >
                 GTO QUIZ GAUNTLET
               </h1>
-              <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                 10 Questions · 30s Shot Clock · Combo Multiplier
               </p>
             </div>
@@ -341,20 +347,20 @@ export default function QuizGauntlet() {
                     style={{
                       fontSize: 15,
                       fontWeight: 600,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       lineHeight: 1.8,
                       marginBottom: 20,
                     }}
                   >
-                    Answer <strong style={{ color: '#f97316' }}>10 GTO questions</strong> as fast
+                    Answer <strong style={{ color: 'var(--sp-accent-orange)' }}>10 GTO questions</strong> as fast
                     and accurately as possible.
                     <br />
-                    You have <strong style={{ color: '#00d4ff' }}>30 seconds</strong> per question.
+                    You have <strong style={{ color: 'var(--sp-accent-cyan)' }}>30 seconds</strong> per question.
                     <br />
                     Correct answers build your{' '}
-                    <strong style={{ color: '#a855f7' }}>COMBO multiplier</strong> for bonus points.
+                    <strong style={{ color: 'var(--sp-accent-purple)' }}>COMBO multiplier</strong> for bonus points.
                     <br />
-                    Max score: <strong style={{ color: '#22c55e' }}>1000 pts</strong>.
+                    Max score: <strong style={{ color: 'var(--sp-accent-green)' }}>1000 pts</strong>.
                   </div>
                   <div
                     style={{
@@ -378,7 +384,7 @@ export default function QuizGauntlet() {
                           padding: '10px 12px',
                           fontSize: 13,
                           fontWeight: 700,
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                         }}
                       >
                         {item.i} {item.t}
@@ -391,7 +397,7 @@ export default function QuizGauntlet() {
                       width: '100%',
                       padding: 16,
                       borderRadius: 12,
-                      background: 'linear-gradient(135deg,#f97316,#ef4444)',
+                      background: 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),rgba(var(--sp-accent-red-rgb), 1))',
                       border: 'none',
                       color: '#fff',
                       fontWeight: 900,
@@ -413,7 +419,7 @@ export default function QuizGauntlet() {
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: MOTION.standard }}
               >
                 {/* HUD */}
                 <ProgressStrip
@@ -434,16 +440,16 @@ export default function QuizGauntlet() {
                   }}
                 >
                   {[
-                    { label: 'Score', value: totalScore, color: '#f97316' },
+                    { label: 'Score', value: totalScore, color: 'var(--sp-accent-orange)' },
                     {
                       label: 'Combo',
                       value: `x${Math.min(4, 1 + combo * 0.5).toFixed(1)}`,
-                      color: '#a855f7',
+                      color: 'var(--sp-accent-purple)',
                     },
                     {
                       label: 'Time',
                       value: `${timeLeft}s`,
-                      color: timeLeft <= 10 ? '#ef4444' : '#22c55e',
+                      color: timeLeft <= 10 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
                     },
                   ].map((s) => (
                     <div
@@ -462,7 +468,7 @@ export default function QuizGauntlet() {
                       <div
                         style={{
                           fontSize: 9,
-                          color: '#475569',
+                          color: 'var(--sp-fg-faint)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                         }}
@@ -490,7 +496,7 @@ export default function QuizGauntlet() {
                       height: '100%',
                       borderRadius: 3,
                       background:
-                        timeLeft <= 10 ? '#ef4444' : timeLeft <= 20 ? '#f97316' : '#22c55e',
+                        timeLeft <= 10 ? 'var(--sp-accent-red)' : timeLeft <= 20 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
                     }}
                   />
                 </div>
@@ -522,7 +528,7 @@ export default function QuizGauntlet() {
                       margin: 0,
                       fontSize: 16,
                       lineHeight: 1.7,
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontWeight: 600,
                       marginBottom: 12,
                     }}
@@ -543,7 +549,7 @@ export default function QuizGauntlet() {
                       background: 'rgba(255,255,255,0.04)',
                       borderRadius: 6,
                       fontSize: 11,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       borderLeft: `3px solid ${q.color}60`,
                     }}
                   >
@@ -570,7 +576,7 @@ export default function QuizGauntlet() {
                         ...C.orb,
                         background: 'rgba(255,255,255,0.05)',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         outline: 'none',
                       }}
                     />
@@ -621,7 +627,7 @@ export default function QuizGauntlet() {
                       fontSize: 48,
                       fontWeight: 900,
                       ...C.orb,
-                      background: 'linear-gradient(135deg,#f97316,#a855f7)',
+                      background: 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),rgba(var(--sp-accent-purple-rgb), 1))',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                       lineHeight: 1,
@@ -632,7 +638,7 @@ export default function QuizGauntlet() {
                   <div
                     style={{
                       fontSize: 11,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       marginTop: 4,
@@ -643,8 +649,8 @@ export default function QuizGauntlet() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                     {[
-                      { label: 'Correct', value: correctCount, color: '#22c55e' },
-                      { label: 'Accuracy', value: `${accuracy}%`, color: '#a855f7' },
+                      { label: 'Correct', value: correctCount, color: 'var(--sp-accent-green)' },
+                      { label: 'Accuracy', value: `${accuracy}%`, color: 'var(--sp-accent-purple)' },
                       {
                         label: 'Best Combo',
                         // BUG-10 FIX: compute longest CONSECUTIVE correct streak, not cumulative count
@@ -653,7 +659,7 @@ export default function QuizGauntlet() {
                           history.forEach(e => { if (e.isCorrect) { cur++; maxStreak = Math.max(maxStreak, cur); } else { cur = 0; } });
                           return `x${Math.min(4, 1 + maxStreak * 0.5).toFixed(1)}`;
                         })(),
-                        color: '#f97316',
+                        color: 'var(--sp-accent-orange)',
                       },
                     ].map((s) => (
                       <div
@@ -670,7 +676,7 @@ export default function QuizGauntlet() {
                         <div
                           style={{
                             fontSize: 9,
-                            color: '#64748b',
+                            color: 'var(--sp-fg-dim)',
                             fontWeight: 700,
                             textTransform: 'uppercase',
                           }}
@@ -688,7 +694,7 @@ export default function QuizGauntlet() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -709,10 +715,10 @@ export default function QuizGauntlet() {
                         fontSize: 12,
                       }}
                     >
-                      <span style={{ color: '#64748b', fontWeight: 700 }}>
+                      <span style={{ color: 'var(--sp-fg-dim)', fontWeight: 700 }}>
                         Q{i + 1} · {h.topic}
                       </span>
-                      <span style={{ color: h.isCorrect ? '#22c55e' : '#ef4444', fontWeight: 800 }}>
+                      <span style={{ color: h.isCorrect ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)', fontWeight: 800 }}>
                         {h.isCorrect ? `✅ +${h.score}pt` : '❌ 0pt'}
                       </span>
                     </div>
@@ -726,7 +732,7 @@ export default function QuizGauntlet() {
                       flex: 1,
                       padding: 14,
                       borderRadius: 12,
-                      background: 'linear-gradient(135deg,#f97316,#ef4444)',
+                      background: 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),rgba(var(--sp-accent-red-rgb), 1))',
                       border: 'none',
                       color: '#fff',
                       fontWeight: 900,
@@ -745,7 +751,7 @@ export default function QuizGauntlet() {
                       borderRadius: 12,
                       background: 'rgba(255,255,255,0.04)',
                       border: '1px solid rgba(255,255,255,0.08)',
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       fontWeight: 800,
                       fontSize: 14,
                       cursor: 'pointer',

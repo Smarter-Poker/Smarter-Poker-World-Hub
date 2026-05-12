@@ -7,6 +7,7 @@
  */
 // TRAIN-CSS-TOKENS-ADOPT-3 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-4 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-49 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -314,7 +315,7 @@ export default function SPRTrainer() {
                   fontSize: 22,
                   fontWeight: 900,
                   ...C.orb,
-                  background: 'linear-gradient(135deg,#fbbf24,#f97316)',
+                  background: 'linear-gradient(135deg,rgba(var(--sp-accent-amber-rgb), 1),rgba(var(--sp-accent-orange-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -453,7 +454,7 @@ export default function SPRTrainer() {
                       style={{
                         height: 8,
                         borderRadius: 4,
-                        background: 'linear-gradient(to right,#ef4444,#f97316,#fbbf24,#22c55e)',
+                        background: 'linear-gradient(to right,rgba(var(--sp-accent-red-rgb), 1),rgba(var(--sp-accent-orange-rgb), 1),rgba(var(--sp-accent-amber-rgb), 1),rgba(var(--sp-accent-green-rgb), 1))',
                         position: 'relative',
                         overflow: 'hidden',
                       }}
@@ -731,7 +732,7 @@ export default function SPRTrainer() {
                         width: '100%',
                         padding: 14,
                         borderRadius: 12,
-                        background: 'linear-gradient(135deg,#fbbf24,#f97316)',
+                        background: 'linear-gradient(135deg,rgba(var(--sp-accent-amber-rgb), 1),rgba(var(--sp-accent-orange-rgb), 1))',
                         border: 'none',
                         color: '#000',
                         fontWeight: 900,

@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-11 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-8 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -28,13 +30,13 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = [
-  { char: 'h', symbol: '\u2665', color: '#ef4444', name: 'Hearts' },
-  { char: 'd', symbol: '\u2666', color: '#3b82f6', name: 'Diamonds' },
-  { char: 'c', symbol: '\u2663', color: '#22c55e', name: 'Clubs' },
-  { char: 's', symbol: '\u2660', color: '#94a3b8', name: 'Spades' },
+  { char: 'h', symbol: '\u2665', color: 'var(--sp-accent-red)', name: 'Hearts' },
+  { char: 'd', symbol: '\u2666', color: 'var(--sp-accent-blue)', name: 'Diamonds' },
+  { char: 'c', symbol: '\u2663', color: 'var(--sp-accent-green)', name: 'Clubs' },
+  { char: 's', symbol: '\u2660', color: 'var(--sp-fg-muted)', name: 'Spades' },
 ];
 
-const PLAYER_COLORS = ['#00d4ff', '#ef4444', '#22c55e', '#f97316'];
+const PLAYER_COLORS = ['var(--sp-accent-cyan)', 'var(--sp-accent-red)', 'var(--sp-accent-green)', 'var(--sp-accent-orange)'];
 const PLAYER_LABELS = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
 
 const PRESETS = [
@@ -80,7 +82,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
       <div
         style={{
           fontSize: 9,
-          color: '#64748b',
+          color: 'var(--sp-fg-dim)',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: 1,
@@ -148,7 +150,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                       width: 16,
                       height: 16,
                       borderRadius: '50%',
-                      background: '#ef4444',
+                      background: 'var(--sp-accent-red)',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
@@ -162,7 +164,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                   </div>
                 </>
               ) : (
-                <span style={{ fontSize: 18, color: '#475569' }}>?</span>
+                <span style={{ fontSize: 18, color: 'var(--sp-fg-faint)' }}>?</span>
               )}
             </div>
           );
@@ -201,7 +203,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                   fontWeight: 700,
                   fontFamily: "'Orbitron', monospace",
                 }}
@@ -213,7 +215,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   cursor: 'pointer',
                   fontSize: 14,
                 }}
@@ -292,7 +294,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
       <div
         style={{
           fontSize: 9,
-          color: '#64748b',
+          color: 'var(--sp-fg-dim)',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: 1,
@@ -361,7 +363,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                       width: 14,
                       height: 14,
                       borderRadius: '50%',
-                      background: '#ef4444',
+                      background: 'var(--sp-accent-red)',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
@@ -414,7 +416,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                   fontWeight: 700,
                   fontFamily: "'Orbitron', monospace",
                 }}
@@ -426,7 +428,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   cursor: 'pointer',
                   fontSize: 14,
                 }}
@@ -509,7 +511,7 @@ function EquityBar({ results }) {
             >
               {r.equity}%
             </div>
-            <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+            <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600, marginTop: 2 }}>
               {formatHand(r.hand)}
             </div>
           </div>
@@ -590,12 +592,12 @@ function EquityBar({ results }) {
             >
               {formatHand(r.hand)}
             </div>
-            <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#94a3b8' }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 10, color: 'var(--sp-fg-muted)' }}>
               <span>
-                Win: <strong style={{ color: '#e2e8f0' }}>{r.wins}</strong>
+                Win: <strong style={{ color: 'var(--sp-fg)' }}>{r.wins}</strong>
               </span>
               <span>
-                Tie: <strong style={{ color: '#e2e8f0' }}>{r.ties}</strong>
+                Tie: <strong style={{ color: 'var(--sp-fg)' }}>{r.ties}</strong>
               </span>
             </div>
           </div>
@@ -746,7 +748,7 @@ export default function EquityCalculatorPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -765,7 +767,7 @@ export default function EquityCalculatorPage() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -778,7 +780,7 @@ export default function EquityCalculatorPage() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -789,7 +791,7 @@ export default function EquityCalculatorPage() {
             <span
               style={{
                 fontSize: 10,
-                color: '#a855f7',
+                color: 'var(--sp-accent-purple)',
                 background: 'rgba(168,85,247,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -810,7 +812,7 @@ export default function EquityCalculatorPage() {
             <span
               style={{
                 fontSize: 10,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: 1,
@@ -832,9 +834,9 @@ export default function EquityCalculatorPage() {
                   transition: 'all 0.2s',
                   background:
                     numPlayers === n
-                      ? 'linear-gradient(135deg, #a855f7, #6366f1)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
                       : 'rgba(255,255,255,0.06)',
-                  color: numPlayers === n ? '#fff' : '#94a3b8',
+                  color: numPlayers === n ? '#fff' : 'var(--sp-fg-muted)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
@@ -908,11 +910,11 @@ export default function EquityCalculatorPage() {
                 flex: '1 1 200px',
                 padding: '14px 0',
                 background: canCalculate
-                  ? 'linear-gradient(135deg, #a855f7, #6366f1)'
+                  ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
                   : 'rgba(255,255,255,0.06)',
                 border: 'none',
                 borderRadius: 10,
-                color: canCalculate ? '#fff' : '#475569',
+                color: canCalculate ? '#fff' : 'var(--sp-fg-faint)',
                 cursor: canCalculate ? 'pointer' : 'default',
                 fontSize: 14,
                 fontWeight: 800,
@@ -929,7 +931,7 @@ export default function EquityCalculatorPage() {
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 10,
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 700,
@@ -947,7 +949,7 @@ export default function EquityCalculatorPage() {
                 background: 'rgba(239,68,68,0.1)',
                 border: '1px solid rgba(239,68,68,0.3)',
                 borderRadius: 8,
-                color: '#ef4444',
+                color: 'var(--sp-accent-red)',
                 fontSize: 12,
                 fontWeight: 600,
                 marginBottom: 16,
@@ -977,7 +979,7 @@ export default function EquityCalculatorPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 800,
-                    color: '#a855f7',
+                    color: 'var(--sp-accent-purple)',
                     fontFamily: "'Orbitron', monospace",
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
@@ -1004,7 +1006,7 @@ export default function EquityCalculatorPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 10,
@@ -1026,7 +1028,7 @@ export default function EquityCalculatorPage() {
                     cursor: 'pointer',
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'rgba(255,255,255,0.04)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -1050,7 +1052,7 @@ export default function EquityCalculatorPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
@@ -1059,7 +1061,7 @@ export default function EquityCalculatorPage() {
             >
               About This Tool
             </div>
-            <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
               The Equity Calculator uses Monte Carlo simulation (5,000 iterations) to determine
               win/tie percentages for each hand. Enter specific hole cards for up to 4 players and
               optionally add board cards to see how equity changes on different textures. This is a

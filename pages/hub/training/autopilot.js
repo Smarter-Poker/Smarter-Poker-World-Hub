@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-3 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-3 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -33,7 +35,7 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#64748b',
+        color: 'var(--sp-fg-dim)',
       }}
     >
       Loading Arena...
@@ -93,7 +95,7 @@ const SPOT_DEFINITIONS = [
     name: 'BB Defense (Preflop)',
     position: 'BB',
     street: 'preflop',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
     iconKind: 'shield',
     icon: '🛡️',
     gameId: 'cash-bb-defense',
@@ -103,7 +105,7 @@ const SPOT_DEFINITIONS = [
     name: 'BTN Opens',
     position: 'BTN',
     street: 'preflop',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     iconKind: 'target',
     icon: '🎯',
     gameId: 'cash-btn-opens',
@@ -113,7 +115,7 @@ const SPOT_DEFINITIONS = [
     name: 'C-Betting (Flop)',
     position: 'any',
     street: 'flop',
-    color: '#f97316',
+    color: 'var(--sp-accent-orange)',
     iconKind: 'explosion',
     icon: '💥',
     gameId: 'cash-cbet',
@@ -123,7 +125,7 @@ const SPOT_DEFINITIONS = [
     name: 'Turn Barrels',
     position: 'any',
     street: 'turn',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     iconKind: 'rotate',
     icon: '🔄',
     gameId: 'cash-turn-play',
@@ -133,7 +135,7 @@ const SPOT_DEFINITIONS = [
     name: 'River Decisions',
     position: 'any',
     street: 'river',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
     iconKind: 'flag',
     icon: '🏁',
     gameId: 'cash-river-bluffs',
@@ -153,7 +155,7 @@ const SPOT_DEFINITIONS = [
     name: 'SB Strategy',
     position: 'SB',
     street: 'preflop',
-    color: '#8b5cf6',
+    color: 'var(--sp-accent-purple)',
     iconKind: 'spade',
     icon: '♠️',
     gameId: 'cash-sb',
@@ -163,7 +165,7 @@ const SPOT_DEFINITIONS = [
     name: 'MTT Push/Fold',
     position: 'any',
     street: 'preflop',
-    color: '#fbbf24',
+    color: 'var(--sp-accent-amber)',
     iconKind: 'trophy',
     icon: '🏆',
     gameId: 'mtt-push-fold',
@@ -344,7 +346,7 @@ export default function AutopilotPage() {
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -363,7 +365,7 @@ export default function AutopilotPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -377,10 +379,10 @@ export default function AutopilotPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Weak Spot Autopilot
             </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Zero-decision training mode</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Zero-decision training mode</div>
           </div>
         </div>
 
@@ -409,10 +411,10 @@ export default function AutopilotPage() {
               }}
             >
               {/* TRAIN-AUTOPILOT-A11Y-1: SVG celebration */}
-              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: '#fbbf24' }} aria-hidden>
+              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: 'var(--sp-accent-amber)' }} aria-hidden>
                 <CelebrateIcon size={32} />
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 4 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)', marginBottom: 4 }}>
                 Autopilot Complete
               </div>
 
@@ -422,7 +424,7 @@ export default function AutopilotPage() {
                 const totalCorrect = results.reduce((s, r) => s + Math.round(((r.accuracy || 0) / 100) * (r.questionsAnswered || 0)), 0);
                 const avgAccuracy = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
                 const grade = avgAccuracy >= 90 ? 'A' : avgAccuracy >= 80 ? 'B' : avgAccuracy >= 70 ? 'C' : 'D';
-                const gradeColor = avgAccuracy >= 90 ? '#4ade80' : avgAccuracy >= 80 ? '#3b82f6' : avgAccuracy >= 70 ? '#fbbf24' : '#f87171';
+                const gradeColor = avgAccuracy >= 90 ? 'var(--sp-accent-green)' : avgAccuracy >= 80 ? 'var(--sp-accent-blue)' : avgAccuracy >= 70 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                 return (
                   <>
                     <div style={{
@@ -437,10 +439,10 @@ export default function AutopilotPage() {
                     }}>
                       <span style={{ fontSize: 28, fontWeight: 900, color: gradeColor }}>{grade}</span>
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>
                           {avgAccuracy}% Overall
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b' }}>
+                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
                           {totalCorrect}/{totalQ} questions correct
                         </div>
                       </div>
@@ -469,13 +471,13 @@ export default function AutopilotPage() {
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
-                        color: r.accuracy >= 75 ? '#4ade80' : '#fbbf24',
+                        color: r.accuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                         marginTop: 4,
                       }}
                     >
                       {r.accuracy}%
                     </div>
-                    <div style={{ fontSize: 9, color: '#64748b' }}>{r.spot.name}</div>
+                    <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>{r.spot.name}</div>
                   </div>
                 ))}
               </div>
@@ -493,10 +495,10 @@ export default function AutopilotPage() {
                     textAlign: 'left',
                     marginBottom: 16,
                   }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                       Coach Recommendation
                     </div>
-                    <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
                       Focus your next session on <strong style={{ color: weakest.spot.color }}>{weakest.spot.name}</strong> — it was your weakest area at {weakest.accuracy}%.
                     </div>
                   </div>
@@ -515,7 +517,7 @@ export default function AutopilotPage() {
                     border: '1px solid rgba(0,212,255,0.3)',
                     background:
                       'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-                    color: '#00d4ff',
+                    color: 'var(--sp-accent-cyan)',
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -558,7 +560,7 @@ export default function AutopilotPage() {
                     borderRadius: 10,
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'rgba(255,255,255,0.03)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -590,16 +592,16 @@ export default function AutopilotPage() {
                 <motion.div
                   animate={{ y: [0, -4, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: '#a855f7' }}
+                  style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: 'var(--sp-accent-purple)' }}
                   aria-hidden
                 >
                   {/* TRAIN-AUTOPILOT-A11Y-1: SVG brain replaces 🧠 */}
                   <BrainIcon size={40} />
                 </motion.div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#e2e8f0', marginBottom: 6 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 6 }}>
                   3 Weak Spots Detected
                 </div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 20, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 20, lineHeight: 1.5 }}>
                   We analyzed your training history and found areas
                   <br />
                   that need the most attention. One click to start.
@@ -612,7 +614,7 @@ export default function AutopilotPage() {
                     padding: '14px 40px',
                     borderRadius: 12,
                     border: 'none',
-                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #7c3aed)',
                     color: '#fff',
                     fontSize: 15,
                     fontWeight: 800,
@@ -631,7 +633,7 @@ export default function AutopilotPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
@@ -675,7 +677,7 @@ export default function AutopilotPage() {
                         <div style={{ fontSize: 13, fontWeight: 700, color: spot.color }}>
                           {i + 1}. {spot.name}
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>
+                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
                           {spot.reason}
                         </div>
                       </div>
@@ -687,10 +689,10 @@ export default function AutopilotPage() {
                           fontWeight: 800,
                           color:
                             spot.accuracy < 60
-                              ? '#ef4444'
+                              ? 'var(--sp-accent-red)'
                               : spot.accuracy < 75
-                                ? '#fbbf24'
-                                : '#4ade80',
+                                ? 'var(--sp-accent-amber)'
+                                : 'var(--sp-accent-green)',
                         }}
                       >
                         {spot.accuracy}%

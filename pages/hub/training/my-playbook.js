@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-34 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -17,7 +18,7 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-3b — adoption: shared empty-state primitive
 
-const TAG_COLORS = ['#ef4444', '#f97316', '#fbbf24', '#34d399', '#0ea5e9', '#8b5cf6'];
+const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', '#34d399', '#0ea5e9', 'var(--sp-accent-purple)'];
 
 // BUG FIX (TRAIN-PLAYBOOK-A11Y-1): SVG icon components replacing the
 // emojis on the my-playbook surface (📖 empty state, 📌 pin marker + pin
@@ -186,7 +187,7 @@ export default function MyPlaybookPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -207,7 +208,7 @@ export default function MyPlaybookPage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -224,7 +225,7 @@ export default function MyPlaybookPage() {
             <div>
               {/* TRAIN-PLAYBOOK-A11Y-1: semantic h1 */}
               <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>My Playbook</h1>
-              <div style={{ fontSize: 11, color: '#64748b' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} plays saved</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} plays saved</div>
             </div>
           </div>
           {view === 'list' && (
@@ -233,7 +234,7 @@ export default function MyPlaybookPage() {
               aria-label="Create a new playbook entry"
               onClick={() => setView('form')}
               style={{
-                background: '#3b82f6',
+                background: 'var(--sp-accent-blue)',
                 color: '#fff',
                 border: 'none',
                 padding: '6px 12px',
@@ -263,7 +264,7 @@ export default function MyPlaybookPage() {
                 borderRadius: 8,
                 background: 'rgba(0,0,0,0.3)',
                 border: '1px solid rgba(255,255,255,0.08)',
-                color: '#e2e8f0',
+                color: 'var(--sp-fg)',
                 fontSize: 13,
                 outline: 'none',
                 marginBottom: 16,
@@ -288,7 +289,7 @@ export default function MyPlaybookPage() {
                     display: 'block',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     textTransform: 'uppercase',
                     marginBottom: 6,
                   }}
@@ -319,7 +320,7 @@ export default function MyPlaybookPage() {
                       display: 'block',
                       fontSize: 11,
                       fontWeight: 700,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       textTransform: 'uppercase',
                       marginBottom: 6,
                     }}
@@ -348,7 +349,7 @@ export default function MyPlaybookPage() {
                       display: 'block',
                       fontSize: 11,
                       fontWeight: 700,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       textTransform: 'uppercase',
                       marginBottom: 6,
                     }}
@@ -379,7 +380,7 @@ export default function MyPlaybookPage() {
                     display: 'block',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     textTransform: 'uppercase',
                     marginBottom: 6,
                   }}
@@ -411,7 +412,7 @@ export default function MyPlaybookPage() {
                     display: 'block',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     textTransform: 'uppercase',
                     marginBottom: 6,
                   }}
@@ -427,7 +428,7 @@ export default function MyPlaybookPage() {
                     padding: 16,
                     background: 'rgba(0,0,0,0.3)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#cbd5e1',
+                    color: 'var(--sp-fg)',
                     borderRadius: 8,
                     minHeight: 120,
                     fontSize: 14,
@@ -446,7 +447,7 @@ export default function MyPlaybookPage() {
                     flex: 1,
                     padding: 14,
                     background: 'rgba(255,255,255,0.05)',
-                    color: '#cbd5e1',
+                    color: 'var(--sp-fg)',
                     border: 'none',
                     borderRadius: 8,
                     fontWeight: 700,
@@ -462,7 +463,7 @@ export default function MyPlaybookPage() {
                   style={{
                     flex: 2,
                     padding: 14,
-                    background: '#3b82f6',
+                    background: 'var(--sp-accent-blue)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 8,
@@ -508,7 +509,7 @@ export default function MyPlaybookPage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin replaces 📌 marker */}
-                      {p.pinned && <span style={{ display: 'inline-flex', color: '#fbbf24' }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
+                      {p.pinned && <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
                       <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{p.title}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -520,7 +521,7 @@ export default function MyPlaybookPage() {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: p.pinned ? '#fbbf24' : '#334155',
+                          color: p.pinned ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
                           fontSize: 14,
                           cursor: 'pointer',
                           display: 'inline-flex',
@@ -536,7 +537,7 @@ export default function MyPlaybookPage() {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontSize: 16,
                           cursor: 'pointer',
                           display: 'inline-flex',
@@ -557,10 +558,10 @@ export default function MyPlaybookPage() {
                             borderRadius: 6,
                             fontSize: 12,
                             fontWeight: 700,
-                            color: '#e2e8f0',
+                            color: 'var(--sp-fg)',
                           }}
                         >
-                          <span style={{ color: '#94a3b8', marginRight: 6 }}>Range:</span>
+                          <span style={{ color: 'var(--sp-fg-muted)', marginRight: 6 }}>Range:</span>
                           {p.hands}
                         </div>
                       )}
@@ -572,15 +573,15 @@ export default function MyPlaybookPage() {
                             borderRadius: 6,
                             fontSize: 12,
                             fontWeight: 700,
-                            color: '#e2e8f0',
+                            color: 'var(--sp-fg)',
                           }}
                         >
-                          <span style={{ color: '#94a3b8', marginRight: 6 }}>Board:</span>
+                          <span style={{ color: 'var(--sp-fg-muted)', marginRight: 6 }}>Board:</span>
                           {p.board}
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>{p.notes}</div>
+                    <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>{p.notes}</div>
                   </div>
                 </motion.div>
               ))}

@@ -1,3 +1,5 @@
+// TRAIN-CSS-TOKENS-BATCH5-14 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-11 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -150,7 +152,7 @@ export default function FinalTableSimulator() {
                     <div
                       style={{
                         ...styles.playerName,
-                        color: p.name === 'Hero' ? '#00d4ff' : '#e2e8f0',
+                        color: p.name === 'Hero' ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
                       }}
                     >
                       {p.name}
@@ -187,7 +189,7 @@ export default function FinalTableSimulator() {
               <h2
                 style={{
                   ...styles.cardTitle,
-                  color: '#fbbf24',
+                  color: 'var(--sp-accent-amber)',
                   fontSize: 24,
                   margin: '0 0 24px 0',
                 }}
@@ -216,12 +218,12 @@ export default function FinalTableSimulator() {
                         <td
                           style={{
                             ...styles.td,
-                            color: p.name === 'Hero' ? '#00d4ff' : '#fff',
+                            color: p.name === 'Hero' ? 'var(--sp-accent-cyan)' : '#fff',
                             fontWeight: p.name === 'Hero' ? 'bold' : 'normal',
                           }}
                         >
                           {p.name}
-                          <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                          <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
                             {formatNumber(p.stack)} chips
                           </div>
                         </td>
@@ -231,7 +233,7 @@ export default function FinalTableSimulator() {
                         <td
                           style={{
                             ...styles.td,
-                            color: '#4ade80',
+                            color: 'var(--sp-accent-green)',
                             fontWeight: 'bold',
                             fontSize: 18,
                           }}
@@ -245,7 +247,7 @@ export default function FinalTableSimulator() {
 
               <div style={styles.dealBox}>
                 <h3>Chip Chop (Deal-Making Tool)</h3>
-                <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>
+                <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13, marginBottom: 16 }}>
                   Players often make deals using ICM numbers. If everyone agreed to chop the prize
                   pool right now based on skill equity:
                 </p>
@@ -293,11 +295,11 @@ const styles = {
     fontWeight: 900,
     fontFamily: 'Orbitron, sans-serif',
     letterSpacing: 1,
-    color: '#fbbf24', // Gold theme for ICM/Money
+    color: 'var(--sp-accent-amber)', // Gold theme for ICM/Money
   },
   subtitle: {
     margin: 0,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
   },
   content: {
@@ -368,12 +370,12 @@ const styles = {
     borderBottom: '1px solid rgba(255,255,255,0.05)',
   },
   payoutPlace: {
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
     fontWeight: 600,
   },
   payoutAmount: {
-    color: '#4ade80',
+    color: 'var(--sp-accent-green)',
     fontWeight: 'bold',
   },
   resultsTable: {
@@ -384,7 +386,7 @@ const styles = {
   th: {
     textAlign: 'left',
     padding: '12px 16px',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     borderBottom: '2px solid rgba(255,255,255,0.1)',
     fontSize: 13,
     textTransform: 'uppercase',
@@ -401,7 +403,7 @@ const styles = {
     border: '1px dashed rgba(251, 191, 36, 0.3)',
   },
   dealBtn: {
-    background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+    background: 'linear-gradient(135deg, rgba(var(--sp-accent-amber-rgb), 1), #f59e0b)',
     color: '#000',
     padding: '12px 24px',
     border: 'none',

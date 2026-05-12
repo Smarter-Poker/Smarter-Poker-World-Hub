@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-4 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-4 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -184,7 +186,7 @@ export default function BankrollCoachPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -205,7 +207,7 @@ export default function BankrollCoachPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -221,10 +223,10 @@ export default function BankrollCoachPage() {
           </button>
           <div>
             {/* TRAIN-BANKROLL-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', margin: 0 }}>
+            <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)', margin: 0 }}>
               Bankroll Impact Coach
             </h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               See what your leaks cost in real dollars
             </div>
           </div>
@@ -238,7 +240,7 @@ export default function BankrollCoachPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 8,
@@ -261,7 +263,7 @@ export default function BankrollCoachPage() {
                     border: `1px solid ${selectedStake.id === s.id ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.06)'}`,
                     background:
                       selectedStake.id === s.id ? 'rgba(34,197,94,0.08)' : 'rgba(0,0,0,0.2)',
-                    color: selectedStake.id === s.id ? '#4ade80' : '#94a3b8',
+                    color: selectedStake.id === s.id ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -275,7 +277,7 @@ export default function BankrollCoachPage() {
 
           {/* Loading */}
           {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--sp-fg-dim)' }}>
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -284,7 +286,7 @@ export default function BankrollCoachPage() {
                   height: 32,
                   margin: '0 auto 12px',
                   border: '2px solid rgba(255,255,255,0.05)',
-                  borderTopColor: '#22c55e',
+                  borderTopColor: 'var(--sp-accent-green)',
                   borderRadius: '50%',
                 }}
               />
@@ -313,7 +315,7 @@ export default function BankrollCoachPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
@@ -328,7 +330,7 @@ export default function BankrollCoachPage() {
                   style={{
                     fontSize: 42,
                     fontWeight: 900,
-                    color: '#ef4444',
+                    color: 'var(--sp-accent-red)',
                     letterSpacing: -1,
                   }}
                 >
@@ -337,9 +339,9 @@ export default function BankrollCoachPage() {
                     ? Math.abs(impact.dollarLossPerHour)
                     : 0
                   ).toFixed(2)}
-                  <span style={{ fontSize: 16, fontWeight: 600, color: '#94a3b8' }}>/hr</span>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sp-fg-muted)' }}>/hr</span>
                 </motion.div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 4 }}>
                   at {selectedStake.label} NLH playing {HANDS_PER_HOUR} hands/hr
                 </div>
               </motion.div>
@@ -362,7 +364,7 @@ export default function BankrollCoachPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                     $
                     {(Number.isFinite(impact.dollarLossPer100)
                       ? Math.abs(impact.dollarLossPer100)
@@ -372,7 +374,7 @@ export default function BankrollCoachPage() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 0.5,
                     }}
@@ -389,13 +391,13 @@ export default function BankrollCoachPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#fbbf24' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>
                     {(Number.isFinite(impact.evLossPerHand) ? impact.evLossPerHand : 0).toFixed(2)}
                   </div>
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 0.5,
                     }}
@@ -418,10 +420,10 @@ export default function BankrollCoachPage() {
                       fontWeight: 800,
                       color:
                         impact.accuracy >= 80
-                          ? '#4ade80'
+                          ? 'var(--sp-accent-green)'
                           : impact.accuracy >= 65
-                            ? '#fbbf24'
-                            : '#f87171',
+                            ? 'var(--sp-accent-amber)'
+                            : 'var(--sp-accent-red)',
                     }}
                   >
                     {impact.accuracy}%
@@ -429,7 +431,7 @@ export default function BankrollCoachPage() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 0.5,
                     }}
@@ -452,13 +454,13 @@ export default function BankrollCoachPage() {
                   border: '1px solid rgba(34,197,94,0.12)',
                 }}
               >
-                <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
-                  <span style={{ fontWeight: 700, color: '#4ade80' }}>Target:</span> Improving to{' '}
-                  <span style={{ fontWeight: 800, color: '#4ade80' }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 700, color: 'var(--sp-accent-green)' }}>Target:</span> Improving to{' '}
+                  <span style={{ fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                     {Math.min(impact.accuracy + 10, 100)}%
                   </span>
                   {' accuracy would save you ~'}
-                  <span style={{ fontWeight: 800, color: '#4ade80' }}>
+                  <span style={{ fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                     $
                     {(Number.isFinite(impact.dollarLossPerHour)
                       ? Math.abs(impact.dollarLossPerHour) * 0.3
@@ -467,7 +469,7 @@ export default function BankrollCoachPage() {
                     /hr
                   </span>
                   {', or '}
-                  <span style={{ fontWeight: 800, color: '#4ade80' }}>
+                  <span style={{ fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                     $
                     {(Number.isFinite(impact.dollarLossPerHour)
                       ? Math.abs(impact.dollarLossPerHour) * 0.3 * 160
@@ -485,7 +487,7 @@ export default function BankrollCoachPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
@@ -522,25 +524,25 @@ export default function BankrollCoachPage() {
                           justifyContent: 'center',
                           fontSize: 12,
                           fontWeight: 800,
-                          color: i < 2 ? '#f87171' : '#fbbf24',
+                          color: i < 2 ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)',
                         }}
                       >
                         {i + 1}
                       </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                           {leak.name}
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>
+                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
                           {leak.accuracy}% accuracy · {leak.hands} hands
                         </div>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#ef4444' }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                         -${(Number.isFinite(leak.dollarImpact) ? leak.dollarImpact : 0).toFixed(2)}
                       </div>
-                      <div style={{ fontSize: 9, color: '#64748b' }}>per hour</div>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>per hour</div>
                     </div>
                   </motion.div>
                 ))}
@@ -558,7 +560,7 @@ export default function BankrollCoachPage() {
                   padding: '14px',
                   borderRadius: 12,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)',
                   color: '#fff',
                   fontSize: 14,
                   fontWeight: 800,

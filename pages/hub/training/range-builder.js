@@ -10,6 +10,8 @@
 
 // TRAIN-CSS-MOBILE-ADOPT-12 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-TOKENS-BATCH4-14 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH5-47 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-38 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -18,6 +20,10 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+
+// TRAIN-CSS-MOTION-ADOPT-22 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -68,7 +74,7 @@ const GRADE_COLORS = {
   'C-': 'var(--sp-accent-amber)',
   'D+': 'var(--sp-accent-orange)',
   D: 'var(--sp-accent-orange)',
-  'D-': '#fb923c',
+  'D-': 'var(--sp-accent-orange)',
   F: 'var(--sp-accent-red)',
 };
 
@@ -357,7 +363,7 @@ export default function RangeBuilder() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #f97316, #ef4444)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -422,7 +428,7 @@ export default function RangeBuilder() {
                   transition: 'all 0.2s',
                   background:
                     position === pos
-                      ? 'linear-gradient(135deg, #f97316, #ef4444)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
                       : 'rgba(255,255,255,0.06)',
                   color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
                   fontFamily: "'Orbitron', monospace",
@@ -679,11 +685,11 @@ export default function RangeBuilder() {
                     >
                       <motion.div
                         animate={{ width: `${selectionStats.pct}%` }}
-                        transition={{ duration: 0.3 }}
+                        transition={{ duration: MOTION.standard }}
                         style={{
                           height: '100%',
                           borderRadius: 3,
-                          background: 'linear-gradient(90deg, #f97316, #ef4444)',
+                          background: 'linear-gradient(90deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
                         }}
                       />
                     </div>
@@ -727,7 +733,7 @@ export default function RangeBuilder() {
                       padding: '12px 0',
                       background:
                         selectedHands.size > 0
-                          ? 'linear-gradient(135deg, #f97316, #ef4444)'
+                          ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
                           : 'rgba(255,255,255,0.06)',
                       border: 'none',
                       borderRadius: 10,

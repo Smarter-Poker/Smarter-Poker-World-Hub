@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-21 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -158,10 +159,10 @@ function getUserStatValue(stats, key) {
 
 function getDeviationColor(deviation) {
   const abs = Math.abs(deviation);
-  if (abs <= 3) return '#22c55e'; // Green — GTO-aligned
-  if (abs <= 8) return '#eab308'; // Yellow — slight deviation
-  if (abs <= 15) return '#f97316'; // Orange — moderate deviation
-  return '#ef4444'; // Red — major leak
+  if (abs <= 3) return 'var(--sp-accent-green)'; // Green — GTO-aligned
+  if (abs <= 8) return 'var(--sp-accent-amber)'; // Yellow — slight deviation
+  if (abs <= 15) return 'var(--sp-accent-orange)'; // Orange — moderate deviation
+  return 'var(--sp-accent-red)'; // Red — major leak
 }
 
 function computeGTOProximityScore(playerStats) {
@@ -199,7 +200,7 @@ function DeviationCell({ userVal, gtoVal, label }) {
           background: 'rgba(255,255,255,0.02)',
         }}
       >
-        <div style={{ fontSize: 9, color: '#334155' }}>—</div>
+        <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>—</div>
       </div>
     );
   }
@@ -220,7 +221,7 @@ function DeviationCell({ userVal, gtoVal, label }) {
       <div style={{ fontSize: 14, fontWeight: 800, color, fontFamily: "'Orbitron', monospace" }}>
         {userVal}%
       </div>
-      <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', marginTop: 2 }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
         GTO: {gtoVal}%
       </div>
       <div
@@ -322,12 +323,12 @@ export default function GTOScorecardPage() {
 
   const scoreColor =
     gtoScore >= 80
-      ? '#22c55e'
+      ? 'var(--sp-accent-green)'
       : gtoScore >= 60
-        ? '#eab308'
+        ? 'var(--sp-accent-amber)'
         : gtoScore >= 40
-          ? '#f97316'
-          : '#ef4444';
+          ? 'var(--sp-accent-orange)'
+          : 'var(--sp-accent-red)';
   const scoreLabel =
     gtoScore >= 80
       ? 'GTO Machine'
@@ -355,7 +356,7 @@ export default function GTOScorecardPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -376,7 +377,7 @@ export default function GTOScorecardPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -393,7 +394,7 @@ export default function GTOScorecardPage() {
           <div>
             {/* TRAIN-SCORECARD-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Scorecard</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Frequency deviation analysis</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Frequency deviation analysis</div>
           </div>
         </div>
 
@@ -434,7 +435,7 @@ export default function GTOScorecardPage() {
             >
               {loading ? 'Loading...' : scoreLabel}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 8 }}>
               GTO Proximity Score — based on {totalHands.toLocaleString()} hands across{' '}
               {sessions.length} sessions
             </div>
@@ -507,7 +508,7 @@ export default function GTOScorecardPage() {
                   flexShrink: 0,
                   border: `1px solid ${selectedStat === key ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: selectedStat === key ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: selectedStat === key ? '#00d4ff' : '#64748b',
+                  color: selectedStat === key ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -522,7 +523,7 @@ export default function GTOScorecardPage() {
           <div
             style={{
               fontSize: 10,
-              color: '#475569',
+              color: 'var(--sp-fg-faint)',
               marginBottom: 12,
               padding: '0 4px',
             }}
@@ -549,7 +550,7 @@ export default function GTOScorecardPage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       textAlign: 'center',
                       marginBottom: 4,
                     }}
@@ -560,7 +561,7 @@ export default function GTOScorecardPage() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#475569',
+                      color: 'var(--sp-fg-faint)',
                       textAlign: 'center',
                       marginTop: 3,
                     }}
@@ -588,7 +589,7 @@ export default function GTOScorecardPage() {
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
               }}
@@ -603,7 +604,7 @@ export default function GTOScorecardPage() {
                       style={{
                         padding: '8px 10px',
                         textAlign: 'left',
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         fontWeight: 700,
                         fontSize: 10,
                       }}
@@ -616,7 +617,7 @@ export default function GTOScorecardPage() {
                         style={{
                           padding: '8px 6px',
                           textAlign: 'center',
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           fontWeight: 700,
                           fontSize: 10,
                         }}
@@ -633,7 +634,7 @@ export default function GTOScorecardPage() {
                         style={{
                           padding: '8px 10px',
                           fontWeight: 600,
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           whiteSpace: 'nowrap',
                         }}
                       >
@@ -644,7 +645,7 @@ export default function GTOScorecardPage() {
                         const userVal = getUserStatValue(stats, key);
                         const gtoVal = GTO_BASELINES[pos][key];
                         const diff = userVal !== null ? userVal - gtoVal : null;
-                        const color = diff !== null ? getDeviationColor(diff) : '#334155';
+                        const color = diff !== null ? getDeviationColor(diff) : 'var(--sp-fg-faint)';
                         return (
                           <td key={pos} style={{ padding: '8px 6px', textAlign: 'center' }}>
                             {userVal !== null ? (
@@ -656,7 +657,7 @@ export default function GTOScorecardPage() {
                                 </span>
                               </span>
                             ) : (
-                              <span style={{ color: '#334155' }}>—</span>
+                              <span style={{ color: 'var(--sp-fg-faint)' }}>—</span>
                             )}
                           </td>
                         );
@@ -682,7 +683,7 @@ export default function GTOScorecardPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 marginBottom: 6,
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
@@ -692,14 +693,14 @@ export default function GTOScorecardPage() {
             </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 10 }}>
               {[
-                { color: '#22c55e', label: '±0-3% — GTO Aligned' },
-                { color: '#eab308', label: '±4-8% — Slight Deviation' },
-                { color: '#f97316', label: '±9-15% — Moderate Leak' },
-                { color: '#ef4444', label: '±16%+ — Major Leak' },
+                { color: 'var(--sp-accent-green)', label: '±0-3% — GTO Aligned' },
+                { color: 'var(--sp-accent-amber)', label: '±4-8% — Slight Deviation' },
+                { color: 'var(--sp-accent-orange)', label: '±9-15% — Moderate Leak' },
+                { color: 'var(--sp-accent-red)', label: '±16%+ — Major Leak' },
               ].map((l) => (
                 <span
                   key={l.label}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#94a3b8' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--sp-fg-muted)' }}
                 >
                   <span
                     style={{

@@ -8,6 +8,8 @@
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-6 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-TOKENS-BATCH5-15 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-12 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -699,7 +701,7 @@ export default function FlashcardsPage() {
                       width: `${CARDS.length > 0 ? (stats.mastered / CARDS.length) * 100 : 0}%`,
                       height: '100%',
                       borderRadius: 3,
-                      background: 'linear-gradient(90deg, #4ade80, #22c55e)',
+                      background: 'linear-gradient(90deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
                     }}
                   />
                 </div>
@@ -722,7 +724,7 @@ export default function FlashcardsPage() {
                   borderRadius: 12,
                   border: '1px solid rgba(239,68,68,0.2)',
                   background: 'rgba(239,68,68,0.06)',
-                  color: '#f87171',
+                  color: 'var(--sp-accent-red)',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',

@@ -7,6 +7,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-63 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-53 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -240,7 +242,7 @@ export default function WeaknessScannerPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -260,7 +262,7 @@ export default function WeaknessScannerPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -277,7 +279,7 @@ export default function WeaknessScannerPage() {
           <div>
             {/* TRAIN-WEAKNESS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Weakness Scanner</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>AI leak detection</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>AI leak detection</div>
           </div>
         </div>
 
@@ -297,7 +299,7 @@ export default function WeaknessScannerPage() {
                   borderRadius: 8,
                   border: `1px solid ${timeFilter === f.id ? 'rgba(248,113,113,0.2)' : 'transparent'}`,
                   background: timeFilter === f.id ? 'rgba(248,113,113,0.06)' : 'transparent',
-                  color: timeFilter === f.id ? '#f87171' : '#64748b',
+                  color: timeFilter === f.id ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -336,7 +338,7 @@ export default function WeaknessScannerPage() {
                     <div
                       style={{
                         fontSize: 11,
-                        color: '#f87171',
+                        color: 'var(--sp-accent-red)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         letterSpacing: 1,
@@ -354,15 +356,15 @@ export default function WeaknessScannerPage() {
                       style={{
                         fontSize: 28,
                         fontWeight: 900,
-                        color: data.overallAcc >= 80 ? '#4ade80' : '#fbbf24',
+                        color: data.overallAcc >= 80 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                       }}
                     >
                       {Math.round(data.overallAcc)}%
                     </div>
-                    <div style={{ fontSize: 10, color: '#94a3b8' }}>Overall Acc</div>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>Overall Acc</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 16, fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 16, fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
                   Based on analysis of your last {data.totalHands} hands, we've identified specific
                   areas where your decisions consistently deviate from GTO frequencies.
                 </div>
@@ -392,10 +394,10 @@ export default function WeaknessScannerPage() {
                           textAlign: 'center',
                         }}
                       >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#ef4444' }}>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-accent-red)' }}>
                           {highCount}
                         </div>
-                        <div style={{ fontSize: 8, color: '#f87171', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 8, color: 'var(--sp-accent-red)', textTransform: 'uppercase' }}>
                           High
                         </div>
                       </div>
@@ -411,10 +413,10 @@ export default function WeaknessScannerPage() {
                           textAlign: 'center',
                         }}
                       >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#fbbf24' }}>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-accent-amber)' }}>
                           {medCount}
                         </div>
-                        <div style={{ fontSize: 8, color: '#fbbf24', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 8, color: 'var(--sp-accent-amber)', textTransform: 'uppercase' }}>
                           Medium
                         </div>
                       </div>
@@ -430,10 +432,10 @@ export default function WeaknessScannerPage() {
                           textAlign: 'center',
                         }}
                       >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#94a3b8' }}>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-fg-muted)' }}>
                           {lowCount}
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                           Low
                         </div>
                       </div>
@@ -456,7 +458,7 @@ export default function WeaknessScannerPage() {
                     padding: '14px',
                     borderRadius: 12,
                     border: 'none',
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #dc2626)',
                     color: '#fff',
                     fontSize: 14,
                     fontWeight: 800,
@@ -474,7 +476,7 @@ export default function WeaknessScannerPage() {
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 12,
@@ -522,10 +524,10 @@ export default function WeaknessScannerPage() {
                                     : 'rgba(255,255,255,0.05)',
                               color:
                                 leak.sev === 'High'
-                                  ? '#f87171'
+                                  ? 'var(--sp-accent-red)'
                                   : leak.sev === 'Medium'
-                                    ? '#fbbf24'
-                                    : '#94a3b8',
+                                    ? 'var(--sp-accent-amber)'
+                                    : 'var(--sp-fg-muted)',
                               fontSize: 9,
                               fontWeight: 700,
                               textTransform: 'uppercase',
@@ -534,7 +536,7 @@ export default function WeaknessScannerPage() {
                             {leak.sev} Severity
                           </span>
                         </div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                        <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
                           Category: {leak.cat} • {leak.sample} hand sample
                         </div>
                       </div>
@@ -544,12 +546,12 @@ export default function WeaknessScannerPage() {
                             fontSize: 18,
                             fontWeight: 800,
                             color:
-                              leak.acc >= 75 ? '#4ade80' : leak.acc >= 60 ? '#fbbf24' : '#f87171',
+                              leak.acc >= 75 ? 'var(--sp-accent-green)' : leak.acc >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                           }}
                         >
                           {leak.acc}%
                         </div>
-                        <div style={{ fontSize: 9, color: '#64748b' }}>Accuracy</div>
+                        <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>Accuracy</div>
                       </div>
                     </div>
 
@@ -560,14 +562,14 @@ export default function WeaknessScannerPage() {
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#00d4ff',
+                          color: 'var(--sp-accent-cyan)',
                           textTransform: 'uppercase',
                           marginBottom: 4,
                         }}
                       >
                         AI Fix Recommendation
                       </div>
-                      <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>
+                      <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
                         {leak.tip}
                       </div>
                     </div>
@@ -586,7 +588,7 @@ export default function WeaknessScannerPage() {
                           borderRadius: 8,
                           border: 'none',
                           background: 'rgba(34,197,94,0.1)',
-                          color: '#4ade80',
+                          color: 'var(--sp-accent-green)',
                           fontSize: 12,
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -612,7 +614,7 @@ export default function WeaknessScannerPage() {
                           borderRadius: 8,
                           border: 'none',
                           background: 'rgba(168,85,247,0.1)',
-                          color: '#a855f7',
+                          color: 'var(--sp-accent-purple)',
                           fontSize: 12,
                           fontWeight: 700,
                           cursor: 'pointer',

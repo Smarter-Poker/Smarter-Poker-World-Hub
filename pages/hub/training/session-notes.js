@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-51 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-43 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -251,7 +253,7 @@ export default function SessionNotesPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -269,7 +271,7 @@ export default function SessionNotesPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -284,7 +286,7 @@ export default function SessionNotesPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Session Notes</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Your training journal</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your training journal</div>
           </div>
         </div>
 
@@ -314,7 +316,7 @@ export default function SessionNotesPage() {
                 borderRadius: 6,
                 border: `1px solid ${tab === t.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                 background: tab === t.id ? 'rgba(0,212,255,0.06)' : 'transparent',
-                color: tab === t.id ? '#00d4ff' : '#64748b',
+                color: tab === t.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -338,12 +340,12 @@ export default function SessionNotesPage() {
                     background: 'rgba(0,212,255,0.04)',
                     border: '1px solid rgba(0,212,255,0.1)',
                     fontSize: 11,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                   }}
                 >
                   Last session accuracy:{' '}
                   <span
-                    style={{ fontWeight: 800, color: recentAccuracy >= 75 ? '#4ade80' : '#fbbf24' }}
+                    style={{ fontWeight: 800, color: recentAccuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)' }}
                   >
                     {recentAccuracy}%
                   </span>
@@ -355,7 +357,7 @@ export default function SessionNotesPage() {
                 style={{
                   fontSize: 9,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -383,7 +385,7 @@ export default function SessionNotesPage() {
                     <div
                       style={{
                         fontSize: 8,
-                        color: mood === m.id ? '#00d4ff' : '#475569',
+                        color: mood === m.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-faint)',
                         fontWeight: 600,
                         marginTop: 2,
                       }}
@@ -400,7 +402,7 @@ export default function SessionNotesPage() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#4ade80',
+                    color: 'var(--sp-accent-green)',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     marginBottom: 4,
@@ -419,7 +421,7 @@ export default function SessionNotesPage() {
                     borderRadius: 8,
                     background: 'rgba(34,197,94,0.04)',
                     border: '1px solid rgba(34,197,94,0.1)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 12,
                     resize: 'vertical',
                     fontFamily: 'Inter, sans-serif',
@@ -433,7 +435,7 @@ export default function SessionNotesPage() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#f87171',
+                    color: 'var(--sp-accent-red)',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     marginBottom: 4,
@@ -452,7 +454,7 @@ export default function SessionNotesPage() {
                     borderRadius: 8,
                     background: 'rgba(239,68,68,0.04)',
                     border: '1px solid rgba(239,68,68,0.1)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 12,
                     resize: 'vertical',
                     fontFamily: 'Inter, sans-serif',
@@ -466,7 +468,7 @@ export default function SessionNotesPage() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     marginBottom: 4,
@@ -485,7 +487,7 @@ export default function SessionNotesPage() {
                     borderRadius: 8,
                     background: 'rgba(255,255,255,0.03)',
                     border: '1px solid rgba(255,255,255,0.06)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 12,
                     resize: 'vertical',
                     fontFamily: 'Inter, sans-serif',
@@ -499,7 +501,7 @@ export default function SessionNotesPage() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     marginBottom: 8,
@@ -525,7 +527,7 @@ export default function SessionNotesPage() {
                           borderRadius: 12,
                           background: isActive ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)',
                           border: `1px solid ${isActive ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                          color: isActive ? '#00d4ff' : '#94a3b8',
+                          color: isActive ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                           fontSize: 10,
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -546,7 +548,7 @@ export default function SessionNotesPage() {
                   padding: '14px',
                   borderRadius: 12,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #00d4ff, #3b82f6)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                   color: '#fff',
                   fontSize: 14,
                   fontWeight: 800,
@@ -582,10 +584,10 @@ export default function SessionNotesPage() {
                       textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontSize: 20, fontWeight: 900, color: '#00d4ff' }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--sp-accent-cyan)' }}>
                       {noteStats.total}
                     </div>
-                    <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                       Notes
                     </div>
                   </div>
@@ -601,10 +603,10 @@ export default function SessionNotesPage() {
                         textAlign: 'center',
                       }}
                     >
-                      <div style={{ fontSize: 20, fontWeight: 900, color: '#4ade80' }}>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
                         {noteStats.avgAccuracy}%
                       </div>
-                      <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                         Avg Accuracy
                       </div>
                     </div>
@@ -625,7 +627,7 @@ export default function SessionNotesPage() {
                         Object.entries(noteStats.moodCounts || {}).sort((a, b) => b[1] - a[1])?.[0]?.[0] || 'neutral'
                       ).emoji}
                     </div>
-                    <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                       Top Mood
                     </div>
                   </div>
@@ -645,7 +647,7 @@ export default function SessionNotesPage() {
                         background:
                           searchTerm === tag ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
                         border: `1px solid ${searchTerm === tag ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                        color: searchTerm === tag ? '#00d4ff' : '#64748b',
+                        color: searchTerm === tag ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                         fontSize: 9,
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -667,7 +669,7 @@ export default function SessionNotesPage() {
                   borderRadius: 8,
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#e2e8f0',
+                  color: 'var(--sp-fg)',
                   fontSize: 12,
                   marginBottom: 12,
                   fontFamily: 'Inter, sans-serif',
@@ -685,7 +687,7 @@ export default function SessionNotesPage() {
                     borderRadius: 8,
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'rgba(255,255,255,0.03)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 11,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -724,7 +726,7 @@ export default function SessionNotesPage() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 14 }}>{moodObj(note.mood).emoji}</span>
-                        <span style={{ fontSize: 10, color: '#64748b' }}>
+                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
                           {formatDate(note.createdAt)}
                         </span>
                       </div>
@@ -734,7 +736,7 @@ export default function SessionNotesPage() {
                             style={{
                               fontSize: 11,
                               fontWeight: 700,
-                              color: note.accuracy >= 75 ? '#4ade80' : '#fbbf24',
+                              color: note.accuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                             }}
                           >
                             {note.accuracy}%
@@ -762,7 +764,7 @@ export default function SessionNotesPage() {
                             borderRadius: 4,
                             background: 'rgba(239,68,68,0.08)',
                             border: 'none',
-                            color: '#f87171',
+                            color: 'var(--sp-accent-red)',
                             fontSize: 10,
                             cursor: 'pointer',
                             display: 'flex',
@@ -784,7 +786,7 @@ export default function SessionNotesPage() {
                               padding: '2px 6px',
                               background: 'rgba(255,255,255,0.08)',
                               borderRadius: 4,
-                              color: '#cbd5e1',
+                              color: 'var(--sp-fg)',
                             }}
                           >
                             #{t}
@@ -794,19 +796,19 @@ export default function SessionNotesPage() {
                     )}
                     {note.wentWell && (
                       <div style={{ fontSize: 11, marginBottom: 4 }}>
-                        <span style={{ color: '#4ade80', fontWeight: 700 }}>Good: </span>
-                        <span style={{ color: '#94a3b8' }}>{note.wentWell}</span>
+                        <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>Good: </span>
+                        <span style={{ color: 'var(--sp-fg-muted)' }}>{note.wentWell}</span>
                       </div>
                     )}
                     {note.toImprove && (
                       <div style={{ fontSize: 11, marginBottom: 4 }}>
-                        <span style={{ color: '#f87171', fontWeight: 700 }}>Fix: </span>
-                        <span style={{ color: '#94a3b8' }}>{note.toImprove}</span>
+                        <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>Fix: </span>
+                        <span style={{ color: 'var(--sp-fg-muted)' }}>{note.toImprove}</span>
                       </div>
                     )}
                     {note.freeText && (
                       <div
-                        style={{ fontSize: 11, color: '#e2e8f0', marginTop: 6, lineHeight: 1.5 }}
+                        style={{ fontSize: 11, color: 'var(--sp-fg)', marginTop: 6, lineHeight: 1.5 }}
                       >
                         {parseMarkdown(note.freeText)}
                       </div>

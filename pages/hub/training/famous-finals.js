@@ -10,6 +10,8 @@
  */
 
 // TRAIN-CSS-MOBILE-ADOPT-13 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-TOKENS-BATCH5-13 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-10 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -363,7 +365,7 @@ export default function FamousFinalsPage() {
   };
 
   const getDiffColor = (d) =>
-    d === 'Expert' ? '#ef4444' : d === 'Advanced' ? '#f59e0b' : '#22c55e';
+    d === 'Expert' ? 'var(--sp-accent-red)' : d === 'Advanced' ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)';
 
   return (
     <>
@@ -374,7 +376,7 @@ export default function FamousFinalsPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
           paddingBottom: 60,
         }}
@@ -394,7 +396,7 @@ export default function FamousFinalsPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -409,7 +411,7 @@ export default function FamousFinalsPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Famous Finals</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               {activeEvent ? activeEvent.event : 'Historic Final Table Replayer'}
             </div>
           </div>
@@ -442,7 +444,7 @@ export default function FamousFinalsPage() {
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       background: seriesFilter === f ? 'transparent' : 'rgba(255,255,255,0.05)',
-                      color: seriesFilter === f ? '#fff' : '#94a3b8',
+                      color: seriesFilter === f ? '#fff' : 'var(--sp-fg-muted)',
                       boxShadow:
                         seriesFilter === f ? 'inset 0 0 0 1px rgba(251,191,36,0.5)' : 'none',
                     }}
@@ -466,7 +468,7 @@ export default function FamousFinalsPage() {
                       background: 'rgba(255,255,255,0.02)',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       width: '100%',
                     }}
                   >
@@ -485,7 +487,7 @@ export default function FamousFinalsPage() {
                           <span style={{ fontSize: 20 }}>{ft.icon}</span>
                           <span style={{ fontSize: 16, fontWeight: 800 }}>{ft.event}</span>
                         </div>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{ft.description}</div>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{ft.description}</div>
                       </div>
                       <span
                         style={{
@@ -515,13 +517,13 @@ export default function FamousFinalsPage() {
                             background: 'rgba(0,0,0,0.3)',
                           }}
                         >
-                          <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700 }}>
+                          <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 700 }}>
                             {p.position}
                           </span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)' }}>
                             {p.name}
                           </span>
-                          <span style={{ fontSize: 10, color: '#fbbf24', fontWeight: 700 }}>
+                          <span style={{ fontSize: 10, color: 'var(--sp-accent-amber)', fontWeight: 700 }}>
                             {(Number.isFinite(Number(p.chips / 1_000_000)) ? Number(p.chips / 1_000_000) : 0).toFixed(1)}M
                           </span>
                         </div>
@@ -533,7 +535,7 @@ export default function FamousFinalsPage() {
                         alignItems: 'center',
                         gap: 16,
                         fontSize: 11,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                       }}
                     >
                       <span>Blinds: {ft.blinds}</span>
@@ -558,7 +560,7 @@ export default function FamousFinalsPage() {
                   marginBottom: 16,
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                   Spot {spotIndex + 1} / {activeEvent.spots.length}
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -571,9 +573,9 @@ export default function FamousFinalsPage() {
                         borderRadius: 2,
                         background:
                           i < spotIndex
-                            ? '#22c55e'
+                            ? 'var(--sp-accent-green)'
                             : i === spotIndex
-                              ? '#3b82f6'
+                              ? 'var(--sp-accent-blue)'
                               : 'rgba(255,255,255,0.1)',
                       }}
                     />
@@ -611,24 +613,24 @@ export default function FamousFinalsPage() {
                               : 'rgba(239,68,68,0.15)',
                       color:
                         currentSpot.street === 'preflop'
-                          ? '#a78bfa'
+                          ? 'var(--sp-accent-purple)'
                           : currentSpot.street === 'flop'
-                            ? '#4ade80'
+                            ? 'var(--sp-accent-green)'
                             : currentSpot.street === 'turn'
                               ? '#60a5fa'
-                              : '#f87171',
+                              : 'var(--sp-accent-red)',
                     }}
                   >
                     {currentSpot.street}
                   </span>
-                  <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+                  <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                     Hero: {currentSpot.hero}
                   </span>
                 </div>
 
                 {/* Hero Hand */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>YOUR HAND</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)' }}>YOUR HAND</span>
                   <div style={{ display: 'flex', gap: 4 }}>
                     {currentSpot.hand.map((c, i) => (
                       <Card
@@ -644,7 +646,7 @@ export default function FamousFinalsPage() {
                 {/* Board */}
                 {currentSpot.board && currentSpot.board.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>BOARD</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)' }}>BOARD</span>
                     <div style={{ display: 'flex', gap: 4 }}>
                       {currentSpot.board.map((c, i) => (
                         <Card
@@ -688,7 +690,7 @@ export default function FamousFinalsPage() {
                         borderRadius: 12,
                         background: bg,
                         border,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         fontSize: 14,
                         fontWeight: 700,
                         cursor: showFeedback ? 'default' : 'pointer',
@@ -701,12 +703,12 @@ export default function FamousFinalsPage() {
                       <span>{opt.text}</span>
                       {showFeedback && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 11, color: '#94a3b8' }}>{opt.freq}% freq</span>
+                          <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{opt.freq}% freq</span>
                           <span
                             style={{
                               fontSize: 11,
                               fontWeight: 800,
-                              color: opt.ev > 0 ? '#4ade80' : '#f87171',
+                              color: opt.ev > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                             }}
                           >
                             {opt.ev > 0 ? '+' : ''}
@@ -746,7 +748,7 @@ export default function FamousFinalsPage() {
                     >
                       Solver Analysis
                     </div>
-                    <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
                       {currentSpot.explanation}
                     </div>
                   </motion.div>
@@ -764,7 +766,7 @@ export default function FamousFinalsPage() {
                     padding: 16,
                     borderRadius: 12,
                     border: 'none',
-                    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #8b5cf6)',
                     color: '#fff',
                     fontSize: 15,
                     fontWeight: 800,
@@ -794,22 +796,22 @@ export default function FamousFinalsPage() {
               <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>
                 {activeEvent.event}
               </div>
-              <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 24 }}>
+              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
                 Final Table Complete
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 32 }}>
                 <div>
-                  <div style={{ fontSize: 36, fontWeight: 900, color: '#4ade80' }}>
+                  <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
                     {results.filter((r) => r.correct).length}/{results.length}
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>CORRECT</div>
+                  <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', fontWeight: 700 }}>CORRECT</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 36, fontWeight: 900, color: '#fbbf24' }}>
+                  <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--sp-accent-amber)' }}>
                     {results.reduce((sum, r) => sum + r.ev, 0).toFixed(1)}
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>TOTAL EV</div>
+                  <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', fontWeight: 700 }}>TOTAL EV</div>
                 </div>
               </div>
 
@@ -835,14 +837,14 @@ export default function FamousFinalsPage() {
                       background: r.correct ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
                     }}
                   >
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)' }}>
                       Spot {i + 1}: {activeEvent.spots[i]?.street}
                     </span>
                     <span
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: r.correct ? '#4ade80' : '#f87171',
+                        color: r.correct ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                       }}
                     >
                       {r.correct ? '✓ Correct' : '✗ Mistake'}
@@ -882,7 +884,7 @@ export default function FamousFinalsPage() {
                     borderRadius: 10,
                     border: 'none',
                     background: 'rgba(255,255,255,0.05)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 14,
                     fontWeight: 700,
                     cursor: 'pointer',

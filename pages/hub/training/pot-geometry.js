@@ -4,6 +4,8 @@
  */
 // TRAIN-CSS-TOKENS-ADOPT-7 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-11 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-TOKENS-BATCH5-37 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-30 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -48,7 +50,7 @@ function getSPRCategory(spr) {
   if (spr <= 8)
     return {
       label: 'Medium SPR',
-      color: '#eab308',
+      color: 'var(--sp-accent-amber)',
       icon: '⚖️',
       desc: 'Optimal SPR for most flop play. Top pair = strong, two pair = near commitment. Sets fully +EV.',
     };
@@ -419,7 +421,7 @@ export default function PotGeometry() {
                 fontSize: 20,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg,#f97316,#eab308)',
+                background: 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),#eab308)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron',monospace",
@@ -463,7 +465,7 @@ export default function PotGeometry() {
                   border: 'none',
                   background:
                     mode === m.id
-                      ? 'linear-gradient(135deg,#f97316,#eab308)'
+                      ? 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),#eab308)'
                       : 'rgba(255,255,255,0.06)',
                   color: mode === m.id ? '#000' : 'var(--sp-fg-muted)',
                   fontFamily: "'Orbitron',monospace",
@@ -615,7 +617,7 @@ export default function PotGeometry() {
                 >
                   Commitment Threshold
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#eab308', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)', marginBottom: 4 }}>
                   {commitment.hand}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{commitment.note}</div>
@@ -670,7 +672,7 @@ export default function PotGeometry() {
                         {b.pct}
                       </span>
                       <span
-                        style={{ fontSize: 12, fontWeight: 700, color: '#eab308', minWidth: 60 }}
+                        style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)', minWidth: 60 }}
                       >
                         {b.size} BB
                       </span>
@@ -815,7 +817,7 @@ export default function PotGeometry() {
                         {[
                           { label: 'Hero Hand', value: drill.hero, color: 'var(--sp-accent-orange)' },
                           { label: 'Eff. Stack', value: `${drill.stack}BB`, color: 'var(--sp-accent-cyan)' },
-                          { label: 'Pot Size', value: `${drill.pot}BB`, color: '#eab308' },
+                          { label: 'Pot Size', value: `${drill.pot}BB`, color: 'var(--sp-accent-amber)' },
                         ].map((s) => (
                           <div key={s.label} style={{ textAlign: 'center' }}>
                             <div
@@ -936,7 +938,7 @@ export default function PotGeometry() {
                           width: '100%',
                           padding: '14px',
                           borderRadius: 12,
-                          background: 'linear-gradient(135deg,#f97316,#eab308)',
+                          background: 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),#eab308)',
                           border: 'none',
                           color: '#000',
                           fontWeight: 900,

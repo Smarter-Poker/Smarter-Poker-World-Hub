@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-52 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-44 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -255,7 +257,7 @@ export default function SessionWarmupPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -268,7 +270,7 @@ export default function SessionWarmupPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -292,7 +294,7 @@ export default function SessionWarmupPage() {
             right: 20,
             zIndex: 10,
             fontSize: 10,
-            color: '#334155',
+            color: 'var(--sp-fg-faint)',
           }}
         >
           Warmups completed: {completionCount}
@@ -316,7 +318,7 @@ export default function SessionWarmupPage() {
               transition={{ duration: MOTION.standard }}
               style={{
                 height: '100%',
-                background: 'linear-gradient(90deg, #3b82f6, #a855f7)',
+                background: 'linear-gradient(90deg, rgba(var(--sp-accent-blue-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 borderRadius: '0 2px 2px 0',
               }}
             />
@@ -353,14 +355,14 @@ export default function SessionWarmupPage() {
                 }}
               >
                 {/* TRAIN-WARMUP-A11Y-1: SVG StepIcon replaces emoji */}
-                <div style={{ fontSize: 40, marginBottom: 16, display: 'inline-flex', justifyContent: 'center', color: '#3b82f6' }} aria-hidden>
+                <div style={{ fontSize: 40, marginBottom: 16, display: 'inline-flex', justifyContent: 'center', color: 'var(--sp-accent-blue)' }} aria-hidden>
                   <StepIcon kind={currentStep.iconKind} size={40} />
                 </div>
                 <div
                   style={{
                     fontSize: 12,
                     fontWeight: 800,
-                    color: '#3b82f6',
+                    color: 'var(--sp-accent-blue)',
                     textTransform: 'uppercase',
                     letterSpacing: 2,
                     marginBottom: 16,
@@ -384,7 +386,7 @@ export default function SessionWarmupPage() {
                 <div
                   style={{
                     fontSize: 14,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     lineHeight: 1.6,
                     marginBottom: 32,
                     padding: '0 8px',
@@ -405,8 +407,8 @@ export default function SessionWarmupPage() {
                     }}
                   >
                     {currentStep.options.map((opt, i) => {
-                      const colors = ['#22c55e', '#3b82f6', '#fbbf24', '#ef4444', '#64748b'];
-                      const color = colors[i] || '#94a3b8';
+                      const colors = ['var(--sp-accent-green)', 'var(--sp-accent-blue)', 'var(--sp-accent-amber)', 'var(--sp-accent-red)', 'var(--sp-fg-dim)'];
+                      const color = colors[i] || 'var(--sp-fg-muted)';
                       return (
                         <motion.button
                           key={opt}
@@ -466,7 +468,7 @@ export default function SessionWarmupPage() {
                       onClick={submitInput}
                       disabled={!inputVal.trim()}
                       style={{
-                        background: inputVal.trim() ? '#3b82f6' : 'rgba(59,130,246,0.3)',
+                        background: inputVal.trim() ? 'var(--sp-accent-blue)' : 'rgba(59,130,246,0.3)',
                         color: '#fff',
                         border: 'none',
                         padding: '14px 32px',
@@ -498,7 +500,7 @@ export default function SessionWarmupPage() {
                         width: 6,
                         height: 6,
                         borderRadius: '50%',
-                        background: i <= step ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                        background: i <= step ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.1)',
                       }}
                     />
                   ))}
@@ -524,7 +526,7 @@ export default function SessionWarmupPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 24px',
-                  color: '#4ade80',
+                  color: 'var(--sp-accent-green)',
                 }}
               >
                 {/* TRAIN-WARMUP-A11Y-1: SVG check replaces ✓ */}
@@ -543,7 +545,7 @@ export default function SessionWarmupPage() {
               >
                 You are prepared.
               </h1>
-              <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 32 }}>
+              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 32 }}>
                 Protocol verified. Execute your strategy.
               </div>
 
@@ -561,7 +563,7 @@ export default function SessionWarmupPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     marginBottom: 8,
                     letterSpacing: 1,
@@ -581,11 +583,11 @@ export default function SessionWarmupPage() {
                         borderBottom: '1px solid rgba(255,255,255,0.03)',
                       }}
                     >
-                      <span style={{ fontSize: 11, color: '#64748b' }}>{label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{label}</span>
                       <span
                         style={{
                           fontSize: 11,
-                          color: '#e2e8f0',
+                          color: 'var(--sp-fg)',
                           fontWeight: 600,
                           maxWidth: 200,
                           overflow: 'hidden',
@@ -610,8 +612,8 @@ export default function SessionWarmupPage() {
                   marginBottom: 24,
                 }}
               >
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff' }}>TIP: </span>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>{tip}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>TIP: </span>
+                <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{tip}</span>
               </div>
 
               <motion.button
@@ -620,7 +622,7 @@ export default function SessionWarmupPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
                 style={{
-                  background: '#4ade80',
+                  background: 'var(--sp-accent-green)',
                   color: '#000',
                   border: 'none',
                   padding: '16px 40px',

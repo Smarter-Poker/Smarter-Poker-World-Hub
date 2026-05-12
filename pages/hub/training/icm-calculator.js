@@ -9,6 +9,8 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH5-23 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -245,7 +247,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
                 border: 'none',
                 background:
                   selectedPosition === pos
-                    ? 'linear-gradient(135deg, #a855f7, #6366f1)'
+                    ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
                     : 'rgba(255,255,255,0.04)',
                 color: selectedPosition === pos ? '#fff' : 'var(--sp-fg-muted)',
               }}
@@ -349,7 +351,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
                     ? 'rgba(34,197,94,0.25)'
                     : 'rgba(59,130,246,0.2)'
                 : 'rgba(255,255,255,0.03)',
-              color: cell.isPush ? 'var(--sp-fg)' : '#334155',
+              color: cell.isPush ? 'var(--sp-fg)' : 'var(--sp-fg-faint)',
               border: `1px solid ${cell.isPush ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.04)'}`,
             }}
           >
@@ -520,7 +522,7 @@ export default function ICMCalculatorPage() {
                 fontSize: 20,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -625,7 +627,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       stacks.length <= 2 ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.15)',
-                    color: stacks.length <= 2 ? '#334155' : 'var(--sp-accent-red)',
+                    color: stacks.length <= 2 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-red)',
                     cursor: stacks.length <= 2 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -644,7 +646,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       stacks.length >= 9 ? 'rgba(255,255,255,0.03)' : 'rgba(34,197,94,0.15)',
-                    color: stacks.length >= 9 ? '#334155' : 'var(--sp-accent-green)',
+                    color: stacks.length >= 9 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-green)',
                     cursor: stacks.length >= 9 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -737,7 +739,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       prizes.length <= 1 ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.15)',
-                    color: prizes.length <= 1 ? '#334155' : 'var(--sp-accent-red)',
+                    color: prizes.length <= 1 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-red)',
                     cursor: prizes.length <= 1 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -756,7 +758,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       prizes.length >= 9 ? 'rgba(255,255,255,0.03)' : 'rgba(34,197,94,0.15)',
-                    color: prizes.length >= 9 ? '#334155' : 'var(--sp-accent-green)',
+                    color: prizes.length >= 9 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-green)',
                     cursor: prizes.length >= 9 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -859,7 +861,7 @@ export default function ICMCalculatorPage() {
                 border: 'none',
                 background: loading
                   ? 'rgba(168,85,247,0.3)'
-                  : 'linear-gradient(135deg, #a855f7, #6366f1)',
+                  : 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
                 color: '#fff',
                 fontSize: 13,
                 fontWeight: 800,
@@ -1188,7 +1190,7 @@ export default function ICMCalculatorPage() {
                     transition: 'all 0.15s',
                     background:
                       icmView === tab.key
-                        ? 'linear-gradient(135deg, #a855f7, #6366f1)'
+                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
                         : 'rgba(255,255,255,0.06)',
                     color: icmView === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                   }}

@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-36 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-29 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -15,6 +17,10 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+
+// TRAIN-CSS-MOTION-ADOPT-17 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 
 
@@ -33,21 +39,21 @@ const POSITIONS = [
 ];
 
 const POSITION_COLORS = {
-  BTN: '#22c55e',
-  CO: '#3b82f6',
-  HJ: '#8b5cf6',
-  MP: '#f59e0b',
-  UTG: '#ef4444',
-  SB: '#f97316',
-  BB: '#06b6d4',
+  BTN: 'var(--sp-accent-green)',
+  CO: 'var(--sp-accent-blue)',
+  HJ: 'var(--sp-accent-purple)',
+  MP: 'var(--sp-accent-amber)',
+  UTG: 'var(--sp-accent-red)',
+  SB: 'var(--sp-accent-orange)',
+  BB: 'var(--sp-accent-cyan)',
 };
 
 function getAccuracyColor(acc) {
-  if (acc >= 75) return '#22c55e';
+  if (acc >= 75) return 'var(--sp-accent-green)';
   if (acc >= 60) return '#84cc16';
-  if (acc >= 45) return '#f59e0b';
-  if (acc >= 30) return '#f97316';
-  return '#ef4444';
+  if (acc >= 45) return 'var(--sp-accent-amber)';
+  if (acc >= 30) return 'var(--sp-accent-orange)';
+  return 'var(--sp-accent-red)';
 }
 
 function getAccuracyLabel(acc) {
@@ -296,7 +302,7 @@ export default function PositionMasteryPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -315,7 +321,7 @@ export default function PositionMasteryPage() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -328,7 +334,7 @@ export default function PositionMasteryPage() {
                 fontSize: 20,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #22c55e, #06b6d4)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #06b6d4)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -339,7 +345,7 @@ export default function PositionMasteryPage() {
             <span
               style={{
                 fontSize: 10,
-                color: '#22c55e',
+                color: 'var(--sp-accent-green)',
                 background: 'rgba(34,197,94,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -362,7 +368,7 @@ export default function PositionMasteryPage() {
                 background: 'rgba(239,68,68,0.1)',
                 border: '1px solid rgba(239,68,68,0.3)',
                 borderRadius: 8,
-                color: '#ef4444',
+                color: 'var(--sp-accent-red)',
                 fontSize: 12,
                 fontWeight: 600,
                 marginBottom: 14,
@@ -377,7 +383,7 @@ export default function PositionMasteryPage() {
                   border: '1px solid rgba(34,197,94,0.4)',
                   borderRadius: 6,
                   padding: '4px 12px',
-                  color: '#22c55e',
+                  color: 'var(--sp-accent-green)',
                   cursor: 'pointer',
                   fontSize: 11,
                   fontWeight: 700,
@@ -394,7 +400,7 @@ export default function PositionMasteryPage() {
               style={{
                 textAlign: 'center',
                 padding: 40,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontFamily: "'Orbitron', monospace",
                 fontSize: 12,
                 fontWeight: 700,
@@ -420,7 +426,7 @@ export default function PositionMasteryPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 8,
@@ -442,17 +448,17 @@ export default function PositionMasteryPage() {
                   }}
                 >
                   {[
-                    { color: '#ef4444', label: '0-30%' },
-                    { color: '#f97316', label: '30-45%' },
-                    { color: '#f59e0b', label: '45-60%' },
+                    { color: 'var(--sp-accent-red)', label: '0-30%' },
+                    { color: 'var(--sp-accent-orange)', label: '30-45%' },
+                    { color: 'var(--sp-accent-amber)', label: '45-60%' },
                     { color: '#84cc16', label: '60-75%' },
-                    { color: '#22c55e', label: '75%+' },
+                    { color: 'var(--sp-accent-green)', label: '75%+' },
                   ].map((l) => (
                     <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <div
                         style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }}
                       />
-                      <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                      <span style={{ fontSize: 9, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                         {l.label}
                       </span>
                     </div>
@@ -481,17 +487,17 @@ export default function PositionMasteryPage() {
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: '#ef4444',
+                        color: 'var(--sp-accent-red)',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                       }}
                     >
                       Weakest Position
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#e2e8f0', marginTop: 2 }}>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-fg)', marginTop: 2 }}>
                       {weakest.name} ({positionData[weakest.id]?.accuracy || 0}%)
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                       Focus your drills here to improve fastest
                     </div>
                   </div>
@@ -502,7 +508,7 @@ export default function PositionMasteryPage() {
                     style={{
                       padding: '8px 16px',
                       borderRadius: 8,
-                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #dc2626)',
                       border: 'none',
                       color: '#fff',
                       fontSize: 12,
@@ -529,7 +535,7 @@ export default function PositionMasteryPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
@@ -574,7 +580,7 @@ export default function PositionMasteryPage() {
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${width}%` }}
-                          transition={{ duration: 0.6, delay: i * 0.08 }}
+                          transition={{ duration: MOTION.slow, delay: i * 0.08 }}
                           style={{
                             height: '100%',
                             borderRadius: 4,
@@ -651,7 +657,7 @@ export default function PositionMasteryPage() {
                           {acc > 0 ? `${acc}%` : '--'}
                         </span>
                       </div>
-                      <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
+                      <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginBottom: 4 }}>
                         {pos.desc}
                       </div>
                       <div
@@ -659,14 +665,14 @@ export default function PositionMasteryPage() {
                           display: 'flex',
                           gap: 8,
                           fontSize: 9,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontWeight: 600,
                         }}
                       >
                         <span>{data.drills || 0} drills</span>
                         <span>{data.totalQ || 0} hands</span>
                         {data.streak > 0 && (
-                          <span style={{ color: '#a855f7' }}>{data.streak} streak</span>
+                          <span style={{ color: 'var(--sp-accent-purple)' }}>{data.streak} streak</span>
                         )}
                       </div>
                       <div
@@ -699,7 +705,7 @@ export default function PositionMasteryPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
@@ -708,7 +714,7 @@ export default function PositionMasteryPage() {
                 >
                   About Position Mastery
                 </div>
-                <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
                   GTO accuracy varies significantly by position. Most players are weakest from the
                   blinds (SB/BB) and strongest from late position (BTN/CO). Use this map to identify
                   your weakest seats, then drill those positions specifically using the Drill

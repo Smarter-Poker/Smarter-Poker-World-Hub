@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-58 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -67,12 +68,12 @@ function generateTables() {
         quality >= 75 ? 'EXCELLENT' : quality >= 55 ? 'GOOD' : quality >= 35 ? 'AVERAGE' : 'TOUGH',
       qualityColor:
         quality >= 75
-          ? '#4ade80'
+          ? 'var(--sp-accent-green)'
           : quality >= 55
-            ? '#f59e0b'
+            ? 'var(--sp-accent-amber)'
             : quality >= 35
-              ? '#3b82f6'
-              : '#ef4444',
+              ? 'var(--sp-accent-blue)'
+              : 'var(--sp-accent-red)',
     });
   }
 
@@ -235,7 +236,7 @@ export default function TableWizardPage() {
                 cursor: 'pointer',
                 background: 'rgba(34,197,94,0.1)',
                 border: '1px solid rgba(34,197,94,0.3)',
-                color: '#4ade80',
+                color: 'var(--sp-accent-green)',
               }}
             >
               Refresh Tables
@@ -322,13 +323,13 @@ export default function TableWizardPage() {
             }}
           >
             <span style={{ fontSize: 12, color: '#b0b3b8' }}>{filtered.length} tables</span>
-            <span style={{ fontSize: 12, color: '#4ade80' }}>
+            <span style={{ fontSize: 12, color: 'var(--sp-accent-green)' }}>
               {filtered.filter((t) => t.quality >= 70).length} excellent
             </span>
-            <span style={{ fontSize: 12, color: '#f59e0b' }}>
+            <span style={{ fontSize: 12, color: 'var(--sp-accent-amber)' }}>
               {filtered.filter((t) => t.quality >= 50 && t.quality < 70).length} good
             </span>
-            <span style={{ fontSize: 12, color: '#ef4444' }}>
+            <span style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>
               {filtered.filter((t) => t.quality < 50).length} tough
             </span>
           </div>
@@ -413,7 +414,7 @@ export default function TableWizardPage() {
                         VPIP:{' '}
                         <span
                           style={{
-                            color: table.avgVPIP > 30 ? '#4ade80' : '#e4e6eb',
+                            color: table.avgVPIP > 30 ? 'var(--sp-accent-green)' : '#e4e6eb',
                             fontWeight: 600,
                           }}
                         >
@@ -518,7 +519,7 @@ export default function TableWizardPage() {
                                 : table.qualityColor,
                             border:
                               joinedTable === table.id ? '1px solid rgba(34,197,94,0.3)' : 'none',
-                            color: joinedTable === table.id ? '#4ade80' : '#000',
+                            color: joinedTable === table.id ? 'var(--sp-accent-green)' : '#000',
                             fontFamily: "'Rajdhani', sans-serif",
                             letterSpacing: '0.08em',
                           }}

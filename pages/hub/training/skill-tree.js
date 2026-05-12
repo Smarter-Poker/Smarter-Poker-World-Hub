@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-53 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-46 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -18,6 +20,10 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+
+// TRAIN-CSS-MOTION-ADOPT-25 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BRANCH ICONS — TRAIN-SKILL-TREE-A11Y-1
@@ -82,7 +88,7 @@ const SKILL_BRANCHES = [
   {
     id: 'preflop',
     name: 'Preflop Foundations',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
     icon: '🃏',
     nodes: [
       { id: 'open-raise', name: 'Open Raise', threshold: 60, xp: 100, gameId: 'cash-preflop' },
@@ -115,7 +121,7 @@ const SKILL_BRANCHES = [
   {
     id: 'postflop',
     name: 'Postflop Mastery',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     icon: '🎯',
     nodes: [
       { id: 'cbet-basics', name: 'C-Bet Basics', threshold: 60, xp: 100, gameId: 'cash-cbet' },
@@ -148,7 +154,7 @@ const SKILL_BRANCHES = [
   {
     id: 'advanced',
     name: 'Advanced Theory',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     icon: '⚡',
     nodes: [
       {
@@ -187,7 +193,7 @@ const SKILL_BRANCHES = [
   {
     id: 'mastery',
     name: 'GTO Mastery',
-    color: '#fbbf24',
+    color: 'var(--sp-accent-amber)',
     icon: '👑',
     nodes: [
       { id: 'icm-mastery', name: 'ICM Mastery', threshold: 70, xp: 300, gameId: 'mtt-icm' },
@@ -338,12 +344,12 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
             style={{
               fontSize: 13,
               fontWeight: 700,
-              color: isMastered ? branchColor : isLocked ? '#334155' : '#e2e8f0',
+              color: isMastered ? branchColor : isLocked ? 'var(--sp-fg-faint)' : 'var(--sp-fg)',
             }}
           >
             {node.name}
           </div>
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 1 }}>
+          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 1 }}>
             {isLocked
               ? 'Locked — complete prerequisite'
               : isMastered
@@ -362,15 +368,15 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
                 fontSize: 14,
                 fontWeight: 800,
                 color: isMastered
-                  ? '#4ade80'
+                  ? 'var(--sp-accent-green)'
                   : accuracy >= node.threshold * 0.8
-                    ? '#fbbf24'
-                    : '#64748b',
+                    ? 'var(--sp-accent-amber)'
+                    : 'var(--sp-fg-dim)',
               }}
             >
               {accuracy !== null ? `${accuracy}%` : '—'}
             </div>
-            <div style={{ fontSize: 9, color: '#475569' }}>{node.xp} XP</div>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{node.xp} XP</div>
           </>
         )}
       </div>
@@ -450,7 +456,7 @@ export default function SkillTreePage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -473,7 +479,7 @@ export default function SkillTreePage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -503,7 +509,7 @@ export default function SkillTreePage() {
           <div style={{ flex: 1 }}>
             {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Skill Tree</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Master your GTO progression</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Master your GTO progression</div>
           </div>
           {/* TRAIN-SKILL-TREE-A11Y-1: status role + readable aria-label */}
           <div
@@ -516,8 +522,8 @@ export default function SkillTreePage() {
               border: '1px solid rgba(251,191,36,0.2)',
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontVariantNumeric: 'tabular-nums' }}>{xp}</span>
-            <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>XP</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)', fontVariantNumeric: 'tabular-nums' }}>{xp}</span>
+            <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>XP</span>
           </div>
         </div>
 
@@ -548,14 +554,14 @@ export default function SkillTreePage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                 }}
               >
                 NODES MASTERED
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#00d4ff' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                 {masteredCount}/{totalNodes}
               </div>
             </div>
@@ -570,11 +576,11 @@ export default function SkillTreePage() {
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(masteredCount / totalNodes) * 100}%` }}
-                transition={{ duration: 0.8 }}
+                transition={{ duration: MOTION.glacial }}
                 style={{
                   height: '100%',
                   borderRadius: 3,
-                  background: 'linear-gradient(90deg, #00d4ff, #a855f7)',
+                  background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 }}
               />
             </div>
@@ -618,7 +624,7 @@ export default function SkillTreePage() {
                     style={{
                       marginLeft: 'auto',
                       fontSize: 10,
-                      color: '#475569',
+                      color: 'var(--sp-fg-faint)',
                     }}
                   >
                     {

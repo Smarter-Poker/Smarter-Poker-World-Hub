@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-10 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-2 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -695,7 +696,7 @@ export default function HandAnalyzer() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -797,7 +798,7 @@ export default function HandAnalyzer() {
                     border: 'none',
                     cursor: rawText.trim() ? 'pointer' : 'not-allowed',
                     background: rawText.trim()
-                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
                       : 'rgba(255,255,255,0.06)',
                     color: rawText.trim() ? '#fff' : 'var(--sp-fg-faint)',
                     fontFamily: "'Inter', sans-serif",

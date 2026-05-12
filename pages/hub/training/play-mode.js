@@ -9,6 +9,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH4-8 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-MOBILE-ADOPT-15 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-28 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -807,7 +808,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
           textAlign: 'center',
           marginBottom: 20,
           fontFamily: "'Orbitron', monospace",
-          background: 'linear-gradient(135deg, #00d4ff, #22c55e)',
+          background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}
@@ -987,7 +988,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
             fontWeight: 700,
             border: 'none',
             cursor: 'pointer',
-            background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+            background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
             color: '#fff',
           }}
         >
@@ -1078,7 +1079,7 @@ export default function PlayModePage() {
               fontSize: 20,
               fontWeight: 800,
               margin: 0,
-              background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+              background: 'linear-gradient(135deg, #f59e0b, rgba(var(--sp-accent-red-rgb), 1))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontFamily: "'Orbitron', monospace",
@@ -1115,7 +1116,7 @@ export default function PlayModePage() {
                   fontWeight: 800,
                   marginBottom: 8,
                   fontFamily: "'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  background: 'linear-gradient(135deg, #f59e0b, rgba(var(--sp-accent-red-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -1235,7 +1236,7 @@ export default function PlayModePage() {
                   fontWeight: 800,
                   border: 'none',
                   cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  background: 'linear-gradient(135deg, #f59e0b, rgba(var(--sp-accent-red-rgb), 1))',
                   color: '#fff',
                   fontFamily: "'Orbitron', monospace",
                   boxShadow: '0 4px 20px rgba(245,158,11,0.3)',
@@ -1514,7 +1515,7 @@ export default function PlayModePage() {
                         style={{
                           flex: 2,
                           padding: 12,
-                          background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                          background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #b91c1c)',
                           color: '#fff',
                           border: 'none',
                           borderRadius: 10,
@@ -1750,7 +1751,7 @@ export default function PlayModePage() {
                   fontWeight: 700,
                   border: 'none',
                   cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                   color: '#fff',
                   fontFamily: "'Orbitron', monospace",
                 }}

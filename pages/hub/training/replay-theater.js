@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH5-49 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -23,6 +24,10 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { calculateEVLoss, calculateActionEVs } from '../../../src/engines/EVCalculator';
 import { classifyMove } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+
+// TRAIN-CSS-MOTION-ADOPT-23 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-9a — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -142,21 +147,21 @@ function MistakeCard({ mistake, onPractice }) {
             ❌
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
               {mistake.position} · {mistake.street}
             </div>
-            <div style={{ fontSize: 10, color: '#64748b' }}>
+            <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
               {mistake.gameName} · {formatDate(mistake.timestamp)}
             </div>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444' }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
             -{mistake.evLoss} BB
           </div>
           <motion.span
             animate={{ rotate: expanded ? 180 : 0 }}
-            style={{ color: '#475569', fontSize: 12 }}
+            style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}
           >
             ▼
           </motion.span>
@@ -169,7 +174,7 @@ function MistakeCard({ mistake, onPractice }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: MOTION.standard }}
             style={{ overflow: 'hidden' }}
           >
             <div style={{ padding: '0 14px 14px' }}>
@@ -194,7 +199,7 @@ function MistakeCard({ mistake, onPractice }) {
                     style={{
                       fontSize: 9,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 0.5,
                       marginBottom: 4,
@@ -202,7 +207,7 @@ function MistakeCard({ mistake, onPractice }) {
                   >
                     YOU CHOSE
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#f87171' }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                     {mistake.yourAction}
                   </div>
                 </div>
@@ -219,7 +224,7 @@ function MistakeCard({ mistake, onPractice }) {
                     style={{
                       fontSize: 9,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 0.5,
                       marginBottom: 4,
@@ -227,7 +232,7 @@ function MistakeCard({ mistake, onPractice }) {
                   >
                     CORRECT
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#4ade80' }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                     {mistake.correctAction}
                   </div>
                 </div>
@@ -242,7 +247,7 @@ function MistakeCard({ mistake, onPractice }) {
                     borderRadius: 8,
                     border: '1px solid rgba(0,212,255,0.2)',
                     background: 'rgba(0,212,255,0.06)',
-                    color: '#00d4ff',
+                    color: 'var(--sp-accent-cyan)',
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -267,7 +272,7 @@ function MistakeCard({ mistake, onPractice }) {
                     borderRadius: 8,
                     border: '1px solid rgba(168,85,247,0.2)',
                     background: 'rgba(168,85,247,0.06)',
-                    color: '#a855f7',
+                    color: 'var(--sp-accent-purple)',
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -353,7 +358,7 @@ export default function ReplayTheaterPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -372,7 +377,7 @@ export default function ReplayTheaterPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -387,7 +392,7 @@ export default function ReplayTheaterPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Replay Theater</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               Review and learn from your mistakes
             </div>
           </div>
@@ -412,13 +417,13 @@ export default function ReplayTheaterPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                 {filteredMistakes.length}
               </div>
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                 }}
@@ -435,13 +440,13 @@ export default function ReplayTheaterPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                 {(Number.isFinite(Number(totalEVLoss)) ? Number(totalEVLoss) : 0).toFixed(1)}
               </div>
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                 }}
@@ -466,7 +471,7 @@ export default function ReplayTheaterPage() {
                   flexShrink: 0,
                   border: `1px solid ${filter === p ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: filter === p ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: filter === p ? '#00d4ff' : '#64748b',
+                  color: filter === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -492,7 +497,7 @@ export default function ReplayTheaterPage() {
                   flex: 1,
                   border: `1px solid ${streetFilter === s ? 'rgba(168,85,247,0.2)' : 'transparent'}`,
                   background: streetFilter === s ? 'rgba(168,85,247,0.06)' : 'transparent',
-                  color: streetFilter === s ? '#a855f7' : '#64748b',
+                  color: streetFilter === s ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -533,9 +538,9 @@ export default function ReplayTheaterPage() {
                 alignItems: 'center',
               }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Biggest Leak</div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#f87171' }}>{worstLeak[0]}</div>
-                  <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>{worstLeak[1].count} mistakes · {worstLeak[1].evLoss.toFixed(1)} BB lost</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Biggest Leak</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-red)' }}>{worstLeak[0]}</div>
+                  <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{worstLeak[1].count} mistakes · {worstLeak[1].evLoss.toFixed(1)} BB lost</div>
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -549,7 +554,7 @@ export default function ReplayTheaterPage() {
                     borderRadius: 8,
                     background: 'rgba(0,212,255,0.06)',
                     border: '1px solid rgba(0,212,255,0.2)',
-                    color: '#00d4ff',
+                    color: 'var(--sp-accent-cyan)',
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: 'pointer',

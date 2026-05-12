@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-28 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -83,7 +84,7 @@ export default function LiveHudSyncPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#05050A',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -103,7 +104,7 @@ export default function LiveHudSyncPage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -118,7 +119,7 @@ export default function LiveHudSyncPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Live HUD Sync</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>Hardware Beacon Manager</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Hardware Beacon Manager</div>
             </div>
           </div>
         </div>
@@ -191,7 +192,7 @@ export default function LiveHudSyncPage() {
             <div
               style={{
                 zIndex: 2,
-                background: connected ? '#00d4ff' : '#1e293b',
+                background: connected ? 'var(--sp-accent-cyan)' : 'var(--sp-bg-elev2)',
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
@@ -215,7 +216,7 @@ export default function LiveHudSyncPage() {
                   right: 40,
                   width: 12,
                   height: 12,
-                  background: '#4ade80',
+                  background: 'var(--sp-accent-green)',
                   borderRadius: '50%',
                   boxShadow: '0 0 10px #4ade80',
                 }}
@@ -240,10 +241,10 @@ export default function LiveHudSyncPage() {
                   ? 'Beacon Connected'
                   : 'No Beacon Detected'}
             </div>
-            <div style={{ fontSize: 14, color: '#94a3b8' }}>
+            <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)' }}>
               {connected ? (
                 <>
-                  <div style={{ color: '#00d4ff', fontWeight: 700 }}>Paired with {beaconName}</div>
+                  <div style={{ color: 'var(--sp-accent-cyan)', fontWeight: 700 }}>Paired with {beaconName}</div>
                   <div
                     style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12 }}
                   >
@@ -254,15 +255,15 @@ export default function LiveHudSyncPage() {
                           fontWeight: 800,
                           color:
                             signalStrength > 80
-                              ? '#4ade80'
+                              ? 'var(--sp-accent-green)'
                               : signalStrength > 50
-                                ? '#fbbf24'
-                                : '#ef4444',
+                                ? 'var(--sp-accent-amber)'
+                                : 'var(--sp-accent-red)',
                         }}
                       >
                         {signalStrength}%
                       </div>
-                      <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', textTransform: 'uppercase' }}>
                         Signal
                       </div>
                     </div>
@@ -271,20 +272,20 @@ export default function LiveHudSyncPage() {
                         style={{
                           fontSize: 18,
                           fontWeight: 800,
-                          color: battery > 50 ? '#4ade80' : battery > 20 ? '#fbbf24' : '#ef4444',
+                          color: battery > 50 ? 'var(--sp-accent-green)' : battery > 20 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                         }}
                       >
                         {battery}%
                       </div>
-                      <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', textTransform: 'uppercase' }}>
                         Battery
                       </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#94a3b8' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                         {firmware}
                       </div>
-                      <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', textTransform: 'uppercase' }}>
                         Firmware
                       </div>
                     </div>
@@ -306,7 +307,7 @@ export default function LiveHudSyncPage() {
               borderRadius: 16,
               background: connected ? 'rgba(239,68,68,0.1)' : 'rgba(0,212,255,0.1)',
               border: `1px solid ${connected ? 'rgba(239,68,68,0.3)' : 'rgba(0,212,255,0.3)'}`,
-              color: connected ? '#fca5a5' : '#00d4ff',
+              color: connected ? 'var(--sp-accent-red)' : 'var(--sp-accent-cyan)',
               fontSize: 16,
               fontWeight: 800,
               cursor: scanning ? 'not-allowed' : 'pointer',
@@ -335,7 +336,7 @@ export default function LiveHudSyncPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 20,
@@ -372,11 +373,11 @@ export default function LiveHudSyncPage() {
                   >
                     <div>
                       <div
-                        style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}
+                        style={{ fontSize: 15, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 4 }}
                       >
                         {s.title}
                       </div>
-                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.desc}</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{s.desc}</div>
                     </div>
                     <button
                       onClick={() => setSettings((prev) => ({ ...prev, [s.key]: !prev[s.key] }))}
@@ -384,7 +385,7 @@ export default function LiveHudSyncPage() {
                         width: 44,
                         height: 24,
                         borderRadius: 12,
-                        background: settings[s.key] ? '#4ade80' : '#334155',
+                        background: settings[s.key] ? 'var(--sp-accent-green)' : 'var(--sp-fg-faint)',
                         border: 'none',
                         position: 'relative',
                         cursor: 'pointer',

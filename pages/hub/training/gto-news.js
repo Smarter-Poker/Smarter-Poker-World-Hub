@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-18 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-13 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -227,7 +229,7 @@ function CategoryIcon({ cat, size=14 }) {
 }
 
 const CAT_ICONS = { Preflop: '🃏', Postflop: '🎯', Math: '🧮', Mental: '🧠' };
-const CAT_COLORS = { Preflop: '#3b82f6', Postflop: '#22c55e', Math: '#fbbf24', Mental: '#a855f7' };
+const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Mental: 'var(--sp-accent-purple)' };
 
 export default function GtoNewsPage() {
   const router = useRouter();
@@ -349,7 +351,7 @@ export default function GtoNewsPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -370,7 +372,7 @@ export default function GtoNewsPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -387,7 +389,7 @@ export default function GtoNewsPage() {
           <div style={{ flex: 1 }}>
             {/* TRAIN-NEWS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO News</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }} role="status" aria-label={`${readArticles.size} of ${ARTICLES.length} articles read`}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${readArticles.size} of ${ARTICLES.length} articles read`}>
               {readArticles.size}/{ARTICLES.length} articles read
             </div>
           </div>
@@ -401,7 +403,7 @@ export default function GtoNewsPage() {
               border: `1px solid ${showBookmarksOnly ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)'}`,
               borderRadius: 6,
               padding: '4px 10px',
-              color: showBookmarksOnly ? '#fbbf24' : '#64748b',
+              color: showBookmarksOnly ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer',
@@ -427,12 +429,12 @@ export default function GtoNewsPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               {/* TRAIN-NEWS-A11Y-1: SVG lightbulb */}
-              <span style={{ display: 'inline-flex', color: '#fbbf24' }} aria-hidden><LightbulbIcon size={14} /></span>
+              <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-hidden><LightbulbIcon size={14} /></span>
               <span
                 style={{
                   fontSize: 10,
                   fontWeight: 800,
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                 }}
@@ -440,7 +442,7 @@ export default function GtoNewsPage() {
                 Tip of the Day
               </span>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{dailyTip.title}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>{dailyTip.title}</div>
           </div>
 
           {/* Search */}
@@ -456,7 +458,7 @@ export default function GtoNewsPage() {
               borderRadius: 8,
               background: 'rgba(0,0,0,0.3)',
               border: '1px solid rgba(255,255,255,0.08)',
-              color: '#e2e8f0',
+              color: 'var(--sp-fg)',
               fontSize: 13,
               outline: 'none',
               marginBottom: 12,
@@ -477,7 +479,7 @@ export default function GtoNewsPage() {
                   borderRadius: 6,
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: catFilter === c ? '#00d4ff' : '#64748b',
+                  color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 10,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -508,7 +510,7 @@ export default function GtoNewsPage() {
               style={{
                 height: '100%',
                 borderRadius: 2,
-                background: 'linear-gradient(90deg, #00d4ff, #a855f7)',
+                background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 width: `${(readArticles.size / ARTICLES.length) * 100}%`,
                 transition: 'width 0.3s',
               }}
@@ -543,7 +545,7 @@ export default function GtoNewsPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon */}
-                  <span style={{ display: 'inline-flex', color: '#94a3b8' }} aria-hidden><CategoryIcon cat={a.cat} size={14} /></span>
+                  <span style={{ display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden><CategoryIcon cat={a.cat} size={14} /></span>
                   <span
                     style={{
                       padding: '1px 6px',
@@ -557,15 +559,15 @@ export default function GtoNewsPage() {
                     {a.cat}
                   </span>
                   {readArticles.has(a.id) && (
-                    <span style={{ fontSize: 8, color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ fontSize: 8, color: 'var(--sp-accent-green)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                       {/* TRAIN-NEWS-A11Y-1: SVG check */}
                       <CheckIcon size={8} /> read
                     </span>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ fontSize: 9, color: '#334155' }}>{a.readTime}m</span>
-                  <span style={{ fontSize: 9, color: '#334155' }}>{a.date}</span>
+                  <span style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{a.readTime}m</span>
+                  <span style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{a.date}</span>
                   <motion.button
                     type="button"
                     aria-label={bookmarks.has(a.id) ? `Remove bookmark: ${a.title}` : `Bookmark article: ${a.title}`}
@@ -582,7 +584,7 @@ export default function GtoNewsPage() {
                       fontSize: 14,
                       padding: 0,
                       display: 'inline-flex',
-                      color: bookmarks.has(a.id) ? '#fbbf24' : '#334155',
+                      color: bookmarks.has(a.id) ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
                     }}
                   >
                     {/* TRAIN-NEWS-A11Y-1: SVG bookmark star */}
@@ -594,7 +596,7 @@ export default function GtoNewsPage() {
                 style={{
                   fontSize: 14,
                   fontWeight: 700,
-                  color: readArticles.has(a.id) ? '#94a3b8' : '#e2e8f0',
+                  color: readArticles.has(a.id) ? 'var(--sp-fg-muted)' : 'var(--sp-fg)',
                   marginBottom: expanded === a.id ? 8 : 0,
                 }}
               >
@@ -608,7 +610,7 @@ export default function GtoNewsPage() {
                     exit={{ opacity: 0, height: 0 }}
                     style={{ overflow: 'hidden' }}
                   >
-                    <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.7, paddingTop: 4 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.7, paddingTop: 4 }}>
                       {a.body}
                     </div>
                   </motion.div>

@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-7 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -75,7 +76,7 @@ const CATEGORIES = [
 ];
 
 function getAvatarColor(str) {
-  if (!str) return '#00d4ff';
+  if (!str) return 'var(--sp-accent-cyan)';
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return `hsl(${Math.abs(hash) % 360}, 55%, 50%)`;
@@ -148,7 +149,7 @@ export default function CommunityLeaderboardPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -169,7 +170,7 @@ export default function CommunityLeaderboardPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -186,7 +187,7 @@ export default function CommunityLeaderboardPage() {
           <div>
             {/* TRAIN-COMMUNITY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Community Leaderboard</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Global GTO rankings</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Global GTO rankings</div>
           </div>
         </div>
 
@@ -207,7 +208,7 @@ export default function CommunityLeaderboardPage() {
                   borderRadius: 8,
                   border: `1px solid ${period === p ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: period === p ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: period === p ? '#00d4ff' : '#64748b',
+                  color: period === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -234,7 +235,7 @@ export default function CommunityLeaderboardPage() {
                   flexShrink: 0,
                   border: `1px solid ${category === c.id ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
                   background: category === c.id ? 'rgba(251,191,36,0.06)' : 'transparent',
-                  color: category === c.id ? '#fbbf24' : '#64748b',
+                  color: category === c.id ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -301,7 +302,7 @@ export default function CommunityLeaderboardPage() {
                         fontSize: 10,
                         fontWeight: 700,
                         marginBottom: 2,
-                        color: p.isYou ? '#00d4ff' : '#e2e8f0',
+                        color: p.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -309,7 +310,7 @@ export default function CommunityLeaderboardPage() {
                     >
                       {p.name}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24' }}>{p.score}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{p.score}</div>
                   </motion.div>
                 );
               })}
@@ -342,14 +343,14 @@ export default function CommunityLeaderboardPage() {
                     justifyContent: 'center',
                     fontSize: 12,
                     fontWeight: 800,
-                    color: '#00d4ff',
+                    color: 'var(--sp-accent-cyan)',
                   }}
                 >
                   #{userEntry.rank}
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff' }}>Your Rank</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>Your Rank</div>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#00d4ff' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                 {userEntry.score}
                 {category !== 'streaks' ? '%' : 'd'}
               </div>
@@ -381,7 +382,7 @@ export default function CommunityLeaderboardPage() {
                       width: 24,
                       fontSize: 11,
                       fontWeight: 700,
-                      color: '#475569',
+                      color: 'var(--sp-fg-faint)',
                       textAlign: 'center',
                     }}
                   >
@@ -408,12 +409,12 @@ export default function CommunityLeaderboardPage() {
                       style={{
                         fontSize: 12,
                         fontWeight: entry.isYou ? 800 : 600,
-                        color: entry.isYou ? '#00d4ff' : '#e2e8f0',
+                        color: entry.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
                       }}
                     >
                       {entry.name}
                     </div>
-                    <div style={{ fontSize: 9, color: '#475569' }}>
+                    <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
                       {entry.hands} hands · {entry.sessions} sessions
                     </div>
                   </div>
@@ -423,7 +424,7 @@ export default function CommunityLeaderboardPage() {
                     fontSize: 14,
                     fontWeight: 800,
                     color:
-                      entry.score >= 80 ? '#4ade80' : entry.score >= 65 ? '#fbbf24' : '#f87171',
+                      entry.score >= 80 ? 'var(--sp-accent-green)' : entry.score >= 65 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                   }}
                 >
                   {entry.score}

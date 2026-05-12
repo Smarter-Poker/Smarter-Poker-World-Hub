@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-1 — hex sweep batch 5: literals routed to --sp-* tokens
 import SEOHead from '../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { useState, useEffect } from 'react';
@@ -20,11 +21,11 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-2c — adoption: shared empty-state primitive
 
 const RARITY_COLORS = {
-  common: '#9ca3af',
-  uncommon: '#22c55e',
-  rare: '#3b82f6',
-  epic: '#a855f7',
-  legendary: '#fbbf24',
+  common: 'var(--sp-fg-muted)',
+  uncommon: 'var(--sp-accent-green)',
+  rare: 'var(--sp-accent-blue)',
+  epic: 'var(--sp-accent-purple)',
+  legendary: 'var(--sp-accent-amber)',
 };
 
 // BUG FIX (TRAIN-ACHIEVEMENTS-A11Y-1): replaced emoji map with SVG icon
@@ -306,7 +307,7 @@ export default function TrainingAchievements() {
                             borderRadius: 4,
                             border: 'none',
                             background: 'rgba(168,85,247,0.1)',
-                            color: '#a855f7',
+                            color: 'var(--sp-accent-purple)',
                             fontSize: 9,
                             fontWeight: 700,
                             cursor: sharingId === ach.id ? 'not-allowed' : 'pointer',
@@ -334,7 +335,7 @@ export default function TrainingAchievements() {
                           width: `${Math.min(100, (ach.progress || 0))}%`,
                           height: '100%',
                           borderRadius: 2,
-                          background: RARITY_COLORS[ach.rarity] || '#9ca3af',
+                          background: RARITY_COLORS[ach.rarity] || 'var(--sp-fg-muted)',
                         }} />
                       </div>
                     )}
@@ -391,11 +392,11 @@ const styles = {
   statValue: {
     fontSize: '24px',
     fontWeight: 700,
-    color: '#fbbf24',
+    color: 'var(--sp-accent-amber)',
   },
   statLabel: {
     fontSize: '12px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '4px',
   },
   filters: {
@@ -410,7 +411,7 @@ const styles = {
     background: 'transparent',
     border: '1px solid #333',
     borderRadius: '8px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     fontSize: '12px',
     fontWeight: 600,
     cursor: 'pointer',
@@ -428,7 +429,7 @@ const styles = {
   loading: {
     textAlign: 'center',
     padding: '40px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   grid: {
     display: 'flex',
@@ -456,7 +457,7 @@ const styles = {
   },
   achDesc: {
     fontSize: '13px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '4px',
   },
   achRarity: {
@@ -475,7 +476,7 @@ const styles = {
     color: '#00E0FF',
   },
   unlocked: {
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     fontSize: '20px',
     marginTop: '4px',
     display: 'inline-flex',

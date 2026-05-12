@@ -10,6 +10,7 @@
 
 // TRAIN-CSS-TOKENS-ADOPT-4 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-5 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-48 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -290,7 +291,7 @@ export default function SpotTrainerPage() {
                 fontSize: 20,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #f97316, #ef4444)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -394,7 +395,7 @@ export default function SpotTrainerPage() {
                     transition: 'all 0.15s',
                     background:
                       format === opt.value
-                        ? 'linear-gradient(135deg, #f97316, #ef4444)'
+                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
                         : 'rgba(255,255,255,0.06)',
                     color: format === opt.value ? '#fff' : 'var(--sp-fg-muted)',
                   }}
@@ -421,7 +422,7 @@ export default function SpotTrainerPage() {
                     transition: 'all 0.15s',
                     background:
                       position === opt.value
-                        ? 'linear-gradient(135deg, #f97316, #ef4444)'
+                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
                         : 'rgba(255,255,255,0.06)',
                     color: position === opt.value ? '#fff' : 'var(--sp-fg-muted)',
                   }}
@@ -741,7 +742,7 @@ export default function SpotTrainerPage() {
                     style={{
                       width: '100%',
                       padding: '12px 0',
-                      background: 'linear-gradient(135deg, #f97316, #ef4444)',
+                      background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
                       border: 'none',
                       borderRadius: 10,
                       color: '#fff',

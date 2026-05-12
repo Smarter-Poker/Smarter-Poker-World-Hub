@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-50 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-40 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -116,7 +118,7 @@ export default function RiskAnalyzerPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0B0D11',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
           paddingBottom: 60,
         }}
@@ -135,7 +137,7 @@ export default function RiskAnalyzerPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -148,7 +150,7 @@ export default function RiskAnalyzerPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Risk Analyzer</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Monte Carlo Bankroll Simulator</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Monte Carlo Bankroll Simulator</div>
           </div>
         </div>
 
@@ -174,10 +176,10 @@ export default function RiskAnalyzerPage() {
           >
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                   True Win Rate (bb/100)
                 </label>
-                <span style={{ color: '#4ade80', fontWeight: 800 }}>{winRate} bb</span>
+                <span style={{ color: 'var(--sp-accent-green)', fontWeight: 800 }}>{winRate} bb</span>
               </div>
               <input
                 type="range"
@@ -186,16 +188,16 @@ export default function RiskAnalyzerPage() {
                 step="0.5"
                 value={winRate}
                 onChange={(e) => setWinRate(e.target.value)}
-                style={{ width: '100%', accentColor: '#4ade80' }}
+                style={{ width: '100%', accentColor: 'var(--sp-accent-green)' }}
               />
             </div>
 
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                   Standard Deviation
                 </label>
-                <span style={{ color: '#fbbf24', fontWeight: 800 }}>{stdDev} bb/100</span>
+                <span style={{ color: 'var(--sp-accent-amber)', fontWeight: 800 }}>{stdDev} bb/100</span>
               </div>
               <input
                 type="range"
@@ -204,19 +206,19 @@ export default function RiskAnalyzerPage() {
                 step="5"
                 value={stdDev}
                 onChange={(e) => setStdDev(e.target.value)}
-                style={{ width: '100%', accentColor: '#fbbf24' }}
+                style={{ width: '100%', accentColor: 'var(--sp-accent-amber)' }}
               />
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
                 Live Full Ring ~ 60 | Online 6-Max ~ 90 | PLO ~ 140
               </div>
             </div>
 
             <div style={{ marginBottom: 32 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                   Dedicated Bankroll (BBs)
                 </label>
-                <span style={{ color: '#00d4ff', fontWeight: 800 }}>{bankroll} BBs</span>
+                <span style={{ color: 'var(--sp-accent-cyan)', fontWeight: 800 }}>{bankroll} BBs</span>
               </div>
               <input
                 type="range"
@@ -225,9 +227,9 @@ export default function RiskAnalyzerPage() {
                 step="100"
                 value={bankroll}
                 onChange={(e) => setBankroll(e.target.value)}
-                style={{ width: '100%', accentColor: '#00d4ff' }}
+                style={{ width: '100%', accentColor: 'var(--sp-accent-cyan)' }}
               />
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
                 E.g. 25 Buy-ins at 100BB = 2500 BBs
               </div>
             </div>
@@ -239,7 +241,7 @@ export default function RiskAnalyzerPage() {
               style={{
                 width: '100%',
                 padding: '16px',
-                background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #6366f1)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 12,
@@ -280,7 +282,7 @@ export default function RiskAnalyzerPage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 800,
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           textTransform: 'uppercase',
                           letterSpacing: 2,
                         }}
@@ -291,7 +293,7 @@ export default function RiskAnalyzerPage() {
                         style={{
                           fontSize: 56,
                           fontWeight: 900,
-                          color: riskOfRuin > 5 ? '#ef4444' : '#4ade80',
+                          color: riskOfRuin > 5 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
                           letterSpacing: '-1px',
                           lineHeight: 1,
                         }}
@@ -303,7 +305,7 @@ export default function RiskAnalyzerPage() {
                       style={{
                         width: '50%',
                         fontSize: 13,
-                        color: '#cbd5e1',
+                        color: 'var(--sp-fg)',
                         lineHeight: 1.5,
                         background: 'rgba(255,255,255,0.03)',
                         padding: 16,
@@ -383,7 +385,7 @@ export default function RiskAnalyzerPage() {
                         bottom: -20,
                         right: 0,
                         fontSize: 10,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                       }}
                     >
                       10,000 Hands
@@ -394,14 +396,14 @@ export default function RiskAnalyzerPage() {
                         top: -20,
                         left: 0,
                         fontSize: 10,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                       }}
                     >
                       Bankroll
                     </div>
                   </div>
                   <div
-                    style={{ fontSize: 11, color: '#64748b', textAlign: 'center', marginTop: 32 }}
+                    style={{ fontSize: 11, color: 'var(--sp-fg-dim)', textAlign: 'center', marginTop: 32 }}
                   >
                     Sample subset of 20 careers plotted out of 1,000 simulated.
                   </div>
@@ -430,7 +432,7 @@ export default function RiskAnalyzerPage() {
                         width: 60,
                         height: 60,
                         border: '4px solid rgba(59,130,246,0.2)',
-                        borderTopColor: '#3b82f6',
+                        borderTopColor: 'var(--sp-accent-blue)',
                         borderRadius: '50%',
                         marginBottom: 24,
                       }}
@@ -438,7 +440,7 @@ export default function RiskAnalyzerPage() {
                     <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
                       Simulating 1,000 Careers...
                     </div>
-                    <div style={{ fontSize: 14, color: '#94a3b8', marginTop: 8 }}>
+                    <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
                       Rolling 10,000,000 hands of variance.
                     </div>
                   </>
@@ -449,7 +451,7 @@ export default function RiskAnalyzerPage() {
                       Simulate Variance
                     </div>
                     <div
-                      style={{ fontSize: 14, color: '#94a3b8', marginTop: 8, textAlign: 'center' }}
+                      style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginTop: 8, textAlign: 'center' }}
                     >
                       Find out if your bankroll can survive
                       <br />

@@ -7,6 +7,8 @@
  */
 
 // TRAIN-CSS-MOBILE-ADOPT-14 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-TOKENS-BATCH5-33 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-26 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -228,7 +230,7 @@ function RangeGrid({ rangeStr, color, label }) {
         }}
       >
         <span style={{ fontSize: 11, fontWeight: 700, color }}>{label}</span>
-        <span style={{ fontSize: 10, color: '#64748b' }}>{pct}% of hands</span>
+        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{pct}% of hands</span>
       </div>
       <div data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
         {grid.map((cell, i) => (
@@ -330,13 +332,13 @@ export default function MultiwayPreflopPage() {
 
   const scenario = MULTIWAY_SCENARIOS[selectedScenario];
   const posColors = {
-    UTG: '#ef4444',
-    MP: '#f97316',
-    CO: '#fbbf24',
-    BTN: '#22c55e',
-    SB: '#3b82f6',
-    BB: '#a855f7',
-    Caller: '#94a3b8',
+    UTG: 'var(--sp-accent-red)',
+    MP: 'var(--sp-accent-orange)',
+    CO: 'var(--sp-accent-amber)',
+    BTN: 'var(--sp-accent-green)',
+    SB: 'var(--sp-accent-blue)',
+    BB: 'var(--sp-accent-purple)',
+    Caller: 'var(--sp-fg-muted)',
   };
 
   // Generate a random quiz hand
@@ -394,7 +396,7 @@ export default function MultiwayPreflopPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -415,7 +417,7 @@ export default function MultiwayPreflopPage() {
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 8,
               padding: '6px 12px',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
@@ -428,7 +430,7 @@ export default function MultiwayPreflopPage() {
               fontSize: 20,
               fontWeight: 800,
               margin: 0,
-              background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
+              background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontFamily: "'Orbitron', monospace",
@@ -468,13 +470,13 @@ export default function MultiwayPreflopPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: selectedScenario === key ? '#a855f7' : '#e2e8f0',
+                    color: selectedScenario === key ? 'var(--sp-accent-purple)' : 'var(--sp-fg)',
                     marginBottom: 4,
                   }}
                 >
                   {s.name}
                 </div>
-                <div style={{ fontSize: 9, color: '#64748b' }}>{s.positions.join(' → ')}</div>
+                <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>{s.positions.join(' → ')}</div>
               </motion.button>
             ))}
           </div>
@@ -489,10 +491,10 @@ export default function MultiwayPreflopPage() {
               border: '1px solid rgba(168,85,247,0.15)',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#a855f7', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-purple)', marginBottom: 4 }}>
               {scenario.name}
             </div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{scenario.desc}</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{scenario.desc}</div>
           </div>
 
           {/* Range Grids for Each Position */}
@@ -512,7 +514,7 @@ export default function MultiwayPreflopPage() {
                 <RangeGrid
                   key={pos}
                   rangeStr={rangeStr}
-                  color={posColors[pos] || '#94a3b8'}
+                  color={posColors[pos] || 'var(--sp-fg-muted)'}
                   label={`${pos} — ${action.replace(/([A-Z])/g, ' $1').trim()}`}
                 />
               );
@@ -529,7 +531,7 @@ export default function MultiwayPreflopPage() {
               border: '1px solid rgba(255,255,255,0.06)',
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 8 }}>
               Action Flow
             </div>
             <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -544,15 +546,15 @@ export default function MultiwayPreflopPage() {
                         borderRadius: 6,
                         fontSize: 10,
                         fontWeight: 700,
-                        background: `${posColors[pos] || '#94a3b8'}20`,
-                        color: posColors[pos] || '#94a3b8',
-                        border: `1px solid ${posColors[pos] || '#94a3b8'}40`,
+                        background: `${posColors[pos] || 'var(--sp-fg-muted)'}20`,
+                        color: posColors[pos] || 'var(--sp-fg-muted)',
+                        border: `1px solid ${posColors[pos] || 'var(--sp-fg-muted)'}40`,
                       }}
                     >
                       {pos}: {action.replace(/([A-Z])/g, ' $1').trim()}
                     </div>
                     {i < scenario.positions.length - 1 && (
-                      <span style={{ color: '#475569', fontSize: 12 }}>→</span>
+                      <span style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>→</span>
                     )}
                   </React.Fragment>
                 );
@@ -570,10 +572,10 @@ export default function MultiwayPreflopPage() {
                 background: 'rgba(0,212,255,0.05)',
                 border: '1px solid rgba(0,212,255,0.15)',
                 fontSize: 11,
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
               }}
             >
-              <span style={{ fontWeight: 700, color: '#00d4ff', marginRight: 6 }}>TIP:</span>
+              <span style={{ fontWeight: 700, color: 'var(--sp-accent-cyan)', marginRight: 6 }}>TIP:</span>
               {scenario.tip}
             </div>
           )}
@@ -596,9 +598,9 @@ export default function MultiwayPreflopPage() {
                 marginBottom: 12,
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>Quiz Mode</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>Quiz Mode</div>
               {quizScore.total > 0 && (
-                <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>
                   Score: {quizScore.correct}/{quizScore.total} (
                   {Math.round((quizScore.correct / quizScore.total) * 100)}%)
                 </span>
@@ -618,7 +620,7 @@ export default function MultiwayPreflopPage() {
                   fontSize: 13,
                   fontWeight: 700,
                   fontFamily: "'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                   color: '#fff',
                 }}
               >
@@ -627,10 +629,10 @@ export default function MultiwayPreflopPage() {
             ) : (
               <div>
                 <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
                     {quizHand.scenario}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-fg-muted)', marginBottom: 8 }}>
                     You are in{' '}
                     <span
                       style={{ color: posColors[quizHand.position] || '#fff', fontWeight: 800 }}
@@ -647,16 +649,16 @@ export default function MultiwayPreflopPage() {
                       border: '1px solid rgba(255,255,255,0.1)',
                       fontSize: 28,
                       fontWeight: 900,
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontFamily: "'Orbitron', monospace",
                       letterSpacing: 3,
                     }}
                   >
                     {quizHand.hand}
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
+                  <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 8 }}>
                     Should you{' '}
-                    <span style={{ fontWeight: 700, color: '#a855f7' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--sp-accent-purple)' }}>
                       {quizHand.action.replace(/([A-Z])/g, ' $1').trim()}
                     </span>{' '}
                     this hand?
@@ -712,12 +714,12 @@ export default function MultiwayPreflopPage() {
                         border: `1px solid ${quizAnswer === quizHand.correct ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
                         fontSize: 14,
                         fontWeight: 800,
-                        color: quizAnswer === quizHand.correct ? '#22c55e' : '#ef4444',
+                        color: quizAnswer === quizHand.correct ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                       }}
                     >
                       {quizAnswer === quizHand.correct ? 'CORRECT!' : 'WRONG!'}
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginBottom: 12 }}>
                       {quizHand.hand} is {quizHand.correct ? 'IN' : 'NOT IN'} the{' '}
                       {quizHand.position} {quizHand.action.replace(/([A-Z])/g, ' $1').trim()} range
                     </div>
@@ -733,7 +735,7 @@ export default function MultiwayPreflopPage() {
                         fontSize: 13,
                         fontWeight: 700,
                         background: 'rgba(168,85,247,0.15)',
-                        color: '#a855f7',
+                        color: 'var(--sp-accent-purple)',
                         border: '1px solid rgba(168,85,247,0.3)',
                       }}
                     >

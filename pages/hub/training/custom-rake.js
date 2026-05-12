@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-8 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -99,31 +100,31 @@ function calculateRakeImpact(rakePct, cap, stackBB) {
       {
         stat: 'Open Raise Range',
         adj: `${openAdj > 0 ? '+' : ''}${(Number.isFinite(Number(openAdj)) ? Number(openAdj) : 0).toFixed(1)}%`,
-        color: openAdj < 0 ? '#f87171' : '#4ade80',
+        color: openAdj < 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
         note: openAdj < 0 ? 'Tighten up — marginal opens become -EV' : 'Slightly wider',
       },
       {
         stat: '3-Bet Frequency',
         adj: `${threeBetAdj > 0 ? '+' : ''}${(Number.isFinite(Number(threeBetAdj)) ? Number(threeBetAdj) : 0).toFixed(1)}%`,
-        color: '#4ade80',
+        color: 'var(--sp-accent-green)',
         note: '3-bets reduce rake by ending hands preflop',
       },
       {
         stat: 'Cold Call Range',
         adj: `${callAdj > 0 ? '+' : ''}${(Number.isFinite(Number(callAdj)) ? Number(callAdj) : 0).toFixed(1)}%`,
-        color: '#f87171',
+        color: 'var(--sp-accent-red)',
         note: 'Cold calling is worse with rake — prefer 3-bet or fold',
       },
       {
         stat: 'C-Bet Frequency',
         adj: `${cBetAdj > 0 ? '+' : ''}${(Number.isFinite(Number(cBetAdj)) ? Number(cBetAdj) : 0).toFixed(1)}%`,
-        color: '#4ade80',
+        color: 'var(--sp-accent-green)',
         note: 'Bet more to deny equity and end hands faster',
       },
       {
         stat: 'Suited Connectors',
         adj: `${suitedAdj > 0 ? '+' : ''}${(Number.isFinite(Number(suitedAdj)) ? Number(suitedAdj) : 0).toFixed(1)}%`,
-        color: '#f87171',
+        color: 'var(--sp-accent-red)',
         note: 'Implied odds reduced by rake — speculative hands suffer most',
       },
     ],
@@ -336,9 +337,9 @@ export default function CustomRakePage() {
             }}
           >
             {[
-              { label: 'Rake Per Pot', value: `${impact.rakePerPot}BB`, color: '#f59e0b' },
-              { label: 'Rake / Hour', value: `${impact.rakePerHourBB}BB`, color: '#ef4444' },
-              { label: 'Monthly Impact', value: `${impact.monthlyImpactBB}BB`, color: '#f87171' },
+              { label: 'Rake Per Pot', value: `${impact.rakePerPot}BB`, color: 'var(--sp-accent-amber)' },
+              { label: 'Rake / Hour', value: `${impact.rakePerHourBB}BB`, color: 'var(--sp-accent-red)' },
+              { label: 'Monthly Impact', value: `${impact.monthlyImpactBB}BB`, color: 'var(--sp-accent-red)' },
             ].map((s) => (
               <div
                 key={s.label}

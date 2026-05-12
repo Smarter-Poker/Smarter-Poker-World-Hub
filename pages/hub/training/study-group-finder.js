@@ -9,6 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-56 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -286,7 +287,7 @@ export default function StudyGroupFinderPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -308,7 +309,7 @@ export default function StudyGroupFinderPage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 padding: '6px 10px',
@@ -320,7 +321,7 @@ export default function StudyGroupFinderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Study Group Finder</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
                 {MOCK_GROUPS.length} groups · {applied.length} applied
               </div>
             </div>
@@ -329,7 +330,7 @@ export default function StudyGroupFinderPage() {
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowCreate(!showCreate)}
             style={{
-              background: '#3b82f6',
+              background: 'var(--sp-accent-blue)',
               color: '#fff',
               border: 'none',
               padding: '8px 16px',
@@ -368,7 +369,7 @@ export default function StudyGroupFinderPage() {
                     Create New Study Group
                   </div>
                   <div
-                    style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, marginBottom: 12 }}
+                    style={{ fontSize: 11, color: 'var(--sp-fg-dim)', lineHeight: 1.5, marginBottom: 12 }}
                   >
                     Group creation connects to your Discord account. Once created, members can apply
                     to join through this page. You'll receive a notification when someone applies.
@@ -381,7 +382,7 @@ export default function StudyGroupFinderPage() {
                         borderRadius: 8,
                         background: 'rgba(0,0,0,0.3)',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         fontSize: 12,
                         outline: 'none',
                       }}
@@ -392,7 +393,7 @@ export default function StudyGroupFinderPage() {
                         borderRadius: 8,
                         background: 'rgba(0,0,0,0.3)',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         fontSize: 12,
                         outline: 'none',
                       }}
@@ -408,7 +409,7 @@ export default function StudyGroupFinderPage() {
                         borderRadius: 8,
                         background: 'rgba(0,0,0,0.3)',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         fontSize: 12,
                         outline: 'none',
                       }}
@@ -420,7 +421,7 @@ export default function StudyGroupFinderPage() {
                         borderRadius: 8,
                         background: 'rgba(0,0,0,0.3)',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         fontSize: 12,
                         outline: 'none',
                       }}
@@ -431,7 +432,7 @@ export default function StudyGroupFinderPage() {
                       marginTop: 12,
                       padding: '10px 20px',
                       borderRadius: 8,
-                      background: '#3b82f6',
+                      background: 'var(--sp-accent-blue)',
                       border: 'none',
                       color: '#fff',
                       fontSize: 12,
@@ -459,7 +460,7 @@ export default function StudyGroupFinderPage() {
               borderRadius: 8,
               background: 'rgba(0,0,0,0.3)',
               border: '1px solid rgba(255,255,255,0.08)',
-              color: '#e2e8f0',
+              color: 'var(--sp-fg)',
               fontSize: 13,
               outline: 'none',
               marginBottom: 12,
@@ -476,9 +477,9 @@ export default function StudyGroupFinderPage() {
                 style={{
                   padding: '6px 14px',
                   borderRadius: 16,
-                  border: `1px solid ${filterFmt === f ? '#3b82f6' : 'rgba(255,255,255,0.08)'}`,
+                  border: `1px solid ${filterFmt === f ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
                   background: filterFmt === f ? 'rgba(59,130,246,0.08)' : 'transparent',
-                  color: filterFmt === f ? '#60a5fa' : '#64748b',
+                  color: filterFmt === f ? '#60a5fa' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -491,7 +492,7 @@ export default function StudyGroupFinderPage() {
 
           {/* Level + Sort */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>Level:</span>
+            <span style={{ fontSize: 10, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>Level:</span>
             {LEVELS.map((l) => (
               <button
                 key={l}
@@ -499,9 +500,9 @@ export default function StudyGroupFinderPage() {
                 style={{
                   padding: '4px 10px',
                   borderRadius: 4,
-                  border: `1px solid ${filterLevel === l ? '#a855f7' : 'transparent'}`,
+                  border: `1px solid ${filterLevel === l ? 'var(--sp-accent-purple)' : 'transparent'}`,
                   background: filterLevel === l ? 'rgba(168,85,247,0.06)' : 'transparent',
-                  color: filterLevel === l ? '#a855f7' : '#475569',
+                  color: filterLevel === l ? 'var(--sp-accent-purple)' : 'var(--sp-fg-faint)',
                   fontSize: 10,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -524,7 +525,7 @@ export default function StudyGroupFinderPage() {
                     borderRadius: 4,
                     background: sortBy === s.k ? 'rgba(255,255,255,0.06)' : 'transparent',
                     border: 'none',
-                    color: sortBy === s.k ? '#94a3b8' : '#334155',
+                    color: sortBy === s.k ? 'var(--sp-fg-muted)' : 'var(--sp-fg-faint)',
                     fontSize: 9,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -578,7 +579,7 @@ export default function StudyGroupFinderPage() {
                           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
                             {g.name}
                           </div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>{g.focus}</div>
+                          <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{g.focus}</div>
                         </div>
                       </div>
                       <div
@@ -586,7 +587,7 @@ export default function StudyGroupFinderPage() {
                           display: 'flex',
                           gap: 12,
                           fontSize: 11,
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           flexWrap: 'wrap',
                           marginTop: 8,
                         }}
@@ -616,12 +617,12 @@ export default function StudyGroupFinderPage() {
                           style={{
                             fontSize: 20,
                             fontWeight: 900,
-                            color: isFull ? '#ef4444' : slotsLeft <= 2 ? '#fbbf24' : '#4ade80',
+                            color: isFull ? 'var(--sp-accent-red)' : slotsLeft <= 2 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
                           }}
                         >
                           {g.members}/{g.max}
                         </div>
-                        <div style={{ fontSize: 10, color: '#475569' }}>
+                        <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>
                           {slotsLeft} {slotsLeft === 1 ? 'slot' : 'slots'} left
                         </div>
                       </div>
@@ -636,11 +637,11 @@ export default function StudyGroupFinderPage() {
                             ? 'transparent'
                             : isFull
                               ? 'rgba(255,255,255,0.03)'
-                              : '#3b82f6',
+                              : 'var(--sp-accent-blue)',
                           border: isApplied
                             ? '1px solid #4ade80'
                             : `1px solid ${isFull ? 'rgba(255,255,255,0.05)' : 'transparent'}`,
-                          color: isApplied ? '#4ade80' : isFull ? '#475569' : '#fff',
+                          color: isApplied ? 'var(--sp-accent-green)' : isFull ? 'var(--sp-fg-faint)' : '#fff',
                           fontSize: 12,
                           fontWeight: 700,
                           cursor: isApplied || isFull ? 'not-allowed' : 'pointer',

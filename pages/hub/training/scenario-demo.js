@@ -10,6 +10,7 @@
 
 // TRAIN-CSS-TOKENS-ADOPT-10 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-7 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-41 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
@@ -318,7 +319,7 @@ export default function ScenarioDemoPage() {
           <div
             style={{
               height: '100%',
-              background: 'linear-gradient(90deg, #00d4ff, #a855f7)',
+              background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
               width: `${((currentStep + 1) / TUTORIAL_STEPS.length) * 100}%`,
               transition: 'width 0.3s',
             }}
@@ -538,7 +539,7 @@ export default function ScenarioDemoPage() {
                       style={{
                         padding: '10px 24px',
                         borderRadius: 8,
-                        background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                        background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                         border: 'none',
                         color: '#fff',
                         fontSize: 13,
@@ -579,7 +580,7 @@ export default function ScenarioDemoPage() {
                   style={{
                     padding: '12px 24px',
                     borderRadius: 10,
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)',
                     border: 'none',
                     color: '#fff',
                     fontSize: 14,

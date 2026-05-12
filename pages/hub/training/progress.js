@@ -6,6 +6,7 @@
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH5-40 — hex sweep batch 5: literals routed to --sp-* tokens
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -19,6 +20,10 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+
+// TRAIN-CSS-MOTION-ADOPT-19 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-5b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -326,7 +331,7 @@ export default function TrainingProgress() {
               iconKind="streak"
               label="Current Streak"
               value={`${stats.streak} days`}
-              color={stats.streak >= 7 ? '#FF6B35' : stats.streak >= 3 ? '#FFB800' : '#9ca3af'}
+              color={stats.streak >= 7 ? '#FF6B35' : stats.streak >= 3 ? '#FFB800' : 'var(--sp-fg-muted)'}
             />
           </div>
 
@@ -406,7 +411,7 @@ export default function TrainingProgress() {
 // TRAIN-PROGRESS-A11Y-1: iconKind takes precedence; legacy icon accepted for back-compat.
 function StatCard({ iconKind, icon, label, value, color = '#00E0FF' }) {
   return (
-    <motion.div style={styles.statCard} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+    <motion.div style={styles.statCard} whileHover={{ scale: 1.02 }} transition={{ duration: MOTION.standard }}>
       <div style={{ fontSize: '32px', marginBottom: '8px' }}>{icon}</div>
       <div style={{ ...styles.statValue, color }}>{value}</div>
       <div style={styles.statLabel}>{label}</div>
@@ -508,7 +513,7 @@ const styles = {
   },
   statLabel: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   section: {
     marginBottom: '40px',
@@ -545,7 +550,7 @@ const styles = {
   },
   categoryStats: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginBottom: '12px',
   },
   progressBar: {
@@ -580,7 +585,7 @@ const styles = {
   },
   weakAreaHint: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     margin: 0,
   },
   activityList: {
@@ -611,7 +616,7 @@ const styles = {
   },
   activityStats: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   actions: {
     display: 'flex',
@@ -658,7 +663,7 @@ const styles = {
   },
   loadingText: {
     marginTop: '16px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   emptyState: {
     textAlign: 'center',

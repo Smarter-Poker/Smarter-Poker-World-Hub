@@ -7,6 +7,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-2 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-1 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -167,7 +169,7 @@ export default function AggregateReports() {
           </motion.button>
           <h1 style={styles.title}>
             {/* TRAIN-AGGREGATE-A11Y-1: SVG TrendingUp replaces 📈 */}
-            <span style={{ display: 'inline-flex', verticalAlign: 'middle', color: '#00d4ff' }} aria-hidden><TrendingUpIcon size={28} /></span> Aggregate Reports
+            <span style={{ display: 'inline-flex', verticalAlign: 'middle', color: 'var(--sp-accent-cyan)' }} aria-hidden><TrendingUpIcon size={28} /></span> Aggregate Reports
           </h1>
         </div>
 
@@ -256,7 +258,7 @@ export default function AggregateReports() {
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
               style={styles.spinner}
             />
-            <p style={{ color: '#64748b', marginTop: 12 }}>Analyzing flop textures...</p>
+            <p style={{ color: 'var(--sp-fg-dim)', marginTop: 12 }}>Analyzing flop textures...</p>
           </div>
         )}
 
@@ -281,7 +283,7 @@ export default function AggregateReports() {
               <div style={styles.overallCard}>
                 <div style={styles.overallHeader}>
                   {/* TRAIN-AGGREGATE-A11Y-1: SVG bar chart replaces 📊 */}
-                  <span style={{ display: 'inline-flex', color: '#00d4ff' }} aria-hidden><ChartBarIcon size={24} /></span>
+                  <span style={{ display: 'inline-flex', color: 'var(--sp-accent-cyan)' }} aria-hidden><ChartBarIcon size={24} /></span>
                   <span style={styles.overallTitle}>Overall Summary</span>
                   <span style={styles.spotCount}>
                     {report.totalSpots.toLocaleString()} spots analyzed
@@ -289,14 +291,14 @@ export default function AggregateReports() {
                 </div>
                 <div style={styles.overallStats}>
                   <div style={styles.overallStat}>
-                    <div style={{ ...styles.overallValue, color: '#ef4444' }}>
+                    <div style={{ ...styles.overallValue, color: 'var(--sp-accent-red)' }}>
                       {report.overall.cbetFreq}%
                     </div>
                     <div style={styles.overallLabel}>Avg Bet/Raise</div>
                   </div>
                   <div style={styles.overallDivider} />
                   <div style={styles.overallStat}>
-                    <div style={{ ...styles.overallValue, color: '#22c55e' }}>
+                    <div style={{ ...styles.overallValue, color: 'var(--sp-accent-green)' }}>
                       {report.overall.checkFreq}%
                     </div>
                     <div style={styles.overallLabel}>Avg Check/Call</div>
@@ -307,7 +309,7 @@ export default function AggregateReports() {
               {/* Texture Breakdown */}
               <div style={styles.sectionHeader}>
                 {/* TRAIN-AGGREGATE-A11Y-1: SVG palette replaces 🎨 */}
-                <span style={{ display: 'inline-flex', color: '#a855f7' }} aria-hidden><PaletteIcon size={18} /></span>
+                <span style={{ display: 'inline-flex', color: 'var(--sp-accent-purple)' }} aria-hidden><PaletteIcon size={18} /></span>
                 <span>Strategy by Flop Texture</span>
               </div>
 
@@ -364,11 +366,11 @@ export default function AggregateReports() {
                           transition={{ duration: MOTION.slow, delay: idx * 0.05 + 0.1 }}
                           style={{
                             ...styles.barFill,
-                            background: 'linear-gradient(90deg, #22c55e44, #22c55e)',
+                            background: 'linear-gradient(90deg, #22c55e44, rgba(var(--sp-accent-green-rgb), 1))',
                           }}
                         />
                       </div>
-                      <span style={{ ...styles.barValue, color: '#22c55e' }}>{tex.checkFreq}%</span>
+                      <span style={{ ...styles.barValue, color: 'var(--sp-accent-green)' }}>{tex.checkFreq}%</span>
                     </div>
                   </div>
                 </motion.div>
@@ -379,7 +381,7 @@ export default function AggregateReports() {
                 <>
                   <div style={{ ...styles.sectionHeader, marginTop: 24 }}>
                     {/* TRAIN-AGGREGATE-A11Y-1: SVG chair replaces 🪑 */}
-                    <span style={{ display: 'inline-flex', color: '#94a3b8' }} aria-hidden><ChairIcon size={18} /></span>
+                    <span style={{ display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden><ChairIcon size={18} /></span>
                     <span>Strategy by Position</span>
                   </div>
                   <div style={styles.positionGrid}>
@@ -395,14 +397,14 @@ export default function AggregateReports() {
                         >
                           <div style={styles.posName}>{p.position}</div>
                           <div style={styles.posFreq}>
-                            <span style={{ color: '#ef4444', fontWeight: 700 }}>{p.cbetFreq}%</span>
-                            <span style={{ color: '#475569', margin: '0 4px' }}>bet</span>
+                            <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>{p.cbetFreq}%</span>
+                            <span style={{ color: 'var(--sp-fg-faint)', margin: '0 4px' }}>bet</span>
                           </div>
                           <div style={styles.posFreq}>
-                            <span style={{ color: '#22c55e', fontWeight: 700 }}>
+                            <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>
                               {p.checkFreq}%
                             </span>
-                            <span style={{ color: '#475569', margin: '0 4px' }}>chk</span>
+                            <span style={{ color: 'var(--sp-fg-faint)', margin: '0 4px' }}>chk</span>
                           </div>
                           <div style={styles.posSpots}>{p.spotCount} spots</div>
                         </motion.div>
@@ -425,7 +427,7 @@ const styles = {
   page: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     fontFamily: "'Inter', -apple-system, sans-serif",
     padding: '20px 16px 60px',
     maxWidth: 700,
@@ -440,7 +442,7 @@ const styles = {
   backBtn: {
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.1)',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     padding: '6px 14px',
     borderRadius: 8,
     fontSize: 13,
@@ -451,14 +453,14 @@ const styles = {
     fontSize: 22,
     fontWeight: 800,
     fontFamily: "'Orbitron', monospace",
-    background: 'linear-gradient(135deg, #f97316, #fb923c)',
+    background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), #fb923c)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     margin: 0,
   },
   subtitle: {
     fontSize: 13,
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
     marginBottom: 20,
     lineHeight: 1.5,
   },
@@ -471,7 +473,7 @@ const styles = {
   filterLabel: {
     fontSize: 10,
     fontWeight: 700,
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
     textTransform: 'uppercase',
     letterSpacing: 1,
     display: 'block',
@@ -485,7 +487,7 @@ const styles = {
   filterBtn: {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     padding: '7px 14px',
     borderRadius: 8,
     fontSize: 12,
@@ -495,13 +497,13 @@ const styles = {
   },
   filterBtnActive: {
     background: 'rgba(249,115,22,0.15)',
-    borderColor: '#f97316',
-    color: '#f97316',
+    borderColor: 'var(--sp-accent-orange)',
+    color: 'var(--sp-accent-orange)',
   },
   stackBtn: {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     padding: '6px 12px',
     borderRadius: 8,
     fontSize: 12,
@@ -512,13 +514,13 @@ const styles = {
   },
   stackBtnActive: {
     background: 'rgba(59,130,246,0.15)',
-    borderColor: '#3b82f6',
-    color: '#3b82f6',
+    borderColor: 'var(--sp-accent-blue)',
+    color: 'var(--sp-accent-blue)',
   },
   posBtn: {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     padding: '6px 12px',
     borderRadius: 8,
     fontSize: 12,
@@ -528,8 +530,8 @@ const styles = {
   },
   posBtnActive: {
     background: 'rgba(34,197,94,0.15)',
-    borderColor: '#22c55e',
-    color: '#22c55e',
+    borderColor: 'var(--sp-accent-green)',
+    color: 'var(--sp-accent-green)',
   },
   loadingContainer: {
     display: 'flex',
@@ -550,7 +552,7 @@ const styles = {
     border: '1px solid rgba(239,68,68,0.3)',
     borderRadius: 10,
     padding: '14px 18px',
-    color: '#fca5a5',
+    color: 'var(--sp-accent-red)',
     fontSize: 13,
     textAlign: 'center',
   },
@@ -571,12 +573,12 @@ const styles = {
     fontSize: 14,
     fontWeight: 700,
     fontFamily: "'Orbitron', monospace",
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     flex: 1,
   },
   spotCount: {
     fontSize: 11,
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
     fontWeight: 600,
   },
   overallStats: {
@@ -596,7 +598,7 @@ const styles = {
   },
   overallLabel: {
     fontSize: 11,
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
     fontWeight: 600,
     marginTop: 4,
   },
@@ -611,7 +613,7 @@ const styles = {
     gap: 8,
     fontSize: 14,
     fontWeight: 700,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -636,12 +638,12 @@ const styles = {
   },
   textureSpots: {
     fontSize: 10,
-    color: '#475569',
+    color: 'var(--sp-fg-faint)',
     fontWeight: 600,
   },
   textureDesc: {
     fontSize: 11,
-    color: '#475569',
+    color: 'var(--sp-fg-faint)',
     marginBottom: 8,
     fontStyle: 'italic',
   },
@@ -658,7 +660,7 @@ const styles = {
   barLabel: {
     fontSize: 9,
     fontWeight: 700,
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
     width: 38,
     textAlign: 'right',
     letterSpacing: 0.5,
@@ -685,7 +687,7 @@ const styles = {
   emptyState: {
     textAlign: 'center',
     padding: '40px 20px',
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
   },
   positionGrid: {
     display: 'grid',
@@ -703,7 +705,7 @@ const styles = {
     fontSize: 14,
     fontWeight: 800,
     fontFamily: "'Orbitron', monospace",
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     marginBottom: 4,
   },
   posFreq: {
@@ -712,7 +714,7 @@ const styles = {
   },
   posSpots: {
     fontSize: 9,
-    color: '#475569',
+    color: 'var(--sp-fg-faint)',
     marginTop: 4,
   },
 };

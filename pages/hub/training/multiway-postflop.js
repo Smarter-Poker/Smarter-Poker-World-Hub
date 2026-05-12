@@ -8,6 +8,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-5 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-25 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -403,7 +404,7 @@ export default function MultiwayPostflop() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -772,7 +773,7 @@ export default function MultiwayPostflop() {
                       padding: '14px',
                       borderRadius: 10,
                       border: 'none',
-                      background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                      background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
                       color: '#fff',
                       fontSize: 13,
                       fontWeight: 800,
@@ -809,7 +810,7 @@ export default function MultiwayPostflop() {
                     width: '100%',
                     padding: '12px',
                     borderRadius: 10,
-                    background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 700,

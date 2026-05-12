@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-19 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-14 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -179,7 +181,7 @@ export default function GtoPreloaderPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0a0a1a',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -199,7 +201,7 @@ export default function GtoPreloaderPage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -214,7 +216,7 @@ export default function GtoPreloaderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Preloader</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>Offline IndexedDB Cache Sync</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Offline IndexedDB Cache Sync</div>
             </div>
           </div>
         </div>
@@ -239,7 +241,7 @@ export default function GtoPreloaderPage() {
                 height: 80,
                 borderRadius: '50%',
                 border: '8px solid rgba(59,130,246,0.2)',
-                borderTopColor: '#3b82f6',
+                borderTopColor: 'var(--sp-accent-blue)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -252,7 +254,7 @@ export default function GtoPreloaderPage() {
               <div
                 style={{
                   fontSize: 12,
-                  color: '#94a3b8',
+                  color: 'var(--sp-fg-muted)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -262,9 +264,9 @@ export default function GtoPreloaderPage() {
                 IDB Cache Used
               </div>
               <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>
-                {getDiskUsage()} <span style={{ fontSize: 16, color: '#3b82f6' }}>GB</span>
+                {getDiskUsage()} <span style={{ fontSize: 16, color: 'var(--sp-accent-blue)' }}>GB</span>
               </div>
-              <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
                 Available on device layout API: ~45.0 GB
               </div>
             </div>
@@ -274,7 +276,7 @@ export default function GtoPreloaderPage() {
             style={{
               fontSize: 13,
               fontWeight: 700,
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               textTransform: 'uppercase',
               letterSpacing: 1,
               marginBottom: 16,
@@ -316,14 +318,14 @@ export default function GtoPreloaderPage() {
                       <div
                         style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}
                       >
-                        <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-fg)' }}>
                           {tree.label}
                         </div>
                         {state.status === 'done' && (
                           <span
                             style={{
                               background: 'rgba(34,197,94,0.1)',
-                              color: '#4ade80',
+                              color: 'var(--sp-accent-green)',
                               fontSize: 9,
                               fontWeight: 800,
                               textTransform: 'uppercase',
@@ -335,12 +337,12 @@ export default function GtoPreloaderPage() {
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
                         {tree.desc}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#3b82f6' }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>
                         {tree.size}
                       </div>
                     </div>
@@ -374,12 +376,12 @@ export default function GtoPreloaderPage() {
                           justifyContent: 'space-between',
                           fontSize: 11,
                           fontWeight: 700,
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           marginBottom: 6,
                         }}
                       >
                         <span>Syncing nodes via IDB...</span>
-                        <span style={{ color: '#00d4ff' }}>{Math.round(state.progress)}%</span>
+                        <span style={{ color: 'var(--sp-accent-cyan)' }}>{Math.round(state.progress)}%</span>
                       </div>
                       <div
                         style={{
@@ -392,7 +394,7 @@ export default function GtoPreloaderPage() {
                         <motion.div
                           style={{
                             height: '100%',
-                            background: 'linear-gradient(90deg, #3b82f6, #00d4ff)',
+                            background: 'linear-gradient(90deg, rgba(var(--sp-accent-blue-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))',
                           }}
                           animate={{ width: `${state.progress}%` }}
                         />
@@ -410,7 +412,7 @@ export default function GtoPreloaderPage() {
                           borderRadius: 8,
                           background: 'transparent',
                           border: '1px solid rgba(255,255,255,0.1)',
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontSize: 13,
                           fontWeight: 700,
                           cursor: 'not-allowed',
@@ -425,7 +427,7 @@ export default function GtoPreloaderPage() {
                           borderRadius: 8,
                           background: 'rgba(239,68,68,0.1)',
                           border: 'none',
-                          color: '#f87171',
+                          color: 'var(--sp-accent-red)',
                           fontSize: 13,
                           fontWeight: 700,
                           cursor: 'pointer',

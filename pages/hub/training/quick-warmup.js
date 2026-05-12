@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-42 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-34 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -29,7 +31,7 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#64748b',
+        color: 'var(--sp-fg-dim)',
       }}
     >
       Loading Arena...
@@ -228,7 +230,7 @@ export default function QuickWarmupPage() {
             style={{
               fontSize: 18,
               fontWeight: 900,
-              color: timeLeft <= 30 ? '#fff' : '#00d4ff',
+              color: timeLeft <= 30 ? '#fff' : 'var(--sp-accent-cyan)',
               fontFamily: "'Inter', monospace",
             }}
           >
@@ -257,7 +259,7 @@ export default function QuickWarmupPage() {
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -276,7 +278,7 @@ export default function QuickWarmupPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -291,7 +293,7 @@ export default function QuickWarmupPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Quick Warmup</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>5-minute speed session</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>5-minute speed session</div>
           </div>
         </div>
 
@@ -310,13 +312,13 @@ export default function QuickWarmupPage() {
               >
                 ⚡
               </motion.div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#e2e8f0', marginBottom: 8 }}>
+              <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--sp-fg)', marginBottom: 8 }}>
                 Quick Warmup
               </div>
-              <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 6 }}>
+              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginBottom: 6 }}>
                 5 minutes. No setup. No choices.
               </div>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
                 We&apos;ll auto-pick your weakest area and drill it.
               </div>
 
@@ -350,12 +352,12 @@ export default function QuickWarmupPage() {
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: isActive ? '#00d4ff' : '#94a3b8',
+                          color: isActive ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                         }}
                       >
                         {mode.label}
                       </div>
-                      <div style={{ fontSize: 9, color: '#475569', marginTop: 2 }}>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
                         {mode.desc}
                       </div>
                     </motion.button>
@@ -371,7 +373,7 @@ export default function QuickWarmupPage() {
                   padding: '16px 48px',
                   borderRadius: 14,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #00d4ff, #3b82f6)',
+                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                   color: '#fff',
                   fontSize: 18,
                   fontWeight: 900,
@@ -396,7 +398,7 @@ export default function QuickWarmupPage() {
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
@@ -404,7 +406,7 @@ export default function QuickWarmupPage() {
                 >
                   HOW IT WORKS
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.7 }}>
                   1. Timer starts at 5:00
                   <br />
                   2. Answer GTO questions as fast as you can
@@ -427,10 +429,10 @@ export default function QuickWarmupPage() {
               <div style={{ fontSize: 40, marginBottom: 12 }}>
                 {results?.accuracy >= 80 ? '🔥' : results?.accuracy >= 60 ? '👍' : '💪'}
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#e2e8f0', marginBottom: 4 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--sp-fg)', marginBottom: 4 }}>
                 Warmup Complete
               </div>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 24 }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 24 }}>
                 {results?.game?.name || 'GTO Training'}
               </div>
 
@@ -454,12 +456,12 @@ export default function QuickWarmupPage() {
                     style={{
                       fontSize: 28,
                       fontWeight: 900,
-                      color: (results?.accuracy || 0) >= 75 ? '#4ade80' : '#fbbf24',
+                      color: (results?.accuracy || 0) >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                     }}
                   >
                     {results?.accuracy || 0}%
                   </div>
-                  <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     ACCURACY
                   </div>
                 </div>
@@ -471,10 +473,10 @@ export default function QuickWarmupPage() {
                     border: '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  <div style={{ fontSize: 28, fontWeight: 900, color: '#00d4ff' }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-cyan)' }}>
                     {results?.questionsAnswered || 0}
                   </div>
-                  <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     QUESTIONS
                   </div>
                 </div>
@@ -486,10 +488,10 @@ export default function QuickWarmupPage() {
                     border: '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  <div style={{ fontSize: 28, fontWeight: 900, color: '#a855f7' }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-purple)' }}>
                     {formatTime(results?.timeUsed || 0)}
                   </div>
-                  <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     TIME
                   </div>
                 </div>
@@ -504,7 +506,7 @@ export default function QuickWarmupPage() {
                     padding: '14px',
                     borderRadius: 12,
                     border: 'none',
-                    background: 'linear-gradient(135deg, #00d4ff, #3b82f6)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                     color: '#fff',
                     fontSize: 14,
                     fontWeight: 800,
@@ -522,7 +524,7 @@ export default function QuickWarmupPage() {
                     borderRadius: 12,
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'rgba(255,255,255,0.03)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 14,
                     fontWeight: 600,
                     cursor: 'pointer',

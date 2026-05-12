@@ -8,6 +8,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-29 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-22 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -58,10 +60,10 @@ function CoffeeIcon({ size=12 }) { return <_Svg size={size}><path d="M18 8h1a4 4
 
 
 const STATES = [
-  { id: 'zone', label: 'In The Zone', color: '#4ade80', iconKind: 'bolt', icon: '⚡' },
-  { id: 'bored', label: 'Bored / Autopilot', color: '#94a3b8', iconKind: 'sleep', icon: '😴' },
-  { id: 'frust', label: 'Frustrated', color: '#fbbf24', iconKind: 'angry', icon: '😤' },
-  { id: 'tilt', label: 'Monkey Tilt', color: '#ef4444', iconKind: 'monkey', icon: '🦍' },
+  { id: 'zone', label: 'In The Zone', color: 'var(--sp-accent-green)', iconKind: 'bolt', icon: '⚡' },
+  { id: 'bored', label: 'Bored / Autopilot', color: 'var(--sp-fg-muted)', iconKind: 'sleep', icon: '😴' },
+  { id: 'frust', label: 'Frustrated', color: 'var(--sp-accent-amber)', iconKind: 'angry', icon: '😤' },
+  { id: 'tilt', label: 'Monkey Tilt', color: 'var(--sp-accent-red)', iconKind: 'monkey', icon: '🦍' },
 ];
 
 const TRIGGERS = [
@@ -203,7 +205,7 @@ export default function MentalJournalPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
           paddingBottom: 40,
         }}
@@ -225,7 +227,7 @@ export default function MentalJournalPage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -242,7 +244,7 @@ export default function MentalJournalPage() {
             <div>
               {/* TRAIN-JOURNAL-A11Y-1: semantic h1 */}
               <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Mental Journal</h1>
-              <div style={{ fontSize: 11, color: '#64748b' }}>Tilt & Trigger Tracking</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Tilt & Trigger Tracking</div>
             </div>
           </div>
         </div>
@@ -272,8 +274,8 @@ export default function MentalJournalPage() {
                 padding: '10px',
                 borderRadius: 6,
                 border: 'none',
-                background: view === 'add' ? '#3b82f6' : 'transparent',
-                color: view === 'add' ? '#fff' : '#94a3b8',
+                background: view === 'add' ? 'var(--sp-accent-blue)' : 'transparent',
+                color: view === 'add' ? '#fff' : 'var(--sp-fg-muted)',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -292,8 +294,8 @@ export default function MentalJournalPage() {
                 padding: '10px',
                 borderRadius: 6,
                 border: 'none',
-                background: view === 'history' ? '#3b82f6' : 'transparent',
-                color: view === 'history' ? '#fff' : '#94a3b8',
+                background: view === 'history' ? 'var(--sp-accent-blue)' : 'transparent',
+                color: view === 'history' ? '#fff' : 'var(--sp-fg-muted)',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -316,10 +318,10 @@ export default function MentalJournalPage() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                     Sleep Quality
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: '#00d4ff' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                     {sleep} hrs
                   </span>
                 </div>
@@ -332,14 +334,14 @@ export default function MentalJournalPage() {
                   aria-label={`Sleep quality: ${sleep} hours`}
                   aria-valuetext={`${sleep} hours`}
                   onChange={(e) => setSleep(e.target.value)}
-                  style={{ width: '100%', marginBottom: 24, accentColor: '#00d4ff' }}
+                  style={{ width: '100%', marginBottom: 24, accentColor: 'var(--sp-accent-cyan)' }}
                 />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                     Caffeine Level
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: '#fbbf24' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>
                     {caffeine} cups
                   </span>
                 </div>
@@ -352,7 +354,7 @@ export default function MentalJournalPage() {
                   aria-label={`Caffeine level: ${caffeine} cups`}
                   aria-valuetext={`${caffeine} cups`}
                   onChange={(e) => setCaffeine(e.target.value)}
-                  style={{ width: '100%', accentColor: '#fbbf24' }}
+                  style={{ width: '100%', accentColor: 'var(--sp-accent-amber)' }}
                 />
               </div>
 
@@ -361,7 +363,7 @@ export default function MentalJournalPage() {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 12,
@@ -396,7 +398,7 @@ export default function MentalJournalPage() {
                       borderRadius: 12,
                       border: `1px solid ${mindState === s.id ? `${s.color}66` : 'rgba(255,255,255,0.05)'}`,
                       background: mindState === s.id ? `${s.color}15` : 'rgba(0,0,0,0.2)',
-                      color: mindState === s.id ? s.color : '#94a3b8',
+                      color: mindState === s.id ? s.color : 'var(--sp-fg-muted)',
                       fontSize: 14,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -414,7 +416,7 @@ export default function MentalJournalPage() {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 12,
@@ -437,7 +439,7 @@ export default function MentalJournalPage() {
                         borderRadius: 20,
                         border: `1px solid ${active ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
                         background: active ? 'rgba(239,68,68,0.1)' : 'transparent',
-                        color: active ? '#fca5a5' : '#94a3b8',
+                        color: active ? 'var(--sp-accent-red)' : 'var(--sp-fg-muted)',
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -480,7 +482,7 @@ export default function MentalJournalPage() {
                   padding: '16px',
                   borderRadius: 12,
                   border: 'none',
-                  background: isSaving ? '#475569' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  background: isSaving ? 'var(--sp-fg-faint)' : 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #8b5cf6)',
                   color: '#fff',
                   fontSize: 16,
                   fontWeight: 800,
@@ -491,7 +493,7 @@ export default function MentalJournalPage() {
               >
                 {isSaving ? 'Logging to Database...' : 'Log Mental State'}
                 {savedToast && (
-                  <span style={{ position: 'absolute', right: 20, color: '#4ade80', display: 'inline-flex', alignItems: 'center', gap: 4 }} role="status" aria-live="polite">
+                  <span style={{ position: 'absolute', right: 20, color: 'var(--sp-accent-green)', display: 'inline-flex', alignItems: 'center', gap: 4 }} role="status" aria-live="polite">
                     {/* TRAIN-JOURNAL-A11Y-1: SVG check replaces ✓ */}
                     <CheckIcon size={14} /> Saved
                   </span>
@@ -547,7 +549,7 @@ export default function MentalJournalPage() {
                           marginBottom: 16,
                         }}
                       >
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{e.date}</div>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{e.date}</div>
                         <div
                           style={{
                             display: 'flex',
@@ -571,16 +573,16 @@ export default function MentalJournalPage() {
                           gap: 16,
                           marginBottom: 12,
                           fontSize: 12,
-                          color: '#cbd5e1',
+                          color: 'var(--sp-fg)',
                         }}
                       >
                         <div>
                           {/* TRAIN-JOURNAL-A11Y-1: SVG moon replaces ☁️ */}
-                          <span style={{ color: '#00d4ff', display: 'inline-flex', alignItems: 'center', gap: 4 }}><MoonIcon size={12} /> Sleep:</span> {e.sleep}h
+                          <span style={{ color: 'var(--sp-accent-cyan)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><MoonIcon size={12} /> Sleep:</span> {e.sleep}h
                         </div>
                         <div>
                           {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ☕ */}
-                          <span style={{ color: '#fbbf24', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} cups
+                          <span style={{ color: 'var(--sp-accent-amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} cups
                         </div>
                       </div>
                       {e.triggers && e.triggers.length > 0 && (
@@ -594,7 +596,7 @@ export default function MentalJournalPage() {
                                 fontSize: 10,
                                 padding: '2px 6px',
                                 background: 'rgba(239,68,68,0.1)',
-                                color: '#fca5a5',
+                                color: 'var(--sp-accent-red)',
                                 borderRadius: 4,
                               }}
                             >
@@ -607,7 +609,7 @@ export default function MentalJournalPage() {
                         <div
                           style={{
                             fontSize: 13,
-                            color: '#94a3b8',
+                            color: 'var(--sp-fg-muted)',
                             lineHeight: 1.5,
                             padding: 12,
                             background: 'rgba(0,0,0,0.3)',

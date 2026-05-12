@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-12 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -127,7 +128,7 @@ export default function EvHeatmapPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
           paddingBottom: 60,
         }}
@@ -147,7 +148,7 @@ export default function EvHeatmapPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -162,7 +163,7 @@ export default function EvHeatmapPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>EV Heatmap</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Positional profitability map</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Positional profitability map</div>
           </div>
         </div>
 
@@ -192,7 +193,7 @@ export default function EvHeatmapPage() {
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   background: activeFilter === f ? 'transparent' : 'rgba(255,255,255,0.05)',
-                  color: activeFilter === f ? '#fff' : '#94a3b8',
+                  color: activeFilter === f ? '#fff' : 'var(--sp-fg-muted)',
                   boxShadow: activeFilter === f ? 'inset 0 0 0 1px rgba(99,102,241,0.5)' : 'none',
                 }}
               >
@@ -211,11 +212,11 @@ export default function EvHeatmapPage() {
               marginBottom: 20,
             }}
           >
-            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
-              This map shows your <strong style={{ color: '#e2e8f0' }}>Expected Value (EV)</strong>{' '}
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
+              This map shows your <strong style={{ color: 'var(--sp-fg)' }}>Expected Value (EV)</strong>{' '}
               across all positions and streets for <strong>{activeFilter}</strong>.
-              <span style={{ color: '#4ade80' }}> Green</span> indicates high profitability, while{' '}
-              <span style={{ color: '#f87171' }}> Red</span> indicates structural loss.
+              <span style={{ color: 'var(--sp-accent-green)' }}> Green</span> indicates high profitability, while{' '}
+              <span style={{ color: 'var(--sp-accent-red)' }}> Red</span> indicates structural loss.
             </div>
           </div>
 
@@ -250,7 +251,7 @@ export default function EvHeatmapPage() {
                       justifyContent: 'flex-end',
                       fontSize: 11,
                       fontWeight: 800,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       width: 35,
                     }}
                   >
@@ -269,7 +270,7 @@ export default function EvHeatmapPage() {
                         textAlign: 'center',
                         fontSize: 10,
                         fontWeight: 800,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                       }}
@@ -328,7 +329,7 @@ export default function EvHeatmapPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
               }}
             >
@@ -351,7 +352,7 @@ export default function EvHeatmapPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
               }}
             >
@@ -383,14 +384,14 @@ export default function EvHeatmapPage() {
                   }}
                 >
                   <div
-                    style={{ fontSize: 18, fontWeight: 900, color: '#e2e8f0', letterSpacing: 1 }}
+                    style={{ fontSize: 18, fontWeight: 900, color: 'var(--sp-fg)', letterSpacing: 1 }}
                   >
                     {selectedCell.replace('-', ' • ')}
                   </div>
                   <div
                     style={{
                       fontSize: 11,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       background: 'rgba(255,255,255,0.05)',
                       padding: '4px 8px',
                       borderRadius: 6,
@@ -413,7 +414,7 @@ export default function EvHeatmapPage() {
                     {activeData[selectedCell].ev > 0 ? '+' : ''}
                     {activeData[selectedCell].ev}
                   </div>
-                  <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
                     {activeData[selectedCell].ev > 0
                       ? `You are highly profitable in this spot relative to the population. Your decisions here capture significant EV, likely from strong value targeting or effective bluffs.`
                       : `This is a structural leak. You are losing EV in this spot. Consider tightening your range, minimizing cold calls, or increasing aggression when leading.`}

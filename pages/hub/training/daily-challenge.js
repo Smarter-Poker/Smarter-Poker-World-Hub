@@ -10,6 +10,7 @@
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 // TRAIN-CSS-TOKENS-BATCH4-15 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-7 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -131,7 +132,7 @@ function StreakCalendar({ completedDays }) {
             fontSize: 8,
             fontWeight: 700,
             background: d.isCompleted
-              ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+              ? 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)'
               : d.isToday
                 ? 'rgba(234,179,8,0.15)'
                 : 'rgba(255,255,255,0.03)',
@@ -381,7 +382,7 @@ export default function DailyChallengePage() {
                 fontSize: 20,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #eab308, #f97316)',
+                background: 'linear-gradient(135deg, #eab308, rgba(var(--sp-accent-orange-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",

@@ -19,6 +19,10 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
+// TRAIN-CSS-MOTION-ADOPT-16 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAYER PROFILES DATABASE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -317,7 +321,7 @@ function StatBar({ label, value, gtoValue, max = 100, color }) {
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${barWidth}%` }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: MOTION.slow, ease: 'easeOut' }}
           style={{
             position: 'absolute',
             top: 0,

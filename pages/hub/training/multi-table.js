@@ -6,6 +6,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-32 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-24 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -20,7 +22,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => (
-    <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading table...</div>
+    <div style={{ padding: 40, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>Loading table...</div>
   ),
 });
 
@@ -165,7 +167,7 @@ export default function MultiTablePage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -195,11 +197,11 @@ export default function MultiTablePage() {
                           ? 'D'
                           : 'F';
                 const gradeColor = {
-                  A: '#22c55e',
-                  B: '#3b82f6',
-                  C: '#fbbf24',
-                  D: '#f97316',
-                  F: '#ef4444',
+                  A: 'var(--sp-accent-green)',
+                  B: 'var(--sp-accent-blue)',
+                  C: 'var(--sp-accent-amber)',
+                  D: 'var(--sp-accent-orange)',
+                  F: 'var(--sp-accent-red)',
                 }[grade];
                 return (
                   <>
@@ -226,14 +228,14 @@ export default function MultiTablePage() {
                       style={{
                         fontSize: 22,
                         fontWeight: 800,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         marginBottom: 4,
                         fontFamily: "'Orbitron', monospace",
                       }}
                     >
                       SESSION COMPLETE
                     </h2>
-                    <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 24 }}>
+                    <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
                       {tableCount} tables · {combinedStats.totalHands} total decisions
                     </p>
 
@@ -245,10 +247,10 @@ export default function MultiTablePage() {
                         marginBottom: 12,
                         color:
                           saveStatus === 'saved'
-                            ? '#22c55e'
+                            ? 'var(--sp-accent-green)'
                             : saveStatus === 'error'
-                              ? '#ef4444'
-                              : '#64748b',
+                              ? 'var(--sp-accent-red)'
+                              : 'var(--sp-fg-dim)',
                       }}
                     >
                       {saveStatus === 'saving' && '⏳ Saving session...'}
@@ -269,17 +271,17 @@ export default function MultiTablePage() {
                         {
                           label: 'EV Loss',
                           value: `${(Number.isFinite(combinedStats.totalEVLoss) ? combinedStats.totalEVLoss : 0).toFixed(1)}bb`,
-                          color: (combinedStats.totalEVLoss || 0) < 5 ? '#22c55e' : '#ef4444',
+                          color: (combinedStats.totalEVLoss || 0) < 5 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         },
                         {
                           label: 'Correct',
                           value: `${combinedStats.totalCorrect}/${combinedStats.totalHands}`,
-                          color: '#00d4ff',
+                          color: 'var(--sp-accent-cyan)',
                         },
                         {
                           label: 'Tables Done',
                           value: `${combinedStats.tablesCompleted}/${tableCount}`,
-                          color: '#a855f7',
+                          color: 'var(--sp-accent-purple)',
                         },
                       ].map((s, i) => (
                         <motion.div
@@ -309,7 +311,7 @@ export default function MultiTablePage() {
                             style={{
                               fontSize: 9,
                               fontWeight: 700,
-                              color: '#64748b',
+                              color: 'var(--sp-fg-dim)',
                               textTransform: 'uppercase',
                               letterSpacing: 1,
                               marginTop: 4,
@@ -345,7 +347,7 @@ export default function MultiTablePage() {
                           fontSize: 14,
                           fontWeight: 800,
                           fontFamily: "'Orbitron', monospace",
-                          background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                          background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                           color: '#fff',
                           boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
                         }}
@@ -376,7 +378,7 @@ export default function MultiTablePage() {
                           fontWeight: 700,
                           background: 'rgba(255,255,255,0.04)',
                           border: '1px solid rgba(255,255,255,0.1)',
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                         }}
                       >
                         CHANGE CONFIG
@@ -398,7 +400,7 @@ export default function MultiTablePage() {
                 fontSize: 24,
                 fontWeight: 800,
                 margin: '0 0 8px',
-                background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -406,7 +408,7 @@ export default function MultiTablePage() {
             >
               Multi-Table Practice
             </h1>
-            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 32 }}>
+            <p style={{ fontSize: 13, color: 'var(--sp-fg-muted)', marginBottom: 32 }}>
               Train on multiple tables simultaneously to build speed and accuracy under pressure.
             </p>
 
@@ -416,7 +418,7 @@ export default function MultiTablePage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   letterSpacing: 1.5,
                   textTransform: 'uppercase',
                   marginBottom: 10,
@@ -444,9 +446,9 @@ export default function MultiTablePage() {
                       fontFamily: "'Orbitron', monospace",
                       background:
                         tableCount === n
-                          ? 'linear-gradient(135deg, #00d4ff, #a855f7)'
+                          ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))'
                           : 'rgba(255,255,255,0.04)',
-                      color: tableCount === n ? '#fff' : '#64748b',
+                      color: tableCount === n ? '#fff' : 'var(--sp-fg-dim)',
                       border: tableCount === n ? 'none' : '1px solid rgba(255,255,255,0.08)',
                     }}
                   >
@@ -462,7 +464,7 @@ export default function MultiTablePage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   letterSpacing: 1.5,
                   textTransform: 'uppercase',
                   marginBottom: 10,
@@ -488,12 +490,12 @@ export default function MultiTablePage() {
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: isAutoAdvance ? '#22c55e' : '#e2e8f0',
+                      color: isAutoAdvance ? 'var(--sp-accent-green)' : 'var(--sp-fg)',
                     }}
                   >
                     Auto-Advance Hands
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                  <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
                     Automatically deal next hand after answering
                   </div>
                 </div>
@@ -507,7 +509,7 @@ export default function MultiTablePage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   letterSpacing: 1.5,
                   textTransform: 'uppercase',
                   marginBottom: 10,
@@ -538,7 +540,7 @@ export default function MultiTablePage() {
                         fontWeight: 600,
                         textAlign: 'left',
                         background: isSelected ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)',
-                        color: isSelected ? '#00d4ff' : '#94a3b8',
+                        color: isSelected ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                         border: `1px solid ${isSelected ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
                       }}
                     >
@@ -561,7 +563,7 @@ export default function MultiTablePage() {
                 fontSize: 15,
                 fontWeight: 800,
                 fontFamily: "'Orbitron', monospace",
-                background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 color: '#fff',
                 boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
               }}
@@ -578,7 +580,7 @@ export default function MultiTablePage() {
                 background: 'transparent',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontSize: 12,
                 cursor: 'pointer',
               }}
@@ -616,7 +618,7 @@ export default function MultiTablePage() {
                   border: 'none',
                   borderRadius: 6,
                   padding: '4px 10px',
-                  color: '#94a3b8',
+                  color: 'var(--sp-fg-muted)',
                   cursor: 'pointer',
                   fontSize: 11,
                   fontWeight: 600,
@@ -628,16 +630,16 @@ export default function MultiTablePage() {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
                 {tableCount}-TABLE MODE
               </span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 10 }}>
-                <span style={{ color: '#22c55e' }}>Hands: {combinedStats.totalHands}</span>
-                <span style={{ color: '#fbbf24' }}>Correct: {combinedStats.totalCorrect}</span>
-                <span style={{ color: '#ef4444' }}>
+                <span style={{ color: 'var(--sp-accent-green)' }}>Hands: {combinedStats.totalHands}</span>
+                <span style={{ color: 'var(--sp-accent-amber)' }}>Correct: {combinedStats.totalCorrect}</span>
+                <span style={{ color: 'var(--sp-accent-red)' }}>
                   EV Loss:{' '}
                   {(Number.isFinite(combinedStats.totalEVLoss)
                     ? combinedStats.totalEVLoss
@@ -645,7 +647,7 @@ export default function MultiTablePage() {
                   ).toFixed(1)}
                   bb
                 </span>
-                <span style={{ color: '#a855f7' }}>
+                <span style={{ color: 'var(--sp-accent-purple)' }}>
                   Done: {completedTables.size}/{tableCount}
                 </span>
               </div>
@@ -690,7 +692,7 @@ export default function MultiTablePage() {
                       justifyContent: 'center',
                       fontSize: 10,
                       fontWeight: 800,
-                      color: '#00d4ff',
+                      color: 'var(--sp-accent-cyan)',
                       fontFamily: "'Orbitron', monospace",
                     }}
                   >

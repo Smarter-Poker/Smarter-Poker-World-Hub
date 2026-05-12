@@ -8,6 +8,7 @@
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 // TRAIN-CSS-TOKENS-BATCH4-4 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-18 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -1467,7 +1468,7 @@ export default function HandHistoryUploadPage() {
                   transition: 'all 0.15s',
                   background:
                     activeView === tab.key
-                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
                       : 'rgba(255,255,255,0.06)',
                   color: activeView === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                 }}

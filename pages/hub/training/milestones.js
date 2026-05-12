@@ -7,6 +7,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-30 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-23 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -20,10 +22,10 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const TIERS = {
   Bronze: { color: '#cd7f32', bg: 'rgba(205,127,50,0.1)', reward: '+50 Diamonds' },
-  Silver: { color: '#cbd5e1', bg: 'rgba(203,213,225,0.1)', reward: '+150 Diamonds' },
-  Gold: { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', reward: '+500 Diamonds' },
-  Diamond: { color: '#00d4ff', bg: 'rgba(0,212,255,0.1)', reward: 'Profile Badge' },
-  Master: { color: '#a855f7', bg: 'rgba(168,85,247,0.1)', reward: 'Master Title' },
+  Silver: { color: 'var(--sp-fg)', bg: 'rgba(203,213,225,0.1)', reward: '+150 Diamonds' },
+  Gold: { color: 'var(--sp-accent-amber)', bg: 'rgba(251,191,36,0.1)', reward: '+500 Diamonds' },
+  Diamond: { color: 'var(--sp-accent-cyan)', bg: 'rgba(0,212,255,0.1)', reward: 'Profile Badge' },
+  Master: { color: 'var(--sp-accent-purple)', bg: 'rgba(168,85,247,0.1)', reward: 'Master Title' },
 };
 
 
@@ -461,7 +463,7 @@ export default function MilestonesPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -481,7 +483,7 @@ export default function MilestonesPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -500,7 +502,7 @@ export default function MilestonesPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Milestones</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Your Tiered Achievements</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your Tiered Achievements</div>
           </div>
           <div
             style={{
@@ -512,8 +514,8 @@ export default function MilestonesPage() {
             }}
           >
             {/* TRAIN-MILESTONES-A11Y-1: status role for the earned counter */}
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#fbbf24' }} role="status" aria-label={`${earned.length} of ${MILESTONE_DEFS.length} milestones earned`}>{earned.length}</span>
-            <span style={{ fontSize: 10, color: '#94a3b8' }}>/{MILESTONE_DEFS.length}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }} role="status" aria-label={`${earned.length} of ${MILESTONE_DEFS.length} milestones earned`}>{earned.length}</span>
+            <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>/{MILESTONE_DEFS.length}</span>
           </div>
         </div>
 
@@ -558,7 +560,7 @@ export default function MilestonesPage() {
                     style={{
                       fontSize: 9,
                       fontWeight: 800,
-                      color: '#00d4ff',
+                      color: 'var(--sp-accent-cyan)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 12,
@@ -599,7 +601,7 @@ export default function MilestonesPage() {
                           {nextMilestone.tier}
                         </span>
                       </div>
-                      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                         {nextMilestone.desc}
                       </div>
                     </div>
@@ -615,10 +617,10 @@ export default function MilestonesPage() {
                         fontWeight: 700,
                       }}
                     >
-                      <span style={{ color: '#00d4ff' }}>
+                      <span style={{ color: 'var(--sp-accent-cyan)' }}>
                         {Math.round(nextMilestone.percent)}% Complete
                       </span>
-                      <span style={{ color: '#64748b' }}>
+                      <span style={{ color: 'var(--sp-fg-dim)' }}>
                         {nextMilestone.current} / {nextMilestone.target}
                       </span>
                     </div>
@@ -640,7 +642,7 @@ export default function MilestonesPage() {
                         animate={{ width: `${nextMilestone.percent}%` }}
                         style={{
                           height: '100%',
-                          background: 'linear-gradient(90deg, #00d4ff, #3b82f6)',
+                          background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                         }}
                       />
                     </div>
@@ -650,7 +652,7 @@ export default function MilestonesPage() {
                     style={{
                       marginTop: 12,
                       fontSize: 11,
-                      color: '#4ade80',
+                      color: 'var(--sp-accent-green)',
                       fontWeight: 600,
                       display: 'flex',
                       alignItems: 'center',
@@ -659,10 +661,10 @@ export default function MilestonesPage() {
                   >
                     {/* TRAIN-MILESTONES-A11Y-1: SVG gift replaces 🎁 */}
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ display: 'inline-flex', color: '#4ade80' }} aria-hidden><GiftIcon size={14} /></span>
+                      <span style={{ display: 'inline-flex', color: 'var(--sp-accent-green)' }} aria-hidden><GiftIcon size={14} /></span>
                       Reward:
                     </span>{' '}
-                    <span style={{ color: '#e2e8f0' }}>{TIERS[nextMilestone.tier].reward}</span>
+                    <span style={{ color: 'var(--sp-fg)' }}>{TIERS[nextMilestone.tier].reward}</span>
                   </div>
                 </motion.div>
               )}
@@ -674,7 +676,7 @@ export default function MilestonesPage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -725,22 +727,22 @@ export default function MilestonesPage() {
                             style={{
                               fontSize: 9,
                               fontWeight: 700,
-                              color: '#64748b',
+                              color: 'var(--sp-fg-dim)',
                               textTransform: 'uppercase',
                             }}
                           >
                             {m.tier}
                           </div>
                         </div>
-                        <div style={{ fontSize: 11, color: '#e2e8f0', marginTop: 2 }}>{m.desc}</div>
+                        <div style={{ fontSize: 11, color: 'var(--sp-fg)', marginTop: 2 }}>{m.desc}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 14, color: '#4ade80', display: 'inline-flex', justifyContent: 'flex-end' }} aria-hidden>
+                        <div style={{ fontSize: 14, color: 'var(--sp-accent-green)', display: 'inline-flex', justifyContent: 'flex-end' }} aria-hidden>
                           {/* TRAIN-MILESTONES-A11Y-1: SVG check replaces ✅ */}
                           <CheckIcon size={14} />
                         </div>
                         <div
-                          style={{ fontSize: 9, color: '#4ade80', marginTop: 4, fontWeight: 700 }}
+                          style={{ fontSize: 9, color: 'var(--sp-accent-green)', marginTop: 4, fontWeight: 700 }}
                         >
                           REWARDED
                         </div>
@@ -757,7 +759,7 @@ export default function MilestonesPage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -792,7 +794,7 @@ export default function MilestonesPage() {
                             justifyContent: 'center',
                             filter: 'grayscale(1)',
                             opacity: 0.5,
-                            color: '#94a3b8',
+                            color: 'var(--sp-fg-muted)',
                           }}
                         >
                           {/* TRAIN-MILESTONES-A11Y-1 */}
@@ -800,7 +802,7 @@ export default function MilestonesPage() {
                         </div>
                         <div style={{ flex: 1, opacity: 0.8 }}>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                               {m.name}
                             </div>
                             <div
@@ -814,7 +816,7 @@ export default function MilestonesPage() {
                               {m.tier}
                             </div>
                           </div>
-                          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>
+                          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
                             {m.desc}
                           </div>
 
@@ -843,7 +845,7 @@ export default function MilestonesPage() {
                             <div
                               style={{
                                 fontSize: 9,
-                                color: '#475569',
+                                color: 'var(--sp-fg-faint)',
                                 minWidth: 30,
                                 textAlign: 'right',
                               }}

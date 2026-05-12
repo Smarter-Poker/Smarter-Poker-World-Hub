@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-48 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -110,11 +111,11 @@ function generateFrequencies(hand, pos) {
 }
 
 function getGridColor(freqs) {
-  if (freqs.raise > 80) return '#ef4444'; // Pure Raise (Red)
-  if (freqs.raise > 40) return '#f97316'; // Mixed Raise (Orange)
+  if (freqs.raise > 80) return 'var(--sp-accent-red)'; // Pure Raise (Red)
+  if (freqs.raise > 40) return 'var(--sp-accent-orange)'; // Mixed Raise (Orange)
   if (freqs.call > 50) return '#34d399'; // Mostly Call (Green)
-  if (freqs.raise > 10 || freqs.call > 10) return '#fbbf24'; // Weak mixed (Yellow)
-  return '#1e293b'; // Fold (Dark Slate)
+  if (freqs.raise > 10 || freqs.call > 10) return 'var(--sp-accent-amber)'; // Weak mixed (Yellow)
+  return 'var(--sp-bg-elev2)'; // Fold (Dark Slate)
 }
 
 export default function RangeExplorerPage() {
@@ -178,7 +179,7 @@ export default function RangeExplorerPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0a0a1a',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -196,7 +197,7 @@ export default function RangeExplorerPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -211,7 +212,7 @@ export default function RangeExplorerPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Range Explorer</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>13x13 Interactive Matrix</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>13x13 Interactive Matrix</div>
           </div>
         </div>
 
@@ -231,7 +232,7 @@ export default function RangeExplorerPage() {
               display: 'flex',
               width: '100%',
               maxWidth: 460,
-              background: '#1e293b',
+              background: 'var(--sp-bg-elev2)',
               padding: '4px',
               borderRadius: '12px',
               marginBottom: '24px',
@@ -250,8 +251,8 @@ export default function RangeExplorerPage() {
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  background: position === p ? '#3b82f6' : 'transparent',
-                  color: position === p ? '#fff' : '#94a3b8',
+                  background: position === p ? 'var(--sp-accent-blue)' : 'transparent',
+                  color: position === p ? '#fff' : 'var(--sp-fg-muted)',
                   fontWeight: 700,
                   fontSize: 12,
                   transition: 'all 0.2s',
@@ -281,7 +282,7 @@ export default function RangeExplorerPage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--sp-bg-elev2)',
                     padding: '24px',
                     borderRadius: '16px',
                     border: '1px solid #334155',
@@ -290,7 +291,7 @@ export default function RangeExplorerPage() {
                   <div
                     style={{
                       fontSize: 12,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       marginBottom: 4,
@@ -303,7 +304,7 @@ export default function RangeExplorerPage() {
                   <div
                     style={{
                       fontSize: 12,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       marginBottom: 4,
@@ -326,7 +327,7 @@ export default function RangeExplorerPage() {
                   <div
                     style={{
                       fontSize: 12,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       marginBottom: 12,
@@ -345,10 +346,10 @@ export default function RangeExplorerPage() {
                         marginBottom: 4,
                       }}
                     >
-                      <span style={{ color: '#ef4444' }}>
+                      <span style={{ color: 'var(--sp-accent-red)' }}>
                         {position === 'BB' ? '3-Bet' : 'Raise First In'}
                       </span>
-                      <span style={{ color: '#ef4444' }}>{selectedHand.freqs.raise}%</span>
+                      <span style={{ color: 'var(--sp-accent-red)' }}>{selectedHand.freqs.raise}%</span>
                     </div>
                     <div
                       style={{
@@ -361,7 +362,7 @@ export default function RangeExplorerPage() {
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${selectedHand.freqs.raise}%` }}
-                        style={{ height: '100%', background: '#ef4444' }}
+                        style={{ height: '100%', background: 'var(--sp-accent-red)' }}
                       />
                     </div>
                   </div>
@@ -405,8 +406,8 @@ export default function RangeExplorerPage() {
                         marginBottom: 4,
                       }}
                     >
-                      <span style={{ color: '#94a3b8' }}>Fold</span>
-                      <span style={{ color: '#94a3b8' }}>{selectedHand.freqs.fold}%</span>
+                      <span style={{ color: 'var(--sp-fg-muted)' }}>Fold</span>
+                      <span style={{ color: 'var(--sp-fg-muted)' }}>{selectedHand.freqs.fold}%</span>
                     </div>
                     <div
                       style={{
@@ -419,7 +420,7 @@ export default function RangeExplorerPage() {
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${selectedHand.freqs.fold}%` }}
-                        style={{ height: '100%', background: '#64748b' }}
+                        style={{ height: '100%', background: 'var(--sp-fg-dim)' }}
                       />
                     </div>
                   </div>
@@ -427,7 +428,7 @@ export default function RangeExplorerPage() {
               ) : (
                 <div
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--sp-bg-elev2)',
                     padding: '32px 24px',
                     borderRadius: '16px',
                     border: '1px dashed #334155',
@@ -439,10 +440,10 @@ export default function RangeExplorerPage() {
                   }}
                 >
                   <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.5 }}>👆</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 8 }}>
                     Select any hand
                   </div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
                     Click a cell in the 13x13 matrix to view the exact GTO action frequencies for
                     this position.
                   </div>
@@ -459,21 +460,21 @@ export default function RangeExplorerPage() {
               marginTop: '32px',
               fontSize: '11px',
               fontWeight: 700,
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               flexWrap: 'wrap',
               justifyContent: 'center',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 2, background: '#ef4444' }} /> Pure
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--sp-accent-red)' }} /> Pure
               Raise
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 2, background: '#f97316' }} />{' '}
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--sp-accent-orange)' }} />{' '}
               Mixed Raise
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 2, background: '#fbbf24' }} />{' '}
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--sp-accent-amber)' }} />{' '}
               Mixed Call/Fold
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -486,7 +487,7 @@ export default function RangeExplorerPage() {
                   width: 12,
                   height: 12,
                   borderRadius: 2,
-                  background: '#1e293b',
+                  background: 'var(--sp-bg-elev2)',
                   border: '1px solid #334155',
                 }}
               />{' '}

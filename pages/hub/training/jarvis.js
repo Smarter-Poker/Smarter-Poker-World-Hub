@@ -6,6 +6,7 @@
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH5-26 — hex sweep batch 5: literals routed to --sp-* tokens
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -51,7 +52,7 @@ function AlertIcon({ size=14 })       { return <_Svg size={size}><path d="M10.29
 function ClockIcon({ size=18 })       { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></_Svg>; }
 function TrendDot({ kind, size=14 }) {
   // green / red / yellow filled circle (replaces 🟢🔴🟡)
-  const color = kind === 'green' ? '#22c55e' : kind === 'red' ? '#ef4444' : '#fbbf24';
+  const color = kind === 'green' ? 'var(--sp-accent-green)' : kind === 'red' ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)';
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
       <circle cx="12" cy="12" r="9" fill={color} stroke={color} />
@@ -146,7 +147,7 @@ export default function JarvisDashboard() {
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); loadInsights(); }} />
           <div style={styles.header}>
             {/* TRAIN-JARVIS-A11Y-1: SVG brain replaces 🧠 hero */}
-            <div style={{ ...styles.jarvisIcon, color: '#a855f7', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
+            <div style={{ ...styles.jarvisIcon, color: 'var(--sp-accent-purple)', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
               <BrainIcon size={48} />
             </div>
             <h1 style={styles.title}>JARVIS Dashboard</h1>
@@ -317,14 +318,14 @@ export default function JarvisDashboard() {
                             background: 'rgba(34,197,94,0.1)',
                           }}
                         >
-                          <div style={{ fontSize: 11, color: '#22c55e', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             {/* TRAIN-JARVIS-A11Y-1: SVG trophy replaces 🏆 */}
                             <TrophyIcon size={12} /> Best Venue
                           </div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>
                             {insights.bankroll.topVenue.name}
                           </div>
-                          <div style={{ fontSize: 12, color: '#22c55e' }}>
+                          <div style={{ fontSize: 12, color: 'var(--sp-accent-green)' }}>
                             +$
                             {Math.abs(Math.round(insights.bankroll.topVenue.net)).toLocaleString()}
                           </div>
@@ -339,14 +340,14 @@ export default function JarvisDashboard() {
                             background: 'rgba(239,68,68,0.1)',
                           }}
                         >
-                          <div style={{ fontSize: 11, color: '#ef4444', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ fontSize: 11, color: 'var(--sp-accent-red)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             {/* TRAIN-JARVIS-A11Y-1: SVG alert replaces ⚠️ */}
                             <AlertIcon size={12} /> Worst Venue
                           </div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>
                             {insights.bankroll.worstVenue.name}
                           </div>
-                          <div style={{ fontSize: 12, color: '#ef4444' }}>
+                          <div style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>
                             -$
                             {Math.abs(
                               Math.round(insights.bankroll.worstVenue.net)
@@ -433,13 +434,13 @@ const styles = {
     fontWeight: 700,
   },
   subtitle: {
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '8px',
   },
   loading: {
     textAlign: 'center',
     padding: '60px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   loadingIcon: {
     fontSize: '48px',
@@ -449,7 +450,7 @@ const styles = {
   emptyState: {
     textAlign: 'center',
     padding: '60px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   signInBtn: {
     display: 'inline-block',
@@ -495,7 +496,7 @@ const styles = {
   },
   statLabel: {
     fontSize: '12px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '4px',
   },
   adviceBox: {
@@ -526,7 +527,7 @@ const styles = {
     fontWeight: 500,
   },
   leakCount: {
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     fontSize: '14px',
   },
   gamesGrid: {
@@ -542,7 +543,7 @@ const styles = {
   },
   gameName: {
     fontSize: '12px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginBottom: '8px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -551,7 +552,7 @@ const styles = {
   gameAccuracy: {
     fontSize: '24px',
     fontWeight: 700,
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
   },
   gameLabel: {
     fontSize: '10px',
@@ -573,11 +574,11 @@ const styles = {
     display: 'block',
     fontSize: '24px',
     fontWeight: 700,
-    color: '#fbbf24',
+    color: 'var(--sp-accent-amber)',
   },
   weeklyLabel: {
     fontSize: '12px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '4px',
   },
   backLink: {

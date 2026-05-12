@@ -6,6 +6,7 @@
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH5-27 — hex sweep batch 5: literals routed to --sp-* tokens
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -370,7 +371,7 @@ const styles = {
   filterButton: {
     padding: '8px 24px',
     background: 'transparent',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '8px',
     fontSize: '14px',
@@ -401,7 +402,7 @@ const styles = {
   },
   userRankLabel: {
     fontSize: '16px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   userRankValue: {
     fontSize: '24px',
@@ -466,7 +467,7 @@ const styles = {
   },
   userStats: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
     marginTop: '4px',
   },
   scoreSection: {
@@ -479,7 +480,7 @@ const styles = {
   },
   scoreLabel: {
     fontSize: '12px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   loadingContainer: {
     textAlign: 'center',
@@ -491,12 +492,12 @@ const styles = {
   },
   loadingText: {
     marginTop: '16px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   emptyState: {
     textAlign: 'center',
     padding: '80px 24px',
-    color: '#9ca3af',
+    color: 'var(--sp-fg-muted)',
   },
   button: {
     display: 'inline-block',
@@ -522,7 +523,7 @@ const styles = {
   categoryButtonActive: {
     padding: '6px 14px',
     background: 'rgba(139, 92, 246, 0.15)',
-    color: '#a78bfa',
+    color: 'var(--sp-accent-purple)',
     border: '1px solid rgba(139, 92, 246, 0.4)',
     borderRadius: '6px',
     fontSize: '12px',

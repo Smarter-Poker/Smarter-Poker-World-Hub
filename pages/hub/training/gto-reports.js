@@ -6,6 +6,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-20 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-15 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -63,10 +65,10 @@ function getDeviationColor(userVal, gtoVal) {
   const safeUser = Number.isFinite(userVal) ? userVal : 0;
   const safeGTO = Number.isFinite(gtoVal) ? gtoVal : 0;
   const diff = Math.abs(safeUser - safeGTO);
-  if (diff <= 3) return { bg: 'rgba(34,197,94,0.15)', text: '#22c55e', label: 'GTO' };
-  if (diff <= 8) return { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', label: 'Minor Leak' };
-  if (diff <= 15) return { bg: 'rgba(249,115,22,0.15)', text: '#f97316', label: 'Moderate Leak' };
-  return { bg: 'rgba(239,68,68,0.15)', text: '#ef4444', label: 'Major Leak' };
+  if (diff <= 3) return { bg: 'rgba(34,197,94,0.15)', text: 'var(--sp-accent-green)', label: 'GTO' };
+  if (diff <= 8) return { bg: 'rgba(251,191,36,0.15)', text: 'var(--sp-accent-amber)', label: 'Minor Leak' };
+  if (diff <= 15) return { bg: 'rgba(249,115,22,0.15)', text: 'var(--sp-accent-orange)', label: 'Moderate Leak' };
+  return { bg: 'rgba(239,68,68,0.15)', text: 'var(--sp-accent-red)', label: 'Major Leak' };
 }
 
 function calculateGTOProximity(userStats, baselines) {
@@ -122,7 +124,7 @@ function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 16 }}>{meta.icon}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{meta.label}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>{meta.label}</span>
         </div>
         <span
           style={{
@@ -151,7 +153,7 @@ function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
           >
             {safeUser.toFixed(1)}%
           </div>
-          <div style={{ fontSize: 10, color: '#64748b' }}>
+          <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
             GTO: {safeGTO.toFixed(1)}% ({diff > 0 ? '+' : ''}
             {(Number.isFinite(Number(diff)) ? Number(diff) : 0).toFixed(1)}%)
           </div>
@@ -170,7 +172,7 @@ function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
             <div
               style={{
                 flex: 1,
-                background: '#475569',
+                background: 'var(--sp-fg-faint)',
                 borderRadius: 3,
                 height: '100%',
                 opacity: 0.5,
@@ -179,7 +181,7 @@ function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
             <span style={{ fontSize: 7, color: dev.text, fontWeight: 700 }}>YOU</span>
-            <span style={{ fontSize: 7, color: '#475569', fontWeight: 700 }}>GTO</span>
+            <span style={{ fontSize: 7, color: 'var(--sp-fg-faint)', fontWeight: 700 }}>GTO</span>
           </div>
         </div>
       </div>
@@ -191,8 +193,8 @@ function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
           marginTop: 6,
         }}
       >
-        <span style={{ fontSize: 9, color: '#94a3b8' }}>{meta.desc}</span>
-        <span style={{ fontSize: 9, color: isActive ? dev.text : '#64748b', fontWeight: 600 }}>
+        <span style={{ fontSize: 9, color: 'var(--sp-fg-muted)' }}>{meta.desc}</span>
+        <span style={{ fontSize: 9, color: isActive ? dev.text : 'var(--sp-fg-dim)', fontWeight: 600 }}>
           {isActive ? 'VIEWING HANDS ▲' : 'CLICK TO DRILL DOWN ▼'}
         </span>
       </div>
@@ -215,17 +217,17 @@ function PositionHeatmap({ userByPosition }) {
         border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 12 }}>
         Position Deviation Heatmap
       </div>
       <div
         style={{ display: 'grid', gridTemplateColumns: 'auto repeat(4, 1fr)', gap: 2, fontSize: 9 }}
       >
-        <div style={{ fontWeight: 700, color: '#64748b', padding: 4 }}></div>
+        <div style={{ fontWeight: 700, color: 'var(--sp-fg-dim)', padding: 4 }}></div>
         {['VPIP', 'PFR', '3-Bet', 'C-Bet'].map((h) => (
           <div
             key={h}
-            style={{ fontWeight: 700, color: '#94a3b8', textAlign: 'center', padding: 4 }}
+            style={{ fontWeight: 700, color: 'var(--sp-fg-muted)', textAlign: 'center', padding: 4 }}
           >
             {h}
           </div>
@@ -238,7 +240,7 @@ function PositionHeatmap({ userByPosition }) {
               <div
                 style={{
                   fontWeight: 700,
-                  color: '#e2e8f0',
+                  color: 'var(--sp-fg)',
                   padding: '6px 8px',
                   fontFamily: "'Orbitron', monospace",
                   fontSize: 10,
@@ -434,7 +436,7 @@ export default function GTOReportsPage() {
     [userStats]
   );
   const proximityColor =
-    gtoProximity >= 80 ? '#22c55e' : gtoProximity >= 60 ? '#fbbf24' : '#ef4444';
+    gtoProximity >= 80 ? 'var(--sp-accent-green)' : gtoProximity >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
 
   // Engine enrichment: trends + leaks + letter grade
   const engineData = useMemo(() => {
@@ -469,7 +471,7 @@ export default function GTOReportsPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -490,7 +492,7 @@ export default function GTOReportsPage() {
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 8,
               padding: '6px 12px',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
@@ -504,7 +506,7 @@ export default function GTOReportsPage() {
                 fontSize: 20,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -512,7 +514,7 @@ export default function GTOReportsPage() {
             >
               GTO Reports
             </h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               Frequency deviation analysis vs GTO baselines
             </div>
           </div>
@@ -521,7 +523,7 @@ export default function GTOReportsPage() {
         <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>
+            <div style={{ textAlign: 'center', padding: 60, color: 'var(--sp-fg-dim)' }}>
               Loading session data...
             </div>
           ) : (
@@ -543,7 +545,7 @@ export default function GTOReportsPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
                     marginBottom: 8,
@@ -562,7 +564,7 @@ export default function GTOReportsPage() {
                 >
                   {gtoProximity}
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
                   Based on {sessions.length > 0 ? sessions.length : 'sample'} training sessions
                 </div>
                 {/* Progress bar */}
@@ -636,7 +638,7 @@ export default function GTOReportsPage() {
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#a5b4fc' }}>
                             Drill-Down: {(STAT_LABELS[drillDown] || {}).label || drillDown}
                           </div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>
+                          <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
                             Sessions contributing to this stat
                           </div>
                         </div>
@@ -657,7 +659,7 @@ export default function GTOReportsPage() {
                         </button>
                       </div>
                       {sessions.length === 0 ? (
-                        <div style={{ fontSize: 12, color: '#64748b', padding: '10px 0' }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', padding: '10px 0' }}>
                           No session data yet. Complete training sessions to see drill-down details.
                           Sample data is being displayed above.
                         </div>
@@ -683,10 +685,10 @@ export default function GTOReportsPage() {
                                 }}
                               >
                                 <div>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)' }}>
                                     {s.game_mode || s.gameMode || 'Training Session'}
                                   </div>
-                                  <div style={{ fontSize: 10, color: '#64748b' }}>
+                                  <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
                                     {hands} hands |{' '}
                                     {new Date(
                                       s.created_at || s.createdAt || Date.now()
@@ -697,7 +699,7 @@ export default function GTOReportsPage() {
                                   <div style={{ fontSize: 14, fontWeight: 700, color: dev.text }}>
                                     {(Number.isFinite(Number(acc)) ? Number(acc) : 0).toFixed(0)}%
                                   </div>
-                                  <div style={{ fontSize: 9, color: '#64748b' }}>accuracy</div>
+                                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>accuracy</div>
                                 </div>
                               </div>
                             );
@@ -722,7 +724,7 @@ export default function GTOReportsPage() {
                   border: '1px solid rgba(255,255,255,0.06)',
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 10 }}>
                   Coaching Recommendations
                 </div>
                 {Object.entries(GTO_BASELINES.overall || {})
@@ -753,14 +755,14 @@ export default function GTOReportsPage() {
                           background: 'rgba(239,68,68,0.05)',
                           border: '1px solid rgba(239,68,68,0.1)',
                           fontSize: 11,
-                          color: '#e2e8f0',
+                          color: 'var(--sp-fg)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 8,
                         }}
                       >
                         <div style={{ flex: 1 }}>
-                          <strong style={{ color: '#f97316' }}>{meta.label || key}</strong> is{' '}
+                          <strong style={{ color: 'var(--sp-accent-orange)' }}>{meta.label || key}</strong> is{' '}
                           {direction} by <strong>{(Number.isFinite(Number(diff)) ? Number(diff) : 0).toFixed(1)}%</strong>.{' '}
                           {direction === 'too high'
                             ? `Consider tightening your ${meta.label || key} range.`
@@ -777,7 +779,7 @@ export default function GTOReportsPage() {
                               fontWeight: 700,
                               border: 'none',
                               cursor: 'pointer',
-                              background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                              background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                               color: '#fff',
                               whiteSpace: 'nowrap',
                             }}
@@ -801,7 +803,7 @@ export default function GTOReportsPage() {
                   border: '1px solid rgba(0,212,255,0.15)',
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#00d4ff', marginBottom: 10, fontFamily: "'Orbitron', monospace", textTransform: 'uppercase', letterSpacing: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 10, fontFamily: "'Orbitron', monospace", textTransform: 'uppercase', letterSpacing: 1 }}>
                   🎯 Recommended Drills
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
@@ -825,7 +827,7 @@ export default function GTOReportsPage() {
 
                     if (weakStats.length === 0) {
                       return (
-                        <div style={{ fontSize: 11, color: '#22c55e', padding: 8 }}>
+                        <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', padding: 8 }}>
                           ✅ Your stats are close to GTO! Keep training to maintain your edge.
                         </div>
                       );
@@ -848,11 +850,11 @@ export default function GTOReportsPage() {
                           }}
                         >
                           <div style={{ fontSize: 16, marginBottom: 4 }}>{page.icon}</div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 2 }}>
                             {page.name}
                           </div>
-                          <div style={{ fontSize: 9, color: '#64748b', marginBottom: 4 }}>{page.desc}</div>
-                          <div style={{ fontSize: 8, fontWeight: 700, color: '#f97316' }}>
+                          <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>{page.desc}</div>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--sp-accent-orange)' }}>
                             Fix: {stat.label} ({(Number.isFinite(Number(stat.diff)) ? Number(stat.diff) : 0).toFixed(1)}% off GTO)
                           </div>
                         </button>

@@ -10,6 +10,7 @@
 
 // TRAIN-CSS-TOKENS-ADOPT-5 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-6 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-GRADIENT-ADOPT-45 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -458,7 +459,7 @@ export default function ShortDeckTrainerPage() {
                   onClick={runSim}
                   disabled={simulating}
                   style={{
-                    background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #b91c1c)',
                     border: 'none',
                     color: '#fff',
                     padding: '14px 32px',

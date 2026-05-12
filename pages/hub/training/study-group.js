@@ -1,3 +1,4 @@
+// TRAIN-CSS-TOKENS-BATCH5-57 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -167,7 +168,7 @@ export default function StudyGroupRoom() {
             style={styles.createBox}
           >
             <h2>Create a New Study Room</h2>
-            <p style={{ color: '#94a3b8', marginBottom: 24 }}>
+            <p style={{ color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
               Invite friends, upload hands, and analyze GTO lines together.
             </p>
 
@@ -188,7 +189,7 @@ export default function StudyGroupRoom() {
             {/* Left: Participants & Hand Viewer */}
             <div style={styles.mainCol}>
               <div style={styles.participantsBar}>
-                <div style={{ fontWeight: 700, color: '#94a3b8', fontSize: 12, marginRight: 16 }}>
+                <div style={{ fontWeight: 700, color: 'var(--sp-fg-muted)', fontSize: 12, marginRight: 16 }}>
                   ONLINE (3)
                 </div>
                 {participants.map((p) => (
@@ -198,14 +199,14 @@ export default function StudyGroupRoom() {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        background: '#4ade80',
+                        background: 'var(--sp-accent-green)',
                         marginRight: 8,
                       }}
                     />
                     {p.name}{' '}
                     {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces emoji — ternary form (SWC parser in next 16.2.4 chokes on JSX-inside-&&-paren here, even with comment outside; see PR #362, #364, and build logs from dpl_HJeXm). */}
                     {p.role === 'Admin' ? (
-                      <span style={{ color: '#fbbf24', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
+                      <span style={{ color: 'var(--sp-accent-amber)', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
                         <CrownIcon size={12} />
                       </span>
                     ) : null}
@@ -255,7 +256,7 @@ export default function StudyGroupRoom() {
 
                     <div style={styles.solverEval}>
                       {/* TRAIN-STUDYGROUP-A11Y-1: SVG star replaces glyph */}
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#fbbf24' }} aria-hidden>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--sp-accent-amber)' }} aria-hidden>
                         <StarIcon size={14} />
                         {activeHandInfo.solverEval}
                       </span>
@@ -305,7 +306,7 @@ export default function StudyGroupRoom() {
                         <div
                           style={{
                             fontSize: 10,
-                            color: '#94a3b8',
+                            color: 'var(--sp-fg-muted)',
                             marginBottom: 4,
                             display: 'flex',
                             justifyContent: 'space-between',
@@ -375,11 +376,11 @@ const styles = {
     fontWeight: 900,
     fontFamily: 'Orbitron, sans-serif',
     letterSpacing: 1,
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
   },
   subtitle: {
     margin: 0,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
   },
   createBox: {
@@ -404,7 +405,7 @@ const styles = {
   },
   createBtn: {
     width: '100%',
-    background: '#3b82f6',
+    background: 'var(--sp-accent-blue)',
     color: '#fff',
     padding: 16,
     borderRadius: 12,
@@ -454,7 +455,7 @@ const styles = {
   inviteBtn: {
     marginLeft: 'auto',
     background: 'rgba(59, 130, 246, 0.2)',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
     border: '1px solid rgba(59, 130, 246, 0.5)',
     padding: '6px 16px',
     borderRadius: 20,
@@ -477,7 +478,7 @@ const styles = {
     textAlign: 'center',
   },
   loadBtn: {
-    background: '#3b82f6',
+    background: 'var(--sp-accent-blue)',
     color: '#fff',
     border: 'none',
     padding: '12px 24px',
@@ -501,7 +502,7 @@ const styles = {
   closeBtn: {
     background: 'transparent',
     border: 'none',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 20,
     cursor: 'pointer',
   },
@@ -527,7 +528,7 @@ const styles = {
   },
   playerLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontWeight: 700,
     letterSpacing: 2,
     marginBottom: 12,
@@ -542,7 +543,7 @@ const styles = {
   solverEval: {
     background: 'rgba(74, 222, 128, 0.1)',
     border: '1px solid rgba(74, 222, 128, 0.3)',
-    color: '#4ade80',
+    color: 'var(--sp-accent-green)',
     padding: 16,
     borderRadius: 8,
     fontWeight: 600,
@@ -554,7 +555,7 @@ const styles = {
     fontWeight: 700,
     fontSize: 14,
     letterSpacing: 1,
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
   },
   chatMessages: {
     flex: 1,
@@ -571,7 +572,7 @@ const styles = {
   },
   systemMsg: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontStyle: 'italic',
     alignSelf: 'center',
     margin: '8px 0',
@@ -600,7 +601,7 @@ const styles = {
     fontSize: 14,
   },
   sendBtn: {
-    background: '#3b82f6',
+    background: 'var(--sp-accent-blue)',
     color: '#fff',
     border: 'none',
     padding: '0 20px',

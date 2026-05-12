@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH5-17 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -309,7 +310,7 @@ const TERMS = [
 ];
 
 const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Theory'];
-const CAT_COLORS = { Preflop: '#3b82f6', Postflop: '#22c55e', Math: '#fbbf24', Theory: '#a855f7' };
+const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
 
 export default function GlossaryPage() {
   const router = useRouter();
@@ -364,7 +365,7 @@ export default function GlossaryPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -384,7 +385,7 @@ export default function GlossaryPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -401,7 +402,7 @@ export default function GlossaryPage() {
           <div>
             {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Glossary</h1>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               {TERMS.length} terms · {favorites.size} saved
             </div>
           </div>
@@ -420,7 +421,7 @@ export default function GlossaryPage() {
               borderRadius: 8,
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
-              color: '#e2e8f0',
+              color: 'var(--sp-fg)',
               fontSize: 13,
               marginBottom: 12,
               fontFamily: 'Inter, sans-serif',
@@ -444,7 +445,7 @@ export default function GlossaryPage() {
                   borderRadius: 6,
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: catFilter === c ? '#00d4ff' : '#64748b',
+                  color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 10,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -457,7 +458,7 @@ export default function GlossaryPage() {
 
           {/* Results count */}
           {/* TRAIN-GLOSSARY-A11Y-1: live region for filtered count */}
-          <div style={{ fontSize: 10, color: '#475569', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
+          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
             {filtered.length} terms
           </div>
 
@@ -479,7 +480,7 @@ export default function GlossaryPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', flex: 1 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', flex: 1 }}>
                   {t.term}
                 </span>
                 <span
@@ -510,7 +511,7 @@ export default function GlossaryPage() {
                     fontSize: 12,
                     padding: 0,
                     display: 'inline-flex',
-                    color: favorites.has(t.term) ? '#fbbf24' : '#334155',
+                    color: favorites.has(t.term) ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
                   }}
                 >
                   {/* TRAIN-GLOSSARY-A11Y-1: SVG StarToggle replaces ★/☆ */}
@@ -522,7 +523,7 @@ export default function GlossaryPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                 >
-                  <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginTop: 6 }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginTop: 6 }}>
                     {t.def}
                   </div>
                 </motion.div>
@@ -530,7 +531,7 @@ export default function GlossaryPage() {
                 <div
                   style={{
                     fontSize: 11,
-                    color: '#475569',
+                    color: 'var(--sp-fg-faint)',
                     lineHeight: 1.4,
                     marginTop: 4,
                     overflow: 'hidden',

@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-9 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-39 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -22,6 +23,10 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
 import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+
+// TRAIN-CSS-MOTION-ADOPT-24 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-1b — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -119,7 +124,7 @@ function ClassificationBar({ classifications, total }) {
               key={cls}
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              transition={{ duration: MOTION.slow, ease: 'easeOut' }}
               style={{
                 height: '100%',
                 background: CLASS_CONFIG[cls]?.color || 'var(--sp-fg-faint)',
@@ -332,7 +337,7 @@ export default function GTOReports() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, #00d4ff, #22c55e)',
+                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontFamily: "'Orbitron', monospace",
@@ -365,7 +370,7 @@ export default function GTOReports() {
                   transition: 'all 0.2s',
                   background:
                     period === p.value
-                      ? 'linear-gradient(135deg, #00d4ff, #22c55e)'
+                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))'
                       : 'rgba(255,255,255,0.06)',
                   color: period === p.value ? '#fff' : 'var(--sp-fg-muted)',
                 }}
