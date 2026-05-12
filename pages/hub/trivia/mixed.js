@@ -21,6 +21,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -652,36 +653,18 @@ export default function MixedModePage() {
                                 <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
 
                                 <div className="options">
-                                    {currentQuestion.options.map((option, idx) => {
-                                        let className = 'option';
-                                        if (showResult) {
-                                            if (idx === currentQuestion.correct_index) {
-                                                className += ' correct';
-                                            } else if (idx === selectedAnswer) {
-                                                className += ' wrong';
-                                            }
-                                        } else if (idx === selectedAnswer) {
-                                            className += ' selected';
-                                        }
-
-                                        return (
-                                            <button
-                                                key={idx}
-                                                className={className}
-                                                onClick={() => selectAnswer(idx)}
-                                                disabled={showResult}
-                                            >
-                                                <span className="option-letter">{String.fromCharCode(65 + idx)}</span>
-                                                <span className="option-text">{toTitleCase(option)}</span>
-                                                {showResult && idx === currentQuestion.correct_index && (
-                                                    <CheckCircle size={20} className="result-icon" />
-                                                )}
-                                                {showResult && idx === selectedAnswer && idx !== currentQuestion.correct_index && (
-                                                    <XCircle size={20} className="result-icon" />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
+                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1 — shared option primitive */}
+                                {currentQuestion.options.map((option, idx) => (
+                                  <TriviaAnswerOption
+                                    key={idx}
+                                    index={idx}
+                                    option={toTitleCase(option)}
+                                    selectedAnswer={selectedAnswer}
+                                    correctIndex={currentQuestion.correct_index}
+                                    showResult={showResult}
+                                    onSelect={selectAnswer}
+                                  />
+                                ))}
                                 </div>
 
                                 {showResult && currentQuestion.explanation && (

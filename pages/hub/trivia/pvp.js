@@ -1050,36 +1050,18 @@ export default function PvPPage() {
                                 <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
 
                                 <div className="options">
-                                    {currentQuestion.options.map((option, idx) => {
-                                        let className = 'option';
-                                        if (showResult) {
-                                            if (idx === currentQuestion.correct_index) {
-                                                className += ' correct';
-                                            } else if (idx === selectedAnswer) {
-                                                className += ' wrong';
-                                            }
-                                        } else if (idx === selectedAnswer) {
-                                            className += ' selected';
-                                        }
-
-                                        return (
-                                            <button
-                                                key={idx}
-                                                className={className}
-                                                onClick={() => selectAnswer(idx)}
-                                                disabled={showResult}
-                                            >
-                                                <span className="option-letter">{String.fromCharCode(65 + idx)}</span>
-                                                <span className="option-text">{toTitleCase(option)}</span>
-                                                {showResult && idx === currentQuestion.correct_index && (
-                                                    <CheckCircle size={20} className="result-icon" />
-                                                )}
-                                                {showResult && idx === selectedAnswer && idx !== currentQuestion.correct_index && (
-                                                    <XCircle size={20} className="result-icon" />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
+                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2 — shared option primitive */}
+                                {currentQuestion.options.map((option, idx) => (
+                                  <TriviaAnswerOption
+                                    key={idx}
+                                    index={idx}
+                                    option={toTitleCase(option)}
+                                    selectedAnswer={selectedAnswer}
+                                    correctIndex={currentQuestion.correct_index}
+                                    showResult={showResult}
+                                    onSelect={selectAnswer}
+                                  />
+                                ))}
                                 </div>
                             </MetalFrame>
                         </div>
