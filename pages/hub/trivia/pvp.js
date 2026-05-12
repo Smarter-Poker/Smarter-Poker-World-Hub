@@ -28,6 +28,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
+import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -63,9 +64,10 @@ export default function PvPPage() {
     // Battle state
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     // TRAIN-WIRE-TRIVIA-HOOK-2 - shared trivia answer-state plumbing
+    const timerCtrlRef = useRef({});
     const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
         onAnswer: ({ index, isCorrect }) => {
-            setIsTimerRunning(false);
+            timerCtrlRef.current.stop?.();
 
             // Track answer accuracy per question for history recording
             playerAnswersRef.current[currentQuestionIndex] = isCorrect;
@@ -87,8 +89,7 @@ export default function PvPPage() {
                 } else {
                     setCurrentQuestionIndex(prev => prev + 1);
                     trivia.reset();
-                    setTimeLeft(40);
-                    setIsTimerRunning(true);
+                    timerCtrlRef.current.reset?.();
                 }
             }, 500);
         }
@@ -96,10 +97,10 @@ export default function PvPPage() {
     const { selectedAnswer, showResult } = trivia;
     const [playerScore, setPlayerScore] = useState(0);
     const [opponentScore, setOpponentScore] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(40);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    // TRAIN-WIRE-TRIVIA-TIMER-2 - shared shot-clock hook
+    const timer = useTriviaTimer({ initialTime: 40, showResult: trivia.showResult, gameState, playingState: 'battle', onTimeout: handleTimeout });
+    timerCtrlRef.current = { stop: () => timer.setIsTimerRunning(false), reset: timer.resetTimer };
 
-    const timerRef = useRef(null);
     const queueSubscription = useRef(null);
     const matchSubscription = useRef(null);
     const searchTimeout = useRef(null);
@@ -141,47 +142,6 @@ export default function PvPPage() {
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
-
-    // Visibility-based timer pause + auto-resume on tab-return.
-    // Phase 57: PvP cheating vector — previously, switching tabs paused the
-    // timer indefinitely. Player could look up the answer offline, return,
-    // answer correctly. In a real-money-stake PvP match, this is exploitative
-    // (the opponent's clock is server-driven, but the local timer wasn't
-    // resuming). Now auto-resumes when game is in 'battle' state.
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.hidden && isTimerRunning) {
-                setIsTimerRunning(false);
-            } else if (!document.hidden && !isTimerRunning && gameState === 'battle' && !showResult) {
-                setIsTimerRunning(true);
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning, gameState, showResult]);
-
-    // Timer effect
-    useEffect(() => {
-        if (!isTimerRunning || showResult) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return;
-        }
-
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    handleTimeout();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [isTimerRunning, showResult, currentQuestionIndex]);
 
     async function loadUserData() {
         const user = avatarUser || getAuthUser();
@@ -475,8 +435,7 @@ export default function PvPPage() {
             playerScoreRef.current = 0;
             playerAnswersRef.current = [];
             trivia.reset();
-            setTimeLeft(40);
-            setIsTimerRunning(true);
+            timer.resetTimer();
         }, 2000);
 
         } catch (e) {
@@ -523,8 +482,7 @@ export default function PvPPage() {
             playerScoreRef.current = 0;
             playerAnswersRef.current = [];
             trivia.reset();
-            setTimeLeft(40);
-            setIsTimerRunning(true);
+            timer.resetTimer();
         }, 2000);
     }
 
@@ -607,12 +565,12 @@ export default function PvPPage() {
     }
 
     function handleTimeout() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         trivia.selectAnswer(-1); // Wrong answer - delegates to shared hook
     }
 
     async function finishBattle() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         setGameState('waiting');
 
         // Use ref for accurate score — React state may be stale inside this closure
@@ -861,8 +819,8 @@ export default function PvPPage() {
         setOpponentScore(null);
         setCurrentQuestionIndex(0);
         trivia.reset();
-        setTimeLeft(40);
-        setIsTimerRunning(false);
+        timer.setTimeLeft(40);
+        timer.setIsTimerRunning(false);
         setIsHorseMatch(false);
         setStakeAmount(0);
         horseAnswersRef.current = [];
@@ -1027,9 +985,9 @@ export default function PvPPage() {
                             </div>
 
                             {/* Timer */}
-                            <div className={`battle-timer ${timeLeft <= 5 ? 'danger' : ''}`}>
+                            <div className={`battle-timer ${timer.timeLeft <= 5 ? 'danger' : ''}`}>
                                 <Clock size={20} />
-                                <span>{timeLeft}s</span>
+                                <span>{timer.timeLeft}s</span>
                             </div>
 
                             {/* Progress */}
