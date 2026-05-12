@@ -2535,13 +2535,12 @@ export default function UserProfilePage() {
             .not('media_urls', 'is', null)
             .order('created_at', { ascending: false })
             .limit(50),
-          // Videos
+          // Videos — Bug 15 fix: include live posts + thumbnail_url for cover images
           supabase
             .from('social_posts')
-            .select('id, media_urls, content, created_at, content_type')
+            .select('id, media_urls, thumbnail_url, metadata, content, created_at, content_type')
             .eq('author_id', socialId)
-            .eq('content_type', 'video')
-            .not('media_urls', 'is', null)
+            .or('content_type.eq.video,content_type.eq.live')
             .order('created_at', { ascending: false })
             .limit(30),
           // Reels
@@ -6042,16 +6041,36 @@ export default function UserProfilePage() {
               </h3>
               {videos.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                  {videos.map((video) =>
-                    video.media_urls?.map((url, i) => (
+                  {videos.map((video) => {
+                    // Bug 15 fix: live posts have empty media_urls — use thumbnail_url as cover
+                    if (!video.media_urls?.length) {
+                      const cover = video.thumbnail_url;
+                      if (!cover) return null;
+                      const livesId = video.metadata?.lives_id || video.metadata?.stream_id;
+                      return (
+                        <div
+                          key={video.id}
+                          style={{ overflow: 'hidden', borderRadius: 8, background: '#000', position: 'relative', cursor: 'pointer', aspectRatio: '16/9' }}
+                          onClick={() => livesId ? router.push(`/hub/lives?id=${livesId}`) : router.push(`/hub/social-media?post=${video.id}`)}
+                        >
+                          <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          {video.content_type === 'live' && (
+                            <div style={{ position: 'absolute', top: 6, left: 6, background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                              {video.metadata?.ended ? 'PAST LIVE' : 'LIVE'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return video.media_urls.map((url, i) => (
                       <div
                         key={`${video.id}-${i}`}
                         style={{ overflow: 'hidden', borderRadius: 8, background: '#000' }}
                       >
                         <ProfileVideoCard url={url} postId={video.id} />
                       </div>
-                    ))
-                  )}
+                    ));
+                  })}
                 </div>
               ) : (
                 <div

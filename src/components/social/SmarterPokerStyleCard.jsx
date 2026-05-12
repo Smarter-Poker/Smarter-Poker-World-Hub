@@ -549,6 +549,73 @@ export const SPPostCard = ({
                     </div>
                 )}
 
+                {/* Live Stream Preview — Bug 13 fix: show thumbnail + LIVE badge for live posts */}
+                {(post.contentType === 'live' || post.content_type === 'live') && (
+                    <div
+                        onClick={() => {
+                            const id = post.metadata?.lives_id || post.metadata?.stream_id;
+                            if (id) router.push(`/hub/lives?id=${id}`);
+                        }}
+                        style={{
+                            position: 'relative', cursor: 'pointer',
+                            borderRadius: 12, overflow: 'hidden',
+                            aspectRatio: '16/9', background: '#111',
+                            margin: '8px 0',
+                        }}
+                    >
+                        {(post.thumbnailUrl || post.thumbnail_url) ? (
+                            <img
+                                src={post.thumbnailUrl || post.thumbnail_url}
+                                alt="Live stream"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            />
+                        ) : (
+                            <div style={{
+                                width: '100%', height: '100%',
+                                background: 'linear-gradient(135deg,#1a1a2e,#16213e)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <span style={{ fontSize: 48 }}>🎥</span>
+                            </div>
+                        )}
+                        {!post.metadata?.ended && (
+                            <div style={{
+                                position: 'absolute', top: 10, left: 10,
+                                background: '#ef4444', color: 'white',
+                                padding: '3px 10px', borderRadius: 6,
+                                fontSize: 12, fontWeight: 700, letterSpacing: 1,
+                                display: 'flex', alignItems: 'center', gap: 6,
+                            }}>
+                                <span style={{
+                                    width: 8, height: 8, borderRadius: '50%', background: 'white',
+                                    animation: 'livePulse 1.2s ease-in-out infinite',
+                                }} />
+                                LIVE NOW
+                            </div>
+                        )}
+                        <div style={{
+                            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <div style={{
+                                width: 56, height: 56, borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.85)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="#111">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <style>{`
+                            @keyframes livePulse {
+                                0%, 100% { opacity: 1; transform: scale(1); }
+                                50% { opacity: 0.4; transform: scale(1.3); }
+                            }
+                        `}</style>
+                    </div>
+                )}
+
                 {/* Media Grid - supports multiple images/videos */}
                 {(post.mediaUrls?.length > 0 || post.media) && (
                     <div className="sp-post-media">
