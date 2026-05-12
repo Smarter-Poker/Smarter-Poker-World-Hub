@@ -20,6 +20,7 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -575,48 +576,20 @@ export default function ShortDeckTrainerPage() {
                       margin: '0 auto',
                     }}
                   >
-                    {quiz.options.map((opt) => {
-                      const isSelected = quizAnswer === opt;
-                      const isCorrect = opt === quiz.correct;
-                      const showResult = quizAnswer !== null;
-                      const bg = showResult
-                        ? isCorrect
-                          ? 'rgba(34,197,94,0.12)'
-                          : isSelected
-                            ? 'rgba(239,68,68,0.12)'
-                            : 'rgba(0,0,0,0.2)'
-                        : 'rgba(0,0,0,0.2)';
-                      const border = showResult
-                        ? isCorrect
-                          ? 'rgba(34,197,94,0.4)'
-                          : isSelected
-                            ? 'rgba(239,68,68,0.4)'
-                            : 'rgba(255,255,255,0.05)'
-                        : 'rgba(255,255,255,0.08)';
-                      return (
-                        <motion.button
-                          key={opt}
-                          whileHover={!showResult ? { scale: 1.02 } : {}}
-                          whileTap={!showResult ? { scale: 0.98 } : {}}
-                          onClick={() => answerQuiz(opt)}
-                          disabled={showResult}
-                          style={{
-                            padding: '12px 16px',
-                            borderRadius: 10,
-                            background: bg,
-                            border: `1px solid ${border}`,
-                            color: 'var(--sp-fg)',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            cursor: showResult ? 'default' : 'pointer',
-                            textTransform: 'capitalize',
-                          }}
-                        >
-                          {opt} {showResult && isCorrect && '✓'}{' '}
-                          {showResult && isSelected && !isCorrect && '✗'}
-                        </motion.button>
-                      );
-                    })}
+                    {/* TRAIN-WIRE-QUIZ-ANSWER-3 — options via shared QuizAnswer */}
+                    {quiz.options.map((opt, idx) => (
+                      <QuizAnswer
+                        key={opt}
+                        label={opt}
+                        shortcut={idx + 1}
+                        selected={quizAnswer === opt}
+                        correct={opt === quiz.correct}
+                        show={quizAnswer !== null}
+                        onClick={() => answerQuiz(opt)}
+                        size="md"
+                        style={{ textTransform: 'capitalize' }}
+                      />
+                    ))}
                   </div>
 
                   {/* Next */}

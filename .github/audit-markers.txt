@@ -1484,3 +1484,19 @@ TRAIN-QUIZ-ANSWER-1
 # rolled rgba conditionals and inline ✓/✗) with <QuizAnswerStack> +
 # <QuizAnswer>. Numeric `shortcut` (idx+1) renders the kbd hint chip.
 TRAIN-WIRE-QUIZ-ANSWER-1
+
+# ─── Phase-22: QuizAnswer adoption sweep ────────────────────────────────────
+# TRAIN-WIRE-QUIZ-ANSWER-2 — pages/hub/training/pot-geometry.js. Replaces
+# inline motion.button SPR-category options (with hand-rolled bg/border/
+# color conditionals) with QuizAnswerStack + 4 QuizAnswer instances.
+# Numeric shortcut={idx+1} per option.
+TRAIN-WIRE-QUIZ-ANSWER-2
+# TRAIN-WIRE-QUIZ-ANSWER-3 — pages/hub/training/short-deck-trainer.js (quiz
+# mode). Replaces inline motion.button rule-question options with
+# QuizAnswer instances inline (parent container handles layout).
+# textTransform: 'capitalize' preserved via style prop pass-through.
+TRAIN-WIRE-QUIZ-ANSWER-3
+# TRAIN-WIRE-QUIZ-ANSWER-4 — pages/hub/training/daily-challenge.js.
+# Replaces the 2-col motion.button action options (CALL/FOLD/etc.) with
+# QuizAnswer instances. Parent grid container preserves the 2-col layout.
+TRAIN-WIRE-QUIZ-ANSWER-4
