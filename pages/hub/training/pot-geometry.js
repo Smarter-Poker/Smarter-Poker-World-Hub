@@ -12,6 +12,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
 
 // TRAIN-CSS-MOTION-ADOPT-5 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -866,59 +867,21 @@ export default function PotGeometry() {
                       What is the SPR category for this spot?
                     </div>
 
-                    {/* Options */}
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}
-                    >
-                      {drill.options.map((opt) => {
-                        const isSelected = selected === opt;
-                        const isCorrect = opt === drill.cat.label;
-                        let bg = 'rgba(255,255,255,0.06)',
-                          border = 'rgba(255,255,255,0.1)',
-                          color = 'var(--sp-fg)';
-                        if (showResult) {
-                          if (isCorrect) {
-                            bg = 'rgba(34,197,94,0.15)';
-                            border = 'var(--sp-accent-green)';
-                            color = 'var(--sp-accent-green)';
-                          } else if (isSelected) {
-                            bg = 'rgba(239,68,68,0.15)';
-                            border = 'var(--sp-accent-red)';
-                            color = 'var(--sp-accent-red)';
-                          } else {
-                            color = 'var(--sp-fg-faint)';
-                          }
-                        }
-                        return (
-                          <motion.button
-                            key={opt}
-                            whileTap={!showResult ? { scale: 0.97 } : {}}
-                            onClick={() => handleAnswer(opt)}
-                            disabled={showResult}
-                            style={{
-                              padding: '14px 16px',
-                              borderRadius: 10,
-                              fontSize: 13,
-                              fontWeight: 800,
-                              cursor: showResult ? 'default' : 'pointer',
-                              background: bg,
-                              border: `2px solid ${border}`,
-                              color,
-                              transition: 'all 0.2s',
-                              fontFamily: "'Inter',sans-serif",
-                              textAlign: 'left',
-                            }}
-                          >
-                            {opt}
-                            {showResult && isCorrect && (
-                              <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--sp-accent-green)' }}>
-                                ✓ SPR: {drill.spr}
-                              </span>
-                            )}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
+                    {/* TRAIN-WIRE-QUIZ-ANSWER-2 — options via shared QuizAnswer */}
+                    <QuizAnswerStack gap={8} maxWidth={undefined} style={{ marginBottom: 14 }}>
+                      {drill.options.map((opt, idx) => (
+                        <QuizAnswer
+                          key={opt}
+                          label={opt}
+                          shortcut={idx + 1}
+                          selected={selected === opt}
+                          correct={opt === drill.cat.label}
+                          show={showResult}
+                          onClick={() => handleAnswer(opt)}
+                          size="md"
+                        />
+                      ))}
+                    </QuizAnswerStack>
 
                     {/* Feedback */}
                     <AnimatePresence>

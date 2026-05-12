@@ -20,6 +20,7 @@ import Card, { parseCards, getCardImagePath } from '../../../src/components/trai
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 // TRAIN-WIRE-FX-4d — adoption: feedback hook for daily-challenge.fresh.js
 
 /**
@@ -724,51 +725,20 @@ export default function DailyChallengePage() {
                   marginBottom: 16,
                 }}
               >
-                {options.map((action) => {
-                  const isSelected = selected === action;
-                  const isCorrect = action === correctAnswer;
-                  let bg = 'rgba(255,255,255,0.06)';
-                  let borderColor = 'rgba(255,255,255,0.1)';
-                  let textColor = 'var(--sp-fg)';
-
-                  if (showResult) {
-                    if (isCorrect) {
-                      bg = 'rgba(34,197,94,0.15)';
-                      borderColor = 'var(--sp-accent-green)';
-                      textColor = 'var(--sp-accent-green)';
-                    } else if (isSelected && !isCorrect) {
-                      bg = 'rgba(239,68,68,0.15)';
-                      borderColor = 'var(--sp-accent-red)';
-                      textColor = 'var(--sp-accent-red)';
-                    } else {
-                      textColor = 'var(--sp-fg-faint)';
-                    }
-                  }
-
-                  return (
-                    <motion.button
-                      key={action}
-                      whileTap={!showResult ? { scale: 0.96 } : {}}
-                      onClick={() => handleAnswer(action)}
-                      disabled={showResult}
-                      aria-label={`Choose ${action}`}
-                      style={{
-                        padding: '14px 12px',
-                        borderRadius: 10,
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: showResult ? 'default' : 'pointer',
-                        background: bg,
-                        border: `2px solid ${borderColor}`,
-                        color: textColor,
-                        transition: 'all 0.2s',
-                        fontFamily: "'Inter', sans-serif",
-                      }}
-                    >
-                      {action}
-                    </motion.button>
-                  );
-                })}
+                {/* TRAIN-WIRE-QUIZ-ANSWER-4 — options via shared QuizAnswer */}
+                {options.map((action, idx) => (
+                  <QuizAnswer
+                    key={action}
+                    label={action}
+                    shortcut={idx + 1}
+                    selected={selected === action}
+                    correct={action === correctAnswer}
+                    show={showResult}
+                    onClick={() => handleAnswer(action)}
+                    ariaLabel={`Choose ${action}`}
+                    size="md"
+                  />
+                ))}
               </div>
 
               {/* Result Feedback */}
