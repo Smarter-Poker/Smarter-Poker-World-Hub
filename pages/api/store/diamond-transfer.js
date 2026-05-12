@@ -262,8 +262,31 @@ export default async function handler(req, res) {
 
         const isKingfish = senderProfile?.full_name?.toLowerCase().includes('dan bekavac') || senderProfile?.username?.toLowerCase() === 'kingfish';
 
+        // ── Trust signal: completed non-refunded diamond purchase ──
+        // Mirrors the DB-side cap function (fn_check_anti_farming_gift_cap) which
+        // grants trusted_purchaser_bypass for any user with a completed non-refunded
+        // diamond_purchases row. Service-role bypasses RLS;
+        // idx_diamond_purchases_user_id makes this O(1).
+        const { data: paidPurchases } = await getSupabase()
+            .from('diamond_purchases')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('status', 'completed')
+            .is('refunded_at', null)
+            .limit(1);
+        const hasPaid = (paidPurchases?.length || 0) > 0;
+
+        // ── Trust signal: graduated OR paid, AND not flagged ──
+        // Logical NOT (was strict `=== false`) correctly treats NULL and false
+        // identically — only true is restricted. Mirrors fn_check_anti_farming_gift_cap
+        // exactly so the DB trigger never blocks what the JS layer admits.
+        const isFullyUnrestricted =
+            (senderAgeDays >= GRADUATION_DAYS || hasPaid) && !senderProfile?.is_farming_flagged;
+
         // ── GUARD 16: Hard block — new users (< 30 days) CANNOT send any diamonds ──
-        if (!isKingfish && senderAgeDays < NEW_USER_BLOCK_DAYS) {
+        // Trusted senders (paid OR graduated unflagged) bypass the new-user block.
+        // Per platform rule: "unlimited gifting for paid users and 120d+ unflagged".
+        if (!isKingfish && !isFullyUnrestricted && senderAgeDays < NEW_USER_BLOCK_DAYS) {
             const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
             return res.status(403).json({
                 success: false,
@@ -277,8 +300,6 @@ export default async function handler(req, res) {
         if (!isKingfish && recipientAgeDays < 7) {
             return res.status(403).json({ success: false, error: 'Recipient account must be at least 7 days old to receive diamonds' });
         }
-
-        const isFullyUnrestricted = senderAgeDays >= GRADUATION_DAYS && senderProfile?.is_farming_flagged === false;
 
         // ── Guard 4: Per-transfer max (tier-aware) ──
         if (!isKingfish && !isFullyUnrestricted && amount > maxTransferVip) {
