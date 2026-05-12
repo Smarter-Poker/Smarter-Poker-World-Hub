@@ -2125,9 +2125,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             {Object.entries(topGifters)
               .sort(([, a], [, b]) => b.amount - a.amount)
               .slice(0, 3)
-              .map(([userId, { name, amount }], idx) => (
+              // BUG-FIX-AUDIT LSV-A3: renamed `userId` → `gifterId` to prevent
+              // variable shadowing of the outer `userId` prop. Using the prop name
+              // as a destructuring variable in a map callback silently shadows it —
+              // any future code in this callback referencing `userId` would get the
+              // gifter's uuid, not the viewer's id, causing subtle auth bugs.
+              .map(([gifterId, { name, amount }], idx) => (
                 <div
-                  key={userId}
+                  key={gifterId}
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
