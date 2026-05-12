@@ -308,7 +308,17 @@ export default function CreateHomeGamePage() {
         router.push('/auth/login?redirect=/hub/commander/home-games/create');
         return;
       }
-      const token = getAccessToken();
+      // Dan-fix/bearer-null (2026-05-12): use async getFreshAccessToken which
+      // auto-refreshes when the JWT is near expiry; getAccessToken returned null
+      // when token was being refreshed in the background, producing literal
+      // "Bearer null" which commander rejects -> silent 401.
+      const { getFreshAccessToken } = await import('../../../../src/lib/authUtils');
+      const token = await getFreshAccessToken();
+      if (!token) {
+        setError('Session expired. Please sign in again.');
+        router.push('/auth/login?redirect=/hub/commander/home-games/create');
+        return;
+      }
 
       // Map form fields to API/DB column names.
       // Phase 41/audit-fix-B4: when multi-table, the "default" surfaced on
@@ -490,12 +500,13 @@ export default function CreateHomeGamePage() {
       />
 
       <div className="cmd-page">
-        {/* Dan-fix/sticky-header: header + progress bar share a single sticky
-            wrapper at top of viewport. Wrapped together so they pin as a unit
-            (was previously two siblings; the progress bar's non-sticky parent
-            could push the header out of frame on long pages). z-50 ensures
-            they sit above any panel that might use z-40 elsewhere. */}
-        <div className="sticky top-0 z-50">
+        {/* Dan-fix/header-pin-v2 (2026-05-12): switched from `sticky top-0` to
+            `fixed top-0 left-0 right-0` because an ancestor (likely the layout
+            wrapper) was breaking the sticky containing block on long forms,
+            unsticking the header mid-scroll. Fixed positioning is immune to
+            ancestor overflow/transform. A spacer below reserves height so
+            page content doesn't jump under the pinned bar. */}
+        <div className="fixed top-0 left-0 right-0 z-50">
           <header className="cmd-header-bar">
             <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
               <button
@@ -525,6 +536,8 @@ export default function CreateHomeGamePage() {
             </div>
           </div>
         </div>
+        {/* Dan-fix/header-pin-v2: spacer reserves space below the fixed header */}
+        <div style={{ height: 61 }} aria-hidden="true" />
 
         {/* ── Club Commander Home Games — Unified Signup Banner ──
             Shown identically whether the user arrived from Poker Near Me,
@@ -918,32 +931,27 @@ export default function CreateHomeGamePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    {/* Dan-fix/dollar-prefix-overlap (2026-05-12): removed DollarSign icon (was overlapping value text) */}
                     <label className="block text-sm font-medium text-white mb-2">
                       Min Buy-in
                     </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
-                      <input
-                        type="number"
-                        value={formData.min_buyin}
-                        onChange={(e) => updateField('min_buyin', parseInt(e.target.value) || 0)}
-                        className="cmd-input w-full h-10 pl-8 pr-4"
-                      />
-                    </div>
+                    <input
+                      type="number"
+                      value={formData.min_buyin}
+                      onChange={(e) => updateField('min_buyin', parseInt(e.target.value) || 0)}
+                      className="cmd-input w-full h-10 px-4"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
                       Max Buy-in
                     </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
-                      <input
-                        type="number"
-                        value={formData.max_buyin}
-                        onChange={(e) => updateField('max_buyin', parseInt(e.target.value) || 0)}
-                        className="cmd-input w-full h-10 pl-8 pr-4"
-                      />
-                    </div>
+                    <input
+                      type="number"
+                      value={formData.max_buyin}
+                      onChange={(e) => updateField('max_buyin', parseInt(e.target.value) || 0)}
+                      className="cmd-input w-full h-10 px-4"
+                    />
                   </div>
                 </div>
 
@@ -1162,6 +1170,8 @@ export default function CreateHomeGamePage() {
                           scheduled_date: '',
                           scheduled_time: formData.start_time || '19:00',
                           entries_cap: '',
+                          recurring: false,
+                          recurring_days: [],
                         }]);
                       }
                     }}
@@ -1305,6 +1315,60 @@ export default function CreateHomeGamePage() {
                             className="cmd-input w-full h-10 px-4"
                           />
                         </div>
+
+                        {/* Dan-fix/tournament-recurring (2026-05-12) */}
+                        <div className="flex items-center justify-between p-3 bg-[#101D33] rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium text-white">Recurring Tournament</p>
+                            <p className="text-xs text-[#64748B]">Set A Regular Schedule</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const arr = [...formData.tournaments];
+                              arr[idx] = { ...arr[idx], recurring: !arr[idx].recurring };
+                              updateField('tournaments', arr);
+                            }}
+                            aria-pressed={!!t.recurring}
+                            className={`w-12 h-6 rounded-full transition-colors ${t.recurring ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'}`}
+                          >
+                            <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${t.recurring ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                          </button>
+                        </div>
+
+                        {t.recurring && (
+                          <div>
+                            <label className="block text-sm font-medium text-white mb-2">
+                              Tournament Days (Select All That Apply)
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {DAYS_OF_WEEK.map(({ value, label }) => {
+                                const sel = Array.isArray(t.recurring_days) && t.recurring_days.includes(value);
+                                return (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => {
+                                      const arr = [...formData.tournaments];
+                                      const cur = Array.isArray(arr[idx].recurring_days) ? arr[idx].recurring_days : [];
+                                      arr[idx] = {
+                                        ...arr[idx],
+                                        recurring_days: sel ? cur.filter((d) => d !== value) : [...cur, value],
+                                      };
+                                      updateField('tournaments', arr);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${sel
+                                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/15 text-[#C4B5FD] shadow-[0_0_8px_rgba(139,92,246,0.2)]'
+                                      : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                    }`}
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -1321,6 +1385,8 @@ export default function CreateHomeGamePage() {
                             scheduled_date: '',
                             scheduled_time: formData.start_time || '19:00',
                             entries_cap: '',
+                            recurring: false,
+                            recurring_days: [],
                           },
                         ]);
                       }}
