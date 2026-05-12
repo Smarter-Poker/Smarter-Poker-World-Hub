@@ -14,6 +14,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
 
 // TRAIN-CSS-MOTION-ADOPT-5 — durations routed through MOTION tokens matched to
@@ -885,48 +886,23 @@ export default function PotGeometry() {
                       ))}
                     </QuizAnswerStack>
 
-                    {/* Feedback */}
+                    {/* TRAIN-WIRE-FEEDBACK-V2-4 — verdict band via shared FeedbackCard (compact) */}
                     <AnimatePresence>
                       {showResult && (
                         <motion.div
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
-                          style={{
-                            background:
-                              selected === drill.cat.label
-                                ? 'rgba(34,197,94,0.1)'
-                                : 'rgba(239,68,68,0.1)',
-                            border: `1px solid ${selected === drill.cat.label ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                            borderRadius: 10,
-                            padding: '14px 16px',
-                            marginBottom: 14,
-                          }}
+                          style={{ marginBottom: 14 }}
                         >
-                          <div
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 800,
-                              marginBottom: 6,
-                              color: selected === drill.cat.label ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                              fontFamily: "'Orbitron',monospace",
-                            }}
-                          >
-                            {selected === drill.cat.label ? '✅ CORRECT' : '❌ INCORRECT'}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: drill.cat.color,
-                              marginBottom: 4,
-                            }}
-                          >
-                            {drill.cat.icon} {drill.cat.label} (SPR: {drill.spr})
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
-                            {drill.cat.desc}
-                          </div>
+                          <FeedbackCard
+                            verdict={selected === drill.cat.label ? 'correct' : 'incorrect'}
+                            userAction={selected || ''}
+                            solverAction={drill.cat.label}
+                            evLoss={0}
+                            whyShort={drill.cat.desc}
+                            compact
+                          />
                         </motion.div>
                       )}
                     </AnimatePresence>

@@ -1736,3 +1736,20 @@ TRAIN-WIRE-BOTTOMSHEET-7
 # the sheet explaining how multiway pots tighten ranges compared to
 # heads-up play. Toggle pill in trainer's purple accent.
 TRAIN-WIRE-BOTTOMSHEET-8
+
+# ─── Phase-28: FeedbackCard adoption round 2 (3 more trainers) ──────────────
+# TRAIN-WIRE-FEEDBACK-V2-4 — pages/hub/training/pot-geometry.js. Replaces
+# inline motion.div verdict banner (with hand-rolled rgba green/red panel +
+# emoji-prefixed CORRECT/INCORRECT) with <FeedbackCard compact /> wrapped
+# in the existing AnimatePresence. SPR category description routed through
+# whyShort.
+TRAIN-WIRE-FEEDBACK-V2-4
+# TRAIN-WIRE-FEEDBACK-V2-5 — pages/hub/training/spot-trainer.js. Replaces
+# the inner verdict band (CORRECT/INCORRECT text) with <FeedbackCard
+# compact /> while preserving the surrounding GTO Frequencies + countdown
+# body unchanged.
+TRAIN-WIRE-FEEDBACK-V2-5
+# TRAIN-WIRE-FEEDBACK-V2-6 — pages/hub/training/daily-challenge.js. Same
+# pattern — verdict band routed through FeedbackCard, leaving the GTO
+# Frequencies breakdown body inline.
+TRAIN-WIRE-FEEDBACK-V2-6
