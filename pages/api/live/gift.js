@@ -173,7 +173,7 @@ export default async function handler(req, res) {
   // ── GUARD: Fetch sender profile for age gate ──
   const { data: senderProfile } = await supabase
     .from('profiles')
-    .select('id, created_at, username, full_name, avatar_url, is_farming_flagged')
+    .select('id, created_at, username, display_name, full_name, avatar_url, is_farming_flagged')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -197,7 +197,11 @@ export default async function handler(req, res) {
 
   // ── GUARD: Source-tier rolling 30-day cap (accounts < 120 days or flagged) ──
   const isGraduated = senderAgeDays >= GRADUATION_DAYS;
-  const isFullyUnrestricted = isGraduated && senderProfile?.is_farming_flagged === false;
+  // isFullyUnrestricted: graduated AND not flagged. Strict `=== false` previously
+  // excluded accounts where is_farming_flagged is NULL (the column default), so every
+  // account that had never been explicitly cleared was still capped even after 120 days.
+  // Logical NOT correctly treats NULL and false identically — only true is restricted.
+  const isFullyUnrestricted = isGraduated && !senderProfile?.is_farming_flagged;
   const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   if (!isKingfish && !isFullyUnrestricted) {
@@ -278,7 +282,8 @@ export default async function handler(req, res) {
 
   try {
     // senderProfile already fetched above for age gate — reuse it
-    const senderName = senderProfile?.username || senderProfile?.full_name || 'A fan';
+    // Prefer display_name (user-chosen proper-case alias) over the lowercase username slug.
+    const senderName = senderProfile?.display_name || senderProfile?.full_name || senderProfile?.username || 'A fan';
 
     // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)
     const { data: deductResult, error: deductErr } = await supabase.rpc('deduct_diamonds', {
