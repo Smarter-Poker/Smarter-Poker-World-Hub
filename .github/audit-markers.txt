@@ -1175,3 +1175,14 @@ TRAIN-WIRE-FEEDBACK-V2-2
 # verdict userAction solverAction whyShort compact />. Formula Breakdown
 # block immediately below is preserved.
 TRAIN-WIRE-FEEDBACK-V2-3
+
+# ─── Phase-11 adoption: ActionButton sweep (bluff-catcher) ──────────────────
+# TRAIN-WIRE-ACTIONBTN-2 — pages/hub/training/bluff-catcher.js. Replaces the
+# inline motion.button CALL/FOLD pair (with hand-rolled linear-gradient
+# styles + whileHover/whileTap scale mics) with two <ActionButton> instances
+# (action="call" / action="fold") inside an <ActionButtonRow gap=10>. The
+# row keeps the original styles.actionsBox layout via the row's style prop.
+# Each button gets a numeric `shortcut` (1=CALL, 2=FOLD) so the kbd hint
+# chip surfaces in the corner, and `size="lg"` matches the page's prior
+# touch target. Parent already wires keyboard listeners via useTrainingBus.
+TRAIN-WIRE-ACTIONBTN-2
