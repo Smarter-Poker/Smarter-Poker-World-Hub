@@ -14,6 +14,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-MOBILE-ADOPT-3 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -429,7 +430,7 @@ export default function EVTrainer() {
           </div>
 
           {/* STATS BAR */}
-          <div
+          <div data-stats-grid
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',

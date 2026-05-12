@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-5 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-6 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';

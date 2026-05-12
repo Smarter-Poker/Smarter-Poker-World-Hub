@@ -16,6 +16,7 @@
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-12 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-10 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -318,7 +319,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
               {pendingRank ? `${pendingRank} — Pick Suit` : 'Pick Rank'}
             </div>
             {!pendingRank && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+              <div data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
                 {RANKS.map((r) => (
                   <button
                     key={r}
@@ -708,7 +709,7 @@ export default function HandComparison() {
                 (min 3 for Flop)
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div data-pills-row style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[0, 1, 2, 3, 4].map((i) => (
                 <CardPicker
                   key={i}
@@ -868,7 +869,7 @@ export default function HandComparison() {
                   ))}
 
                   {/* Win / Tie / Loss breakdown */}
-                  <div
+                  <div data-stats-grid
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(3, 1fr)',

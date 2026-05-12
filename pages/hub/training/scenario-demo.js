@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-10 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-7 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -381,7 +382,7 @@ export default function ScenarioDemoPage() {
 
                 {/* Position Example */}
                 {step.example?.positions && (
-                  <div
+                  <div data-pills-row
                     style={{
                       display: 'flex',
                       justifyContent: 'center',

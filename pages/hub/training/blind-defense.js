@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-8 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-8 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -282,7 +283,7 @@ export default function BlindDefensePage() {
             />
           </div>
           {/* Action Buttons (TRAIN-WIRE-ACTIONBTN-1) */}
-          <ActionButtonRow gap={12}>
+          <ActionButtonRow data-sticky-action-bar gap={12}>
             <ActionButton action="fold" label="Fold" shortcut={1} disabled={!!feedback} onClick={() => handleAction('Fold')} size="lg" />
             <ActionButton action="call" label="Call" shortcut={2} disabled={!!feedback} onClick={() => handleAction('Call')} size="lg" />
             <ActionButton action="raise" label="3-Bet" shortcut={3} disabled={!!feedback} onClick={() => handleAction('3-Bet')} size="lg" />

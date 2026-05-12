@@ -3,6 +3,7 @@
  * Phase 27 — Route: /hub/training/pot-geometry
  */
 // TRAIN-CSS-TOKENS-ADOPT-7 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-11 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -372,7 +373,7 @@ export default function PotGeometry() {
         <div
           style={{ padding: '20px 24px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <button
               onClick={() => router.push('/hub/training')}
               style={{

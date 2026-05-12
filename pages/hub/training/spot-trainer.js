@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-4 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-5 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -260,7 +261,7 @@ export default function SpotTrainerPage() {
             borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <div
+          <div data-pills-row
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -316,7 +317,7 @@ export default function SpotTrainerPage() {
         {/* Main Content */}
         <div style={{ padding: '16px 24px', maxWidth: 600, margin: '0 auto' }}>
           {/* Stats Bar */}
-          <div
+          <div data-pills-row
             style={{
               display: 'flex',
               justifyContent: 'space-between',

@@ -6,6 +6,7 @@
  * SPR = Effective Stack / Pot · Teaches postflop commitment logic
  */
 // TRAIN-CSS-TOKENS-ADOPT-3 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-4 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
