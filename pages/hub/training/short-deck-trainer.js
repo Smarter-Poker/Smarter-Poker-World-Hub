@@ -17,6 +17,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -519,14 +520,17 @@ export default function ShortDeckTrainerPage() {
           ) : (
             /* ═══ QUIZ MODE ═══ */
             <div style={{ textAlign: 'center' }}>
-              {/* Score */}
-              {quizScore.total > 0 && (
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 16 }}>
-                  Score:{' '}
-                  <span style={{ color: '#4ade80', fontWeight: 700 }}>{quizScore.correct}</span>/
-                  {quizScore.total}({Math.round((quizScore.correct / quizScore.total) * 100)}%)
-                </div>
-              )}
+              {/* TRAIN-WIRE-PROGRESS-STRIP-3 — shared ProgressStrip (quiz mode) */}
+              {quizScore.total > 0 ? (
+                <ProgressStrip
+                  current={quizScore.total + 1}
+                  total={Math.max(10, Math.ceil((quizScore.total + 1) / 10) * 10)}
+                  correct={quizScore.correct}
+                  difficulty="intermediate"
+                  compact
+                  style={{ marginBottom: 16 }}
+                />
+              ) : null}
 
               {quiz && (
                 <>

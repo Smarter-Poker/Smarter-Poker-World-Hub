@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 // TRAIN-WIRE-EMPTY-8a — adoption: shared empty-state primitive
 
 const CARDS = [
@@ -557,27 +558,16 @@ export default function FlashcardsPage() {
             ))}
           </div>
 
-          {/* Progress */}
-          {sessionDeck.length > 0 && currentIdx < sessionDeck.length && (
-            <div
-              style={{
-                height: 4,
-                borderRadius: 2,
-                background: 'rgba(255,255,255,0.05)',
-                marginBottom: 20,
-                overflow: 'hidden',
-              }}
-            >
-              <motion.div
-                animate={{ width: `${progress}%` }}
-                style={{
-                  height: '100%',
-                  background: 'linear-gradient(90deg, #00d4ff, #a855f7)',
-                  borderRadius: 2,
-                }}
-              />
-            </div>
-          )}
+          {/* Progress (TRAIN-WIRE-PROGRESS-STRIP-2: shared ProgressStrip) */}
+          {sessionDeck.length > 0 && currentIdx < sessionDeck.length ? (
+            <ProgressStrip
+              current={currentIdx + 1}
+              total={sessionDeck.length}
+              difficulty="intermediate"
+              compact
+              style={{ marginBottom: 20 }}
+            />
+          ) : null}
 
           {/* Card */}
           {current && currentIdx < sessionDeck.length ? (
