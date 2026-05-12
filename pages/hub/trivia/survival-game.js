@@ -26,6 +26,7 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
@@ -1301,64 +1302,21 @@ export default function SurvivalGamePage() {
                                     </h2>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {currentQuestion.options?.map((option, index) => {
-                                            const isEliminated = eliminatedOptions.includes(index);
-                                            let bg = 'rgba(255,255,255,0.05)';
-                                            let borderColor = 'rgba(255,255,255,0.1)';
-
-                                            if (isEliminated && !showResult) {
-                                                // Eliminated by 50/50
-                                                bg = 'rgba(100, 100, 100, 0.1)';
-                                                borderColor = 'rgba(100, 100, 100, 0.2)';
-                                            } else if (showResult) {
-                                                if (index === currentQuestion.correct_index) {
-                                                    bg = 'rgba(34, 197, 94, 0.2)';
-                                                    borderColor = '#22c55e';
-                                                } else if (index === selectedAnswer) {
-                                                    bg = 'rgba(239, 68, 68, 0.2)';
-                                                    borderColor = '#ef4444';
-                                                }
-                                            }
-
-                                            return (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => selectAnswer(index)}
-                                                    disabled={selectedAnswer !== null || isEliminated}
-                                                    style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '14px',
-                                                        padding: '14px 18px',
-                                                        background: bg,
-                                                        border: `2px solid ${borderColor}`,
-                                                        borderRadius: '10px',
-                                                        color: isEliminated ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.9)',
-                                                        fontSize: '15px',
-                                                        textAlign: 'left',
-                                                        cursor: (selectedAnswer !== null || isEliminated) ? 'default' : 'pointer',
-                                                        transition: 'all 0.2s',
-                                                        textDecoration: isEliminated ? 'line-through' : 'none',
-                                                        opacity: isEliminated ? 0.5 : 1
-                                                    }}
-                                                >
-                                                    <span style={{
-                                                        width: '28px',
-                                                        height: '28px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        background: isEliminated ? 'rgba(100,100,100,0.2)' : 'rgba(255,255,255,0.1)',
-                                                        borderRadius: '6px',
-                                                        fontWeight: 700,
-                                                        fontSize: '13px'
-                                                    }}>
-                                                        {isEliminated ? '✗' : String.fromCharCode(65 + index)}
-                                                    </span>
-                                                    <span style={{ flex: 1 }}>{toTitleCase(option)}</span>
-                                                </button>
-                                            );
-                                        })}
+                                        {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-5 — shared option primitive (inline variant) */}
+                                        {currentQuestion.options?.map((option, index) => (
+                                            <TriviaAnswerOption
+                                                variant="inline"
+                                                key={index}
+                                                index={index}
+                                                option={toTitleCase(option)}
+                                                selectedAnswer={selectedAnswer}
+                                                correctIndex={currentQuestion.correct_index}
+                                                showResult={showResult}
+                                                eliminated={eliminatedOptions.includes(index)}
+                                                disabled={selectedAnswer !== null || eliminatedOptions.includes(index)}
+                                                onSelect={selectAnswer}
+                                            />
+                                        ))}
                                     </div>
 
                                     {/* Lifeline Buttons Row */}
