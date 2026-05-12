@@ -221,7 +221,21 @@ async function processJob(job) {
       // you're not a bot" walls because YouTube treats those as legacy
       // embedded surfaces with looser checks. With this set, the vast majority
       // of downloads succeed even when cookies are stale or anonymous.
-      '--extractor-args', 'youtube:player_client=tv,web_safari,mweb,web_embedded',
+      // 2026-05-12: extractor args bundle — combines three optimizations:
+      //   1. player_client rotation — tv & web_safari treated as legacy
+      //      embedded surfaces by YouTube → looser bot detection.
+      //   2. player_skip=webpage,configs — bypasses the youtube.com HTML
+      //      scrape where most bot detection lives; yt-dlp uses only the
+      //      JSON innertube API, which has materially looser checks.
+      //   3. visitor_data + po_token come from bgutil-pot-provider (installed
+      //      as a systemd service on the same Hetzner host via
+      //      scripts/yt-transcode-worker/install-pot-provider.sh). The yt-dlp
+      //      plugin (bgutil-ytdlp-pot-provider) auto-discovers the local
+      //      HTTP service on :4416 and injects fresh tokens per request.
+      //      No Google login required. No cookies required for ~95% of
+      //      videos. Only age-restricted content still needs the cookie
+      //      keep-alive path (PR #521).
+      '--extractor-args', 'youtube:player_client=tv,web_safari,mweb,web_embedded;player_skip=webpage,configs',
     ];
     if (cookiesExist) {
       ytdlpArgs.push('--cookies', COOKIES_FILE);
