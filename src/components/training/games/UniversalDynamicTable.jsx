@@ -2031,6 +2031,8 @@ function UniversalDynamicTable({
                     borderColor: '#22c55e',
                     color: '#22c55e',
                     boxShadow: '0 0 8px rgba(34, 197, 94, 0.25)',
+                    // TRAIN-WIRE-UDT-ACTIONBTN-1 fix: explicit opacity 1 cancels ActionButton's disabled-state 0.55 fade
+                    opacity: 1,
                 };
             }
             if (isSelected && !isCorrect) {
@@ -2042,6 +2044,8 @@ function UniversalDynamicTable({
                     borderColor: clsConfig.borderColor,
                     color: clsConfig.color,
                     boxShadow: `0 0 8px ${clsConfig.borderColor}44`,
+                    // TRAIN-WIRE-UDT-ACTIONBTN-1 fix: explicit opacity 1 cancels ActionButton's disabled-state 0.55 fade
+                    opacity: 1,
                 };
             }
             // Unselected options — dim but still colored
