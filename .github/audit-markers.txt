@@ -1520,3 +1520,22 @@ TRAIN-CSS-MOBILE-ADOPT-17
 # TRAIN-CSS-MOBILE-ADOPT-18 — pages/hub/training/quiz-gauntlet.js. Marker-only
 # (numeric-input UI doesn't have pill rows or stat grids).
 TRAIN-CSS-MOBILE-ADOPT-18
+
+# ─── Phase-24: targeted ActionButton/QuizAnswer adopters ────────────────────
+# TRAIN-WIRE-ACTIONBTN-3 — pages/hub/training/play-mode.js. Replaces the
+# inline motion.button action bar (5 actions: fold/check/call/bet|raise/
+# allin) with <ActionButtonRow> + <ActionButton>. Preserves the special
+# bet-amount logic (clicking 'bet' opens betting modal vs. invoking
+# handleAction directly). Numeric shortcut={idx+1} renders kbd hints.
+TRAIN-WIRE-ACTIONBTN-3
+# TRAIN-WIRE-QUIZ-ANSWER-5 — pages/hub/training/multiway-preflop.js.
+# Replaces inline YES/NO motion.button pair with two <QuizAnswer> instances.
+# The trainer's quiz is binary so QuizAnswer fits cleanly; preserves
+# parent flex row layout.
+TRAIN-WIRE-QUIZ-ANSWER-5
+# TRAIN-WIRE-QUIZ-ANSWER-6 — pages/hub/training/spot-trainer.js. Replaces
+# the inline motion.button GTO-action options (with hand-rolled rgba
+# conditionals) with <QuizAnswer> instances. Preserves the parent 2-col
+# grid layout. The frequency badge ('(N%)') shown on correct answer is
+# preserved via QuizAnswer's children slot.
+TRAIN-WIRE-QUIZ-ANSWER-6

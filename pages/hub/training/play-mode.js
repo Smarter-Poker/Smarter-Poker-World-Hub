@@ -23,6 +23,7 @@ import EVGraph from '../../../src/components/training/EVGraph';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import DeckCard from '../../../src/components/training/Card';
+import ActionButton, { ActionButtonRow } from '../../../src/components/poker/ActionButton';
 
 // TRAIN-CSS-MOTION-ADOPT-15 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -1532,72 +1533,41 @@ export default function PlayModePage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    style={{ display: 'flex', gap: 8, justifyContent: 'center' }}
                   >
-                    {[
-                      {
-                        action: 'fold',
-                        label: 'FOLD',
-                        color: 'var(--sp-fg-dim)',
-                        bg: 'rgba(100,116,139,0.15)',
-                      },
-                      {
-                        action: 'check',
-                        label:
-                          game.currentStreet === 'preflop' && game.heroPosition !== 'BB'
-                            ? null
-                            : 'CHECK',
-                        color: 'var(--sp-accent-blue)',
-                        bg: 'rgba(59,130,246,0.15)',
-                      },
-                      {
-                        action: 'call',
-                        label: 'CALL',
-                        color: 'var(--sp-accent-green)',
-                        bg: 'rgba(34,197,94,0.15)',
-                      },
-                      {
-                        action: 'bet',
-                        label: game.currentStreet === 'preflop' ? 'RAISE' : 'BET',
-                        color: 'var(--sp-accent-red)',
-                        bg: 'rgba(239,68,68,0.15)',
-                      },
-                      {
-                        action: 'allin',
-                        label: 'ALL-IN',
-                        color: 'var(--sp-accent-amber)',
-                        bg: 'rgba(245,158,11,0.15)',
-                      },
-                    ]
-                      .filter((a) => a.label)
-                      .map((a) => (
-                        <motion.button
-                          key={a.action}
-                          onClick={() => {
-                            if (a.action === 'bet') {
-                              setBetAmount(game.pot * 0.5); // Default half pot
-                              setIsBetting(true);
-                            } else {
-                              game.handleAction(a.action);
-                            }
-                          }}
-                          whileHover={{ scale: 1.06, y: -2 }}
-                          whileTap={{ scale: 0.94 }}
-                          style={{
-                            padding: '12px 20px',
-                            borderRadius: 10,
-                            border: `1px solid ${a.color}40`,
-                            background: a.bg,
-                            color: a.color,
-                            fontSize: 13,
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            fontFamily: "'Orbitron', monospace",
-                          }}
-                        >
-                          {a.label}
-                        </motion.button>
-                      ))}
+                    {/* TRAIN-WIRE-ACTIONBTN-3 — play-mode action bar via shared ActionButton */}
+                    <ActionButtonRow gap={8} style={{ justifyContent: 'center' }}>
+                      {[
+                        { action: 'fold', label: 'FOLD' },
+                        {
+                          action: 'check',
+                          label:
+                            game.currentStreet === 'preflop' && game.heroPosition !== 'BB'
+                              ? null
+                              : 'CHECK',
+                        },
+                        { action: 'call', label: 'CALL' },
+                        { action: 'bet', label: game.currentStreet === 'preflop' ? 'RAISE' : 'BET', actionKey: game.currentStreet === 'preflop' ? 'raise' : 'bet' },
+                        { action: 'allin', label: 'ALL-IN' },
+                      ]
+                        .filter((a) => a.label)
+                        .map((a, idx) => (
+                          <ActionButton
+                            key={a.action}
+                            action={a.actionKey || a.action}
+                            label={a.label}
+                            shortcut={idx + 1}
+                            size="md"
+                            onClick={() => {
+                              if (a.action === 'bet') {
+                                setBetAmount(game.pot * 0.5);
+                                setIsBetting(true);
+                              } else {
+                                game.handleAction(a.action);
+                              }
+                            }}
+                          />
+                        ))}
+                    </ActionButtonRow>
                   </motion.div>
                 )}
               </AnimatePresence>
