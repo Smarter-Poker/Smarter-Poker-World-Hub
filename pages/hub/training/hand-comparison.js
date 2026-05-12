@@ -15,6 +15,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-ADOPT-12 — adoption of --sp-* token contract from PR #470
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -189,7 +190,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
   const rank = value ? value[0] : null;
   const suit = value ? value[1] : null;
 
-  const suitColors = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#94a3b8' };
+  const suitColors = { h: 'var(--sp-accent-red)', d: 'var(--sp-accent-blue)', c: 'var(--sp-accent-green)', s: 'var(--sp-fg-muted)' };
   const suitSymbols = { h: '♥', d: '♦', c: '♣', s: '♠' };
 
   // FIX: Close on outside click
@@ -219,7 +220,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
       <label
         style={{
           fontSize: 9,
-          color: '#64748b',
+          color: 'var(--sp-fg-dim)',
           fontWeight: 700,
           textTransform: 'uppercase',
           display: 'block',
@@ -255,13 +256,13 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
           <>
             <Card rank={rank} suit={suit} size="small" />
             <span
-              style={{ position: 'absolute', top: 2, right: 5, fontSize: 10, color: '#64748b' }}
+              style={{ position: 'absolute', top: 2, right: 5, fontSize: 10, color: 'var(--sp-fg-dim)' }}
             >
               ✕
             </span>
           </>
         ) : (
-          <span style={{ fontSize: 22, color: '#475569' }}>+</span>
+          <span style={{ fontSize: 22, color: 'var(--sp-fg-faint)' }}>+</span>
         )}
       </button>
 
@@ -275,7 +276,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
             borderRadius: 5,
             border: '1px solid rgba(255,255,255,0.07)',
             background: 'none',
-            color: '#475569',
+            color: 'var(--sp-fg-faint)',
             fontSize: 9,
             cursor: 'pointer',
             fontWeight: 700,
@@ -308,7 +309,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
             <div
               style={{
                 fontSize: 9,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontWeight: 700,
                 marginBottom: 6,
                 textTransform: 'uppercase',
@@ -327,7 +328,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
                       borderRadius: 6,
                       border: '1px solid rgba(255,255,255,0.1)',
                       background: 'rgba(255,255,255,0.05)',
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -356,7 +357,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
                         background: disabled ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.08)',
                         color: disabled
                           ? '#374151'
-                          : { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#94a3b8' }[s],
+                          : { h: 'var(--sp-accent-red)', d: 'var(--sp-accent-blue)', c: 'var(--sp-accent-green)', s: 'var(--sp-fg-muted)' }[s],
                         fontSize: 20,
                         fontWeight: 900,
                         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -378,7 +379,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
                     borderRadius: 6,
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'none',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 11,
                     cursor: 'pointer',
                   }}
@@ -397,7 +398,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
                   borderRadius: 6,
                   border: '1px solid rgba(255,255,255,0.08)',
                   background: 'none',
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontSize: 11,
                   cursor: 'pointer',
                 }}
@@ -501,7 +502,7 @@ export default function HandComparison() {
   const container = {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1629 50%, #0a0f1e 100%)',
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     fontFamily: "'Inter', sans-serif",
     padding: '20px 16px 40px',
   };
@@ -536,7 +537,7 @@ export default function HandComparison() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontSize: 12,
                 cursor: 'pointer',
                 display: 'flex',
@@ -552,7 +553,7 @@ export default function HandComparison() {
                   background: 'rgba(239,68,68,0.1)',
                   border: '1px solid rgba(239,68,68,0.3)',
                   borderRadius: 8,
-                  color: '#ef4444',
+                  color: 'var(--sp-accent-red)',
                   padding: '4px 12px',
                   fontSize: 11,
                   fontWeight: 700,
@@ -595,7 +596,7 @@ export default function HandComparison() {
               >
                 HAND COMPARISON
               </h1>
-              <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                 A/B Equity Analysis · Best-5-From-7 · Monte Carlo
               </p>
             </div>
@@ -615,7 +616,7 @@ export default function HandComparison() {
               style={{
                 fontSize: 12,
                 fontWeight: 800,
-                color: '#22c55e',
+                color: 'var(--sp-accent-green)',
                 marginBottom: 10,
                 fontFamily: "'Orbitron', monospace",
               }}
@@ -656,7 +657,7 @@ export default function HandComparison() {
               style={{
                 fontSize: 12,
                 fontWeight: 800,
-                color: '#00d4ff',
+                color: 'var(--sp-accent-cyan)',
                 marginBottom: 10,
                 fontFamily: "'Orbitron', monospace",
               }}
@@ -697,13 +698,13 @@ export default function HandComparison() {
               style={{
                 fontSize: 12,
                 fontWeight: 800,
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 marginBottom: 10,
                 fontFamily: "'Orbitron', monospace",
               }}
             >
               BOARD{' '}
-              <span style={{ color: '#475569', fontWeight: 600, fontSize: 10 }}>
+              <span style={{ color: 'var(--sp-fg-faint)', fontWeight: 600, fontSize: 10 }}>
                 (min 3 for Flop)
               </span>
             </div>
@@ -784,7 +785,7 @@ export default function HandComparison() {
                     fontFamily: "'Orbitron', monospace",
                     fontSize: 18,
                     fontWeight: 900,
-                    color: leader === 'A' ? '#22c55e' : leader === 'B' ? '#00d4ff' : '#94a3b8',
+                    color: leader === 'A' ? 'var(--sp-accent-green)' : leader === 'B' ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                   }}
                 >
                   {leader === 'TIE' ? '⚖️ EQUAL EQUITY' : `⚔️ HAND ${leader} IS AHEAD`}
@@ -804,13 +805,13 @@ export default function HandComparison() {
                     {
                       label: 'HAND A',
                       eq: result.equityA,
-                      color: '#22c55e',
+                      color: 'var(--sp-accent-green)',
                       cat: result.hand_a_category,
                     },
                     {
                       label: 'HAND B',
                       eq: result.equityB,
-                      color: '#00d4ff',
+                      color: 'var(--sp-accent-cyan)',
                       cat: result.hand_b_category,
                     },
                   ].map((row) => (
@@ -833,7 +834,7 @@ export default function HandComparison() {
                           {row.label}
                         </span>
                         <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                          <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>
+                          <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 700 }}>
                             {row.cat}
                           </span>
                           <span
@@ -876,9 +877,9 @@ export default function HandComparison() {
                     }}
                   >
                     {[
-                      { label: 'Hand A Wins', value: result.winsA, color: '#22c55e' },
-                      { label: 'Chop', value: result.ties, color: '#94a3b8' },
-                      { label: 'Hand B Wins', value: result.winsB, color: '#00d4ff' },
+                      { label: 'Hand A Wins', value: result.winsA, color: 'var(--sp-accent-green)' },
+                      { label: 'Chop', value: result.ties, color: 'var(--sp-fg-muted)' },
+                      { label: 'Hand B Wins', value: result.winsB, color: 'var(--sp-accent-cyan)' },
                     ].map((s) => (
                       <div
                         key={s.label}
@@ -903,7 +904,7 @@ export default function HandComparison() {
                         <div
                           style={{
                             fontSize: 9,
-                            color: '#475569',
+                            color: 'var(--sp-fg-faint)',
                             fontWeight: 700,
                             textTransform: 'uppercase',
                           }}
@@ -925,7 +926,7 @@ export default function HandComparison() {
                     marginBottom: 12,
                     background: 'rgba(34,197,94,0.1)',
                     border: '1px solid rgba(34,197,94,0.3)',
-                    color: '#22c55e',
+                    color: 'var(--sp-accent-green)',
                     fontWeight: 800,
                     fontSize: 13,
                     cursor: 'pointer',
@@ -942,7 +943,7 @@ export default function HandComparison() {
                     borderRadius: 10,
                     border: '1px solid rgba(255,255,255,0.05)',
                     fontSize: 11,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     lineHeight: 1.6,
                   }}
                 >

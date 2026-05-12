@@ -1,3 +1,4 @@
+// TRAIN-CSS-TOKENS-ADOPT-9 — adoption of --sp-* token contract from PR #470
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -249,7 +250,7 @@ export default function HandLabV2() {
                   animate={{ opacity: 1, scale: 1 }}
                   style={styles.resultsBox}
                 >
-                  <div style={{ fontSize: 14, color: '#94a3b8', fontWeight: 700 }}>
+                  <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', fontWeight: 700 }}>
                     HERO EQUITY VS {villainRange.toUpperCase()}
                   </div>
                   <div
@@ -257,7 +258,7 @@ export default function HandLabV2() {
                       fontSize: 64,
                       fontWeight: 900,
                       fontFamily: 'Orbitron, sans-serif',
-                      color: equity > 50 ? '#4ade80' : '#ef4444',
+                      color: equity > 50 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                     }}
                   >
                     {equity}%
@@ -273,8 +274,8 @@ export default function HandLabV2() {
                       overflow: 'hidden',
                     }}
                   >
-                    <div style={{ width: `${equity}%`, background: '#4ade80' }} />
-                    <div style={{ width: `${100 - equity}%`, background: '#ef4444' }} />
+                    <div style={{ width: `${equity}%`, background: 'var(--sp-accent-green)' }} />
+                    <div style={{ width: `${100 - equity}%`, background: 'var(--sp-accent-red)' }} />
                   </div>
                 </motion.div>
               )}
@@ -300,7 +301,7 @@ export default function HandLabV2() {
                         borderRadius: 6,
                         background: 'rgba(251,191,36,0.08)',
                         border: '1px solid rgba(251,191,36,0.2)',
-                        color: '#fbbf24',
+                        color: 'var(--sp-accent-amber)',
                         fontSize: 10,
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -328,7 +329,7 @@ export default function HandLabV2() {
                           flex: 1,
                           fontSize: 12,
                           fontWeight: 600,
-                          color: i === 0 ? '#4ade80' : '#94a3b8',
+                          color: i === 0 ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
                         }}
                       >
                         {a.action}
@@ -337,7 +338,7 @@ export default function HandLabV2() {
                         style={{
                           fontSize: 14,
                           fontWeight: 800,
-                          color: a.ev > 0 ? '#4ade80' : a.ev < 0 ? '#f87171' : '#64748b',
+                          color: a.ev > 0 ? 'var(--sp-accent-green)' : a.ev < 0 ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
                         }}
                       >
                         {a.ev > 0 ? '+' : ''}
@@ -358,7 +359,7 @@ export default function HandLabV2() {
                   margin: '0 0 16px 0',
                   borderBottom: '1px solid rgba(255,255,255,0.1)',
                   paddingBottom: 16,
-                  color: '#00d4ff',
+                  color: 'var(--sp-accent-cyan)',
                 }}
               >
                 Deck Picker {selectedSlot ? `(Selecting for ${selectedSlot})` : ''}
@@ -405,9 +406,9 @@ export default function HandLabV2() {
 
 // Helpers
 function getSuitColor(suit) {
-  if (suit === '♥' || suit === '♦') return '#ef4444';
+  if (suit === '♥' || suit === '♦') return 'var(--sp-accent-red)';
   if (suit === '♣') return '#34d399';
-  return '#e2e8f0';
+  return 'var(--sp-fg)';
 }
 function getColor(cardStr) {
   if (!cardStr) return {};
@@ -446,12 +447,12 @@ const styles = {
     fontWeight: 900,
     fontFamily: 'Orbitron, sans-serif',
     letterSpacing: 1,
-    color: '#00d4ff',
+    color: 'var(--sp-accent-cyan)',
   },
-  subtitle: { margin: 0, color: '#94a3b8', fontSize: 14 },
+  subtitle: { margin: 0, color: 'var(--sp-fg-muted)', fontSize: 14 },
   clearBtn: {
     background: 'rgba(239, 68, 68, 0.1)',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
     border: '1px solid rgba(239, 68, 68, 0.3)',
     padding: '8px 16px',
     borderRadius: 8,
@@ -475,7 +476,7 @@ const styles = {
     maxWidth: 500,
   },
   sectionTitle: {
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     fontSize: 14,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -506,7 +507,7 @@ const styles = {
   },
   placeholder: {
     fontSize: 12,
-    color: '#475569',
+    color: 'var(--sp-fg-faint)',
     fontWeight: 600,
   },
   rangeSelect: {
