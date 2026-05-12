@@ -1279,3 +1279,13 @@ TRAIN-CSS-TOKENS-ADOPT-10
 TRAIN-CSS-TOKENS-ADOPT-11
 # TRAIN-CSS-TOKENS-ADOPT-12 — pages/hub/training/hand-comparison.js (36).
 TRAIN-CSS-TOKENS-ADOPT-12
+
+# ─── Phase-17 adoption: BottomSheet "How it works" — pot-geometry + preflop-charts
+# TRAIN-WIRE-BOTTOMSHEET-4 — pages/hub/training/pot-geometry.js. Adds a
+# "How it works" BottomSheet explaining bet-sizing for target SPR. Toggle
+# pill on the back-link row in the trainer accent (#f97316). Purely additive.
+TRAIN-WIRE-BOTTOMSHEET-4
+# TRAIN-WIRE-BOTTOMSHEET-5 — pages/hub/training/preflop-charts.js. Adds a
+# "How it works" BottomSheet explaining RFI / Vs RFI / 3-bet chart usage.
+# Toggle pill in the trainer accent (#00d4ff). Purely additive.
+TRAIN-WIRE-BOTTOMSHEET-5
