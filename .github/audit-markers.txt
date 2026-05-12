@@ -1470,3 +1470,17 @@ TRAIN-CSS-TOKENS-BATCH4-20
 # rendering surface in training — this PR lifts most of its presentation
 # onto the shared token contract.
 TRAIN-CSS-TOKENS-SHARED-5
+
+# ─── Phase-21: <QuizAnswer> primitive ───────────────────────────────────────
+# TRAIN-QUIZ-ANSWER-1 — src/components/poker/QuizAnswer.jsx. New shared
+# multiple-choice quiz answer primitive for trainers that ask the player to
+# pick one of N pre-computed options (scenario-demo, pot-geometry, quiz-
+# gauntlet, short-deck-trainer, daily-challenge). Theme-neutral: idle uses
+# --sp-bg-elev1 / --sp-border / --sp-fg; correct reveal -> green tint + ✓;
+# wrong reveal -> red tint + ✗. Includes QuizAnswerStack wrapper.
+TRAIN-QUIZ-ANSWER-1
+# TRAIN-WIRE-QUIZ-ANSWER-1 — pages/hub/training/scenario-demo.js. First
+# adopter: replaces the inline motion.button quiz-options block (with hand-
+# rolled rgba conditionals and inline ✓/✗) with <QuizAnswerStack> +
+# <QuizAnswer>. Numeric `shortcut` (idx+1) renders the kbd hint chip.
+TRAIN-WIRE-QUIZ-ANSWER-1
