@@ -7,6 +7,7 @@
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 // TRAIN-CSS-TOKENS-BATCH5-55 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-16 — hex sweep batch 6: extended palette literals routed
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -743,7 +744,7 @@ const styles = {
   longestStreak: {
     marginTop: '16px',
     fontSize: '14px',
-    color: '#6b7280',
+    color: 'var(--sp-fg-dim)',
     background: 'rgba(255,255,255,0.05)',
     padding: '8px 16px',
     borderRadius: '20px',

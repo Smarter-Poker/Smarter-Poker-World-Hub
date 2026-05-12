@@ -12,6 +12,7 @@
 // TRAIN-CSS-MOBILE-ADOPT-13 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-TOKENS-BATCH5-13 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-10 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CSS-TOKENS-BATCH6-4 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -617,7 +618,7 @@ export default function FamousFinalsPage() {
                           : currentSpot.street === 'flop'
                             ? 'var(--sp-accent-green)'
                             : currentSpot.street === 'turn'
-                              ? '#60a5fa'
+                              ? 'var(--sp-accent-blue)'
                               : 'var(--sp-accent-red)',
                     }}
                   >
@@ -740,7 +741,7 @@ export default function FamousFinalsPage() {
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
-                        color: '#60a5fa',
+                        color: 'var(--sp-accent-blue)',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                         marginBottom: 8,
@@ -868,7 +869,7 @@ export default function FamousFinalsPage() {
                     borderRadius: 10,
                     border: '1px solid rgba(59,130,246,0.3)',
                     background: 'rgba(59,130,246,0.1)',
-                    color: '#60a5fa',
+                    color: 'var(--sp-accent-blue)',
                     fontSize: 14,
                     fontWeight: 700,
                     cursor: 'pointer',

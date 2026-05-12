@@ -10,6 +10,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-56 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-17 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -364,7 +365,7 @@ export default function StudyGroupFinderPage() {
                   }}
                 >
                   <div
-                    style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa', marginBottom: 12 }}
+                    style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-blue)', marginBottom: 12 }}
                   >
                     Create New Study Group
                   </div>
@@ -479,7 +480,7 @@ export default function StudyGroupFinderPage() {
                   borderRadius: 16,
                   border: `1px solid ${filterFmt === f ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
                   background: filterFmt === f ? 'rgba(59,130,246,0.08)' : 'transparent',
-                  color: filterFmt === f ? '#60a5fa' : 'var(--sp-fg-dim)',
+                  color: filterFmt === f ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -597,7 +598,7 @@ export default function StudyGroupFinderPage() {
                             padding: '2px 8px',
                             borderRadius: 4,
                             background: 'rgba(59,130,246,0.08)',
-                            color: '#60a5fa',
+                            color: 'var(--sp-accent-blue)',
                             fontWeight: 600,
                           }}
                         >

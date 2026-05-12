@@ -10,6 +10,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-19 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-14 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CSS-TOKENS-BATCH6-6 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -358,7 +359,7 @@ export default function GtoPreloaderPage() {
                         borderRadius: 8,
                         background: 'rgba(59,130,246,0.1)',
                         border: '1px solid rgba(59,130,246,0.3)',
-                        color: '#60a5fa',
+                        color: 'var(--sp-accent-blue)',
                         fontSize: 13,
                         fontWeight: 700,
                         cursor: 'pointer',

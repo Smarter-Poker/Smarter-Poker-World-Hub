@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-24 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-9 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -233,8 +234,8 @@ export default function ICMFinalTableLibrary() {
                   cursor: 'pointer',
                   background:
                     structure.id === s.id ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${structure.id === s.id ? '#818cf8' : 'rgba(255,255,255,0.08)'}`,
-                  color: structure.id === s.id ? '#818cf8' : '#b0b3b8',
+                  border: `1px solid ${structure.id === s.id ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
+                  color: structure.id === s.id ? 'var(--sp-accent-blue)' : '#b0b3b8',
                 }}
               >
                 {s.icon} {s.label}

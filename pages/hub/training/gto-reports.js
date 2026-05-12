@@ -8,6 +8,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-20 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-15 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CSS-TOKENS-BATCH6-7 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -635,7 +636,7 @@ export default function GTOReportsPage() {
                         }}
                       >
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#a5b4fc' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-blue)' }}>
                             Drill-Down: {(STAT_LABELS[drillDown] || {}).label || drillDown}
                           </div>
                           <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>

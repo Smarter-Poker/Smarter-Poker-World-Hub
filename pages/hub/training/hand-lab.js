@@ -1,6 +1,7 @@
 // TRAIN-CSS-TOKENS-ADOPT-9 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-9 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-19 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
+// TRAIN-CSS-TOKENS-BATCH6-8 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -409,7 +410,7 @@ export default function HandLabV2() {
 // Helpers
 function getSuitColor(suit) {
   if (suit === '♥' || suit === '♦') return 'var(--sp-accent-red)';
-  if (suit === '♣') return '#34d399';
+  if (suit === '♣') return 'var(--sp-accent-emerald)';
   return 'var(--sp-fg)';
 }
 function getColor(cardStr) {

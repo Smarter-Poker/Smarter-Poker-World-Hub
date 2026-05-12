@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-19 — hex sweep batch 4: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-5 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -33,7 +34,7 @@ const DEFAULT_TREE = [
     actions: [
       { name: 'Raise', freq: 68, locked: false, color: 'var(--sp-accent-red)' },
       { name: 'Call', freq: 18, locked: false, color: 'var(--sp-accent-green)' },
-      { name: 'Fold', freq: 14, locked: false, color: '#6b7280' },
+      { name: 'Fold', freq: 14, locked: false, color: 'var(--sp-fg-dim)' },
     ],
   },
   {
@@ -121,7 +122,7 @@ function FreqSlider({ action, onChange, onToggleLock }) {
               cursor: 'pointer',
               background: action.locked ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
               border: `1px solid ${action.locked ? 'var(--sp-accent-amber)' : 'rgba(255,255,255,0.1)'}`,
-              color: action.locked ? 'var(--sp-accent-amber)' : '#6b7280',
+              color: action.locked ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
               letterSpacing: '0.05em',
             }}
           >
@@ -316,14 +317,14 @@ export default function FrequencyLockingPage() {
                   cursor: 'pointer',
                   textAlign: 'center',
                   background: activeNode === i ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)',
-                  border: `2px solid ${activeNode === i ? '#818cf8' : 'rgba(255,255,255,0.06)'}`,
+                  border: `2px solid ${activeNode === i ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.06)'}`,
                 }}
               >
                 <div
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: activeNode === i ? '#818cf8' : '#6b7280',
+                    color: activeNode === i ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)',
                     letterSpacing: '0.1em',
                     marginBottom: 4,
                   }}
@@ -420,7 +421,7 @@ export default function FrequencyLockingPage() {
               border: '1px solid rgba(99,102,241,0.2)',
               fontSize: 14,
               fontWeight: 700,
-              color: '#a5b4fc',
+              color: 'var(--sp-accent-blue)',
               fontFamily: "'Rajdhani', sans-serif",
               letterSpacing: '0.08em',
             }}
@@ -449,7 +450,7 @@ export default function FrequencyLockingPage() {
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: '#818cf8',
+                      color: 'var(--sp-accent-blue)',
                       margin: '0 0 12px',
                       letterSpacing: '0.08em',
                     }}

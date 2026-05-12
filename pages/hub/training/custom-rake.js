@@ -7,6 +7,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-8 — hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-TOKENS-BATCH6-3 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -226,14 +227,14 @@ export default function CustomRakePage() {
                   textAlign: 'left',
                   background:
                     preset.id === r.id ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${preset.id === r.id ? '#818cf8' : 'rgba(255,255,255,0.06)'}`,
+                  border: `1px solid ${preset.id === r.id ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.06)'}`,
                 }}
               >
                 <div
                   style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: preset.id === r.id ? '#818cf8' : '#e4e6eb',
+                    color: preset.id === r.id ? 'var(--sp-accent-blue)' : '#e4e6eb',
                     marginBottom: 2,
                   }}
                 >
@@ -242,7 +243,7 @@ export default function CustomRakePage() {
                 <div style={{ fontSize: 11, color: '#b0b3b8' }}>
                   {r.pct}% / Cap ${r.cap}
                 </div>
-                <div style={{ fontSize: 10, color: '#6b7280' }}>{r.desc}</div>
+                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{r.desc}</div>
               </button>
             ))}
           </div>
@@ -323,7 +324,7 @@ export default function CustomRakePage() {
               max="200"
               value={stackDepth}
               onChange={(e) => setStackDepth(parseInt(e.target.value, 10))}
-              style={{ width: '100%', accentColor: '#818cf8' }}
+              style={{ width: '100%', accentColor: 'var(--sp-accent-blue)' }}
             />
           </div>
 
@@ -429,7 +430,7 @@ export default function CustomRakePage() {
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#a5b4fc',
+                color: 'var(--sp-accent-blue)',
                 letterSpacing: '0.08em',
                 marginBottom: 4,
               }}
