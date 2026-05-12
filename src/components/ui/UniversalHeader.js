@@ -265,7 +265,6 @@ export default function UniversalHeader({
 
     useEffect(() => {
         let mounted = true; // Prevent state updates after unmount
-        let notifChannel;
         let cleanupNotifSync = null;
 
         const loadUser = async () => {
@@ -479,25 +478,12 @@ export default function UniversalHeader({
                         }
                     });
 
-                    // NOTE: Unread messages count is set from API response above (lines 160-165)
-                    // No direct query needed - the get-header-stats API handles this correctly
-
-                    // BUG FIX (Bug #7): static channel name 'header-notifications' causes a zombie
-                    // subscription when React StrictMode double-invokes useEffect or hot-reload fires.
-                    // Supabase deduplicates channels by name — the second subscriber silently drops
-                    // every INSERT event, so new notification badges never appear after a hot-reload.
-                    // Fix: unique name per mount using user ID + timestamp.
-                    notifChannel = supabase
-                        .channel(`header-notifs-${authUser.id}-${Date.now()}`)
-                        .on('postgres_changes', {
-                            event: 'INSERT',
-                            schema: 'public',
-                            table: 'notifications',
-                            filter: `user_id=eq.${authUser.id}`
-                        }, () => {
-                            if (mounted) setNotificationCount(prev => prev + 1);
-                        })
-                        .subscribe();
+                    // NOTE: Removed redundant Supabase Realtime channel for notifications.
+                    // useUnreadCount hook (line 150) already maintains a Realtime subscription
+                    // to the notifications table and feeds liveNotificationCount into this
+                    // component via the useEffect on line 158. Having TWO channels for the
+                    // same INSERT event caused a transient +2 flash before the reconciliation
+                    // useEffect corrected the count, and wasted a Supabase connection.
 
                     // Global useUnreadCount handles social_messages naturally
                 }
@@ -511,7 +497,6 @@ export default function UniversalHeader({
 
         return () => {
             mounted = false;
-            if (notifChannel) supabase.removeChannel(notifChannel);
             if (cleanupNotifSync) cleanupNotifSync();
         };
     }, []);

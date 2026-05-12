@@ -334,7 +334,12 @@ function NotificationsPage() {
         if (mounted.current) {
             setNotifications(prev => {
                 const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
-                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                try {
+                    const sliced = next.slice(0, 30);
+                    // Preserve _cache_ts so the 5-min TTL check on next load doesn't discard this cache
+                    if (sliced.length > 0 && !sliced[0]._cache_ts) sliced[0] = { ...sliced[0], _cache_ts: Date.now() };
+                    localStorage.setItem('sp-notif-cache', JSON.stringify(sliced));
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 return next;
             });
         }
@@ -353,8 +358,14 @@ function NotificationsPage() {
         // Fire-and-forget DB update (do not block execution)
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
         if (!isPoker && user?.id) {
-            // BUG-FIX: Set both read AND is_read to true — unread-count queries check both columns
-            supabase.from('notifications').update({ read: true, is_read: true }).eq('id', id).eq('user_id', user.id).then().catch(e => console.warn('Exception:', e));
+            // Route through server API to invalidate feed + unread-count caches
+            getAccessToken().then(token =>
+                fetch('/api/notifications/mark-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: JSON.stringify({ notificationId: id }),
+                }).catch(e => console.warn('[mark-read] single failed:', e))
+            );
         } else if (isPoker && user?.id) {
             const realId = id.replace('poker-', '');
             getAccessToken().then(token => 

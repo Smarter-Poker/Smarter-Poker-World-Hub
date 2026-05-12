@@ -53,7 +53,7 @@ export default async function handler(req, res) {
               sb.from('notifications')
                   .select('*', { count: 'exact', head: true })
                   .eq('user_id', userId)
-                  .or('read.eq.false,is_read.eq.false'),
+                  .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null'),
               // 3. Page followers for poker notifications
               sb.from('page_followers')
                   .select('page_type, page_id')

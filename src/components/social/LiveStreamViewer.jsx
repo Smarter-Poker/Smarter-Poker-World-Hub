@@ -509,6 +509,17 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
       liveStreamService.onReconnected = null;
       liveStreamService.onConnectionQualityChange = null;
       liveStreamService.onTrackAdded = null;
+      // BUG-FIX-AUDIT LSV-A1: null the participants callback on cleanup.
+      // Without this, a post-unmount LiveKit participant update calls
+      // setParticipants() on an unmounted component.
+      liveStreamService.onParticipantsUpdate = null;
+      // BUG-FIX-AUDIT LSV-A2: clear the top-gifters auto-hide timer on cleanup.
+      // Without this, a gift arriving within 20 seconds of the viewer leaving
+      // fires setTopGiftersVisible(false) on an unmounted component.
+      if (topGiftersHideTimerRef.current) {
+        clearTimeout(topGiftersHideTimerRef.current);
+        topGiftersHideTimerRef.current = null;
+      }
     };
   }, [stream?.id, userId]);
 
