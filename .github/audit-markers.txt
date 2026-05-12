@@ -1815,3 +1815,29 @@ TRAIN-WIRE-TRIVIA-HOOK-4
 # useTriviaQuestion hook. Double Chance invariant preserved: first-wrong
 # early-return touches only local state. PR #517.
 TRAIN-WIRE-TRIVIA-HOOK-5
+
+# TRAIN-WIRE-TRIVIA-TIMER-1 — src/hooks/useTriviaTimer.js. Shared shot-clock
+# hook extracted from mixed.js, pvp.js, tournaments.js, endless.js,
+# survival-game.js. Encapsulates timeLeft/isTimerRunning/timerRef state,
+# visibility-change pause/resume, and setInterval countdown with onTimeout.
+# autoResumeOnVisible flag controls whether hook auto-resumes on tab-return.
+# PR #524.
+TRAIN-WIRE-TRIVIA-TIMER-1
+# TRAIN-WIRE-TRIVIA-TIMER-2 — pages/hub/trivia/mixed.js. First page to adopt
+# useTriviaTimer. Removed local timer state/refs/effects; replaced with hook.
+# autoResumeOnVisible=true (no explicit resume UI). PR #525.
+TRAIN-WIRE-TRIVIA-TIMER-2
+# TRAIN-WIRE-TRIVIA-TIMER-3 — pages/hub/trivia/pvp.js and
+# pages/hub/trivia/tournaments.js. Second and third pages to adopt
+# useTriviaTimer. Same autoResumeOnVisible=true pattern. PRs #526, #527.
+TRAIN-WIRE-TRIVIA-TIMER-3
+# TRAIN-WIRE-TRIVIA-TIMER-4 — pages/hub/trivia/endless.js. Fourth page to
+# adopt useTriviaTimer. autoResumeOnVisible=false: page has explicit Resume
+# Game overlay; hook stops timer on tab-hide, page shows overlay, resume
+# button calls timer.setIsTimerRunning(true). PR #528.
+TRAIN-WIRE-TRIVIA-TIMER-4
+# TRAIN-WIRE-TRIVIA-TIMER-5 — pages/hub/trivia/survival-game.js. Fifth and
+# final page to adopt useTriviaTimer. autoResumeOnVisible=false (same explicit
+# Resume UI pattern as endless.js). All five trivia game pages now share the
+# single useTriviaTimer hook. PR #530.
+TRAIN-WIRE-TRIVIA-TIMER-5
