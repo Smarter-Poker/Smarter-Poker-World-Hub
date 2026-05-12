@@ -35,6 +35,7 @@ import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
+import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 const DAILY_DIAMOND_CAP = 10;
@@ -73,6 +74,15 @@ export default function SurvivalGamePage() {
     const currentQuestion = questions[currentQuestionIndex];
     const trivia = useTriviaQuestion(currentQuestion);
 
+    // TRAIN-WIRE-TRIVIA-TIMER-5 — shared shot-clock hook (autoResumeOnVisible=false: explicit Resume UI)
+    const timer = useTriviaTimer({
+        initialTime: 24,
+        showResult: trivia.showResult,
+        gameState,
+        onTimeout: handleTimeOut,
+        autoResumeOnVisible: false,
+    });
+
     // 50/50 Lifeline state
     const [fiftyFiftyUsedFree, setFiftyFiftyUsedFree] = useState(false); // One free per level
     const [eliminatedOptions, setEliminatedOptions] = useState([]); // Indices of eliminated wrong answers
@@ -92,11 +102,8 @@ export default function SurvivalGamePage() {
     const [firstAttemptWrong, setFirstAttemptWrong] = useState(null);
 
     // 24-Second Shot Clock State
-    const [timeLeft, setTimeLeft] = useState(24);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [screenShake, setScreenShake] = useState(false);
     const [isPaused, setIsPaused] = useState(false); // Visibility-based pause
-    const timerRef = useRef(null);
     const heartbeatIntervalRef = useRef(null);
 
     // Game Settings (persist to localStorage)
@@ -173,74 +180,58 @@ export default function SurvivalGamePage() {
     }, [settings]);
 
     // Visibility-based timer pause (when user leaves app/tab)
+    // Hook stops the countdown; page only sets isPaused so resume overlay appears.
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (document.hidden && isTimerRunning) {
-                setIsPaused(true);
-                setIsTimerRunning(false);
-            }
+            if (document.hidden && timer.isTimerRunning) setIsPaused(true);
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTimerRunning]);
+    }, [timer.isTimerRunning]);
 
-    // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake (respects settings)
+    // Side-effects only — reacts to timer.timeLeft ticks for haptics, screenShake, heartbeat audio.
+    // useTriviaTimer owns the countdown; this effect only drives feedback.
     useEffect(() => {
-        if (!isTimerRunning || trivia.showResult) {
-            if (timerRef.current) clearInterval(timerRef.current);
+        if (!timer.isTimerRunning || trivia.showResult) {
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setScreenShake(false);
             return;
         }
 
-        // Intensity multipliers
+        const t = timer.timeLeft;
         const intensityMultiplier = settings.intensity === 'high' ? 1 : settings.intensity === 'medium' ? 0.6 : 0.3;
 
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                const newTime = prev - 1;
+        // Haptic feedback every second (if enabled)
+        if (settings.haptics && 'vibrate' in navigator) {
+            const baseVibration = t <= 3 ? 100 : t <= 8 ? 50 : 20;
+            navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
+        }
 
-                // Haptic feedback every second (if enabled)
-                if (settings.haptics && 'vibrate' in navigator) {
-                    const baseVibration = newTime <= 3 ? 100 : newTime <= 8 ? 50 : 20;
-                    navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
-                }
-
-                // Screen shake at 3 seconds (if enabled)
-                if (settings.screenShake && newTime <= 3 && newTime > 0) setScreenShake(true);
-                else setScreenShake(false);
-
-                // Time's up - auto fail
-                if (newTime <= 0) {
-                    clearInterval(timerRef.current);
-                    clearInterval(heartbeatIntervalRef.current);
-                    handleTimeOut();
-                    return 0;
-                }
-                return newTime;
-            });
-        }, 1000);
+        // Screen shake at 3 seconds (if enabled)
+        if (settings.screenShake && t <= 3 && t > 0) setScreenShake(true);
+        else setScreenShake(false);
 
         // Heartbeat audio at 8 seconds - speeds up (if enabled)
-        if (settings.audio && timeLeft <= 8 && timeLeft > 0) {
+        if (settings.audio && t <= 8 && t > 0) {
             const volume = 0.3 * intensityMultiplier;
-            const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
+            const speed = Math.max(200, 600 - ((8 - t) * 50));
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             heartbeatIntervalRef.current = setInterval(() => playHeartbeat(volume), speed);
             playHeartbeat(volume);
+        } else {
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            closeHeartbeatAudio();
         }
 
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
-            closeHeartbeatAudio();
         };
-    }, [isTimerRunning, trivia.showResult, timeLeft, settings]);
+    }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings]);
 
     // Handle timeout - count as wrong answer
     function handleTimeOut() {
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
         setScreenShake(false);
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
 
@@ -265,8 +256,7 @@ export default function SurvivalGamePage() {
                 setDoubleChanceActive(false);
                 setDoubleChanceUsedThisQuestion(false);
                 setFirstAttemptWrong(null);
-                setTimeLeft(24);
-                setIsTimerRunning(true);
+                timer.resetTimer();
             }
         }, 1500);
     }
@@ -399,8 +389,7 @@ export default function SurvivalGamePage() {
         setEliminatedOptions([]);
         setLifelinesUsedThisLevel(0); // Reset lifeline counter
         // Reset and start shot clock
-        setTimeLeft(24);
-        setIsTimerRunning(true);
+        timer.resetTimer();
         setScreenShake(false);
         loadQuestionsForLevel(level);
         setGameState('playing');
@@ -501,7 +490,7 @@ export default function SurvivalGamePage() {
         }
 
         setSkipUsedThisQuestion(true);
-        setIsTimerRunning(false);
+        timer.setIsTimerRunning(false);
 
         if (currentQuestionIndex < QUESTIONS_PER_LEVEL - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
@@ -511,8 +500,7 @@ export default function SurvivalGamePage() {
             setDoubleChanceActive(false);
             setDoubleChanceUsedThisQuestion(false);
             setFirstAttemptWrong(null);
-            setTimeLeft(24);
-            setIsTimerRunning(true);
+            timer.resetTimer();
         }
     }
 
@@ -556,8 +544,8 @@ export default function SurvivalGamePage() {
         if (trivia.selectedAnswer !== null || trivia.showResult) return;
 
         // Stop timer immediately on answer
-        setIsTimerRunning(false);
-        const answerTime = 24 - timeLeft; // How many seconds it took to answer
+        timer.setIsTimerRunning(false);
+        const answerTime = 24 - timer.timeLeft; // How many seconds it took to answer
 
         // If Double Chance active and this is first attempt
         if (doubleChanceActive && firstAttemptWrong === null) {
@@ -567,8 +555,7 @@ export default function SurvivalGamePage() {
             if (!isCorrect) {
                 // First wrong attempt - allow second try, reset timer
                 setFirstAttemptWrong(index);
-                setTimeLeft(24);
-                setIsTimerRunning(true);
+                timer.resetTimer();
                 return;
             }
         }
@@ -619,8 +606,7 @@ export default function SurvivalGamePage() {
                 setDoubleChanceUsedThisQuestion(false);
                 setFirstAttemptWrong(null);
                 // Reset and restart timer
-                setTimeLeft(24);
-                setIsTimerRunning(true);
+                timer.resetTimer();
             }
         }, 1200);
     }
@@ -1039,10 +1025,10 @@ export default function SurvivalGamePage() {
                                         <span style={{ fontSize: '48px', marginBottom: '20px' }}>⏸️</span>
                                         <h2 style={{ color: 'white', marginBottom: '10px' }}>Game Paused</h2>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px' }}>
-                                            You left the screen. Time remaining: {timeLeft}s
+                                            You left the screen. Time remaining: {timer.timeLeft}s
                                         </p>
                                         <button
-                                            onClick={() => { setIsPaused(false); setIsTimerRunning(true); }}
+                                            onClick={() => { setIsPaused(false); timer.setIsTimerRunning(true); }}
                                             style={{
                                                 padding: '16px 48px',
                                                 background: 'linear-gradient(135deg, #22c55e, #16a34a)',
@@ -1124,11 +1110,11 @@ export default function SurvivalGamePage() {
                                         alignItems: 'center',
                                         gap: '10px',
                                         padding: '12px 24px',
-                                        background: timeLeft <= 3 ? 'rgba(239, 68, 68, 0.3)' :
-                                            timeLeft <= 8 ? 'rgba(251, 191, 36, 0.2)' :
+                                        background: timer.timeLeft <= 3 ? 'rgba(239, 68, 68, 0.3)' :
+                                            timer.timeLeft <= 8 ? 'rgba(251, 191, 36, 0.2)' :
                                                 'rgba(0, 212, 255, 0.15)',
-                                        border: `2px solid ${timeLeft <= 3 ? '#ef4444' :
-                                            timeLeft <= 8 ? '#fbbf24' : '#00D4FF'}`,
+                                        border: `2px solid ${timer.timeLeft <= 3 ? '#ef4444' :
+                                            timer.timeLeft <= 8 ? '#fbbf24' : '#00D4FF'}`,
                                         borderRadius: '50px'
                                     }}>
                                         <span style={{ fontSize: '18px' }}>⏱️</span>
@@ -1136,12 +1122,12 @@ export default function SurvivalGamePage() {
                                             fontSize: '28px',
                                             fontWeight: 'bold',
                                             fontFamily: 'monospace',
-                                            color: timeLeft <= 3 ? '#ef4444' :
-                                                timeLeft <= 8 ? '#fbbf24' : '#00D4FF',
+                                            color: timer.timeLeft <= 3 ? '#ef4444' :
+                                                timer.timeLeft <= 8 ? '#fbbf24' : '#00D4FF',
                                             minWidth: '40px',
                                             textAlign: 'center'
                                         }}>
-                                            {timeLeft}
+                                            {timer.timeLeft}
                                         </span>
                                         {lifelinesUsedThisLevel > 0 && (
                                             <span style={{
