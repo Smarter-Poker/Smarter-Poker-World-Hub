@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-ADOPT-11 — adoption of --sp-* token contract from PR #470
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -377,8 +378,8 @@ export default function ThreeWayPostflopPage() {
                       cursor: 'pointer',
                       background:
                         potType === t.id ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${potType === t.id ? '#4ade80' : 'rgba(255,255,255,0.08)'}`,
-                      color: potType === t.id ? '#4ade80' : '#b0b3b8',
+                      border: `1px solid ${potType === t.id ? 'var(--sp-accent-green)' : 'rgba(255,255,255,0.08)'}`,
+                      color: potType === t.id ? 'var(--sp-accent-green)' : '#b0b3b8',
                     }}
                   >
                     {t.label}

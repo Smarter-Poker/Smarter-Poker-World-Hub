@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-ADOPT-10 — adoption of --sp-* token contract from PR #470
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -99,12 +100,12 @@ const QUIZ_QUESTIONS = [
 
 function FrequencyBars({ freqs }) {
   const colors = {
-    Check: '#3b82f6',
-    'Bet 33%': '#22c55e',
-    'Bet 75%': '#fbbf24',
-    Raise: '#ef4444',
-    Call: '#22c55e',
-    Fold: '#64748b',
+    Check: 'var(--sp-accent-blue)',
+    'Bet 33%': 'var(--sp-accent-green)',
+    'Bet 75%': 'var(--sp-accent-amber)',
+    Raise: 'var(--sp-accent-red)',
+    Call: 'var(--sp-accent-green)',
+    Fold: 'var(--sp-fg-dim)',
   };
   return (
     <div
@@ -118,7 +119,7 @@ function FrequencyBars({ freqs }) {
     >
       {Object.entries(freqs || {}).map(([action, pct]) => (
         <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 60, fontSize: 10, color: '#94a3b8', textAlign: 'right' }}>
+          <span style={{ width: 60, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right' }}>
             {action}
           </span>
           <div
@@ -134,10 +135,10 @@ function FrequencyBars({ freqs }) {
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              style={{ height: '100%', borderRadius: 4, background: colors[action] || '#3b82f6' }}
+              style={{ height: '100%', borderRadius: 4, background: colors[action] || 'var(--sp-accent-blue)' }}
             />
           </div>
-          <span style={{ width: 32, fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pct}%</span>
+          <span style={{ width: 32, fontSize: 11, fontWeight: 700, color: 'var(--sp-fg)' }}>{pct}%</span>
         </div>
       ))}
     </div>
@@ -259,7 +260,7 @@ export default function ScenarioDemoPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0d0d14 0%, #0a0a1a 50%, #0d0d14 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -278,7 +279,7 @@ export default function ScenarioDemoPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -351,7 +352,7 @@ export default function ScenarioDemoPage() {
                 <div
                   style={{
                     fontSize: 14,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     lineHeight: 1.7,
                     marginBottom: 24,
                     padding: '0 12px',
@@ -399,7 +400,7 @@ export default function ScenarioDemoPage() {
                           border: `1px solid ${i === 3 ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`,
                           fontSize: 12,
                           fontWeight: 700,
-                          color: i === 3 ? '#22c55e' : '#94a3b8',
+                          color: i === 3 ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
                         }}
                       >
                         {p} {i === 3 && '✓'}
@@ -421,10 +422,10 @@ export default function ScenarioDemoPage() {
                   >
                     {Object.entries(step.example.scores || {}).map(([label, score]) => {
                       const colors = {
-                        Elite: '#fbbf24',
-                        Strong: '#22c55e',
-                        Average: '#3b82f6',
-                        Weak: '#ef4444',
+                        Elite: 'var(--sp-accent-amber)',
+                        Strong: 'var(--sp-accent-green)',
+                        Average: 'var(--sp-accent-blue)',
+                        Weak: 'var(--sp-accent-red)',
                       };
                       return (
                         <div
@@ -440,7 +441,7 @@ export default function ScenarioDemoPage() {
                           <span style={{ fontSize: 12, fontWeight: 700, color: colors[label] }}>
                             {label}
                           </span>
-                          <span style={{ fontSize: 12, color: '#94a3b8' }}>{score}</span>
+                          <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{score}</span>
                         </div>
                       );
                     })}
@@ -450,11 +451,11 @@ export default function ScenarioDemoPage() {
                 {/* Quiz inside tutorial */}
                 {isQuizStep && quizQ && (
                   <div style={{ marginTop: 8 }}>
-                    <div style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 12 }}>
                       Q{quizIdx + 1}/{QUIZ_QUESTIONS.length}
                     </div>
                     <div
-                      style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', marginBottom: 16 }}
+                      style={{ fontSize: 15, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 16 }}
                     >
                       {quizQ.q}
                     </div>
@@ -488,7 +489,7 @@ export default function ScenarioDemoPage() {
                                     : 'rgba(0,0,0,0.2)'
                                 : 'rgba(0,0,0,0.2)',
                               border: `1px solid ${show ? (isCorrect ? 'rgba(34,197,94,0.4)' : isSelected ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.05)') : 'rgba(255,255,255,0.08)'}`,
-                              color: '#e2e8f0',
+                              color: 'var(--sp-fg)',
                               fontSize: 13,
                               cursor: show ? 'default' : 'pointer',
                             }}
@@ -510,7 +511,7 @@ export default function ScenarioDemoPage() {
                           borderRadius: 8,
                           background: 'rgba(0,212,255,0.1)',
                           border: '1px solid rgba(0,212,255,0.3)',
-                          color: '#00d4ff',
+                          color: 'var(--sp-accent-cyan)',
                           fontSize: 13,
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -537,7 +538,7 @@ export default function ScenarioDemoPage() {
                           borderRadius: 8,
                           background: 'rgba(255,255,255,0.05)',
                           border: '1px solid rgba(255,255,255,0.1)',
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           fontSize: 13,
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -579,9 +580,9 @@ export default function ScenarioDemoPage() {
               <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
                 Tutorial Complete!
               </div>
-              <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 24 }}>
+              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
                 Quiz Score:{' '}
-                <span style={{ color: '#4ade80', fontWeight: 700 }}>
+                <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>
                   {quizScore.correct}/{quizScore.total}
                 </span>
                 {quizScore.total > 0 &&
@@ -618,7 +619,7 @@ export default function ScenarioDemoPage() {
                     borderRadius: 10,
                     background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     fontSize: 14,
                     fontWeight: 600,
                     cursor: 'pointer',

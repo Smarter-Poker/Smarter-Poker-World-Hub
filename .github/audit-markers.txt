@@ -1266,3 +1266,16 @@ TRAIN-CSS-TOKENS-ADOPT-6
 # TRAIN-CSS-TOKENS-ADOPT-7 — pages/hub/training/pot-geometry.js. 41 quoted
 # hex literals swapped. Gradient-string accent interp literals retained.
 TRAIN-CSS-TOKENS-ADOPT-7
+
+# ─── Phase-15c adoption: --sp-* token sweep batch 3 ─────────────────────────
+# TRAIN-CSS-TOKENS-ADOPT-8 — pages/hub/training/blind-defense.js (15 hex
+# literals → tokens).
+TRAIN-CSS-TOKENS-ADOPT-8
+# TRAIN-CSS-TOKENS-ADOPT-9 — pages/hub/training/hand-lab.js (19 literals).
+TRAIN-CSS-TOKENS-ADOPT-9
+# TRAIN-CSS-TOKENS-ADOPT-10 — pages/hub/training/scenario-demo.js (27).
+TRAIN-CSS-TOKENS-ADOPT-10
+# TRAIN-CSS-TOKENS-ADOPT-11 — pages/hub/training/three-way-postflop.js (2).
+TRAIN-CSS-TOKENS-ADOPT-11
+# TRAIN-CSS-TOKENS-ADOPT-12 — pages/hub/training/hand-comparison.js (36).
+TRAIN-CSS-TOKENS-ADOPT-12

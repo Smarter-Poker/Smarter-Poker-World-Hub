@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-ADOPT-8 — adoption of --sp-* token contract from PR #470
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -37,8 +38,8 @@ function generateScenario() {
   const suit1 = SUITS[getRandomInt(SUITS.length)];
   const suit2 = SUITS[getRandomInt(SUITS.length)];
   const hand = [
-    { r: rank1, s: suit1, c: suit1 === '♥' || suit1 === '♦' ? '#ef4444' : '#e2e8f0' },
-    { r: rank2, s: suit2, c: suit2 === '♥' || suit2 === '♦' ? '#ef4444' : '#e2e8f0' },
+    { r: rank1, s: suit1, c: suit1 === '♥' || suit1 === '♦' ? 'var(--sp-accent-red)' : 'var(--sp-fg)' },
+    { r: rank2, s: suit2, c: suit2 === '♥' || suit2 === '♦' ? 'var(--sp-accent-red)' : 'var(--sp-fg)' },
   ];
 
   // Sort so higher rank is first visually
@@ -136,7 +137,7 @@ export default function BlindDefensePage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -155,7 +156,7 @@ export default function BlindDefensePage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -170,7 +171,7 @@ export default function BlindDefensePage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Blind Defense</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>BB vs Open Specific Drills</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>BB vs Open Specific Drills</div>
             </div>
           </div>
           <div
@@ -184,7 +185,7 @@ export default function BlindDefensePage() {
             <div
               style={{
                 fontSize: 10,
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 2,
@@ -192,9 +193,9 @@ export default function BlindDefensePage() {
             >
               Streak Score
             </div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#00d4ff' }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-accent-cyan)' }}>
               {score.correct}{' '}
-              <span style={{ fontSize: 12, color: '#64748b' }}>/ {score.total}</span>
+              <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>/ {score.total}</span>
             </div>
           </div>
         </div>
@@ -213,7 +214,7 @@ export default function BlindDefensePage() {
             <div
               style={{
                 fontSize: 12,
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: 1,
@@ -223,9 +224,9 @@ export default function BlindDefensePage() {
               Action to you
             </div>
             <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-              {scenario.vPos} Opens <span style={{ color: '#fbbf24' }}>{scenario.size}</span>
+              {scenario.vPos} Opens <span style={{ color: 'var(--sp-accent-amber)' }}>{scenario.size}</span>
             </div>
-            <div style={{ fontSize: 14, color: '#cbd5e1' }}>You are in the Big-Blind</div>
+            <div style={{ fontSize: 14, color: 'var(--sp-fg)' }}>You are in the Big-Blind</div>
           </div>
 
           {/* Hero Cards */}
@@ -247,7 +248,7 @@ export default function BlindDefensePage() {
                   style={{
                     position: 'absolute',
                     top: -50,
-                    background: feedback.isCorrect ? '#4ade80' : '#ef4444',
+                    background: feedback.isCorrect ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                     color: '#fff',
                     padding: '8px 16px',
                     borderRadius: 20,
