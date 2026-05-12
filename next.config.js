@@ -90,24 +90,25 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     // browsers (especially Safari) serve old page JS from SW cache indefinitely.
     // These rules MUST come first to take priority over the library defaults.
 
-    // Page JS chunks — ALWAYS fetch latest, fall back to cache if offline
+    // Dan-fix/mobile-white-screen (2026-05-12): page JS chunks are now
+    // NetworkOnly. The previous NetworkFirst+5s+24h-cache combo caused mobile
+    // Safari/Chrome to serve stale chunks after deploys whose hashes no longer
+    // matched the current HTML — producing a blank page on signup, login, and
+    // other navigations. NetworkOnly means slightly slower offline mode but
+    // zero post-deploy mismatches.
     {
       urlPattern: /\/_next\/static\/chunks\/pages\/.+\.js$/i,
-      handler: 'NetworkFirst',
+      handler: 'NetworkOnly',
       options: {
         cacheName: 'page-js-chunks',
-        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 }, // 24h
-        networkTimeoutSeconds: 5, // If network takes >5s, serve cache
       },
     },
-    // Next.js data routes — ALWAYS fetch latest page data
+    // Next.js data routes — NetworkOnly (same reasoning as page JS above)
     {
       urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
-      handler: 'NetworkFirst',
+      handler: 'NetworkOnly',
       options: {
         cacheName: 'next-data',
-        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 },
-        networkTimeoutSeconds: 5,
       },
     },
     // Framework/vendor JS — these are content-hashed and safe to cache aggressively
@@ -120,14 +121,13 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         expiration: { maxEntries: 128, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
       },
     },
-    // HTML page requests — always try network first
+    // Dan-fix/mobile-white-screen: HTML → NetworkOnly. Cached HTML can
+    // reference page-JS chunks that no longer exist after a deploy → blank page.
     {
       urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'document',
-      handler: 'NetworkFirst',
+      handler: 'NetworkOnly',
       options: {
         cacheName: 'pages-html',
-        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 },
-        networkTimeoutSeconds: 5,
       },
     },
     // Cache static assets (images, fonts) - cache first (content-hashed, safe)
