@@ -1416,7 +1416,7 @@ const PostCard = React.memo(
                         <LiveStreamCard
                           stream={{
                             id: streamId,
-                            thumbnail_url: post.mediaUrls?.[0] || null,
+                            thumbnail_url: post.thumbnail_url || post.thumbnailUrl || post.mediaUrls?.[0] || null, // Bug26/27: prefer thumbnail_url over first media frame
                             title: post.content || '',
                           }}
                           inlineAutoplay

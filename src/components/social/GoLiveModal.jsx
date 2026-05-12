@@ -255,6 +255,8 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sendingId, setSendingId] = useState(null);
+  // Bug24: search-first UX — don't dump the full friends list on open
+  const [guestSearch, setGuestSearch] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -369,46 +371,64 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
             Loading friends...
           </div>
         ) : (
-          <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-            {friends.length === 0 ? (
-              <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>
-                No friends found.
-              </div>
-            ) : (
-              friends.map((f) => (
-                <div
-                  key={f.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 0',
-                    borderBottom: '1px solid #333',
-                  }}
-                >
-                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 500 }}>
-                    {f.display_name || f.username}
-                  </div>
-                  <button
-                    onClick={() => sendInvite(f.id)}
-                    disabled={sendingId === f.id}
+          {/* Bug24: search input — show friends list only when user types */}
+          <input
+            type="text"
+            value={guestSearch}
+            onChange={e => setGuestSearch(e.target.value)}
+            placeholder="Search friends to invite..."
+            autoFocus
+            style={{
+              width: '100%', padding: '10px 14px', borderRadius: 8,
+              border: '1.5px solid #444', background: '#2a2c2f', color: '#fff',
+              fontSize: 15, outline: 'none', marginBottom: 12, boxSizing: 'border-box',
+            }}
+          />
+          {guestSearch.trim().length > 0 && (
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              {(() => {
+                const q = guestSearch.trim().toLowerCase();
+                const filtered = friends.filter(f =>
+                  (f.display_name || f.username || '').toLowerCase().includes(q)
+                );
+                if (filtered.length === 0) {
+                  return <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>No matches found.</div>;
+                }
+                return filtered.map((f) => (
+                  <div
+                    key={f.id}
                     style={{
-                      background: sendingId === f.id ? '#444' : '#1877F2',
-                      color: '#fff',
-                      border: 'none',
-                      padding: '6px 14px',
-                      borderRadius: 6,
-                      fontWeight: 600,
-                      cursor: sendingId === f.id ? 'default' : 'pointer',
-                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 0',
+                      borderBottom: '1px solid #333',
                     }}
                   >
-                    {sendingId === f.id ? 'Sending...' : 'Invite'}
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
+                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 500 }}>
+                      {f.display_name || f.username}
+                    </div>
+                    <button
+                      onClick={() => sendInvite(f.id)}
+                      disabled={sendingId === f.id}
+                      style={{
+                        background: sendingId === f.id ? '#444' : '#1877F2',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '6px 14px',
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        cursor: sendingId === f.id ? 'default' : 'pointer',
+                        fontSize: 13,
+                      }}
+                    >
+                      {sendingId === f.id ? 'Sending...' : 'Invite'}
+                    </button>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
         )}
       </div>
     </div>
@@ -474,6 +494,7 @@ export function GoLiveModal({
   const [topGiftersVisible, setTopGiftersVisible] = useState(false); // Bug3: auto-hide
   const [softwareZoomFallback, setSoftwareZoomFallback] = useState(false); // Bug5
   const [beautyMode, setBeautyMode] = useState(false); // Bug10: face-smoothing
+  const [streamEndedExternally, setStreamEndedExternally] = useState(false); // Bug25: stale-cleanup ended stream while broadcaster was live
   const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
   const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
   const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
@@ -528,6 +549,9 @@ export function GoLiveModal({
   const errorTimerRef = useRef(null);
   // BUG-FIX-LIVE-5: rolling preview capture (uploads ~12s loop clip every 25s)
   const previewCaptureRef = useRef(null);
+  // Bug20: canvas refs for applying beauty filter to the outgoing LiveKit stream
+  const beautyCanvasRef = useRef(null);
+  const beautyAnimFrameRef = useRef(null);
 
   // BUG-FIX-LIVE-7+8: lock viewport, kill pinch zoom, recover from rotation
   // during live/countdown. Prevents the "icons stay zoomed and screen won't
@@ -603,8 +627,66 @@ export function GoLiveModal({
       liveStreamService.onReconnecting = null;
       liveStreamService.onReconnected = null;
       liveStreamService.onConnectionQualityChange = null;
+      liveStreamService.onStreamEndedExternally = null; // Bug25
     };
   }, [isOpen]);
+
+  // Bug20: canvas-based beauty filter — applies ctx.filter to outgoing LiveKit stream
+  // CSS filter only affects local <video> preview; this captures it via canvas and
+  // replaces the published track so watchers also see the filtered video.
+  useEffect(() => {
+    if (stage !== 'live') return;
+    let cancelled = false;
+    const startBeautyCanvas = async () => {
+      const video = videoRef.current;
+      if (!video) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      beautyCanvasRef.current = canvas;
+      const ctx = canvas.getContext('2d');
+      const draw = () => {
+        if (cancelled || !beautyCanvasRef.current) return;
+        if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+        ctx.filter = 'brightness(1.06) contrast(0.92) saturate(1.12) blur(0.4px)';
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        beautyAnimFrameRef.current = requestAnimationFrame(draw);
+      };
+      draw();
+      const canvasStream = canvas.captureStream(30);
+      const newVideoTrack = canvasStream.getVideoTracks()[0];
+      if (newVideoTrack && liveStreamService.room) {
+        try { await liveStreamService.replaceVideoTrack(newVideoTrack); }
+        catch (e) { console.warn('[GoLive] beauty filter track replace failed:', e); }
+      }
+    };
+    const stopBeautyCanvas = async () => {
+      if (beautyAnimFrameRef.current) {
+        cancelAnimationFrame(beautyAnimFrameRef.current);
+        beautyAnimFrameRef.current = null;
+      }
+      beautyCanvasRef.current = null;
+      if (liveStreamService.localStream && liveStreamService.room) {
+        const originalTrack = liveStreamService.localStream.getVideoTracks()[0];
+        if (originalTrack) {
+          try { await liveStreamService.replaceVideoTrack(originalTrack); }
+          catch (e) { console.warn('[GoLive] beauty filter restore failed:', e); }
+        }
+      }
+    };
+    if (beautyMode) { startBeautyCanvas(); } else { stopBeautyCanvas(); }
+    return () => {
+      cancelled = true;
+      if (beautyAnimFrameRef.current) {
+        cancelAnimationFrame(beautyAnimFrameRef.current);
+        beautyAnimFrameRef.current = null;
+      }
+      beautyCanvasRef.current = null;
+    };
+  }, [beautyMode, stage]);
 
   // #14: beforeunload — end broadcast if user closes tab/navigates away while live
   useEffect(() => {
@@ -1123,6 +1205,8 @@ export function GoLiveModal({
       };
       liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
       liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
+      // Bug25: alert broadcaster if stale-cleanup or DB ends the stream externally
+      liveStreamService.onStreamEndedExternally = () => setStreamEndedExternally(true);
 
       // BUG-FIX-LIVE-5 verification: capture the active stream id locally
       // — React's setStreamId is async, so reading `streamId` (state) below
@@ -2369,6 +2453,20 @@ export function GoLiveModal({
                   </div>
                 </div>
               )}
+              {/* Bug25: broadcaster alert when stale-cleanup ended their stream externally */}
+              {streamEndedExternally && (
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                      <div style={{ background: '#1C1E21', borderRadius: 16, padding: 28, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(255,100,100,0.4)' }}>
+                          <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+                          <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Stream Ended</div>
+                          <div style={{ color: '#aaa', fontSize: 14, marginBottom: 20 }}>Your stream was automatically ended due to a connection timeout. Your recording has been saved as a draft.</div>
+                          <button onClick={() => { setStreamEndedExternally(false); handleEndStream(); }} style={{ background: '#1877F2', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: 'pointer', width: '100%' }}>
+                              OK, Go to Recap
+                          </button>
+                      </div>
+                  </div>
+              )}
+
               {/* STREAM-BUG-6: Stuck-reconnect popup — appears after 60s.
                             Two explicit options:
                               - Try Reconnect: resets attempt budget, retries the LiveKit handshake.
