@@ -11,6 +11,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-SHARED-5 — token adoption in UniversalDynamicTable (5496 lines, 366 hex)
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../RangeGrid';
@@ -321,30 +322,30 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
  *   Raise = Purple, Fold = Gray, All-in = Dark Red
  */
 const RANGE_ACTION_COLORS = {
-    'c': '#3b82f6', 'x': '#3b82f6', 'check': '#3b82f6',
-    'call': '#22c55e',
-    'f': '#475569', 'fold': '#475569',
-    'allin': '#991b1b',
-    'b16': '#16a34a', 'b20': '#16a34a', 'b25': '#16a34a', 'b33': '#059669',
-    'b40': '#0891b2', 'b45': '#0891b2', 'b50': '#0891b2', 'b55': '#0891b2',
-    'b60': '#2563eb', 'b66': '#2563eb', 'b75': '#1d4ed8', 'b80': '#1d4ed8',
-    'b100': '#dc2626',
-    'b125': '#f97316', 'b150': '#f59e0b', 'b200': '#f59e0b', 'b300': '#eab308',
-    'r50': '#8b5cf6', 'r75': '#7c3aed', 'r100': '#6d28d9', 'r200': '#a855f7', 'r300': '#a855f7',
-    'r': '#8b5cf6', 'b': '#dc2626',
+    'c': 'var(--sp-accent-blue)', 'x': 'var(--sp-accent-blue)', 'check': 'var(--sp-accent-blue)',
+    'call': 'var(--sp-accent-green)',
+    'f': 'var(--sp-fg-faint)', 'fold': 'var(--sp-fg-faint)',
+    'allin': 'var(--sp-accent-red)',
+    'b16': 'var(--sp-accent-emerald)', 'b20': 'var(--sp-accent-emerald)', 'b25': 'var(--sp-accent-emerald)', 'b33': 'var(--sp-accent-emerald)',
+    'b40': 'var(--sp-accent-cyan)', 'b45': 'var(--sp-accent-cyan)', 'b50': 'var(--sp-accent-cyan)', 'b55': 'var(--sp-accent-cyan)',
+    'b60': 'var(--sp-accent-blue)', 'b66': 'var(--sp-accent-blue)', 'b75': 'var(--sp-accent-blue)', 'b80': 'var(--sp-accent-blue)',
+    'b100': 'var(--sp-accent-red)',
+    'b125': 'var(--sp-accent-orange)', 'b150': 'var(--sp-accent-amber)', 'b200': 'var(--sp-accent-amber)', 'b300': 'var(--sp-accent-amber)',
+    'r50': 'var(--sp-accent-purple)', 'r75': 'var(--sp-accent-purple)', 'r100': 'var(--sp-accent-purple)', 'r200': 'var(--sp-accent-purple)', 'r300': 'var(--sp-accent-purple)',
+    'r': 'var(--sp-accent-purple)', 'b': 'var(--sp-accent-red)',
 };
 
 function getRangeActionColor(action) {
-    if (!action) return '#1e293b';
+    if (!action) return 'var(--sp-bg-elev2)';
     const a = action.toLowerCase();
     if (RANGE_ACTION_COLORS[a]) return RANGE_ACTION_COLORS[a];
     if (a.startsWith('b')) {
         const m = a.match(/^b(\d+)$/);
-        if (m) { const p = parseInt(m[1]); return p <= 33 ? '#059669' : p <= 66 ? '#2563eb' : p <= 100 ? '#dc2626' : '#f59e0b'; }
-        return '#dc2626';
+        if (m) { const p = parseInt(m[1]); return p <= 33 ? 'var(--sp-accent-emerald)' : p <= 66 ? 'var(--sp-accent-blue)' : p <= 100 ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)'; }
+        return 'var(--sp-accent-red)';
     }
-    if (a.startsWith('r')) return '#8b5cf6';
-    return '#475569';
+    if (a.startsWith('r')) return 'var(--sp-accent-purple)';
+    return 'var(--sp-fg-faint)';
 }
 
 function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
@@ -410,7 +411,7 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
             transition={{ duration: 0.3 }}
             style={{ padding: '8px 4px', overflowX: 'auto' }}
         >
-            <div style={{ fontSize: 9, color: '#94a3b8', marginBottom: 4, textAlign: 'center', fontWeight: 'bold', letterSpacing: 1 }}>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-muted)', marginBottom: 4, textAlign: 'center', fontWeight: 'bold', letterSpacing: 1 }}>
                 RANGE STRATEGY — ALL HANDS
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, maxWidth: 300, margin: '0 auto' }}>
@@ -466,7 +467,7 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
                 {actionLegend.slice(0, 6).map(action => {
                     const label = ACTION_LABELS_SHORT[action.toLowerCase()] || action;
                     return (
-                        <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 7, color: '#94a3b8' }}>
+                        <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 7, color: 'var(--sp-fg-muted)' }}>
                             <div style={{ width: 7, height: 7, borderRadius: 2, background: getRangeActionColor(action) }} />
                             {label}
                         </div>
@@ -638,14 +639,14 @@ function evaluateHandStrength(hCards, bCards) {
     const hasPocketPair = heroRanks[0] === heroRanks[1];
     const isOverpair = hasPocketPair && heroHigh < Math.min(...boardRanks.map(r => RANK_ORDER.indexOf(r)));
     const isTopPair = pairWithBoard.length > 0 && RANK_ORDER.indexOf(pairWithBoard[0]) <= Math.min(...boardRanks.map(r => RANK_ORDER.indexOf(r)));
-    if (hasFlush) return { label: 'Flush', color: '#22c55e', tier: 'strong' };
-    if (isOverpair) return { label: 'Overpair', color: '#22c55e', tier: 'strong' };
-    if (isTopPair) return { label: 'Top Pair', color: '#4ade80', tier: 'strong' };
-    if (pairWithBoard.length > 0) return { label: 'Pair', color: '#fbbf24', tier: 'medium' };
-    if (hasFlushDraw) return { label: 'Flush Draw', color: '#3b82f6', tier: 'draw' };
-    if (hasPocketPair) return { label: 'Pocket Pair', color: '#fbbf24', tier: 'medium' };
-    if (heroHigh <= 4) return { label: 'High Card', color: '#94a3b8', tier: 'weak' };
-    return { label: 'Air', color: '#ef4444', tier: 'weak' };
+    if (hasFlush) return { label: 'Flush', color: 'var(--sp-accent-green)', tier: 'strong' };
+    if (isOverpair) return { label: 'Overpair', color: 'var(--sp-accent-green)', tier: 'strong' };
+    if (isTopPair) return { label: 'Top Pair', color: 'var(--sp-accent-green)', tier: 'strong' };
+    if (pairWithBoard.length > 0) return { label: 'Pair', color: 'var(--sp-accent-amber)', tier: 'medium' };
+    if (hasFlushDraw) return { label: 'Flush Draw', color: 'var(--sp-accent-blue)', tier: 'draw' };
+    if (hasPocketPair) return { label: 'Pocket Pair', color: 'var(--sp-accent-amber)', tier: 'medium' };
+    if (heroHigh <= 4) return { label: 'High Card', color: 'var(--sp-fg-muted)', tier: 'weak' };
+    return { label: 'Air', color: 'var(--sp-accent-red)', tier: 'weak' };
 }
 
 // Render miniature inline card images for question text
@@ -767,7 +768,7 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
 
     const progress = timeLeft / seconds;
     const dashOffset = circumference * (1 - progress);
-    const color = timeLeft > 30 ? '#22c55e' : timeLeft > 10 ? '#fbbf24' : '#ef4444';
+    const color = timeLeft > 30 ? 'var(--sp-accent-green)' : timeLeft > 10 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
     const pulseClass = timeLeft <= 5 ? { animation: 'pulse 0.5s infinite' } : {};
 
     return (
@@ -823,16 +824,16 @@ function detectActionType(text) {
 // CHECK = green passive, FOLD = muted blue-grey, CALL = teal
 // BET/RAISE = red intensity gradient: small bets lighter, big bets deeper, overbet/allin darkest
 const ACTION_COLORS = {
-    fold: { bg: '#334155', border: '#1e293b', text: '#f8fafc', accent: '#475569' },
-    check: { bg: '#059669', border: '#047857', text: '#f0fdf4', accent: '#10b981' },
-    call: { bg: '#2563eb', border: '#1d4ed8', text: '#eff6ff', accent: '#3b82f6' },
-    betsmall: { bg: '#b91c1c', border: '#991b1b', text: '#fef2f2', accent: '#dc2626' },
-    betlarge: { bg: '#dc2626', border: '#b91c1c', text: '#fef2f2', accent: '#ef4444' },
-    betpot: { bg: '#ef4444', border: '#dc2626', text: '#fef2f2', accent: '#f87171' },
-    raise: { bg: '#dc2626', border: '#b91c1c', text: '#fef2f2', accent: '#ef4444' },
-    overbet: { bg: '#7f1d1d', border: '#991b1b', text: '#fecaca', accent: '#b91c1c' },
-    allin: { bg: '#450a0a', border: '#7f1d1d', text: '#fecaca', accent: '#991b1c' },
-    neutral: { bg: '#334155', border: '#1e293b', text: '#f8fafc', accent: '#475569' },
+    fold: { bg: 'var(--sp-fg-faint)', border: 'var(--sp-bg-elev2)', text: 'var(--sp-fg)', accent: 'var(--sp-fg-faint)' },
+    check: { bg: 'var(--sp-accent-emerald)', border: 'var(--sp-accent-emerald)', text: '#f0fdf4', accent: 'var(--sp-accent-emerald)' },
+    call: { bg: 'var(--sp-accent-blue)', border: 'var(--sp-accent-blue)', text: '#eff6ff', accent: 'var(--sp-accent-blue)' },
+    betsmall: { bg: 'var(--sp-accent-red)', border: 'var(--sp-accent-red)', text: 'var(--sp-fg)', accent: 'var(--sp-accent-red)' },
+    betlarge: { bg: 'var(--sp-accent-red)', border: 'var(--sp-accent-red)', text: 'var(--sp-fg)', accent: 'var(--sp-accent-red)' },
+    betpot: { bg: 'var(--sp-accent-red)', border: 'var(--sp-accent-red)', text: 'var(--sp-fg)', accent: 'var(--sp-accent-red)' },
+    raise: { bg: 'var(--sp-accent-red)', border: 'var(--sp-accent-red)', text: 'var(--sp-fg)', accent: 'var(--sp-accent-red)' },
+    overbet: { bg: 'var(--sp-accent-red)', border: 'var(--sp-accent-red)', text: 'var(--sp-accent-red)', accent: 'var(--sp-accent-red)' },
+    allin: { bg: '#450a0a', border: 'var(--sp-accent-red)', text: 'var(--sp-accent-red)', accent: '#991b1c' },
+    neutral: { bg: 'var(--sp-fg-faint)', border: 'var(--sp-bg-elev2)', text: 'var(--sp-fg)', accent: 'var(--sp-fg-faint)' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -909,7 +910,7 @@ const loadingStyles = {
     },
     loadingText: {
         position: 'absolute',
-        color: '#5ac8c8',
+        color: 'var(--sp-accent-cyan)',
         fontSize: 16,
         fontWeight: 700,
         fontFamily: "'Inter', sans-serif",
@@ -1011,7 +1012,7 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
                     <span style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: '#ef4444',
+                        color: 'var(--sp-accent-red)',
                         background: 'rgba(0,0,0,0.4)',
                         padding: '3px 10px',
                         borderRadius: 6,
@@ -1024,7 +1025,7 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
                     <span style={{
                         fontSize: 9,
                         fontWeight: 600,
-                        color: evLoss >= 0.5 ? '#fca5a5' : evLoss >= 0.2 ? '#fde68a' : '#94a3b8',
+                        color: evLoss >= 0.5 ? 'var(--sp-accent-red)' : evLoss >= 0.2 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-muted)',
                         fontFamily: "'Inter', sans-serif",
                         opacity: 0.85,
                     }}>
@@ -1039,7 +1040,7 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
                     <span style={{
                         fontSize: 11,
                         fontWeight: 700,
-                        color: '#22c55e',
+                        color: 'var(--sp-accent-green)',
                         background: 'rgba(34,197,94,0.08)',
                         padding: '2px 8px',
                         borderRadius: 6,
@@ -1059,7 +1060,7 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
 function EVLossTicker({ totalEVLoss, show }) {
     if (!show) return null;
 
-    const evColor = totalEVLoss <= 0 ? '#22c55e' : totalEVLoss < 5 ? '#fbbf24' : '#ef4444';
+    const evColor = totalEVLoss <= 0 ? 'var(--sp-accent-green)' : totalEVLoss < 5 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
 
     return (
         <motion.div
@@ -1472,10 +1473,10 @@ function UniversalDynamicTable({
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
         const accuracy = questionNumber > 0 ? ((questionNumber - sessionMistakes) / questionNumber) * 100 : 100;
-        if (accuracy >= 85) return { label: 'EXPERT', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' };
-        if (accuracy >= 70) return { label: 'HARD', color: '#f97316', bg: 'rgba(249,115,22,0.15)' };
-        if (accuracy >= 50) return { label: 'MEDIUM', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' };
-        return { label: 'EASY', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' };
+        if (accuracy >= 85) return { label: 'EXPERT', color: 'var(--sp-accent-red)', bg: 'rgba(239,68,68,0.15)' };
+        if (accuracy >= 70) return { label: 'HARD', color: 'var(--sp-accent-orange)', bg: 'rgba(249,115,22,0.15)' };
+        if (accuracy >= 50) return { label: 'MEDIUM', color: 'var(--sp-accent-amber)', bg: 'rgba(251,191,36,0.15)' };
+        return { label: 'EASY', color: 'var(--sp-accent-green)', bg: 'rgba(34,197,94,0.15)' };
     }, [questionNumber, sessionMistakes]);
 
     // Phase 3: Store question for retry + trigger EV popup on feedback
@@ -1504,7 +1505,7 @@ function UniversalDynamicTable({
             const isGood = moveClassification === 'best' || moveClassification === 'correct';
             setEvPopup({
                 value: evLoss > 0 ? `-${evLoss.toFixed(1)}` : '+0.0',
-                color: isGood ? '#22c55e' : '#ef4444',
+                color: isGood ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
             });
             const timer = setTimeout(() => setEvPopup(null), 1500);
             return () => clearTimeout(timer);
@@ -1925,11 +1926,11 @@ function UniversalDynamicTable({
         if (moveClassification === 'best' || moveClassification === 'correct') {
             const elapsed = (Date.now() - answerStartTime.current) / 1000;
             if (elapsed < 5) {
-                setSpeedBonusToast({ label: 'LIGHTNING +5', color: '#fbbf24' });
+                setSpeedBonusToast({ label: 'LIGHTNING +5', color: 'var(--sp-accent-amber)' });
                 SoundEngine.play('speed_bonus');
                 setTimeout(() => setSpeedBonusToast(null), 2000);
             } else if (elapsed < 10) {
-                setSpeedBonusToast({ label: 'SPEED BONUS +2', color: '#22c55e' });
+                setSpeedBonusToast({ label: 'SPEED BONUS +2', color: 'var(--sp-accent-green)' });
                 SoundEngine.play('speed_bonus');
                 setTimeout(() => setSpeedBonusToast(null), 2000);
             }
@@ -2028,8 +2029,8 @@ function UniversalDynamicTable({
                 return {
                     ...baseStyle,
                     background: '#1a3a2a',
-                    borderColor: '#22c55e',
-                    color: '#22c55e',
+                    borderColor: 'var(--sp-accent-green)',
+                    color: 'var(--sp-accent-green)',
                     boxShadow: '0 0 8px rgba(34, 197, 94, 0.25)',
                     // TRAIN-WIRE-UDT-ACTIONBTN-1 fix: explicit opacity 1 cancels ActionButton's disabled-state 0.55 fade
                     opacity: 1,
@@ -2085,7 +2086,7 @@ function UniversalDynamicTable({
     }, [heroPosition, villainPosition, villainAction, streetLabel, scenario.context]);
 
     // GTOW Score color
-    const scoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
+    const scoreColor = gtowScore >= 80 ? 'var(--sp-accent-green)' : gtowScore >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
 
     // ═══════════════════════════════════════════════════════════════════════
     // RENDER
@@ -2163,7 +2164,7 @@ function UniversalDynamicTable({
                             background: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO')
                                 ? 'rgba(0, 212, 255, 0.15)'
                                 : 'rgba(139, 92, 246, 0.15)',
-                            color: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? '#00d4ff' : '#a78bfa',
+                            color: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'var(--sp-accent-cyan)' : 'var(--sp-accent-purple)',
                             border: `1px solid ${(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'rgba(0,212,255,0.3)' : 'rgba(139,92,246,0.3)'}`,
                         }}>
                             {(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'SOLVER' : 'AI'}
@@ -2186,7 +2187,7 @@ function UniversalDynamicTable({
                                 const isActive = currentStreet === st;
                                 const isPast = ['flop', 'turn', 'river'].indexOf(currentStreet) > idx;
                                 const streetColors = {
-                                    flop: '#4ade80', turn: '#fb923c', river: '#f87171',
+                                    flop: 'var(--sp-accent-green)', turn: 'var(--sp-accent-orange)', river: 'var(--sp-accent-red)',
                                 };
                                 const color = streetColors[st];
                                 return (
@@ -2230,8 +2231,8 @@ function UniversalDynamicTable({
                         const isPositive = gtowCurrentStreak > 0;
                         const absStreak = Math.abs(gtowCurrentStreak);
                         const streakColor = isPositive
-                            ? (absStreak >= 5 ? '#f97316' : '#22c55e')
-                            : '#ef4444';
+                            ? (absStreak >= 5 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)')
+                            : 'var(--sp-accent-red)';
                         const streakIcon = isPositive ? '🔥' : '💀';
                         return absStreak >= 2 ? (
                             <div style={{
@@ -2246,7 +2247,7 @@ function UniversalDynamicTable({
                     })()}
                     {/* Phase 37: Accuracy % — uses real gtowAccuracy from useGTOWScore */}
                     {questionNumber > 1 && (() => {
-                        const accColor = gtowAccuracy >= 80 ? '#22c55e' : gtowAccuracy >= 60 ? '#fbbf24' : '#ef4444';
+                        const accColor = gtowAccuracy >= 80 ? 'var(--sp-accent-green)' : gtowAccuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                         return (
                             <div style={{
                                 display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -2254,7 +2255,7 @@ function UniversalDynamicTable({
                                 background: `${accColor}11`, border: `1px solid ${accColor}33`,
                             }}>
                                 <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace", lineHeight: 1 }}>{gtowAccuracy}%</div>
-                                <div style={{ fontSize: 7, fontWeight: 700, color: '#64748b', letterSpacing: 0.8, textTransform: 'uppercase' }}>ACC</div>
+                                <div style={{ fontSize: 7, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 0.8, textTransform: 'uppercase' }}>ACC</div>
                             </div>
                         );
                     })()}
@@ -2271,7 +2272,7 @@ function UniversalDynamicTable({
                             fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
                             border: simplifiedMode ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.1)',
                             background: simplifiedMode ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.03)',
-                            color: simplifiedMode ? '#c084fc' : '#64748b',
+                            color: simplifiedMode ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
                             cursor: 'pointer', textTransform: 'uppercase',
                         }}
                     >
@@ -2296,11 +2297,11 @@ function UniversalDynamicTable({
                     (classificationCounts.inaccuracy || 0) + (classificationCounts.wrong || 0) + (classificationCounts.blunder || 0);
                 if (total === 0) return null;
                 const segments = [
-                    { key: 'best', color: '#4ade80', count: classificationCounts.best || 0, label: '★' },
-                    { key: 'correct', color: '#22d3ee', count: classificationCounts.correct || 0, label: '✓' },
-                    { key: 'inaccuracy', color: '#fbbf24', count: classificationCounts.inaccuracy || 0, label: '~' },
-                    { key: 'wrong', color: '#f97316', count: classificationCounts.wrong || 0, label: '✗' },
-                    { key: 'blunder', color: '#ef4444', count: classificationCounts.blunder || 0, label: '!!' },
+                    { key: 'best', color: 'var(--sp-accent-green)', count: classificationCounts.best || 0, label: '★' },
+                    { key: 'correct', color: 'var(--sp-accent-cyan)', count: classificationCounts.correct || 0, label: '✓' },
+                    { key: 'inaccuracy', color: 'var(--sp-accent-amber)', count: classificationCounts.inaccuracy || 0, label: '~' },
+                    { key: 'wrong', color: 'var(--sp-accent-orange)', count: classificationCounts.wrong || 0, label: '✗' },
+                    { key: 'blunder', color: 'var(--sp-accent-red)', count: classificationCounts.blunder || 0, label: '!!' },
                 ].filter(s => s.count > 0);
                 return (
                     <div style={{ padding: '0 16px', marginBottom: 2 }}>
@@ -2323,7 +2324,7 @@ function UniversalDynamicTable({
                                 </span>
                             ))}
                             {bestGTOWStreak > 0 && (
-                                <span style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600 }}>
+                                <span style={{ fontSize: 8, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                                     best: {bestGTOWStreak}🔥
                                 </span>
                             )}
@@ -2338,7 +2339,7 @@ function UniversalDynamicTable({
                     {/* Position pills */}
                     {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].filter(p => positionAccuracy[p]).map(pos => {
                         const data = positionAccuracy[pos];
-                        const accColor = data.accuracy >= 80 ? '#22c55e' : data.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                        const accColor = data.accuracy >= 80 ? 'var(--sp-accent-green)' : data.accuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                         const isWeakest = weakestPosition === pos;
                         return (
                             <div key={pos} style={{
@@ -2347,9 +2348,9 @@ function UniversalDynamicTable({
                                 background: isWeakest ? `${accColor}22` : 'rgba(255,255,255,0.03)',
                                 border: `1px solid ${isWeakest ? accColor + '55' : 'rgba(255,255,255,0.06)'}`,
                             }}>
-                                <span style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5 }}>{pos}</span>
+                                <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--sp-fg-muted)', letterSpacing: 0.5 }}>{pos}</span>
                                 <span style={{ fontSize: 8, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</span>
-                                <span style={{ fontSize: 7, color: '#475569' }}>({data.total})</span>
+                                <span style={{ fontSize: 7, color: 'var(--sp-fg-faint)' }}>({data.total})</span>
                             </div>
                         );
                     })}
@@ -2359,8 +2360,8 @@ function UniversalDynamicTable({
                             <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', alignSelf: 'center' }} />
                             {['preflop', 'flop', 'turn', 'river'].filter(s => streetAccuracy[s]).map(st => {
                                 const data = streetAccuracy[st];
-                                const streetColors = { preflop: '#a78bfa', flop: '#4ade80', turn: '#fb923c', river: '#f87171' };
-                                const accColor = data.accuracy >= 80 ? '#22c55e' : data.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                                const streetColors = { preflop: 'var(--sp-accent-purple)', flop: 'var(--sp-accent-green)', turn: 'var(--sp-accent-orange)', river: 'var(--sp-accent-red)' };
+                                const accColor = data.accuracy >= 80 ? 'var(--sp-accent-green)' : data.accuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                                 return (
                                     <div key={st} style={{
                                         display: 'flex', alignItems: 'center', gap: 2,
@@ -2368,7 +2369,7 @@ function UniversalDynamicTable({
                                         background: 'rgba(255,255,255,0.03)',
                                         border: '1px solid rgba(255,255,255,0.06)',
                                     }}>
-                                        <span style={{ fontSize: 8, fontWeight: 700, color: streetColors[st] || '#94a3b8', letterSpacing: 0.5, textTransform: 'capitalize' }}>{st.slice(0, 1).toUpperCase()}</span>
+                                        <span style={{ fontSize: 8, fontWeight: 700, color: streetColors[st] || 'var(--sp-fg-muted)', letterSpacing: 0.5, textTransform: 'capitalize' }}>{st.slice(0, 1).toUpperCase()}</span>
                                         <span style={{ fontSize: 8, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</span>
                                     </div>
                                 );
@@ -2390,11 +2391,11 @@ function UniversalDynamicTable({
                         padding: '2px 16px', marginBottom: 2,
                         display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap',
                     }}>
-                        <span style={{ fontSize: 8, fontWeight: 800, color: '#f59e0b', letterSpacing: 1, textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sp-accent-amber)', letterSpacing: 1, textTransform: 'uppercase' }}>
                             LEAK
                         </span>
                         {significantLeaks.map((leak, idx) => {
-                            const sevColor = leak.severity === 'high' ? '#ef4444' : '#f59e0b';
+                            const sevColor = leak.severity === 'high' ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)';
                             return (
                                 <div key={idx} style={{
                                     display: 'flex', alignItems: 'center', gap: 3,
@@ -2406,12 +2407,12 @@ function UniversalDynamicTable({
                                     <span style={{ fontSize: 8, fontWeight: 700, color: sevColor }}>
                                         {leak.type.replace('_', ' ')}
                                     </span>
-                                    <span style={{ fontSize: 7, color: '#94a3b8' }}>({leak.count}x)</span>
+                                    <span style={{ fontSize: 7, color: 'var(--sp-fg-muted)' }}>({leak.count}x)</span>
                                 </div>
                             );
                         })}
                         {significantLeaks.length > 0 && significantLeaks[0].tip && (
-                            <span style={{ fontSize: 7, color: '#94a3b8', fontStyle: 'italic', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 7, color: 'var(--sp-fg-muted)', fontStyle: 'italic', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {significantLeaks[0].tip}
                             </span>
                         )}
@@ -2458,7 +2459,7 @@ function UniversalDynamicTable({
                             border: 'none',
                             borderRight: '1px solid rgba(255,255,255,0.08)',
                             background: rngMode ? 'rgba(168,85,247,0.18)' : 'transparent',
-                            color: rngMode ? '#a855f7' : '#64748b', cursor: 'pointer',
+                            color: rngMode ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)', cursor: 'pointer',
                             letterSpacing: 0.5, transition: 'background 0.15s ease, color 0.15s ease',
                         }}
                     >
@@ -2473,7 +2474,7 @@ function UniversalDynamicTable({
                             padding: '3px 10px', fontSize: 10, fontWeight: 700,
                             border: 'none',
                             background: studyMode ? 'rgba(59,130,246,0.18)' : 'transparent',
-                            color: studyMode ? '#3b82f6' : '#64748b', cursor: 'pointer',
+                            color: studyMode ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)', cursor: 'pointer',
                             letterSpacing: 0.5, transition: 'background 0.15s ease, color 0.15s ease',
                         }}
                     >
@@ -2503,7 +2504,7 @@ function UniversalDynamicTable({
                 <div style={{
                     position: 'absolute', top: -10, right: 4,
                     fontSize: 8, fontWeight: 700,
-                    color: totalSessionEVLoss > 1 ? '#ef4444' : '#22c55e',
+                    color: totalSessionEVLoss > 1 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
                 }}>
                     {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)} EV` : '0.0 EV'}
                 </div>
@@ -2577,7 +2578,7 @@ function UniversalDynamicTable({
                                 borderRadius: '50%',
                                 border: trainerConfig ? '1.5px solid rgba(0,212,255,0.4)' : '1px solid rgba(255,255,255,0.15)',
                                 background: trainerConfig ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.06)',
-                                color: trainerConfig ? '#00d4ff' : '#94a3b8',
+                                color: trainerConfig ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                                 fontSize: 16,
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -2605,7 +2606,7 @@ function UniversalDynamicTable({
                             borderRadius: 6,
                             background: 'rgba(0,212,255,0.08)',
                             border: '1px solid rgba(0,212,255,0.2)',
-                            color: '#00d4ff',
+                            color: 'var(--sp-accent-cyan)',
                             fontSize: 9,
                             fontWeight: 700,
                             letterSpacing: 0.5,
@@ -2728,7 +2729,7 @@ function UniversalDynamicTable({
                                     <div style={{
                                         fontSize: 13,
                                         fontWeight: 'bold',
-                                        color: isHero ? '#1a1a00' : '#22c55e',
+                                        color: isHero ? '#1a1a00' : 'var(--sp-accent-green)',
                                     }}>
                                         {stackSize} bb
                                     </div>
@@ -2875,7 +2876,7 @@ function UniversalDynamicTable({
                                             style={{
                                                 position: 'absolute', bottom: -6, left: '50%', x: '-50%',
                                                 width: 6, height: 6, borderRadius: '50%',
-                                                background: '#fb923c', boxShadow: '0 0 6px #fb923c',
+                                                background: 'var(--sp-accent-orange)', boxShadow: '0 0 6px #fb923c',
                                             }}
                                         />
                                     )}
@@ -2932,7 +2933,7 @@ function UniversalDynamicTable({
                             boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.1)',
                             flexShrink: 0,
                         }} />
-                        <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: '#e2e8f0' }}>Pot: {pot} bb</span>
+                        <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: 'var(--sp-fg)' }}>Pot: {pot} bb</span>
                         {/* SPR + Pot Odds */}
                         <div style={styles.potOverlayRow}>
                             {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
@@ -2952,19 +2953,19 @@ function UniversalDynamicTable({
             <div style={styles.statsHUD}>
                 <div style={styles.statsHUDItem}>
                     <span style={styles.statsHUDLabel}>EV Loss</span>
-                    <span style={{ ...styles.statsHUDValue, color: totalSessionEVLoss > 0 ? '#ef4444' : '#22c55e' }}>
+                    <span style={{ ...styles.statsHUDValue, color: totalSessionEVLoss > 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)' }}>
                         {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)}` : '0.0'} BB
                     </span>
                 </div>
                 <div style={styles.statsHUDItem}>
                     <span style={styles.statsHUDLabel}>Mistakes</span>
-                    <span style={{ ...styles.statsHUDValue, color: sessionMistakes > 0 ? '#fbbf24' : '#22c55e' }}>
+                    <span style={{ ...styles.statsHUDValue, color: sessionMistakes > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)' }}>
                         {sessionMistakes}
                     </span>
                 </div>
                 <div style={styles.statsHUDItem}>
                     <span style={styles.statsHUDLabel}>Streak</span>
-                    <span style={{ ...styles.statsHUDValue, color: streak >= 3 ? '#f97316' : '#94a3b8' }}>
+                    <span style={{ ...styles.statsHUDValue, color: streak >= 3 ? 'var(--sp-accent-orange)' : 'var(--sp-fg-muted)' }}>
                         {streak >= 2 ? `${streak}` : streak}
                     </span>
                 </div>
@@ -2983,22 +2984,22 @@ function UniversalDynamicTable({
                                     transition={{ duration: 0.5, ease: 'easeOut' }}
                                     style={{
                                         height: '100%', borderRadius: 3,
-                                        background: difficultyLevel <= 3 ? '#22c55e'
-                                            : difficultyLevel <= 6 ? '#fbbf24'
-                                                : difficultyLevel <= 8 ? '#f97316' : '#ef4444',
+                                        background: difficultyLevel <= 3 ? 'var(--sp-accent-green)'
+                                            : difficultyLevel <= 6 ? 'var(--sp-accent-amber)'
+                                                : difficultyLevel <= 8 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-red)',
                                     }}
                                 />
                             </div>
                             <span style={{
                                 fontSize: 9, fontWeight: 700, fontFamily: "'Inter', monospace",
-                                color: difficultyLevel <= 3 ? '#22c55e'
-                                    : difficultyLevel <= 6 ? '#fbbf24'
-                                        : difficultyLevel <= 8 ? '#f97316' : '#ef4444',
+                                color: difficultyLevel <= 3 ? 'var(--sp-accent-green)'
+                                    : difficultyLevel <= 6 ? 'var(--sp-accent-amber)'
+                                        : difficultyLevel <= 8 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-red)',
                             }}>
                                 {difficultyLevel}
                             </span>
                             {/* Phase 50: Difficulty labels */}
-                            <span style={{ fontSize: 7, color: '#64748b', marginLeft: 1 }}>
+                            <span style={{ fontSize: 7, color: 'var(--sp-fg-dim)', marginLeft: 1 }}>
                                 {difficultyLevel <= 2 ? 'Easy' : difficultyLevel <= 4 ? 'Med' : difficultyLevel <= 6 ? 'Hard' : difficultyLevel <= 8 ? 'Expert' : 'GTO'}
                             </span>
                         </div>
@@ -3041,7 +3042,7 @@ function UniversalDynamicTable({
                             transition={{ delay: 0.15 }}
                             style={{
                                 fontFamily: "'Inter', sans-serif", fontSize: 22,
-                                fontWeight: 900, color: '#fbbf24', letterSpacing: 2,
+                                fontWeight: 900, color: 'var(--sp-accent-amber)', letterSpacing: 2,
                                 textShadow: '0 2px 8px rgba(251,191,36,0.4)',
                             }}
                         >
@@ -3053,7 +3054,7 @@ function UniversalDynamicTable({
                             transition={{ delay: 0.3 }}
                             style={{
                                 fontSize: 14, fontWeight: 700, marginTop: 8,
-                                color: '#00d4ff', letterSpacing: 1,
+                                color: 'var(--sp-accent-cyan)', letterSpacing: 1,
                             }}
                         >
                             +{streakCelebration.reward} Diamonds
@@ -3116,8 +3117,8 @@ function UniversalDynamicTable({
                             background: 'linear-gradient(90deg, rgba(34,211,238,0.08), rgba(14,165,233,0.04))',
                             borderRadius: 8, border: '1px solid rgba(34,211,238,0.15)',
                         }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>💡 Hint</div>
-                            <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>{hints[0]}</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>💡 Hint</div>
+                            <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.4 }}>{hints[0]}</div>
                         </div>
                     );
                 } catch (_) { return null; }
@@ -3134,7 +3135,7 @@ function UniversalDynamicTable({
                             position: 'absolute', top: -20, left: '50%',
                             x: '-50%',
                             fontSize: 10, fontWeight: 800, letterSpacing: 2,
-                            color: '#00d4ff', textTransform: 'uppercase',
+                            color: 'var(--sp-accent-cyan)', textTransform: 'uppercase',
                             textShadow: '0 0 8px rgba(0,212,255,0.3)',
                             whiteSpace: 'nowrap', zIndex: 5,
                         }}
@@ -3159,7 +3160,7 @@ function UniversalDynamicTable({
                         <span style={{ fontSize: 16 }}>🎲</span>
                         <span style={{
                             fontSize: 20, fontWeight: 900,
-                            color: '#a855f7', fontFamily: "'Orbitron', monospace",
+                            color: 'var(--sp-accent-purple)', fontFamily: "'Orbitron', monospace",
                             textShadow: '0 0 10px rgba(168,85,247,0.4)',
                         }}>
                             {rngRoll}
@@ -3178,7 +3179,7 @@ function UniversalDynamicTable({
                         }}
                     >
                         <span style={{
-                            fontSize: 12, fontWeight: 800, color: '#a855f7',
+                            fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-purple)',
                             background: 'rgba(168,85,247,0.15)',
                             border: '1px solid rgba(168,85,247,0.3)',
                             padding: '2px 10px', borderRadius: 8,
@@ -3200,7 +3201,7 @@ function UniversalDynamicTable({
                                 return (
                                     <span key={id} style={{
                                         fontSize: 9, fontWeight: 700,
-                                        color: isTarget ? '#22c55e' : '#94a3b8',
+                                        color: isTarget ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
                                         background: isTarget ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
                                         border: `1px solid ${isTarget ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
                                         padding: '2px 6px', borderRadius: 6,
@@ -3256,7 +3257,7 @@ function UniversalDynamicTable({
                             backdropFilter: 'blur(8px)',
                             WebkitBackdropFilter: 'blur(8px)',
                             border: '1px solid rgba(255, 255, 255, 0.18)',
-                            color: '#e2e8f0', fontSize: 12, fontWeight: 600,
+                            color: 'var(--sp-fg)', fontSize: 12, fontWeight: 600,
                             cursor: 'pointer', zIndex: 9999,
                             letterSpacing: 0.3,
                         }}
@@ -3310,7 +3311,7 @@ function UniversalDynamicTable({
                                 fontSize: isCompact ? 7 : 8,
                                 fontWeight: 800,
                                 fontFamily: "'Inter', monospace",
-                                color: evNum >= 0 ? '#22c55e' : '#ef4444',
+                                color: evNum >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                                 letterSpacing: 0.3,
                             }}
                         >
@@ -3369,7 +3370,7 @@ function UniversalDynamicTable({
                             {/* Frequency bar under button */}
                             <FrequencyBar
                                 frequency={freq}
-                                color={ACTION_COLORS[actionType]?.border || '#64748b'}
+                                color={ACTION_COLORS[actionType]?.border || 'var(--sp-fg-dim)'}
                                 show={showFeedback || (studyMode && computedFrequencies)}
                             />
                         </div>
@@ -3385,7 +3386,7 @@ function UniversalDynamicTable({
                         onClick={() => setActiveMode(mode.id)}
                         style={{
                             ...styles.modeBarBtn,
-                            color: activeMode === mode.id ? '#00d4ff' : '#64748b',
+                            color: activeMode === mode.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                             borderTop: activeMode === mode.id ? '2px solid #00d4ff' : '2px solid transparent',
                             background: activeMode === mode.id ? 'rgba(0,212,255,0.06)' : 'transparent',
                         }}
@@ -3406,8 +3407,8 @@ function UniversalDynamicTable({
                             exit={{ opacity: 0, height: 0 }}
                             style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
                         >
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>
-                                Range Matrix {heroCards?.length === 2 && <span style={{ color: '#00d4ff' }}>• {heroCards.join('')}</span>}
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>
+                                Range Matrix {heroCards?.length === 2 && <span style={{ color: 'var(--sp-accent-cyan)' }}>• {heroCards.join('')}</span>}
                             </div>
                             <RangeGrid
                                 gridData={(() => {
@@ -3443,7 +3444,7 @@ function UniversalDynamicTable({
                             exit={{ opacity: 0, height: 0 }}
                             style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
                         >
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
                                 GTO Strategy Distribution
                             </div>
                             {options.slice(0, 9).map(opt => {
@@ -3452,7 +3453,7 @@ function UniversalDynamicTable({
                                 const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
                                 const freq = typeof computedFrequencies[optId] === 'number' ? computedFrequencies[optId] : 0;
                                 const actionType = detectActionType(text);
-                                const barColor = ACTION_COLORS[actionType]?.border || '#64748b';
+                                const barColor = ACTION_COLORS[actionType]?.border || 'var(--sp-fg-dim)';
                                 return (
                                     <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                                         <div style={{ width: 60, fontSize: 10, fontWeight: 600, color: barColor, textAlign: 'right' }}>{text}</div>
@@ -3464,7 +3465,7 @@ function UniversalDynamicTable({
                                                 style={{ height: '100%', background: barColor, borderRadius: 4 }}
                                             />
                                         </div>
-                                        <div style={{ width: 36, fontSize: 11, fontWeight: 800, color: '#e2e8f0', textAlign: 'right', fontFamily: "'Inter', monospace" }}>{freq}%</div>
+                                        <div style={{ width: 36, fontSize: 11, fontWeight: 800, color: 'var(--sp-fg)', textAlign: 'right', fontFamily: "'Inter', monospace" }}>{freq}%</div>
                                     </div>
                                 );
                             })}
@@ -3494,7 +3495,7 @@ function UniversalDynamicTable({
                                     {rngMode ? '🎲 RNG Mode: ON' : '🎲 RNG Mode: OFF'}
                                 </button>
                                 {onExit && (
-                                    <button onClick={onExit} style={{ ...styles.settingsBtn, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                                    <button onClick={onExit} style={{ ...styles.settingsBtn, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}>
                                         🚪 Quit Session
                                     </button>
                                 )}
@@ -3521,7 +3522,7 @@ function UniversalDynamicTable({
                         style={{
                             background: 'none',
                             border: 'none',
-                            color: '#64748b',
+                            color: 'var(--sp-fg-dim)',
                             fontSize: 10,
                             fontWeight: 700,
                             letterSpacing: 1,
@@ -3538,7 +3539,7 @@ function UniversalDynamicTable({
                     <div style={{ display: feedbackCollapsed ? 'none' : 'contents', width: '100%', maxWidth: 600 }}>
                     <div style={{ width: '100%', marginBottom: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
                                 GTO Strategy
                             </div>
                             {/* Phase 22: Mixed strategy indicator — shown when multiple actions ≥20% freq */}
@@ -3550,7 +3551,7 @@ function UniversalDynamicTable({
                                 if (significantActions >= 2) {
                                     return (
                                         <span style={{
-                                            fontSize: 8, fontWeight: 700, color: '#a855f7',
+                                            fontSize: 8, fontWeight: 700, color: 'var(--sp-accent-purple)',
                                             background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)',
                                             padding: '1px 6px', borderRadius: 4, letterSpacing: 0.5,
                                         }}>
@@ -3569,12 +3570,12 @@ function UniversalDynamicTable({
                             const isCorrect = optId === correctAnswer;
                             const isSelected = optId === selectedAnswer;
                             const actionType = detectActionType(text);
-                            const barColor = isCorrect ? '#22c55e' : isSelected ? (classConfig?.color || '#ef4444') : ACTION_COLORS[actionType]?.border || '#475569';
+                            const barColor = isCorrect ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : ACTION_COLORS[actionType]?.border || 'var(--sp-fg-faint)';
                             return (
                                 <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                                     <div style={{
                                         width: 72, fontSize: 9, fontWeight: 700, textAlign: 'right',
-                                        color: isCorrect ? '#22c55e' : isSelected ? (classConfig?.color || '#ef4444') : '#94a3b8',
+                                        color: isCorrect ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : 'var(--sp-fg-muted)',
                                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                     }}>
                                         {isCorrect && '✓ '}{isSelected && !isCorrect && '✗ '}{text}
@@ -3587,7 +3588,7 @@ function UniversalDynamicTable({
                                             style={{ height: '100%', background: barColor, borderRadius: 4, minWidth: freq > 0 ? 2 : 0 }}
                                         />
                                     </div>
-                                    <div style={{ width: 34, fontSize: 10, fontWeight: 800, textAlign: 'right', fontFamily: "'Inter', monospace", color: '#e2e8f0' }}>
+                                    <div style={{ width: 34, fontSize: 10, fontWeight: 800, textAlign: 'right', fontFamily: "'Inter', monospace", color: 'var(--sp-fg)' }}>
                                         {freq}%
                                     </div>
                                 </div>
@@ -3604,22 +3605,22 @@ function UniversalDynamicTable({
                                 display: 'flex', alignItems: 'center', gap: 8,
                                 padding: '6px 16px', borderRadius: 20,
                                 background: classConfig?.bgColor || 'rgba(59,130,246,0.15)',
-                                border: `1.5px solid ${classConfig?.borderColor || '#3b82f6'}`,
+                                border: `1.5px solid ${classConfig?.borderColor || 'var(--sp-accent-blue)'}`,
                             }}
                         >
                             <ClassificationSVGIcon icon={classConfig?.icon} size={16} color={classConfig?.color} />
                             <span style={{
-                                fontSize: 13, fontWeight: 800, color: classConfig?.color || '#3b82f6',
+                                fontSize: 13, fontWeight: 800, color: classConfig?.color || 'var(--sp-accent-blue)',
                                 letterSpacing: 0.8, textTransform: 'uppercase',
                                 fontFamily: "'Inter', monospace",
                             }}>{classConfig?.label || 'Unknown'}</span>
                         </motion.div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>EV:</span>
+                            <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>EV:</span>
                             <span style={{
                                 fontSize: 14, fontWeight: 800,
                                 fontFamily: "'Inter', monospace",
-                                color: evLoss > 0 ? '#ef4444' : '#22c55e',
+                                color: evLoss > 0 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
                             }}>
                                 {evLoss > 0 ? `-${evLoss.toFixed(2)}` : '0.00'} BB
                             </span>
@@ -3634,12 +3635,12 @@ function UniversalDynamicTable({
                         }}>
                             <span style={{
                                 fontSize: 11, fontWeight: 600,
-                                color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
+                                color: feedbackResult === 'correct' ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                             }}>
                                 {feedbackResult === 'correct' ? '✓' : '✗'} You: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
                             </span>
                             {selectedAnswer !== correctAnswer && (
-                                <span style={{ fontSize: 11, fontWeight: 600, color: '#22c55e' }}>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-green)' }}>
                                     ✓ Best: {options.find(o => o.id === correctAnswer)?.text || correctAnswer}
                                 </span>
                             )}
@@ -3655,9 +3656,9 @@ function UniversalDynamicTable({
                             border: '1px solid rgba(168,85,247,0.2)',
                             fontSize: 11,
                         }}>
-                            <span style={{ fontWeight: 900, color: '#a855f7', fontSize: 14 }}>{rngRoll}</span>
-                            <span style={{ color: '#a855f7', fontWeight: 700, letterSpacing: 0.5 }}>RNG</span>
-                            <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+                            <span style={{ fontWeight: 900, color: 'var(--sp-accent-purple)', fontSize: 14 }}>{rngRoll}</span>
+                            <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700, letterSpacing: 0.5 }}>RNG</span>
+                            <span style={{ color: 'var(--sp-fg)', fontWeight: 600 }}>
                                 {(() => {
                                     let cumulative = 0;
                                     for (const [actionId, freq] of Object.entries(computedFrequencies || {})) {
@@ -3696,15 +3697,15 @@ function UniversalDynamicTable({
                             >
                                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                                     <div>
-                                        <div style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>You</div>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', fontFamily: "'Inter', monospace" }}>
+                                        <div style={{ fontSize: 8, color: 'var(--sp-fg-muted)', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>You</div>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sp-accent-red)', fontFamily: "'Inter', monospace" }}>
                                             {selText} ({selEV >= 0 ? '+' : ''}{selEV.toFixed(2)} BB)
                                         </div>
                                     </div>
-                                    <div style={{ color: '#475569', fontSize: 12 }}>→</div>
+                                    <div style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>→</div>
                                     <div>
-                                        <div style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>Optimal</div>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', fontFamily: "'Inter', monospace" }}>
+                                        <div style={{ fontSize: 8, color: 'var(--sp-fg-muted)', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>Optimal</div>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sp-accent-green)', fontFamily: "'Inter', monospace" }}>
                                             {corText} ({corEV >= 0 ? '+' : ''}{corEV.toFixed(2)} BB)
                                         </div>
                                     </div>
@@ -3714,8 +3715,8 @@ function UniversalDynamicTable({
                                     background: 'rgba(239, 68, 68, 0.15)',
                                     border: '1px solid rgba(239, 68, 68, 0.25)',
                                 }}>
-                                    <div style={{ fontSize: 8, color: '#f87171', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center' }}>Cost</div>
-                                    <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444', fontFamily: "'Orbitron', monospace", textAlign: 'center' }}>
+                                    <div style={{ fontSize: 8, color: 'var(--sp-accent-red)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center' }}>Cost</div>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)', fontFamily: "'Orbitron', monospace", textAlign: 'center' }}>
                                         -{evCost.toFixed(2)} BB
                                     </div>
                                 </div>
@@ -3735,7 +3736,7 @@ function UniversalDynamicTable({
                                 border: '1px solid rgba(255,255,255,0.04)',
                             }}
                         >
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
                                 GTO Strategy
                             </div>
                             {/* Stacked bar */}
@@ -3791,7 +3792,7 @@ function UniversalDynamicTable({
                                     return (
                                         <span key={opt.id} style={{ fontSize: 8, display: 'flex', alignItems: 'center', gap: 3 }}>
                                             <span style={{ width: 6, height: 6, borderRadius: 2, background: colors.accent || colors.bg, display: 'inline-block' }} />
-                                            <span style={{ color: isOptimal ? '#22c55e' : '#94a3b8', fontWeight: isOptimal ? 800 : 600 }}>
+                                            <span style={{ color: isOptimal ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)', fontWeight: isOptimal ? 800 : 600 }}>
                                                 {typeof opt === 'object' ? opt.text : opt} {freq}%
                                             </span>
                                         </span>
@@ -3813,7 +3814,7 @@ function UniversalDynamicTable({
                                 border: '1px solid rgba(255,255,255,0.06)',
                             }}
                         >
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
                                 EV by Action
                             </div>
                             {options.slice(0, 9).map(opt => {
@@ -3826,11 +3827,11 @@ function UniversalDynamicTable({
                                 const barWidth = Math.max(5, ((ev - minEV) / range) * 100);
                                 const isOptimal = optId === correctAnswer;
                                 const isSelected = optId === selectedAnswer;
-                                const barColor = isOptimal ? '#22c55e' : isSelected ? (classConfig?.color || '#ef4444') : '#475569';
+                                const barColor = isOptimal ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : 'var(--sp-fg-faint)';
 
                                 return (
                                     <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                                        <div style={{ width: 42, fontSize: 9, fontWeight: 600, color: isOptimal ? '#22c55e' : '#94a3b8', textAlign: 'right' }}>
+                                        <div style={{ width: 42, fontSize: 9, fontWeight: 600, color: isOptimal ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)', textAlign: 'right' }}>
                                             {typeof opt === 'object' ? opt.text : opt}
                                         </div>
                                         <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
@@ -3841,7 +3842,7 @@ function UniversalDynamicTable({
                                                 style={{ height: '100%', background: barColor, borderRadius: 3 }}
                                             />
                                         </div>
-                                        <div style={{ width: 44, fontSize: 9, fontWeight: 'bold', textAlign: 'right', fontFamily: "'Inter', monospace", color: ev >= 0 ? '#22c55e' : '#ef4444' }}>
+                                        <div style={{ width: 44, fontSize: 9, fontWeight: 'bold', textAlign: 'right', fontFamily: "'Inter', monospace", color: ev >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)' }}>
                                             {ev >= 0 ? '+' : ''}{ev.toFixed(2)}
                                         </div>
                                     </div>
@@ -3994,7 +3995,7 @@ function UniversalDynamicTable({
                         if (!displayExplanation) return null;
                         return (
                             <div style={{ width: '100%' }}>
-                                <div style={{ fontSize: 12, lineHeight: 1.5, color: '#cbd5e1', textAlign: 'center' }}>
+                                <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--sp-fg)', textAlign: 'center' }}>
                                     {displayExplanation}
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6, gap: 8 }}>
@@ -4004,7 +4005,7 @@ function UniversalDynamicTable({
                                             padding: '4px 12px', borderRadius: 6,
                                             background: 'rgba(0, 212, 255, 0.08)',
                                             border: '1px solid rgba(0, 212, 255, 0.25)',
-                                            color: '#00d4ff', fontSize: 10, fontWeight: 700,
+                                            color: 'var(--sp-accent-cyan)', fontSize: 10, fontWeight: 700,
                                             cursor: 'pointer', letterSpacing: 0.5,
                                         }}
                                     >
@@ -4017,7 +4018,7 @@ function UniversalDynamicTable({
                                                 padding: '4px 12px', borderRadius: 6,
                                                 background: showRangeGrid ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
                                                 border: `1px solid rgba(168, 85, 247, ${showRangeGrid ? '0.4' : '0.25'})`,
-                                                color: '#a855f7', fontSize: 10, fontWeight: 700,
+                                                color: 'var(--sp-accent-purple)', fontSize: 10, fontWeight: 700,
                                                 cursor: 'pointer', letterSpacing: 0.5,
                                             }}
                                         >
@@ -4050,40 +4051,40 @@ function UniversalDynamicTable({
                                                 background: 'rgba(0, 212, 255, 0.04)',
                                                 borderRadius: 8,
                                                 border: '1px solid rgba(0, 212, 255, 0.12)',
-                                                fontSize: 10, color: '#cbd5e1', lineHeight: 1.6,
+                                                fontSize: 10, color: 'var(--sp-fg)', lineHeight: 1.6,
                                             }}>
-                                                <div style={{ fontWeight: 700, color: '#00d4ff', marginBottom: 6, fontSize: 9, letterSpacing: 1 }}>
+                                                <div style={{ fontWeight: 700, color: 'var(--sp-accent-cyan)', marginBottom: 6, fontSize: 9, letterSpacing: 1 }}>
                                                     SOLVER ANALYSIS
                                                 </div>
 
                                                 {/* Phase 53: Hand category for context */}
                                                 {question?.handCategory && (
-                                                    <div style={{ marginBottom: 4, fontSize: 10, fontStyle: 'italic', color: '#a78bfa' }}>
+                                                    <div style={{ marginBottom: 4, fontSize: 10, fontStyle: 'italic', color: 'var(--sp-accent-purple)' }}>
                                                         Your hand: {question.handCategory}
                                                     </div>
                                                 )}
 
                                                 {/* Optimal action with frequency */}
                                                 <div style={{ marginBottom: 4 }}>
-                                                    <strong style={{ color: '#22c55e' }}>Optimal:</strong>{' '}
+                                                    <strong style={{ color: 'var(--sp-accent-green)' }}>Optimal:</strong>{' '}
                                                     {correctOpt}
                                                     {correctFreq > 0 && (
-                                                        <span style={{ color: '#94a3b8' }}> at {correctFreq}%</span>
+                                                        <span style={{ color: 'var(--sp-fg-muted)' }}> at {correctFreq}%</span>
                                                     )}
                                                 </div>
 
                                                 {/* Your pick with mistake reasoning */}
                                                 {selectedAnswer && selectedAnswer !== correctAnswer && (
                                                     <div style={{ marginBottom: 4 }}>
-                                                        <strong style={{ color: '#ef4444' }}>Your Pick:</strong>{' '}
+                                                        <strong style={{ color: 'var(--sp-accent-red)' }}>Your Pick:</strong>{' '}
                                                         {selectedOpt}
                                                         {selectedFreq > 0 ? (
-                                                            <span style={{ color: '#f97316' }}> ({selectedFreq}% — part of the mix but suboptimal)</span>
+                                                            <span style={{ color: 'var(--sp-accent-orange)' }}> ({selectedFreq}% — part of the mix but suboptimal)</span>
                                                         ) : (
-                                                            <span style={{ color: '#ef4444' }}> (0% — not in the solver's strategy)</span>
+                                                            <span style={{ color: 'var(--sp-accent-red)' }}> (0% — not in the solver's strategy)</span>
                                                         )}
                                                         {evLoss > 0 && (
-                                                            <span style={{ color: '#ef4444' }}> — loses {evLoss.toFixed(2)} BB</span>
+                                                            <span style={{ color: 'var(--sp-accent-red)' }}> — loses {evLoss.toFixed(2)} BB</span>
                                                         )}
                                                     </div>
                                                 )}
@@ -4095,7 +4096,7 @@ function UniversalDynamicTable({
                                                         background: 'rgba(249, 115, 22, 0.08)',
                                                         borderRadius: 6,
                                                         border: '1px solid rgba(249, 115, 22, 0.15)',
-                                                        color: '#fbbf24', fontSize: 10,
+                                                        color: 'var(--sp-accent-amber)', fontSize: 10,
                                                     }}>
                                                         {mistakeFeedback}
                                                     </div>
@@ -4108,7 +4109,7 @@ function UniversalDynamicTable({
                                                         background: evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(251, 191, 36, 0.06)',
                                                         borderRadius: 6,
                                                         border: `1px solid ${evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.12)'}`,
-                                                        fontSize: 9, color: evLoss >= 0.5 ? '#fca5a5' : '#fde68a', lineHeight: 1.5,
+                                                        fontSize: 9, color: evLoss >= 0.5 ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)', lineHeight: 1.5,
                                                     }}>
                                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EV IMPACT: </span>
                                                         {evLoss >= 1.0
@@ -4127,7 +4128,7 @@ function UniversalDynamicTable({
                                                 {/* Board texture context — Phase 29: uses engine's rich description when available */}
                                                 {(boardTexture || question?.scenario?.board) && (
                                                     <div style={{ marginBottom: 4 }}>
-                                                        <strong style={{ color: '#94a3b8' }}>Board:</strong>{' '}
+                                                        <strong style={{ color: 'var(--sp-fg-muted)' }}>Board:</strong>{' '}
                                                         {(() => {
                                                             // Try to extract rich texture from question text (engine generates it)
                                                             const qText = question?.question || '';
@@ -4148,7 +4149,7 @@ function UniversalDynamicTable({
                                                         background: 'rgba(34, 197, 94, 0.06)',
                                                         borderRadius: 6,
                                                         border: '1px solid rgba(34, 197, 94, 0.12)',
-                                                        color: '#86efac', fontSize: 10,
+                                                        color: 'var(--sp-accent-green)', fontSize: 10,
                                                     }}>
                                                         {explanation}
                                                     </div>
@@ -4157,7 +4158,7 @@ function UniversalDynamicTable({
                                                 {/* Phase 53: Full EV comparison table when available */}
                                                 {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs || {}).length > 1 && (
                                                     <div style={{ marginTop: 6, marginBottom: 4 }}>
-                                                        <div style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5, marginBottom: 3 }}>EV BY ACTION</div>
+                                                        <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--sp-fg-muted)', letterSpacing: 0.5, marginBottom: 3 }}>EV BY ACTION</div>
                                                         {Object.entries(question.evData.actionEVs || {})
                                                             .sort(([, a], [, b]) => b - a)
                                                             .map(([action, ev]) => {
@@ -4171,15 +4172,15 @@ function UniversalDynamicTable({
                                                                         padding: '1px 4px', borderRadius: 3,
                                                                         background: isSelected && !isOptimal ? 'rgba(239,68,68,0.06)' : isOptimal ? 'rgba(34,197,94,0.06)' : 'transparent',
                                                                     }}>
-                                                                        <span style={{ width: 10, fontSize: 8, color: isOptimal ? '#22c55e' : isSelected ? '#ef4444' : '#64748b' }}>
+                                                                        <span style={{ width: 10, fontSize: 8, color: isOptimal ? 'var(--sp-accent-green)' : isSelected ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)' }}>
                                                                             {isOptimal ? '✓' : isSelected ? '✗' : '·'}
                                                                         </span>
-                                                                        <span style={{ flex: 1, fontSize: 9, color: isOptimal ? '#4ade80' : isSelected ? '#fca5a5' : '#94a3b8' }}>
+                                                                        <span style={{ flex: 1, fontSize: 9, color: isOptimal ? 'var(--sp-accent-green)' : isSelected ? 'var(--sp-accent-red)' : 'var(--sp-fg-muted)' }}>
                                                                             {optText}
                                                                         </span>
                                                                         <span style={{
                                                                             fontSize: 9, fontWeight: 700, fontFamily: "'Inter', monospace",
-                                                                            color: evNum >= 0 ? '#22c55e' : '#ef4444',
+                                                                            color: evNum >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                                                                         }}>
                                                                             {evNum >= 0 ? '+' : ''}{evNum.toFixed(2)}
                                                                         </span>
@@ -4192,7 +4193,7 @@ function UniversalDynamicTable({
 
                                                 {/* Spot metadata */}
                                                 {street && (
-                                                    <div style={{ color: '#64748b', fontSize: 9, marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                    <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9, marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                                         <span>{street.charAt(0).toUpperCase() + street.slice(1)}</span>
                                                         <span>Pot: {pot} BB</span>
                                                         {spr && <span>SPR: {spr}</span>}
@@ -4217,7 +4218,7 @@ function UniversalDynamicTable({
                                         fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
                                         background: 'rgba(168, 85, 247, 0.12)',
                                         border: '1px solid rgba(168, 85, 247, 0.25)',
-                                        color: '#c084fc', letterSpacing: 0.3,
+                                        color: 'var(--sp-accent-purple)', letterSpacing: 0.3,
                                     }}>
                                         {structuredExplanation.concept}
                                     </span>
@@ -4226,7 +4227,7 @@ function UniversalDynamicTable({
                                     <span style={{
                                         fontSize: 8, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
                                         background: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.1)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.1)' : 'rgba(34,197,94,0.1)',
-                                        color: structuredExplanation.spotDifficulty.difficulty >= 7 ? '#fca5a5' : structuredExplanation.spotDifficulty.difficulty >= 4 ? '#fde68a' : '#86efac',
+                                        color: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'var(--sp-accent-red)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
                                         border: '1px solid ' + (structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.2)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.2)' : 'rgba(34,197,94,0.2)'),
                                     }}>
                                         {structuredExplanation.spotDifficulty.label} ({structuredExplanation.spotDifficulty.difficulty}/10)
@@ -4243,7 +4244,7 @@ function UniversalDynamicTable({
                                     borderRadius: 8,
                                     border: `1px solid ${structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`,
                                     fontSize: 10, lineHeight: 1.5,
-                                    color: structuredExplanation.isCorrect ? '#86efac' : '#fde68a',
+                                    color: structuredExplanation.isCorrect ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                                 }}>
                                     <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, opacity: 0.8 }}>KEY TAKEAWAY: </span>
                                     {structuredExplanation.takeaway}
@@ -4257,18 +4258,18 @@ function UniversalDynamicTable({
                                     background: 'rgba(239, 68, 68, 0.05)',
                                     borderRadius: 8,
                                     border: '1px solid rgba(239, 68, 68, 0.12)',
-                                    fontSize: 10, lineHeight: 1.5, color: '#fca5a5',
+                                    fontSize: 10, lineHeight: 1.5, color: 'var(--sp-accent-red)',
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                                         <span style={{
                                             fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
                                             background: structuredExplanation.mistakeType.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.15)',
-                                            color: structuredExplanation.mistakeType.severity === 'high' ? '#ef4444' : '#fbbf24',
+                                            color: structuredExplanation.mistakeType.severity === 'high' ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)',
                                         }}>
                                             {structuredExplanation.mistakeType.label}
                                         </span>
                                     </div>
-                                    <div style={{ color: '#94a3b8' }}>{structuredExplanation.mistakeType.description}</div>
+                                    <div style={{ color: 'var(--sp-fg-muted)' }}>{structuredExplanation.mistakeType.description}</div>
                                 </div>
                             )}
 
@@ -4293,7 +4294,7 @@ function UniversalDynamicTable({
                                     background: 'rgba(0, 212, 255, 0.04)',
                                     borderRadius: 8,
                                     border: '1px solid rgba(0, 212, 255, 0.1)',
-                                    fontSize: 9, lineHeight: 1.5, color: '#67e8f9',
+                                    fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-cyan)',
                                 }}>
                                     <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>HOW TO FIX: </span>
                                     {structuredExplanation.fix}
@@ -4324,7 +4325,7 @@ function UniversalDynamicTable({
                                         fontSize: 9,
                                         fontWeight: 700,
                                         letterSpacing: 0.5,
-                                        color: '#94a3b8',
+                                        color: 'var(--sp-fg-muted)',
                                         userSelect: 'none',
                                         listStyle: 'none',
                                         padding: '4px 2px',
@@ -4339,8 +4340,8 @@ function UniversalDynamicTable({
                                     const sc = question?.scenario || {};
                                     const p = getTeachingPrinciple(sc.street || 'flop', sc.nodeType || '', structuredExplanation?.correctAction || question?.correctAnswer || '', question?.handCategory || '', sc.texture || '');
                                     if (!p || !p.principle) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.04)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.1)', fontSize: 9, lineHeight: 1.5, color: '#86efac' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#4ade80' }}>PRINCIPLE: </span>{p.principle}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.04)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.1)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-green)' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-green)' }}>PRINCIPLE: </span>{p.principle}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -4350,8 +4351,8 @@ function UniversalDynamicTable({
                                     const sc = question?.scenario || {};
                                     const r = getPositionReminder(sc.heroPosition || sc.position || '', sc.street || 'flop', sc.nodeType || '');
                                     if (!r || !r.tip) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(251,191,36,0.04)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.1)', fontSize: 9, lineHeight: 1.5, color: '#fde68a' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#fbbf24' }}>POSITION: </span>{r.tip}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(251,191,36,0.04)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.1)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-amber)' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-amber)' }}>POSITION: </span>{r.tip}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -4362,8 +4363,8 @@ function UniversalDynamicTable({
                                     if (!sc.texture && !sc.boardTexture) return null;
                                     const g = getTextureStrategyGuide(sc.texture || sc.boardTexture || '', sc.street || 'flop', sc.heroPosition || '', sc.villainPosition || '');
                                     if (!g || !g.strategy) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.04)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.1)', fontSize: 9, lineHeight: 1.5, color: '#d8b4fe' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#c084fc' }}>TEXTURE: </span>{g.strategy}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.04)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.1)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-purple)' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-purple)' }}>TEXTURE: </span>{g.strategy}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -4374,8 +4375,8 @@ function UniversalDynamicTable({
                                     if (!sc.potSize && !sc.stackDepth) return null;
                                     const spr = getSPRStrategyGuide(sc.potSize || sc.estimatedPot || 0, sc.stackDepth || sc.effectiveStack || 100);
                                     if (!spr || !spr.guidance) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(0,212,255,0.03)', borderRadius: 8, border: '1px solid rgba(0,212,255,0.08)', fontSize: 9, lineHeight: 1.5, color: '#67e8f9' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#22d3ee' }}>SPR: </span>{spr.spr && <span style={{ fontFamily: "'Orbitron', monospace", marginRight: 4 }}>{spr.spr.toFixed(1)}</span>}{spr.guidance}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(0,212,255,0.03)', borderRadius: 8, border: '1px solid rgba(0,212,255,0.08)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-cyan)' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-cyan)' }}>SPR: </span>{spr.spr && <span style={{ fontFamily: "'Orbitron', monospace", marginRight: 4 }}>{spr.spr.toFixed(1)}</span>}{spr.guidance}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -4385,8 +4386,8 @@ function UniversalDynamicTable({
                                     const sc = question?.scenario || {};
                                     const n = getVillainRangeNarration(sc.street || 'flop', sc.nodeType || '', sc.villainActions || sc.actionSequence || []);
                                     if (!n || !n.narration) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(239,68,68,0.04)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.1)', fontSize: 9, lineHeight: 1.5, color: '#fca5a5' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#ef4444' }}>VILLAIN RANGE: </span>{n.narration}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(239,68,68,0.04)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.1)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-red)' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-red)' }}>VILLAIN RANGE: </span>{n.narration}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -4397,7 +4398,7 @@ function UniversalDynamicTable({
                                     const plan = getMultiStreetPlanningGuide(sc.street || 'flop', question?.handCategory || '', structuredExplanation?.correctAction || question?.correctAnswer || '', sc.potSize || 0, sc.stackDepth || 100);
                                     if (!plan || !plan.plan) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(59,130,246,0.04)', borderRadius: 8, border: '1px solid rgba(59,130,246,0.1)', fontSize: 9, lineHeight: 1.5, color: '#93c5fd' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#3b82f6' }}>STREET PLAN: </span>{plan.plan}
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-blue)' }}>STREET PLAN: </span>{plan.plan}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -4420,7 +4421,7 @@ function UniversalDynamicTable({
                                     const sc = question?.scenario || {};
                                     const eq = estimateEquityVsRange(question?.handCategory || '', sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', sc.villainPosition || '');
                                     if (!eq) return null;
-                                    const eqColor = eq.equity >= 60 ? '#4ade80' : eq.equity >= 40 ? '#fbbf24' : '#ef4444';
+                                    const eqColor = eq.equity >= 60 ? 'var(--sp-accent-green)' : eq.equity >= 40 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${eqColor}06`, borderRadius: 8, border: `1px solid ${eqColor}15`, fontSize: 9, lineHeight: 1.5, color: eqColor }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "'Orbitron', monospace" }}>{eq.equity}%</span> — {eq.rangeDescription}
                                     </div>);
@@ -4434,7 +4435,7 @@ function UniversalDynamicTable({
                                     const sc = question?.scenario || {};
                                     const drill = getRangeConstructionDrill(sc.heroPosition || 'CO', sc.nodeType?.includes('3bet') ? '3bet' : 'open');
                                     if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 9, lineHeight: 1.5, color: '#c084fc' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-purple)' }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>RANGE TIP: </span>{drill.tip}
                                     </div>);
                                 } catch (_) { return null; }
@@ -4447,7 +4448,7 @@ function UniversalDynamicTable({
                                     const sc = question?.scenario || {};
                                     const drill = getHandReadingDrill(sc.street || 'flop');
                                     if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 9, lineHeight: 1.5, color: '#fbbf24' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-amber)' }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>HAND READING: </span>{drill.keyPrinciple}
                                     </div>);
                                 } catch (_) { return null; }
@@ -4466,8 +4467,8 @@ function UniversalDynamicTable({
                                     // BUG FIX (TRAIN-FEEDBACK-SYNC-1): suppress solver-line narration when it
                                     // references a different board or hand than the active scenario.
                                     if (!explanationMatchesScenario(narr.narration, sc)) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.06)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.15)', fontSize: 9, lineHeight: 1.5, color: '#86efac' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#4ade80' }}>SOLVER LINE: </span>{narr.narration}
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.06)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.15)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-green)' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-green)' }}>SOLVER LINE: </span>{narr.narration}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -4478,17 +4479,17 @@ function UniversalDynamicTable({
                     {question?.rawFrequencies && (
                         <div style={{ width: '100%' }}>
                             <div style={{
-                                fontSize: 10, color: '#94a3b8', padding: '3px 8px',
+                                fontSize: 10, color: 'var(--sp-fg-muted)', padding: '3px 8px',
                                 background: 'rgba(255,255,255,0.03)', borderRadius: 6,
                                 textAlign: 'center',
                             }}>
-                                <span style={{ fontWeight: 'bold', color: '#64748b' }}>GTO: </span>
+                                <span style={{ fontWeight: 'bold', color: 'var(--sp-fg-dim)' }}>GTO: </span>
                                 {options.slice(0, 9).map(o => {
                                     const f = computedFrequencies[o.id] || 0;
                                     if (f <= 0) return null;
                                     return (
                                         <span key={o.id} style={{ marginRight: 6 }}>
-                                            {o.text}: <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>{f}%</span>
+                                            {o.text}: <span style={{ color: 'var(--sp-fg)', fontWeight: 'bold' }}>{f}%</span>
                                         </span>
                                     );
                                 })}
@@ -4541,11 +4542,11 @@ function UniversalDynamicTable({
                                         style={{ marginTop: 6 }}
                                     >
                                         <div style={{
-                                            fontSize: 9, fontWeight: 700, color: '#64748b',
+                                            fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)',
                                             letterSpacing: 1.2, textTransform: 'uppercase',
                                             marginBottom: 4, textAlign: 'center',
                                         }}>
-                                            Range Matrix {heroHand && <span style={{ color: '#00d4ff' }}>• {heroHand}</span>}
+                                            Range Matrix {heroHand && <span style={{ color: 'var(--sp-accent-cyan)' }}>• {heroHand}</span>}
                                         </div>
                                         <RangeGrid
                                             gridData={gridData}
@@ -4579,7 +4580,7 @@ function UniversalDynamicTable({
                                 awkwardly. Map streetsPlayed to a natural-language summary. */}
                             <div style={{
                                 fontSize: 9, fontWeight: 700, letterSpacing: 1.2,
-                                textTransform: 'uppercase', color: '#a78bfa', marginBottom: 6,
+                                textTransform: 'uppercase', color: 'var(--sp-accent-purple)', marginBottom: 6,
                             }}>
                                 {(() => {
                                     const n = handSummary.streetsPlayed || 1;
@@ -4591,10 +4592,10 @@ function UniversalDynamicTable({
                                 {(handSummary.evHistory || []).map((ev, idx) => {
                                     const cls = ev.classification;
                                     const clsColors = {
-                                        best: '#4ade80', correct: '#22d3ee', inaccuracy: '#fbbf24',
-                                        wrong: '#f87171', blunder: '#ef4444',
+                                        best: 'var(--sp-accent-green)', correct: 'var(--sp-accent-cyan)', inaccuracy: 'var(--sp-accent-amber)',
+                                        wrong: 'var(--sp-accent-red)', blunder: 'var(--sp-accent-red)',
                                     };
-                                    const color = clsColors[cls] || '#94a3b8';
+                                    const color = clsColors[cls] || 'var(--sp-fg-muted)';
                                     return (
                                         <div key={idx} style={{
                                             display: 'flex', alignItems: 'center', gap: 4,
@@ -4604,12 +4605,12 @@ function UniversalDynamicTable({
                                             <span style={{ fontSize: 9, fontWeight: 700, color, textTransform: 'uppercase' }}>
                                                 {ev.street}
                                             </span>
-                                            <span style={{ fontSize: 9, color: '#94a3b8' }}>•</span>
+                                            <span style={{ fontSize: 9, color: 'var(--sp-fg-muted)' }}>•</span>
                                             <span style={{ fontSize: 9, fontWeight: 600, color }}>
                                                 {cls?.charAt(0).toUpperCase() + cls?.slice(1)}
                                             </span>
                                             {ev.evLoss > 0 && (
-                                                <span style={{ fontSize: 8, color: '#ef4444' }}>
+                                                <span style={{ fontSize: 8, color: 'var(--sp-accent-red)' }}>
                                                     -{ev.evLoss.toFixed(1)}bb
                                                 </span>
                                             )}
@@ -4619,9 +4620,9 @@ function UniversalDynamicTable({
                             </div>
                             {handSummary.totalEVLoss > 0 && (
                                 <div style={{
-                                    marginTop: 4, fontSize: 10, color: '#94a3b8', textAlign: 'right',
+                                    marginTop: 4, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right',
                                 }}>
-                                    Total EV loss: <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                                    Total EV loss: <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>
                                         -{handSummary.totalEVLoss.toFixed(1)}bb
                                     </span>
                                 </div>
@@ -4676,7 +4677,7 @@ function UniversalDynamicTable({
                                         background: isMultiStreetActive
                                             ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.25) 0%, rgba(251, 146, 60, 0.08) 100%)'
                                             : 'linear-gradient(180deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.06) 100%)',
-                                        color: isMultiStreetActive ? '#fb923c' : '#22c55e',
+                                        color: isMultiStreetActive ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
                                         fontSize: 15, fontWeight: 800, cursor: 'pointer',
                                         letterSpacing: 0.8, fontFamily: "'Inter', -apple-system, sans-serif",
                                         boxShadow: isMultiStreetActive
@@ -4703,7 +4704,7 @@ function UniversalDynamicTable({
                                             <div style={{
                                                 height: '100%',
                                                 width: `${Math.max(0, (autoAdvanceCountdown / autoAdvanceTotal) * 100)}%`,
-                                                background: isMultiStreetActive ? '#fb923c' : '#22c55e',
+                                                background: isMultiStreetActive ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
                                                 transition: 'width 50ms linear',
                                                 borderRadius: '0 0 10px 10px',
                                             }} />
@@ -4725,7 +4726,7 @@ function UniversalDynamicTable({
                                             padding: '8px 16px', borderRadius: 8,
                                             border: '1px solid rgba(255,255,255,0.1)',
                                             background: 'rgba(255,255,255,0.03)',
-                                            color: '#94a3b8', fontSize: 11, fontWeight: 600,
+                                            color: 'var(--sp-fg-muted)', fontSize: 11, fontWeight: 600,
                                             cursor: 'pointer',
                                         }}
                                     >
@@ -4743,7 +4744,7 @@ function UniversalDynamicTable({
                                         padding: '8px 16px', borderRadius: 8,
                                         border: isCurrentBookmarked ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255,255,255,0.1)',
                                         background: isCurrentBookmarked ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
-                                        color: isCurrentBookmarked ? '#fbbf24' : '#94a3b8',
+                                        color: isCurrentBookmarked ? 'var(--sp-accent-amber)' : 'var(--sp-fg-muted)',
                                         fontSize: 11, fontWeight: 600,
                                         cursor: 'pointer',
                                     }}
@@ -4764,24 +4765,24 @@ function UniversalDynamicTable({
                                     width: '100%', maxWidth: 360,
                                 }}
                             >
-                                <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', letterSpacing: 1 }}>SESSION COMPLETE</div>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-cyan)', letterSpacing: 1 }}>SESSION COMPLETE</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
                                     {[
-                                        { label: 'Hands', value: questionNumber || 0, color: '#e2e8f0' },
-                                        { label: 'Accuracy', value: `${questionNumber > 0 ? Math.round(((questionNumber - sessionMistakes) / questionNumber) * 100) : 0}%`, color: '#22c55e' },
-                                        { label: 'EV Loss', value: `-${(totalSessionEVLoss || 0).toFixed(1)}`, color: totalSessionEVLoss > 3 ? '#ef4444' : '#fbbf24' },
-                                        { label: 'Streak', value: streak, color: '#fbbf24' },
+                                        { label: 'Hands', value: questionNumber || 0, color: 'var(--sp-fg)' },
+                                        { label: 'Accuracy', value: `${questionNumber > 0 ? Math.round(((questionNumber - sessionMistakes) / questionNumber) * 100) : 0}%`, color: 'var(--sp-accent-green)' },
+                                        { label: 'EV Loss', value: `-${(totalSessionEVLoss || 0).toFixed(1)}`, color: totalSessionEVLoss > 3 ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)' },
+                                        { label: 'Streak', value: streak, color: 'var(--sp-accent-amber)' },
                                     ].map((stat, i) => (
                                         <div key={i} style={{
                                             textAlign: 'center', padding: '8px 0',
                                             background: 'rgba(255,255,255,0.03)', borderRadius: 8,
                                         }}>
                                             <div style={{ fontSize: 18, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-                                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>{stat.label}</div>
+                                            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>{stat.label}</div>
                                         </div>
                                     ))}
                                 </div>
-                                <div style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>
+                                <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>
                                     {computedDifficulty.label} difficulty • Next hand in 2s...
                                 </div>
                                 {/* PHASE 6: Review Mistakes Button */}
@@ -4796,7 +4797,7 @@ function UniversalDynamicTable({
                                             padding: '8px 20px', borderRadius: 8,
                                             border: '1px solid rgba(239, 68, 68, 0.4)',
                                             background: 'rgba(239, 68, 68, 0.1)',
-                                            color: '#f87171', fontSize: 11, fontWeight: 700,
+                                            color: 'var(--sp-accent-red)', fontSize: 11, fontWeight: 700,
                                             cursor: 'pointer', letterSpacing: 0.5, marginTop: 4,
                                         }}
                                     >
@@ -4854,7 +4855,7 @@ const styles = {
     gameTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#e2e8f0',
+        color: 'var(--sp-fg)',
         fontFamily: "'Inter', sans-serif",
         textTransform: 'uppercase',
         letterSpacing: 1.5,
@@ -4862,7 +4863,7 @@ const styles = {
 
     contextString: {
         fontSize: 11,
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         fontWeight: '500',
     },
 
@@ -4885,7 +4886,7 @@ const styles = {
 
     scoreLabel: {
         fontSize: 7,
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         textTransform: 'uppercase',
         letterSpacing: 1,
         fontWeight: '700',
@@ -4933,7 +4934,7 @@ const styles = {
     streakText: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#fbbf24',
+        color: 'var(--sp-accent-amber)',
     },
 
     // ── TABLE AREA — Phase 17e: Fill ALL available space, overflow hidden
@@ -5001,7 +5002,7 @@ const styles = {
         justifyContent: 'center',
         fontSize: 12,
         fontWeight: 800,
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         letterSpacing: 0.5,
         fontFamily: "'Inter', sans-serif",
     },
@@ -5015,7 +5016,7 @@ const styles = {
         height: 18,
         borderRadius: '50%',
         background: '#2a2a32',
-        color: '#e2e8f0',
+        color: 'var(--sp-fg)',
         fontSize: 9,
         fontWeight: 'bold',
         display: 'flex',
@@ -5030,7 +5031,7 @@ const styles = {
         borderRadius: 4,
         fontSize: 10,
         fontWeight: 'bold',
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         fontFamily: "'Inter', sans-serif",
         textAlign: 'center',
         whiteSpace: 'nowrap',
@@ -5065,7 +5066,7 @@ const styles = {
         borderRadius: 8,
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.1)',
-        color: '#e2e8f0',
+        color: 'var(--sp-fg)',
         fontSize: 12,
         fontWeight: 600,
         cursor: 'pointer',
@@ -5081,7 +5082,7 @@ const styles = {
     badgeStack: {
         fontSize: 10,
         fontWeight: 'bold',
-        color: '#e2e8f0',
+        color: 'var(--sp-fg)',
     },
 
     heroRow: {
@@ -5133,7 +5134,7 @@ const styles = {
         left: '50%',
         // NOTE: Do NOT use CSS transform here — framer-motion's scale animation overrides it.
         // x/y are set inline on the <motion.div> to compose with scale.
-        color: '#e2e8f0',
+        color: 'var(--sp-fg)',
         fontSize: 16,
         fontWeight: 800,
         fontFamily: "'Inter', sans-serif",
@@ -5164,7 +5165,7 @@ const styles = {
 
     potOverlayBadge: {
         fontSize: 9,
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         background: 'rgba(255,255,255,0.06)',
         padding: '1px 6px',
         borderRadius: 4,
@@ -5197,7 +5198,7 @@ const styles = {
 
     scenarioLabel: {
         fontSize: 13,
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         // GAP-1: Action history strip — horizontal scrollable chips
     },
     actionHistoryStrip: {
@@ -5225,14 +5226,14 @@ const styles = {
     actionHistoryPos: {
         fontSize: 10,
         fontWeight: 800,
-        color: '#5ac8c8',
+        color: 'var(--sp-accent-cyan)',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
 
     actionHistoryAction: {
         fontSize: 10,
-        color: '#e2e8f0',
+        color: 'var(--sp-fg)',
         fontWeight: '600',
         textTransform: 'capitalize',
     },
@@ -5246,7 +5247,7 @@ const styles = {
     // GAP-6: Effective stack badge
     effStackBadge: {
         fontSize: 10,
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         background: 'rgba(255,255,255,0.06)',
         padding: '2px 8px',
         borderRadius: 6,
@@ -5318,7 +5319,7 @@ const styles = {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        color: '#64748b',
+        color: 'var(--sp-fg-dim)',
         fontSize: 11,
         fontWeight: 'bold',
         letterSpacing: 2,
@@ -5346,7 +5347,7 @@ const styles = {
 
     statsHUDLabel: {
         fontSize: 11,
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         fontWeight: '700',
@@ -5382,7 +5383,7 @@ const styles = {
         fontFamily: "'Inter', sans-serif",
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
-        background: '#334155',
+        background: 'var(--sp-fg-faint)',
         border: 'none',
         borderRadius: 8,
         color: '#ffffff',
@@ -5476,11 +5477,11 @@ const styles = {
     },
 
     evLossLabel: {
-        color: '#94a3b8',
+        color: 'var(--sp-fg-muted)',
     },
 
     evLossValue: {
-        color: '#ef4444',
+        color: 'var(--sp-accent-red)',
         fontWeight: 'bold',
         fontFamily: "'Inter', 'Courier New', monospace",
     },
@@ -5488,7 +5489,7 @@ const styles = {
     feedbackExplanation: {
         fontSize: 12,
         lineHeight: 1.5,
-        color: '#cbd5e1',
+        color: 'var(--sp-fg)',
         textAlign: 'center',
     },
 };

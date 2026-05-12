@@ -1460,3 +1460,13 @@ TRAIN-CSS-TOKENS-BATCH4-17
 TRAIN-CSS-TOKENS-BATCH4-18
 TRAIN-CSS-TOKENS-BATCH4-19
 TRAIN-CSS-TOKENS-BATCH4-20
+
+# ─── Phase-20d: UDT token adoption ──────────────────────────────────────────
+# TRAIN-CSS-TOKENS-SHARED-5 — src/components/training/games/UniversalDynamicTable.jsx.
+# 345 of 366 quoted hex literals routed to --sp-accent-* / --sp-fg-* tokens
+# (94% migrated). The remaining 21 are intentional bespoke darks
+# (#1a1a1a, #2a2a32, #121212) and UDT-internal palette tints (#fdba74,
+# #93c5fd, #4a4a55 etc.) retained as literals. UDT is the single biggest
+# rendering surface in training — this PR lifts most of its presentation
+# onto the shared token contract.
+TRAIN-CSS-TOKENS-SHARED-5
