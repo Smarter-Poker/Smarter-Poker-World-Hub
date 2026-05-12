@@ -24,6 +24,8 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 // ── Phase 3 Engine: EV calculation for verification + advanced drills ───
 import { calculateActionEVs, calculateEVLoss, calculatePreflopEV } from '../../../src/engines/EVCalculator';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+// TRAIN-WIRE-FEEDBACK-V2-3 — adoption: ev-trainer result badge
 // TRAIN-WIRE-FX-3a — adoption: ev-trainer correct/incorrect feedback
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -572,31 +574,16 @@ export default function EVTrainer() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.25 }}
                     >
-                      {/* Result badge */}
-                      <div
-                        style={{
-                          padding: '12px 16px',
-                          background: resultColors[result].bg,
-                          border: `1px solid ${resultColors[result].border}`,
-                          borderRadius: 10,
-                          marginBottom: 12,
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: resultColors[result].text,
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 8,
-                        }}
-                      >
-                        <span>{resultColors[result].label}</span>
-                        <span style={{ fontFamily: "'Orbitron', monospace", fontSize: 13 }}>
-                          Your: {userAnswer}
-                          {question.unit} · Correct: {question.answer}
-                          {question.unit}
-                        </span>
-                      </div>
+                      {/* Result badge — TRAIN-WIRE-FEEDBACK-V2-3 */}
+                      <FeedbackCard
+                        verdict={result === 'correct' ? 'correct' : result === 'close' ? 'mixed' : 'incorrect'}
+                        userAction={`${userAnswer}${question.unit}`}
+                        solverAction={`${question.answer}${question.unit}`}
+                        evLoss={0}
+                        whyShort={resultColors[result].label}
+                        compact
+                        style={{ marginBottom: 12 }}
+                      />
 
                       {/* Formula Breakdown */}
                       <div
