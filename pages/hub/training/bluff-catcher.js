@@ -11,6 +11,8 @@ import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+// TRAIN-WIRE-FEEDBACK-V2-2 — adoption: bluff-catcher full feedback panel
 // TRAIN-WIRE-BOTTOMSHEET-1 — adoption: bluff-catcher MDF info sheet
 // TRAIN-WIRE-PROGRESS-1 — adoption: bluff-catcher in-play progress strip
 // TRAIN-WIRE-FX-1 — adoption: bluff-catcher answer + completion feedback (audio + haptics)
@@ -261,49 +263,16 @@ export default function BluffCatcherTrainer() {
               </motion.button>
             </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                ...styles.feedbackBox,
-                border: lastAnswer.isCorrect ? '2px solid #4ade80' : '2px solid #ef4444',
-              }}
-            >
-              <h3
-                style={{
-                  color: lastAnswer.isCorrect ? '#4ade80' : '#ef4444',
-                  margin: '0 0 8px 0',
-                  fontSize: 24,
-                  textTransform: 'uppercase',
-                  fontFamily: 'Orbitron, sans-serif',
-                }}
-              >
-                {lastAnswer.isCorrect ? 'CORRECT' : 'INCORRECT'}
-              </h3>
-              <p style={{ color: '#fff', fontSize: 16, marginBottom: 16 }}>
-                You chose to {lastAnswer.action}. Optimal GTO play is {scenario.optimal}.
-              </p>
-              <p
-                style={{
-                  color: '#94a3b8',
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  background: 'rgba(0,0,0,0.3)',
-                  padding: 16,
-                  borderRadius: 8,
-                }}
-              >
-                {lastAnswer.explanation}
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={nextScenario}
-                style={styles.nextBtn}
-              >
-                NEXT SCENARIO ➔
-              </motion.button>
-            </motion.div>
+            <FeedbackCard
+              verdict={lastAnswer.isCorrect ? 'correct' : 'incorrect'}
+              userAction={lastAnswer.action}
+              solverAction={scenario.optimal}
+              evLoss={0}
+              whyShort={`You chose to ${lastAnswer.action}. Optimal GTO play is ${scenario.optimal}.`}
+              whyFull={lastAnswer.explanation}
+              onNext={nextScenario}
+              nextLabel="Next Scenario"
+            />
           )}
         </div>
       </div>

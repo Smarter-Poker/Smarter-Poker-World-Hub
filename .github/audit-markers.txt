@@ -1163,3 +1163,15 @@ TRAIN-WIRE-BOTTOMSHEET-1
 # This closes the deferred Task #88 epic that required widening
 # ActionButton's prop surface before UDT migration was safe.
 TRAIN-WIRE-UDT-ACTIONBTN-1
+
+# ─── Phase-10 adoption: FeedbackCard V2 sweep (2 trainers) ──────────────────
+# TRAIN-WIRE-FEEDBACK-V2-2 — pages/hub/training/bluff-catcher.js. Full
+# feedback panel (CORRECT/INCORRECT label + body + explanation + Next
+# button motion.div) replaced with <FeedbackCard verdict userAction
+# solverAction whyShort whyFull onNext nextLabel="Next Scenario" />.
+TRAIN-WIRE-FEEDBACK-V2-2
+# TRAIN-WIRE-FEEDBACK-V2-3 — pages/hub/training/ev-trainer.js. The result
+# badge (verdict label + Your/Correct) replaced with compact <FeedbackCard
+# verdict userAction solverAction whyShort compact />. Formula Breakdown
+# block immediately below is preserved.
+TRAIN-WIRE-FEEDBACK-V2-3
