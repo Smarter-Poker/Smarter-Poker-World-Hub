@@ -25,6 +25,7 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { calculateActionEVs, calculateEVLoss, calculatePreflopEV } from '../../../src/engines/EVCalculator';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import FeedbackCard from '../../../src/components/poker/FeedbackCard';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 // TRAIN-WIRE-FEEDBACK-V2-3 — adoption: ev-trainer result badge
 // TRAIN-WIRE-FX-3a — adoption: ev-trainer correct/incorrect feedback
 
@@ -173,6 +174,8 @@ export default function EVTrainer() {
   useTrainingBus('ev-trainer');
   const fb = useTrainingFeedback();
   const router = useRouter();
+  // TRAIN-WIRE-BOTTOMSHEET-2 — info sheet state
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const [question, setQuestion] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
@@ -320,26 +323,73 @@ export default function EVTrainer() {
         />
       </Head>
 
+      <BottomSheet
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        title="How EV Trainer Works"
+        subtitle="Pot Odds · MDF · EV Calculations"
+      >
+        <div style={{ padding: '0 4px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.6 }}>
+          <p style={{ marginTop: 0 }}>
+            Each drill presents a poker math question with a numeric answer. Type your
+            response and submit. The trainer checks against the solver-correct value
+            within a small tolerance and shows the full formula breakdown after each
+            attempt.
+          </p>
+          <p>
+            <strong style={{ color: '#00d4ff' }}>Pot Odds</strong> tell you the price
+            you are getting to call. <strong style={{ color: '#a855f7' }}>MDF</strong>
+            (Minimum Defense Frequency) tells you how often you must defend so that
+            villain's bluffs aren't auto-profitable.
+            <strong style={{ color: '#22c55e' }}> EV</strong> rolls both together with
+            win probabilities and bet sizing.
+          </p>
+          <p>
+            Accuracy, correct count, and current streak update live in the header.
+            Aim for 80%+ accuracy with a streak of 10+ before stepping up difficulty.
+          </p>
+        </div>
+      </BottomSheet>
+
       <div style={container}>
         {/* HEADER */}
         <div style={{ maxWidth: 640, margin: '0 auto', marginBottom: 24 }}>
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#64748b',
-              fontSize: 12,
-              cursor: 'pointer',
-              padding: '4px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              marginBottom: 16,
-            }}
-          >
-            ← Training Hub
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <button
+              onClick={() => router.push('/hub/training')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: 12,
+                cursor: 'pointer',
+                padding: '4px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              ← Training Hub
+            </button>
+            <button
+              onClick={() => setInfoOpen(true)}
+              aria-label="How EV Trainer works"
+              style={{
+                background: 'rgba(0,212,255,0.08)',
+                border: '1px solid rgba(0,212,255,0.25)',
+                color: '#00d4ff',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 12px',
+                borderRadius: 12,
+                cursor: 'pointer',
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+              }}
+            >
+              How it works
+            </button>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div
