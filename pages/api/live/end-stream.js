@@ -35,9 +35,6 @@ const supabase = createClient(
  */
 async function markFeedPostEnded(stream_id, videoUrl = null) {
   try {
-    // Atomic merge of {ended: true} via SQL. Replaces the previous
-    // {fetch, merge, update} sequence — see migration
-    // 20260510235000 + 20260510235100 for the RPC definition.
     const { error: rpcErr } = await supabase.rpc('fn_mark_feed_post_ended', {
       p_stream_id: stream_id,
     });
@@ -46,13 +43,7 @@ async function markFeedPostEnded(stream_id, videoUrl = null) {
       return;
     }
 
-    // If we have a recording URL, write it into media_urls so the
-    // post renders the replay video. This is a separate update from
-    // the metadata merge — keeping them separate so a media_urls
-    // failure can't block the metadata transition.
     if (videoUrl) {
-      // Look up the post id (RPC didn't return it). FK fast path
-      // first, JSONB fallback if needed.
       let postId = null;
       const { data: streamRow } = await supabase
         .from('live_streams')
@@ -107,7 +98,6 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Not your stream' });
 
     if (action === 'delete') {
-      // Delete live feed post instead of marking it ended to prevent ghost posts
       const { data: streamRow } = await supabase
         .from('live_streams')
         .select('feed_post_id')
@@ -122,7 +112,6 @@ export default async function handler(req, res) {
           .eq('content_type', 'live')
           .contains('metadata', { stream_id });
       }
-      // Delete the stream record and any associated storage files
       if (stream.video_url) {
         const path = stream.video_url.split('/live-recordings/')[1];
         if (path)
@@ -136,27 +125,10 @@ export default async function handler(req, res) {
     }
 
     if (action === 'save') {
-      // Mark live feed post as ended — stream is no longer live but saved privately
       await markFeedPostEnded(stream_id);
 
-      // STREAM-POLISH-R2 REC-1: defensively ensure status/ended_at
-      // are set. force_end (fired during endBroadcast via keepalive)
-      // normally writes these, but the keepalive request can fail
-      // silently (network blip, serverless cold start, browser
-      // beforeunload cancellation). Without this defense the stream
-      // sticks at status='live' indefinitely while the row is also
-      // marked is_draft=true — a contradictory state that surfaces
-      // in lobby queries and stale-cleanup crons.
-      //
-      // ended_at write is gated by .is('ended_at', null) so a real
-      // force_end timestamp is never clobbered with a later one
-      // (would shift stream-duration calculations forward).
-      await supabase
-        .from('live_streams')
-        .update({ ended_at: new Date().toISOString() })
-        .eq('id', stream_id)
-        .is('ended_at', null);
-
+      // BUG-FIX AUDIT-B3: write critical state FIRST so a crash between these
+      // two updates can't leave the stream in a contradictory live+draft state.
       await supabase
         .from('live_streams')
         .update({
@@ -165,11 +137,19 @@ export default async function handler(req, res) {
           is_draft: true,
         })
         .eq('id', stream_id);
+
+      // Best-effort: only stamp ended_at if force_end hasn't already written it —
+      // preserves the original force_end timestamp for accurate stream-duration calc.
+      await supabase
+        .from('live_streams')
+        .update({ ended_at: new Date().toISOString() })
+        .eq('id', stream_id)
+        .is('ended_at', null);
+
       return res.json({ success: true, action: 'saved' });
     }
 
     if (action === 'post') {
-      // BUG FIX: Prevent duplicate posts by mutating the existing "live" post into a "video" post.
       const { data: streamRow } = await supabase
         .from('live_streams')
         .select('feed_post_id')
@@ -198,24 +178,20 @@ export default async function handler(req, res) {
       }
 
       if (existingPost) {
-        const mergedMetadata = {
-          ...(existingPost.metadata || {}),
-          ended: true,
-          source: 'live_replay',
-          lives_id: stream_id,
-        };
+        // BUG-FIX AUDIT-B2: atomic JSONB merge via RPC — eliminates TOCTOU window
+        // from the previous JS fetch→merge→update sequence.
+        await markFeedPostEnded(stream_id);
+        // Content-field update only — metadata already handled atomically above.
         await supabase
           .from('social_posts')
           .update({
             content: caption || `🔴 Live replay: ${stream.title || 'Stream'}`,
-            content_type: 'video', // Convert to video so it renders with video player
+            content_type: 'video',
             media_urls: stream.video_url ? [stream.video_url] : [],
             thumbnail_url: stream.thumbnail_url || null,
-            metadata: mergedMetadata,
           })
           .eq('id', postId);
       } else {
-        // Fallback: create new if no live post was found
         const { data: post, error: postErr } = await supabase
           .from('social_posts')
           .insert({
@@ -237,15 +213,7 @@ export default async function handler(req, res) {
         postId = post?.id;
       }
 
-      // STREAM-POLISH-R2 REC-1: defensively ensure status/ended_at
-      // are set (see save branch above for full rationale).
-      await supabase
-        .from('live_streams')
-        .update({ ended_at: new Date().toISOString() })
-        .eq('id', stream_id)
-        .is('ended_at', null);
-
-      // Update stream record — is_draft must be FALSE when posting publicly
+      // BUG-FIX AUDIT-B3: critical state first — prevents contradictory live+posted state on crash.
       await supabase
         .from('live_streams')
         .update({
@@ -255,26 +223,31 @@ export default async function handler(req, res) {
         })
         .eq('id', stream_id);
 
+      // Best-effort: stamp ended_at only if force_end hasn't already written it.
+      await supabase
+        .from('live_streams')
+        .update({ ended_at: new Date().toISOString() })
+        .eq('id', stream_id)
+        .is('ended_at', null);
+
       return res.json({ success: true, action: 'posted', postId });
     }
 
     if (action === 'force_end') {
-      // BUG FIX (#11): Called when broadcaster force-closes GoLiveModal without
-      // going through EndStreamModal (tab close, crash, modal dismiss during live).
-      // Ensures the live feed post badge transitions from "LIVE NOW" → "STREAM ENDED"
-      // so it doesn't stay in a ghost-live state indefinitely.
       await markFeedPostEnded(stream_id);
 
-      // BUG FIX (Sweep 3): Ensure the stream itself is marked ended in the DB.
-      // Since the browser cancels the `await supabase.update` inside endBroadcast() during beforeunload,
-      // this keepalive endpoint MUST handle the DB state change to prevent zombie live streams.
+      // BUG-FIX AUDIT-B1: guard with .is('ended_at', null) so repeated force_end
+      // calls (keepalive retry on 5xx, multi-tab scenario, reconnect race) don't
+      // overwrite the original timestamp — which would shift stream-duration
+      // calculations forward.
       await supabase
         .from('live_streams')
         .update({
           status: 'ended',
           ended_at: new Date().toISOString(),
         })
-        .eq('id', stream_id);
+        .eq('id', stream_id)
+        .is('ended_at', null);
 
       return res.json({ success: true, action: 'force_ended' });
     }
