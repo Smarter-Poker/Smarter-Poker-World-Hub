@@ -1,0 +1,29 @@
+# /etc/systemd/system/openclaw.service
+# Smarter Poker Open Claw — apscheduler-based cron dispatcher.
+# Fires authenticated HTTP GETs against smarter.poker/api/cron/* on the
+# cadence defined in /opt/openclaw/dispatcher.py.
+# Runs alongside sp-yt-transcode.service on the same Hetzner CX22.
+
+[Unit]
+Description=Smarter Poker Open Claw Cron Dispatcher
+After=network-online.target
+Wants=network-online.target
+Documentation=https://github.com/Smarter-Poker/Smarter-Poker-World-Hub
+
+[Service]
+Type=simple
+User=openclaw
+WorkingDirectory=/opt/openclaw
+EnvironmentFile=-/etc/openclaw.env
+ExecStart=/usr/bin/python3 /opt/openclaw/dispatcher.py
+Restart=on-failure
+RestartSec=15
+StartLimitBurst=5
+StartLimitIntervalSec=300
+MemoryMax=512M
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openclaw
+
+[Install]
+WantedBy=multi-user.target
