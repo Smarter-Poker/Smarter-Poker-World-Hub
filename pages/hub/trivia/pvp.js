@@ -26,6 +26,8 @@ import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -60,8 +62,38 @@ export default function PvPPage() {
 
     // Battle state
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [showResult, setShowResult] = useState(false);
+    // TRAIN-WIRE-TRIVIA-HOOK-2 - shared trivia answer-state plumbing
+    const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
+        onAnswer: ({ index, isCorrect }) => {
+            setIsTimerRunning(false);
+
+            // Track answer accuracy per question for history recording
+            playerAnswersRef.current[currentQuestionIndex] = isCorrect;
+
+            if (isCorrect) {
+                const newScore = playerScoreRef.current + 1;
+                playerScoreRef.current = newScore;
+                setPlayerScore(newScore);
+                busEmit.decisionCorrect(newScore);
+            } else {
+                busEmit.decisionIncorrect(playerScoreRef.current);
+                busEmit.screenShake('light');
+            }
+
+            // Advance quickly - no GTO explanations in PvP
+            setTimeout(() => {
+                if (currentQuestionIndex + 1 >= questions.length) {
+                    finishBattle();
+                } else {
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    trivia.reset();
+                    setTimeLeft(40);
+                    setIsTimerRunning(true);
+                }
+            }, 500);
+        }
+    });
+    const { selectedAnswer, showResult } = trivia;
     const [playerScore, setPlayerScore] = useState(0);
     const [opponentScore, setOpponentScore] = useState(null);
     const [timeLeft, setTimeLeft] = useState(40);
@@ -442,8 +474,7 @@ export default function PvPPage() {
             setPlayerScore(0);
             playerScoreRef.current = 0;
             playerAnswersRef.current = [];
-            setSelectedAnswer(null);
-            setShowResult(false);
+            trivia.reset();
             setTimeLeft(40);
             setIsTimerRunning(true);
         }, 2000);
@@ -491,8 +522,7 @@ export default function PvPPage() {
             setPlayerScore(0);
             playerScoreRef.current = 0;
             playerAnswersRef.current = [];
-            setSelectedAnswer(null);
-            setShowResult(false);
+            trivia.reset();
             setTimeLeft(40);
             setIsTimerRunning(true);
         }, 2000);
@@ -578,44 +608,7 @@ export default function PvPPage() {
 
     function handleTimeout() {
         setIsTimerRunning(false);
-        selectAnswer(-1); // Wrong answer
-    }
-
-    function selectAnswer(index) {
-        if (selectedAnswer !== null || showResult) return;
-
-        setIsTimerRunning(false);
-        setSelectedAnswer(index);
-        setShowResult(true);
-
-        const currentQuestion = questions[currentQuestionIndex];
-        const isCorrect = index >= 0 && index === currentQuestion?.correct_index;
-
-        // Track answer accuracy per question for history recording
-        playerAnswersRef.current[currentQuestionIndex] = isCorrect;
-
-        if (isCorrect) {
-            const newScore = playerScoreRef.current + 1;
-            playerScoreRef.current = newScore;
-            setPlayerScore(newScore);
-            busEmit.decisionCorrect(newScore);
-        } else {
-            busEmit.decisionIncorrect(playerScoreRef.current);
-            busEmit.screenShake('light');
-        }
-
-        // Advance quickly — no GTO explanations in PvP
-        setTimeout(() => {
-            if (currentQuestionIndex + 1 >= questions.length) {
-                finishBattle();
-            } else {
-                setCurrentQuestionIndex(prev => prev + 1);
-                setSelectedAnswer(null);
-                setShowResult(false);
-                setTimeLeft(40);
-                setIsTimerRunning(true);
-            }
-        }, 500);
+        trivia.selectAnswer(-1); // Wrong answer - delegates to shared hook
     }
 
     async function finishBattle() {
@@ -867,8 +860,7 @@ export default function PvPPage() {
         playerAnswersRef.current = [];
         setOpponentScore(null);
         setCurrentQuestionIndex(0);
-        setSelectedAnswer(null);
-        setShowResult(false);
+        trivia.reset();
         setTimeLeft(40);
         setIsTimerRunning(false);
         setIsHorseMatch(false);
@@ -1059,7 +1051,7 @@ export default function PvPPage() {
                                     selectedAnswer={selectedAnswer}
                                     correctIndex={currentQuestion.correct_index}
                                     showResult={showResult}
-                                    onSelect={selectAnswer}
+                                    onSelect={trivia.selectAnswer}
                                   />
                                 ))}
                                 </div>
