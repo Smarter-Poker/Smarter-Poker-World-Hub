@@ -1,0 +1,29 @@
+[Unit]
+Description=Smarter Poker bgutil-ytdlp-pot-provider — Proof-of-Origin Token HTTP service for yt-dlp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openclaw
+WorkingDirectory=/opt/smarter-poker/yt-transcode-worker
+# bgutil-pot-provider is installed globally via `npm i -g bgutil-ytdlp-pot-provider`
+# (idempotent install handled by deploy-yt-worker.yml). It serves PO tokens
+# on :4416 — yt-dlp's bgutil plugin auto-discovers this endpoint via the
+# default config and queries it for visitor_data and PO tokens.
+#
+# The Node service uses Bot Guard JavaScript (Android client emulation) to
+# generate LEGITIMATE PO tokens. No Google login needed. No bot detection
+# because yt-dlp's downloads now look like an Android device, not a
+# datacenter scraper.
+ExecStart=/usr/bin/env bgutil-ytdlp-pot-provider
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+# Token generation uses ~150MB RAM per request peak. Cap to prevent OOM.
+MemoryMax=512M
+# Network — listens on 127.0.0.1:4416 by default. Don't expose externally.
+
+[Install]
+WantedBy=multi-user.target

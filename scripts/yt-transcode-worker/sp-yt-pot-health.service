@@ -1,0 +1,16 @@
+[Unit]
+Description=Smarter Poker bgutil-pot-provider health check + auto-restart
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/smarter-poker/yt-transcode-worker
+ExecStart=/opt/smarter-poker/yt-transcode-worker/install-pot-provider.sh
+StandardOutput=journal
+StandardError=journal
+# Don't fail the service unit on probe-failure exit codes 1/2/3 — those
+# are diagnostic and the cron will retry next tick.
+SuccessExitStatus=0 1 2 3
+
+[Install]
+WantedBy=multi-user.target

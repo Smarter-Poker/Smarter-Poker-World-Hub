@@ -1,0 +1,13 @@
+[Unit]
+Description=Smarter Poker bgutil-pot-provider Health Check (every 5 min)
+Requires=sp-yt-pot-health.service
+
+[Timer]
+OnBootSec=30sec
+OnUnitActiveSec=5min
+Unit=sp-yt-pot-health.service
+Persistent=true
+RandomizedDelaySec=15
+
+[Install]
+WantedBy=timers.target

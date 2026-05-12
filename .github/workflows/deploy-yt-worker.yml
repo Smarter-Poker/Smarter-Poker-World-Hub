@@ -139,11 +139,45 @@ jobs:
 
             # Ensure the keep-alive script is executable on the box
             sudo chmod +x /opt/smarter-poker/yt-transcode-worker/keep-alive-cookies.sh || true
+            sudo chmod +x /opt/smarter-poker/yt-transcode-worker/install-pot-provider.sh || true
 
             sudo systemctl restart sp-yt-transcode
             sleep 3
             sudo systemctl is-active sp-yt-transcode
             sudo systemctl is-active sp-yt-cookie-keepalive.timer
+          '
+
+      - name: Install + start bgutil-pot-provider (no-cookie YouTube auth)
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          # Copy the bgutil systemd unit + health timer + install script to Hetzner.
+          # All three files are idempotent — safe to scp on every deploy.
+          scp scripts/yt-transcode-worker/bgutil-pot-provider.service \
+            "$USER@$HOST:/tmp/bgutil-pot-provider.service"
+          scp scripts/yt-transcode-worker/sp-yt-pot-health.service \
+            "$USER@$HOST:/tmp/sp-yt-pot-health.service"
+          scp scripts/yt-transcode-worker/sp-yt-pot-health.timer \
+            "$USER@$HOST:/tmp/sp-yt-pot-health.timer"
+          ssh "$USER@$HOST" '
+            sudo mv /tmp/bgutil-pot-provider.service /etc/systemd/system/bgutil-pot-provider.service
+            sudo mv /tmp/sp-yt-pot-health.service /etc/systemd/system/sp-yt-pot-health.service
+            sudo mv /tmp/sp-yt-pot-health.timer /etc/systemd/system/sp-yt-pot-health.timer
+            sudo systemctl daemon-reload
+
+            # Run the installer ONCE inline so the npm/pip packages are present
+            # before we try to enable the service. Subsequent runs are handled
+            # by sp-yt-pot-health.timer every 5 min (which also self-heals).
+            bash /opt/smarter-poker/yt-transcode-worker/install-pot-provider.sh || true
+
+            # Enable + start the health timer (which runs the installer every 5 min,
+            # and restarts bgutil-pot-provider if its HTTP probe fails).
+            sudo systemctl enable --now sp-yt-pot-health.timer
+
+            echo "--- bgutil-pot-provider status ---"
+            sudo systemctl is-active bgutil-pot-provider || true
+            curl -sS --max-time 3 -o /dev/null -w "probe :4416 → %{http_code}\n" http://127.0.0.1:4416/ || true
           '
 
       - name: Tail recent logs (sanity check)
