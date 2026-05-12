@@ -1751,6 +1751,13 @@ export function GoLiveModal({
     // BUG-FIX-LIVE-10: clear the re-entry guard so the next Go Live
     // session can use End Stream again.
     setIsEnding(false);
+    // BUG-FIX-COHOST-RESET: clear pending co-host selection and the
+    // sent-flag so a subsequent Go Live starts with a clean slate.
+    // Without this, pendingCohost persists visually (stale name shown)
+    // and cohostInviteSent stays true — the next session's auto-invite
+    // fires the dedup guard and silently skips sending the invite.
+    setPendingCohost(null);
+    setCohostInviteSent(false);
     onClose(action);
   };
 
@@ -2329,7 +2336,7 @@ export function GoLiveModal({
                   height: '100%',
                   objectFit: 'cover',
                   transform:
-                    `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
+                    `${isMirrored ? 'scaleX(-1) ' : ''}${(!zoomCapability || softwareZoomFallback) && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
                     'none',
                   opacity: 0.4,
                 }}
