@@ -214,11 +214,15 @@ function NotificationsPage() {
 
                     // If totalUnread > 0, there are unread notifications in the DB.
                     // Even if hasUnreadSocial is false in the first 50, there might be unread ones past 50.
-                    supabase
-                        .from('notifications')
-                        .update({ read: true })
-                        .eq('user_id', user.id)
-                        .eq('read', false)
+                    // BUG-FIX: Use server API to mark all read — it sets BOTH read=true AND is_read=true.
+                    // The direct Supabase client update only set `read=true`, but unread-count queries
+                    // check BOTH columns, so badges persisted after viewing notifications.
+                    getAccessToken().then(markToken => 
+                        fetch('/api/notifications/mark-read', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...(markToken ? { Authorization: `Bearer ${markToken}` } : {}) },
+                            body: JSON.stringify({}),  // empty body = mark ALL unread as read
+                        })
                         .then(() => {
                             if (mounted.current) {
                                 setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -231,7 +235,8 @@ function NotificationsPage() {
                                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                             }
                         })
-                        .catch(e => console.warn('[Notifications] mark-social-read failed:', e));
+                        .catch(e => console.warn('[Notifications] mark-read API failed:', e))
+                    );
 
                     if (hasUnreadPoker) {
                         getAccessToken().then(t =>
@@ -340,7 +345,8 @@ function NotificationsPage() {
         // Fire-and-forget DB update (do not block execution)
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
         if (!isPoker && user?.id) {
-            supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id).then().catch(e => console.warn('Exception:', e));
+            // BUG-FIX: Set both read AND is_read to true — unread-count queries check both columns
+            supabase.from('notifications').update({ read: true, is_read: true }).eq('id', id).eq('user_id', user.id).then().catch(e => console.warn('Exception:', e));
         } else if (isPoker && user?.id) {
             const realId = id.replace('poker-', '');
             getAccessToken().then(token => 

@@ -1,7 +1,7 @@
 /**
  * 🌐 smarter-poker-style FEED CARD
  * src/app/social/components/SmarterPokerStyleCard.jsx
- * 
+ *
  * Light, bright, familiar SmarterPoker UI with poker integration
  */
 
@@ -15,20 +15,20 @@ import TranscodeStatusBadge from './TranscodeStatusBadge';
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SP_COLORS = {
-    blue: '#1877F2',
-    blueHover: '#166FE5',
-    blueLight: '#E7F3FF',
-    bgMain: '#F0F2F5',
-    bgWhite: '#FFFFFF',
-    bgHover: '#F2F2F2',
-    textPrimary: '#050505',
-    textSecondary: '#65676B',
-    divider: '#E4E6EB',
-    shadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-    // Poker accents (subtle)
-    pokerOrange: '#FF6B35',
-    pokerGreen: '#22C55E',
-    pokerGold: '#FFD700'
+  blue: '#1877F2',
+  blueHover: '#166FE5',
+  blueLight: '#E7F3FF',
+  bgMain: '#F0F2F5',
+  bgWhite: '#FFFFFF',
+  bgHover: '#F2F2F2',
+  textPrimary: '#050505',
+  textSecondary: '#65676B',
+  divider: '#E4E6EB',
+  shadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+  // Poker accents (subtle)
+  pokerOrange: '#FF6B35',
+  pokerGreen: '#22C55E',
+  pokerGold: '#FFD700',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -36,30 +36,32 @@ export const SP_COLORS = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SPAvatar = ({ src, name, size = 40, online = false }) => (
-    <div className="sp-avatar-container" style={{ position: 'relative', width: size, height: size }}>
-        <img
-            src={src || '/default-avatar.png'}
-            alt={name}
-            style={{
-                width: size,
-                height: size,
-                borderRadius: '50%',
-                objectFit: 'cover'
-            }}
-        />
-        {online && (
-            <span style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: 12,
-                height: 12,
-                background: '#31A24C',
-                border: '2px solid white',
-                borderRadius: '50%'
-            }} />
-        )}
-    </div>
+  <div className="sp-avatar-container" style={{ position: 'relative', width: size, height: size }}>
+    <img
+      src={src || '/default-avatar.png'}
+      alt={name}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        objectFit: 'cover',
+      }}
+    />
+    {online && (
+      <span
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          right: 0,
+          width: 12,
+          height: 12,
+          background: '#31A24C',
+          border: '2px solid white',
+          borderRadius: '50%',
+        }}
+      />
+    )}
+  </div>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -67,27 +69,27 @@ export const SPAvatar = ({ src, name, size = 40, online = false }) => (
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const CreatePostBox = ({ user, onPost }) => (
-    <div className="sp-create-post">
-        <div className="sp-create-post-header">
-            <SPAvatar src={user?.avatar} name={user?.name} size={40} />
-            <button className="sp-create-input">
-                What's on your mind, {user?.firstName || 'there'}?
-            </button>
-        </div>
-        <div className="sp-create-divider" />
-        <div className="sp-create-actions">
-            <button className="sp-create-btn live">
-                <span className="icon">🔴</span> Live Session
-            </button>
-            <button className="sp-create-btn photo">
-                <span className="icon">📷</span> Photo/Video
-            </button>
-            <button className="sp-create-btn hand">
-                <span className="icon">🃏</span> Share Hand
-            </button>
-        </div>
+  <div className="sp-create-post">
+    <div className="sp-create-post-header">
+      <SPAvatar src={user?.avatar} name={user?.name} size={40} />
+      <button className="sp-create-input">
+        What's on your mind, {user?.firstName || 'there'}?
+      </button>
+    </div>
+    <div className="sp-create-divider" />
+    <div className="sp-create-actions">
+      <button className="sp-create-btn live">
+        <span className="icon">🔴</span> Live Session
+      </button>
+      <button className="sp-create-btn photo">
+        <span className="icon">📷</span> Photo/Video
+      </button>
+      <button className="sp-create-btn hand">
+        <span className="icon">🃏</span> Share Hand
+      </button>
+    </div>
 
-        <style>{`
+    <style>{`
             .sp-create-post {
                 background: ${SP_COLORS.bgWhite};
                 border-radius: 8px;
@@ -155,7 +157,7 @@ export const CreatePostBox = ({ user, onPost }) => (
                 font-size: 20px;
             }
         `}</style>
-    </div>
+  </div>
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -175,81 +177,90 @@ export const CreatePostBox = ({ user, onPost }) => (
 // the if-block away because process.env.NODE_ENV is inlined.)
 const _FEED_VIDEO_PLAYER_BUILD_TAG = 'sp-feed-video-2026-05-06A';
 export const FeedVideoPlayer = ({ src }) => {
-    const videoRef = useRef(null);
+  const videoRef = useRef(null);
 
-    useEffect(() => {
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-            // eslint-disable-next-line no-console
-            console.debug('[FeedVideoPlayer]', _FEED_VIDEO_PLAYER_BUILD_TAG, 'mounted', src?.slice(0, 60));
-        }
-        const video = videoRef.current;
-        if (!video) return;
+  useEffect(() => {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.debug(
+        '[FeedVideoPlayer]',
+        _FEED_VIDEO_PLAYER_BUILD_TAG,
+        'mounted',
+        src?.slice(0, 60)
+      );
+    }
+    const video = videoRef.current;
+    if (!video) return;
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    // Force the media engine to decode and play
-                    video.play().catch(e => {
-                        // Ignore standard Autoplay prevented errors if any
-                    });
-                } else {
-                    // Pause off-screen to prevent iOS HEVC OOM crash
-                    video.pause();
-                }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Force the media engine to decode and play
+            video.play().catch((e) => {
+              // Ignore standard Autoplay prevented errors if any
             });
-        }, { threshold: 0.5 });
-
-        observer.observe(video);
-        return () => {
-            observer.unobserve(video);
-            observer.disconnect();
-        };
-    }, []);
-
-    // FIRST-FRAME FALLBACK (2026-05-06 per Dan: "social-media displays black
-    // background with play button, not first frame or selected thumbnail").
-    // Posts that don't have thumbnail_url set yet (live-stream replays before
-    // transcode finishes, or videos still in the queue) used to render as a
-    // pure black <video preload="metadata"> element — the browser fetches
-    // metadata but doesn't decode any frame.
-    //
-    // Appending `#t=0.001` to the source URL is the standard cross-browser
-    // trick: the media engine seeks to 0.001s, decodes that frame, and
-    // renders it as the visible poster. Works on Chrome/Firefox/iOS Safari
-    // 17+. Negligible bandwidth cost (a few extra KB to fetch the first
-    // keyframe). When the IntersectionObserver later calls play(), the
-    // existing decoded frame transitions smoothly into playback.
-    //
-    // Skip the fragment if src already has one (defensive). Skip for blob:
-    // URLs (rare; staging tile uses different component anyway).
-    const playableSrc = (() => {
-        if (!src || typeof src !== 'string') return src;
-        if (src.startsWith('blob:')) return src;
-        if (src.includes('#t=')) return src; // already has a time fragment
-        return `${src}#t=0.001`;
-    })();
-
-    return (
-        <video
-            ref={videoRef}
-            src={playableSrc}
-            preload="metadata"
-            muted
-            playsInline
-            loop
-            style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
-            onError={(e) => {
-                // Replace broken video with gradient placeholder
-                const parent = e.target.parentElement;
-                if (parent) {
-                    const placeholder = document.createElement('div');
-                    placeholder.style.cssText = 'width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;';
-                    placeholder.innerHTML = '<span style="font-size:32px;opacity:0.5">🎬</span>';
-                    parent.replaceChild(placeholder, e.target);
-                }
-            }}
-        />
+          } else {
+            // Pause off-screen to prevent iOS HEVC OOM crash
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.5 }
     );
+
+    observer.observe(video);
+    return () => {
+      observer.unobserve(video);
+      observer.disconnect();
+    };
+  }, []);
+
+  // FIRST-FRAME FALLBACK (2026-05-06 per Dan: "social-media displays black
+  // background with play button, not first frame or selected thumbnail").
+  // Posts that don't have thumbnail_url set yet (live-stream replays before
+  // transcode finishes, or videos still in the queue) used to render as a
+  // pure black <video preload="metadata"> element — the browser fetches
+  // metadata but doesn't decode any frame.
+  //
+  // Appending `#t=0.001` to the source URL is the standard cross-browser
+  // trick: the media engine seeks to 0.001s, decodes that frame, and
+  // renders it as the visible poster. Works on Chrome/Firefox/iOS Safari
+  // 17+. Negligible bandwidth cost (a few extra KB to fetch the first
+  // keyframe). When the IntersectionObserver later calls play(), the
+  // existing decoded frame transitions smoothly into playback.
+  //
+  // Skip the fragment if src already has one (defensive). Skip for blob:
+  // URLs (rare; staging tile uses different component anyway).
+  const playableSrc = (() => {
+    if (!src || typeof src !== 'string') return src;
+    if (src.startsWith('blob:')) return src;
+    if (src.includes('#t=')) return src; // already has a time fragment
+    return `${src}#t=0.001`;
+  })();
+
+  return (
+    <video
+      ref={videoRef}
+      src={playableSrc}
+      preload="metadata"
+      muted
+      playsInline
+      loop
+      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+      onError={(e) => {
+        // Replace broken video with gradient placeholder
+        const parent = e.target.parentElement;
+        if (parent) {
+          const placeholder = document.createElement('div');
+          placeholder.style.cssText =
+            'width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;';
+          placeholder.innerHTML = '<span style="font-size:32px;opacity:0.5">🎬</span>';
+          parent.replaceChild(placeholder, e.target);
+        }
+      }}
+    />
+  );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -258,568 +269,632 @@ export const FeedVideoPlayer = ({ src }) => {
 
 // Reaction emoji map
 const REACTIONS = [
-    { type: 'like', emoji: '👍', label: 'Like', color: '#1877F2' },
-    { type: 'love', emoji: '❤️', label: 'Love', color: '#E0245E' },
-    { type: 'haha', emoji: '😂', label: 'Haha', color: '#F7B928' },
-    { type: 'wow', emoji: '😮', label: 'Wow', color: '#F7B928' },
-    { type: 'sad', emoji: '😢', label: 'Sad', color: '#F7B928' },
-    { type: 'fire', emoji: '🔥', label: 'Fire', color: '#FF6B35' },
+  { type: 'like', emoji: '👍', label: 'Like', color: '#1877F2' },
+  { type: 'love', emoji: '❤️', label: 'Love', color: '#E0245E' },
+  { type: 'haha', emoji: '😂', label: 'Haha', color: '#F7B928' },
+  { type: 'wow', emoji: '😮', label: 'Wow', color: '#F7B928' },
+  { type: 'sad', emoji: '😢', label: 'Sad', color: '#F7B928' },
+  { type: 'fire', emoji: '🔥', label: 'Fire', color: '#FF6B35' },
 ];
 
 export const SPPostCard = ({
-    post,
-    user,
-    onLike,
-    onComment,
-    onShare,
-    onSubmitComment,
-    onLoadComments,
-    onDeletePost,
-    currentUserId
+  post,
+  user,
+  onLike,
+  onComment,
+  onShare,
+  onSubmitComment,
+  onLoadComments,
+  onDeletePost,
+  currentUserId,
 }) => {
-    const router = useRouter();
-    const [liked, setLiked] = useState(post.userLiked || post.isLiked || false);
-    const [reactionType, setReactionType] = useState(post.reactionType || 'like');
-    const [showReactionPicker, setShowReactionPicker] = useState(false);
-    const [showComments, setShowComments] = useState(false);
-    const [commentText, setCommentText] = useState('');
-    const [comments, setComments] = useState(post.comments || []);
-    const [commentsLoaded, setCommentsLoaded] = useState(false);
-    const [submittingComment, setSubmittingComment] = useState(false);
-    const [showMoreMenu, setShowMoreMenu] = useState(false);
-    const [shareToast, setShareToast] = useState(false);
-    const [likePending, setLikePending] = useState(false);
-    const moreMenuRef = useRef(null);
-    const longPressTimerRef = useRef(null);
-    const reactionPickerRef = useRef(null);
+  const router = useRouter();
+  const [liked, setLiked] = useState(post.userLiked || post.isLiked || false);
+  const [reactionType, setReactionType] = useState(post.reactionType || 'like');
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState(post.comments || []);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
+  const [likePending, setLikePending] = useState(false);
+  const moreMenuRef = useRef(null);
+  const longPressTimerRef = useRef(null);
+  const reactionPickerRef = useRef(null);
 
-    // Sync liked/reactionType from parent when props change (EventBus cross-user updates)
-    useEffect(() => {
-        setLiked(post.userLiked || post.isLiked || false);
-        if (post.reactionType) setReactionType(post.reactionType);
-    }, [post.isLiked, post.userLiked, post.reactionType]);
+  // Sync liked/reactionType from parent when props change (EventBus cross-user updates)
+  useEffect(() => {
+    setLiked(post.userLiked || post.isLiked || false);
+    if (post.reactionType) setReactionType(post.reactionType);
+  }, [post.isLiked, post.userLiked, post.reactionType]);
 
-    // Click-outside dismiss for more menu
-    useEffect(() => {
-        if (!showMoreMenu) return;
-        const handleClickOutside = (e) => {
-            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
-                setShowMoreMenu(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showMoreMenu]);
-
-    // Click-outside dismiss for reaction picker
-    useEffect(() => {
-        if (!showReactionPicker) return;
-        const handleClickOutside = (e) => {
-            if (reactionPickerRef.current && !reactionPickerRef.current.contains(e.target)) {
-                setShowReactionPicker(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showReactionPicker]);
-
-    // Cleanup long-press timer on unmount
-    useEffect(() => {
-        return () => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); };
-    }, []);
-
-    // Support both old and new data structures
-    const author = user || post.author || post.user;
-    const authorName = getAuthorDisplayName(author);
-    const authorAvatar = author?.avatar || author?.avatarUrl || null;
-    const authorTier = author?.tier || (author?.isShark ? 'SHARK' : author?.isGTO ? 'GTO_MASTER' : null);
-
-    // Support both flat and nested engagement structures
-    const likeCount = post.engagement?.likeCount ?? post.likeCount ?? 0;
-    const commentCount = post.engagement?.commentCount ?? post.commentCount ?? 0;
-    const shareCount = post.engagement?.shareCount ?? post.shareCount ?? 0;
-
-    // Support both content and text properties
-    const postContent = post.content || post.text;
-
-    const formatTime = (timestamp) => {
-        const now = new Date();
-        const postTime = new Date(timestamp);
-        const diffMs = now - postTime;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m`;
-        if (diffHours < 24) return `${diffHours}h`;
-        return postTime.toLocaleDateString();
-    };
-
-    // Like with proper async error handling + rollback
-    const handleLike = async (selectedType = 'like') => {
-        if (likePending) return; // prevent rapid fire
-        setLikePending(true);
-        setShowReactionPicker(false);
-
-        const wasLiked = liked;
-        const prevType = reactionType;
-
-        // Determine if this is a SWAP (already liked, different type) or TOGGLE
-        const isSwap = wasLiked && selectedType !== prevType;
-
-        // Optimistic UI
-        if (isSwap) {
-            // Swap: stay liked, just change the type
-            setReactionType(selectedType);
-        } else {
-            // Toggle: flip liked state
-            setLiked(!wasLiked);
-            if (!wasLiked) setReactionType(selectedType);
-        }
-
-        try {
-            await onLike?.(post.id, selectedType);
-        } catch {
-            // Rollback on failure
-            setLiked(wasLiked);
-            setReactionType(prevType);
-        }
-        setLikePending(false);
-    };
-
-    // Long-press handlers for reaction picker
-    const handleLikeMouseDown = () => {
-        longPressTimerRef.current = setTimeout(() => {
-            setShowReactionPicker(true);
-            longPressTimerRef.current = null;
-        }, 500);
-    };
-
-    const handleLikeMouseUp = () => {
-        if (longPressTimerRef.current) {
-            // Short press — toggle like
-            clearTimeout(longPressTimerRef.current);
-            longPressTimerRef.current = null;
-            handleLike('like');
-        }
-    };
-
-    const handleLikeMouseLeave = () => {
-        if (longPressTimerRef.current) {
-            clearTimeout(longPressTimerRef.current);
-            longPressTimerRef.current = null;
-        }
-    };
-
-    // Select a specific reaction from picker
-    const handleSelectReaction = (type) => {
-        handleLike(type);
-    };
-
-    // Get current reaction emoji for display
-    const currentReaction = REACTIONS.find(r => r.type === reactionType) || REACTIONS[0];
-    const likeButtonColor = liked ? (currentReaction.color || SP_COLORS.blue) : SP_COLORS.textSecondary;
-
-    // Toggle comments and load existing ones on first open
-    const handleToggleComments = async () => {
-        const willShow = !showComments;
-        setShowComments(willShow);
-        if (willShow && !commentsLoaded && onLoadComments) {
-            try {
-                const fetchedComments = await onLoadComments(post.id);
-                if (fetchedComments?.length > 0) setComments(fetchedComments);
-                setCommentsLoaded(true);
-            } catch { /* fail silently — show existing comments */ }
-        }
-    };
-
-    // Submit comment on Enter key
-    const handleCommentSubmit = async (e) => {
-        if (e.key !== 'Enter' || !commentText.trim() || submittingComment) return;
-        const text = commentText.trim();
-        setSubmittingComment(true);
-        setCommentText('');
-
-        // Optimistic append
-        const optimisticComment = {
-            id: Date.now(),
-            content: text,
-            author: { username: 'You', avatarUrl: null },
-            createdAt: new Date().toISOString()
-        };
-        setComments(prev => [...prev, optimisticComment]);
-
-        try {
-            await onSubmitComment?.(post.id, text);
-        } catch { /* optimistic stays — will sync on next load */ }
-        setSubmittingComment(false);
-    };
-
-    // Delete post
-    const handleDelete = async () => {
+  // Click-outside dismiss for more menu
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleClickOutside = (e) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
         setShowMoreMenu(false);
-        if (window.confirm('Delete this post? This cannot be undone.')) {
-            await onDeletePost?.(post.id);
-        }
+      }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMoreMenu]);
 
-    const isOwnPost = currentUserId && (post.author_id === currentUserId || post.author?.id === currentUserId || post.authorId === currentUserId);
-
-    // Share → copy link to clipboard + show toast
-    const handleShare = async () => {
-        const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/app/social/post/${post.id}`;
-        try {
-            await navigator.clipboard.writeText(url);
-        } catch {
-            // Fallback for older browsers
-            const input = document.createElement('input');
-            input.value = url;
-            document.body.appendChild(input);
-            input.select();
-            document.execCommand('copy');
-            document.body.removeChild(input);
-        }
-        setShareToast(true);
-        setTimeout(() => setShareToast(false), 2000);
-        onShare?.(post.id);
+  // Click-outside dismiss for reaction picker
+  useEffect(() => {
+    if (!showReactionPicker) return;
+    const handleClickOutside = (e) => {
+      if (reactionPickerRef.current && !reactionPickerRef.current.contains(e.target)) {
+        setShowReactionPicker(false);
+      }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showReactionPicker]);
 
-    return (
-        <div className="sp-post">
-            {/* Header */}
-            <div className="sp-post-header">
-                <SPAvatar src={authorAvatar} name={authorName} size={40} online={author?.online} />
-                <div className="sp-post-meta">
-                    <div className="sp-post-author">
-                        <span className="sp-post-name">{authorName}</span>
-                        {authorTier === 'SHARK' && <span className="badge-shark">🦈 Shark</span>}
-                        {authorTier === 'GTO_MASTER' && <span className="badge-gto">👑 GTO</span>}
-                        {author?.isVerified && <span className="badge-verified">✓</span>}
-                    </div>
-                    <div className="sp-post-time">
-                        {formatTime(post.createdAt)} · 🌐
-                    </div>
-                </div>
-                <div className="sp-post-more-container" style={{ position: 'relative' }} ref={moreMenuRef}>
-                    <button className="sp-post-more" onClick={() => setShowMoreMenu(!showMoreMenu)}>⋯</button>
-                    {showMoreMenu && (
-                        <div className="sp-more-dropdown">
-                            {isOwnPost && onDeletePost && (
-                                <button className="sp-more-item danger" onClick={handleDelete}>Delete Post</button>
-                            )}
-                            <button className="sp-more-item" onClick={() => setShowMoreMenu(false)}>Cancel</button>
-                        </div>
-                    )}
-                </div>
+  // Cleanup long-press timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
+  // Support both old and new data structures
+  const author = user || post.author || post.user;
+  const authorName = getAuthorDisplayName(author);
+  const authorAvatar = author?.avatar || author?.avatarUrl || null;
+  const authorTier =
+    author?.tier || (author?.isShark ? 'SHARK' : author?.isGTO ? 'GTO_MASTER' : null);
+
+  // Support both flat and nested engagement structures
+  const likeCount = post.engagement?.likeCount ?? post.likeCount ?? 0;
+  const commentCount = post.engagement?.commentCount ?? post.commentCount ?? 0;
+  const shareCount = post.engagement?.shareCount ?? post.shareCount ?? 0;
+
+  // Support both content and text properties
+  const postContent = post.content || post.text;
+
+  const formatTime = (timestamp) => {
+    const now = new Date();
+    const postTime = new Date(timestamp);
+    const diffMs = now - postTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return postTime.toLocaleDateString();
+  };
+
+  // Like with proper async error handling + rollback
+  const handleLike = async (selectedType = 'like') => {
+    if (likePending) return; // prevent rapid fire
+    setLikePending(true);
+    setShowReactionPicker(false);
+
+    const wasLiked = liked;
+    const prevType = reactionType;
+
+    // Determine if this is a SWAP (already liked, different type) or TOGGLE
+    const isSwap = wasLiked && selectedType !== prevType;
+
+    // Optimistic UI
+    if (isSwap) {
+      // Swap: stay liked, just change the type
+      setReactionType(selectedType);
+    } else {
+      // Toggle: flip liked state
+      setLiked(!wasLiked);
+      if (!wasLiked) setReactionType(selectedType);
+    }
+
+    try {
+      await onLike?.(post.id, selectedType);
+    } catch {
+      // Rollback on failure
+      setLiked(wasLiked);
+      setReactionType(prevType);
+    }
+    setLikePending(false);
+  };
+
+  // Long-press handlers for reaction picker
+  const handleLikeMouseDown = () => {
+    longPressTimerRef.current = setTimeout(() => {
+      setShowReactionPicker(true);
+      longPressTimerRef.current = null;
+    }, 500);
+  };
+
+  const handleLikeMouseUp = () => {
+    if (longPressTimerRef.current) {
+      // Short press — toggle like
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      handleLike('like');
+    }
+  };
+
+  const handleLikeMouseLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  // Select a specific reaction from picker
+  const handleSelectReaction = (type) => {
+    handleLike(type);
+  };
+
+  // Get current reaction emoji for display
+  const currentReaction = REACTIONS.find((r) => r.type === reactionType) || REACTIONS[0];
+  const likeButtonColor = liked ? currentReaction.color || SP_COLORS.blue : SP_COLORS.textSecondary;
+
+  // Toggle comments and load existing ones on first open
+  const handleToggleComments = async () => {
+    const willShow = !showComments;
+    setShowComments(willShow);
+    if (willShow && !commentsLoaded && onLoadComments) {
+      try {
+        const fetchedComments = await onLoadComments(post.id);
+        if (fetchedComments?.length > 0) setComments(fetchedComments);
+        setCommentsLoaded(true);
+      } catch {
+        /* fail silently — show existing comments */
+      }
+    }
+  };
+
+  // Submit comment on Enter key
+  const handleCommentSubmit = async (e) => {
+    if (e.key !== 'Enter' || !commentText.trim() || submittingComment) return;
+    const text = commentText.trim();
+    setSubmittingComment(true);
+    setCommentText('');
+
+    // Optimistic append
+    const optimisticComment = {
+      id: Date.now(),
+      content: text,
+      author: { username: 'You', avatarUrl: null },
+      createdAt: new Date().toISOString(),
+    };
+    setComments((prev) => [...prev, optimisticComment]);
+
+    try {
+      await onSubmitComment?.(post.id, text);
+    } catch {
+      /* optimistic stays — will sync on next load */
+    }
+    setSubmittingComment(false);
+  };
+
+  // Delete post
+  const handleDelete = async () => {
+    setShowMoreMenu(false);
+    if (window.confirm('Delete this post? This cannot be undone.')) {
+      await onDeletePost?.(post.id);
+    }
+  };
+
+  const isOwnPost =
+    currentUserId &&
+    (post.author_id === currentUserId ||
+      post.author?.id === currentUserId ||
+      post.authorId === currentUserId);
+
+  // Share → copy link to clipboard + show toast
+  const handleShare = async () => {
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/app/social/post/${post.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+    setShareToast(true);
+    setTimeout(() => setShareToast(false), 2000);
+    onShare?.(post.id);
+  };
+
+  return (
+    <div className="sp-post">
+      {/* Header */}
+      <div className="sp-post-header">
+        <SPAvatar src={authorAvatar} name={authorName} size={40} online={author?.online} />
+        <div className="sp-post-meta">
+          <div className="sp-post-author">
+            <span className="sp-post-name">{authorName}</span>
+            {authorTier === 'SHARK' && <span className="badge-shark">🦈 Shark</span>}
+            {authorTier === 'GTO_MASTER' && <span className="badge-gto">👑 GTO</span>}
+            {author?.isVerified && <span className="badge-verified">✓</span>}
+          </div>
+          <div className="sp-post-time">{formatTime(post.createdAt)} · 🌐</div>
+        </div>
+        <div className="sp-post-more-container" style={{ position: 'relative' }} ref={moreMenuRef}>
+          <button className="sp-post-more" onClick={() => setShowMoreMenu(!showMoreMenu)}>
+            ⋯
+          </button>
+          {showMoreMenu && (
+            <div className="sp-more-dropdown">
+              {isOwnPost && onDeletePost && (
+                <button className="sp-more-item danger" onClick={handleDelete}>
+                  Delete Post
+                </button>
+              )}
+              <button className="sp-more-item" onClick={() => setShowMoreMenu(false)}>
+                Cancel
+              </button>
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Transcoding status indicator — shows 'Processing...' for newly uploaded videos */}
-            <TranscodeStatusBadge postId={post.id} mediaType={post.media_type || post.mediaType} />
+      {/* Transcoding status indicator — shows 'Processing...' for newly uploaded videos */}
+      <TranscodeStatusBadge postId={post.id} mediaType={post.media_type || post.mediaType} />
 
-            {/* Content */}
-            <div className="sp-post-content">
-                {postContent && <p className="sp-post-text">{postContent}</p>}
+      {/* Content */}
+      <div className="sp-post-content">
+        {postContent && <p className="sp-post-text">{postContent}</p>}
 
-                {/* Hand History (Poker-specific) */}
-                {post.handData && (
-                    <div className="sp-hand-embed">
-                        <div className="sp-hand-header">
-                            <span className="stakes">{post.handData.stakes}</span>
-                            <span className={`result ${post.handData.won ? 'win' : 'loss'}`}>
-                                {post.handData.won ? '+' : '-'}${post.handData.amount}
-                            </span>
-                        </div>
-                        <div className="sp-hand-cards">
-                            {post.handData.heroCards?.map((card, i) => (
-                                <span key={i} className={`playing-card ${card.includes('♥') || card.includes('♦') ? 'red' : 'black'}`}>
-                                    {card}
-                                </span>
-                            ))}
-                            {post.handData.board && (
-                                <>
-                                    <span className="board-label">Board:</span>
-                                    {post.handData.board.map((card, i) => (
-                                        <span key={i} className={`playing-card board ${card.includes('♥') || card.includes('♦') ? 'red' : 'black'}`}>
-                                            {card}
-                                        </span>
-                                    ))}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Live Stream Preview — Bug 13 fix: show thumbnail + LIVE badge for live posts */}
-                {(post.contentType === 'live' || post.content_type === 'live') && (
-                    <div
-                        onClick={() => {
-                            const id = post.metadata?.lives_id || post.metadata?.stream_id;
-                            if (id) router.push(`/hub/lives?id=${id}`);
-                        }}
-                        style={{
-                            position: 'relative', cursor: 'pointer',
-                            borderRadius: 12, overflow: 'hidden',
-                            aspectRatio: '16/9', background: '#111',
-                            margin: '8px 0',
-                        }}
+        {/* Hand History (Poker-specific) */}
+        {post.handData && (
+          <div className="sp-hand-embed">
+            <div className="sp-hand-header">
+              <span className="stakes">{post.handData.stakes}</span>
+              <span className={`result ${post.handData.won ? 'win' : 'loss'}`}>
+                {post.handData.won ? '+' : '-'}${post.handData.amount}
+              </span>
+            </div>
+            <div className="sp-hand-cards">
+              {post.handData.heroCards?.map((card, i) => (
+                <span
+                  key={i}
+                  className={`playing-card ${card.includes('♥') || card.includes('♦') ? 'red' : 'black'}`}
+                >
+                  {card}
+                </span>
+              ))}
+              {post.handData.board && (
+                <>
+                  <span className="board-label">Board:</span>
+                  {post.handData.board.map((card, i) => (
+                    <span
+                      key={i}
+                      className={`playing-card board ${card.includes('♥') || card.includes('♦') ? 'red' : 'black'}`}
                     >
-                        {(post.thumbnailUrl || post.thumbnail_url) ? (
-                            <img
-                                src={post.thumbnailUrl || post.thumbnail_url}
-                                alt="Live stream"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                            />
-                        ) : (
-                            <div style={{
-                                width: '100%', height: '100%',
-                                background: 'linear-gradient(135deg,#1a1a2e,#16213e)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                                <span style={{ fontSize: 48 }}>🎥</span>
-                            </div>
-                        )}
-                        {!post.metadata?.ended && (
-                            <div style={{
-                                position: 'absolute', top: 10, left: 10,
-                                background: '#ef4444', color: 'white',
-                                padding: '3px 10px', borderRadius: 6,
-                                fontSize: 12, fontWeight: 700, letterSpacing: 1,
-                                display: 'flex', alignItems: 'center', gap: 6,
-                            }}>
-                                <span style={{
-                                    width: 8, height: 8, borderRadius: '50%', background: 'white',
-                                    animation: 'livePulse 1.2s ease-in-out infinite',
-                                }} />
-                                LIVE NOW
-                            </div>
-                        )}
-                        <div style={{
-                            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                            <div style={{
-                                width: 56, height: 56, borderRadius: '50%',
-                                background: 'rgba(255,255,255,0.85)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="#111">
-                                    <path d="M8 5v14l11-7z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <style>{`
+                      {card}
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Live Stream Preview — Bug 13 fix: show thumbnail + LIVE badge for live posts */}
+        {(post.contentType === 'live' || post.content_type === 'live') && (
+          <div
+            onClick={() => {
+              const id = post.metadata?.lives_id || post.metadata?.stream_id;
+              if (id) router.push(`/hub/lives?id=${id}`);
+            }}
+            style={{
+              position: 'relative',
+              cursor: 'pointer',
+              borderRadius: 12,
+              overflow: 'hidden',
+              aspectRatio: '16/9',
+              background: '#111',
+              margin: '8px 0',
+            }}
+          >
+            {post.thumbnailUrl || post.thumbnail_url ? (
+              <img
+                src={post.thumbnailUrl || post.thumbnail_url}
+                alt="Live stream"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(135deg,#1a1a2e,#16213e)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span style={{ fontSize: 48 }}>🎥</span>
+              </div>
+            )}
+            {!post.metadata?.ended && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  left: 10,
+                  background: '#ef4444',
+                  color: 'white',
+                  padding: '3px 10px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: 'white',
+                    animation: 'livePulse 1.2s ease-in-out infinite',
+                  }}
+                />
+                LIVE NOW
+              </div>
+            )}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0,0,0,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.85)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#111">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+            <style>{`
                             @keyframes livePulse {
                                 0%, 100% { opacity: 1; transform: scale(1); }
                                 50% { opacity: 0.4; transform: scale(1.3); }
                             }
                         `}</style>
-                    </div>
-                )}
+          </div>
+        )}
 
-                {/* Media Grid - supports multiple images/videos */}
-                {(post.mediaUrls?.length > 0 || post.media) && (
-                    <div className="sp-post-media">
-                        {/* Support both array and single item */}
-                        {post.mediaUrls?.length > 0 ? (
-                            <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
-                                {post.mediaUrls.slice(0, 4).map((media, idx) => {
-                                    const mediaUrl = typeof media === 'string' ? media : media.url;
-                                    const mediaType = typeof media === 'string' ? media : media.type;
-                                    // Detect video URLs: YouTube, Shorts, or video file extensions
-                                    const isVideo = mediaType?.startsWith('video') ||
-                                        mediaUrl?.includes('youtube.com') ||
-                                        mediaUrl?.includes('youtu.be') ||
-                                        mediaUrl?.match(/\.(mp4|webm|mov|avi)(\?|$)/i);
+        {/* Media Grid - supports multiple images/videos */}
+        {(post.mediaUrls?.length > 0 || post.media) && (
+          <div className="sp-post-media">
+            {/* Support both array and single item */}
+            {post.mediaUrls?.length > 0 ? (
+              <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
+                {post.mediaUrls.slice(0, 4).map((media, idx) => {
+                  const mediaUrl = typeof media === 'string' ? media : media.url;
+                  const mediaType = typeof media === 'string' ? media : media.type;
+                  // Detect video URLs: YouTube, Shorts, or video file extensions
+                  const isVideo =
+                    mediaType?.startsWith('video') ||
+                    mediaUrl?.includes('youtube.com') ||
+                    mediaUrl?.includes('youtu.be') ||
+                    mediaUrl?.match(/\.(mp4|webm|mov|avi)(\?|$)/i);
 
-                                    return (
-                                        <div 
-                                            key={idx} 
-                                            className="media-item"
-                                            onClick={() => {
-                                                if (isVideo) {
-                                                    // BUG FIX (SC-1): Live replay posts must navigate to
-                                                    // /hub/lives?id= not /hub/reels. Live replays are stored
-                                                    // in live_streams (not social_reels), so the Reels viewer
-                                                    // cannot resolve them — produces a black screen.
-                                                    const meta = post.metadata;
-                                                    if (meta?.source === 'live_replay' && (meta?.lives_id || meta?.stream_id)) {
-                                                        router.push(`/hub/lives?id=${meta.lives_id || meta.stream_id}`);
-                                                    } else {
-                                                        router.push(`/hub/reels?id=${post.id}`);
-                                                    }
-                                                }
-                                            }}
-                                            style={isVideo ? { cursor: 'pointer' } : {}}
-                                        >
-                                            {isVideo ? (
-                                                <>
-                                                    {(() => {
-                                                        // AUDIT-8 (2026-04-30 per Dan): the feed used to ALWAYS
-                                                        // render an <img> for video posters. When thumbnail_url
-                                                        // was null AND the URL wasn't YouTube, the YouTube
-                                                        // regex match failed and produced an
-                                                        // 'https://img.youtube.com/vi/undefined/hqdefault.jpg'
-                                                        // 404 → black tile. Now we branch:
-                                                        //   • Real thumbnail URL → <img> (cheap, cacheable)
-                                                        //   • YouTube source → YouTube poster <img>
-                                                        //   • Otherwise (uploaded video w/ no thumbnail yet —
-                                                        //     cron hasn't run) → autoplay-once <video> that
-                                                        //     decodes the first frame and pauses, same
-                                                        //     pattern as the staging tile in SharedPostCreator.
-                                                        const thumb = media.thumbnail || post.thumbnailUrl || post.thumbnail_url;
-                                                        const ytId = mediaUrl?.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1];
-                                                        if (thumb) {
-                                                            return (
-                                                                <img
-                                                                    src={thumb}
-                                                                    alt={`Video ${idx + 1}`}
-                                                                    loading="lazy"
-                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                />
-                                                            );
-                                                        }
-                                                        if (ytId) {
-                                                            return (
-                                                                <img
-                                                                    src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
-                                                                    alt={`Video ${idx + 1}`}
-                                                                    loading="lazy"
-                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                />
-                                                            );
-                                                        }
-                                                        // AUDIT-9 SUPERSEDED (2026-05-04):
-                                                        // The old autoplay <video> caused OOM on iPhone.
-                                                        // The `#t=0.001` fallback often rendered black on iOS
-                                                        // because Safari won't decode without playback.
-                                                        // Now we use FeedVideoPlayer which plays ONLY when
-                                                        // on-screen via IntersectionObserver.
-                                                        return <FeedVideoPlayer src={mediaUrl} />;
-                                                    })()}
-                                                    {/* Play Button Overlay */}
-                                                    <div className="video-play-overlay">
-                                                        <div className="play-button">▶</div>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <img
-                                                    src={mediaUrl}
-                                                    alt={`Media ${idx + 1}`}
-                                                    loading="lazy"
-                                                />
-                                            )}
-                                            {idx === 3 && post.mediaUrls.length > 4 && (
-                                                <div className="more-media-overlay">
-                                                    +{post.mediaUrls.length - 4}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <img src={post.media} alt="Post" />
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Reactions Count */}
-            <div className="sp-post-reactions">
-                <div className="reaction-icons">
-                    <span className="reaction-emoji">👍</span>
-                    <span className="reaction-emoji">❤️</span>
-                    <span className="reaction-emoji">🔥</span>
-                </div>
-                <span className="reaction-count">{likeCount}</span>
-                <div className="comment-share-count">
-                    {commentCount > 0 && <span>{commentCount} comments</span>}
-                    {shareCount > 0 && <span>{shareCount} shares</span>}
-                </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="sp-post-actions">
-                <div style={{ position: 'relative', flex: 1 }} ref={reactionPickerRef}>
-                    {/* Reaction Picker Flyout */}
-                    {showReactionPicker && (
-                        <div className="sp-reaction-picker">
-                            {REACTIONS.map(r => (
-                                <button
-                                    key={r.type}
-                                    className="sp-reaction-option"
-                                    onClick={() => handleSelectReaction(r.type)}
-                                    title={r.label}
-                                >
-                                    <span className="sp-reaction-emoji-btn">{r.emoji}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    <button
-                        className={`sp-action-btn ${liked ? 'liked' : ''}`}
-                        style={{ width: '100%', color: liked ? likeButtonColor : undefined }}
-                        onMouseDown={handleLikeMouseDown}
-                        onMouseUp={handleLikeMouseUp}
-                        onMouseLeave={handleLikeMouseLeave}
-                        onTouchStart={handleLikeMouseDown}
-                        onTouchEnd={(e) => { e.preventDefault(); handleLikeMouseUp(); }}
+                  return (
+                    <div
+                      key={idx}
+                      className="media-item"
+                      onClick={() => {
+                        if (isVideo) {
+                          // BUG FIX (SC-1): Live replay posts must navigate to
+                          // /hub/lives?id= not /hub/reels. Live replays are stored
+                          // in live_streams (not social_reels), so the Reels viewer
+                          // cannot resolve them — produces a black screen.
+                          const meta = post.metadata;
+                          if (
+                            meta?.source === 'live_replay' &&
+                            (meta?.lives_id || meta?.stream_id)
+                          ) {
+                            router.push(`/hub/lives?id=${meta.lives_id || meta.stream_id}`);
+                          } else {
+                            router.push(`/hub/reels?id=${post.id}`);
+                          }
+                        }
+                      }}
+                      style={isVideo ? { cursor: 'pointer' } : {}}
                     >
-                        <span className="icon">{liked ? currentReaction.emoji : '👍'}</span>
-                        <span>{liked ? currentReaction.label : 'Like'}</span>
-                    </button>
-                </div>
-                <button
-                    className="sp-action-btn"
-                    onClick={handleToggleComments}
-                >
-                    <span className="icon">💬</span>
-                    <span>Comment</span>
-                </button>
-                <button
-                    className="sp-action-btn"
-                    onClick={handleShare}
-                >
-                    <span className="icon">↗️</span>
-                    <span>Share</span>
-                </button>
-            </div>
-
-            {/* Share Toast */}
-            {shareToast && (
-                <div style={{
-                    padding: '8px 16px', background: '#323232', color: '#fff',
-                    fontSize: 14, textAlign: 'center', borderRadius: '0 0 8px 8px'
-                }}>Link Copied To Clipboard</div>
-            )}
-
-            {/* Comments */}
-            {showComments && (
-                <div className="sp-comments">
-                    <div className="sp-comment-input">
-                        <SPAvatar size={32} />
-                        <input
-                            type="text"
-                            placeholder="Write A Comment..."
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            onKeyDown={handleCommentSubmit}
-                            disabled={submittingComment}
-                        />
+                      {isVideo ? (
+                        <>
+                          {(() => {
+                            // AUDIT-8 (2026-04-30 per Dan): the feed used to ALWAYS
+                            // render an <img> for video posters. When thumbnail_url
+                            // was null AND the URL wasn't YouTube, the YouTube
+                            // regex match failed and produced an
+                            // 'https://img.youtube.com/vi/undefined/hqdefault.jpg'
+                            // 404 → black tile. Now we branch:
+                            //   • Real thumbnail URL → <img> (cheap, cacheable)
+                            //   • YouTube source → YouTube poster <img>
+                            //   • Otherwise (uploaded video w/ no thumbnail yet —
+                            //     cron hasn't run) → autoplay-once <video> that
+                            //     decodes the first frame and pauses, same
+                            //     pattern as the staging tile in SharedPostCreator.
+                            const thumb =
+                              media.thumbnail || post.thumbnailUrl || post.thumbnail_url;
+                            const ytId = mediaUrl?.match(
+                              /(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]+)/
+                            )?.[1];
+                            if (thumb) {
+                              return (
+                                <img
+                                  src={thumb}
+                                  alt={`Video ${idx + 1}`}
+                                  loading="lazy"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              );
+                            }
+                            if (ytId) {
+                              return (
+                                <img
+                                  src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                                  alt={`Video ${idx + 1}`}
+                                  loading="lazy"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              );
+                            }
+                            // AUDIT-9 SUPERSEDED (2026-05-04):
+                            // The old autoplay <video> caused OOM on iPhone.
+                            // The `#t=0.001` fallback often rendered black on iOS
+                            // because Safari won't decode without playback.
+                            // Now we use FeedVideoPlayer which plays ONLY when
+                            // on-screen via IntersectionObserver.
+                            return <FeedVideoPlayer src={mediaUrl} />;
+                          })()}
+                          {/* Play Button Overlay */}
+                          <div className="video-play-overlay">
+                            <div className="play-button">▶</div>
+                          </div>
+                        </>
+                      ) : (
+                        <img src={mediaUrl} alt={`Media ${idx + 1}`} loading="lazy" />
+                      )}
+                      {idx === 3 && post.mediaUrls.length > 4 && (
+                        <div className="more-media-overlay">+{post.mediaUrls.length - 4}</div>
+                      )}
                     </div>
-                    {comments.map((comment, i) => (
-                        <div key={comment.id || i} className="sp-comment">
-                            <SPAvatar src={comment.user?.avatar || comment.author?.avatarUrl} size={32} />
-                            <div className="sp-comment-content">
-                                <span className="sp-comment-author">{getAuthorDisplayName(comment.user || comment.author)}</span>
-                                <span className="sp-comment-text">{comment.text || comment.content}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <img src={post.media} alt="Post" />
             )}
+          </div>
+        )}
+      </div>
 
-            <style>{`
+      {/* Reactions Count */}
+      <div className="sp-post-reactions">
+        <div className="reaction-icons">
+          <span className="reaction-emoji">👍</span>
+          <span className="reaction-emoji">❤️</span>
+          <span className="reaction-emoji">🔥</span>
+        </div>
+        <span className="reaction-count">{likeCount}</span>
+        <div className="comment-share-count">
+          {commentCount > 0 && <span>{commentCount} comments</span>}
+          {shareCount > 0 && <span>{shareCount} shares</span>}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="sp-post-actions">
+        <div style={{ position: 'relative', flex: 1 }} ref={reactionPickerRef}>
+          {/* Reaction Picker Flyout */}
+          {showReactionPicker && (
+            <div className="sp-reaction-picker">
+              {REACTIONS.map((r) => (
+                <button
+                  key={r.type}
+                  className="sp-reaction-option"
+                  onClick={() => handleSelectReaction(r.type)}
+                  title={r.label}
+                >
+                  <span className="sp-reaction-emoji-btn">{r.emoji}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            className={`sp-action-btn ${liked ? 'liked' : ''}`}
+            style={{ width: '100%', color: liked ? likeButtonColor : undefined }}
+            onMouseDown={handleLikeMouseDown}
+            onMouseUp={handleLikeMouseUp}
+            onMouseLeave={handleLikeMouseLeave}
+            onTouchStart={handleLikeMouseDown}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleLikeMouseUp();
+            }}
+          >
+            <span className="icon">{liked ? currentReaction.emoji : '👍'}</span>
+            <span>{liked ? currentReaction.label : 'Like'}</span>
+          </button>
+        </div>
+        <button className="sp-action-btn" onClick={handleToggleComments}>
+          <span className="icon">💬</span>
+          <span>Comment</span>
+        </button>
+        <button className="sp-action-btn" onClick={handleShare}>
+          <span className="icon">↗️</span>
+          <span>Share</span>
+        </button>
+      </div>
+
+      {/* Share Toast */}
+      {shareToast && (
+        <div
+          style={{
+            padding: '8px 16px',
+            background: '#323232',
+            color: '#fff',
+            fontSize: 14,
+            textAlign: 'center',
+            borderRadius: '0 0 8px 8px',
+          }}
+        >
+          Link Copied To Clipboard
+        </div>
+      )}
+
+      {/* Comments */}
+      {showComments && (
+        <div className="sp-comments">
+          <div className="sp-comment-input">
+            <SPAvatar size={32} />
+            <input
+              type="text"
+              placeholder="Write A Comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={handleCommentSubmit}
+              disabled={submittingComment}
+            />
+          </div>
+          {comments.map((comment, i) => (
+            <div key={comment.id || i} className="sp-comment">
+              <SPAvatar src={comment.user?.avatar || comment.author?.avatarUrl} size={32} />
+              <div className="sp-comment-content">
+                <span className="sp-comment-author">
+                  {getAuthorDisplayName(comment.user || comment.author)}
+                </span>
+                <span className="sp-comment-text">{comment.text || comment.content}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <style>{`
                 .sp-post {
                     background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
@@ -1255,8 +1330,8 @@ export const SPPostCard = ({
                     color: ${SP_COLORS.textPrimary};
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1264,32 +1339,29 @@ export const SPPostCard = ({
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const FBStoriesRow = ({ stories = [], currentUser }) => {
-    return (
-        <div className="sp-stories">
-            {/* Create Story */}
-            <div className="sp-story create">
-                <div className="story-bg">
-                    <img src={currentUser?.avatar || '/default-avatar.png'} alt="" />
-                </div>
-                <div className="create-btn">+</div>
-                <span className="story-label">Create Story</span>
-            </div>
+  return (
+    <div className="sp-stories">
+      {/* Create Story */}
+      <div className="sp-story create">
+        <div className="story-bg">
+          <img src={currentUser?.avatar || '/default-avatar.png'} alt="" />
+        </div>
+        <div className="create-btn">+</div>
+        <span className="story-label">Create Story</span>
+      </div>
 
-            {/* User Stories */}
-            {stories.map((story, i) => (
-                <div
-                    key={i}
-                    className={`sp-story ${story.viewed ? '' : 'unviewed'}`}
-                >
-                    <img src={story.thumbnail} alt="" className="story-bg" />
-                    <div className="story-avatar-ring">
-                        <img src={story.user?.avatar} alt={story.user?.name} />
-                    </div>
-                    <span className="story-label">{story.user?.firstName || story.user?.name}</span>
-                </div>
-            ))}
+      {/* User Stories */}
+      {stories.map((story, i) => (
+        <div key={i} className={`sp-story ${story.viewed ? '' : 'unviewed'}`}>
+          <img src={story.thumbnail} alt="" className="story-bg" />
+          <div className="story-avatar-ring">
+            <img src={story.user?.avatar} alt={story.user?.name} />
+          </div>
+          <span className="story-label">{story.user?.firstName || story.user?.name}</span>
+        </div>
+      ))}
 
-            <style>{`
+      <style>{`
                 .sp-stories {
                     display: flex;
                     gap: 8px;
@@ -1402,8 +1474,8 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
                     text-align: center;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1411,9 +1483,9 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default {
-    SPAvatar,
-    CreatePostBox,
-    SPPostCard,
-    FBStoriesRow,
-    SP_COLORS
+  SPAvatar,
+  CreatePostBox,
+  SPPostCard,
+  FBStoriesRow,
+  SP_COLORS,
 };

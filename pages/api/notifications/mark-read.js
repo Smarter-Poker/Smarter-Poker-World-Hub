@@ -51,12 +51,12 @@ export default async function handler(req, res) {
           .eq('id', notificationId)
           .eq('user_id', user.id);
       } else {
-        // Mark ALL unread — also sync is_read (BUG-33 FIX)
+        // Mark ALL unread — catch rows where EITHER flag indicates unread
         await getSupabase()
           .from('notifications')
           .update({ read: true, is_read: true })
           .eq('user_id', user.id)
-          .eq('read', false);
+          .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
       }
 
       // Invalidate server-side feed cache so next fetch reflects updated read state

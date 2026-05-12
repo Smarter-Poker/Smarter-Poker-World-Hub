@@ -49,11 +49,11 @@ export default async function handler(req, res) {
                   .select('username, full_name, avatar_url, diamonds, is_vip')
                   .eq('id', userId)
                   .maybeSingle(),
-              // 2. Unread social notifications count
+              // 2. Unread social notifications count — check both read AND is_read columns for consistency
               sb.from('notifications')
                   .select('*', { count: 'exact', head: true })
                   .eq('user_id', userId)
-                  .eq('read', false),
+                  .or('read.eq.false,is_read.eq.false'),
               // 3. Page followers for poker notifications
               sb.from('page_followers')
                   .select('page_type, page_id')

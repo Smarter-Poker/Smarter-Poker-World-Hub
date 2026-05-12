@@ -188,7 +188,8 @@ export default async function handler(req, res) {
                 .map(n => {
                     // BUG-17 fix: friend_request stores sender_id (not actor_id) — include it
                     // Also check the top-level actor_id column (not just data JSONB)
-                    return n.actor_id || n.data?.actor_id || n.data?.sender_id || n.data?.friend_id;
+                    // BUG-FIX: Also check liker_id and commenter_id from legacy triggers
+                    return n.actor_id || n.data?.actor_id || n.data?.sender_id || n.data?.friend_id || n.data?.liker_id || n.data?.commenter_id;
                 })
                 .filter(Boolean)
         )];
@@ -197,7 +198,7 @@ export default async function handler(req, res) {
         // breaking enrichment for single-name actors. Now also tries single-word match.
         const actorNames = [...new Set(
             socialNotifs
-                .filter(n => !n.data?.actor_id && !n.data?.sender_id && !n.data?.friend_id)
+                .filter(n => !n.actor_id && !n.data?.actor_id && !n.data?.sender_id && !n.data?.friend_id && !n.data?.liker_id && !n.data?.commenter_id)
                 .map(n => {
                     const twoWord = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
                     if (twoWord) return twoWord[1];
@@ -236,7 +237,7 @@ export default async function handler(req, res) {
         const enriched = combined.map(n => {
             if (n._source === 'poker') return n; // poker notifs don't have actor profiles
 
-            const actorId = n.actor_id || n.data?.actor_id || n.data?.sender_id || n.data?.friend_id;
+            const actorId = n.actor_id || n.data?.actor_id || n.data?.sender_id || n.data?.friend_id || n.data?.liker_id || n.data?.commenter_id;
             const profile = actorId
                 ? profileById[actorId]
                 : (() => {

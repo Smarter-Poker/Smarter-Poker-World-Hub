@@ -2378,12 +2378,16 @@ export default function UserProfilePage() {
               .from('friendships')
               .select('status')
               .eq('user_id', user.id)
-              .or(`friend_id.eq.${socialId}${profileId !== socialId ? `,friend_id.eq.${profileId}` : ''}`),
+              .or(
+                `friend_id.eq.${socialId}${profileId !== socialId ? `,friend_id.eq.${profileId}` : ''}`
+              ),
             // Direction 2: target sent to current user
             supabase
               .from('friendships')
               .select('status')
-              .or(`user_id.eq.${socialId}${profileId !== socialId ? `,user_id.eq.${profileId}` : ''}`)
+              .or(
+                `user_id.eq.${socialId}${profileId !== socialId ? `,user_id.eq.${profileId}` : ''}`
+              )
               .eq('friend_id', user.id),
             // Current user's friend IDs (two-direction)
             supabase
@@ -2559,7 +2563,9 @@ export default function UserProfilePage() {
           // post would linger pointing at a now-deleted stream.
           supabase
             .from('live_streams')
-            .select('id, title, video_url, thumbnail_url, viewer_count, created_at, feed_post_id, social_posts:feed_post_id(thumbnail_url, media_urls)')
+            .select(
+              'id, title, video_url, thumbnail_url, viewer_count, created_at, feed_post_id, social_posts:feed_post_id(thumbnail_url, media_urls)'
+            )
             .eq('broadcaster_id', socialId)
             .eq('status', 'ended')
             .eq('is_posted', true)
@@ -3016,18 +3022,23 @@ export default function UserProfilePage() {
       busEmit.friendRequestSent(targetId);
       notifyFriendsSync();
       // Insert in-app notification for the recipient
-      const senderName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.username || 'Someone';
+      const senderName =
+        currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.username || 'Someone';
       const senderUsername = currentUser?.user_metadata?.username || currentUser?.id;
-      supabase.from('notifications').insert({
-        user_id: targetId,
-        actor_id: currentUser.id,
-        type: 'friend_request',
-        title: senderName,
-        message: 'sent you a friend request',
-        action_url: `/hub/user/${senderUsername}`,
-        data: { sender_id: currentUser.id, sender_name: senderName },
-        read: false,
-      }).then().catch(e => console.warn('[profile] Notification insert (non-fatal):', e));
+      supabase
+        .from('notifications')
+        .insert({
+          user_id: targetId,
+          actor_id: currentUser.id,
+          type: 'friend_request',
+          title: senderName,
+          message: 'sent you a friend request',
+          action_url: `/hub/user/${senderUsername}`,
+          data: { sender_id: currentUser.id, sender_name: senderName },
+          read: false,
+        })
+        .then()
+        .catch((e) => console.warn('[profile] Notification insert (non-fatal):', e));
     } catch (e) {
       // Rollback optimistic update on failure
       setFriendRequestSent(false);
@@ -3128,7 +3139,7 @@ export default function UserProfilePage() {
     setFriendRequestSent(false);
     setShowUnfriendConfirm(false);
     setStats((prev) => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
-    
+
     // Create an array of possible target IDs to catch horse/profile identity overlaps
     const possibleTargetIds = Array.from(new Set([targetId, profile.id]));
 
@@ -3147,7 +3158,7 @@ export default function UserProfilePage() {
           .eq('friend_id', currentUser.id),
       ]);
       if (res1.error || res2.error) throw res1.error || res2.error; // Either failed — rollback
-      
+
       toast.success('Friend removed', { id: 'unfriend-success' });
       invalidateProfileCache();
       notifyFriendsSync();
@@ -6050,12 +6061,44 @@ export default function UserProfilePage() {
                       return (
                         <div
                           key={video.id}
-                          style={{ overflow: 'hidden', borderRadius: 8, background: '#000', position: 'relative', cursor: 'pointer', aspectRatio: '16/9' }}
-                          onClick={() => livesId ? router.push(`/hub/lives?id=${livesId}`) : router.push(`/hub/social-media?post=${video.id}`)}
+                          style={{
+                            overflow: 'hidden',
+                            borderRadius: 8,
+                            background: '#000',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            aspectRatio: '16/9',
+                          }}
+                          onClick={() =>
+                            livesId
+                              ? router.push(`/hub/lives?id=${livesId}`)
+                              : router.push(`/hub/social-media?post=${video.id}`)
+                          }
                         >
-                          <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <img
+                            src={cover}
+                            alt=""
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                          />
                           {video.content_type === 'live' && (
-                            <div style={{ position: 'absolute', top: 6, left: 6, background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 6,
+                                left: 6,
+                                background: '#ef4444',
+                                color: 'white',
+                                padding: '2px 8px',
+                                borderRadius: 4,
+                                fontSize: 11,
+                                fontWeight: 700,
+                              }}
+                            >
                               {video.metadata?.ended ? 'PAST LIVE' : 'LIVE'}
                             </div>
                           )}
@@ -6309,7 +6352,8 @@ export default function UserProfilePage() {
                             const effectiveThumbnail =
                               live.thumbnail_url ||
                               live.social_posts?.thumbnail_url ||
-                              (Array.isArray(live.social_posts?.media_urls) && live.social_posts.media_urls[0]) ||
+                              (Array.isArray(live.social_posts?.media_urls) &&
+                                live.social_posts.media_urls[0]) ||
                               null;
                             return effectiveThumbnail ? (
                               <img
@@ -6317,7 +6361,9 @@ export default function UserProfilePage() {
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 alt={live.title}
                                 loading="lazy"
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
                               />
                             ) : (
                               <div
