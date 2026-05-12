@@ -1186,3 +1186,16 @@ TRAIN-WIRE-FEEDBACK-V2-3
 # chip surfaces in the corner, and `size="lg"` matches the page's prior
 # touch target. Parent already wires keyboard listeners via useTrainingBus.
 TRAIN-WIRE-ACTIONBTN-2
+
+# ─── Phase-12 adoption: ProgressStrip sweep (flashcards + short-deck) ───────
+# TRAIN-WIRE-PROGRESS-STRIP-2 — pages/hub/training/flashcards.js. Replaces the
+# hand-rolled motion.div progress bar (linear-gradient with animated width)
+# with a shared <ProgressStrip current={currentIdx+1} total={sessionDeck.length}
+# difficulty="intermediate" compact />. The current/total semantics map 1:1 to
+# the session deck index and length.
+TRAIN-WIRE-PROGRESS-STRIP-2
+# TRAIN-WIRE-PROGRESS-STRIP-3 — pages/hub/training/short-deck-trainer.js
+# (quiz mode). Replaces the inline "Score: x/y (z%)" text line with shared
+# <ProgressStrip current total correct compact />. Total ramps in steps of 10
+# to match the existing 10-question save cadence. Calc mode is unaffected.
+TRAIN-WIRE-PROGRESS-STRIP-3
