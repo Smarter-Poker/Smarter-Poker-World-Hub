@@ -222,7 +222,6 @@ export default async function handler(req, res) {
 
   // ── GUARD: Source-tier rolling 30-day cap (accounts < 120 days, not paid, or flagged) ──
   const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const rolling30Start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   if (!isKingfish && !isFullyUnrestricted) {
     // BUG FIX (Pass 4): Use direct RPCs for aggregations instead of paginated HTTP fetching
