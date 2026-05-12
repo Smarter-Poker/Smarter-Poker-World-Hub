@@ -245,9 +245,11 @@ export default async function handler(req, res) {
                     return key ? profileByName[key.toLowerCase()] : null;
                 })();
 
-            const displayName = n.data?.actor_name || n.data?.sender_name
+            const displayName = profile?.full_name || profile?.username 
+                || n.data?.actor_name || n.data?.sender_name
                 || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1]
-                || n.title;
+                || n.title
+                || 'Someone';
 
             // BUG-28 FIX: Rewrite home_group message with real group name
             // BUG-36 FIX: Handle groups with null name (dev/test groups) and deleted groups.
