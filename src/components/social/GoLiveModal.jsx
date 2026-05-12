@@ -371,6 +371,7 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
             Loading friends...
           </div>
         ) : (
+          <>
           {/* Bug24: search input — show friends list only when user types */}
           <input
             type="text"
@@ -429,6 +430,7 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
               })()}
             </div>
           )}
+          </>
         )}
       </div>
     </div>
