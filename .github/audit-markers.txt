@@ -1721,3 +1721,18 @@ TRAIN-CSS-TOKENS-BATCH6-17
 TRAIN-CSS-TOKENS-BATCH6-18
 TRAIN-CSS-TOKENS-BATCH6-19
 TRAIN-CSS-TOKENS-BATCH6-20
+
+# ─── Phase-27: BottomSheet "How it works" sweep round 3 (3 more trainers) ───
+# TRAIN-WIRE-BOTTOMSHEET-6 — pages/hub/training/scenario-demo.js. Adds the
+# "How it works" sheet explaining the GTO Training Tutorial step-by-step
+# lessons + comprehension quiz flow. Toggle pill in cyan accent next to
+# the back arrow.
+TRAIN-WIRE-BOTTOMSHEET-6
+# TRAIN-WIRE-BOTTOMSHEET-7 — pages/hub/training/short-deck-trainer.js. Adds
+# the sheet explaining 36-card dynamics (flushes > full houses, more
+# straights, equity shifts). Toggle pill in trainer's red accent.
+TRAIN-WIRE-BOTTOMSHEET-7
+# TRAIN-WIRE-BOTTOMSHEET-8 — pages/hub/training/multiway-preflop.js. Adds
+# the sheet explaining how multiway pots tighten ranges compared to
+# heads-up play. Toggle pill in trainer's purple accent.
+TRAIN-WIRE-BOTTOMSHEET-8

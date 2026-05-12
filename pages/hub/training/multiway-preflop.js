@@ -17,6 +17,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -268,6 +269,8 @@ function RangeGrid({ rangeStr, color, label }) {
 export default function MultiwayPreflopPage() {
   // TRAIN-WIRE-FEEDBACK-HOOK-2 — wire useTrainingFeedback
   const fb = useTrainingFeedback();
+  // TRAIN-WIRE-BOTTOMSHEET-8 — info sheet state
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const router = useRouter();
   useTrainingBus('multiway-preflop');
@@ -405,6 +408,27 @@ export default function MultiwayPreflopPage() {
         }}
       >
         {/* Header */}
+        <BottomSheet
+          open={infoOpen}
+          onClose={() => setInfoOpen(false)}
+          title="How Multiway Preflop Works"
+          subtitle="3+ player preflop range training"
+        >
+          <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
+            <p style={{ marginTop: 0 }}>
+              In multiway pots (3 or more players to a flop), opening and
+              defending ranges <strong>tighten significantly</strong> compared
+              to heads-up. More opponents means more hands beat top pair, so
+              speculative hands lose value and premium pairs/big aces gain it.
+            </p>
+            <p>
+              Each quiz spot shows a multiway scenario and asks whether a given
+              hand belongs IN or OUT of the GTO opening range. Hit 80&#37;+ to
+              confidently apply this in live play.
+            </p>
+          </div>
+        </BottomSheet>
+
         <div
           style={{
             padding: '16px 20px',
@@ -428,6 +452,24 @@ export default function MultiwayPreflopPage() {
             }}
           >
             ← Training
+          </button>
+          <button
+            onClick={() => setInfoOpen(true)}
+            aria-label="How Multiway Preflop works"
+            style={{
+              background: 'rgba(var(--sp-accent-purple-rgb), 0.08)',
+              border: '1px solid rgba(var(--sp-accent-purple-rgb), 0.25)',
+              color: 'var(--sp-accent-purple)',
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '6px 12px',
+              borderRadius: 12,
+              cursor: 'pointer',
+              letterSpacing: 0.4,
+              textTransform: 'uppercase',
+            }}
+          >
+            How it works
           </button>
           <h1
             style={{
