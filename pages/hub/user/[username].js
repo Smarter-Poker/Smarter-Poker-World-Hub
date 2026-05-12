@@ -2552,7 +2552,7 @@ export default function UserProfilePage() {
           // post would linger pointing at a now-deleted stream.
           supabase
             .from('live_streams')
-            .select('id, title, video_url, thumbnail_url, viewer_count, created_at, feed_post_id')
+            .select('id, title, video_url, thumbnail_url, viewer_count, created_at, feed_post_id, social_posts:feed_post_id(thumbnail_url, media_urls)')
             .eq('broadcaster_id', socialId)
             .eq('status', 'ended')
             .eq('is_posted', true)
@@ -6256,28 +6256,37 @@ export default function UserProfilePage() {
                             aspectRatio: '16/9',
                           }}
                         >
-                          {live.thumbnail_url ? (
-                            <img
-                              src={live.thumbnail_url}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              alt={live.title}
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'rgba(255,255,255,0.5)',
-                                fontSize: 36,
-                              }}
-                            >
-                              📺
-                            </div>
-                          )}
+                          {/* Bug8: fall back to social_posts thumbnail if live_streams.thumbnail_url is missing */
+                          (() => {
+                            const effectiveThumbnail =
+                              live.thumbnail_url ||
+                              live.social_posts?.thumbnail_url ||
+                              (Array.isArray(live.social_posts?.media_urls) && live.social_posts.media_urls[0]) ||
+                              null;
+                            return effectiveThumbnail ? (
+                              <img
+                                src={effectiveThumbnail}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                alt={live.title}
+                                loading="lazy"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'rgba(255,255,255,0.5)',
+                                  fontSize: 36,
+                                }}
+                              >
+                                📺
+                              </div>
+                            );
+                          })()
                           <div
                             style={{
                               position: 'absolute',
