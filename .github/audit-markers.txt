@@ -1802,3 +1802,20 @@ TRAIN-WIRE-TRIVIA-HOOK-2
 # 500ms advance). PR #505 also restored the missing TriviaAnswerOption
 # import (same latent crash as pvp.js had).
 TRAIN-WIRE-TRIVIA-HOOK-3
+# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4 — pages/hub/trivia/endless.js. Fourth
+# TriviaAnswerOption adopter. Replaced raw <button> answer map with
+# <TriviaAnswerOption variant="inline"> component. PR #513.
+TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4
+# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-5 — pages/hub/trivia/survival-game.js.
+# Fifth TriviaAnswerOption adopter. Replaced raw <button> answer map with
+# <TriviaAnswerOption variant="inline"> component. PR #514.
+TRAIN-WIRE-TRIVIA-ANSWER-OPTION-5
+# TRAIN-WIRE-TRIVIA-HOOK-4 — pages/hub/trivia/endless.js. Fourth hook
+# adopter. Replaced bare selectedAnswer/showResult useState with shared
+# useTriviaQuestion hook. PR #515.
+TRAIN-WIRE-TRIVIA-HOOK-4
+# TRAIN-WIRE-TRIVIA-HOOK-5 — pages/hub/trivia/survival-game.js. Fifth hook
+# adopter. Replaced bare selectedAnswer/showResult useState with shared
+# useTriviaQuestion hook. Double Chance invariant preserved: first-wrong
+# early-return touches only local state. PR #517.
+TRAIN-WIRE-TRIVIA-HOOK-5
