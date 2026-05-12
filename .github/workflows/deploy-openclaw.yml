@@ -1,0 +1,79 @@
+name: Deploy Open Claw Cron Dispatcher
+
+# Auto-deploys scripts/openclaw-cron-dispatcher.py to the openclaw-dispatcher
+# VM on Hetzner when it changes on main, and restarts systemd openclaw.service.
+#
+# Required secrets (set once via GitHub Settings → Secrets):
+#   OPENCLAW_SSH_PRIVATE_KEY — private key authorized on the openclaw VM
+#   OPENCLAW_HOST            — public IP or hostname
+#   OPENCLAW_SSH_USER        — defaults to 'root' if unset
+#
+# Until those secrets are set the workflow runs but skips deploy (no-op).
+# That means we can ship the dispatcher change to main today and the
+# auto-deploy starts working as soon as Dan adds the secrets — no code
+# change needed.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/openclaw-cron-dispatcher.py'
+      - '.github/workflows/deploy-openclaw.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-openclaw
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect whether secrets are configured (skip if not)
+        id: gate
+        env:
+          KEY: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$HOST" ]; then
+            echo "::notice::OPENCLAW_SSH_PRIVATE_KEY or OPENCLAW_HOST not set — skipping deploy."
+            echo "::notice::To enable: set both repo secrets and re-run this workflow."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up SSH agent
+        if: steps.gate.outputs.configured == 'true'
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
+
+      - name: Trust openclaw host key
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.OPENCLAW_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: scp dispatcher + restart systemd + verify
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          USER: ${{ secrets.OPENCLAW_SSH_USER || 'root' }}
+        run: |
+          scp scripts/openclaw-cron-dispatcher.py \
+            "$USER@$HOST:/tmp/openclaw-cron-dispatcher.py"
+          ssh "$USER@$HOST" '
+            set -e
+            sudo mv /tmp/openclaw-cron-dispatcher.py /opt/openclaw/dispatcher.py
+            sudo chmod 0644 /opt/openclaw/dispatcher.py
+            sudo systemctl restart openclaw.service
+            sleep 3
+            sudo systemctl is-active openclaw.service
+            echo "--- last 25 dispatcher log lines ---"
+            sudo journalctl -u openclaw.service -n 25 --no-pager
+          '

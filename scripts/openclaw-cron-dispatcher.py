@@ -323,6 +323,14 @@ ALL_CRONS = [
     ('/api/cron/anti-cheat-bot-timing',            dict(minute=0)),           # hourly — intra-hand delta std-dev (x67-1)
     ('/api/cron/anti-cheat-chip-dump',             dict(minute='*/30')),      # every 30 min — giver→receiver pair pattern (x69)
 
+    # ══ YT PIPELINE — auto-recovery for failed transcode jobs (2026-05-12) ═════
+    # Re-queues video_transcode_jobs that failed with cookie-auth or transient
+    # patterns so the worker retries them with the current POT+player_skip
+    # stack (PR #523). Most cookie-auth failures from earlier weeks will now
+    # succeed because the pipeline no longer depends on Google login.
+    # Safe: caps at 200 jobs/fire, skips jobs <1h old, skips attempts>=5.
+    ('/api/cron/yt-pipeline-recovery',            dict(hour='*/6')),          # every 6h
+
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
