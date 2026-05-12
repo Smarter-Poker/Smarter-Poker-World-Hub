@@ -15,6 +15,8 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -50,8 +52,38 @@ export default function TournamentsPage() {
     // Playing state
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [showResult, setShowResult] = useState(false);
+    // TRAIN-WIRE-TRIVIA-HOOK-3 - shared trivia answer-state plumbing
+    const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
+        onAnswer: ({ index, isCorrect }) => {
+            setIsTimerRunning(false);
+
+            // Track answer accuracy per question for history recording
+            answersRef.current[currentQuestionIndex] = isCorrect;
+
+            if (isCorrect) {
+                const newScore = scoreRef.current + 100;
+                scoreRef.current = newScore;
+                setScore(newScore);
+                busEmit.decisionCorrect(newScore);
+            } else {
+                busEmit.decisionIncorrect(scoreRef.current);
+                busEmit.screenShake('light');
+            }
+
+            // Advance quickly - no GTO explanations in tournaments
+            setTimeout(() => {
+                if (currentQuestionIndex + 1 >= questions.length) {
+                    finishRoundPlay();
+                } else {
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    trivia.reset();
+                    setTimeLeft(40);
+                    setIsTimerRunning(true);
+                }
+            }, 500);
+        }
+    });
+    const { selectedAnswer, showResult } = trivia;
     const [score, setScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(40);
     const [startTime, setStartTime] = useState(null);
@@ -423,8 +455,7 @@ export default function TournamentsPage() {
         setScore(0);
         scoreRef.current = 0;
         answersRef.current = [];
-        setSelectedAnswer(null);
-        setShowResult(false);
+        trivia.reset();
         setTimeLeft(40);
         setStartTime(Date.now());
         setIsTimerRunning(true);
@@ -433,44 +464,7 @@ export default function TournamentsPage() {
 
     function handleTimeout() {
         setIsTimerRunning(false);
-        selectAnswer(-1); // Wrong answer on timeout
-    }
-
-    function selectAnswer(index) {
-        if (selectedAnswer !== null || showResult) return;
-
-        setIsTimerRunning(false);
-        setSelectedAnswer(index);
-        setShowResult(true);
-
-        const currentQuestion = questions[currentQuestionIndex];
-        const isCorrect = index >= 0 && index === currentQuestion?.correct_index;
-
-        // Track answer accuracy per question for history recording
-        answersRef.current[currentQuestionIndex] = isCorrect;
-
-        if (isCorrect) {
-            const newScore = scoreRef.current + 100;
-            scoreRef.current = newScore;
-            setScore(newScore);
-            busEmit.decisionCorrect(newScore);
-        } else {
-            busEmit.decisionIncorrect(scoreRef.current);
-            busEmit.screenShake('light');
-        }
-
-        // Advance quickly — no GTO explanations in tournaments
-        setTimeout(() => {
-            if (currentQuestionIndex + 1 >= questions.length) {
-                finishRoundPlay();
-            } else {
-                setCurrentQuestionIndex(prev => prev + 1);
-                setSelectedAnswer(null);
-                setShowResult(false);
-                setTimeLeft(40);
-                setIsTimerRunning(true);
-            }
-        }, 500);
+        trivia.selectAnswer(-1); // Wrong answer - delegates to shared hook
     }
 
     async function finishRoundPlay() {
@@ -932,7 +926,7 @@ export default function TournamentsPage() {
                                     selectedAnswer={selectedAnswer}
                                     correctIndex={currentQuestion.correct_index}
                                     showResult={showResult}
-                                    onSelect={selectAnswer}
+                                    onSelect={trivia.selectAnswer}
                                   />
                                 ))}
                                 </div>
