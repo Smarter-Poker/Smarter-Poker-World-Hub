@@ -132,14 +132,24 @@ export function SharedPostCreator({
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
+    // Dan-fix/home-group-targets (2026-05-12): the DB function was deduplicated
+    // to a single no-arg overload (was previously ambiguous w/ a 1-arg overload
+    // that PostgREST could pick randomly), and the silent catch is now logged so
+    // future failures surface in the browser console for fast diagnosis.
     supabase
       .rpc('fn_list_my_post_targets')
       .then(({ data, error }) => {
-        if (cancelled || error) return;
+        if (cancelled) return;
+        if (error) {
+          console.warn('[SharedPostCreator] fn_list_my_post_targets error:', error.message || error);
+          return;
+        }
         const hgs = (data || []).filter((t) => t.kind === 'home_group');
         if (!cancelled) setHomeGroupTargets(hgs);
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[SharedPostCreator] fn_list_my_post_targets threw:', err && err.message ? err.message : err);
+      });
     return () => {
       cancelled = true;
     };
