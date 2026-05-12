@@ -192,32 +192,67 @@ export default async function handler(req, res) {
   // makes this O(1).
   const { data: paidPurchases } = await supabase
     .from('diamond_purchases')
-    .select('id')
+    .select('completed_at')
     .eq('user_id', user.id)
     .eq('status', 'completed')
     .is('refunded_at', null)
+    .order('completed_at', { ascending: true })
     .limit(1);
-  const hasPaid = (paidPurchases?.length || 0) > 0;
+  const firstPurchaseAt = paidPurchases?.[0]?.completed_at
+    ? new Date(paidPurchases[0].completed_at)
+    : null;
+  const hasPaid = firstPurchaseAt !== null;
+  const daysSinceFirstPurchase = firstPurchaseAt
+    ? (Date.now() - firstPurchaseAt.getTime()) / (1000 * 60 * 60 * 24)
+    : null;
+  const isPostPurchaseCooldown = hasPaid && daysSinceFirstPurchase >= 7;
+  const isFreshPaid = hasPaid && !isPostPurchaseCooldown && senderAgeDays < NEW_USER_BLOCK_DAYS;
 
   // ── Trust signal: graduated OR paid, AND not flagged ──
   // Logical NOT correctly treats NULL and false identically — only true is
   // restricted. Mirrors fn_check_anti_farming_gift_cap exactly so the DB
   // trigger never blocks what the JS layer admits (and vice versa).
   const isGraduated = senderAgeDays >= GRADUATION_DAYS;
-  const isFullyUnrestricted =
-    (isGraduated || hasPaid) && !senderProfile?.is_farming_flagged;
+  const isFullyUnrestricted = !senderProfile?.is_farming_flagged && (
+    isGraduated || isPostPurchaseCooldown
+  );
 
   // ── GUARD: Hard block — new users (< 30 days) cannot send live gifts ──
   // Trusted senders (paid OR graduated unflagged) bypass the new-user block.
   // Per platform rule: "unlimited gifting for paid users and 120d+ unflagged
   // senders". KINGFISH bypass remains independent.
-  if (!isKingfish && !isFullyUnrestricted && senderAgeDays < NEW_USER_BLOCK_DAYS) {
+  if (!isKingfish && !hasPaid && senderAgeDays < NEW_USER_BLOCK_DAYS) {
     const daysRemaining = Math.ceil(NEW_USER_BLOCK_DAYS - senderAgeDays);
     return res.status(403).json({
       error: `New accounts cannot send live gifts until your 30-Day VIP Card expires. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`,
       daysRemaining,
       gateType: 'new_user_block',
     });
+  }
+
+  if (!isKingfish && isFreshPaid) {
+    const last24hStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: sent24h } = await supabase.rpc('sum_diamond_transactions', {
+      p_user_id: user.id,
+      p_types: ['diamond_gift_sent', 'live_gift_sent'],
+      p_start: last24hStart,
+    });
+    if ((sent24h || 0) + parsedAmount > 500) {
+      const liftAt = new Date(firstPurchaseAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const liftDate = liftAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      return res.status(429).json({
+        error: `Daily limit of 500 diamonds reached`,
+        gateType: 'fresh_paid_24h_cap',
+        title: 'Daily Limit Reached',
+        popup_message: 'You Have Reached Your Daily 500 Diamond Sending Limit',
+        popup_explanation: 'New Paid Accounts Are Limited To 500 Diamonds Per Day During The First 7 Days After Your First Purchase To Protect Against Fraud',
+        next_send_message: 'You Can Send More Diamonds Tomorrow',
+        limits_lift_at: liftAt.toISOString(),
+        limits_lift_message: `Your Limits Are Fully Lifted On ${liftDate}`,
+        amount_sent_24h: sent24h || 0,
+        amount_cap_24h: 500,
+      });
+    }
   }
 
   // ── GUARD: Source-tier rolling 30-day cap (accounts < 120 days, not paid, or flagged) ──
@@ -317,6 +352,27 @@ export default async function handler(req, res) {
 
     // deduct_diamonds returns jsonb with success field
     if (deductErr) {
+      // Anti-farming trigger raised? Parse popup payload from error.details
+      if (deductErr.code === 'P0001' && deductErr.details) {
+        try {
+          const popup = JSON.parse(deductErr.details);
+          if (popup && popup.code && popup.title) {
+            await refundSender?.('cap_blocked');
+            return res.status(429).json({
+              error: popup.reason,
+              gateType: popup.code,
+              title: popup.title,
+              popup_message: popup.popup_message,
+              popup_explanation: popup.popup_explanation,
+              next_send_message: popup.next_send_message,
+              limits_lift_at: popup.limits_lift_at,
+              limits_lift_message: popup.limits_lift_message,
+              amount_sent_24h: popup.amount_sent_24h,
+              amount_cap_24h: popup.amount_cap_24h,
+            });
+          }
+        } catch (_) { /* fall through to legacy */ }
+      }
       console.warn('[live/gift] Deduction failed:', deductErr.message);
       return res
         .status(500)
