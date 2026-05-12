@@ -1,0 +1,20 @@
+[Unit]
+Description=Smarter Poker YouTube Cookie Keep-Alive (extend session without re-harvest)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=openclaw
+WorkingDirectory=/opt/smarter-poker/yt-transcode-worker
+ExecStart=/opt/smarter-poker/yt-transcode-worker/keep-alive-cookies.sh
+StandardOutput=journal
+StandardError=journal
+Environment=COOKIES_FILE=/opt/smarter-poker/yt-transcode-worker/cookies.txt
+# Do NOT fail the service unit on a non-zero exit — exit 1/2/3 are diagnostic,
+# they don't indicate a service-level bug; we want the timer to keep firing
+# so cookies recover on their own once an operator re-bootstraps.
+SuccessExitStatus=0 1 2 3
+
+[Install]
+WantedBy=multi-user.target

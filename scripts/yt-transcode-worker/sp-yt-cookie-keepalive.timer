@@ -1,0 +1,18 @@
+[Unit]
+Description=Smarter Poker YouTube Cookie Keep-Alive Timer (every 30 min)
+Requires=sp-yt-cookie-keepalive.service
+
+[Timer]
+# First run 1 minute after boot
+OnBootSec=1min
+# Then every 30 minutes — far more frequent than session expiry (~24h)
+# so a single failed run never lets cookies go stale.
+OnUnitActiveSec=30min
+Unit=sp-yt-cookie-keepalive.service
+Persistent=true
+# Randomize +/- 60s so we don't hit YouTube at the exact same wall-clock
+# moment if the worker is also under load.
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target
