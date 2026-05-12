@@ -545,8 +545,13 @@ export default function CreateHomeGamePage() {
             unsticking the header mid-scroll. Fixed positioning is immune to
             ancestor overflow/transform. A spacer below reserves height so
             page content doesn't jump under the pinned bar. */}
-        <div className="fixed top-0 left-0 right-0 z-50">
-          <header className="cmd-header-bar">
+        {/* Dan-fix/header-overlap (2026-05-12): cmd-header-bar uses inline-flex
+            which shrunk the header to content width, exposing the page behind it.
+            Removed that class and added an opaque background to the fixed wrapper
+            so content never bleeds through. Spacer bumped from 61 to 80 to match
+            real rendered height (header + progress bar). */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#0F1C32] border-b border-[#4A5E78]">
+          <header className="bg-[#0F1C32]">
             <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
               <button
                 onClick={() => router.back()}
@@ -575,8 +580,8 @@ export default function CreateHomeGamePage() {
             </div>
           </div>
         </div>
-        {/* Dan-fix/header-pin-v2: spacer reserves space below the fixed header */}
-        <div style={{ height: 61 }} aria-hidden="true" />
+        {/* Dan-fix/header-overlap (2026-05-12): spacer matches header+progress bar */}
+        <div style={{ height: 80 }} aria-hidden="true" />
 
         {/* ── Club Commander Home Games — Unified Signup Banner ──
             Shown identically whether the user arrived from Poker Near Me,
@@ -1616,8 +1621,11 @@ export default function CreateHomeGamePage() {
                           item.done ? 'bg-[#10B981]/10' : 'bg-[#0D192E] hover:bg-[#132240] cursor-pointer'
                         }`}
                           onClick={() => {
-                            if (!item.done && sp.id) {
-                              router.push(`/hub/social-pages/${sp.id}/manage`);
+                            // Dan-fix/manage-redirect (2026-05-12): home-game social
+                            // pages are quarantined from /api/social/pages (Phase 15).
+                            // Send users to the home-group native manage page instead.
+                            if (!item.done && createdGroup?.id) {
+                              router.push(`/hub/commander/home-games/${createdGroup.id}/manage`);
                             }
                           }}
                         >
@@ -1631,12 +1639,15 @@ export default function CreateHomeGamePage() {
                         </div>
                       ))}
                     </div>
+                    {/* Dan-fix/manage-redirect (2026-05-12): redirect to the
+                        home-group native manage page, not the quarantined
+                        social-pages route which returns 404 for home_game pages. */}
                     <button
-                      onClick={() => router.push(`/hub/social-pages/${sp.id}/manage`)}
+                      onClick={() => router.push(`/hub/commander/home-games/${createdGroup.id}/manage`)}
                       className="cmd-btn cmd-btn-secondary w-full h-10 text-sm flex items-center justify-center gap-2"
                     >
                       <Share2 className="w-4 h-4" />
-                      Complete Your Social Page
+                      Complete Your Home Group Setup
                     </button>
                   </div>
                 );
