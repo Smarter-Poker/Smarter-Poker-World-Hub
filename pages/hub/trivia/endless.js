@@ -24,6 +24,7 @@ import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAu
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
@@ -43,8 +44,9 @@ export default function EndlessModePage() {
     const [gameState, setGameState] = useState('ready'); // ready, playing, gameover
     const [questions, setQuestions] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [showResult, setShowResult] = useState(false);
+    // TRAIN-WIRE-TRIVIA-HOOK-4 — selectedAnswer/showResult managed by shared hook
+    const currentQuestion = questions[currentIndex];
+    const trivia = useTriviaQuestion(currentQuestion);
     const [streak, setStreak] = useState(0);
     const [diamondsEarned, setDiamondsEarned] = useState(0);
     const [multiplier, setMultiplier] = useState(1);
@@ -291,7 +293,7 @@ export default function EndlessModePage() {
 
     // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake (respects settings)
     useEffect(() => {
-        if (!isTimerRunning || showResult) {
+        if (!isTimerRunning || trivia.showResult) {
             if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setScreenShake(false);
@@ -340,14 +342,14 @@ export default function EndlessModePage() {
             if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
             closeHeartbeatAudio();
         };
-    }, [isTimerRunning, showResult, timeLeft, settings]);
+    }, [isTimerRunning, trivia.showResult, timeLeft, settings]);
 
     // Handle timeout - game over
     function handleTimeOut() {
         setIsTimerRunning(false);
         setScreenShake(false);
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
-        setShowResult(true);
+        trivia.setShowResult(true);
         answerTimeoutRef.current = setTimeout(() => {
             setGameState('gameover');
             saveGameResult();
@@ -356,7 +358,7 @@ export default function EndlessModePage() {
 
     // 50/50 Lifeline Function
     async function useFiftyFifty() {
-        if (eliminatedOptions.length > 0 || showResult) return; // Already used on this question
+        if (eliminatedOptions.length > 0 || trivia.showResult) return; // Already used on this question
 
         const currentQ = questions[currentIndex];
         if (!currentQ) return;
@@ -407,7 +409,7 @@ export default function EndlessModePage() {
 
     // Skip Question Function (costs 5💎)
     async function useSkipQuestion() {
-        if (showResult || skipUsedThisQuestion) return;
+        if (trivia.showResult || skipUsedThisQuestion) return;
         if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
             // Lifeline limit reached — silently prevent
             return;
@@ -442,8 +444,7 @@ export default function EndlessModePage() {
 
         // Move to next question without penalty (keep streak)
         setCurrentIndex(prev => prev + 1);
-        setSelectedAnswer(null);
-        setShowResult(false);
+        trivia.reset();
         setEliminatedOptions([]);
         setSkipUsedThisQuestion(false);
         setDoubleChanceActive(false);
@@ -454,7 +455,7 @@ export default function EndlessModePage() {
     }
 
     async function useDoubleChance() {
-        if (showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
+        if (trivia.showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
         if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
             // Lifeline limit reached — silently prevent
             return;
@@ -489,7 +490,7 @@ export default function EndlessModePage() {
     }
 
     function selectAnswer(index) {
-        if (selectedAnswer !== null) return;
+        if (trivia.selectedAnswer !== null) return;
 
         // Stop timer
         setIsTimerRunning(false);
@@ -512,8 +513,8 @@ export default function EndlessModePage() {
         const currentQuestion = questions[currentIndex];
         const correct = index === currentQuestion?.correct_index;
 
-        setSelectedAnswer(index);
-        setShowResult(true);
+        trivia.setSelectedAnswer(index);
+        trivia.setShowResult(true);
 
         if (correct) {
             let earned = multiplier;
@@ -533,8 +534,7 @@ export default function EndlessModePage() {
 
             answerTimeoutRef.current = setTimeout(() => {
                 setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
-                setSelectedAnswer(null);
-                setShowResult(false);
+                trivia.reset();
                 setEliminatedOptions([]);
                 setSkipUsedThisQuestion(false);
                 setDoubleChanceActive(false);
@@ -697,12 +697,10 @@ export default function EndlessModePage() {
         });
         setCurrentIndex(0);
         currentIndexRef.current = 0;
-        setSelectedAnswer(null);
-        setShowResult(false);
+        trivia.reset();
         startGame();
     }
 
-    const currentQuestion = questions[currentIndex];
 
     return (
         <TriviaErrorBoundary pageName="Endless Mode">
@@ -1118,18 +1116,18 @@ export default function EndlessModePage() {
                                                 key={index}
                                                 index={index}
                                                 option={toTitleCase(option)}
-                                                selectedAnswer={selectedAnswer}
+                                                selectedAnswer={trivia.selectedAnswer}
                                                 correctIndex={currentQuestion.correct_index}
-                                                showResult={showResult}
+                                                showResult={trivia.showResult}
                                                 eliminated={eliminatedOptions.includes(index)}
-                                                disabled={selectedAnswer !== null || eliminatedOptions.includes(index)}
+                                                disabled={trivia.selectedAnswer !== null || eliminatedOptions.includes(index)}
                                                 onSelect={selectAnswer}
                                             />
                                         ))}
                                     </div>
 
                                     {/* Lifeline Buttons Row */}
-                                    {!showResult && (
+                                    {!trivia.showResult && (
                                         <div style={{
                                             display: 'flex',
                                             gap: '10px',
