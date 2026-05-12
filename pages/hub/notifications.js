@@ -121,25 +121,6 @@ function NotificationsPage() {
         }
     }, []);
 
-    // ── Swipe handlers (mobile) ──────────────────────────────────
-    const onTouchStart = useCallback((notifId, e) => {
-        const touch = e.touches[0];
-        touchStartRef.current = { x: touch.clientX, y: touch.clientY, id: notifId };
-    }, []);
-    const onTouchEnd = useCallback((e) => {
-        const touch = e.changedTouches[0];
-        const { x: startX, y: startY, id } = touchStartRef.current;
-        const dx = touch.clientX - startX;
-        const dy = Math.abs(touch.clientY - startY);
-        // Require >60px horizontal, <30px vertical
-        if (dx < -60 && dy < 30 && id) {
-            setSwipedId(id);
-        } else if (dx > 40 && id) {
-            setSwipedId(null);
-        }
-        touchStartRef.current = { x: 0, y: 0, id: null };
-    }, []);
-
     // 🛡️ INSTANT UI: Hydrate from localStorage AFTER mount (prevents SSR mismatch)
     // [Audit#20] Added 5-minute TTL — discard stale cache to prevent old data flashing
     useEffect(() => {
@@ -372,51 +353,6 @@ function NotificationsPage() {
         }
     };
 
-    const markAllAsRead = () => {
-        if (!user) return;
-        const unreadCount = notifications.filter(n => !n.read).length;
-        if (unreadCount === 0) return; // Nothing to do
-
-        // EAGER STATE SYNCHRONIZATION
-        if (mounted.current) {
-            setNotifications(prev => {
-                const next = prev.map(n => ({ ...n, read: true }));
-                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                return next;
-            });
-        }
-        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
-        busEmit.dataMutated('notifications');
-        try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: 0 }, '*'); } catch (_) {}
-        
-        const hasSocial = notifications.some(n => !n.read && n._source === 'social');
-        const hasPoker = notifications.some(n => !n.read && n._source === 'poker');
-
-        if (hasSocial) {
-            // Fire-and-forget DB update — mark all social unread as read (scoped to unread only)
-            supabase
-                .from('notifications')
-                .update({ read: true })
-                .eq('user_id', user.id)
-                .eq('read', false)
-                .select('id')
-                .then(({ error }) => { if (error) console.warn('[markAllAsRead] DB error:', error); })
-                .catch(e => console.warn('[markAllAsRead] Exception:', e));
-        }
-
-        if (hasPoker) {
-            getAccessToken().then(token => 
-                fetch('/api/poker/notifications', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                    body: JSON.stringify({ mark_all: true })
-                }).catch(console.warn)
-            );
-        }
-    };
-
     // ═══════════════════════════════════════════════════════════════════════════
     // FRIEND REQUEST HANDLERS (SmarterPoker-style: Decline = Auto-Follow)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -609,15 +545,6 @@ function NotificationsPage() {
                             }}>{unreadCount}</span>
                         )}
                     </div>
-                    {unreadCount > 0 && (
-                        <button
-                            onClick={markAllAsRead}
-                            style={{
-                                background: 'none', border: 'none', color: C.blue,
-                                fontSize: 14, fontWeight: 600, cursor: 'pointer'
-                            }}
-                        >Mark All As Read</button>
-                    )}
                 </header>
 
                 {/* Notifications List — [Audit#17] tap anywhere to dismiss open swipes */}
@@ -862,38 +789,15 @@ function NotificationsPage() {
                                         transition: 'opacity 0.3s ease, max-height 0.3s ease',
                                     }}
                                 >
-                                    {/* Delete backdrop (mobile swipe reveal) */}
-                                    <div style={{
-                                        position: 'absolute', right: 0, top: 0, bottom: 0,
-                                        width: 80, background: '#FA383E',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        zIndex: 1
-                                    }}>
-                                        <button
-                                            onClick={(e) => handleDelete(n.id, e)}
-                                            style={{
-                                                background: 'none', border: 'none', color: '#fff',
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                                gap: 4, cursor: 'pointer', padding: 8
-                                            }}
-                                        >
-                                            <Trash2 size={20} />
-                                            <span style={{ fontSize: 11, fontWeight: 600 }}>Delete</span>
-                                        </button>
-                                    </div>
-
-                                    {/* Main notification row (slides on swipe) */}
+                                    {/* Main notification row */}
                                     <div
                                         onClick={handleClick}
-                                        onTouchStart={(e) => onTouchStart(n.id, e)}
-                                        onTouchEnd={onTouchEnd}
                                         style={{
                                             padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
                                             background: n.read ? C.card : 'rgba(24, 119, 242, 0.08)',
                                             cursor: isClickable ? 'pointer' : 'default',
                                             position: 'relative', zIndex: 2,
-                                            transform: isSwiped ? 'translateX(-80px)' : 'translateX(0)',
-                                            transition: 'transform 0.25s ease-out',
+                                            transition: 'background 0.2s ease',
                                         }}
                                     >
                                         {/* Avatar with Lucide action badge */}
@@ -971,7 +875,10 @@ function NotificationsPage() {
                                                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue }} />
                                             )}
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(isConfirming ? null : n.id); setSwipedId(null); }}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    handleDelete(n.id, e); 
+                                                }}
                                                 style={{
                                                     background: 'none', border: 'none', cursor: 'pointer',
                                                     padding: 4, borderRadius: '50%', display: 'flex',
@@ -985,47 +892,6 @@ function NotificationsPage() {
                                             </button>
                                         </div>
                                     </div>
-
-                                    {/* Confirm delete overlay */}
-                                    {isConfirming && (
-                                        <div
-                                            style={{
-                                                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                                                background: 'rgba(0,0,0,0.75)', zIndex: 10,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12
-                                            }}
-                                            // [Audit#9] Use e.target check so backdrop click fires Cancel
-                                            // but inner button clicks are NOT intercepted by backdrop
-                                            onClick={(e) => {
-                                                if (e.target === e.currentTarget) {
-                                                    e.stopPropagation();
-                                                    setConfirmDeleteId(null);
-                                                }
-                                            }}
-                                        >
-                                            <button
-                                                onClick={(e) => handleDelete(n.id, e)}
-                                                style={{
-                                                    background: '#FA383E', color: '#fff', border: 'none',
-                                                    padding: '10px 24px', borderRadius: 20, fontWeight: 700,
-                                                    fontSize: 14, cursor: 'pointer', display: 'flex',
-                                                    alignItems: 'center', gap: 6, boxSizing: 'border-box'
-                                                }}
-                                            >
-                                                <Trash2 size={16} /> Delete
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                                                style={{
-                                                    background: '#E4E6EB', color: C.text, border: 'none',
-                                                    padding: '10px 24px', borderRadius: 20, fontWeight: 700,
-                                                    fontSize: 14, cursor: 'pointer', boxSizing: 'border-box'
-                                                }}
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })
