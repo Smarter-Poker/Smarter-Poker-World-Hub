@@ -1780,3 +1780,25 @@ TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3
 # prevent the double-fire race that several trivia pages hand-rolled with
 # different inline guards. Adoption can land incrementally.
 TRAIN-TRIVIA-HOOK-1
+
+
+# ─── Phase-33/34/35: useTriviaQuestion hook adoption (3 CSS-class adopters) ──
+# TRAIN-WIRE-TRIVIA-HOOK-1 — pages/hub/trivia/mixed.js. First adopter of
+# useTriviaQuestion. Replaces the inline useState plumbing (selectedAnswer +
+# showResult) and the hand-rolled function selectAnswer(index) with the
+# shared hook. Mode-specific side effects (timer stop, per-category stats,
+# scoring, answersRef ledger, busEmit, 1200ms advance via setTimeout)
+# live in the hook's onAnswer callback so external semantics are identical.
+TRAIN-WIRE-TRIVIA-HOOK-1
+# TRAIN-WIRE-TRIVIA-HOOK-2 — pages/hub/trivia/pvp.js. Second hook adopter.
+# Same pattern as HOOK-1 but with PvP-specific side effects (per-question
+# accuracy ledger via playerAnswersRef, scoreRef, 500ms advance). PR #504
+# also restored the missing TriviaAnswerOption import that PR #497 had
+# left dangling — would have crashed the PvP playing screen at runtime.
+TRAIN-WIRE-TRIVIA-HOOK-2
+# TRAIN-WIRE-TRIVIA-HOOK-3 — pages/hub/trivia/tournaments.js. Third hook
+# adopter. Same pattern with tournament-specific side effects (scoreRef
+# += 100 per correct, answersRef ledger, finishRoundPlay on last question,
+# 500ms advance). PR #505 also restored the missing TriviaAnswerOption
+# import (same latent crash as pvp.js had).
+TRAIN-WIRE-TRIVIA-HOOK-3
