@@ -131,13 +131,25 @@ export default async function handler(req, res) {
           const followerIds = followerRaw ? followerRaw.map(f => f.follower_id) : [];
           const followers = await resolveFriendIds(followerIds, fullFields);
 
-          // 7. Suggestions (all other users, minus friends)
-          const { data: allUsers } = await getSupabase()
+          // 7. Suggestions — exclude self, current friends, and pending outgoing
+          const existingConnectionIds = [
+            ...allFriendIds,
+            ...(outgoingRequests || []).map(r => r.friend_id),
+          ];
+
+          let suggestionsQuery = getSupabase()
             .from('profiles')
             .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active')
             .neq('id', userId)
-            .order('created_at', { ascending: false })
-            .limit(100);
+            .order('last_active', { ascending: false, nullsLast: true })
+            .limit(200);
+
+          // Filter out existing connections (friends + pending) if any
+          const { data: allUsers } = await suggestionsQuery;
+
+          // Client-side exclude existing connections
+          const excludeSet = new Set(existingConnectionIds);
+          const filteredSuggestions = (allUsers || []).filter(u => !excludeSet.has(u.id));
 
           return res.status(200).json({
             success: true,
@@ -150,7 +162,7 @@ export default async function handler(req, res) {
               followingIds,
               followers,
               followerIds,
-              suggestions: allUsers || [],
+              suggestions: filteredSuggestions,
             }
           });
         }

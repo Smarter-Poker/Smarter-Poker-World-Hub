@@ -431,6 +431,7 @@ function FriendsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [searchFilter, setSearchFilter] = useState('all'); // 'all' | 'friends' | 'non-friends'
 
     // ID sets for quick lookup
     const [friendIds, setFriendIds] = useState(new Set());
@@ -608,10 +609,17 @@ function FriendsPage() {
                     .select('*')
                     .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
                     .neq('id', user?.id || '')
-                    .limit(20);
+                    .limit(50);
 
                 if (data && mounted.current) {
-                    setSearchResults(data);
+                    // Apply friend filter
+                    let filtered = data;
+                    if (searchFilter === 'friends') {
+                        filtered = data.filter(p => friendIds.has(p.id));
+                    } else if (searchFilter === 'non-friends') {
+                        filtered = data.filter(p => !friendIds.has(p.id));
+                    }
+                    setSearchResults(filtered);
                 }
             } catch (e) {
                 console.warn('[Friends] Search error:', e?.message || e);
@@ -620,7 +628,7 @@ function FriendsPage() {
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [searchQuery, user?.id]);
+    }, [searchQuery, searchFilter, user?.id, friendIds]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!user?.id) return;
@@ -753,6 +761,19 @@ function FriendsPage() {
                 toast.success('Friend request sent!');
                 busEmit.friendRequestSent(friendId);
                 broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
+                // Insert in-app notification for the recipient so it shows in their bell
+                const senderName = user?.user_metadata?.full_name || user?.user_metadata?.username || 'Someone';
+                const senderUsername = user?.user_metadata?.username || user?.id;
+                supabase.from('notifications').insert({
+                    user_id: friendId,
+                    actor_id: user.id,
+                    type: 'friend_request',
+                    title: senderName,
+                    message: 'sent you a friend request',
+                    action_url: `/hub/user/${senderUsername}`,
+                    data: { sender_id: user.id, sender_name: senderName },
+                    read: false,
+                }).then().catch(e => console.warn('[friends] Notification insert (non-fatal):', e));
             } else {
                 // Rollback optimistic update
                 setPendingIds(prev => {
@@ -791,8 +812,11 @@ function FriendsPage() {
                     setFriendRequests(prev => [...prev, request]);
                     toast.error('Failed to accept friend request.');
                 } else {
-                    // Create reverse friendship after confirm
-                    supabase.from('friendships').insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' }).then().catch(e => console.warn('[friends] Handled exception:', e));
+                    // Create reverse friendship after confirm — use upsert to handle unique constraint edge cases
+                    supabase.from('friendships').upsert(
+                        { user_id: user.id, friend_id: request.user_id, status: 'accepted' },
+                        { onConflict: 'user_id,friend_id', ignoreDuplicates: false }
+                    ).then().catch(e => console.warn('[friends] Handled exception:', e));
                     // Send "friend_accepted" in-app notification to the requester (parity with Horse engine)
                     try {
                         const token = getAccessToken();
@@ -1156,6 +1180,7 @@ function FriendsPage() {
                         borderRadius: 24,
                         padding: '12px 20px',
                         border: `1px solid ${C.border}`,
+                        marginBottom: 10,
                     }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                         <input
@@ -1186,6 +1211,28 @@ function FriendsPage() {
                             >×</button>
                         )}
                     </div>
+                    {/* Search filter: All / Friends / Non-Friends */}
+                    {searchQuery.trim() && (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            {[['all', 'All Users'], ['friends', 'Friends Only'], ['non-friends', 'Non-Friends']].map(([val, label]) => (
+                                <button
+                                    key={val}
+                                    onClick={() => setSearchFilter(val)}
+                                    style={{
+                                        padding: '5px 14px',
+                                        borderRadius: 16,
+                                        border: `1px solid ${searchFilter === val ? C.blue : C.border}`,
+                                        background: searchFilter === val ? 'rgba(59,130,246,0.15)' : 'transparent',
+                                        color: searchFilter === val ? C.blue : C.textSec,
+                                        fontWeight: searchFilter === val ? 700 : 500,
+                                        fontSize: 12,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                    }}
+                                >{label}</button>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 {/* Tabs */}
                 <div style={{

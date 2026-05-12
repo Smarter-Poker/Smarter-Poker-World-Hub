@@ -2366,17 +2366,22 @@ export default function UserProfilePage() {
         ];
 
         // Friendship status checks (only if logged in)
+        // BUG-6 FIX: Check BOTH socialId (horse identity) AND profile.id to catch
+        // cases where friendship rows were stored using one or the other identifier.
         if (user) {
+          const profileId = data?.id || '';
           batch1Promises.push(
+            // Direction 1: current user sent to target
             supabase
               .from('friendships')
               .select('status')
               .eq('user_id', user.id)
-              .eq('friend_id', socialId),
+              .or(`friend_id.eq.${socialId}${profileId !== socialId ? `,friend_id.eq.${profileId}` : ''}`),
+            // Direction 2: target sent to current user
             supabase
               .from('friendships')
               .select('status')
-              .eq('user_id', socialId)
+              .or(`user_id.eq.${socialId}${profileId !== socialId ? `,user_id.eq.${profileId}` : ''}`)
               .eq('friend_id', user.id),
             // Current user's friend IDs (two-direction)
             supabase
@@ -3008,13 +3013,28 @@ export default function UserProfilePage() {
         status: 'pending',
       });
       if (error) throw error;
+      toast.success('Friend request sent!');
       invalidateProfileCache();
       busEmit.friendRequestSent(targetId);
       notifyFriendsSync();
+      // Insert in-app notification for the recipient
+      const senderName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.username || 'Someone';
+      const senderUsername = currentUser?.user_metadata?.username || currentUser?.id;
+      supabase.from('notifications').insert({
+        user_id: targetId,
+        actor_id: currentUser.id,
+        type: 'friend_request',
+        title: senderName,
+        message: 'sent you a friend request',
+        action_url: `/hub/user/${senderUsername}`,
+        data: { sender_id: currentUser.id, sender_name: senderName },
+        read: false,
+      }).then().catch(e => console.warn('[profile] Notification insert (non-fatal):', e));
     } catch (e) {
       // Rollback optimistic update on failure
       setFriendRequestSent(false);
       console.warn('[App] Handled exception:', e?.message || e);
+      toast.error('Could not send friend request. Please try again.');
     }
   };
 
