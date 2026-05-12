@@ -12,6 +12,7 @@
 // TRAIN-CSS-MOBILE-ADOPT-7 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizAnswer';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -466,47 +467,23 @@ export default function ScenarioDemoPage() {
                     >
                       {quizQ.q}
                     </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                        maxWidth: 320,
-                        margin: '0 auto',
-                      }}
-                    >
-                      {quizQ.options.map((opt) => {
-                        const isSelected = quizAnswer === opt;
-                        const isCorrect = opt === quizQ.correct;
+                    {/* TRAIN-WIRE-QUIZ-ANSWER-1 — quiz options via shared QuizAnswer primitive */}
+                    <QuizAnswerStack gap={8} maxWidth={320}>
+                      {quizQ.options.map((opt, idx) => {
                         const show = quizAnswer !== null;
                         return (
-                          <motion.button
+                          <QuizAnswer
                             key={opt}
-                            whileTap={!show ? { scale: 0.97 } : {}}
+                            label={opt}
+                            shortcut={idx + 1}
+                            selected={quizAnswer === opt}
+                            correct={opt === quizQ.correct}
+                            show={show}
                             onClick={() => answerQuizQ(opt)}
-                            disabled={show}
-                            style={{
-                              padding: '12px',
-                              borderRadius: 8,
-                              background: show
-                                ? isCorrect
-                                  ? 'rgba(34,197,94,0.12)'
-                                  : isSelected
-                                    ? 'rgba(239,68,68,0.12)'
-                                    : 'rgba(0,0,0,0.2)'
-                                : 'rgba(0,0,0,0.2)',
-                              border: `1px solid ${show ? (isCorrect ? 'rgba(34,197,94,0.4)' : isSelected ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.05)') : 'rgba(255,255,255,0.08)'}`,
-                              color: 'var(--sp-fg)',
-                              fontSize: 13,
-                              cursor: show ? 'default' : 'pointer',
-                            }}
-                          >
-                            {opt} {show && isCorrect && '✓'}{' '}
-                            {show && isSelected && !isCorrect && '✗'}
-                          </motion.button>
+                          />
                         );
                       })}
-                    </div>
+                    </QuizAnswerStack>
                     {quizAnswer !== null && (
                       <motion.button
                         initial={{ opacity: 0, y: 8 }}
