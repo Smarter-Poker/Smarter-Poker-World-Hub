@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MULTIWAY RANGES DATA — Pre-computed for common spots
@@ -664,9 +665,14 @@ export default function MultiwayPreflopPage() {
 
                 {quizAnswer === null ? (
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
+                    {/* TRAIN-WIRE-QUIZ-ANSWER-5 — YES/NO via shared QuizAnswer */}
+                    <QuizAnswer
+                      label="YES"
+                      shortcut={1}
+                      selected={false}
+                      correct={false}
+                      show={false}
+                      fullWidth
                       onClick={() => {
                         setQuizAnswer(true);
                         setQuizScore((p) => ({
@@ -674,24 +680,14 @@ export default function MultiwayPreflopPage() {
                           correct: p.correct + (quizHand.correct ? 1 : 0),
                         }));
                       }}
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        borderRadius: 10,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: 800,
-                        background: 'rgba(34,197,94,0.15)',
-                        color: '#22c55e',
-                        border: '1px solid rgba(34,197,94,0.3)',
-                      }}
-                    >
-                      YES
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
+                    />
+                    <QuizAnswer
+                      label="NO"
+                      shortcut={2}
+                      selected={false}
+                      correct={false}
+                      show={false}
+                      fullWidth
                       onClick={() => {
                         setQuizAnswer(false);
                         setQuizScore((p) => ({
@@ -699,21 +695,7 @@ export default function MultiwayPreflopPage() {
                           correct: p.correct + (!quizHand.correct ? 1 : 0),
                         }));
                       }}
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        borderRadius: 10,
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: 800,
-                        background: 'rgba(239,68,68,0.15)',
-                        color: '#ef4444',
-                        border: '1px solid rgba(239,68,68,0.3)',
-                      }}
-                    >
-                      NO
-                    </motion.button>
+                    />
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center' }}>

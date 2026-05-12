@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 // TRAIN-WIRE-FX-4a — adoption: feedback hook for spot-trainer.fresh.js
 
 function saveSession(payload) {
@@ -633,56 +634,25 @@ export default function SpotTrainerPage() {
                     marginBottom: 16,
                   }}
                 >
-                  {spot.options.map((action, i) => {
-                    const isSelected = selected === action;
-                    const isCorrect = action === spot.gtoAction;
-                    let bg = 'rgba(255,255,255,0.06)';
-                    let borderColor = 'rgba(255,255,255,0.1)';
-                    let textColor = 'var(--sp-fg)';
-
-                    if (showResult) {
-                      if (isCorrect) {
-                        bg = 'rgba(34,197,94,0.15)';
-                        borderColor = 'var(--sp-accent-green)';
-                        textColor = 'var(--sp-accent-green)';
-                      } else if (isSelected && !isCorrect) {
-                        bg = 'rgba(239,68,68,0.15)';
-                        borderColor = 'var(--sp-accent-red)';
-                        textColor = 'var(--sp-accent-red)';
-                      } else {
-                        textColor = 'var(--sp-fg-faint)';
-                      }
-                    }
-
-                    return (
-                      <motion.button
-                        key={action}
-                        whileTap={!showResult ? { scale: 0.96 } : {}}
-                        onClick={() => handleAnswer(action)}
-                        disabled={showResult}
-                        aria-label={`Choose ${action}`}
-                        style={{
-                          padding: '14px 12px',
-                          borderRadius: 10,
-                          fontSize: 13,
-                          fontWeight: 800,
-                          cursor: showResult ? 'default' : 'pointer',
-                          background: bg,
-                          border: `2px solid ${borderColor}`,
-                          color: textColor,
-                          transition: 'all 0.2s',
-                          fontFamily: "'Inter', sans-serif",
-                        }}
-                      >
-                        {action}
-                        {showResult && isCorrect && (
-                          <span style={{ marginLeft: 6, fontSize: 11 }}>
-                            ({spot.gtoFrequency}%)
-                          </span>
-                        )}
-                      </motion.button>
-                    );
-                  })}
+                  {/* TRAIN-WIRE-QUIZ-ANSWER-6 — options via shared QuizAnswer (preserves 2-col grid from parent) */}
+                  {spot.options.map((action, i) => (
+                    <QuizAnswer
+                      key={action}
+                      label={action}
+                      shortcut={i + 1}
+                      selected={selected === action}
+                      correct={action === spot.gtoAction}
+                      show={showResult}
+                      onClick={() => handleAnswer(action)}
+                      ariaLabel={`Choose ${action}`}
+                      size="md"
+                      fullWidth
+                    >
+                      {showResult && action === spot.gtoAction ? (
+                        <span style={{ marginLeft: 6, fontSize: 11 }}>({spot.gtoFrequency}%)</span>
+                      ) : null}
+                    </QuizAnswer>
+                  ))}
                 </div>
 
                 {/* Result Feedback */}
