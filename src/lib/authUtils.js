@@ -226,8 +226,26 @@ export function useRequireAuth(redirectPath) {
 
             // Full check with singleton deduplication (#8)
             const { supabase: sb } = await import('./supabase');
-            const u = await getAuthOnce(sb);
+            let u = await getAuthOnce(sb);
             if (cancelled) return;
+            // Audit-fix/auth-localstorage-fallback (2026-05-12): ensureAuthReady
+            // has been observed returning null even when localStorage holds a
+            // valid session — likely a race with the SDK's async hydration on
+            // cold loads. Before redirecting to /auth/login (which destroys
+            // any in-progress UI state via the PageErrorBoundary remount),
+            // do one final sync localStorage read. If we find a user, treat
+            // them as authenticated.
+            if (!u) {
+                try {
+                    await new Promise(r => setTimeout(r, 200));
+                    if (cancelled) return;
+                    const lastChance = getAuthUser();
+                    if (lastChance?.id) {
+                        u = lastChance;
+                        console.debug('[useRequireAuth] recovered via localStorage fallback');
+                    }
+                } catch (_) { /* fall through to redirect */ }
+            }
             if (!u) {
                 const target = redirectPath || router.asPath;
                 router.push('/auth/login?redirect=' + encodeURIComponent(target));

@@ -79,6 +79,16 @@ export default function CreateHomeGamePage() {
   // info they had already entered — confusing UX. Default closed so the
   // success screen is clean; user opts in to scheduling a game right away.
   const [showFirstGameForm, setShowFirstGameForm] = useState(false);
+  // Audit-fix/event-error-ui (2026-05-12): the Schedule First Game submission
+  // path previously swallowed every error in a console.warn — user saw no
+  // feedback when the API rejected the request (which it always does because
+  // of field-name mismatches between CreateGameForm and /api/home-games/events).
+  // Surface failures inline so the host knows what to fix.
+  const [firstGameError, setFirstGameError] = useState(null);
+  // Audit-fix/event-idempotency (2026-05-12): per-submission idempotency token
+  // so a double-click never creates two events. Rotated after a 2xx or
+  // parseable 4xx (server processed and rejected).
+  const eventSubmissionTokenRef = useRef(makeToken());
 
   // Dan-fix/banner-existing-host (2026-05-11): track whether the user
   // already owns at least one home group. `null` = still checking, `0` = new
@@ -1671,6 +1681,12 @@ export default function CreateHomeGamePage() {
                 {showFirstGameForm ? 'Hide First Game Schedule' : 'Schedule Your First Game (Optional)'}
               </button>
 
+              {showFirstGameForm && firstGameError && (
+                <div className="mb-3 p-3 bg-[#EF4444]/10 border border-[#EF4444]/40 rounded-lg" role="alert">
+                  <p className="text-sm font-semibold text-[#EF4444]">Could not schedule the first game</p>
+                  <p className="text-sm text-[#FCA5A5] mt-1">{firstGameError}</p>
+                </div>
+              )}
               {showFirstGameForm && (
               <CreateGameForm
                 groupId={createdGroup.id}
@@ -1699,24 +1715,77 @@ export default function CreateHomeGamePage() {
                   requires_approval: !!formData.requires_approval,
                 }}
                 onSubmit={async (eventData) => {
+                  // Audit-fix/event-field-mapping (2026-05-12): the shared
+                  // CreateGameForm component uses field names that DO NOT match
+                  // /api/home-games/events. Without this remap, every submit
+                  // returns 400 (missing scheduled_date) and the form silently
+                  // does nothing. Map names here at the integration boundary so
+                  // the shared component stays generic.
                   setEventSubmitting(true);
+                  setFirstGameError(null);
                   try {
                     const token = getAccessToken();
+                    if (!token) {
+                      setFirstGameError('Please sign in again — your session expired.');
+                      return;
+                    }
+                    const fullAddress = [eventData.address, eventData.city, eventData.state, eventData.zip]
+                      .filter(v => v && String(v).trim().length > 0)
+                      .join(', ');
+                    const apiPayload = {
+                      group_id: eventData.group_id,
+                      title: eventData.title,
+                      description: eventData.description,
+                      game_type: eventData.game_type,
+                      stakes: eventData.stakes,
+                      // API expects buyin_min/buyin_max, NOT buy_in_min/buy_in_max.
+                      buyin_min: eventData.buy_in_min,
+                      buyin_max: eventData.buy_in_max,
+                      // API expects scheduled_date, NOT event_date.
+                      scheduled_date: eventData.event_date,
+                      start_time: eventData.start_time,
+                      end_time: eventData.end_time,
+                      // CreateGameForm collects 4 separate address fields; API
+                      // takes one combined string.
+                      address: fullAddress || undefined,
+                      max_players: eventData.max_players,
+                      allow_guests: !!eventData.allow_guests,
+                      // API expects special_rules, NOT notes.
+                      special_rules: eventData.notes || undefined,
+                    };
                     const res = await fetch('/api/commander/home-games/events', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`
+                        Authorization: `Bearer ${token}`,
+                        'X-Idempotency-Key': eventSubmissionTokenRef.current,
                       },
-                      body: JSON.stringify(eventData)
+                      body: JSON.stringify(apiPayload)
                     });
-                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                    // Rotate idempotency on 2xx or parseable 4xx (server saw
+                    // and rejected our input — safe to retry with new key).
+                    if (res.ok || (res.status >= 400 && res.status < 500)) {
+                      eventSubmissionTokenRef.current = makeToken();
+                    }
+                    if (!res.ok) {
+                      let serverMsg = '';
+                      try {
+                        const errBody = await res.json();
+                        serverMsg = errBody?.error?.message
+                          || (typeof errBody?.error === 'string' ? errBody.error : '')
+                          || errBody?.message || '';
+                      } catch (_) { /* not JSON */ }
+                      throw new Error(serverMsg || `Request failed (${res.status})`);
+                    }
                     const data = await res.json();
                     if (data.success || data.event) {
                       router.push(`/hub/commander/home-games/${createdGroup.id}`);
+                    } else {
+                      setFirstGameError('Game created but the response was unexpected. Refresh the group page to see it.');
                     }
                   } catch (err) {
                     console.warn('Schedule event error:', err);
+                    setFirstGameError(err && err.message ? err.message : 'Failed to schedule. Check your details and try again.');
                   } finally {
                     setEventSubmitting(false);
                   }
