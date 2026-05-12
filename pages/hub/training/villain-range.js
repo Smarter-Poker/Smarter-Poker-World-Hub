@@ -18,6 +18,7 @@
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH4-12 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -614,7 +615,7 @@ export default function VillainRange() {
   const container = {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1629 50%, #0a0f1e 100%)',
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     fontFamily: "'Inter', sans-serif",
     padding: '20px 16px 40px',
   };
@@ -623,7 +624,7 @@ export default function VillainRange() {
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: 8,
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     padding: '8px 12px',
     fontSize: 13,
     fontWeight: 700,
@@ -639,7 +640,7 @@ export default function VillainRange() {
     cursor: 'pointer',
     border: 'none',
     background: active ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
-    color: active ? '#a855f7' : '#64748b',
+    color: active ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
     outline: active ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.06)',
     transition: 'all 0.2s',
   });
@@ -666,7 +667,7 @@ export default function VillainRange() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               fontSize: 12,
               cursor: 'pointer',
               marginBottom: 16,
@@ -708,7 +709,7 @@ export default function VillainRange() {
               >
                 VILLAIN RANGE CONSTRUCTOR
               </h1>
-              <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                 GTO Opponent Range Analysis — Preflop · Quiz Mode
               </p>
             </div>
@@ -732,7 +733,7 @@ export default function VillainRange() {
               <label
                 style={{
                   fontSize: 10,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   display: 'block',
@@ -757,7 +758,7 @@ export default function VillainRange() {
               <label
                 style={{
                   fontSize: 10,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   display: 'block',
@@ -793,7 +794,7 @@ export default function VillainRange() {
                   fontSize: 22,
                   fontWeight: 900,
                   fontFamily: "'Orbitron', monospace",
-                  color: '#a855f7',
+                  color: 'var(--sp-accent-purple)',
                 }}
               >
                 {rangePct}%
@@ -801,7 +802,7 @@ export default function VillainRange() {
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                 }}
@@ -847,7 +848,7 @@ export default function VillainRange() {
                       <div
                         style={{ width: 12, height: 12, borderRadius: 2, background: l.color }}
                       />
-                      <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                      <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                         {l.label}
                       </span>
                     </div>
@@ -871,7 +872,7 @@ export default function VillainRange() {
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 14,
@@ -893,9 +894,9 @@ export default function VillainRange() {
                   }}
                 >
                   {[
-                    { label: 'Pocket Pairs', value: pocketPairs.length, color: '#00d4ff' },
-                    { label: 'Suited Hands', value: suitedHands.length, color: '#22c55e' },
-                    { label: 'Offsuit Hands', value: offsuitHands.length, color: '#f97316' },
+                    { label: 'Pocket Pairs', value: pocketPairs.length, color: 'var(--sp-accent-cyan)' },
+                    { label: 'Suited Hands', value: suitedHands.length, color: 'var(--sp-accent-green)' },
+                    { label: 'Offsuit Hands', value: offsuitHands.length, color: 'var(--sp-accent-orange)' },
                   ].map((stat) => (
                     <div
                       key={stat.label}
@@ -920,7 +921,7 @@ export default function VillainRange() {
                       <div
                         style={{
                           fontSize: 9,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                         }}
@@ -938,11 +939,11 @@ export default function VillainRange() {
                     borderRadius: 10,
                     border: '1px solid rgba(255,255,255,0.06)',
                     fontSize: 12,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     lineHeight: 1.6,
                   }}
                 >
-                  <strong style={{ color: '#64748b' }}>About:</strong> Canonical GTO preflop ranges
+                  <strong style={{ color: 'var(--sp-fg-dim)' }}>About:</strong> Canonical GTO preflop ranges
                   at 100BB cash. Select a position and action to see exact hand combos. Switch to
                   Quiz Mode to test your range-reading on real boards.
                 </div>
@@ -970,7 +971,7 @@ export default function VillainRange() {
                     style={{
                       fontSize: 11,
                       fontWeight: 800,
-                      color: '#a855f7',
+                      color: 'var(--sp-accent-purple)',
                       marginBottom: 12,
                       fontFamily: "'Orbitron', monospace",
                       textTransform: 'uppercase',
@@ -978,20 +979,20 @@ export default function VillainRange() {
                     }}
                   >
                     Board: {currentBoard.label}{' '}
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>({currentBoard.type})</span>
+                    <span style={{ color: 'var(--sp-fg-dim)', fontWeight: 600 }}>({currentBoard.type})</span>
                   </div>
                   <p
                     style={{
                       fontSize: 15,
                       fontWeight: 600,
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       marginBottom: 16,
                       lineHeight: 1.6,
                     }}
                   >
-                    If <strong style={{ color: '#a855f7' }}>villain ({villainPos})</strong>{' '}
+                    If <strong style={{ color: 'var(--sp-accent-purple)' }}>villain ({villainPos})</strong>{' '}
                     {action === 'Open (RFI)' ? 'opens' : action.toLowerCase()}s, how much of their
-                    range <strong style={{ color: '#a855f7' }}>connects with this flop</strong>?
+                    range <strong style={{ color: 'var(--sp-accent-purple)' }}>connects with this flop</strong>?
                   </p>
 
                   {quizResult === null ? (
@@ -1007,7 +1008,7 @@ export default function VillainRange() {
                             borderRadius: 10,
                             border: '1px solid rgba(255,255,255,0.12)',
                             background: 'rgba(255,255,255,0.06)',
-                            color: '#e2e8f0',
+                            color: 'var(--sp-fg)',
                             fontWeight: 800,
                             fontSize: 13,
                             cursor: 'pointer',
@@ -1037,7 +1038,7 @@ export default function VillainRange() {
                               ? 'rgba(34,197,94,0.12)'
                               : 'rgba(239,68,68,0.12)',
                           border: `1px solid ${quizResult === 'correct' ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
-                          color: quizResult === 'correct' ? '#22c55e' : '#ef4444',
+                          color: quizResult === 'correct' ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         }}
                       >
                         {quizResult === 'correct'
@@ -1069,12 +1070,12 @@ export default function VillainRange() {
                 {quizStats.total > 0 && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                     {[
-                      { label: 'Correct', value: quizStats.correct, color: '#22c55e' },
-                      { label: 'Total', value: quizStats.total, color: '#94a3b8' },
+                      { label: 'Correct', value: quizStats.correct, color: 'var(--sp-accent-green)' },
+                      { label: 'Total', value: quizStats.total, color: 'var(--sp-fg-muted)' },
                       {
                         label: 'Accuracy',
                         value: `${Math.round((quizStats.correct / quizStats.total) * 100)}%`,
-                        color: '#a855f7',
+                        color: 'var(--sp-accent-purple)',
                       },
                     ].map((s) => (
                       <div
@@ -1100,7 +1101,7 @@ export default function VillainRange() {
                         <div
                           style={{
                             fontSize: 9,
-                            color: '#64748b',
+                            color: 'var(--sp-fg-dim)',
                             fontWeight: 700,
                             textTransform: 'uppercase',
                           }}
@@ -1131,7 +1132,7 @@ export default function VillainRange() {
                   }}
                 >
                   <div
-                    style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0', marginBottom: 12 }}
+                    style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 12 }}
                   >
                     {editingProfile ? `Editing: ${editingProfile.name}` : 'Create Opponent Profile'}
                   </div>
@@ -1147,7 +1148,7 @@ export default function VillainRange() {
                       marginBottom: 12,
                       background: 'rgba(0,0,0,0.25)',
                       border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontSize: 13,
                       fontWeight: 600,
                       outline: 'none',
@@ -1170,7 +1171,7 @@ export default function VillainRange() {
                           <span
                             style={{
                               fontSize: 10,
-                              color: '#94a3b8',
+                              color: 'var(--sp-fg-muted)',
                               fontWeight: 700,
                               textTransform: 'uppercase',
                             }}
@@ -1191,7 +1192,7 @@ export default function VillainRange() {
                             style={{
                               fontSize: 12,
                               fontWeight: 800,
-                              color: Math.abs(val - GTO_BASELINE[key]) > 10 ? '#fbbf24' : '#00d4ff',
+                              color: Math.abs(val - GTO_BASELINE[key]) > 10 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-cyan)',
                               fontFamily: "'Orbitron', monospace",
                             }}
                           >
@@ -1210,7 +1211,7 @@ export default function VillainRange() {
                               [key]: parseFloat(e.target.value),
                             }))
                           }
-                          style={{ width: '100%', accentColor: '#a855f7', height: 5 }}
+                          style={{ width: '100%', accentColor: 'var(--sp-accent-purple)', height: 5 }}
                         />
                       </div>
                     ))}
@@ -1230,7 +1231,7 @@ export default function VillainRange() {
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: '#a855f7',
+                        color: 'var(--sp-accent-purple)',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                         marginBottom: 8,
@@ -1261,7 +1262,7 @@ export default function VillainRange() {
                                 style={{
                                   fontSize: 14,
                                   fontWeight: 800,
-                                  color: diff > 0 ? '#ef4444' : diff < 0 ? '#3b82f6' : '#22c55e',
+                                  color: diff > 0 ? 'var(--sp-accent-red)' : diff < 0 ? 'var(--sp-accent-blue)' : 'var(--sp-accent-green)',
                                 }}
                               >
                                 {diff > 0 ? '+' : ''}
@@ -1270,7 +1271,7 @@ export default function VillainRange() {
                               <div
                                 style={{
                                   fontSize: 7,
-                                  color: '#64748b',
+                                  color: 'var(--sp-fg-dim)',
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
                                 }}
@@ -1318,7 +1319,7 @@ export default function VillainRange() {
                         borderRadius: 10,
                         border: '1px solid rgba(239,68,68,0.3)',
                         background: 'rgba(239,68,68,0.06)',
-                        color: '#ef4444',
+                        color: 'var(--sp-accent-red)',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -1336,7 +1337,7 @@ export default function VillainRange() {
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         textTransform: 'uppercase',
                         letterSpacing: 0.5,
                         marginBottom: 8,
@@ -1365,7 +1366,7 @@ export default function VillainRange() {
                             marginBottom: 6,
                           }}
                         >
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
                             {profile.name}
                           </div>
                           <div style={{ display: 'flex', gap: 4 }}>
@@ -1376,7 +1377,7 @@ export default function VillainRange() {
                                 borderRadius: 4,
                                 border: '1px solid rgba(0,212,255,0.2)',
                                 background: 'transparent',
-                                color: '#00d4ff',
+                                color: 'var(--sp-accent-cyan)',
                                 fontSize: 9,
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -1391,7 +1392,7 @@ export default function VillainRange() {
                                 borderRadius: 4,
                                 border: '1px solid rgba(239,68,68,0.2)',
                                 background: 'transparent',
-                                color: '#ef4444',
+                                color: 'var(--sp-accent-red)',
                                 fontSize: 9,
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -1407,7 +1408,7 @@ export default function VillainRange() {
                               key={k}
                               style={{
                                 fontSize: 9,
-                                color: '#94a3b8',
+                                color: 'var(--sp-fg-muted)',
                                 background: 'rgba(255,255,255,0.04)',
                                 padding: '2px 6px',
                                 borderRadius: 4,
@@ -1425,14 +1426,14 @@ export default function VillainRange() {
                                         ? 'AF'
                                         : k.toUpperCase()}
                               :
-                              <strong style={{ color: '#e2e8f0' }}>
+                              <strong style={{ color: 'var(--sp-fg)' }}>
                                 {' '}
                                 {k === 'aggFactor' ? (Number.isFinite(Number(v)) ? Number(v) : 0).toFixed(1) : v}
                               </strong>
                             </span>
                           ))}
                         </div>
-                        <div style={{ fontSize: 8, color: '#475569', marginTop: 4 }}>
+                        <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', marginTop: 4 }}>
                           Last updated: {new Date(profile.updatedAt).toLocaleDateString()}
                         </div>
                       </motion.div>

@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-19 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -30,8 +31,8 @@ const DEFAULT_TREE = [
     label: 'Preflop Decision',
     street: 'preflop',
     actions: [
-      { name: 'Raise', freq: 68, locked: false, color: '#ef4444' },
-      { name: 'Call', freq: 18, locked: false, color: '#4ade80' },
+      { name: 'Raise', freq: 68, locked: false, color: 'var(--sp-accent-red)' },
+      { name: 'Call', freq: 18, locked: false, color: 'var(--sp-accent-green)' },
       { name: 'Fold', freq: 14, locked: false, color: '#6b7280' },
     ],
   },
@@ -40,9 +41,9 @@ const DEFAULT_TREE = [
     label: 'Flop C-Bet',
     street: 'flop',
     actions: [
-      { name: 'Bet 33%', freq: 35, locked: false, color: '#f59e0b' },
-      { name: 'Bet 67%', freq: 20, locked: false, color: '#ef4444' },
-      { name: 'Check', freq: 45, locked: false, color: '#3b82f6' },
+      { name: 'Bet 33%', freq: 35, locked: false, color: 'var(--sp-accent-amber)' },
+      { name: 'Bet 67%', freq: 20, locked: false, color: 'var(--sp-accent-red)' },
+      { name: 'Check', freq: 45, locked: false, color: 'var(--sp-accent-blue)' },
     ],
   },
   {
@@ -50,9 +51,9 @@ const DEFAULT_TREE = [
     label: 'Turn Barrel',
     street: 'turn',
     actions: [
-      { name: 'Bet 67%', freq: 38, locked: false, color: '#ef4444' },
-      { name: 'Bet 100%', freq: 12, locked: false, color: '#f87171' },
-      { name: 'Check', freq: 50, locked: false, color: '#3b82f6' },
+      { name: 'Bet 67%', freq: 38, locked: false, color: 'var(--sp-accent-red)' },
+      { name: 'Bet 100%', freq: 12, locked: false, color: 'var(--sp-accent-red)' },
+      { name: 'Check', freq: 50, locked: false, color: 'var(--sp-accent-blue)' },
     ],
   },
   {
@@ -60,9 +61,9 @@ const DEFAULT_TREE = [
     label: 'River Decision',
     street: 'river',
     actions: [
-      { name: 'Value Bet', freq: 30, locked: false, color: '#4ade80' },
-      { name: 'Bluff', freq: 15, locked: false, color: '#ef4444' },
-      { name: 'Check', freq: 55, locked: false, color: '#3b82f6' },
+      { name: 'Value Bet', freq: 30, locked: false, color: 'var(--sp-accent-green)' },
+      { name: 'Bluff', freq: 15, locked: false, color: 'var(--sp-accent-red)' },
+      { name: 'Check', freq: 55, locked: false, color: 'var(--sp-accent-blue)' },
     ],
   },
 ];
@@ -119,8 +120,8 @@ function FreqSlider({ action, onChange, onToggleLock }) {
               fontWeight: 700,
               cursor: 'pointer',
               background: action.locked ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${action.locked ? '#f59e0b' : 'rgba(255,255,255,0.1)'}`,
-              color: action.locked ? '#f59e0b' : '#6b7280',
+              border: `1px solid ${action.locked ? 'var(--sp-accent-amber)' : 'rgba(255,255,255,0.1)'}`,
+              color: action.locked ? 'var(--sp-accent-amber)' : '#6b7280',
               letterSpacing: '0.05em',
             }}
           >
@@ -292,7 +293,7 @@ export default function FrequencyLockingPage() {
               style={{
                 fontSize: 12,
                 fontWeight: 600,
-                color: lockedCount > 0 ? '#f59e0b' : '#b0b3b8',
+                color: lockedCount > 0 ? 'var(--sp-accent-amber)' : '#b0b3b8',
               }}
             >
               {lockedCount} node{lockedCount !== 1 ? 's' : ''} locked
@@ -339,7 +340,7 @@ export default function FrequencyLockingPage() {
                   {node.label}
                 </div>
                 {node.actions.some((a) => a.locked) && (
-                  <div style={{ fontSize: 9, color: '#f59e0b', marginTop: 4 }}>LOCKED</div>
+                  <div style={{ fontSize: 9, color: 'var(--sp-accent-amber)', marginTop: 4 }}>LOCKED</div>
                 )}
               </button>
             ))}
@@ -472,7 +473,7 @@ export default function FrequencyLockingPage() {
                           marginBottom: 6,
                           borderRadius: 6,
                           background: hasLocked ? 'rgba(245,158,11,0.06)' : 'rgba(0,0,0,0.15)',
-                          borderLeft: `3px solid ${hasLocked ? '#f59e0b' : '#3a3b3c'}`,
+                          borderLeft: `3px solid ${hasLocked ? 'var(--sp-accent-amber)' : '#3a3b3c'}`,
                         }}
                       >
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#e4e6eb' }}>
@@ -484,7 +485,7 @@ export default function FrequencyLockingPage() {
                               fontSize: 12,
                               fontWeight: 700,
                               color:
-                                deviation > 20 ? '#f87171' : deviation > 5 ? '#f59e0b' : '#4ade80',
+                                deviation > 20 ? 'var(--sp-accent-red)' : deviation > 5 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
                             }}
                           >
                             {deviation > 0 ? `${(Number.isFinite(Number(deviation)) ? Number(deviation) : 0).toFixed(0)}% deviation` : 'Balanced'}
@@ -494,7 +495,7 @@ export default function FrequencyLockingPage() {
                               style={{
                                 fontSize: 10,
                                 fontWeight: 700,
-                                color: '#f59e0b',
+                                color: 'var(--sp-accent-amber)',
                                 padding: '1px 6px',
                                 background: 'rgba(245,158,11,0.15)',
                                 borderRadius: 3,

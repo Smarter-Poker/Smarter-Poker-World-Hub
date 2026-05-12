@@ -10,6 +10,7 @@
 // aria-label) across the player-profiles surface. Card-suit glyphs
 // (♠♣♥♦) in profile descriptions remain (semantic). Same surface-
 // specific a11y pattern as PR #320/#322/#324/#327-#350.
+// TRAIN-CSS-TOKENS-BATCH4-20 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -26,7 +27,7 @@ const PROFILES = {
   gto: {
     id: 'gto',
     name: 'GTO Balanced',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     border: 'rgba(34,197,94,0.3)',
     desc: 'Perfectly balanced, unexploitable baseline strategy',
     stats: {
@@ -45,7 +46,7 @@ const PROFILES = {
   nit: {
     id: 'nit',
     name: 'Ultra Nit',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
     border: 'rgba(59,130,246,0.3)',
     desc: 'Plays extremely tight. Only enters pots with premium hands.',
     stats: {
@@ -68,7 +69,7 @@ const PROFILES = {
   tag: {
     id: 'tag',
     name: 'Tight-Aggressive',
-    color: '#06b6d4',
+    color: 'var(--sp-accent-cyan)',
     border: 'rgba(6,182,212,0.3)',
     desc: 'Solid, tight-aggressive regular. Small pool of leaks.',
     stats: {
@@ -91,7 +92,7 @@ const PROFILES = {
   lag: {
     id: 'lag',
     name: 'Loose-Aggressive',
-    color: '#f59e0b',
+    color: 'var(--sp-accent-amber)',
     border: 'rgba(245,158,11,0.3)',
     desc: 'Wide opening ranges with aggressive postflop play.',
     stats: {
@@ -118,7 +119,7 @@ const PROFILES = {
   callingStation: {
     id: 'callingStation',
     name: 'Calling Station',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     border: 'rgba(168,85,247,0.3)',
     desc: 'Passive player who calls too much and rarely raises.',
     stats: {
@@ -141,7 +142,7 @@ const PROFILES = {
   maniac: {
     id: 'maniac',
     name: 'Maniac',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
     border: 'rgba(239,68,68,0.3)',
     desc: 'Hyper-aggressive. Raises and re-raises with a very wide range.',
     stats: {
@@ -277,7 +278,7 @@ function StatBar({ label, value, gtoValue, max = 100, color }) {
   const gto = safeNum(gtoValue);
   const safeMax = Math.max(1, safeNum(max, 100));
   const diff = val - gto;
-  const diffColor = Math.abs(diff) < 3 ? '#22c55e' : diff > 0 ? '#f59e0b' : '#3b82f6';
+  const diffColor = Math.abs(diff) < 3 ? 'var(--sp-accent-green)' : diff > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-blue)';
   const barWidth = clamp((val / safeMax) * 100, 0, 100);
   const gtoMarker = clamp((gto / safeMax) * 100, 0, 100);
   return (
@@ -333,7 +334,7 @@ function StatBar({ label, value, gtoValue, max = 100, color }) {
             left: `${gtoMarker}%`,
             width: 2,
             height: 10,
-            background: '#22c55e',
+            background: 'var(--sp-accent-green)',
             borderRadius: 1,
           }}
         />
@@ -618,7 +619,7 @@ export default function PlayerProfilesPage() {
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
-                    color: '#f87171',
+                    color: 'var(--sp-accent-red)',
                     margin: '0 0 10px',
                     letterSpacing: '0.08em',
                   }}
@@ -652,7 +653,7 @@ export default function PlayerProfilesPage() {
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
-                    color: '#4ade80',
+                    color: 'var(--sp-accent-green)',
                     margin: '0 0 10px',
                     letterSpacing: '0.08em',
                   }}
@@ -764,9 +765,9 @@ export default function PlayerProfilesPage() {
                               fontSize: 13,
                               fontWeight: 700,
                               color: val.includes('+')
-                                ? '#4ade80'
+                                ? 'var(--sp-accent-green)'
                                 : val.includes('-')
-                                  ? '#f87171'
+                                  ? 'var(--sp-accent-red)'
                                   : '#b0b3b8',
                             }}
                           >
@@ -804,9 +805,9 @@ export default function PlayerProfilesPage() {
                               fontSize: 13,
                               fontWeight: 700,
                               color: val.includes('+')
-                                ? '#4ade80'
+                                ? 'var(--sp-accent-green)'
                                 : val.includes('-')
-                                  ? '#f87171'
+                                  ? 'var(--sp-accent-red)'
                                   : '#b0b3b8',
                             }}
                           >

@@ -12,6 +12,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-1 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -69,16 +70,16 @@ const STACK_DEPTHS = {
 const POSITIONS = ['BTN', 'SB', 'BB', 'CO', 'HJ', 'MP', 'UTG'];
 
 const ACTION_COLORS = {
-  r: '#ef4444',
-  R: '#ef4444',
-  b: '#ef4444',
-  B: '#ef4444',
-  c: '#22c55e',
-  C: '#22c55e',
-  x: '#3b82f6',
-  X: '#3b82f6',
-  f: '#64748b',
-  F: '#64748b',
+  r: 'var(--sp-accent-red)',
+  R: 'var(--sp-accent-red)',
+  b: 'var(--sp-accent-red)',
+  B: 'var(--sp-accent-red)',
+  c: 'var(--sp-accent-green)',
+  C: 'var(--sp-accent-green)',
+  x: 'var(--sp-accent-blue)',
+  X: 'var(--sp-accent-blue)',
+  f: 'var(--sp-fg-dim)',
+  F: 'var(--sp-fg-dim)',
 };
 
 // Card rendering uses shared Card.tsx custom PNG deck
@@ -118,13 +119,13 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark })
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: isSelected ? '#00d4ff' : '#e2e8f0',
+            color: isSelected ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
           {spot.heroPosition} • {spot.board?.join(' ') || 'Preflop'}
         </div>
-        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
           {spot.stackDepth}BB • {spot.gameType}
         </div>
       </div>
@@ -141,7 +142,7 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark })
           fontSize: 16,
           padding: 2,
           lineHeight: 1,
-          color: isBookmarked ? '#fbbf24' : '#334155',
+          color: isBookmarked ? 'var(--sp-accent-amber)' : '#334155',
           transition: 'color 0.15s',
         }}
         title={isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'}
@@ -177,7 +178,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
         style={{
           fontSize: 11,
           fontWeight: 700,
-          color: '#64748b',
+          color: 'var(--sp-fg-dim)',
           textTransform: 'uppercase',
           letterSpacing: 1,
           marginBottom: 10,
@@ -224,7 +225,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
               <span
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   background: 'rgba(255,255,255,0.04)',
                   padding: '1px 6px',
                   borderRadius: 8,
@@ -286,7 +287,7 @@ function NodeBreadcrumb({ treePath, onNavigateBack }) {
         style={{
           fontSize: 9,
           fontWeight: 700,
-          color: '#64748b',
+          color: 'var(--sp-fg-dim)',
           textTransform: 'uppercase',
           letterSpacing: 1,
           whiteSpace: 'nowrap',
@@ -297,7 +298,7 @@ function NodeBreadcrumb({ treePath, onNavigateBack }) {
       </span>
       {treePath.map((node, i) => (
         <React.Fragment key={i}>
-          <span style={{ color: '#475569', fontSize: 12 }}>›</span>
+          <span style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>›</span>
           <button
             onClick={() => onNavigateBack(i)}
             style={{
@@ -309,7 +310,7 @@ function NodeBreadcrumb({ treePath, onNavigateBack }) {
                   : '1px solid rgba(255,255,255,0.06)',
               borderRadius: 6,
               padding: '3px 8px',
-              color: i === treePath.length - 1 ? '#00d4ff' : '#94a3b8',
+              color: i === treePath.length - 1 ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 600,
@@ -424,12 +425,12 @@ function SolutionsBrowserInner({ setError }) {
   const [boardTexture, setBoardTexture] = useState(filters.rxTexture || 'All');
   const BOARD_TEXTURES = ['All', 'Monotone', 'Two-Tone', 'Rainbow', 'Paired', 'Connected'];
   const TEXTURE_FILTER_COLORS = {
-    All: '#00d4ff',
-    Monotone: '#a855f7',
-    'Two-Tone': '#3b82f6',
-    Rainbow: '#22c55e',
-    Paired: '#f59e0b',
-    Connected: '#ef4444',
+    All: 'var(--sp-accent-cyan)',
+    Monotone: 'var(--sp-accent-purple)',
+    'Two-Tone': 'var(--sp-accent-blue)',
+    Rainbow: 'var(--sp-accent-green)',
+    Paired: 'var(--sp-accent-amber)',
+    Connected: 'var(--sp-accent-red)',
   };
 
   // Board texture classifier — uses Phase 1 BoardTextureEngine for rich analysis
@@ -733,7 +734,7 @@ function SolutionsBrowserInner({ setError }) {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -752,7 +753,7 @@ function SolutionsBrowserInner({ setError }) {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -776,7 +777,7 @@ function SolutionsBrowserInner({ setError }) {
             <span
               style={{
                 fontSize: 10,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 background: 'rgba(255,255,255,0.04)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -807,7 +808,7 @@ function SolutionsBrowserInner({ setError }) {
                     gameType === gt.value
                       ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
                       : 'rgba(255,255,255,0.06)',
-                  color: gameType === gt.value ? '#fff' : '#94a3b8',
+                  color: gameType === gt.value ? '#fff' : 'var(--sp-fg-muted)',
                 }}
               >
                 {gt.icon} {gt.label}
@@ -829,7 +830,7 @@ function SolutionsBrowserInner({ setError }) {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -854,7 +855,7 @@ function SolutionsBrowserInner({ setError }) {
                     transition: 'all 0.15s',
                     background:
                       stackDepth === sd ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: stackDepth === sd ? '#00d4ff' : '#64748b',
+                    color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >
@@ -869,7 +870,7 @@ function SolutionsBrowserInner({ setError }) {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -892,7 +893,7 @@ function SolutionsBrowserInner({ setError }) {
                   cursor: 'pointer',
                   border: 'none',
                   background: !position ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                  color: !position ? '#00d4ff' : '#64748b',
+                  color: !position ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                 }}
               >
                 ALL
@@ -914,7 +915,7 @@ function SolutionsBrowserInner({ setError }) {
                     cursor: 'pointer',
                     border: 'none',
                     background: position === p ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: position === p ? '#00d4ff' : '#64748b',
+                    color: position === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >
@@ -926,7 +927,7 @@ function SolutionsBrowserInner({ setError }) {
             {/* Phase 17: Board Texture Filter */}
             <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.08)' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Texture:</span>
+              <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Texture:</span>
               {BOARD_TEXTURES.map((tex) => (
                 <button
                   key={tex}
@@ -945,7 +946,7 @@ function SolutionsBrowserInner({ setError }) {
                     background: boardTexture === tex
                       ? `${TEXTURE_FILTER_COLORS[tex]}20`
                       : 'rgba(255,255,255,0.04)',
-                    color: boardTexture === tex ? TEXTURE_FILTER_COLORS[tex] : '#475569',
+                    color: boardTexture === tex ? TEXTURE_FILTER_COLORS[tex] : 'var(--sp-fg-faint)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -994,10 +995,10 @@ function SolutionsBrowserInner({ setError }) {
               </div>
             ) : spots.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center' }}>
-                <p style={{ color: '#64748b', fontSize: 13 }}>
+                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 13 }}>
                   No spots found for this configuration
                 </p>
-                <p style={{ color: '#475569', fontSize: 11, marginTop: 4 }}>
+                <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11, marginTop: 4 }}>
                   Try a different game type or stack depth
                 </p>
               </div>
@@ -1028,7 +1029,7 @@ function SolutionsBrowserInner({ setError }) {
                       background: !showBookmarksOnly
                         ? 'rgba(0,212,255,0.15)'
                         : 'rgba(255,255,255,0.04)',
-                      color: !showBookmarksOnly ? '#00d4ff' : '#64748b',
+                      color: !showBookmarksOnly ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
                       fontFamily: "'Orbitron', monospace",
                     }}
@@ -1050,7 +1051,7 @@ function SolutionsBrowserInner({ setError }) {
                       background: showBookmarksOnly
                         ? 'rgba(251,191,36,0.15)'
                         : 'rgba(255,255,255,0.04)',
-                      color: showBookmarksOnly ? '#fbbf24' : '#64748b',
+                      color: showBookmarksOnly ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
                       fontFamily: "'Orbitron', monospace",
                     }}
@@ -1101,7 +1102,7 @@ function SolutionsBrowserInner({ setError }) {
                         borderRadius: 6,
                         fontSize: 12,
                         background: 'rgba(255,255,255,0.06)',
-                        color: '#94a3b8',
+                        color: 'var(--sp-fg-muted)',
                         border: 'none',
                         cursor: page > 1 ? 'pointer' : 'not-allowed',
                         opacity: page <= 1 ? 0.4 : 1,
@@ -1112,7 +1113,7 @@ function SolutionsBrowserInner({ setError }) {
                     <span
                       style={{
                         fontSize: 11,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         padding: '6px 8px',
                         fontFamily: "'Orbitron', monospace",
                       }}
@@ -1127,7 +1128,7 @@ function SolutionsBrowserInner({ setError }) {
                         borderRadius: 6,
                         fontSize: 12,
                         background: 'rgba(255,255,255,0.06)',
-                        color: '#94a3b8',
+                        color: 'var(--sp-fg-muted)',
                         border: 'none',
                         cursor: page < totalPages ? 'pointer' : 'not-allowed',
                         opacity: page >= totalPages ? 0.4 : 1,
@@ -1178,8 +1179,8 @@ function SolutionsBrowserInner({ setError }) {
                   <line x1="3" y1="9" x2="21" y2="9" />
                   <line x1="9" y1="21" x2="9" y2="9" />
                 </svg>
-                <p style={{ color: '#64748b', fontSize: 14 }}>Select a spot to view the strategy</p>
-                <p style={{ color: '#475569', fontSize: 11 }}>
+                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 14 }}>Select a spot to view the strategy</p>
+                <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11 }}>
                   Click any board in the list to see the full 13×13 range grid
                 </p>
               </div>
@@ -1203,7 +1204,7 @@ function SolutionsBrowserInner({ setError }) {
                     animation: 'spin 1s linear infinite',
                   }}
                 />
-                <p style={{ color: '#94a3b8', fontSize: 13 }}>Loading strategy matrix...</p>
+                <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13 }}>Loading strategy matrix...</p>
                 <style>{`
                   @keyframes spin {
                     to {
@@ -1252,13 +1253,13 @@ function SolutionsBrowserInner({ setError }) {
                       style={{
                         fontSize: 18,
                         fontWeight: 800,
-                        color: '#00d4ff',
+                        color: 'var(--sp-accent-cyan)',
                         fontFamily: "'Orbitron', monospace",
                       }}
                     >
                       {spotDetail.heroPosition}
                     </div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                       {spotDetail.stackDepth}BB {spotDetail.gameType} • {spotDetail.handCount} hands
                       in range
                     </div>
@@ -1273,7 +1274,7 @@ function SolutionsBrowserInner({ setError }) {
                           fontSize: 11,
                           fontWeight: 700,
                           background: 'rgba(255,255,255,0.06)',
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           fontFamily: "'Orbitron', monospace",
                         }}
                       >
@@ -1335,7 +1336,7 @@ function SolutionsBrowserInner({ setError }) {
                             activeTab === tab.key
                               ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
                               : 'rgba(255,255,255,0.06)',
-                          color: activeTab === tab.key ? '#fff' : '#94a3b8',
+                          color: activeTab === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                         }}
                       >
                         {tab.label}
@@ -1372,7 +1373,7 @@ function SolutionsBrowserInner({ setError }) {
                               border: 'none',
                               background:
                                 colorMode === mode.key ? 'rgba(0,212,255,0.2)' : 'transparent',
-                              color: colorMode === mode.key ? '#00d4ff' : '#64748b',
+                              color: colorMode === mode.key ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                               transition: 'all 0.15s',
                             }}
                           >
@@ -1391,7 +1392,7 @@ function SolutionsBrowserInner({ setError }) {
                             cursor: 'pointer',
                             border: 'none',
                             background: showEVOverlay ? 'rgba(74, 222, 128, 0.2)' : 'transparent',
-                            color: showEVOverlay ? '#4ade80' : '#64748b',
+                            color: showEVOverlay ? 'var(--sp-accent-green)' : 'var(--sp-fg-dim)',
                             transition: 'all 0.15s',
                           }}
                         >
@@ -1413,7 +1414,7 @@ function SolutionsBrowserInner({ setError }) {
                           border: '1px solid rgba(0,212,255,0.3)',
                           background:
                             'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.05))',
-                          color: '#00d4ff',
+                          color: 'var(--sp-accent-cyan)',
                           transition: 'all 0.15s',
                         }}
                       >
@@ -1483,7 +1484,7 @@ function SolutionsBrowserInner({ setError }) {
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: '#00d4ff',
+                        color: 'var(--sp-accent-cyan)',
                         fontFamily: "'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
@@ -1506,7 +1507,7 @@ function SolutionsBrowserInner({ setError }) {
                         borderRadius: 8,
                         background: 'rgba(255,255,255,0.02)',
                         fontSize: 10,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                       }}
                     >
                       Green = positive EV, Red = negative. Values in Big-Blinds.
@@ -1518,7 +1519,7 @@ function SolutionsBrowserInner({ setError }) {
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: '#22c55e',
+                        color: 'var(--sp-accent-green)',
                         fontFamily: "'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
@@ -1541,7 +1542,7 @@ function SolutionsBrowserInner({ setError }) {
                         borderRadius: 8,
                         background: 'rgba(255,255,255,0.02)',
                         fontSize: 10,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                       }}
                     >
                       Shows raw pot equity per hand combo against villain's range.
@@ -1553,7 +1554,7 @@ function SolutionsBrowserInner({ setError }) {
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: '#a855f7',
+                        color: 'var(--sp-accent-purple)',
                         fontFamily: "'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
@@ -1576,7 +1577,7 @@ function SolutionsBrowserInner({ setError }) {
                         borderRadius: 8,
                         background: 'rgba(255,255,255,0.02)',
                         fontSize: 10,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                       }}
                     >
                       EQR = EV / Equity. Values &gt;1.0 overperform, &lt;1.0 underperform.
@@ -1588,7 +1589,7 @@ function SolutionsBrowserInner({ setError }) {
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: '#ef4444',
+                        color: 'var(--sp-accent-red)',
                         fontFamily: "'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
@@ -1617,7 +1618,7 @@ function SolutionsBrowserInner({ setError }) {
                         borderRadius: 8,
                         background: 'rgba(255,255,255,0.02)',
                         fontSize: 10,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         marginBottom: 16,
                       }}
                     >
@@ -1672,7 +1673,7 @@ function SolutionsBrowserInner({ setError }) {
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                         marginBottom: 8,

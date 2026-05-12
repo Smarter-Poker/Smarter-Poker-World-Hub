@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-8 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -36,7 +37,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 const POSITIONS_6MAX = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 
 const STREET_NAMES = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
-const STREET_COLORS = { preflop: '#7c3aed', flop: '#22c55e', turn: '#3b82f6', river: '#ef4444' };
+const STREET_COLORS = { preflop: 'var(--sp-accent-purple)', flop: 'var(--sp-accent-green)', turn: 'var(--sp-accent-blue)', river: 'var(--sp-accent-red)' };
 
 // Simple deck for dealing
 function createDeck() {
@@ -100,7 +101,7 @@ function SVGCircularTimer({ timeLeft, totalTime = 24, size = 50 }) {
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (timeLeft / totalTime) * circumference;
   const isWarning = timeLeft <= 5;
-  const color = isWarning ? '#ef4444' : '#00d4ff';
+  const color = isWarning ? 'var(--sp-accent-red)' : 'var(--sp-accent-cyan)';
 
   return (
     <div
@@ -832,7 +833,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
               border:
                 activeTab === tab.key ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.08)',
               background: activeTab === tab.key ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.03)',
-              color: activeTab === tab.key ? '#00d4ff' : '#64748b',
+              color: activeTab === tab.key ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
@@ -854,9 +855,9 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
             }}
           >
             {[
-              { label: 'Hands', value: stats.hands, color: '#00d4ff' },
-              { label: 'Won', value: stats.wins, color: '#22c55e' },
-              { label: 'Lost', value: stats.losses, color: '#ef4444' },
+              { label: 'Hands', value: stats.hands, color: 'var(--sp-accent-cyan)' },
+              { label: 'Won', value: stats.wins, color: 'var(--sp-accent-green)' },
+              { label: 'Lost', value: stats.losses, color: 'var(--sp-accent-red)' },
             ].map((s) => (
               <div
                 key={s.label}
@@ -880,7 +881,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: 1,
@@ -913,7 +914,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                 <span
                   style={{
                     fontSize: 10,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     width: 20,
                     fontFamily: "'Orbitron', monospace",
                   }}
@@ -925,7 +926,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                     <CardRenderer key={ci} card={c} size={18} />
                   ))}
                 </div>
-                <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                   {h.position}
                 </span>
                 <span
@@ -933,7 +934,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                     fontSize: 10,
                     fontWeight: 700,
                     marginLeft: 'auto',
-                    color: h.result?.heroWon ? '#22c55e' : '#ef4444',
+                    color: h.result?.heroWon ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                   }}
                 >
                   {h.result?.heroWon ? 'WON' : h.result?.result === 'fold' ? 'FOLDED' : 'LOST'}
@@ -999,7 +1000,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
             fontWeight: 600,
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.1)',
-            color: '#94a3b8',
+            color: 'var(--sp-fg-muted)',
             cursor: 'pointer',
           }}
         >
@@ -1041,7 +1042,7 @@ export default function PlayModePage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -1062,7 +1063,7 @@ export default function PlayModePage() {
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 8,
               padding: '6px 12px',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
@@ -1087,7 +1088,7 @@ export default function PlayModePage() {
             <span
               style={{
                 fontSize: 11,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 marginLeft: 'auto',
                 fontFamily: "'Orbitron', monospace",
               }}
@@ -1122,7 +1123,7 @@ export default function PlayModePage() {
               <p
                 style={{
                   fontSize: 13,
-                  color: '#94a3b8',
+                  color: 'var(--sp-fg-muted)',
                   marginBottom: 24,
                   maxWidth: 400,
                   margin: '0 auto 24px',
@@ -1147,7 +1148,7 @@ export default function PlayModePage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       letterSpacing: 1,
                       marginBottom: 6,
                       textTransform: 'uppercase',
@@ -1171,7 +1172,7 @@ export default function PlayModePage() {
                             game.config.stackDepth === sd
                               ? 'rgba(245,158,11,0.2)'
                               : 'rgba(255,255,255,0.04)',
-                          color: game.config.stackDepth === sd ? '#f59e0b' : '#64748b',
+                          color: game.config.stackDepth === sd ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
                           fontFamily: "'Orbitron', monospace",
                         }}
                       >
@@ -1186,7 +1187,7 @@ export default function PlayModePage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       letterSpacing: 1,
                       marginBottom: 6,
                       textTransform: 'uppercase',
@@ -1210,7 +1211,7 @@ export default function PlayModePage() {
                             game.config.handsPerSession === h
                               ? 'rgba(245,158,11,0.2)'
                               : 'rgba(255,255,255,0.04)',
-                          color: game.config.handsPerSession === h ? '#f59e0b' : '#64748b',
+                          color: game.config.handsPerSession === h ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
                           fontFamily: "'Orbitron', monospace",
                         }}
                       >
@@ -1269,7 +1270,7 @@ export default function PlayModePage() {
                         game.currentStreet === s
                           ? STREET_COLORS[s] + '30'
                           : 'rgba(255,255,255,0.03)',
-                      color: game.currentStreet === s ? STREET_COLORS[s] : '#475569',
+                      color: game.currentStreet === s ? STREET_COLORS[s] : 'var(--sp-fg-faint)',
                       border: `1px solid ${game.currentStreet === s ? STREET_COLORS[s] + '50' : 'transparent'}`,
                     }}
                   >
@@ -1294,7 +1295,7 @@ export default function PlayModePage() {
                   <span
                     style={{
                       fontSize: 10,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       fontWeight: 600,
                       textTransform: 'uppercase',
                       letterSpacing: 1,
@@ -1306,7 +1307,7 @@ export default function PlayModePage() {
                     style={{
                       fontSize: 28,
                       fontWeight: 800,
-                      color: '#fbbf24',
+                      color: 'var(--sp-accent-amber)',
                       fontFamily: "'Orbitron', monospace",
                     }}
                   >
@@ -1342,7 +1343,7 @@ export default function PlayModePage() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       fontWeight: 600,
                       marginBottom: 4,
                       textTransform: 'uppercase',
@@ -1376,7 +1377,7 @@ export default function PlayModePage() {
                             top: 0,
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            color: '#f59e0b',
+                            color: 'var(--sp-accent-amber)',
                             fontSize: 16,
                             fontWeight: 900,
                             textShadow: '0 2px 10px rgba(0,0,0,0.8)',
@@ -1393,7 +1394,7 @@ export default function PlayModePage() {
                   <div
                     style={{
                       fontSize: 11,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       marginTop: 6,
                       fontFamily: "'Orbitron', monospace",
                     }}
@@ -1426,13 +1427,13 @@ export default function PlayModePage() {
                     <div
                       style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}
                     >
-                      <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+                      <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                         Set Bet Size
                       </span>
                       <span
                         style={{
                           fontSize: 16,
-                          color: '#ef4444',
+                          color: 'var(--sp-accent-red)',
                           fontWeight: 800,
                           fontFamily: "'Orbitron', monospace",
                         }}
@@ -1448,7 +1449,7 @@ export default function PlayModePage() {
                       step={0.5}
                       value={betAmount}
                       onChange={(e) => setBetAmount(parseFloat(e.target.value))}
-                      style={{ width: '100%', marginBottom: 16, accentColor: '#ef4444' }}
+                      style={{ width: '100%', marginBottom: 16, accentColor: 'var(--sp-accent-red)' }}
                     />
 
                     <div
@@ -1475,7 +1476,7 @@ export default function PlayModePage() {
                             padding: '8px 0',
                             background: 'rgba(239,68,68,0.1)',
                             border: '1px solid rgba(239,68,68,0.3)',
-                            color: '#fca5a5',
+                            color: 'var(--sp-accent-red)',
                             borderRadius: 6,
                             fontSize: 10,
                             fontWeight: 700,
@@ -1494,7 +1495,7 @@ export default function PlayModePage() {
                           flex: 1,
                           padding: 12,
                           background: 'rgba(255,255,255,0.05)',
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           border: 'none',
                           borderRadius: 10,
                           fontWeight: 700,
@@ -1536,7 +1537,7 @@ export default function PlayModePage() {
                       {
                         action: 'fold',
                         label: 'FOLD',
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         bg: 'rgba(100,116,139,0.15)',
                       },
                       {
@@ -1545,25 +1546,25 @@ export default function PlayModePage() {
                           game.currentStreet === 'preflop' && game.heroPosition !== 'BB'
                             ? null
                             : 'CHECK',
-                        color: '#3b82f6',
+                        color: 'var(--sp-accent-blue)',
                         bg: 'rgba(59,130,246,0.15)',
                       },
                       {
                         action: 'call',
                         label: 'CALL',
-                        color: '#22c55e',
+                        color: 'var(--sp-accent-green)',
                         bg: 'rgba(34,197,94,0.15)',
                       },
                       {
                         action: 'bet',
                         label: game.currentStreet === 'preflop' ? 'RAISE' : 'BET',
-                        color: '#ef4444',
+                        color: 'var(--sp-accent-red)',
                         bg: 'rgba(239,68,68,0.15)',
                       },
                       {
                         action: 'allin',
                         label: 'ALL-IN',
-                        color: '#f59e0b',
+                        color: 'var(--sp-accent-amber)',
                         bg: 'rgba(245,158,11,0.15)',
                       },
                     ]
@@ -1615,7 +1616,7 @@ export default function PlayModePage() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       fontWeight: 700,
                       letterSpacing: 1,
                       marginBottom: 4,
@@ -1629,7 +1630,7 @@ export default function PlayModePage() {
                       key={i}
                       style={{
                         fontSize: 10,
-                        color: a.player === 'hero' ? '#00d4ff' : '#94a3b8',
+                        color: a.player === 'hero' ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                         paddingLeft: a.player === 'hero' ? 8 : 0,
                         borderLeft:
                           a.player === 'hero' ? '2px solid #00d4ff' : '2px solid transparent',
@@ -1652,7 +1653,7 @@ export default function PlayModePage() {
                   border: '1px solid rgba(124,58,237,0.2)',
                   borderRadius: 8,
                 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-purple)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
                     Villain Range Narrowing
                   </div>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -1670,7 +1671,7 @@ export default function PlayModePage() {
                           {r.width}%
                         </div>
                         {i < game.villainRangeHistory.length - 1 && (
-                          <span style={{ color: '#475569', fontSize: 8 }}>→</span>
+                          <span style={{ color: 'var(--sp-fg-faint)', fontSize: 8 }}>→</span>
                         )}
                       </React.Fragment>
                     ))}
@@ -1704,7 +1705,7 @@ export default function PlayModePage() {
                   fontSize: 20,
                   fontWeight: 800,
                   fontFamily: "'Orbitron', monospace",
-                  color: game.showdownResult.heroWon ? '#22c55e' : '#ef4444',
+                  color: game.showdownResult.heroWon ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                   marginBottom: 12,
                 }}
               >
@@ -1716,10 +1717,10 @@ export default function PlayModePage() {
                       ? 'VILLAIN FOLDED'
                       : 'YOU LOST'}
               </div>
-              <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20 }}>
+              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 20 }}>
                 Pot:{' '}
                 <span
-                  style={{ color: '#fbbf24', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}
+                  style={{ color: 'var(--sp-accent-amber)', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}
                 >
                   {(Number.isFinite(Number(game.showdownResult.pot)) ? Number(game.showdownResult.pot) : 0).toFixed(1)} BB
                 </span>
@@ -1731,7 +1732,7 @@ export default function PlayModePage() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       marginBottom: 4,
                       fontWeight: 600,
                       textTransform: 'uppercase',
@@ -1750,7 +1751,7 @@ export default function PlayModePage() {
                     <div
                       style={{
                         fontSize: 9,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         marginBottom: 4,
                         fontWeight: 600,
                         textTransform: 'uppercase',

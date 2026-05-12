@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -34,13 +35,13 @@ function saveSession(payload) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PLAYER_COLORS = [
-  '#f97316',
-  '#3b82f6',
-  '#22c55e',
-  '#a855f7',
-  '#ef4444',
-  '#06b6d4',
-  '#eab308',
+  'var(--sp-accent-orange)',
+  'var(--sp-accent-blue)',
+  'var(--sp-accent-green)',
+  'var(--sp-accent-purple)',
+  'var(--sp-accent-red)',
+  'var(--sp-accent-cyan)',
+  'var(--sp-accent-amber)',
   '#ec4899',
   '#14b8a6',
 ];
@@ -185,7 +186,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
           style={{
             fontSize: 10,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
             letterSpacing: 1,
             marginBottom: 6,
@@ -206,7 +207,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
                 cursor: 'pointer',
                 border: 'none',
                 background: selectedBB === bb ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
-                color: selectedBB === bb ? '#a855f7' : '#94a3b8',
+                color: selectedBB === bb ? 'var(--sp-accent-purple)' : 'var(--sp-fg-muted)',
                 fontFamily: "'Orbitron', monospace",
               }}
             >
@@ -222,7 +223,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
           style={{
             fontSize: 10,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
             letterSpacing: 1,
             marginBottom: 6,
@@ -246,7 +247,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
                   selectedPosition === pos
                     ? 'linear-gradient(135deg, #a855f7, #6366f1)'
                     : 'rgba(255,255,255,0.04)',
-                color: selectedPosition === pos ? '#fff' : '#94a3b8',
+                color: selectedPosition === pos ? '#fff' : 'var(--sp-fg-muted)',
               }}
             >
               {pos}
@@ -269,7 +270,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
       >
         <div>
           <div
-            style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}
+            style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
           >
             Risk Premium
           </div>
@@ -277,7 +278,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
             style={{
               fontSize: 16,
               fontWeight: 900,
-              color: riskPremium > 1.2 ? '#ef4444' : riskPremium > 1.1 ? '#eab308' : '#22c55e',
+              color: riskPremium > 1.2 ? 'var(--sp-accent-red)' : riskPremium > 1.1 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
               fontFamily: "'Orbitron', monospace",
             }}
           >
@@ -286,7 +287,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
         </div>
         <div>
           <div
-            style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}
+            style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
           >
             Push Range
           </div>
@@ -294,7 +295,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
             style={{
               fontSize: 16,
               fontWeight: 900,
-              color: '#a855f7',
+              color: 'var(--sp-accent-purple)',
               fontFamily: "'Orbitron', monospace",
             }}
           >
@@ -303,7 +304,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
         </div>
         <div>
           <div
-            style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}
+            style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
           >
             Format
           </div>
@@ -311,7 +312,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
             style={{
               fontSize: 16,
               fontWeight: 900,
-              color: '#00d4ff',
+              color: 'var(--sp-accent-cyan)',
               fontFamily: "'Orbitron', monospace",
             }}
           >
@@ -348,7 +349,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
                     ? 'rgba(34,197,94,0.25)'
                     : 'rgba(59,130,246,0.2)'
                 : 'rgba(255,255,255,0.03)',
-              color: cell.isPush ? '#e2e8f0' : '#334155',
+              color: cell.isPush ? 'var(--sp-fg)' : '#334155',
               border: `1px solid ${cell.isPush ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.04)'}`,
             }}
           >
@@ -357,7 +358,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
         ))}
       </div>
 
-      <div style={{ marginTop: 10, fontSize: 9, color: '#64748b', textAlign: 'center' }}>
+      <div style={{ marginTop: 10, fontSize: 9, color: 'var(--sp-fg-dim)', textAlign: 'center' }}>
         Purple = Pairs &bull; Green = Suited &bull; Blue = Offsuit &bull; Gray = Fold
       </div>
     </div>
@@ -487,7 +488,7 @@ export default function ICMCalculatorPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -506,7 +507,7 @@ export default function ICMCalculatorPage() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -530,7 +531,7 @@ export default function ICMCalculatorPage() {
             <span
               style={{
                 fontSize: 10,
-                color: '#a855f7',
+                color: 'var(--sp-accent-purple)',
                 background: 'rgba(168,85,247,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -551,7 +552,7 @@ export default function ICMCalculatorPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
@@ -573,7 +574,7 @@ export default function ICMCalculatorPage() {
                     cursor: 'pointer',
                     border: 'none',
                     background: 'rgba(168,85,247,0.1)',
-                    color: '#c084fc',
+                    color: 'var(--sp-accent-purple)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -605,7 +606,7 @@ export default function ICMCalculatorPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   fontFamily: "'Orbitron', monospace",
@@ -624,7 +625,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       stacks.length <= 2 ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.15)',
-                    color: stacks.length <= 2 ? '#334155' : '#ef4444',
+                    color: stacks.length <= 2 ? '#334155' : 'var(--sp-accent-red)',
                     cursor: stacks.length <= 2 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -643,7 +644,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       stacks.length >= 9 ? 'rgba(255,255,255,0.03)' : 'rgba(34,197,94,0.15)',
-                    color: stacks.length >= 9 ? '#334155' : '#22c55e',
+                    color: stacks.length >= 9 ? '#334155' : 'var(--sp-accent-green)',
                     cursor: stacks.length >= 9 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -680,14 +681,14 @@ export default function ICMCalculatorPage() {
                       border: `1px solid ${PLAYER_COLORS[i]}20`,
                       borderRadius: 6,
                       padding: '6px 10px',
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontSize: 13,
                       fontWeight: 600,
                       outline: 'none',
                       fontFamily: "'Inter', sans-serif",
                     }}
                   />
-                  <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, minWidth: 36 }}>
+                  <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600, minWidth: 36 }}>
                     {totalChips > 0 ? `${Math.round((stack / totalChips) * 1000) / 10}%` : '0%'}
                   </span>
                 </div>
@@ -717,7 +718,7 @@ export default function ICMCalculatorPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   fontFamily: "'Orbitron', monospace",
@@ -736,7 +737,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       prizes.length <= 1 ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.15)',
-                    color: prizes.length <= 1 ? '#334155' : '#ef4444',
+                    color: prizes.length <= 1 ? '#334155' : 'var(--sp-accent-red)',
                     cursor: prizes.length <= 1 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -755,7 +756,7 @@ export default function ICMCalculatorPage() {
                     border: 'none',
                     background:
                       prizes.length >= 9 ? 'rgba(255,255,255,0.03)' : 'rgba(34,197,94,0.15)',
-                    color: prizes.length >= 9 ? '#334155' : '#22c55e',
+                    color: prizes.length >= 9 ? '#334155' : 'var(--sp-accent-green)',
                     cursor: prizes.length >= 9 ? 'default' : 'pointer',
                     fontSize: 14,
                     fontWeight: 900,
@@ -774,7 +775,7 @@ export default function ICMCalculatorPage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#eab308',
+                      color: 'var(--sp-accent-amber)',
                       width: 20,
                       textAlign: 'right',
                     }}
@@ -792,14 +793,14 @@ export default function ICMCalculatorPage() {
                       border: '1px solid rgba(234,179,8,0.15)',
                       borderRadius: 6,
                       padding: '6px 10px',
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontSize: 13,
                       fontWeight: 600,
                       outline: 'none',
                       fontFamily: "'Inter', sans-serif",
                     }}
                   />
-                  <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>%</span>
+                  <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>%</span>
                 </div>
               ))}
             </div>
@@ -819,7 +820,7 @@ export default function ICMCalculatorPage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#eab308',
+                  color: 'var(--sp-accent-amber)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
@@ -835,7 +836,7 @@ export default function ICMCalculatorPage() {
                   border: '1px solid rgba(234,179,8,0.2)',
                   borderRadius: 6,
                   padding: '6px 10px',
-                  color: '#eab308',
+                  color: 'var(--sp-accent-amber)',
                   fontSize: 14,
                   fontWeight: 700,
                   outline: 'none',
@@ -878,7 +879,7 @@ export default function ICMCalculatorPage() {
                 background: 'rgba(239,68,68,0.1)',
                 border: '1px solid rgba(239,68,68,0.3)',
                 borderRadius: 8,
-                color: '#ef4444',
+                color: 'var(--sp-accent-red)',
                 fontSize: 12,
                 fontWeight: 600,
                 marginBottom: 14,
@@ -905,17 +906,17 @@ export default function ICMCalculatorPage() {
                     {
                       label: 'Prize Pool',
                       value: `$${results.totalPrizePool.toLocaleString()}`,
-                      color: '#eab308',
+                      color: 'var(--sp-accent-amber)',
                     },
                     {
                       label: 'Total Chips',
                       value: results.totalChips.toLocaleString(),
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                     },
                     {
                       label: 'Bubble Factor',
                       value: (Number.isFinite(Number(results.bubbleFactor)) ? Number(results.bubbleFactor) : 0).toFixed(2),
-                      color: results.bubbleFactor > 1.1 ? '#ef4444' : '#22c55e',
+                      color: results.bubbleFactor > 1.1 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
                     },
                   ].map((item) => (
                     <div
@@ -942,7 +943,7 @@ export default function ICMCalculatorPage() {
                       <div
                         style={{
                           fontSize: 9,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           letterSpacing: 1,
@@ -974,7 +975,7 @@ export default function ICMCalculatorPage() {
                       borderBottom: '1px solid rgba(255,255,255,0.06)',
                       fontSize: 9,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 0.5,
                     }}
@@ -1012,14 +1013,14 @@ export default function ICMCalculatorPage() {
                       >
                         {r.player}
                       </span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)' }}>
                         {r.chips.toLocaleString()}
                       </span>
                       <span
                         style={{
                           fontSize: 11,
                           fontWeight: 600,
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           textAlign: 'right',
                         }}
                       >
@@ -1030,7 +1031,7 @@ export default function ICMCalculatorPage() {
                           fontSize: 12,
                           fontWeight: 800,
                           textAlign: 'right',
-                          color: '#eab308',
+                          color: 'var(--sp-accent-amber)',
                         }}
                       >
                         ${(Number.isFinite(Number(r.icmDollars)) ? Number(r.icmDollars) : 0).toFixed(0)}
@@ -1040,7 +1041,7 @@ export default function ICMCalculatorPage() {
                           fontSize: 11,
                           fontWeight: 600,
                           textAlign: 'right',
-                          color: '#a855f7',
+                          color: 'var(--sp-accent-purple)',
                         }}
                       >
                         {r.icmPct}%
@@ -1050,7 +1051,7 @@ export default function ICMCalculatorPage() {
                           fontSize: 10,
                           fontWeight: 700,
                           textAlign: 'right',
-                          color: r.difference >= 0 ? '#22c55e' : '#ef4444',
+                          color: r.difference >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         }}
                       >
                         {r.difference >= 0 ? '+' : ''}
@@ -1073,7 +1074,7 @@ export default function ICMCalculatorPage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -1095,7 +1096,7 @@ export default function ICMCalculatorPage() {
                         }}
                       >
                         <span style={{ color: PLAYER_COLORS[i] }}>Player {r.player}</span>
-                        <span style={{ color: '#64748b' }}>
+                        <span style={{ color: 'var(--sp-fg-dim)' }}>
                           Chip {r.chipPct}% | ICM {r.icmPct}%
                         </span>
                       </div>
@@ -1149,7 +1150,7 @@ export default function ICMCalculatorPage() {
                       gap: 16,
                       marginTop: 8,
                       fontSize: 9,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       fontWeight: 600,
                     }}
                   >
@@ -1189,7 +1190,7 @@ export default function ICMCalculatorPage() {
                       icmView === tab.key
                         ? 'linear-gradient(135deg, #a855f7, #6366f1)'
                         : 'rgba(255,255,255,0.06)',
-                    color: icmView === tab.key ? '#fff' : '#94a3b8',
+                    color: icmView === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                   }}
                 >
                   {tab.label}
@@ -1211,7 +1212,7 @@ export default function ICMCalculatorPage() {
                       border: 'none',
                       background:
                         bountyFormat === fmt ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
-                      color: bountyFormat === fmt ? '#a855f7' : '#64748b',
+                      color: bountyFormat === fmt ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
                     }}
                   >
                     {fmt}
@@ -1248,7 +1249,7 @@ export default function ICMCalculatorPage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
@@ -1257,7 +1258,7 @@ export default function ICMCalculatorPage() {
             >
               About ICM
             </div>
-            <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
               The Independent Chip Model (ICM) converts tournament chip stacks into real dollar
               equity based on the prize structure. Unlike chip EV (where each chip is worth the
               same), ICM accounts for the diminishing value of chips — the chip leader's stack is

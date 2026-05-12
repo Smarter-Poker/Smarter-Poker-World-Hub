@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-17 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -78,42 +79,42 @@ const MENTAL_TIPS = [
     desc: 'Inhale 4s → Hold 4s → Exhale 4s → Hold 4s. Repeat 4 cycles.',
     iconKind: 'meditate',
     icon: '🧘',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
   },
   {
     title: 'Process Over Results',
     desc: 'Focus on making GTO-correct decisions, not outcomes. Variance is temporary.',
     iconKind: 'target',
     icon: '🎯',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
   },
   {
     title: 'Take a Walk',
     desc: 'Physical movement resets your nervous system. Even 5 minutes helps.',
     iconKind: 'walk',
     icon: '🚶',
-    color: '#f97316',
+    color: 'var(--sp-accent-orange)',
   },
   {
     title: 'Reframe the Mistake',
     desc: 'Every mistake reveals a pattern to fix. More data = faster improvement.',
     iconKind: 'lightbulb',
     icon: '💡',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
   },
   {
     title: 'Drink Water',
     desc: 'Dehydration impairs decision-making by up to 12%. Stay hydrated.',
     iconKind: 'water',
     icon: '💧',
-    color: '#06b6d4',
+    color: 'var(--sp-accent-cyan)',
   },
   {
     title: 'Set a Stop-Loss',
     desc: 'Decide in advance: if accuracy drops below 60%, stop for 30 minutes.',
     iconKind: 'stop',
     icon: '🛑',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
   },
 ];
 
@@ -224,7 +225,7 @@ function BreathingExercise({ onClose }) {
   }, []);
 
   const phaseLabel = { inhale: 'Breathe In', hold1: 'Hold', exhale: 'Breathe Out', hold2: 'Hold' };
-  const phaseColor = { inhale: '#3b82f6', hold1: '#a855f7', exhale: '#22c55e', hold2: '#f97316' };
+  const phaseColor = { inhale: 'var(--sp-accent-blue)', hold1: 'var(--sp-accent-purple)', exhale: 'var(--sp-accent-green)', hold2: 'var(--sp-accent-orange)' };
 
   if (cycle > 4) {
     return (
@@ -240,13 +241,13 @@ function BreathingExercise({ onClose }) {
         }}
       >
         {/* TRAIN-TILTGUARD-A11Y-1: SVG check-square replaces ✅ */}
-        <div style={{ display: 'inline-flex', marginBottom: 12, color: '#4ade80' }} aria-hidden>
+        <div style={{ display: 'inline-flex', marginBottom: 12, color: 'var(--sp-accent-green)' }} aria-hidden>
           <CheckSquareIcon size={40} />
         </div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 6 }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)', marginBottom: 6 }}>
           Exercise Complete
         </div>
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
           4 cycles done. Feeling calmer?
         </div>
         <motion.button
@@ -257,7 +258,7 @@ function BreathingExercise({ onClose }) {
             borderRadius: 8,
             border: '1px solid rgba(0,212,255,0.2)',
             background: 'rgba(0,212,255,0.06)',
-            color: '#00d4ff',
+            color: 'var(--sp-accent-cyan)',
             fontSize: 13,
             fontWeight: 600,
             cursor: 'pointer',
@@ -279,7 +280,7 @@ function BreathingExercise({ onClose }) {
         border: `1px solid ${phaseColor[phase]}30`,
       }}
     >
-      <div style={{ fontSize: 10, color: '#475569', marginBottom: 8 }}>Cycle {cycle} of 4</div>
+      <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 8 }}>Cycle {cycle} of 4</div>
       <motion.div
         animate={{
           scale: phase === 'inhale' ? [1, 1.3] : phase === 'exhale' ? [1.3, 1] : 1.3,
@@ -348,7 +349,7 @@ export default function TiltGuardPage() {
     return unsub;
   }, [fetchData]);
 
-  const riskColors = { high: '#ef4444', medium: '#fbbf24', low: '#22c55e', none: '#64748b' };
+  const riskColors = { high: 'var(--sp-accent-red)', medium: 'var(--sp-accent-amber)', low: 'var(--sp-accent-green)', none: 'var(--sp-fg-dim)' };
   const riskLabels = { high: 'HIGH TILT RISK', medium: 'MODERATE', low: 'STABLE', none: 'NEUTRAL' };
 
   return (
@@ -360,7 +361,7 @@ export default function TiltGuardPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -381,7 +382,7 @@ export default function TiltGuardPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -397,7 +398,7 @@ export default function TiltGuardPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Tilt Guard</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Emotional intelligence coach</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Emotional intelligence coach</div>
           </div>
         </div>
 
@@ -440,7 +441,7 @@ export default function TiltGuardPage() {
                 >
                   {riskLabels[tiltData.risk]}
                 </div>
-                <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
                   {tiltData.message}
                 </div>
                 {tiltData.recentAvg !== null && (
@@ -453,17 +454,17 @@ export default function TiltGuardPage() {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#e2e8f0' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-fg)' }}>
                         {tiltData.recentAvg}%
                       </div>
-                      <div style={{ fontSize: 9, color: '#64748b' }}>RECENT (3)</div>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>RECENT (3)</div>
                     </div>
                     <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
                     <div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#94a3b8' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-fg-muted)' }}>
                         {tiltData.previousAvg}%
                       </div>
-                      <div style={{ fontSize: 9, color: '#64748b' }}>PREVIOUS (3)</div>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>PREVIOUS (3)</div>
                     </div>
                     <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
                     <div>
@@ -471,13 +472,13 @@ export default function TiltGuardPage() {
                         style={{
                           fontSize: 22,
                           fontWeight: 800,
-                          color: tiltData.delta >= 0 ? '#4ade80' : '#f87171',
+                          color: tiltData.delta >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         }}
                       >
                         {tiltData.delta >= 0 ? '+' : ''}
                         {Math.round(tiltData.delta)}%
                       </div>
-                      <div style={{ fontSize: 9, color: '#64748b' }}>DELTA</div>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>DELTA</div>
                     </div>
                   </div>
                 )}
@@ -490,7 +491,7 @@ export default function TiltGuardPage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -509,7 +510,7 @@ export default function TiltGuardPage() {
                           flex: 1,
                           borderRadius: 3,
                           background:
-                            t.accuracy >= 75 ? '#22c55e' : t.accuracy >= 60 ? '#fbbf24' : '#ef4444',
+                            t.accuracy >= 75 ? 'var(--sp-accent-green)' : t.accuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                           opacity: 0.7,
                           minHeight: 4,
                           position: 'relative',
@@ -522,7 +523,7 @@ export default function TiltGuardPage() {
                             left: '50%',
                             transform: 'translateX(-50%)',
                             fontSize: 8,
-                            color: '#475569',
+                            color: 'var(--sp-fg-faint)',
                             fontWeight: 700,
                             whiteSpace: 'nowrap',
                           }}
@@ -547,7 +548,7 @@ export default function TiltGuardPage() {
                   border: '1px solid rgba(59,130,246,0.2)',
                   background:
                     'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02))',
-                  color: '#3b82f6',
+                  color: 'var(--sp-accent-blue)',
                   fontSize: 14,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -570,7 +571,7 @@ export default function TiltGuardPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
@@ -603,7 +604,7 @@ export default function TiltGuardPage() {
                       <div style={{ fontSize: 12, fontWeight: 700, color: tip.color }}>
                         {tip.title}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{tip.desc}</div>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 1 }}>{tip.desc}</div>
                     </div>
                   </motion.div>
                 ))}
@@ -616,7 +617,7 @@ export default function TiltGuardPage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -646,14 +647,14 @@ export default function TiltGuardPage() {
                       }}
                     >
                       {/* TRAIN-TILTGUARD-A11Y-1: SVG WarmupIcon */}
-                      <span style={{ fontSize: 18, display: 'inline-flex', color: '#94a3b8' }} aria-hidden>
+                      <span style={{ fontSize: 18, display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden>
                         <WarmupIcon kind={game.iconKind} size={18} />
                       </span>
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
                           {game.name}
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b' }}>{game.desc}</div>
+                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{game.desc}</div>
                       </div>
                     </motion.button>
                   ))}

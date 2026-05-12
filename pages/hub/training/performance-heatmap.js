@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-11 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -36,12 +37,12 @@ function getHeatColor(accuracy) {
 }
 
 function getTextColor(accuracy) {
-  if (accuracy === null || accuracy === undefined) return '#475569';
-  if (accuracy >= 85) return '#4ade80';
+  if (accuracy === null || accuracy === undefined) return 'var(--sp-fg-faint)';
+  if (accuracy >= 85) return 'var(--sp-accent-green)';
   if (accuracy >= 75) return '#86efac';
-  if (accuracy >= 65) return '#fbbf24';
+  if (accuracy >= 65) return 'var(--sp-accent-amber)';
   if (accuracy >= 55) return '#fb923c';
-  return '#f87171';
+  return 'var(--sp-accent-red)';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -91,10 +92,10 @@ function CellDetail({ cell, onClose, onPractice }) {
           }}
         >
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-fg)' }}>
               {cell.position} — {cell.street}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
               {cell.handsPlayed} hands analyzed
             </div>
           </div>
@@ -121,13 +122,13 @@ function CellDetail({ cell, onClose, onPractice }) {
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#ef4444' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
               {(Number.isFinite(Number(cell.evLoss)) ? Number(cell.evLoss) : 0).toFixed(1) || '0.0'}
             </div>
             <div
               style={{
                 fontSize: 9,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
               }}
@@ -143,13 +144,13 @@ function CellDetail({ cell, onClose, onPractice }) {
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>
               {cell.mistakes || 0}
             </div>
             <div
               style={{
                 fontSize: 9,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
               }}
@@ -165,13 +166,13 @@ function CellDetail({ cell, onClose, onPractice }) {
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#22c55e' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
               {cell.correct || 0}
             </div>
             <div
               style={{
                 fontSize: 9,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
               }}
@@ -188,7 +189,7 @@ function CellDetail({ cell, onClose, onPractice }) {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.8,
                 marginBottom: 8,
@@ -206,13 +207,13 @@ function CellDetail({ cell, onClose, onPractice }) {
                   background: 'rgba(239,68,68,0.04)',
                   border: '1px solid rgba(239,68,68,0.08)',
                   fontSize: 11,
-                  color: '#cbd5e1',
+                  color: 'var(--sp-fg)',
                 }}
               >
-                <span style={{ color: '#f87171', fontWeight: 700 }}>{m.action}</span>
+                <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>{m.action}</span>
                 {' → should have '}
-                <span style={{ color: '#4ade80', fontWeight: 700 }}>{m.correct}</span>
-                <span style={{ float: 'right', color: '#64748b' }}>{m.count}x</span>
+                <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>{m.correct}</span>
+                <span style={{ float: 'right', color: 'var(--sp-fg-dim)' }}>{m.count}x</span>
               </div>
             ))}
           </div>
@@ -229,7 +230,7 @@ function CellDetail({ cell, onClose, onPractice }) {
               borderRadius: 10,
               border: '1px solid rgba(255,255,255,0.1)',
               background: 'transparent',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
@@ -247,7 +248,7 @@ function CellDetail({ cell, onClose, onPractice }) {
               border: '1px solid rgba(0,212,255,0.3)',
               background:
                 'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-              color: '#00d4ff',
+              color: 'var(--sp-accent-cyan)',
               fontSize: 13,
               fontWeight: 700,
               cursor: 'pointer',
@@ -554,7 +555,7 @@ export default function PerformanceHeatmapPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -573,7 +574,7 @@ export default function PerformanceHeatmapPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -587,10 +588,10 @@ export default function PerformanceHeatmapPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Performance Heatmap
             </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Position × Street accuracy grid</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Position × Street accuracy grid</div>
           </div>
         </div>
 
@@ -608,7 +609,7 @@ export default function PerformanceHeatmapPage() {
                   borderRadius: 8,
                   border: `1px solid ${timeFilter === f.id ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
                   background: timeFilter === f.id ? 'rgba(0,212,255,0.08)' : 'rgba(0,0,0,0.2)',
-                  color: timeFilter === f.id ? '#00d4ff' : '#64748b',
+                  color: timeFilter === f.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -664,26 +665,26 @@ export default function PerformanceHeatmapPage() {
                 <div style={{
                   fontSize: 10,
                   fontWeight: 800,
-                  color: '#a855f7',
+                  color: 'var(--sp-accent-purple)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 10,
                 }}>Quick Summary</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.1)' }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Strongest</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80' }}>{strongest.pos}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{strongest.accuracy}% accuracy</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-green)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Strongest</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)' }}>{strongest.pos}</div>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{strongest.accuracy}% accuracy</div>
                   </div>
                   <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)' }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Weakest</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#f87171' }}>{weakest.pos}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{weakest.accuracy}% accuracy</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-red)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Weakest</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-red)' }}>{weakest.pos}</div>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{weakest.accuracy}% accuracy</div>
                   </div>
                 </div>
                 {streetCounts[0]?.hands > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
-                    Most practiced street: <span style={{ color: '#00d4ff', fontWeight: 600 }}>{streetCounts[0].street}</span> ({streetCounts[0].hands} hands)
+                  <div style={{ marginTop: 8, fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+                    Most practiced street: <span style={{ color: 'var(--sp-accent-cyan)', fontWeight: 600 }}>{streetCounts[0].street}</span> ({streetCounts[0].hands} hands)
                   </div>
                 )}
               </motion.div>
@@ -708,13 +709,13 @@ export default function PerformanceHeatmapPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#e2e8f0' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-fg)' }}>
                 {totalStats.hands.toLocaleString()}
               </div>
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                 }}
@@ -739,7 +740,7 @@ export default function PerformanceHeatmapPage() {
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                 }}
@@ -756,13 +757,13 @@ export default function PerformanceHeatmapPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                 {(Number.isFinite(Number(totalStats.evLoss)) ? Number(totalStats.evLoss) : 0).toFixed(1)}
               </div>
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                 }}
@@ -801,7 +802,7 @@ export default function PerformanceHeatmapPage() {
                     padding: '10px 6px',
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#475569',
+                    color: 'var(--sp-fg-faint)',
                     textAlign: 'center',
                   }}
                 />
@@ -812,7 +813,7 @@ export default function PerformanceHeatmapPage() {
                       padding: '10px 6px',
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       textAlign: 'center',
                       textTransform: 'uppercase',
                       letterSpacing: 0.5,
@@ -839,7 +840,7 @@ export default function PerformanceHeatmapPage() {
                       padding: '14px 6px',
                       fontSize: 11,
                       fontWeight: 700,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       textAlign: 'center',
                       background: 'rgba(0,0,0,0.2)',
                       display: 'flex',
@@ -886,7 +887,7 @@ export default function PerformanceHeatmapPage() {
                         >
                           {cell.accuracy !== null ? `${cell.accuracy}%` : '—'}
                         </div>
-                        <div style={{ fontSize: 9, color: '#475569', marginTop: 2 }}>
+                        <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
                           {cell.handsPlayed > 0 ? `${cell.handsPlayed}h` : ''}
                         </div>
                       </motion.button>
@@ -908,11 +909,11 @@ export default function PerformanceHeatmapPage() {
             }}
           >
             {[
-              { label: '85%+', color: '#4ade80' },
+              { label: '85%+', color: 'var(--sp-accent-green)' },
               { label: '75-84%', color: '#86efac' },
-              { label: '65-74%', color: '#fbbf24' },
+              { label: '65-74%', color: 'var(--sp-accent-amber)' },
               { label: '55-64%', color: '#fb923c' },
-              { label: '<55%', color: '#f87171' },
+              { label: '<55%', color: 'var(--sp-accent-red)' },
             ].map((l) => (
               <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div
@@ -924,7 +925,7 @@ export default function PerformanceHeatmapPage() {
                     opacity: 0.7,
                   }}
                 />
-                <span style={{ fontSize: 9, color: '#64748b' }}>{l.label}</span>
+                <span style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>{l.label}</span>
               </div>
             ))}
           </div>
@@ -935,7 +936,7 @@ export default function PerformanceHeatmapPage() {
               textAlign: 'center',
               padding: '10px',
               fontSize: 11,
-              color: '#475569',
+              color: 'var(--sp-fg-faint)',
             }}
           >
             Tap any cell to see detailed mistakes and practice that spot

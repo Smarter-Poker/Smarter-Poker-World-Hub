@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-7 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -27,7 +28,7 @@ const VILLAIN_PROFILES = {
   gto: {
     name: 'GTO Baseline',
     icon: '🎯',
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     desc: 'Balanced, unexploitable strategy',
     tendencies: {
       vpip: 24,
@@ -42,7 +43,7 @@ const VILLAIN_PROFILES = {
   nit: {
     name: 'Nit',
     icon: '🐢',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
     desc: 'Very tight, only plays premium hands. Folds too much.',
     tendencies: {
       vpip: 12,
@@ -57,7 +58,7 @@ const VILLAIN_PROFILES = {
   tag: {
     name: 'TAG',
     icon: '🦅',
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
     desc: 'Tight-Aggressive. Solid but predictable ranges.',
     tendencies: {
       vpip: 20,
@@ -72,7 +73,7 @@ const VILLAIN_PROFILES = {
   lag: {
     name: 'LAG',
     icon: '🔥',
-    color: '#f59e0b',
+    color: 'var(--sp-accent-amber)',
     desc: 'Loose-Aggressive. Wide ranges, lots of aggression.',
     tendencies: {
       vpip: 35,
@@ -87,7 +88,7 @@ const VILLAIN_PROFILES = {
   callingStation: {
     name: 'Calling Station',
     icon: '📞',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     desc: 'Calls too much, rarely raises or folds. Passive player.',
     tendencies: {
       vpip: 45,
@@ -102,7 +103,7 @@ const VILLAIN_PROFILES = {
   maniac: {
     name: 'Maniac',
     icon: '💥',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
     desc: 'Ultra-aggressive. Bets and raises with everything.',
     tendencies: {
       vpip: 55,
@@ -133,7 +134,7 @@ function calculateExploits(profile) {
       desc: `Villain folds to 3-bet ${t.foldTo3Bet}% (GTO: ${gto.foldTo3Bet}%). 3-bet wider for auto-profit.`,
       frequency: `3-bet ${Math.min(25, Math.round(t.foldTo3Bet * 0.3))}% of hands`,
       ev: `+${((t.foldTo3Bet - gto.foldTo3Bet) * 0.03).toFixed(2)} BB/hand`,
-      color: '#22c55e',
+      color: 'var(--sp-accent-green)',
     });
   }
 
@@ -145,7 +146,7 @@ function calculateExploits(profile) {
       desc: `Villain plays only ${t.vpip}% of hands. Steal with wider ranges from late positions.`,
       frequency: `Open ${Math.min(60, Math.round(100 - t.foldTo3Bet))}% from BTN`,
       ev: `+${((gto.vpip - t.vpip) * 0.02).toFixed(2)} BB/hand`,
-      color: '#22c55e',
+      color: 'var(--sp-accent-green)',
     });
   }
 
@@ -157,7 +158,7 @@ function calculateExploits(profile) {
       desc: `Villain calls down ${t.callDown}% (GTO: ${gto.callDown}%). Bet for value with medium-strength hands.`,
       frequency: 'Bet all 3 streets with top pair+',
       ev: `+${((t.callDown - gto.callDown) * 0.04).toFixed(2)} BB/hand`,
-      color: '#22c55e',
+      color: 'var(--sp-accent-green)',
     });
   }
 
@@ -169,7 +170,7 @@ function calculateExploits(profile) {
       desc: `Villain doesn't fold enough. Cut bluffing frequency significantly.`,
       frequency: `Bluff only ${Math.max(10, Math.round(100 - t.callDown))}% of bet freq`,
       ev: `+${((t.callDown - gto.callDown) * 0.02).toFixed(2)} BB/hand`,
-      color: '#fbbf24',
+      color: 'var(--sp-accent-amber)',
     });
   }
 
@@ -181,7 +182,7 @@ function calculateExploits(profile) {
       desc: `Villain only folds to C-bet ${t.foldToCBet}%. Don't auto-cbet without equity.`,
       frequency: `C-bet only ${Math.min(50, t.foldToCBet + 10)}% of the time`,
       ev: `+${((gto.foldToCBet - t.foldToCBet) * 0.015).toFixed(2)} BB/hand`,
-      color: '#fbbf24',
+      color: 'var(--sp-accent-amber)',
     });
   }
 
@@ -193,7 +194,7 @@ function calculateExploits(profile) {
       desc: `Villain over-raises (PFR: ${t.pfr}%). Flat-call with strong hands to trap.`,
       frequency: 'Flat AA/KK vs their opens sometimes',
       ev: `+${((t.pfr - gto.pfr) * 0.025).toFixed(2)} BB/hand`,
-      color: '#f97316',
+      color: 'var(--sp-accent-orange)',
     });
   }
 
@@ -205,7 +206,7 @@ function calculateExploits(profile) {
       desc: `Villain C-bets only ${t.cBet}%. Take the initiative with probing bets.`,
       frequency: 'Donk-bet 40% on favorable boards',
       ev: `+${((gto.cBet - t.cBet) * 0.02).toFixed(2)} BB/hand`,
-      color: '#fbbf24',
+      color: 'var(--sp-accent-amber)',
     });
   }
 
@@ -216,7 +217,7 @@ function calculateExploits(profile) {
       desc: 'This villain plays close to GTO. No major exploits available.',
       frequency: 'Maintain balanced strategy',
       ev: '0.00 BB/hand',
-      color: '#22c55e',
+      color: 'var(--sp-accent-green)',
     });
   }
 
@@ -231,7 +232,7 @@ function calculateExploits(profile) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function DecisionNode({ action, freq, isLocked, isVillain, depth = 0 }) {
-  const color = isLocked ? '#ef4444' : isVillain ? '#a855f7' : '#00d4ff';
+  const color = isLocked ? 'var(--sp-accent-red)' : isVillain ? 'var(--sp-accent-purple)' : 'var(--sp-accent-cyan)';
   return (
     <div
       style={{
@@ -268,7 +269,7 @@ function DecisionNode({ action, freq, isLocked, isVillain, depth = 0 }) {
           color,
         }}
       >
-        {action} <span style={{ color: '#64748b', fontWeight: 400 }}>({freq}%)</span>
+        {action} <span style={{ color: 'var(--sp-fg-dim)', fontWeight: 400 }}>({freq}%)</span>
       </div>
     </div>
   );
@@ -286,7 +287,7 @@ function NodeTree({ profile }) {
         marginBottom: 16,
       }}
     >
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 12 }}>
         Decision Tree (Villain's Locked Strategy)
       </div>
       <DecisionNode action="Open Raise" freq={t.pfr} isVillain depth={0} />
@@ -574,7 +575,7 @@ export default function NodelockingPage() {
       >
         <div
           style={{
-            color: '#00d4ff',
+            color: 'var(--sp-accent-cyan)',
             fontFamily: 'Orbitron, sans-serif',
             fontSize: 24,
             fontWeight: 900,
@@ -604,7 +605,7 @@ export default function NodelockingPage() {
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -625,7 +626,7 @@ export default function NodelockingPage() {
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 8,
               padding: '6px 12px',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
@@ -684,7 +685,7 @@ export default function NodelockingPage() {
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
-                      color: selectedProfile === key ? profile.color : '#94a3b8',
+                      color: selectedProfile === key ? profile.color : 'var(--sp-fg-muted)',
                     }}
                   >
                     {profile.name}
@@ -705,7 +706,7 @@ export default function NodelockingPage() {
                 border: 'none',
                 cursor: 'pointer',
                 background: showMyProfiles ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)',
-                color: showMyProfiles ? '#00d4ff' : '#64748b',
+                color: showMyProfiles ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
               }}
             >
               📁 My Profiles ({savedProfiles.length})
@@ -728,7 +729,7 @@ export default function NodelockingPage() {
               </button>
             )}
             {profileSaveStatus === 'saved' && (
-              <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}>✓ Saved!</span>
+              <span style={{ fontSize: 10, color: 'var(--sp-accent-green)', fontWeight: 600 }}>✓ Saved!</span>
             )}
           </div>
 
@@ -764,16 +765,16 @@ export default function NodelockingPage() {
                       marginBottom: 4,
                     }}
                   >
-                    <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>{p.name}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-fg)', flex: 1 }}>{p.name}</span>
                     <button
                       onClick={() => loadCustomProfile(p)}
-                      style={{ padding: '3px 10px', borderRadius: 6, fontSize: 9, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}
+                      style={{ padding: '3px 10px', borderRadius: 6, fontSize: 9, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(0,212,255,0.15)', color: 'var(--sp-accent-cyan)' }}
                     >
                       Load
                     </button>
                     <button
                       onClick={() => deleteCustomProfile(i)}
-                      style={{ padding: '3px 8px', borderRadius: 6, fontSize: 9, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+                      style={{ padding: '3px 8px', borderRadius: 6, fontSize: 9, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: 'var(--sp-accent-red)' }}
                     >
                       ✕
                     </button>
@@ -808,7 +809,7 @@ export default function NodelockingPage() {
                   border: '1px solid rgba(0,212,255,0.2)',
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', marginBottom: 12, fontFamily: "'Orbitron', monospace" }}>Save Villain Profile</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 12, fontFamily: "'Orbitron', monospace" }}>Save Villain Profile</div>
                 <input
                   value={newProfileName}
                   onChange={(e) => setNewProfileName(e.target.value)}
@@ -820,7 +821,7 @@ export default function NodelockingPage() {
                     borderRadius: 8,
                     border: '1px solid rgba(255,255,255,0.1)',
                     background: 'rgba(0,0,0,0.3)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 13,
                     fontWeight: 500,
                     marginBottom: 12,
@@ -840,14 +841,14 @@ export default function NodelockingPage() {
                       border: 'none',
                       cursor: 'pointer',
                       background: newProfileName.trim() ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'rgba(255,255,255,0.05)',
-                      color: newProfileName.trim() ? '#fff' : '#475569',
+                      color: newProfileName.trim() ? '#fff' : 'var(--sp-fg-faint)',
                     }}
                   >
                     {profileSaveStatus === 'saving' ? 'Saving...' : 'Save'}
                   </button>
                   <button
                     onClick={() => setShowSaveModal(false)}
-                    style={{ padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}
+                    style={{ padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', color: 'var(--sp-fg-muted)' }}
                   >
                     Cancel
                   </button>
@@ -871,7 +872,7 @@ export default function NodelockingPage() {
             >
               {activeProfile.icon} {activeProfile.name}
             </div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{activeProfile.desc}</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{activeProfile.desc}</div>
           </div>
 
           {/* Tendency Sliders (Editable) */}
@@ -884,9 +885,9 @@ export default function NodelockingPage() {
               marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 12 }}>
               🏛️ Locked Tendencies{' '}
-              <span style={{ fontSize: 9, color: '#64748b', fontWeight: 400 }}>
+              <span style={{ fontSize: 9, color: 'var(--sp-fg-dim)', fontWeight: 400 }}>
                 (drag sliders to customize)
               </span>
             </div>
@@ -899,7 +900,7 @@ export default function NodelockingPage() {
                     <span
                       style={{
                         fontSize: 10,
-                        color: '#94a3b8',
+                        color: 'var(--sp-fg-muted)',
                         fontWeight: 600,
                         textTransform: 'uppercase',
                       }}
@@ -910,7 +911,7 @@ export default function NodelockingPage() {
                       style={{
                         fontSize: 12,
                         fontWeight: 800,
-                        color: val > 50 ? '#fbbf24' : '#00d4ff',
+                        color: val > 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-cyan)',
                         fontFamily: "'Orbitron', monospace",
                       }}
                     >
@@ -943,7 +944,7 @@ export default function NodelockingPage() {
               border: '1px solid rgba(255,255,255,0.06)',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 12 }}>
               Optimal Exploits
             </div>
             {exploits.map((exploit, i) => (
@@ -981,18 +982,18 @@ export default function NodelockingPage() {
                         exploit.priority === 'HIGH'
                           ? 'rgba(34,197,94,0.2)'
                           : 'rgba(251,191,36,0.2)',
-                      color: exploit.priority === 'HIGH' ? '#22c55e' : '#fbbf24',
+                      color: exploit.priority === 'HIGH' ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                     }}
                   >
                     {exploit.priority}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginBottom: 6 }}>
                   {exploit.desc}
                 </div>
                 <div style={{ display: 'flex', gap: 12, fontSize: 10 }}>
-                  <span style={{ color: '#00d4ff' }}>Freq: {exploit.frequency}</span>
-                  <span style={{ color: '#22c55e', fontWeight: 700 }}>EV: {exploit.ev}</span>
+                  <span style={{ color: 'var(--sp-accent-cyan)' }}>Freq: {exploit.frequency}</span>
+                  <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>EV: {exploit.ev}</span>
                 </div>
               </motion.div>
             ))}
@@ -1015,14 +1016,14 @@ export default function NodelockingPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
                 >
                   Estimated Total Edge
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                   Combined EV from all exploits
                 </div>
               </div>
@@ -1030,11 +1031,11 @@ export default function NodelockingPage() {
                 style={{
                   fontSize: 28,
                   fontWeight: 900,
-                  color: '#22c55e',
+                  color: 'var(--sp-accent-green)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
-                +{totalEV} <span style={{ fontSize: 12, color: '#64748b' }}>BB/hand</span>
+                +{totalEV} <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>BB/hand</span>
               </div>
             </div>
 
@@ -1070,7 +1071,7 @@ export default function NodelockingPage() {
                 style={{
                   textAlign: 'center',
                   fontSize: 10,
-                  color: '#22c55e',
+                  color: 'var(--sp-accent-green)',
                   marginTop: 6,
                   fontWeight: 600,
                 }}
@@ -1083,7 +1084,7 @@ export default function NodelockingPage() {
                 style={{
                   textAlign: 'center',
                   fontSize: 10,
-                  color: '#ef4444',
+                  color: 'var(--sp-accent-red)',
                   marginTop: 6,
                   fontWeight: 600,
                 }}
@@ -1134,10 +1135,10 @@ export default function NodelockingPage() {
                 boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
               }}
             >
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', margin: '0 0 12px' }}>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-fg)', margin: '0 0 12px' }}>
                 Delete Profile
               </h2>
-              <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 24, lineHeight: 1.5 }}>
+              <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.5 }}>
                 Are you sure you want to delete profile <span style={{ color: '#fff', fontWeight: 700 }}>"{savedProfiles[profileToDelete]?.name}"</span>? This action cannot be undone.
               </p>
               <div style={{ display: 'flex', gap: 12 }}>
@@ -1148,7 +1149,7 @@ export default function NodelockingPage() {
                     padding: '10px',
                     borderRadius: 8,
                     background: 'rgba(255,255,255,0.06)',
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     border: 'none',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1162,7 +1163,7 @@ export default function NodelockingPage() {
                     flex: 1,
                     padding: '10px',
                     borderRadius: 8,
-                    background: '#ef4444',
+                    background: 'var(--sp-accent-red)',
                     color: '#fff',
                     border: 'none',
                     fontWeight: 700,
