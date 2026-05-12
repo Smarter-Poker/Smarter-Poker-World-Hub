@@ -57,7 +57,7 @@ function generateQuestion() {
       type,
       title: 'Pot Odds',
       icon: '📐',
-      color: '#00d4ff',
+      color: 'var(--sp-accent-cyan)',
       question: `Villain bets **${bet} chips** into a **${pot} chip** pot. What are your pot odds (as a %)?`,
       hint: 'Pot Odds % = Bet ÷ (Pot + Bet) × 100',
       formulas: [
@@ -77,7 +77,7 @@ function generateQuestion() {
       type,
       title: 'Min. Defense Frequency',
       icon: '🛡️',
-      color: '#a855f7',
+      color: 'var(--sp-accent-purple)',
       question: `Villain bets **${bet} chips** into a **${pot} chip** pot. What is your Minimum Defense Frequency (MDF)?`,
       hint: 'MDF % = Pot ÷ (Pot + Bet) × 100',
       formulas: [
@@ -102,7 +102,7 @@ function generateQuestion() {
       type,
       title: 'EV of a Call',
       icon: '⚡',
-      color: '#22c55e',
+      color: 'var(--sp-accent-green)',
       question: `Pot: **${pot}**, Villain bets **${bet}**. You have **${equity}% equity**. What is the EV of calling (in chips)?`,
       hint: 'EV = (Equity × Total Pot Won) − ((1 − Equity) × Call Amount)',
       formulas: [
@@ -127,7 +127,7 @@ function generateQuestion() {
     type,
     title: 'Break-Even Equity',
     icon: '⚖️',
-    color: '#f97316',
+    color: 'var(--sp-accent-orange)',
     question: `Villain bets **${bet}** into a **${pot} chip** pot. What is the minimum equity (%) you need to break even on a call?`,
     hint: 'Break-Even Equity % = Bet ÷ (Pot + Bet) × 100',
     formulas: [
@@ -174,6 +174,7 @@ export default function EVTrainer() {
   useTrainingBus('ev-trainer');
   const fb = useTrainingFeedback();
   const router = useRouter();
+  // TRAIN-CSS-TOKENS-ADOPT-2 — token adoption in ev-trainer
   // TRAIN-WIRE-BOTTOMSHEET-2 — info sheet state
   const [infoOpen, setInfoOpen] = useState(false);
 
@@ -280,19 +281,19 @@ export default function EVTrainer() {
     correct: {
       bg: 'rgba(34, 197, 94, 0.15)',
       border: 'rgba(34, 197, 94, 0.5)',
-      text: '#22c55e',
+      text: 'var(--sp-accent-green)',
       label: '✅ EXACT!',
     },
     close: {
       bg: 'rgba(251, 191, 36, 0.15)',
       border: 'rgba(251, 191, 36, 0.5)',
-      text: '#fbbf24',
+      text: 'var(--sp-accent-amber)',
       label: `⚡ CLOSE! (±${TOLERANCE})`,
     },
     wrong: {
       bg: 'rgba(239, 68, 68, 0.15)',
       border: 'rgba(239, 68, 68, 0.4)',
-      text: '#ef4444',
+      text: 'var(--sp-accent-red)',
       label: '❌ INCORRECT',
     },
   };
@@ -300,7 +301,7 @@ export default function EVTrainer() {
   const container = {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1629 50%, #0a0f1e 100%)',
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     fontFamily: "'Inter', sans-serif",
     padding: '20px 16px 40px',
   };
@@ -329,7 +330,7 @@ export default function EVTrainer() {
         title="How EV Trainer Works"
         subtitle="Pot Odds · MDF · EV Calculations"
       >
-        <div style={{ padding: '0 4px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.6 }}>
+        <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
           <p style={{ marginTop: 0 }}>
             Each drill presents a poker math question with a numeric answer. Type your
             response and submit. The trainer checks against the solver-correct value
@@ -337,11 +338,11 @@ export default function EVTrainer() {
             attempt.
           </p>
           <p>
-            <strong style={{ color: '#00d4ff' }}>Pot Odds</strong> tell you the price
-            you are getting to call. <strong style={{ color: '#a855f7' }}>MDF</strong>
+            <strong style={{ color: 'var(--sp-accent-cyan)' }}>Pot Odds</strong> tell you the price
+            you are getting to call. <strong style={{ color: 'var(--sp-accent-purple)' }}>MDF</strong>
             (Minimum Defense Frequency) tells you how often you must defend so that
             villain's bluffs aren't auto-profitable.
-            <strong style={{ color: '#22c55e' }}> EV</strong> rolls both together with
+            <strong style={{ color: 'var(--sp-accent-green)' }}> EV</strong> rolls both together with
             win probabilities and bet sizing.
           </p>
           <p>
@@ -360,7 +361,7 @@ export default function EVTrainer() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontSize: 12,
                 cursor: 'pointer',
                 padding: '4px 0',
@@ -377,7 +378,7 @@ export default function EVTrainer() {
               style={{
                 background: 'rgba(0,212,255,0.08)',
                 border: '1px solid rgba(0,212,255,0.25)',
-                color: '#00d4ff',
+                color: 'var(--sp-accent-cyan)',
                 fontSize: 11,
                 fontWeight: 700,
                 padding: '4px 12px',
@@ -421,7 +422,7 @@ export default function EVTrainer() {
               >
                 EV TRAINER
               </h1>
-              <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                 Pot Odds · MDF · EV Calculations
               </p>
             </div>
@@ -440,11 +441,11 @@ export default function EVTrainer() {
               {
                 label: 'Accuracy',
                 value: `${accuracy}%`,
-                color: accuracy >= 70 ? '#22c55e' : accuracy >= 50 ? '#f97316' : '#ef4444',
+                color: accuracy >= 70 ? 'var(--sp-accent-green)' : accuracy >= 50 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-red)',
               },
-              { label: 'Correct', value: sessionStats.correct, color: '#22c55e' },
-              { label: 'Streak', value: streakDisplay, color: '#a855f7' },
-              { label: 'Best', value: bestStreakDisplay, color: '#00d4ff' },
+              { label: 'Correct', value: sessionStats.correct, color: 'var(--sp-accent-green)' },
+              { label: 'Streak', value: streakDisplay, color: 'var(--sp-accent-purple)' },
+              { label: 'Best', value: bestStreakDisplay, color: 'var(--sp-accent-cyan)' },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -469,7 +470,7 @@ export default function EVTrainer() {
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#475569',
+                    color: 'var(--sp-fg-faint)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
@@ -529,7 +530,7 @@ export default function EVTrainer() {
                       margin: 0,
                       fontSize: 16,
                       lineHeight: 1.7,
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontWeight: 600,
                     }}
                   >
@@ -550,7 +551,7 @@ export default function EVTrainer() {
                       background: 'rgba(255,255,255,0.04)',
                       borderRadius: 8,
                       fontSize: 11,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       fontWeight: 600,
                       borderLeft: `3px solid ${question.color}60`,
                     }}
@@ -567,7 +568,7 @@ export default function EVTrainer() {
                         display: 'block',
                         fontSize: 11,
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                         marginBottom: 8,
@@ -592,7 +593,7 @@ export default function EVTrainer() {
                           fontFamily: "'Orbitron', monospace",
                           background: 'rgba(255,255,255,0.05)',
                           border: '1px solid rgba(255,255,255,0.1)',
-                          color: '#e2e8f0',
+                          color: 'var(--sp-fg)',
                           outline: 'none',
                         }}
                       />
@@ -649,7 +650,7 @@ export default function EVTrainer() {
                           style={{
                             fontSize: 10,
                             fontWeight: 700,
-                            color: '#64748b',
+                            color: 'var(--sp-fg-dim)',
                             textTransform: 'uppercase',
                             letterSpacing: 1,
                             marginBottom: 10,
@@ -663,14 +664,14 @@ export default function EVTrainer() {
                             key={i}
                             style={{
                               fontSize: 13,
-                              color: '#94a3b8',
+                              color: 'var(--sp-fg-muted)',
                               lineHeight: 1.7,
                               fontWeight: 600,
                               display: 'flex',
                               gap: 8,
                             }}
                           >
-                            <span style={{ color: '#475569', minWidth: 16 }}>{i + 1}.</span>
+                            <span style={{ color: 'var(--sp-fg-faint)', minWidth: 16 }}>{i + 1}.</span>
                             <span>
                               {line.split('**').map((p, j) =>
                                 j % 2 === 0 ? (
@@ -719,11 +720,11 @@ export default function EVTrainer() {
               borderRadius: 10,
               border: '1px solid rgba(255,255,255,0.05)',
               fontSize: 11,
-              color: '#475569',
+              color: 'var(--sp-fg-faint)',
               lineHeight: 1.7,
             }}
           >
-            <strong style={{ color: '#64748b' }}>Tolerance Rule:</strong> Answers within ±
+            <strong style={{ color: 'var(--sp-fg-dim)' }}>Tolerance Rule:</strong> Answers within ±
             {TOLERANCE} (for %, or ±{TOLERANCE} chips for EV) count as close ✅. Exact answers build
             maximum streaks. Press{' '}
             <kbd
