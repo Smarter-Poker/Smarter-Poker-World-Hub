@@ -87,6 +87,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", action="store_true", help="Verify cookies with yt-dlp after harvesting")
     parser.add_argument("--test-only", action="store_true", help="Only test existing cookies")
+    # 2026-05-12: --keep-alive-only refreshes session cookies WITHOUT a new
+    # camoufox harvest. Delegates to keep-alive-cookies.sh which extends the
+    # existing LOGIN_INFO cookies' lifetime via authenticated youtube.com GETs.
+    # Safe to run frequently (every 30 min). Use this in the systemd timer
+    # to KEEP cookies alive forever once they've been bootstrapped via
+    # deploy-yt-cookies.yml — no headless-login bot-detection problem.
+    parser.add_argument("--keep-alive-only", action="store_true",
+                        help="Run keep-alive-cookies.sh and exit; do not re-harvest")
     args = parser.parse_args()
 
     log("=== YouTube Cookie Refresh (scrapling) ===")
@@ -96,6 +104,15 @@ def main():
             log("ERROR: No cookies.txt found.")
             sys.exit(1)
         sys.exit(0 if test_cookies(COOKIES_PATH) else 1)
+
+    if args.keep_alive_only:
+        ka = Path(__file__).parent / "keep-alive-cookies.sh"
+        if not ka.exists():
+            log(f"ERROR: keep-alive script missing: {ka}")
+            sys.exit(1)
+        log(f"Running keep-alive: {ka}")
+        result = subprocess.run(["bash", str(ka)], env={**os.environ, "COOKIES_FILE": str(COOKIES_PATH)})
+        sys.exit(result.returncode)
 
     email = os.environ.get("YT_GOOGLE_EMAIL")
     password = os.environ.get("YT_GOOGLE_PASS")

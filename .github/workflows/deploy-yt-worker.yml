@@ -114,17 +114,36 @@ jobs:
             "$USER@$HOST:/tmp/sp-yt-cookie-refresh.service"
           scp scripts/yt-transcode-worker/sp-yt-cookie-refresh.timer \
             "$USER@$HOST:/tmp/sp-yt-cookie-refresh.timer"
+          # 2026-05-12: new keep-alive units that refresh cookie lifetimes
+          # WITHOUT re-running the broken camoufox/scrapling headless harvest.
+          # See scripts/yt-transcode-worker/keep-alive-cookies.sh for the full
+          # rationale. The keep-alive timer fires every 30 min and extends
+          # the existing LOGIN_INFO cookies indefinitely.
+          scp scripts/yt-transcode-worker/sp-yt-cookie-keepalive.service \
+            "$USER@$HOST:/tmp/sp-yt-cookie-keepalive.service"
+          scp scripts/yt-transcode-worker/sp-yt-cookie-keepalive.timer \
+            "$USER@$HOST:/tmp/sp-yt-cookie-keepalive.timer"
           ssh "$USER@$HOST" '
             sudo mv /tmp/sp-yt-transcode.service /etc/systemd/system/sp-yt-transcode.service
+            sudo mv /tmp/sp-yt-cookie-keepalive.service /etc/systemd/system/sp-yt-cookie-keepalive.service
+            sudo mv /tmp/sp-yt-cookie-keepalive.timer /etc/systemd/system/sp-yt-cookie-keepalive.timer
             sudo systemctl daemon-reload
             sudo systemctl enable sp-yt-transcode
-            
-            # Disable auto-refresh timer to prevent wiping manually harvested auth cookies
+
+            # Disable the OLD camoufox harvest timer — it produces anonymous
+            # cookies that destroy auth state. The new keep-alive replaces it.
             sudo systemctl disable --now sp-yt-cookie-refresh.timer || true
-            
+
+            # Enable + start the new keep-alive timer. Runs every 30 min.
+            sudo systemctl enable --now sp-yt-cookie-keepalive.timer
+
+            # Ensure the keep-alive script is executable on the box
+            sudo chmod +x /opt/smarter-poker/yt-transcode-worker/keep-alive-cookies.sh || true
+
             sudo systemctl restart sp-yt-transcode
             sleep 3
             sudo systemctl is-active sp-yt-transcode
+            sudo systemctl is-active sp-yt-cookie-keepalive.timer
           '
 
       - name: Tail recent logs (sanity check)

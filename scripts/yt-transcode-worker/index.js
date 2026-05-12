@@ -215,6 +215,13 @@ async function processJob(job) {
       '--remote-components', 'ejs:github',
       '--max-filesize', '400m',          // Abort download if file > 400 MB (before re-encode)
       '--match-filter', 'duration < 600', // Skip videos longer than 10 minutes
+      // 2026-05-12: rotate through bot-detection-resistant clients so a single
+      // cookie-auth failure doesn't kill the whole download. yt-dlp will try
+      // each client in order — tv & web_safari survive most "Sign in to confirm
+      // you're not a bot" walls because YouTube treats those as legacy
+      // embedded surfaces with looser checks. With this set, the vast majority
+      // of downloads succeed even when cookies are stale or anonymous.
+      '--extractor-args', 'youtube:player_client=tv,web_safari,mweb,web_embedded',
     ];
     if (cookiesExist) {
       ytdlpArgs.push('--cookies', COOKIES_FILE);
