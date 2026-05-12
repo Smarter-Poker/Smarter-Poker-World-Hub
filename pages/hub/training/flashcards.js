@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-ADOPT-6 — adoption of --sp-* token contract from PR #470
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -322,7 +323,7 @@ const CARDS = [
   },
 ];
 
-const CAT_COLORS = { Preflop: '#3b82f6', Postflop: '#22c55e', Math: '#fbbf24', Theory: '#a855f7' };
+const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
 
 function calculateSM2(quality, prevInterval = 0, prevEase = 2.5) {
   let ease = prevEase;
@@ -458,7 +459,7 @@ export default function FlashcardsPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -476,7 +477,7 @@ export default function FlashcardsPage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -491,7 +492,7 @@ export default function FlashcardsPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Flashcards</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Spaced Repetition (SM-2)</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Spaced Repetition (SM-2)</div>
           </div>
         </div>
 
@@ -507,27 +508,27 @@ export default function FlashcardsPage() {
           }}
         >
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#3b82f6' }}>{stats.newCount}</div>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>New</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>{stats.newCount}</div>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>New</div>
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24' }}>{stats.learning}</div>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{stats.learning}</div>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Learning
             </div>
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80' }}>{stats.mastered}</div>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)' }}>{stats.mastered}</div>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Mastered
             </div>
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#f97316' }}>{stats.dueCount}</div>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-orange)' }}>{stats.dueCount}</div>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Due
             </div>
           </div>
@@ -547,7 +548,7 @@ export default function FlashcardsPage() {
                   borderRadius: 6,
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: catFilter === c ? '#00d4ff' : '#64748b',
+                  color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 10,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -598,8 +599,8 @@ export default function FlashcardsPage() {
                     style={{
                       padding: '2px 8px',
                       borderRadius: 4,
-                      background: `${CAT_COLORS[current.cat] || '#64748b'}15`,
-                      color: CAT_COLORS[current.cat] || '#64748b',
+                      background: `${CAT_COLORS[current.cat] || 'var(--sp-fg-dim)'}15`,
+                      color: CAT_COLORS[current.cat] || 'var(--sp-fg-dim)',
                       fontSize: 9,
                       fontWeight: 700,
                       textTransform: 'uppercase',
@@ -607,16 +608,16 @@ export default function FlashcardsPage() {
                   >
                     {current.cat}
                   </span>
-                  <span style={{ fontSize: 10, color: '#475569' }}>
+                  <span style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>
                     {currentIdx + 1}/{sessionDeck.length} Today
                   </span>
                   {(() => {
                     const s = sm2Data[current.id];
-                    let label = 'New', bg = 'rgba(59,130,246,0.1)', clr = '#3b82f6';
+                    let label = 'New', bg = 'rgba(59,130,246,0.1)', clr = 'var(--sp-accent-blue)';
                     if (s) {
-                      if (s.interval >= 21) { label = 'Mastered'; bg = 'rgba(34,197,94,0.1)'; clr = '#4ade80'; }
-                      else if (s.interval >= 3) { label = 'Review'; bg = 'rgba(249,115,22,0.1)'; clr = '#f97316'; }
-                      else { label = 'Learning'; bg = 'rgba(251,191,36,0.1)'; clr = '#fbbf24'; }
+                      if (s.interval >= 21) { label = 'Mastered'; bg = 'rgba(34,197,94,0.1)'; clr = 'var(--sp-accent-green)'; }
+                      else if (s.interval >= 3) { label = 'Review'; bg = 'rgba(249,115,22,0.1)'; clr = 'var(--sp-accent-orange)'; }
+                      else { label = 'Learning'; bg = 'rgba(251,191,36,0.1)'; clr = 'var(--sp-accent-amber)'; }
                     }
                     return (
                       <span style={{ padding: '2px 6px', borderRadius: 4, background: bg, color: clr, fontSize: 8, fontWeight: 700, textTransform: 'uppercase' }}>
@@ -631,19 +632,19 @@ export default function FlashcardsPage() {
                       style={{
                         fontSize: 16,
                         fontWeight: 700,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         lineHeight: 1.5,
                         marginBottom: 16,
                       }}
                     >
                       {current.q}
                     </div>
-                    <div style={{ fontSize: 11, color: '#475569', textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-faint)', textAlign: 'center' }}>
                       Tap to reveal answer
                     </div>
                   </>
                 ) : (
-                  <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6 }}>{current.a}</div>
+                  <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>{current.a}</div>
                 )}
               </motion.div>
             </AnimatePresence>
@@ -670,7 +671,7 @@ export default function FlashcardsPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#4ade80',
+                    color: 'var(--sp-accent-green)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 8,
@@ -696,7 +697,7 @@ export default function FlashcardsPage() {
                     }}
                   />
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
                   {stats.mastered}/{CARDS.length} cards mastered (21+ day interval)
                 </div>
               </div>
@@ -742,7 +743,7 @@ export default function FlashcardsPage() {
                   borderRadius: 12,
                   border: '1px solid rgba(251,191,36,0.2)',
                   background: 'rgba(251,191,36,0.06)',
-                  color: '#fbbf24',
+                  color: 'var(--sp-accent-amber)',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -769,7 +770,7 @@ export default function FlashcardsPage() {
                   borderRadius: 12,
                   border: '1px solid rgba(34,197,94,0.2)',
                   background: 'rgba(34,197,94,0.06)',
-                  color: '#4ade80',
+                  color: 'var(--sp-accent-green)',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',

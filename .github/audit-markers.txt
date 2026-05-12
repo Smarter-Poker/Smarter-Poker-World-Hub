@@ -1244,3 +1244,25 @@ TRAIN-CSS-TOKENS-ADOPT-1
 # neutral ramp. Page-bg darks (#0a0f1e, #0d1629, #1e2d3d) and string-interp
 # accent literals (#00d4ff, #a855f7 in gradient template strings) preserved.
 TRAIN-CSS-TOKENS-ADOPT-2
+
+# ─── Phase-15b adoption: --sp-* token sweep batch 2 ─────────────────────────
+# TRAIN-CSS-TOKENS-ADOPT-3 — pages/hub/training/spr-trainer.js. 45 quoted
+# hex literals routed to var(--sp-accent-* / fg / fg-muted / fg-dim) per the
+# PR #470 contract. linear-gradient template strings retained as literals
+# (deferred to rgba(var(--sp-*-rgb), 1) follow-up).
+TRAIN-CSS-TOKENS-ADOPT-3
+# TRAIN-CSS-TOKENS-ADOPT-4 — pages/hub/training/spot-trainer.js. 36 quoted
+# hex literals swapped. Page-bg darks (#0a0a12, #0f0f1e, #1a1a2e) retained
+# as literals (outside accent contract).
+TRAIN-CSS-TOKENS-ADOPT-4
+# TRAIN-CSS-TOKENS-ADOPT-5 — pages/hub/training/short-deck-trainer.js. 23
+# quoted hex literals swapped. Red bg gradient darks (#120808, #1e0b0b)
+# retained.
+TRAIN-CSS-TOKENS-ADOPT-5
+# TRAIN-CSS-TOKENS-ADOPT-6 — pages/hub/training/flashcards.js. 31 quoted
+# hex literals swapped. Page-bg darks + gradient-string interp literals
+# retained.
+TRAIN-CSS-TOKENS-ADOPT-6
+# TRAIN-CSS-TOKENS-ADOPT-7 — pages/hub/training/pot-geometry.js. 41 quoted
+# hex literals swapped. Gradient-string accent interp literals retained.
+TRAIN-CSS-TOKENS-ADOPT-7
