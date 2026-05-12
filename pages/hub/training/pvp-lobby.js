@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-13 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -81,7 +82,7 @@ function PlayerCard({ player, isReady, isSelf }) {
               height: 72,
               borderRadius: '50%',
               margin: '0 auto 12px',
-              background: `linear-gradient(135deg, ${isSelf ? '#00d4ff' : '#ef4444'}, ${isSelf ? '#3b82f6' : '#f97316'})`,
+              background: `linear-gradient(135deg, ${isSelf ? 'var(--sp-accent-cyan)' : 'var(--sp-accent-red)'}, ${isSelf ? 'var(--sp-accent-blue)' : 'var(--sp-accent-orange)'})`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -90,10 +91,10 @@ function PlayerCard({ player, isReady, isSelf }) {
           >
             {isSelf ? '🎮' : '⚔️'}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 4 }}>
             {player.name || 'Player'}
           </div>
-          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginBottom: 8 }}>
             {player.rating ? `Rating: ${player.rating}` : 'Unrated'}
           </div>
           {isReady && (
@@ -104,7 +105,7 @@ function PlayerCard({ player, isReady, isSelf }) {
                 fontSize: 10,
                 fontWeight: 700,
                 background: 'rgba(34,197,94,0.15)',
-                color: '#22c55e',
+                color: 'var(--sp-accent-green)',
                 display: 'inline-block',
               }}
             >
@@ -126,12 +127,12 @@ function PlayerCard({ player, isReady, isSelf }) {
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 24,
-              color: '#475569',
+              color: 'var(--sp-fg-faint)',
             }}
           >
             ?
           </div>
-          <div style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>
             Waiting for opponent...
           </div>
         </>
@@ -175,12 +176,12 @@ function SeasonLeaderboard() {
           marginBottom: 10,
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>Season Leaderboard</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>Season Leaderboard</div>
         <div
           style={{
             fontSize: 9,
             fontWeight: 600,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
             letterSpacing: 1,
           }}
@@ -206,17 +207,17 @@ function SeasonLeaderboard() {
               width: 20,
               fontSize: 10,
               fontWeight: 800,
-              color: i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#d97706' : '#475569',
+              color: i === 0 ? 'var(--sp-accent-amber)' : i === 1 ? 'var(--sp-fg-muted)' : i === 2 ? '#d97706' : 'var(--sp-fg-faint)',
             }}
           >
             {p.rank}
           </span>
-          <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>{p.name}</span>
+          <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'var(--sp-fg)' }}>{p.name}</span>
           <span
             style={{
               fontSize: 10,
               fontWeight: 700,
-              color: '#a855f7',
+              color: 'var(--sp-accent-purple)',
               fontFamily: "'Orbitron', monospace",
               minWidth: 40,
               textAlign: 'right',
@@ -224,10 +225,10 @@ function SeasonLeaderboard() {
           >
             {p.rating}
           </span>
-          <span style={{ fontSize: 9, color: '#22c55e', minWidth: 30, textAlign: 'right' }}>
+          <span style={{ fontSize: 9, color: 'var(--sp-accent-green)', minWidth: 30, textAlign: 'right' }}>
             {p.wins}W
           </span>
-          <span style={{ fontSize: 9, color: '#64748b' }}>/{p.losses}L</span>
+          <span style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>/{p.losses}L</span>
         </div>
       ))}
     </div>
@@ -292,14 +293,14 @@ function PersonalStats() {
         border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 10 }}>
         Your Stats
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
         {[
-          { label: 'W/L', value: `${stats.wins}-${stats.losses}`, color: '#22c55e' },
-          { label: 'Win %', value: `${winRate}%`, color: winRate >= 55 ? '#22c55e' : '#fbbf24' },
-          { label: 'Best Streak', value: stats.bestStreak, color: '#00d4ff' },
+          { label: 'W/L', value: `${stats.wins}-${stats.losses}`, color: 'var(--sp-accent-green)' },
+          { label: 'Win %', value: `${winRate}%`, color: winRate >= 55 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)' },
+          { label: 'Best Streak', value: stats.bestStreak, color: 'var(--sp-accent-cyan)' },
         ].map((s, i) => (
           <div
             key={i}
@@ -325,7 +326,7 @@ function PersonalStats() {
               style={{
                 fontSize: 8,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
                 marginTop: 2,
@@ -368,7 +369,7 @@ function RecentMatches() {
         border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 10 }}>
         Recent Matches
       </div>
       {matches.map((m, i) => (
@@ -390,7 +391,7 @@ function RecentMatches() {
               height: 24,
               borderRadius: '50%',
               background: m.result === 'W' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
-              color: m.result === 'W' ? '#22c55e' : '#ef4444',
+              color: m.result === 'W' ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -401,20 +402,20 @@ function RecentMatches() {
             {m.result}
           </span>
           <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>vs {m.opponent}</span>
-            <div style={{ fontSize: 9, color: '#475569' }}>{m.format}</div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-fg)' }}>vs {m.opponent}</span>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{m.format}</div>
           </div>
           <span
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontFamily: "'Orbitron', monospace",
             }}
           >
             {m.score}
           </span>
-          <span style={{ fontSize: 9, color: '#475569' }}>{m.date}</span>
+          <span style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{m.date}</span>
         </div>
       ))}
     </div>
@@ -622,7 +623,7 @@ export default function PvPLobbyPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -643,7 +644,7 @@ export default function PvPLobbyPage() {
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 8,
               padding: '6px 12px',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
@@ -668,9 +669,9 @@ export default function PvPLobbyPage() {
             <motion.div
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ repeat: Infinity, duration: 2 }}
-              style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }}
+              style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sp-accent-green)' }}
             />
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
               {onlineCount !== null ? `${onlineCount} Online` : ''}
             </span>
           </div>
@@ -694,7 +695,7 @@ export default function PvPLobbyPage() {
                 >
                   HEAD-TO-HEAD
                 </div>
-                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+                <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
                   Challenge another player to a GTO decision battle
                 </p>
               </div>
@@ -705,7 +706,7 @@ export default function PvPLobbyPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
                     marginBottom: 8,
@@ -735,13 +736,13 @@ export default function PvPLobbyPage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 700,
-                          color: format === key ? '#ef4444' : '#94a3b8',
+                          color: format === key ? 'var(--sp-accent-red)' : 'var(--sp-fg-muted)',
                           marginTop: 4,
                         }}
                       >
                         {f.name}
                       </div>
-                      <div style={{ fontSize: 9, color: '#475569', marginTop: 2 }}>{f.desc}</div>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{f.desc}</div>
                     </motion.button>
                   ))}
                 </div>
@@ -753,7 +754,7 @@ export default function PvPLobbyPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
                     marginBottom: 8,
@@ -783,12 +784,12 @@ export default function PvPLobbyPage() {
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: stakeLevel === i ? '#fbbf24' : '#94a3b8',
+                          color: stakeLevel === i ? 'var(--sp-accent-amber)' : 'var(--sp-fg-muted)',
                         }}
                       >
                         {s.name}
                       </div>
-                      <div style={{ fontSize: 9, color: '#475569' }}>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
                         {s.entry > 0 ? `Entry: ${s.entry}💎` : 'Free'}
                       </div>
                     </motion.button>
@@ -848,7 +849,7 @@ export default function PvPLobbyPage() {
                   marginBottom: 24,
                   fontSize: 14,
                   fontWeight: 700,
-                  color: '#22c55e',
+                  color: 'var(--sp-accent-green)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
@@ -865,7 +866,7 @@ export default function PvPLobbyPage() {
                     justifyContent: 'center',
                     fontSize: 20,
                     fontWeight: 800,
-                    color: '#475569',
+                    color: 'var(--sp-fg-faint)',
                   }}
                 >
                   VS
@@ -884,7 +885,7 @@ export default function PvPLobbyPage() {
                   textAlign: 'center',
                 }}
               >
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
                   {FORMATS[format].icon} {FORMATS[format].name} — {FORMATS[format].desc}
                 </span>
               </div>
@@ -922,7 +923,7 @@ export default function PvPLobbyPage() {
                     border: '1px solid rgba(34,197,94,0.3)',
                     fontSize: 14,
                     fontWeight: 700,
-                    color: '#22c55e',
+                    color: 'var(--sp-accent-green)',
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >

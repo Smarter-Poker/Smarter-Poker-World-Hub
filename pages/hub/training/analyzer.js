@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-10 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -29,18 +30,18 @@ import Card from '../../../src/components/training/Card';
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ACTION_MAP = {
-  fold: { label: 'Fold', color: '#64748b', icon: '🃏' },
-  check: { label: 'Check', color: '#3b82f6', icon: '✋' },
-  call: { label: 'Call', color: '#22c55e', icon: '📞' },
-  bet: { label: 'Bet', color: '#ef4444', icon: '💰' },
-  raise: { label: 'Raise', color: '#f59e0b', icon: '🚀' },
+  fold: { label: 'Fold', color: 'var(--sp-fg-dim)', icon: '🃏' },
+  check: { label: 'Check', color: 'var(--sp-accent-blue)', icon: '✋' },
+  call: { label: 'Call', color: 'var(--sp-accent-green)', icon: '📞' },
+  bet: { label: 'Bet', color: 'var(--sp-accent-red)', icon: '💰' },
+  raise: { label: 'Raise', color: 'var(--sp-accent-amber)', icon: '🚀' },
 };
 
 const STREET_COLORS = {
-  preflop: '#7c3aed',
-  flop: '#22c55e',
-  turn: '#3b82f6',
-  river: '#ef4444',
+  preflop: 'var(--sp-accent-purple)',
+  flop: 'var(--sp-accent-green)',
+  turn: 'var(--sp-accent-blue)',
+  river: 'var(--sp-accent-red)',
 };
 
 // Card rendering uses shared Card.tsx custom PNG deck
@@ -82,7 +83,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
           style={{
             fontSize: 10,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             fontFamily: "'Orbitron', monospace",
             width: 28,
           }}
@@ -106,7 +107,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
           style={{
             fontSize: 13,
             fontWeight: 800,
-            color: '#00d4ff',
+            color: 'var(--sp-accent-cyan)',
             fontFamily: "'Orbitron', monospace",
           }}
         >
@@ -117,7 +118,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: '#94a3b8',
+            color: 'var(--sp-fg-muted)',
             padding: '2px 8px',
             borderRadius: 12,
             background: 'rgba(255,255,255,0.06)',
@@ -140,7 +141,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
           </div>
         )}
 
-        <span style={{ color: '#475569', fontSize: 14, marginLeft: 'auto' }}>
+        <span style={{ color: 'var(--sp-fg-faint)', fontSize: 14, marginLeft: 'auto' }}>
           {isExpanded ? '▲' : '▼'}
         </span>
       </div>
@@ -161,7 +162,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                   style={{
                     fontSize: 10,
                     fontWeight: 800,
-                    color: STREET_COLORS[streetEntry.street] || '#94a3b8',
+                    color: STREET_COLORS[streetEntry.street] || 'var(--sp-fg-muted)',
                     textTransform: 'uppercase',
                     letterSpacing: 1.5,
                     marginBottom: 4,
@@ -227,7 +228,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                         padding: '3px 0',
                         background: action.isHero ? 'rgba(0,212,255,0.05)' : 'transparent',
                         borderLeft: action.isHero
-                          ? `3px solid ${classConfig?.color || '#00d4ff'}`
+                          ? `3px solid ${classConfig?.color || 'var(--sp-accent-cyan)'}`
                           : '3px solid transparent',
                         paddingLeft: action.isHero ? 8 : 11,
                         borderRadius: 4,
@@ -236,7 +237,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                       <span
                         style={{
                           fontSize: 10,
-                          color: '#64748b',
+                          color: 'var(--sp-fg-dim)',
                           width: 40,
                           fontFamily: "'Orbitron', monospace",
                           fontWeight: 600,
@@ -248,7 +249,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: ACTION_MAP[action.action]?.color || '#94a3b8',
+                          color: ACTION_MAP[action.action]?.color || 'var(--sp-fg-muted)',
                         }}
                       >
                         {ACTION_MAP[action.action]?.label || action.action}
@@ -257,7 +258,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                         <span
                           style={{
                             fontSize: 10,
-                            color: '#e2e8f0',
+                            color: 'var(--sp-fg)',
                             fontWeight: 600,
                             fontFamily: "'Orbitron', monospace",
                           }}
@@ -306,8 +307,8 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                               padding: '1px 5px',
                               borderRadius: 6,
                               background: isBest ? 'rgba(34,197,94,0.1)' : 'rgba(251,191,36,0.1)',
-                              color: isBest ? '#22c55e' : '#fbbf24',
-                              border: `1px solid ${isBest ? '#22c55e' : '#fbbf24'}30`,
+                              color: isBest ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
+                              border: `1px solid ${isBest ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'}30`,
                               marginLeft: 2,
                             }}
                           >
@@ -327,7 +328,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
               <div
                 style={{
                   fontSize: 11,
-                  color: '#94a3b8',
+                  color: 'var(--sp-fg-muted)',
                   borderTop: '1px solid rgba(255,255,255,0.06)',
                   paddingTop: 6,
                   marginTop: 4,
@@ -335,12 +336,12 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
               >
                 Pot:{' '}
                 <span
-                  style={{ color: '#22c55e', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}
+                  style={{ color: 'var(--sp-accent-green)', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}
                 >
                   ${(Number.isFinite(Number(hand.pot)) ? Number(hand.pot) : 0).toFixed(2)}
                 </span>
                 {hand.rake > 0 && (
-                  <span style={{ marginLeft: 12, color: '#64748b' }}>
+                  <span style={{ marginLeft: 12, color: 'var(--sp-fg-dim)' }}>
                     Rake: ${(Number.isFinite(Number(hand.rake)) ? Number(hand.rake) : 0).toFixed(2)}
                   </span>
                 )}
@@ -415,7 +416,7 @@ function AggregateStats({ hands }) {
         style={{
           fontSize: 12,
           fontWeight: 800,
-          color: '#00d4ff',
+          color: 'var(--sp-accent-cyan)',
           marginBottom: 12,
           fontFamily: "'Orbitron', monospace",
           textTransform: 'uppercase',
@@ -428,17 +429,17 @@ function AggregateStats({ hands }) {
       {/* Key Metrics */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
         {[
-          { label: 'Hands', value: stats.totalHands, color: '#00d4ff' },
-          { label: 'Decisions', value: stats.totalDecisions, color: '#22c55e' },
+          { label: 'Hands', value: stats.totalHands, color: 'var(--sp-accent-cyan)' },
+          { label: 'Decisions', value: stats.totalDecisions, color: 'var(--sp-accent-green)' },
           {
             label: 'EV Lost',
             value: `${(Number.isFinite(Number(stats.totalEVLoss)) ? Number(stats.totalEVLoss) : 0).toFixed(1)}bb`,
-            color: stats.totalEVLoss > 5 ? '#ef4444' : '#22c55e',
+            color: stats.totalEVLoss > 5 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
           },
           {
             label: 'Avg EV/Dec',
             value: `${(Number.isFinite(Number(stats.avgEVLoss)) ? Number(stats.avgEVLoss) : 0).toFixed(2)}bb`,
-            color: stats.avgEVLoss > 0.5 ? '#eab308' : '#22c55e',
+            color: stats.avgEVLoss > 0.5 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
           },
         ].map((m) => (
           <div
@@ -464,7 +465,7 @@ function AggregateStats({ hands }) {
             <div
               style={{
                 fontSize: 9,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: 1,
@@ -482,7 +483,7 @@ function AggregateStats({ hands }) {
           style={{
             fontSize: 9,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             letterSpacing: 1.2,
             marginBottom: 6,
             textTransform: 'uppercase',
@@ -504,8 +505,8 @@ function AggregateStats({ hands }) {
                   fontWeight: 700,
                 }}
               >
-                <span style={{ color: '#00d4ff', fontFamily: "'Orbitron', monospace" }}>{pos}</span>
-                <span style={{ color: '#64748b', marginLeft: 4 }}>{count}x</span>
+                <span style={{ color: 'var(--sp-accent-cyan)', fontFamily: "'Orbitron', monospace" }}>{pos}</span>
+                <span style={{ color: 'var(--sp-fg-dim)', marginLeft: 4 }}>{count}x</span>
               </div>
             ))}
         </div>
@@ -517,7 +518,7 @@ function AggregateStats({ hands }) {
           style={{
             fontSize: 9,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             letterSpacing: 1.2,
             marginBottom: 6,
             textTransform: 'uppercase',
@@ -535,7 +536,7 @@ function AggregateStats({ hands }) {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: STREET_COLORS[street] || '#94a3b8',
+                    color: STREET_COLORS[street] || 'var(--sp-fg-muted)',
                     marginBottom: 3,
                     textTransform: 'capitalize',
                   }}
@@ -560,15 +561,15 @@ function AggregateStats({ hands }) {
                             width: 8,
                             height: 8,
                             borderRadius: 2,
-                            background: ACTION_MAP[action]?.color || '#64748b',
+                            background: ACTION_MAP[action]?.color || 'var(--sp-fg-dim)',
                           }}
                         />
-                        <span style={{ color: '#94a3b8', fontWeight: 600 }}>
+                        <span style={{ color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                           {ACTION_MAP[action]?.label || action}
                         </span>
                         <span
                           style={{
-                            color: '#e2e8f0',
+                            color: 'var(--sp-fg)',
                             fontWeight: 700,
                             fontFamily: "'Orbitron', monospace",
                             fontSize: 10,
@@ -662,7 +663,7 @@ export default function HandAnalyzer() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -681,7 +682,7 @@ export default function HandAnalyzer() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -703,7 +704,7 @@ export default function HandAnalyzer() {
               Hand Analyzer
             </h1>
           </div>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 6, maxWidth: 600 }}>
+          <p style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 6, maxWidth: 600 }}>
             Paste or upload your hand histories to review every decision against GTO solver data.
             Supports PokerStars, GGPoker, ClubGG, and generic formats.
           </p>
@@ -738,10 +739,10 @@ export default function HandAnalyzer() {
                 />
                 <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
                   <div style={{ fontSize: 36, marginBottom: 8 }}>📂</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#00d4ff' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>
                     Drop a file, multiple files, or a folder
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
                     .txt, .log, .hh files supported (Batch capable)
                   </div>
                 </label>
@@ -753,7 +754,7 @@ export default function HandAnalyzer() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     letterSpacing: 1.2,
                     textTransform: 'uppercase',
                     marginBottom: 6,
@@ -773,7 +774,7 @@ export default function HandAnalyzer() {
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 8,
                     padding: 12,
-                    color: '#e2e8f0',
+                    color: 'var(--sp-fg)',
                     fontSize: 12,
                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                     lineHeight: 1.6,
@@ -798,7 +799,7 @@ export default function HandAnalyzer() {
                     background: rawText.trim()
                       ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
                       : 'rgba(255,255,255,0.06)',
-                    color: rawText.trim() ? '#fff' : '#475569',
+                    color: rawText.trim() ? '#fff' : 'var(--sp-fg-faint)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
@@ -817,7 +818,7 @@ export default function HandAnalyzer() {
                     border: '1px solid rgba(239, 68, 68, 0.3)',
                     borderRadius: 8,
                     fontSize: 13,
-                    color: '#ef4444',
+                    color: 'var(--sp-accent-red)',
                   }}
                 >
                   ⚠️ No valid hands found. Make sure the text contains PokerStars-format hand
@@ -841,7 +842,7 @@ export default function HandAnalyzer() {
                   style={{
                     fontSize: 14,
                     fontWeight: 800,
-                    color: '#22c55e',
+                    color: 'var(--sp-accent-green)',
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >
@@ -855,7 +856,7 @@ export default function HandAnalyzer() {
                     borderRadius: 8,
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontWeight: 600,
@@ -874,7 +875,7 @@ export default function HandAnalyzer() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     letterSpacing: 1.2,
                     textTransform: 'uppercase',
                     marginBottom: 10,

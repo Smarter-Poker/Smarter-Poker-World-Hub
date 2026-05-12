@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-18 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -24,7 +25,7 @@ const BOUNTY_FORMATS = {
   ko: {
     id: 'ko',
     name: 'Knockout (KO)',
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
     desc: 'Fixed bounty per elimination. Win $X for every player you knock out.',
     example: '$100+$50 KO — win $50 for each elimination',
     splitRatio: 'Fixed: you win 100% of the bounty',
@@ -32,7 +33,7 @@ const BOUNTY_FORMATS = {
   pko: {
     id: 'pko',
     name: 'Progressive KO (PKO)',
-    color: '#f59e0b',
+    color: 'var(--sp-accent-amber)',
     desc: 'Bounty grows as you collect. Half goes to your prize pool, half to your bounty.',
     example: '$100+$50 PKO — collect 50% bounty, 50% added to your own head',
     splitRatio: '50/50 split: half to you, half increases your bounty',
@@ -40,7 +41,7 @@ const BOUNTY_FORMATS = {
   tko: {
     id: 'tko',
     name: 'Total Knockout (TKO)',
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     desc: '100% of pool paid as bounties. No traditional prize pool.',
     example: '$100 TKO — entire buy-in is the bounty',
     splitRatio: '100% bounty: all prize money via knockouts',
@@ -48,7 +49,7 @@ const BOUNTY_FORMATS = {
   mystery: {
     id: 'mystery',
     name: 'Mystery Bounty',
-    color: '#06b6d4',
+    color: 'var(--sp-accent-cyan)',
     desc: 'Random bounty revealed upon elimination. Can be massive or minimal.',
     example: '$500 Mystery — bounties range from $50 to $50,000',
     splitRatio: 'Random: each elimination reveals a hidden bounty prize',
@@ -466,7 +467,7 @@ export default function BountyTrainerPage() {
                     }}
                   >
                     <div
-                      style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', marginBottom: 2 }}
+                      style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)', marginBottom: 2 }}
                     >
                       CALL WIDER
                     </div>
@@ -483,7 +484,7 @@ export default function BountyTrainerPage() {
                     }}
                   >
                     <div
-                      style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 2 }}
+                      style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)', marginBottom: 2 }}
                     >
                       COVER OPPONENTS
                     </div>
@@ -535,7 +536,7 @@ export default function BountyTrainerPage() {
                   style={{
                     fontSize: 14,
                     fontWeight: 700,
-                    color: score > 0 ? '#4ade80' : '#b0b3b8',
+                    color: score > 0 ? 'var(--sp-accent-green)' : '#b0b3b8',
                   }}
                 >
                   Score: {score}/{totalAnswered}
@@ -616,7 +617,7 @@ export default function BountyTrainerPage() {
                         background:
                           'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
                         border: '2px solid rgba(34,197,94,0.3)',
-                        color: '#4ade80',
+                        color: 'var(--sp-accent-green)',
                         fontFamily: "'Rajdhani', sans-serif",
                         letterSpacing: '0.08em',
                       }}
@@ -637,7 +638,7 @@ export default function BountyTrainerPage() {
                         background:
                           'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))',
                         border: '2px solid rgba(239,68,68,0.3)',
-                        color: '#f87171',
+                        color: 'var(--sp-accent-red)',
                         fontFamily: "'Rajdhani', sans-serif",
                         letterSpacing: '0.08em',
                       }}
@@ -673,7 +674,7 @@ export default function BountyTrainerPage() {
                             fontWeight: 700,
                             marginBottom: 6,
                             color:
-                              selectedAnswer === scenario.correctAction ? '#4ade80' : '#f87171',
+                              selectedAnswer === scenario.correctAction ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                           }}
                         >
                           {selectedAnswer === scenario.correctAction
@@ -806,17 +807,17 @@ export default function BountyTrainerPage() {
               {/* Results */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
                 {[
-                  { label: 'Chip Equity', value: `${calcResult.chipEquity}%`, color: '#3b82f6' },
-                  { label: 'Bounty Value', value: `$${calcResult.bountyValue}`, color: '#f59e0b' },
+                  { label: 'Chip Equity', value: `${calcResult.chipEquity}%`, color: 'var(--sp-accent-blue)' },
+                  { label: 'Bounty Value', value: `$${calcResult.bountyValue}`, color: 'var(--sp-accent-amber)' },
                   {
                     label: 'Adjusted Equity',
                     value: `${calcResult.adjustedEquity}%`,
-                    color: '#22c55e',
+                    color: 'var(--sp-accent-green)',
                   },
                   {
                     label: 'Calling Threshold',
                     value: `${calcResult.callingThreshold}%`,
-                    color: '#a855f7',
+                    color: 'var(--sp-accent-purple)',
                   },
                 ].map((r) => (
                   <div

@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CSS-MOBILE-ADOPT-12 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
+// TRAIN-CSS-TOKENS-BATCH4-14 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -48,27 +49,27 @@ function getCombos(hand) {
 
 
 const DIFF_COLORS = {
-  correct: '#22c55e',
-  wrong: '#ef4444',
-  missed: '#fbbf24',
-  partial: '#f97316',
-  neutral: '#1e293b',
+  correct: 'var(--sp-accent-green)',
+  wrong: 'var(--sp-accent-red)',
+  missed: 'var(--sp-accent-amber)',
+  partial: 'var(--sp-accent-orange)',
+  neutral: 'var(--sp-bg-elev2)',
 };
 
 const GRADE_COLORS = {
-  'A+': '#22c55e',
-  A: '#22c55e',
-  'A-': '#4ade80',
-  'B+': '#3b82f6',
-  B: '#3b82f6',
+  'A+': 'var(--sp-accent-green)',
+  A: 'var(--sp-accent-green)',
+  'A-': 'var(--sp-accent-green)',
+  'B+': 'var(--sp-accent-blue)',
+  B: 'var(--sp-accent-blue)',
   'B-': '#60a5fa',
-  'C+': '#fbbf24',
-  C: '#fbbf24',
-  'C-': '#f59e0b',
-  'D+': '#f97316',
-  D: '#f97316',
+  'C+': 'var(--sp-accent-amber)',
+  C: 'var(--sp-accent-amber)',
+  'C-': 'var(--sp-accent-amber)',
+  'D+': 'var(--sp-accent-orange)',
+  D: 'var(--sp-accent-orange)',
   'D-': '#fb923c',
-  F: '#ef4444',
+  F: 'var(--sp-accent-red)',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -81,8 +82,8 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
   const bgColor = isDiffMode
     ? DIFF_COLORS[diffResult] || DIFF_COLORS.neutral
     : isSelected
-      ? '#22c55e'
-      : '#1e293b';
+      ? 'var(--sp-accent-green)'
+      : 'var(--sp-bg-elev2)';
 
   const opacity = isDiffMode ? (diffResult !== 'neutral' ? 0.85 : 0.2) : isSelected ? 0.8 : 0.3;
 
@@ -129,7 +130,7 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
             left: 0,
             right: 0,
             height: 2,
-            background: isPair ? '#a855f7' : isSuited ? '#3b82f6' : 'transparent',
+            background: isPair ? 'var(--sp-accent-purple)' : isSuited ? 'var(--sp-accent-blue)' : 'transparent',
             borderRadius: '0 0 2px 2px',
             opacity: 0.5,
           }}
@@ -324,7 +325,7 @@ export default function RangeBuilder() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -343,7 +344,7 @@ export default function RangeBuilder() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -367,7 +368,7 @@ export default function RangeBuilder() {
             <span
               style={{
                 fontSize: 10,
-                color: '#f97316',
+                color: 'var(--sp-accent-orange)',
                 background: 'rgba(249,115,22,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -393,7 +394,7 @@ export default function RangeBuilder() {
             <span
               style={{
                 fontSize: 10,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: 1,
@@ -423,7 +424,7 @@ export default function RangeBuilder() {
                     position === pos
                       ? 'linear-gradient(135deg, #f97316, #ef4444)'
                       : 'rgba(255,255,255,0.06)',
-                  color: position === pos ? '#fff' : '#94a3b8',
+                  color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
@@ -450,7 +451,7 @@ export default function RangeBuilder() {
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textAlign: 'center',
                 marginBottom: 8,
                 fontFamily: "'Orbitron', monospace",
@@ -496,7 +497,7 @@ export default function RangeBuilder() {
                 </button>
                 <button
                   onClick={clearAll}
-                  style={{ ...quickBtnStyle, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
+                  style={{ ...quickBtnStyle, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}
                 >
                   Clear All
                 </button>
@@ -522,7 +523,7 @@ export default function RangeBuilder() {
                       style={{
                         fontSize: 56,
                         fontWeight: 900,
-                        color: GRADE_COLORS[result.grade?.letter] || '#e2e8f0',
+                        color: GRADE_COLORS[result.grade?.letter] || 'var(--sp-fg)',
                         fontFamily: "'Orbitron', monospace",
                         lineHeight: 1,
                         textShadow: `0 0 30px ${GRADE_COLORS[result.grade?.letter] || '#fff'}40`,
@@ -533,7 +534,7 @@ export default function RangeBuilder() {
                     <div
                       style={{
                         fontSize: 14,
-                        color: '#94a3b8',
+                        color: 'var(--sp-fg-muted)',
                         fontWeight: 600,
                         marginTop: 4,
                       }}
@@ -543,7 +544,7 @@ export default function RangeBuilder() {
                     <div
                       style={{
                         fontSize: 11,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         marginTop: 2,
                       }}
                     >
@@ -559,7 +560,7 @@ export default function RangeBuilder() {
                   <div
                     style={{
                       fontSize: 10,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       fontWeight: 700,
                       letterSpacing: 1,
                       textTransform: 'uppercase',
@@ -592,7 +593,7 @@ export default function RangeBuilder() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: '#64748b',
+                      color: 'var(--sp-fg-dim)',
                       fontWeight: 700,
                       letterSpacing: 1,
                       textTransform: 'uppercase',
@@ -618,7 +619,7 @@ export default function RangeBuilder() {
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.1)',
                       borderRadius: 8,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       cursor: 'pointer',
                       fontSize: 12,
                       fontWeight: 700,
@@ -640,7 +641,7 @@ export default function RangeBuilder() {
                     style={{
                       fontSize: 10,
                       fontWeight: 800,
-                      color: '#f97316',
+                      color: 'var(--sp-accent-orange)',
                       letterSpacing: 1.5,
                       textTransform: 'uppercase',
                       marginBottom: 12,
@@ -656,14 +657,14 @@ export default function RangeBuilder() {
                       style={{
                         fontSize: 36,
                         fontWeight: 900,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         fontFamily: "'Orbitron', monospace",
                         lineHeight: 1,
                       }}
                     >
                       {selectionStats.pct}%
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, fontWeight: 600 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4, fontWeight: 600 }}>
                       {selectionStats.totalCombos} / 1326 combos
                     </div>
                     <div
@@ -712,7 +713,7 @@ export default function RangeBuilder() {
 
                   {/* Instructions */}
                   <p
-                    style={{ fontSize: 11, color: '#475569', lineHeight: 1.5, margin: '0 0 12px' }}
+                    style={{ fontSize: 11, color: 'var(--sp-fg-faint)', lineHeight: 1.5, margin: '0 0 12px' }}
                   >
                     Click hands to toggle on/off. Build what you think the GTO open-raising range is
                     for {position}, then grade it.
@@ -730,7 +731,7 @@ export default function RangeBuilder() {
                           : 'rgba(255,255,255,0.06)',
                       border: 'none',
                       borderRadius: 10,
-                      color: selectedHands.size > 0 ? '#fff' : '#475569',
+                      color: selectedHands.size > 0 ? '#fff' : 'var(--sp-fg-faint)',
                       cursor: selectedHands.size > 0 ? 'pointer' : 'default',
                       fontSize: 14,
                       fontWeight: 800,
@@ -765,7 +766,7 @@ function StatRow({ label, value, color }) {
         padding: '2px 0',
       }}
     >
-      <span style={{ color: '#94a3b8', fontWeight: 600 }}>{label}</span>
+      <span style={{ color: 'var(--sp-fg-muted)', fontWeight: 600 }}>{label}</span>
       <span style={{ color, fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{value}</span>
     </div>
   );
@@ -775,7 +776,7 @@ function LegendItem({ color, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
       <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 9, color: '#94a3b8' }}>{label}</span>
+      <span style={{ fontSize: 9, color: 'var(--sp-fg-muted)' }}>{label}</span>
     </div>
   );
 }
@@ -790,7 +791,7 @@ const quickBtnStyle = {
   cursor: 'pointer',
   border: '1px solid rgba(255,255,255,0.1)',
   background: 'rgba(255,255,255,0.04)',
-  color: '#94a3b8',
+  color: 'var(--sp-fg-muted)',
   transition: 'all 0.15s',
 };
 

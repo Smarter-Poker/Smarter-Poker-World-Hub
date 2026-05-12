@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-3 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -57,10 +58,10 @@ const BOARD_TEXTURES = [
 
 const ALL_CARD_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const ALL_CARD_SUITS = [
-  { s: 'h', symbol: '♥', color: '#ef4444' },
-  { s: 'd', symbol: '♦', color: '#3b82f6' },
-  { s: 'c', symbol: '♣', color: '#22c55e' },
-  { s: 's', symbol: '♠', color: '#94a3b8' },
+  { s: 'h', symbol: '♥', color: 'var(--sp-accent-red)' },
+  { s: 'd', symbol: '♦', color: 'var(--sp-accent-blue)' },
+  { s: 'c', symbol: '♣', color: 'var(--sp-accent-green)' },
+  { s: 's', symbol: '♠', color: 'var(--sp-fg-muted)' },
 ];
 
 function classifyBoardTexture(cards) {
@@ -128,7 +129,7 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
         style={{
           fontSize: 10,
           fontWeight: 700,
-          color: '#64748b',
+          color: 'var(--sp-fg-dim)',
           textTransform: 'uppercase',
           letterSpacing: 0.5,
           marginBottom: 6,
@@ -144,7 +145,7 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
           const suit = card ? ALL_CARD_SUITS.find((s) => s.s === card[1]) : null;
           return (
             <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 8, color: '#475569', marginBottom: 2 }}>{label}</div>
+              <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', marginBottom: 2 }}>{label}</div>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => (card ? clearCard(i) : setSelectorOpen(isActive ? null : i))}
@@ -152,13 +153,13 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
                   width: 44,
                   height: 60,
                   borderRadius: 8,
-                  border: `2px solid ${isActive ? '#00d4ff' : card ? suit?.color || '#64748b' : 'rgba(255,255,255,0.08)'}`,
+                  border: `2px solid ${isActive ? 'var(--sp-accent-cyan)' : card ? suit?.color || 'var(--sp-fg-dim)' : 'rgba(255,255,255,0.08)'}`,
                   background: card
                     ? 'rgba(255,255,255,0.06)'
                     : isActive
                       ? 'rgba(0,212,255,0.05)'
                       : 'rgba(0,0,0,0.2)',
-                  color: card ? '#e2e8f0' : '#475569',
+                  color: card ? 'var(--sp-fg)' : 'var(--sp-fg-faint)',
                   fontSize: card ? 14 : 20,
                   fontWeight: 800,
                   cursor: 'pointer',
@@ -369,7 +370,7 @@ function RangeGridVisual({ rangeStr, actions }) {
           style={{
             fontSize: 10,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
             letterSpacing: 0.5,
           }}
@@ -377,7 +378,7 @@ function RangeGridVisual({ rangeStr, actions }) {
           Range Grid — {pct}% of hands
         </div>
         {hoveredCell && (
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#00d4ff' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>
             {hoveredCell.hand} {hoveredCell.inRange ? '✓ In Range' : '✗ Fold'}
           </div>
         )}
@@ -432,7 +433,7 @@ function RangeGridVisual({ rangeStr, actions }) {
       {/* Legend */}
       <div style={{ display: 'flex', gap: 12, marginTop: 8, justifyContent: 'center' }}>
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#94a3b8' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--sp-fg-muted)' }}
         >
           <div
             style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(239,68,68,0.4)' }}
@@ -440,7 +441,7 @@ function RangeGridVisual({ rangeStr, actions }) {
           Raise/Open
         </div>
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#94a3b8' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--sp-fg-muted)' }}
         >
           <div
             style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(34,197,94,0.4)' }}
@@ -448,7 +449,7 @@ function RangeGridVisual({ rangeStr, actions }) {
           Call/Flat
         </div>
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#94a3b8' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--sp-fg-muted)' }}
         >
           <div
             style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.04)' }}
@@ -488,10 +489,10 @@ function SolveResult({ heroPos, villainPos, config, result }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
             {heroPos} vs {villainPos}
           </div>
-          <div style={{ fontSize: 10, color: '#64748b' }}>
+          <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
             {config.format} · {config.stackDepth}bb · {config.rakePreset}
           </div>
         </div>
@@ -503,7 +504,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             border: '1px solid rgba(34,197,94,0.2)',
             fontSize: 10,
             fontWeight: 700,
-            color: '#22c55e',
+            color: 'var(--sp-accent-green)',
           }}
         >
           {result.source === 'precomputed' ? 'Pre-Solved' : 'Estimated'}
@@ -516,7 +517,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
           style={{
             fontSize: 10,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
             letterSpacing: 0.5,
             marginBottom: 6,
@@ -541,15 +542,15 @@ function SolveResult({ heroPos, villainPos, config, result }) {
                 borderRadius: 2,
                 background:
                   a.action === 'Raise'
-                    ? '#ef4444'
+                    ? 'var(--sp-accent-red)'
                     : a.action === 'Call'
-                      ? '#22c55e'
+                      ? 'var(--sp-accent-green)'
                       : a.action === 'Fold'
-                        ? '#64748b'
-                        : '#3b82f6',
+                        ? 'var(--sp-fg-dim)'
+                        : 'var(--sp-accent-blue)',
               }}
             />
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', minWidth: 50 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)', minWidth: 50 }}>
               {a.action}
             </div>
             <div
@@ -570,12 +571,12 @@ function SolveResult({ heroPos, villainPos, config, result }) {
                   borderRadius: 3,
                   background:
                     a.action === 'Raise'
-                      ? '#ef4444'
+                      ? 'var(--sp-accent-red)'
                       : a.action === 'Call'
-                        ? '#22c55e'
+                        ? 'var(--sp-accent-green)'
                         : a.action === 'Fold'
-                          ? '#64748b'
-                          : '#3b82f6',
+                          ? 'var(--sp-fg-dim)'
+                          : 'var(--sp-accent-blue)',
                 }}
               />
             </div>
@@ -583,7 +584,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 minWidth: 36,
                 textAlign: 'right',
               }}
@@ -612,7 +613,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             style={{
               fontSize: 10,
               fontWeight: 700,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               marginBottom: 4,
               textTransform: 'uppercase',
               letterSpacing: 0.5,
@@ -623,7 +624,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
           <div
             style={{
               fontSize: 11,
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               lineHeight: 1.5,
               fontFamily: "'Courier New', monospace",
             }}
@@ -648,7 +649,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             style={{
               fontSize: 10,
               fontWeight: 700,
-              color: '#64748b',
+              color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
               letterSpacing: 0.5,
               marginBottom: 8,
@@ -672,11 +673,11 @@ function SolveResult({ heroPos, villainPos, config, result }) {
                     border: `1px solid ${betShift > 50 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
                   }}
                 >
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>{rank}x</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)' }}>{rank}x</div>
                   <div
                     style={{
                       fontSize: 9,
-                      color: betShift > 50 ? '#ef4444' : '#22c55e',
+                      color: betShift > 50 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
                       fontWeight: 700,
                     }}
                   >
@@ -686,7 +687,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
               );
             })}
           </div>
-          <div style={{ fontSize: 9, color: '#475569', marginTop: 6, textAlign: 'center' }}>
+          <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 6, textAlign: 'center' }}>
             Shows how betting frequency changes on different turn/river cards
           </div>
         </div>
@@ -907,7 +908,7 @@ export default function CustomSolvePage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -926,7 +927,7 @@ export default function CustomSolvePage() {
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 18,
               cursor: 'pointer',
               width: 36,
@@ -941,7 +942,7 @@ export default function CustomSolvePage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Custom Solve</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               Configure parameters & query GTO solutions
             </div>
           </div>
@@ -954,7 +955,7 @@ export default function CustomSolvePage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
                 marginBottom: 6,
@@ -975,7 +976,7 @@ export default function CustomSolvePage() {
                     borderRadius: 10,
                     border: `1px solid ${format === opt.id ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.06)'}`,
                     background: format === opt.id ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: format === opt.id ? '#00d4ff' : '#94a3b8',
+                    color: format === opt.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -998,7 +999,7 @@ export default function CustomSolvePage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -1020,7 +1021,7 @@ export default function CustomSolvePage() {
                       minWidth: 36,
                       border: `1px solid ${heroPos === p ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
                       background: heroPos === p ? 'rgba(34,197,94,0.08)' : 'rgba(0,0,0,0.2)',
-                      color: heroPos === p ? '#22c55e' : '#64748b',
+                      color: heroPos === p ? 'var(--sp-accent-green)' : 'var(--sp-fg-dim)',
                       fontSize: 10,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -1037,7 +1038,7 @@ export default function CustomSolvePage() {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                   marginBottom: 6,
@@ -1059,7 +1060,7 @@ export default function CustomSolvePage() {
                       minWidth: 36,
                       border: `1px solid ${villainPos === p ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
                       background: villainPos === p ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.2)',
-                      color: villainPos === p ? '#ef4444' : '#64748b',
+                      color: villainPos === p ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
                       fontSize: 10,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -1079,7 +1080,7 @@ export default function CustomSolvePage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
                 marginBottom: 6,
@@ -1099,7 +1100,7 @@ export default function CustomSolvePage() {
                     borderRadius: 6,
                     border: `1px solid ${rakePreset === key ? 'rgba(168,85,247,0.3)' : 'transparent'}`,
                     background: rakePreset === key ? 'rgba(168,85,247,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: rakePreset === key ? '#a855f7' : '#64748b',
+                    color: rakePreset === key ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
                     fontSize: 10,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -1109,7 +1110,7 @@ export default function CustomSolvePage() {
                 </motion.button>
               ))}
             </div>
-            <div style={{ fontSize: 9, color: '#475569', marginTop: 4, padding: '0 4px' }}>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 4, padding: '0 4px' }}>
               {(RAKE_PRESETS[rakePreset] || {}).rake || 0}% / $
               {(Number.isFinite(RAKE_PRESETS[rakePreset]?.cap)
                 ? RAKE_PRESETS[rakePreset].cap
@@ -1125,7 +1126,7 @@ export default function CustomSolvePage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
                 marginBottom: 6,
@@ -1145,7 +1146,7 @@ export default function CustomSolvePage() {
                     borderRadius: 6,
                     border: `1px solid ${ante === opt ? 'rgba(251,191,36,0.3)' : 'transparent'}`,
                     background: ante === opt ? 'rgba(251,191,36,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: ante === opt ? '#fbbf24' : '#64748b',
+                    color: ante === opt ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
                     fontSize: 10,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -1163,7 +1164,7 @@ export default function CustomSolvePage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
                 marginBottom: 6,
@@ -1186,7 +1187,7 @@ export default function CustomSolvePage() {
                     borderRadius: 6,
                     border: `1px solid ${stackDepth === sd ? 'rgba(0,212,255,0.3)' : 'transparent'}`,
                     background: stackDepth === sd ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: stackDepth === sd ? '#00d4ff' : '#64748b',
+                    color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1204,7 +1205,7 @@ export default function CustomSolvePage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
                 marginBottom: 6,
@@ -1216,7 +1217,7 @@ export default function CustomSolvePage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
               {POSITIONS.map((p) => (
                 <div key={p} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', marginBottom: 2 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-muted)', marginBottom: 2 }}>
                     {p}
                   </div>
                   <input
@@ -1229,7 +1230,7 @@ export default function CustomSolvePage() {
                       borderRadius: 6,
                       border: '1px solid rgba(255,255,255,0.08)',
                       background: 'rgba(0,0,0,0.3)',
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       fontSize: 11,
                       fontWeight: 700,
                       textAlign: 'center',
@@ -1249,7 +1250,7 @@ export default function CustomSolvePage() {
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
                 marginBottom: 6,
@@ -1270,7 +1271,7 @@ export default function CustomSolvePage() {
                     border: `1px solid ${boardTexture === bt.id ? 'rgba(59,130,246,0.3)' : 'transparent'}`,
                     background:
                       boardTexture === bt.id ? 'rgba(59,130,246,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: boardTexture === bt.id ? '#3b82f6' : '#64748b',
+                    color: boardTexture === bt.id ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)',
                     fontSize: 10,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -1295,7 +1296,7 @@ export default function CustomSolvePage() {
               background: loading
                 ? 'rgba(0,212,255,0.03)'
                 : 'linear-gradient(135deg, rgba(0,212,255,0.12) 0%, rgba(139,92,246,0.08) 100%)',
-              color: '#00d4ff',
+              color: 'var(--sp-accent-cyan)',
               fontSize: 14,
               fontWeight: 800,
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -1314,7 +1315,7 @@ export default function CustomSolvePage() {
                     width: 14,
                     height: 14,
                     border: '2px solid transparent',
-                    borderTopColor: '#00d4ff',
+                    borderTopColor: 'var(--sp-accent-cyan)',
                     borderRadius: '50%',
                   }}
                 />
@@ -1338,7 +1339,7 @@ export default function CustomSolvePage() {
                   marginBottom: 16,
                   background: 'rgba(239,68,68,0.05)',
                   border: '1px solid rgba(239,68,68,0.2)',
-                  color: '#f87171',
+                  color: 'var(--sp-accent-red)',
                   fontSize: 12,
                 }}
               >

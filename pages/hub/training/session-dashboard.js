@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-6 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -24,10 +25,10 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // SVG LINE CHART COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function LineChart({ data, width = 600, height = 200, color = '#00d4ff', label = '' }) {
+function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-cyan)', label = '' }) {
   if (!data || data.length < 2) {
     return (
-      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 12 }}>
+      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sp-fg-faint)', fontSize: 12 }}>
         {data?.length === 1 ? 'Need more sessions for chart' : 'No data yet'}
       </div>
     );
@@ -121,17 +122,17 @@ function StatTile({ label, value, color, icon, subtitle }) {
         style={{
           fontSize: 24,
           fontWeight: 900,
-          color: color || '#00d4ff',
+          color: color || 'var(--sp-accent-cyan)',
           fontFamily: "'Orbitron', monospace",
         }}
       >
         {value}
       </div>
-      <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase', letterSpacing: 1 }}>
         {label}
       </div>
       {subtitle && (
-        <div style={{ fontSize: 9, color: '#475569', marginTop: 2 }}>{subtitle}</div>
+        <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{subtitle}</div>
       )}
     </div>
   );
@@ -180,7 +181,7 @@ function PerformanceTable({ sessions }) {
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           fontSize: 11,
           fontWeight: 800,
-          color: '#00d4ff',
+          color: 'var(--sp-accent-cyan)',
           fontFamily: "'Orbitron', monospace",
           textTransform: 'uppercase',
           letterSpacing: 1,
@@ -200,7 +201,7 @@ function PerformanceTable({ sessions }) {
                     textAlign: 'left',
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
@@ -213,23 +214,23 @@ function PerformanceTable({ sessions }) {
           <tbody>
             {gameStats.slice(0, 12).map((g) => (
               <tr key={g.game} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                <td style={{ padding: '8px 12px', fontWeight: 600, color: '#e2e8f0', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--sp-fg)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {g.game}
                 </td>
-                <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: "'Orbitron', monospace", fontWeight: 600 }}>{g.sessions}</td>
-                <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: "'Orbitron', monospace", fontWeight: 600 }}>{g.totalHands}</td>
+                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "'Orbitron', monospace", fontWeight: 600 }}>{g.sessions}</td>
+                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "'Orbitron', monospace", fontWeight: 600 }}>{g.totalHands}</td>
                 <td style={{ padding: '8px 12px' }}>
                   <span
                     style={{
                       fontWeight: 700,
                       fontFamily: "'Orbitron', monospace",
-                      color: g.avgAccuracy >= 75 ? '#22c55e' : g.avgAccuracy >= 50 ? '#fbbf24' : '#ef4444',
+                      color: g.avgAccuracy >= 75 ? 'var(--sp-accent-green)' : g.avgAccuracy >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                     }}
                   >
                     {g.avgAccuracy}%
                   </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: '#f97316', fontWeight: 600, fontFamily: "'Orbitron', monospace" }}>
+                <td style={{ padding: '8px 12px', color: 'var(--sp-accent-orange)', fontWeight: 600, fontFamily: "'Orbitron', monospace" }}>
                   {g.avgEV > 0 ? `-${g.avgEV}` : '0.0'}
                 </td>
               </tr>
@@ -316,7 +317,7 @@ function StreakTracker({ sessions }) {
         style={{
           fontSize: 11,
           fontWeight: 800,
-          color: '#fbbf24',
+          color: 'var(--sp-accent-amber)',
           fontFamily: "'Orbitron', monospace",
           textTransform: 'uppercase',
           letterSpacing: 1,
@@ -328,17 +329,17 @@ function StreakTracker({ sessions }) {
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: streaks.current > 0 ? '#fbbf24' : '#475569', fontFamily: "'Orbitron', monospace" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: streaks.current > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)', fontFamily: "'Orbitron', monospace" }}>
             {streaks.current}
           </div>
-          <div style={{ fontSize: 8, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Current</div>
+          <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Current</div>
         </div>
         <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#a855f7', fontFamily: "'Orbitron', monospace" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-purple)', fontFamily: "'Orbitron', monospace" }}>
             {streaks.best}
           </div>
-          <div style={{ fontSize: 8, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Best</div>
+          <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Best</div>
         </div>
       </div>
 
@@ -362,7 +363,7 @@ function StreakTracker({ sessions }) {
           );
         })}
       </div>
-      <div style={{ fontSize: 8, color: '#475569', marginTop: 4 }}>Last 14 days</div>
+      <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', marginTop: 4 }}>Last 14 days</div>
     </div>
   );
 }
@@ -451,8 +452,8 @@ function CoachingCard({ session }) {
 
   if (error || (!coaching && !loadingCoach)) return null;
 
-  const gradeColors = { A: '#22c55e', B: '#3b82f6', C: '#fbbf24', D: '#ef4444' };
-  const gradeColor = gradeColors[coaching?.overallGrade] || '#64748b';
+  const gradeColors = { A: 'var(--sp-accent-green)', B: 'var(--sp-accent-blue)', C: 'var(--sp-accent-amber)', D: 'var(--sp-accent-red)' };
+  const gradeColor = gradeColors[coaching?.overallGrade] || 'var(--sp-fg-dim)';
 
   return (
     <motion.div
@@ -483,7 +484,7 @@ function CoachingCard({ session }) {
           <div style={{
             fontSize: 11,
             fontWeight: 800,
-            color: '#a855f7',
+            color: 'var(--sp-accent-purple)',
             fontFamily: "'Orbitron', monospace",
             textTransform: 'uppercase',
             letterSpacing: 1,
@@ -504,7 +505,7 @@ function CoachingCard({ session }) {
             </span>
           )}
         </div>
-        <span style={{ color: '#64748b', fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+        <span style={{ color: 'var(--sp-fg-dim)', fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
           ▼
         </span>
       </button>
@@ -519,30 +520,30 @@ function CoachingCard({ session }) {
           >
             <div style={{ padding: '0 16px 14px' }}>
               {loadingCoach ? (
-                <div style={{ padding: '12px 0', color: '#64748b', fontSize: 11 }}>Loading coach&apos;s analysis...</div>
+                <div style={{ padding: '12px 0', color: 'var(--sp-fg-dim)', fontSize: 11 }}>Loading coach&apos;s analysis...</div>
               ) : coaching ? (
                 <div style={{ display: 'grid', gap: 10, fontSize: 12 }}>
                   {coaching.headline && (
-                    <div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 14 }}>{coaching.headline}</div>
+                    <div style={{ color: 'var(--sp-fg)', fontWeight: 700, fontSize: 14 }}>{coaching.headline}</div>
                   )}
                   {coaching.detailedFeedback && (
-                    <div style={{ color: '#94a3b8', lineHeight: 1.5 }}>{coaching.detailedFeedback}</div>
+                    <div style={{ color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>{coaching.detailedFeedback}</div>
                   )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {coaching.strengths?.length > 0 && (
                       <div style={{ padding: 10, borderRadius: 8, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.1)' }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Strengths</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-green)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Strengths</div>
                         {coaching.strengths.map((s, i) => (
-                          <div key={i} style={{ color: '#94a3b8', fontSize: 11, marginBottom: 3 }}>+ {s}</div>
+                          <div key={i} style={{ color: 'var(--sp-fg-muted)', fontSize: 11, marginBottom: 3 }}>+ {s}</div>
                         ))}
                       </div>
                     )}
                     {coaching.areasToImprove?.length > 0 && (
                       <div style={{ padding: 10, borderRadius: 8, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.1)' }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Work On</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-orange)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Work On</div>
                         {coaching.areasToImprove.map((s, i) => (
-                          <div key={i} style={{ color: '#94a3b8', fontSize: 11, marginBottom: 3 }}>- {s}</div>
+                          <div key={i} style={{ color: 'var(--sp-fg-muted)', fontSize: 11, marginBottom: 3 }}>- {s}</div>
                         ))}
                       </div>
                     )}
@@ -550,13 +551,13 @@ function CoachingCard({ session }) {
 
                   {coaching.recommendedDrill && (
                     <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase' }}>Next Drill:</span>
-                      <span style={{ color: '#e2e8f0', fontSize: 11, fontWeight: 600 }}>{coaching.recommendedDrill.name}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase' }}>Next Drill:</span>
+                      <span style={{ color: 'var(--sp-fg)', fontSize: 11, fontWeight: 600 }}>{coaching.recommendedDrill.name}</span>
                     </div>
                   )}
 
                   {coaching.motivationalQuote && (
-                    <div style={{ color: '#475569', fontSize: 10, fontStyle: 'italic', textAlign: 'center', paddingTop: 4 }}>
+                    <div style={{ color: 'var(--sp-fg-faint)', fontSize: 10, fontStyle: 'italic', textAlign: 'center', paddingTop: 4 }}>
                       {coaching.motivationalQuote}
                     </div>
                   )}
@@ -713,7 +714,7 @@ export default function SessionDashboard() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -727,7 +728,7 @@ export default function SessionDashboard() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -749,7 +750,7 @@ export default function SessionDashboard() {
               Session Dashboard
             </h1>
           </div>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+          <p style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 6 }}>
             Track your training progress, identify trends, and maintain your streak.
           </p>
         </div>
@@ -775,7 +776,7 @@ export default function SessionDashboard() {
                   cursor: 'pointer',
                   border: 'none',
                   background: timeRange === t.key ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
-                  color: timeRange === t.key ? '#00d4ff' : '#64748b',
+                  color: timeRange === t.key ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                 }}
               >
                 {t.label}
@@ -826,7 +827,7 @@ export default function SessionDashboard() {
                     <div style={{
                       fontSize: 10,
                       fontWeight: 800,
-                      color: '#00d4ff',
+                      color: 'var(--sp-accent-cyan)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
@@ -836,14 +837,14 @@ export default function SessionDashboard() {
                         const displayEntries = entries.slice(0, 5);
                         return displayEntries.map((e, i) => (
                         <div key={e.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: i === 0 ? 'rgba(34,197,94,0.04)' : i === displayEntries.length - 1 ? 'rgba(239,68,68,0.04)' : 'transparent' }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>
-                            {i === 0 && <span style={{ color: '#22c55e', marginRight: 4 }}>▲</span>}
-                            {i === displayEntries.length - 1 && displayEntries.length > 1 && <span style={{ color: '#ef4444', marginRight: 4 }}>▼</span>}
+                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)', flex: 1 }}>
+                            {i === 0 && <span style={{ color: 'var(--sp-accent-green)', marginRight: 4 }}>▲</span>}
+                            {i === displayEntries.length - 1 && displayEntries.length > 1 && <span style={{ color: 'var(--sp-accent-red)', marginRight: 4 }}>▼</span>}
                             {e.name}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 10, color: '#64748b' }}>{e.hands}h</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: e.acc >= 80 ? '#4ade80' : e.acc >= 60 ? '#fbbf24' : '#f87171' }}>
+                            <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{e.hands}h</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: e.acc >= 80 ? 'var(--sp-accent-green)' : e.acc >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)' }}>
                               {e.acc}%
                             </span>
                           </div>
@@ -860,7 +861,7 @@ export default function SessionDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
                   <StatTile label="Sessions" value={stats.sessions} color="#00d4ff" icon="🎮" />
                   <StatTile label="Hands Played" value={stats.totalHands} color="#22c55e" icon="🃏" />
-                  <StatTile label="Avg Accuracy" value={`${stats.avgAccuracy}%`} color={stats.avgAccuracy >= 70 ? '#22c55e' : '#fbbf24'} icon="🎯" />
+                  <StatTile label="Avg Accuracy" value={`${stats.avgAccuracy}%`} color={stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="🎯" />
                   <StatTile label="Total EV Loss" value={stats.totalEV.toFixed(1)} color="#ef4444" icon="📉" subtitle="bb total" />
                   <StatTile label="Win Rate" value={`${stats.sessions > 0 ? Math.round((stats.wins / stats.sessions) * 100) : 0}%`} color="#a855f7" icon="🏆" subtitle={`${stats.wins}/${stats.sessions} sessions`} />
                 </div>
@@ -913,7 +914,7 @@ export default function SessionDashboard() {
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
                     fontSize: 11,
                     fontWeight: 800,
-                    color: '#00d4ff',
+                    color: 'var(--sp-accent-cyan)',
                     fontFamily: "'Orbitron', monospace",
                     textTransform: 'uppercase',
                     letterSpacing: 1,
@@ -956,17 +957,17 @@ export default function SessionDashboard() {
                                 width: 6,
                                 height: 6,
                                 borderRadius: '50%',
-                                background: acc >= 70 ? '#22c55e' : acc >= 50 ? '#fbbf24' : '#ef4444',
+                                background: acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                                 flexShrink: 0,
                               }}
                             />
-                            <span style={{ color: '#e2e8f0', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ color: 'var(--sp-fg)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {game}
                             </span>
-                            <span style={{ color: acc >= 70 ? '#22c55e' : acc >= 50 ? '#fbbf24' : '#ef4444', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>
+                            <span style={{ color: acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>
                               {acc}%
                             </span>
-                            <span style={{ color: '#475569', fontSize: 9 }}>{dateStr}</span>
+                            <span style={{ color: 'var(--sp-fg-faint)', fontSize: 9 }}>{dateStr}</span>
                           </div>
                         );
                       })

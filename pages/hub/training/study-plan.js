@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-16 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -35,7 +36,7 @@ const FOCUS_AREAS = [
     name: 'BB Defense',
     positions: ['BB'],
     streets: ['preflop'],
-    color: '#3b82f6',
+    color: 'var(--sp-accent-blue)',
     icon: '🛡️',
   },
   {
@@ -43,7 +44,7 @@ const FOCUS_AREAS = [
     name: 'BTN Play',
     positions: ['BTN'],
     streets: ['preflop', 'flop'],
-    color: '#22c55e',
+    color: 'var(--sp-accent-green)',
     icon: '🎯',
   },
   {
@@ -51,7 +52,7 @@ const FOCUS_AREAS = [
     name: 'C-Bet Decisions',
     positions: [],
     streets: ['flop'],
-    color: '#f97316',
+    color: 'var(--sp-accent-orange)',
     icon: '💥',
   },
   {
@@ -59,7 +60,7 @@ const FOCUS_AREAS = [
     name: 'Turn Play',
     positions: [],
     streets: ['turn'],
-    color: '#a855f7',
+    color: 'var(--sp-accent-purple)',
     icon: '🔄',
   },
   {
@@ -67,7 +68,7 @@ const FOCUS_AREAS = [
     name: 'River Decisions',
     positions: [],
     streets: ['river'],
-    color: '#ef4444',
+    color: 'var(--sp-accent-red)',
     icon: '🏁',
   },
   {
@@ -83,7 +84,7 @@ const FOCUS_AREAS = [
     name: 'MTT Push/Fold',
     positions: [],
     streets: ['preflop'],
-    color: '#fbbf24',
+    color: 'var(--sp-accent-amber)',
     icon: '🏆',
   },
   {
@@ -91,7 +92,7 @@ const FOCUS_AREAS = [
     name: 'Position Play',
     positions: ['CO', 'HJ', 'MP'],
     streets: ['preflop'],
-    color: '#06b6d4',
+    color: 'var(--sp-accent-cyan)',
     icon: '🧭',
   },
   {
@@ -99,7 +100,7 @@ const FOCUS_AREAS = [
     name: 'SB Strategy',
     positions: ['SB'],
     streets: ['preflop', 'flop'],
-    color: '#8b5cf6',
+    color: 'var(--sp-accent-purple)',
     icon: '♠️',
   },
   {
@@ -170,7 +171,7 @@ function generateStudyPlan(sessions) {
         dayAreas.push({
           id: 'challenge',
           name: 'Daily Challenge',
-          color: '#fbbf24',
+          color: 'var(--sp-accent-amber)',
           icon: '⭐',
           difficulty: 'hard',
           goal: 70,
@@ -314,7 +315,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 12,
-                color: '#00d4ff',
+                color: 'var(--sp-accent-cyan)',
                 fontWeight: 800,
               }}
             >
@@ -331,7 +332,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 12,
-                color: '#475569',
+                color: 'var(--sp-fg-faint)',
                 fontWeight: 700,
               }}
             >
@@ -339,13 +340,13 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
             </div>
           )}
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? '#00d4ff' : '#e2e8f0' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)' }}>
               {dayPlan.day}{' '}
               {isToday && (
-                <span style={{ fontSize: 10, color: '#00d4ff', fontWeight: 600 }}>— TODAY</span>
+                <span style={{ fontSize: 10, color: 'var(--sp-accent-cyan)', fontWeight: 600 }}>— TODAY</span>
               )}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
               {dayPlan.areas.length} focus {dayPlan.areas.length === 1 ? 'area' : 'areas'} ·{' '}
               {dayPlan.totalQuestions} questions
             </div>
@@ -353,7 +354,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
         </div>
         <motion.span
           animate={{ rotate: expanded ? 180 : 0 }}
-          style={{ color: '#475569', fontSize: 14 }}
+          style={{ color: 'var(--sp-fg-faint)', fontSize: 14 }}
         >
           ▼
         </motion.span>
@@ -400,17 +401,17 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
                           style={{
                             fontSize: 13,
                             fontWeight: 700,
-                            color: isDone ? '#22c55e' : area.color,
+                            color: isDone ? 'var(--sp-accent-green)' : area.color,
                           }}
                         >
                           {area.name}
                           {isDone && (
-                            <span style={{ marginLeft: 6, fontSize: 10, color: '#22c55e' }}>
+                            <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--sp-accent-green)' }}>
                               ✓ Done
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>
+                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
                           {area.reason}
                         </div>
                       </div>
@@ -419,7 +420,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
                       <div style={{ fontSize: 11, fontWeight: 700, color: area.color }}>
                         {area.questionCount}Q
                       </div>
-                      <div style={{ fontSize: 9, color: '#475569' }}>Goal: {area.goal}%</div>
+                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>Goal: {area.goal}%</div>
                     </div>
                   </motion.div>
                 );
@@ -550,7 +551,7 @@ export default function StudyPlanPage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -570,7 +571,7 @@ export default function StudyPlanPage() {
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 fontSize: 18,
                 cursor: 'pointer',
                 width: 36,
@@ -584,10 +585,10 @@ export default function StudyPlanPage() {
               ←
             </button>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
                 Weekly Study Plan
               </div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>Personalized training schedule</div>
+              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Personalized training schedule</div>
             </div>
           </div>
           <motion.button
@@ -598,7 +599,7 @@ export default function StudyPlanPage() {
               borderRadius: 8,
               border: '1px solid rgba(255,255,255,0.1)',
               background: 'rgba(255,255,255,0.03)',
-              color: '#94a3b8',
+              color: 'var(--sp-fg-muted)',
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer',
@@ -636,22 +637,22 @@ export default function StudyPlanPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
                 >
                   WEEK PROGRESS
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#e2e8f0', marginTop: 2 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--sp-fg)', marginTop: 2 }}>
                   {progress}%
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#00d4ff' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                   {totalCompleted}/{totalAreas}
                 </div>
-                <div style={{ fontSize: 10, color: '#64748b' }}>drills completed</div>
+                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>drills completed</div>
               </div>
             </div>
             {/* Progress bar */}
@@ -710,7 +711,7 @@ export default function StudyPlanPage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#f87171',
+                    color: 'var(--sp-accent-red)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
@@ -733,7 +734,7 @@ export default function StudyPlanPage() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 16 }}>{w.icon}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)' }}>
                           {w.name}
                         </span>
                       </div>
@@ -742,13 +743,13 @@ export default function StudyPlanPage() {
                           style={{
                             fontSize: 13,
                             fontWeight: 800,
-                            color: w.accuracy < 50 ? '#ef4444' : w.accuracy < 70 ? '#fbbf24' : '#4ade80',
+                            color: w.accuracy < 50 ? 'var(--sp-accent-red)' : w.accuracy < 70 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
                           }}
                         >
                           {w.accuracy}%
                         </span>
                         {w.evLoss > 0 && (
-                          <span style={{ fontSize: 10, color: '#f87171' }}>
+                          <span style={{ fontSize: 10, color: 'var(--sp-accent-red)' }}>
                             -{Math.round(w.evLoss * 10) / 10} EV
                           </span>
                         )}
@@ -783,13 +784,13 @@ export default function StudyPlanPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                     Today's Focus
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                     {focus.icon} {focus.name}
                   </div>
-                  <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                  <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                     {focus.accuracy}% accuracy — needs attention
                   </div>
                 </div>
@@ -801,7 +802,7 @@ export default function StudyPlanPage() {
                     borderRadius: 8,
                     border: '1px solid rgba(0,212,255,0.25)',
                     background: 'rgba(0,212,255,0.08)',
-                    color: '#00d4ff',
+                    color: 'var(--sp-accent-cyan)',
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -833,7 +834,7 @@ export default function StudyPlanPage() {
                 textAlign: 'center',
                 padding: '20px 16px',
                 fontSize: 11,
-                color: '#475569',
+                color: 'var(--sp-fg-faint)',
                 lineHeight: 1.5,
               }}
             >

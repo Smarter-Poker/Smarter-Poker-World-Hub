@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-9 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -28,11 +29,11 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // ═══════════════════════════════════════════════════════════════════════════
 
 const CLASS_CONFIG = {
-  best: { label: 'Best', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)' },
-  correct: { label: 'Correct', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
-  inaccuracy: { label: 'Inaccuracy', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
-  wrong: { label: 'Wrong', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
-  blunder: { label: 'Blunder', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+  best: { label: 'Best', color: 'var(--sp-accent-green)', bg: 'rgba(34, 197, 94, 0.15)' },
+  correct: { label: 'Correct', color: 'var(--sp-accent-blue)', bg: 'rgba(59, 130, 246, 0.15)' },
+  inaccuracy: { label: 'Inaccuracy', color: 'var(--sp-accent-amber)', bg: 'rgba(251, 191, 36, 0.15)' },
+  wrong: { label: 'Wrong', color: 'var(--sp-accent-orange)', bg: 'rgba(249, 115, 22, 0.15)' },
+  blunder: { label: 'Blunder', color: 'var(--sp-accent-red)', bg: 'rgba(239, 68, 68, 0.15)' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -42,12 +43,12 @@ const CLASS_CONFIG = {
 function DeviationCell({ value, deviation }) {
   // Color: green = close to GTO, yellow = moderate, red = far
   const getColor = (dev) => {
-    if (dev === null || dev === undefined) return '#475569';
-    if (dev <= 5) return '#22c55e';
-    if (dev <= 10) return '#4ade80';
-    if (dev <= 15) return '#fbbf24';
-    if (dev <= 25) return '#f97316';
-    return '#ef4444';
+    if (dev === null || dev === undefined) return 'var(--sp-fg-faint)';
+    if (dev <= 5) return 'var(--sp-accent-green)';
+    if (dev <= 10) return 'var(--sp-accent-green)';
+    if (dev <= 15) return 'var(--sp-accent-amber)';
+    if (dev <= 25) return 'var(--sp-accent-orange)';
+    return 'var(--sp-accent-red)';
   };
 
   const getBg = (dev) => {
@@ -80,7 +81,7 @@ function DeviationCell({ value, deviation }) {
         {value}%
       </div>
       {deviation !== null && (
-        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+        <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
           {deviation <= 5 ? '≈ GTO' : `±${deviation}%`}
         </div>
       )}
@@ -121,7 +122,7 @@ function ClassificationBar({ classifications, total }) {
               transition={{ duration: 0.6, ease: 'easeOut' }}
               style={{
                 height: '100%',
-                background: CLASS_CONFIG[cls]?.color || '#475569',
+                background: CLASS_CONFIG[cls]?.color || 'var(--sp-fg-faint)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -160,7 +161,7 @@ function ClassificationBar({ classifications, total }) {
                   background: CLASS_CONFIG[cls]?.color,
                 }}
               />
-              <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+              <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                 {CLASS_CONFIG[cls]?.label}: {count} ({pct}%)
               </span>
             </div>
@@ -293,7 +294,7 @@ export default function GTOReports() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -314,7 +315,7 @@ export default function GTOReports() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -366,7 +367,7 @@ export default function GTOReports() {
                     period === p.value
                       ? 'linear-gradient(135deg, #00d4ff, #22c55e)'
                       : 'rgba(255,255,255,0.06)',
-                  color: period === p.value ? '#fff' : '#94a3b8',
+                  color: period === p.value ? '#fff' : 'var(--sp-fg-muted)',
                 }}
               >
                 {p.label}
@@ -391,7 +392,7 @@ export default function GTOReports() {
                   margin: '0 auto',
                 }}
               />
-              <p style={{ color: '#64748b', fontSize: 13, marginTop: 12 }}>
+              <p style={{ color: 'var(--sp-fg-dim)', fontSize: 13, marginTop: 12 }}>
                 Loading your GTO report...
               </p>
               <style>{`
@@ -422,19 +423,19 @@ export default function GTOReports() {
                 }}
               >
                 {[
-                  { label: 'Sessions', value: report.totalSessions, color: '#7c3aed' },
-                  { label: 'Questions', value: report.totalQuestions, color: '#3b82f6' },
+                  { label: 'Sessions', value: report.totalSessions, color: 'var(--sp-accent-purple)' },
+                  { label: 'Questions', value: report.totalQuestions, color: 'var(--sp-accent-blue)' },
                   {
                     label: 'Accuracy',
                     value: `${report.overallAccuracy}%`,
                     color:
                       report.overallAccuracy >= 70
-                        ? '#22c55e'
+                        ? 'var(--sp-accent-green)'
                         : report.overallAccuracy >= 50
-                          ? '#fbbf24'
-                          : '#ef4444',
+                          ? 'var(--sp-accent-amber)'
+                          : 'var(--sp-accent-red)',
                   },
-                  { label: 'Best Rate', value: `${report.bestRate}%`, color: '#a855f7' },
+                  { label: 'Best Rate', value: `${report.bestRate}%`, color: 'var(--sp-accent-purple)' },
                   {
                     label: 'GTO Proximity',
                     value:
@@ -443,10 +444,10 @@ export default function GTOReports() {
                         : 'N/A',
                     color:
                       (report.gtoProximityScore || 0) >= 85
-                        ? '#00d4ff'
+                        ? 'var(--sp-accent-cyan)'
                         : (report.gtoProximityScore || 0) >= 70
-                          ? '#4ade80'
-                          : '#fbbf24',
+                          ? 'var(--sp-accent-green)'
+                          : 'var(--sp-accent-amber)',
                   },
                 ].map((stat) => (
                   <div
@@ -472,7 +473,7 @@ export default function GTOReports() {
                     <div
                       style={{
                         fontSize: 9,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: 1,
@@ -499,7 +500,7 @@ export default function GTOReports() {
                   style={{
                     fontSize: 11,
                     fontWeight: 800,
-                    color: '#94a3b8',
+                    color: 'var(--sp-fg-muted)',
                     letterSpacing: 1.2,
                     textTransform: 'uppercase',
                     marginBottom: 12,
@@ -526,7 +527,7 @@ export default function GTOReports() {
                   style={{
                     fontSize: 11,
                     fontWeight: 800,
-                    color: '#00d4ff',
+                    color: 'var(--sp-accent-cyan)',
                     letterSpacing: 1.2,
                     textTransform: 'uppercase',
                     marginBottom: 14,
@@ -562,14 +563,14 @@ export default function GTOReports() {
                             style={{
                               fontSize: 11,
                               fontWeight: 800,
-                              color: '#64748b',
+                              color: 'var(--sp-fg-dim)',
                               fontFamily: "'Orbitron', monospace",
                               marginBottom: 4,
                             }}
                           >
                             {pos}
                           </div>
-                          <div style={{ fontSize: 10, color: '#475569' }}>No data</div>
+                          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>No data</div>
                         </div>
                       );
                     }
@@ -588,7 +589,7 @@ export default function GTOReports() {
                           style={{
                             fontSize: 12,
                             fontWeight: 800,
-                            color: '#00d4ff',
+                            color: 'var(--sp-accent-cyan)',
                             fontFamily: "'Orbitron', monospace",
                             marginBottom: 6,
                             textAlign: 'center',
@@ -601,7 +602,7 @@ export default function GTOReports() {
                           style={{
                             marginTop: 4,
                             fontSize: 9,
-                            color: '#64748b',
+                            color: 'var(--sp-fg-dim)',
                             textAlign: 'center',
                           }}
                         >
@@ -623,11 +624,11 @@ export default function GTOReports() {
                   }}
                 >
                   {[
-                    { label: '≈ GTO (±5%)', color: '#22c55e' },
-                    { label: 'Close (±10%)', color: '#4ade80' },
-                    { label: 'Moderate (±15%)', color: '#fbbf24' },
-                    { label: 'Significant (±25%)', color: '#f97316' },
-                    { label: 'Major Leak (25%+)', color: '#ef4444' },
+                    { label: '≈ GTO (±5%)', color: 'var(--sp-accent-green)' },
+                    { label: 'Close (±10%)', color: 'var(--sp-accent-green)' },
+                    { label: 'Moderate (±15%)', color: 'var(--sp-accent-amber)' },
+                    { label: 'Significant (±25%)', color: 'var(--sp-accent-orange)' },
+                    { label: 'Major Leak (25%+)', color: 'var(--sp-accent-red)' },
                   ].map((l) => (
                     <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <div
@@ -638,7 +639,7 @@ export default function GTOReports() {
                           background: l.color,
                         }}
                       />
-                      <span style={{ fontSize: 9, color: '#94a3b8', fontWeight: 600 }}>
+                      <span style={{ fontSize: 9, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
                         {l.label}
                       </span>
                     </div>
@@ -658,7 +659,7 @@ export default function GTOReports() {
                       style={{
                         fontSize: 12,
                         fontWeight: 800,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         letterSpacing: 1,
                         textTransform: 'uppercase',
                         marginBottom: 12,
@@ -667,7 +668,7 @@ export default function GTOReports() {
                     >
                       GTO Deviation Scorecard
                     </div>
-                    <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 16 }}>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
                       Based on {report.scorecardStats.totalAnalyzed} preflop hands played across
                       your tracked sessions.
                     </div>
@@ -720,7 +721,7 @@ export default function GTOReports() {
                           style={{
                             fontSize: 12,
                             fontWeight: 700,
-                            color: '#fca5a5',
+                            color: 'var(--sp-accent-red)',
                             textTransform: 'uppercase',
                             letterSpacing: 1,
                             marginBottom: 12,
@@ -754,10 +755,10 @@ export default function GTOReports() {
                                 borderRadius: 4,
                                 background:
                                   w.accuracy < 40
-                                    ? '#ef4444'
+                                    ? 'var(--sp-accent-red)'
                                     : w.accuracy < 60
-                                      ? '#f97316'
-                                      : '#fbbf24',
+                                      ? 'var(--sp-accent-orange)'
+                                      : 'var(--sp-accent-amber)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -772,7 +773,7 @@ export default function GTOReports() {
                               style={{
                                 fontSize: 13,
                                 fontWeight: 800,
-                                color: '#e2e8f0',
+                                color: 'var(--sp-fg)',
                                 fontFamily: "'Orbitron', monospace",
                                 width: 36,
                               }}
@@ -795,10 +796,10 @@ export default function GTOReports() {
                                   borderRadius: 3,
                                   background:
                                     w.accuracy < 40
-                                      ? '#ef4444'
+                                      ? 'var(--sp-accent-red)'
                                       : w.accuracy < 60
-                                        ? '#f97316'
-                                        : '#fbbf24',
+                                        ? 'var(--sp-accent-orange)'
+                                        : 'var(--sp-accent-amber)',
                                 }}
                               />
                             </div>
@@ -809,10 +810,10 @@ export default function GTOReports() {
                                 fontFamily: "'Orbitron', monospace",
                                 color:
                                   w.accuracy < 40
-                                    ? '#ef4444'
+                                    ? 'var(--sp-accent-red)'
                                     : w.accuracy < 60
-                                      ? '#f97316'
-                                      : '#fbbf24',
+                                      ? 'var(--sp-accent-orange)'
+                                      : 'var(--sp-accent-amber)',
                                 width: 36,
                                 textAlign: 'right',
                               }}
@@ -828,7 +829,7 @@ export default function GTOReports() {
                                 border: '1px solid rgba(249,115,22,0.3)',
                                 borderRadius: 6,
                                 padding: '4px 10px',
-                                color: '#f97316',
+                                color: 'var(--sp-accent-orange)',
                                 fontSize: 10,
                                 fontWeight: 700,
                                 cursor: 'pointer',

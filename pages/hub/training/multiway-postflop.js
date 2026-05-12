@@ -7,6 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-TOKENS-BATCH4-5 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -26,9 +27,9 @@ const SCENARIOS = [
     name: 'BTN vs CO vs BB — Dry Board',
     board: ['As', '7d', '2c'],
     players: [
-      { position: 'BTN', role: 'IP Caller', color: '#22c55e' },
-      { position: 'CO', role: 'Original Raiser', color: '#3b82f6' },
-      { position: 'BB', role: 'OOP Defender', color: '#f59e0b' },
+      { position: 'BTN', role: 'IP Caller', color: 'var(--sp-accent-green)' },
+      { position: 'CO', role: 'Original Raiser', color: 'var(--sp-accent-blue)' },
+      { position: 'BB', role: 'OOP Defender', color: 'var(--sp-accent-amber)' },
     ],
     actions: {
       CO: { check: 58, bet33: 27, bet66: 12, bet100: 3 },
@@ -47,9 +48,9 @@ const SCENARIOS = [
     name: 'BTN vs MP vs BB — Wet Board',
     board: ['Jh', 'Th', '8s'],
     players: [
-      { position: 'BTN', role: 'IP Caller', color: '#22c55e' },
-      { position: 'MP', role: 'Original Raiser', color: '#3b82f6' },
-      { position: 'BB', role: 'OOP Defender', color: '#f59e0b' },
+      { position: 'BTN', role: 'IP Caller', color: 'var(--sp-accent-green)' },
+      { position: 'MP', role: 'Original Raiser', color: 'var(--sp-accent-blue)' },
+      { position: 'BB', role: 'OOP Defender', color: 'var(--sp-accent-amber)' },
     ],
     actions: {
       MP: { check: 72, bet33: 18, bet66: 8, bet100: 2 },
@@ -68,9 +69,9 @@ const SCENARIOS = [
     name: 'CO vs UTG vs BB — Paired Board',
     board: ['Ks', 'Kd', '5h'],
     players: [
-      { position: 'CO', role: 'IP Caller', color: '#22c55e' },
-      { position: 'UTG', role: 'Original Raiser', color: '#3b82f6' },
-      { position: 'BB', role: 'OOP Defender', color: '#f59e0b' },
+      { position: 'CO', role: 'IP Caller', color: 'var(--sp-accent-green)' },
+      { position: 'UTG', role: 'Original Raiser', color: 'var(--sp-accent-blue)' },
+      { position: 'BB', role: 'OOP Defender', color: 'var(--sp-accent-amber)' },
     ],
     actions: {
       UTG: { check: 48, bet33: 38, bet66: 12, bet100: 2 },
@@ -89,9 +90,9 @@ const SCENARIOS = [
     name: 'BTN vs CO vs BB — Monotone Board',
     board: ['9h', '6h', '3h'],
     players: [
-      { position: 'BTN', role: 'IP Caller', color: '#22c55e' },
-      { position: 'CO', role: 'Original Raiser', color: '#3b82f6' },
-      { position: 'BB', role: 'OOP Defender', color: '#f59e0b' },
+      { position: 'BTN', role: 'IP Caller', color: 'var(--sp-accent-green)' },
+      { position: 'CO', role: 'Original Raiser', color: 'var(--sp-accent-blue)' },
+      { position: 'BB', role: 'OOP Defender', color: 'var(--sp-accent-amber)' },
     ],
     actions: {
       CO: { check: 78, bet33: 14, bet66: 6, bet100: 2 },
@@ -110,9 +111,9 @@ const SCENARIOS = [
     name: 'SB vs BTN vs BB — Low Connected',
     board: ['6d', '5s', '4c'],
     players: [
-      { position: 'SB', role: '3-Bettor', color: '#22c55e' },
-      { position: 'BTN', role: 'Original Raiser', color: '#3b82f6' },
-      { position: 'BB', role: 'Cold Caller', color: '#f59e0b' },
+      { position: 'SB', role: '3-Bettor', color: 'var(--sp-accent-green)' },
+      { position: 'BTN', role: 'Original Raiser', color: 'var(--sp-accent-blue)' },
+      { position: 'BB', role: 'Cold Caller', color: 'var(--sp-accent-amber)' },
     ],
     actions: {
       SB: { check: 55, bet33: 30, bet66: 12, bet100: 3 },
@@ -131,9 +132,9 @@ const SCENARIOS = [
     name: 'CO vs MP vs BB — Broadway Board',
     board: ['Qs', 'Jd', 'Tc'],
     players: [
-      { position: 'CO', role: 'IP Caller', color: '#22c55e' },
-      { position: 'MP', role: 'Original Raiser', color: '#3b82f6' },
-      { position: 'BB', role: 'OOP Defender', color: '#f59e0b' },
+      { position: 'CO', role: 'IP Caller', color: 'var(--sp-accent-green)' },
+      { position: 'MP', role: 'Original Raiser', color: 'var(--sp-accent-blue)' },
+      { position: 'BB', role: 'OOP Defender', color: 'var(--sp-accent-amber)' },
     ],
     actions: {
       MP: { check: 60, bet33: 25, bet66: 12, bet100: 3 },
@@ -150,18 +151,18 @@ const SCENARIOS = [
 ];
 
 const TEXTURE_COLORS = {
-  Dry: '#94a3b8',
-  Wet: '#3b82f6',
-  Paired: '#f59e0b',
-  Monotone: '#a855f7',
-  Connected: '#22c55e',
-  Broadway: '#ef4444',
+  Dry: 'var(--sp-fg-muted)',
+  Wet: 'var(--sp-accent-blue)',
+  Paired: 'var(--sp-accent-amber)',
+  Monotone: 'var(--sp-accent-purple)',
+  Connected: 'var(--sp-accent-green)',
+  Broadway: 'var(--sp-accent-red)',
 };
 
 const DIFFICULTY_COLORS = {
-  Intermediate: '#22c55e',
-  Advanced: '#f59e0b',
-  Expert: '#ef4444',
+  Intermediate: 'var(--sp-accent-green)',
+  Advanced: 'var(--sp-accent-amber)',
+  Expert: 'var(--sp-accent-red)',
 };
 
 // Card rendering — uses the custom 52-card PNG deck
@@ -179,13 +180,13 @@ function MiniCard({ card }) {
 function FrequencyBar({ actions, playerColor, quizMode, showAnswers }) {
   const entries = Object.entries(actions || {}).filter(([, v]) => v > 0);
   const actionColors = {
-    check: '#64748b',
-    bet33: '#22c55e',
-    bet66: '#f59e0b',
-    bet100: '#ef4444',
-    fold: '#475569',
-    call: '#3b82f6',
-    raise: '#a855f7',
+    check: 'var(--sp-fg-dim)',
+    bet33: 'var(--sp-accent-green)',
+    bet66: 'var(--sp-accent-amber)',
+    bet100: 'var(--sp-accent-red)',
+    fold: 'var(--sp-fg-faint)',
+    call: 'var(--sp-accent-blue)',
+    raise: 'var(--sp-accent-purple)',
   };
   const actionLabels = {
     check: 'Check',
@@ -227,7 +228,7 @@ function FrequencyBar({ actions, playerColor, quizMode, showAnswers }) {
             {freq > 8 ? `${freq}%` : ''}
           </div>
         )) : (
-          <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 9, fontWeight: 700 }}>
+          <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sp-fg-dim)', fontSize: 9, fontWeight: 700 }}>
             ❓ HIDDEN (QUIZ MODE)
           </div>
         )}
@@ -240,16 +241,16 @@ function FrequencyBar({ actions, playerColor, quizMode, showAnswers }) {
                 width: 6,
                 height: 6,
                 borderRadius: 2,
-                background: actionColors[action] || '#64748b',
+                background: actionColors[action] || 'var(--sp-fg-dim)',
               }}
             />
-            <span style={{ color: '#94a3b8' }}>
+            <span style={{ color: 'var(--sp-fg-muted)' }}>
               {actionLabels[action] || action}:{' '}
-              <strong style={{ color: '#e2e8f0' }}>{freq}%</strong>
+              <strong style={{ color: 'var(--sp-fg)' }}>{freq}%</strong>
             </span>
           </div>
         )) : (
-          <div style={{ fontSize: 9, color: '#64748b' }}>Guess the frequencies before revealing.</div>
+          <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>Guess the frequencies before revealing.</div>
         )}
       </div>
     </div>
@@ -301,7 +302,7 @@ function EquityPie({ equity, players }) {
         {players.map((p) => (
           <div key={p.position} style={{ fontSize: 9, display: 'flex', alignItems: 'center', gap: 3 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: p.color }} />
-            <span style={{ color: '#94a3b8' }}>
+            <span style={{ color: 'var(--sp-fg-muted)' }}>
               {p.position}: <strong style={{ color: p.color }}>{equity[p.position]}%</strong>
             </span>
           </div>
@@ -375,7 +376,7 @@ export default function MultiwayPostflop() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -389,7 +390,7 @@ export default function MultiwayPostflop() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -413,7 +414,7 @@ export default function MultiwayPostflop() {
             <span
               style={{
                 fontSize: 10,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 background: 'rgba(255,255,255,0.05)',
                 padding: '2px 8px',
                 borderRadius: 10,
@@ -423,7 +424,7 @@ export default function MultiwayPostflop() {
               {SCENARIOS.length} scenarios
             </span>
           </div>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+          <p style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 6 }}>
             Study optimal strategies in 3-way pots. See how equity, range advantage, and betting
             frequencies change with multiple players.
           </p>
@@ -443,8 +444,8 @@ export default function MultiwayPostflop() {
                   fontWeight: 700,
                   cursor: 'pointer',
                   border: 'none',
-                  background: textureFilter === t ? `${TEXTURE_COLORS[t] || '#00d4ff'}30` : 'rgba(255,255,255,0.04)',
-                  color: textureFilter === t ? TEXTURE_COLORS[t] || '#00d4ff' : '#64748b',
+                  background: textureFilter === t ? `${TEXTURE_COLORS[t] || 'var(--sp-accent-cyan)'}30` : 'rgba(255,255,255,0.04)',
+                  color: textureFilter === t ? TEXTURE_COLORS[t] || 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   transition: 'all 0.15s',
                 }}
               >
@@ -493,7 +494,7 @@ export default function MultiwayPostflop() {
                     </div>
 
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 4 }}>
                         {s.name}
                       </div>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -564,7 +565,7 @@ export default function MultiwayPostflop() {
                       border: '1px solid rgba(255,255,255,0.1)',
                       borderRadius: 8,
                       padding: '6px 12px',
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       cursor: 'pointer',
                       fontSize: 11,
                       fontWeight: 600,
@@ -588,7 +589,7 @@ export default function MultiwayPostflop() {
                       border: quizMode ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.1)',
                       borderRadius: 8,
                       padding: '6px 14px',
-                      color: quizMode ? '#a855f7' : '#94a3b8',
+                      color: quizMode ? 'var(--sp-accent-purple)' : 'var(--sp-fg-muted)',
                       cursor: 'pointer',
                       fontSize: 11,
                       fontWeight: 700,
@@ -615,7 +616,7 @@ export default function MultiwayPostflop() {
                     style={{
                       fontSize: 16,
                       fontWeight: 800,
-                      color: '#e2e8f0',
+                      color: 'var(--sp-fg)',
                       marginBottom: 4,
                       fontFamily: "'Orbitron', monospace",
                     }}
@@ -679,14 +680,14 @@ export default function MultiwayPostflop() {
                   >
                     <EquityPie equity={scenario.equity} players={scenario.players} />
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-fg-dim)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
                         Advantage
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
-                        Range: <strong style={{ color: '#00d4ff' }}>{scenario.rangeAdvantage}</strong>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginBottom: 4 }}>
+                        Range: <strong style={{ color: 'var(--sp-accent-cyan)' }}>{scenario.rangeAdvantage}</strong>
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                        Nut: <strong style={{ color: '#22c55e' }}>{scenario.nutAdvantage}</strong>
+                      <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
+                        Nut: <strong style={{ color: 'var(--sp-accent-green)' }}>{scenario.nutAdvantage}</strong>
                       </div>
                     </div>
                   </div>
@@ -723,8 +724,8 @@ export default function MultiwayPostflop() {
                           {player.position}
                         </div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{player.role}</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>{player.role}</div>
+                          <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
                             Equity: <strong style={{ color: player.color }}>{scenario.equity[player.position]}%</strong>
                           </div>
                         </div>
@@ -750,10 +751,10 @@ export default function MultiwayPostflop() {
                       marginBottom: 16,
                     }}
                   >
-                    <div style={{ fontSize: 10, fontWeight: 800, color: '#fbbf24', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--sp-accent-amber)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
                       💡 Solver Insight
                     </div>
-                    <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
                       {scenario.notes}
                     </div>
                   </div>
@@ -783,7 +784,7 @@ export default function MultiwayPostflop() {
                   </motion.button>
                 )}
                 {quizMode && showAnswers && (
-                  <div style={{ marginBottom: 16, textAlign: 'center', color: '#22c55e', fontSize: 11, fontWeight: 700 }}>
+                  <div style={{ marginBottom: 16, textAlign: 'center', color: 'var(--sp-accent-green)', fontSize: 11, fontWeight: 700 }}>
                     Solution revealed. Try another scenario!
                   </div>
                 )}

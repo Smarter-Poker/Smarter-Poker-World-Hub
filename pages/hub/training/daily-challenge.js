@@ -9,6 +9,7 @@
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
+// TRAIN-CSS-TOKENS-BATCH4-15 — hex sweep batch 4: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -82,7 +83,7 @@ function CountdownTimer({ expiresAt }) {
         gap: 6,
         fontSize: 11,
         fontWeight: 700,
-        color: '#64748b',
+        color: 'var(--sp-fg-dim)',
       }}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="#64748b">
@@ -138,7 +139,7 @@ function StreakCalendar({ completedDays }) {
               : d.isCompleted
                 ? '1px solid rgba(34,197,94,0.3)'
                 : '1px solid rgba(255,255,255,0.04)',
-            color: d.isCompleted ? '#fff' : d.isToday ? '#eab308' : '#475569',
+            color: d.isCompleted ? '#fff' : d.isToday ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)',
           }}
         >
           {d.day}
@@ -341,7 +342,7 @@ export default function DailyChallengePage() {
         style={{
           minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
-          color: '#e2e8f0',
+          color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
@@ -366,7 +367,7 @@ export default function DailyChallengePage() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#94a3b8',
+                color: 'var(--sp-fg-muted)',
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
@@ -390,7 +391,7 @@ export default function DailyChallengePage() {
             <span
               style={{
                 fontSize: 10,
-                color: '#eab308',
+                color: 'var(--sp-accent-amber)',
                 background: 'rgba(234,179,8,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -432,7 +433,7 @@ export default function DailyChallengePage() {
                 style={{
                   fontSize: 24,
                   fontWeight: 900,
-                  color: '#eab308',
+                  color: 'var(--sp-accent-amber)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
@@ -441,7 +442,7 @@ export default function DailyChallengePage() {
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -464,7 +465,7 @@ export default function DailyChallengePage() {
                 style={{
                   fontSize: 24,
                   fontWeight: 900,
-                  color: '#22c55e',
+                  color: 'var(--sp-accent-green)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
@@ -473,7 +474,7 @@ export default function DailyChallengePage() {
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -496,7 +497,7 @@ export default function DailyChallengePage() {
                 style={{
                   fontSize: 24,
                   fontWeight: 900,
-                  color: '#a855f7',
+                  color: 'var(--sp-accent-purple)',
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
@@ -505,7 +506,7 @@ export default function DailyChallengePage() {
               <div
                 style={{
                   fontSize: 9,
-                  color: '#64748b',
+                  color: 'var(--sp-fg-dim)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -524,7 +525,7 @@ export default function DailyChallengePage() {
                 background: 'rgba(239,68,68,0.1)',
                 border: '1px solid rgba(239,68,68,0.3)',
                 borderRadius: 8,
-                color: '#ef4444',
+                color: 'var(--sp-accent-red)',
                 fontSize: 12,
                 fontWeight: 600,
                 marginBottom: 14,
@@ -542,7 +543,7 @@ export default function DailyChallengePage() {
                   border: '1px solid rgba(234,179,8,0.4)',
                   borderRadius: 6,
                   padding: '4px 12px',
-                  color: '#eab308',
+                  color: 'var(--sp-accent-amber)',
                   cursor: 'pointer',
                   fontSize: 11,
                   fontWeight: 700,
@@ -559,7 +560,7 @@ export default function DailyChallengePage() {
               style={{
                 textAlign: 'center',
                 padding: 40,
-                color: '#64748b',
+                color: 'var(--sp-fg-dim)',
                 fontFamily: "'Orbitron', monospace",
                 fontSize: 12,
                 fontWeight: 700,
@@ -583,7 +584,7 @@ export default function DailyChallengePage() {
                     borderRadius: 8,
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#22c55e',
+                    color: 'var(--sp-accent-green)',
                     textAlign: 'center',
                   }}
                 >
@@ -605,7 +606,7 @@ export default function DailyChallengePage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 800,
-                      color: '#eab308',
+                      color: 'var(--sp-accent-amber)',
                       background: 'rgba(234,179,8,0.1)',
                       padding: '3px 8px',
                       borderRadius: 6,
@@ -620,7 +621,7 @@ export default function DailyChallengePage() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: '#94a3b8',
+                      color: 'var(--sp-fg-muted)',
                       background: 'rgba(255,255,255,0.04)',
                       padding: '3px 8px',
                       borderRadius: 6,
@@ -649,7 +650,7 @@ export default function DailyChallengePage() {
                       style={{
                         fontSize: 9,
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         textTransform: 'uppercase',
                         letterSpacing: 1.5,
                         marginBottom: 10,
@@ -683,7 +684,7 @@ export default function DailyChallengePage() {
                       style={{
                         fontSize: 9,
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: 'var(--sp-fg-dim)',
                         textTransform: 'uppercase',
                         letterSpacing: 1.5,
                         marginBottom: 8,
@@ -706,7 +707,7 @@ export default function DailyChallengePage() {
                 style={{
                   fontSize: 14,
                   fontWeight: 700,
-                  color: '#e2e8f0',
+                  color: 'var(--sp-fg)',
                   textAlign: 'center',
                   marginBottom: 14,
                 }}
@@ -728,19 +729,19 @@ export default function DailyChallengePage() {
                   const isCorrect = action === correctAnswer;
                   let bg = 'rgba(255,255,255,0.06)';
                   let borderColor = 'rgba(255,255,255,0.1)';
-                  let textColor = '#e2e8f0';
+                  let textColor = 'var(--sp-fg)';
 
                   if (showResult) {
                     if (isCorrect) {
                       bg = 'rgba(34,197,94,0.15)';
-                      borderColor = '#22c55e';
-                      textColor = '#22c55e';
+                      borderColor = 'var(--sp-accent-green)';
+                      textColor = 'var(--sp-accent-green)';
                     } else if (isSelected && !isCorrect) {
                       bg = 'rgba(239,68,68,0.15)';
-                      borderColor = '#ef4444';
-                      textColor = '#ef4444';
+                      borderColor = 'var(--sp-accent-red)';
+                      textColor = 'var(--sp-accent-red)';
                     } else {
-                      textColor = '#475569';
+                      textColor = 'var(--sp-fg-faint)';
                     }
                   }
 
@@ -790,7 +791,7 @@ export default function DailyChallengePage() {
                         fontSize: 14,
                         fontWeight: 800,
                         marginBottom: 6,
-                        color: selected === correctAnswer ? '#22c55e' : '#ef4444',
+                        color: selected === correctAnswer ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         fontFamily: "'Orbitron', monospace",
                       }}
                     >
@@ -800,7 +801,7 @@ export default function DailyChallengePage() {
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: '#e2e8f0',
+                        color: 'var(--sp-fg)',
                         marginBottom: 4,
                       }}
                     >
@@ -814,7 +815,7 @@ export default function DailyChallengePage() {
                           style={{
                             fontSize: 10,
                             fontWeight: 700,
-                            color: '#64748b',
+                            color: 'var(--sp-fg-dim)',
                             marginTop: 6,
                             marginBottom: 4,
                             textTransform: 'uppercase',
@@ -832,7 +833,7 @@ export default function DailyChallengePage() {
                                 style={{
                                   fontSize: 11,
                                   fontWeight: 600,
-                                  color: act === correctAnswer ? '#22c55e' : '#94a3b8',
+                                  color: act === correctAnswer ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
                                   background:
                                     act === correctAnswer
                                       ? 'rgba(34,197,94,0.1)'
@@ -854,7 +855,7 @@ export default function DailyChallengePage() {
                         style={{
                           marginTop: 8,
                           fontSize: 11,
-                          color: '#94a3b8',
+                          color: 'var(--sp-fg-muted)',
                           lineHeight: 1.5,
                           borderTop: '1px solid rgba(255,255,255,0.06)',
                           paddingTop: 8,
@@ -880,7 +881,7 @@ export default function DailyChallengePage() {
                               textAlign: 'center',
                             }}
                           >
-                            <div style={{ fontSize: 13, fontWeight: 800, color: '#eab308' }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>
                               Perfect Score! +{DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds
                             </div>
                           </motion.div>
@@ -921,7 +922,7 @@ export default function DailyChallengePage() {
                             borderRadius: 8,
                             border: '1px solid rgba(168,85,247,0.2)',
                             background: 'rgba(168,85,247,0.06)',
-                            color: '#a855f7',
+                            color: 'var(--sp-accent-purple)',
                             fontSize: 12,
                             fontWeight: 700,
                             cursor: sharingResult ? 'not-allowed' : 'pointer',
@@ -950,7 +951,7 @@ export default function DailyChallengePage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 8,
@@ -966,12 +967,12 @@ export default function DailyChallengePage() {
                     gap: 12,
                     marginTop: 8,
                     fontSize: 9,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     fontWeight: 600,
                   }}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: '#22c55e' }} />
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--sp-accent-green)' }} />
                     Completed
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1003,7 +1004,7 @@ export default function DailyChallengePage() {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginTop: 0,
@@ -1013,7 +1014,7 @@ export default function DailyChallengePage() {
                 >
                   About Daily Challenge
                 </h2>
-                <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
                   A new solver-verified GTO spot every day at midnight UTC. Answer correctly to
                   extend your streak and earn {DAILY_CHALLENGE_DIAMOND_REWARD} diamonds. Compete with players worldwide for the
                   fastest correct answer on the daily leaderboard.
@@ -1028,7 +1029,7 @@ export default function DailyChallengePage() {
               style={{
                 textAlign: 'center',
                 padding: 40,
-                color: '#475569',
+                color: 'var(--sp-fg-faint)',
                 fontSize: 12,
                 fontWeight: 600,
               }}
