@@ -43,13 +43,14 @@
  * Build-safety: no emoji chars, no JSX comments inside conditionals.
  */
 // TRAIN-FEEDBACK-V2 — audit-marker registry token
+// TRAIN-CSS-TOKENS-SHARED-2 — adoption of --sp-* token contract in shared component
 
 import React, { useState } from 'react';
 
 const VERDICT_THEMES = {
-  correct:   { fill: '#063d33', border: '#10b981', text: '#6ee7b7', label: 'Correct' },
-  incorrect: { fill: '#4a1010', border: '#ef4444', text: '#fca5a5', label: 'Incorrect' },
-  mixed:     { fill: '#3b2d00', border: '#f59e0b', text: '#fcd34d', label: 'Mixed Strategy' },
+  correct:   { fill: '#063d33', border: 'var(--sp-accent-emerald)', text: 'var(--sp-accent-green)', label: 'Correct' },
+  incorrect: { fill: '#4a1010', border: 'var(--sp-accent-red)', text: 'var(--sp-accent-red)', label: 'Incorrect' },
+  mixed:     { fill: '#3b2d00', border: 'var(--sp-accent-amber)', text: 'var(--sp-accent-amber)', label: 'Mixed Strategy' },
 };
 
 const ICON_PROPS = {
@@ -136,7 +137,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 14,
     padding: compact ? 14 : 18,
-    color: '#e2e8f0',
+    color: 'var(--sp-fg)',
     fontFamily: "'Inter', -apple-system, sans-serif",
     ...(style || {}),
   };
@@ -162,7 +163,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
 
   const actionLineStyle = {
     fontSize: 13,
-    color: '#cbd5e1',
+    color: 'var(--sp-fg)',
     fontWeight: 600,
     marginLeft: 'auto',
     textAlign: 'right',
@@ -171,7 +172,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
   const evLineStyle = {
     fontSize: 12,
     fontWeight: 700,
-    color: isPerfect ? '#4ade80' : '#fbbf24',
+    color: isPerfect ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
     fontVariantNumeric: 'tabular-nums',
   };
 
@@ -192,12 +193,12 @@ const FeedbackCard = React.memo(function FeedbackCard({
     fontWeight: 700,
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.06)',
-    color: '#94a3b8',
+    color: 'var(--sp-fg-muted)',
   };
 
   const whyStyle = {
     fontSize: 13,
-    color: '#cbd5e1',
+    color: 'var(--sp-fg)',
     lineHeight: 1.55,
     margin: '0 0 12px 0',
   };
@@ -236,7 +237,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
     borderRadius: 10,
     border: '1px solid rgba(255,255,255,0.1)',
     background: 'rgba(255,255,255,0.04)',
-    color: '#cbd5e1',
+    color: 'var(--sp-fg)',
     fontWeight: 700,
     fontSize: 13,
     cursor: 'pointer',
@@ -261,7 +262,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
         {(userAction || solverAction) ? (
           <span style={actionLineStyle}>
             {userAction ? <span style={{ color: theme.text }}>{userAction}</span> : null}
-            {userAction && solverAction ? <span style={{ color: '#64748b' }}> · </span> : null}
+            {userAction && solverAction ? <span style={{ color: 'var(--sp-fg-dim)' }}> · </span> : null}
             {solverAction ? <span>Solver: <strong style={{ color: '#fff' }}>{solverAction}</strong></span> : null}
           </span>
         ) : null}
@@ -269,15 +270,15 @@ const FeedbackCard = React.memo(function FeedbackCard({
 
       <div style={chipRowStyle}>
         {typeof evLoss === 'number' ? (
-          <span style={{ ...chipStyle, color: isPerfect ? '#4ade80' : '#fbbf24' }}>
+          <span style={{ ...chipStyle, color: isPerfect ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)' }}>
             <span style={evLineStyle}>{evDisplay}</span>
           </span>
         ) : null}
         {typeof accuracy === 'number' ? (
-          <span style={chipStyle}>Accuracy: <strong style={{ color: '#e2e8f0' }}>{Math.round(accuracy)}%</strong></span>
+          <span style={chipStyle}>Accuracy: <strong style={{ color: 'var(--sp-fg)' }}>{Math.round(accuracy)}%</strong></span>
         ) : null}
         {typeof bestStreak === 'number' && bestStreak > 0 ? (
-          <span style={chipStyle}>Streak: <strong style={{ color: '#e2e8f0' }}>{bestStreak}</strong></span>
+          <span style={chipStyle}>Streak: <strong style={{ color: 'var(--sp-fg)' }}>{bestStreak}</strong></span>
         ) : null}
       </div>
 
@@ -295,7 +296,7 @@ const FeedbackCard = React.memo(function FeedbackCard({
           style={{
             background: 'none',
             border: 'none',
-            color: '#00d4ff',
+            color: 'var(--sp-accent-cyan)',
             fontSize: 12,
             fontWeight: 700,
             cursor: 'pointer',

@@ -17,6 +17,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -465,9 +466,7 @@ export default function VillainRange() {
       console.warn('[Profiles] localStorage parse error, resetting:', err);
       try {
         localStorage.removeItem('sp_villain_profiles');
-      } catch {
-        /* ignore */
-      }
+      } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[villain-range] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
     }
   }, []);
 
@@ -519,9 +518,7 @@ export default function VillainRange() {
     }
     try {
       busEmit?.('training:profile-saved', profile);
-    } catch {
-      /* safe */
-    }
+    } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[villain-range] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
     setEditingProfile(null);
     setProfileName('');
     setProfileStats({ ...GTO_BASELINE });

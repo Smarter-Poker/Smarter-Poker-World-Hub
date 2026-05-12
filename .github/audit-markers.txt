@@ -1369,3 +1369,27 @@ TRAIN-CSS-MOBILE-ADOPT-11
 # TRAIN-CSS-MOBILE-ADOPT-12 — pages/hub/training/range-builder.js.
 # data-pills-row x2 on the chart-type + position pill rows.
 TRAIN-CSS-MOBILE-ADOPT-12
+
+# ─── Phase-20a: shared-component token adoption ─────────────────────────────
+# TRAIN-CSS-TOKENS-SHARED-1 — src/components/poker/ActionButton.jsx. 13 quoted
+# hex literals routed to --sp-accent-* / --sp-fg-* tokens. Per-action theme
+# fill/border colors retained as literals (intentional bespoke tints).
+TRAIN-CSS-TOKENS-SHARED-1
+# TRAIN-CSS-TOKENS-SHARED-2 — src/components/poker/FeedbackCard.jsx. 19 hex
+# literals routed to tokens. Verdict-band tinted backgrounds retained.
+TRAIN-CSS-TOKENS-SHARED-2
+# TRAIN-CSS-TOKENS-SHARED-3 — src/components/poker/ProgressStrip.jsx. 15 hex
+# literals routed to tokens. Difficulty-theme colors retained.
+TRAIN-CSS-TOKENS-SHARED-3
+# TRAIN-CSS-TOKENS-SHARED-4 — src/components/training/RangeGrid.jsx. 78 hex
+# literals routed to tokens. Range-action ramps (yellow/orange/green/blue)
+# routed through accent tokens; bespoke dark bg literals retained.
+TRAIN-CSS-TOKENS-SHARED-4
+
+# ─── Phase-20b: silent-catch robustness fix ─────────────────────────────────
+# TRAIN-CATCH-FIX-1 — 13 silent `catch {}` blocks across 8 training pages
+# (daily-challenge x2, hand-history-upload x3, jarvis, leaderboard x2,
+#  progress, replay-theater, streaks, villain-range x2) replaced with
+# console.warn-backed handlers so dev-side gets visibility while preserving
+# existing fallback behavior.
+TRAIN-CATCH-FIX-1

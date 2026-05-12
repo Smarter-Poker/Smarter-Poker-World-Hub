@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -1231,9 +1232,7 @@ export default function HandHistoryUploadPage() {
     try {
       const saved = JSON.parse(localStorage.getItem('hh_sessions') || '[]');
       setSavedSessions(saved);
-    } catch {
-      /* ignore */
-    }
+    } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[hand-history-upload] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
   }, []);
 
   // Bus Listener
@@ -1263,9 +1262,7 @@ export default function HandHistoryUploadPage() {
       const updated = [sessionData, ...prev].slice(0, 20); // Keep last 20
       localStorage.setItem('hh_sessions', JSON.stringify(updated));
       setSavedSessions(updated);
-    } catch {
-      /* ignore */
-    }
+    } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[hand-history-upload] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
 
     // Save to Supabase
     try {
@@ -1293,9 +1290,7 @@ export default function HandHistoryUploadPage() {
           }),
         });
       }
-    } catch {
-      /* Supabase save optional */
-    }
+    } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[hand-history-upload] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
 
     // EventBus emit
     if (typeof eventBus !== 'undefined' && eventBus.emit) {

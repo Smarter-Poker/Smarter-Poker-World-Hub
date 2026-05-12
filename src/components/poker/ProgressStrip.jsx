@@ -20,15 +20,16 @@
  * Build-safety: no emoji chars, no JSX comments inside conditional expressions.
  */
 // TRAIN-PROGRESS-STRIP-1 — audit-marker registry token
+// TRAIN-CSS-TOKENS-SHARED-3 — adoption of --sp-* token contract in shared component
 
 import React from 'react';
 
 const DIFFICULTY_THEMES = {
-  beginner:     { color: '#4ade80', label: 'Beginner' },
-  easy:         { color: '#22c55e', label: 'Easy' },
-  intermediate: { color: '#fbbf24', label: 'Intermediate' },
-  advanced:     { color: '#f97316', label: 'Advanced' },
-  expert:       { color: '#ef4444', label: 'Expert' },
+  beginner:     { color: 'var(--sp-accent-green)', label: 'Beginner' },
+  easy:         { color: 'var(--sp-accent-green)', label: 'Easy' },
+  intermediate: { color: 'var(--sp-accent-amber)', label: 'Intermediate' },
+  advanced:     { color: 'var(--sp-accent-orange)', label: 'Advanced' },
+  expert:       { color: 'var(--sp-accent-red)', label: 'Expert' },
 };
 
 const ICON_PROPS = {
@@ -64,7 +65,7 @@ function formatMs(ms) {
   return `${m}:${ss}`;
 }
 
-function CompletionRing({ pct, size = 28, stroke = 3, color = '#00d4ff' }) {
+function CompletionRing({ pct, size = 28, stroke = 3, color = 'var(--sp-accent-cyan)' }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(100, pct || 0));
@@ -116,7 +117,7 @@ const ProgressStrip = React.memo(function ProgressStrip({
     background: 'rgba(0,0,0,0.35)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: 10,
-    color: '#cbd5e1',
+    color: 'var(--sp-fg)',
     fontFamily: "'Inter', -apple-system, sans-serif",
     fontVariantNumeric: 'tabular-nums',
     ...(style || {}),
@@ -132,7 +133,7 @@ const ProgressStrip = React.memo(function ProgressStrip({
   const labelStyle = {
     fontSize: 10,
     fontWeight: 700,
-    color: '#64748b',
+    color: 'var(--sp-fg-dim)',
     textTransform: 'uppercase',
     letterSpacing: 1,
   };
@@ -156,14 +157,14 @@ const ProgressStrip = React.memo(function ProgressStrip({
       role="status"
       aria-label={`Question ${safeCurrent} of ${safeTotal}${accuracyPct != null ? `, ${accuracyPct}% accuracy` : ''}`}
     >
-      <CompletionRing pct={completionPct} size={compact ? 22 : 28} stroke={3} color={accuracyPct != null && accuracyPct < 60 ? '#fbbf24' : '#00d4ff'} />
+      <CompletionRing pct={completionPct} size={compact ? 22 : 28} stroke={3} color={accuracyPct != null && accuracyPct < 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-cyan)'} />
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
         <span style={positionStyle}>{safeCurrent} / {safeTotal}</span>
         <span style={labelStyle}>Question</span>
       </div>
 
       {accuracyPct != null ? (
-        <span style={{ ...chipStyle, color: accuracyPct >= 75 ? '#4ade80' : accuracyPct >= 50 ? '#fbbf24' : '#f87171' }}>
+        <span style={{ ...chipStyle, color: accuracyPct >= 75 ? 'var(--sp-accent-green)' : accuracyPct >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)' }}>
           {accuracyPct}% acc
         </span>
       ) : null}
@@ -175,13 +176,13 @@ const ProgressStrip = React.memo(function ProgressStrip({
       ) : null}
 
       {typeof bestStreak === 'number' && bestStreak > 1 ? (
-        <span style={{ ...chipStyle, color: '#fbbf24' }}>
+        <span style={{ ...chipStyle, color: 'var(--sp-accent-amber)' }}>
           <FlameIcon size={11} /> {bestStreak}
         </span>
       ) : null}
 
       {typeof sessionMs === 'number' ? (
-        <span style={{ ...chipStyle, marginLeft: 'auto', color: '#94a3b8' }}>
+        <span style={{ ...chipStyle, marginLeft: 'auto', color: 'var(--sp-fg-muted)' }}>
           <ClockIcon size={11} /> {formatMs(sessionMs)}
         </span>
       ) : null}

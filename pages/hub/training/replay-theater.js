@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
@@ -60,7 +61,7 @@ function reconstructMistakes(sessions) {
       try {
         const moveResult = classifyMove(rawEVLoss);
         classification = moveResult?.classification || moveResult || 'mistake';
-      } catch { /* use default */ }
+      } catch (_err) { if (typeof console !== "undefined" && console.warn) console.warn(`[replay-theater] swallowed:`, _err); /* TRAIN-CATCH-FIX-1 */ }
 
       mistakes.push({
         id: `${s.id || sIdx}-${i}`,
