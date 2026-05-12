@@ -47,11 +47,21 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════════════════════
         async function resolveFriendIds(friendIds, fields) {
           if (!friendIds.length) return [];
-          const { data } = await getSupabase()
-            .from('profiles')
-            .select(fields)
-            .in('id', friendIds);
-          return data || [];
+          const chunkSize = 100;
+          const chunks = [];
+          for (let i = 0; i < friendIds.length; i += chunkSize) {
+            chunks.push(friendIds.slice(i, i + chunkSize));
+          }
+          
+          let allData = [];
+          for (const chunk of chunks) {
+            const { data } = await getSupabase()
+              .from('profiles')
+              .select(fields)
+              .in('id', chunk);
+            if (data) allData = allData.concat(data);
+          }
+          return allData;
         }
 
         // Step 1: Get all accepted friendship rows (both directions)
@@ -61,13 +71,13 @@ export default async function handler(req, res) {
             .select('friend_id, created_at')
             .eq('user_id', userId)
             .eq('status', 'accepted')
-            .limit(1000),
+            .limit(5000),
           getSupabase()
             .from('friendships')
             .select('user_id, created_at')
             .eq('friend_id', userId)
             .eq('status', 'accepted')
-            .limit(1000),
+            .limit(5000),
         ]);
 
         const sentRows = sentResult.data;
@@ -118,7 +128,7 @@ export default async function handler(req, res) {
             .from('social_follows')
             .select('following_id')
             .eq('follower_id', userId)
-            .limit(200);
+            .limit(5000);
           const followingIds = followingRaw ? followingRaw.map(f => f.following_id) : [];
           const following = await resolveFriendIds(followingIds, fullFields);
 
@@ -127,7 +137,7 @@ export default async function handler(req, res) {
             .from('social_follows')
             .select('follower_id')
             .eq('following_id', userId)
-            .limit(200);
+            .limit(5000);
           const followerIds = followerRaw ? followerRaw.map(f => f.follower_id) : [];
           const followers = await resolveFriendIds(followerIds, fullFields);
 
@@ -142,7 +152,7 @@ export default async function handler(req, res) {
             .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active')
             .neq('id', userId)
             .order('last_active', { ascending: false, nullsLast: true })
-            .limit(200);
+            .limit(500);
 
           // Filter out existing connections (friends + pending) if any
           const { data: allUsers } = await suggestionsQuery;

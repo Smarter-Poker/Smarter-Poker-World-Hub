@@ -2342,13 +2342,13 @@ export default function UserProfilePage() {
           // Query 1: friendships where profile is the sender
           supabase
             .from('friendships')
-            .select('friend_id')
+            .select('*', { count: 'exact', head: true })
             .eq('user_id', socialId)
             .eq('status', 'accepted'),
           // Query 2: friendships where profile is the receiver
           supabase
             .from('friendships')
-            .select('user_id')
+            .select('*', { count: 'exact', head: true })
             .eq('friend_id', socialId)
             .eq('status', 'accepted'),
           supabase
@@ -2415,13 +2415,9 @@ export default function UserProfilePage() {
           ...authResults
         ] = batch1Results;
 
-        // Union both directions into a deduplicated Set (matches Friends API)
-        const uniqueFriendIds = new Set();
-        (sentFriendsRes.data || []).forEach((r) => uniqueFriendIds.add(r.friend_id));
-        (receivedFriendsRes.data || []).forEach((r) => uniqueFriendIds.add(r.user_id));
-
+        // Sum the exact counts
         finalStats = {
-          friends: uniqueFriendIds.size,
+          friends: (sentFriendsRes.count || 0) + (receivedFriendsRes.count || 0),
           following: followingRes.count || 0,
           followers: followersRes.count || 0,
           posts: postsRes.count || 0,
@@ -3130,6 +3126,10 @@ export default function UserProfilePage() {
     setFriendRequestSent(false);
     setShowUnfriendConfirm(false);
     setStats((prev) => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
+    
+    // Create an array of possible target IDs to catch horse/profile identity overlaps
+    const possibleTargetIds = Array.from(new Set([targetId, profile.id]));
+
     try {
       // Delete both directions in parallel to avoid orphan records
       const [res1, res2] = await Promise.all([
@@ -3137,18 +3137,24 @@ export default function UserProfilePage() {
           .from('friendships')
           .delete()
           .eq('user_id', currentUser.id)
-          .eq('friend_id', targetId),
+          .in('friend_id', possibleTargetIds),
         supabase
           .from('friendships')
           .delete()
-          .eq('user_id', targetId)
+          .in('user_id', possibleTargetIds)
           .eq('friend_id', currentUser.id),
       ]);
       if (res1.error || res2.error) throw res1.error || res2.error; // Either failed — rollback
+      
+      toast.success('Friend removed', { id: 'unfriend-success' });
       invalidateProfileCache();
       notifyFriendsSync();
     } catch (e) {
-      console.warn('[App] Handled exception:', e?.message || e);
+      console.warn('[App] Unfriend failed:', e?.message || e);
+      toast.error('Failed to remove friend');
+      // Rollback
+      setIsFriend(wasFriend);
+      setStats(prevStats);
     }
   };
 

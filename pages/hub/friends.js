@@ -895,9 +895,19 @@ function FriendsPage() {
             ]);
             if (res1.error || res2.error) throw res1.error || res2.error; // Either failed — rollback
 
+            toast.success('Friend removed', { id: 'unfriend-success' });
             busEmit.dataMutated('friends');
             broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } finally { actionInProgress.current = false; }
+        } catch (e) {
+            console.warn('[App] Unfriend failed:', e?.message || e);
+            toast.error('Failed to remove friend');
+            // Rollback
+            setFriends(prevFriends);
+            setSuggestions(prevSuggestions);
+            setFriendIds(prevFriendIds);
+        } finally {
+            actionInProgress.current = false;
+        }
     };
 
     // ═══════════════════════════════════════════════════════════════════════

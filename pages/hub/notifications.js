@@ -228,25 +228,29 @@ function NotificationsPage() {
                     try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: 0 }, '*'); } catch (_) {}
 
                     // Mark social notifications read (non-blocking — user already sees the page)
-                    const unreadSocialIds = enriched.filter(n => !n.read && n._source === 'social').map(n => n.id);
+                    const hasUnreadSocial = enriched.some(n => !n.read && n._source === 'social');
                     const hasUnreadPoker = enriched.some(n => !n.read && n._source === 'poker');
 
-                    if (unreadSocialIds.length > 0) {
-                        supabase.from('notifications').update({ read: true }).in('id', unreadSocialIds)
-                            .then(() => {
-                                if (mounted.current) {
-                                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                                    try {
-                                        const now = Date.now();
-                                        const updated = enriched.map(n => ({ ...n, read: true }));
-                                        localStorage.setItem('sp-notif-cache', JSON.stringify(
-                                            updated.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
-                                        ));
-                                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                                }
-                            })
-                            .catch(e => console.warn('[Notifications] mark-social-read failed:', e));
-                    }
+                    // If totalUnread > 0, there are unread notifications in the DB.
+                    // Even if hasUnreadSocial is false in the first 50, there might be unread ones past 50.
+                    supabase
+                        .from('notifications')
+                        .update({ read: true })
+                        .eq('user_id', user.id)
+                        .eq('read', false)
+                        .then(() => {
+                            if (mounted.current) {
+                                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                                try {
+                                    const now = Date.now();
+                                    const updated = enriched.map(n => ({ ...n, read: true }));
+                                    localStorage.setItem('sp-notif-cache', JSON.stringify(
+                                        updated.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
+                                    ));
+                                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                            }
+                        })
+                        .catch(e => console.warn('[Notifications] mark-social-read failed:', e));
 
                     if (hasUnreadPoker) {
                         getAccessToken().then(t =>
