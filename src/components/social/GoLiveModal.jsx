@@ -471,6 +471,9 @@ export function GoLiveModal({
   const [recordingFailed, setRecordingFailed] = useState(false); // #12: warns when recording unavailable
   const [description, setDescription] = useState(''); // #9: stream description
   const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters
+  const [topGiftersVisible, setTopGiftersVisible] = useState(false); // Bug3: auto-hide
+  const [softwareZoomFallback, setSoftwareZoomFallback] = useState(false); // Bug5
+  const [beautyMode, setBeautyMode] = useState(false); // Bug10: face-smoothing
   const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
   const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
   const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
@@ -515,6 +518,7 @@ export function GoLiveModal({
   const commentChannelRef = useRef(null);
   // BUG FIX (GLM-1): track giftFlash timer ref to prevent broadcaster-side timer storm
   const giftFlashTimerRef = useRef(null);
+  const topGiftersHideTimerRef = useRef(null); // Bug3
   // BUG FIX (GLM-3): track share toast timer ref
   const shareToastTimerRef = useRef(null);
   // BUG FIX (GLM-5): track in-flight getUserMedia mount guard
@@ -566,6 +570,7 @@ export function GoLiveModal({
       if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
       // BUG FIX (GLM-1): cancel any in-flight giftFlash timer on modal close
       if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
+      if (topGiftersHideTimerRef.current) clearTimeout(topGiftersHideTimerRef.current);
       // BUG FIX (GLM-3): cancel share toast timer on modal close
       if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
       // BUG FIX (GLM-6): cancel error clear timer on modal close
@@ -651,8 +656,13 @@ export function GoLiveModal({
     fetch(`/api/live/gifts?stream_id=${streamId}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.topGifters) {
-          setTopGifters(data.topGifters);
+        // Bug3/4: keyed by userId with display names from leaderboard API
+        if (data.leaderboard && data.leaderboard.length > 0) {
+          const shaped = {};
+          data.leaderboard.forEach(({ user_id, name, avatar_url, amount }) => {
+            shaped[user_id] = { name: name || 'A fan', avatar: avatar_url || null, amount };
+          });
+          setTopGifters(shaped);
         }
       })
       .catch((err) => console.error('Failed to load gifts', err));
@@ -671,11 +681,19 @@ export function GoLiveModal({
             setGiftFlash(null);
           }, 4000);
 
-          // Feature 5: Update Top Gifters Leaderboard
+          // Bug3/4: keyed by userId with display name
           setTopGifters((prev) => {
-            const currentAmount = prev[payload.sender_name] || 0;
-            return { ...prev, [payload.sender_name]: currentAmount + payload.amount };
+            const userId = payload.sender_id;
+            if (!userId) return prev;
+            const existing = prev[userId] || { name: payload.sender_name || 'A fan', avatar: payload.sender_avatar || null, amount: 0 };
+            return { ...prev, [userId]: { name: existing.name, avatar: existing.avatar, amount: existing.amount + payload.amount } };
           });
+          setTopGiftersVisible(true);
+          if (topGiftersHideTimerRef.current) clearTimeout(topGiftersHideTimerRef.current);
+          topGiftersHideTimerRef.current = setTimeout(() => {
+            setTopGiftersVisible(false);
+            topGiftersHideTimerRef.current = null;
+          }, 20000);
         }
       })
       .subscribe();
@@ -751,7 +769,8 @@ export function GoLiveModal({
       if (!track) return;
       await track.applyConstraints({ advanced: [{ zoom: clamped }] });
     } catch (err) {
-      console.warn('[GoLive] applyZoom failed:', err?.message || err);
+      console.warn('[GoLive] applyZoom failed — CSS fallback:', err?.message || err);
+      setSoftwareZoomFallback(true);
     }
   };
 
@@ -1741,7 +1760,7 @@ export function GoLiveModal({
                     height: '100%',
                     objectFit: 'cover',
                     transform:
-                      `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
+                      `${isMirrored ? 'scaleX(-1) ' : ''}${(!zoomCapability || softwareZoomFallback) && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
                       'none',
                     transition: 'all 0.3s ease',
                   }}
@@ -2189,13 +2208,14 @@ export function GoLiveModal({
                   controls={false}
                   style={{
                     flex: 1,
+                    minHeight: 0,
                     width: '100%',
-                    height: '100%',
                     objectFit: 'cover',
                     transform:
-                      `${isMirrored ? 'scaleX(-1) ' : ''}${!zoomCapability && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
+                      `${isMirrored ? 'scaleX(-1) ' : ''}${(!zoomCapability || softwareZoomFallback) && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
                       'none',
                     transition: 'all 0.3s ease',
+                    ...(beautyMode ? { filter: 'brightness(1.06) contrast(0.92) saturate(1.12) blur(0.4px)' } : {}),
                   }}
                 />
 
@@ -2208,7 +2228,7 @@ export function GoLiveModal({
                   return (
                     <div
                       key={p.identity}
-                      style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}
+                      style={{ flex: 1, minHeight: 0, position: 'relative', width: '100%' }}
                     >
                       <video
                         autoPlay
@@ -2222,6 +2242,8 @@ export function GoLiveModal({
                           }
                         }}
                         style={{
+                          position: 'absolute',
+                          inset: 0,
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
@@ -2582,7 +2604,7 @@ export function GoLiveModal({
                   aria-label="Hide stream timer"
                   style={{
                     position: 'absolute',
-                    bottom: pinnedComment ? 380 : 316,
+                    bottom: pinnedComment ? 155 : 90,
                     left: 16,
                     background: 'rgba(0,0,0,.55)',
                     color: 'white',
@@ -2605,7 +2627,7 @@ export function GoLiveModal({
                   aria-label="Show stream timer"
                   style={{
                     position: 'absolute',
-                    bottom: pinnedComment ? 380 : 316,
+                    bottom: pinnedComment ? 155 : 90,
                     left: 16,
                     background: 'rgba(0,0,0,.35)',
                     color: 'white',
@@ -2726,7 +2748,7 @@ export function GoLiveModal({
               )}
 
               {/* Feature 5: Top Supporters Leaderboard */}
-              {Object.keys(topGifters).length > 0 && (
+              {topGiftersVisible && Object.keys(topGifters).length > 0 && (
                 <div
                   style={{
                     position: 'absolute',
@@ -2753,11 +2775,11 @@ export function GoLiveModal({
                     Top Supporters
                   </div>
                   {Object.entries(topGifters)
-                    .sort(([, a], [, b]) => b - a)
+                    .sort(([, { amount: a }], [, { amount: b }]) => b - a)
                     .slice(0, 3)
-                    .map(([name, amount], idx) => (
+                    .map(([userId, { name, amount }], idx) => (
                       <div
-                        key={name}
+                        key={userId}
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -3173,6 +3195,30 @@ export function GoLiveModal({
                     👥
                   </button>
                 )}
+                {/* Bug10: Beauty / Face-Smoothing Toggle */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setBeautyMode((b) => !b); }}
+                  title={beautyMode ? 'Disable beauty mode' : 'Enable beauty mode'}
+                  aria-label='Toggle beauty mode'
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    border: beautyMode ? '1.5px solid rgba(255,182,210,0.9)' : 'none',
+                    background: beautyMode ? 'rgba(255,105,180,0.75)' : 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(8px)',
+                    color: 'white',
+                    fontSize: 18,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  💄
+                </button>
+
                 {/* Mic mute/unmute */}
                 <button
                   onClick={(e) => {
