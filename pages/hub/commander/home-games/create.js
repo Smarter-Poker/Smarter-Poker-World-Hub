@@ -73,6 +73,12 @@ export default function CreateHomeGamePage() {
   const [createdGroup, setCreatedGroup] = useState(null);
   const [createdSocialPage, setCreatedSocialPage] = useState(null);
   const [eventSubmitting, setEventSubmitting] = useState(false);
+  // Dan-fix/first-game-collapse (2026-05-12): the "Schedule First Game" panel
+  // now collapses behind a toggle and prefills every overlapping field from
+  // the group the user just created. Most of the form previously duplicated
+  // info they had already entered — confusing UX. Default closed so the
+  // success screen is clean; user opts in to scheduling a game right away.
+  const [showFirstGameForm, setShowFirstGameForm] = useState(false);
 
   // Dan-fix/banner-existing-host (2026-05-11): track whether the user
   // already owns at least one home group. `null` = still checking, `0` = new
@@ -1653,9 +1659,45 @@ export default function CreateHomeGamePage() {
                 );
               })()}
 
+              {/* Dan-fix/first-game-collapse (2026-05-12): toggle disclosure.
+                  Closed by default. When opened, the form is fully prefilled
+                  from the group data the user already entered. */}
+              <button
+                type="button"
+                onClick={() => setShowFirstGameForm(v => !v)}
+                className="cmd-btn cmd-btn-secondary w-full h-10 text-sm flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                {showFirstGameForm ? 'Hide First Game Schedule' : 'Schedule Your First Game (Optional)'}
+              </button>
+
+              {showFirstGameForm && (
               <CreateGameForm
                 groupId={createdGroup.id}
                 isLoading={eventSubmitting}
+                initialData={{
+                  // Title: seed with group name so user just appends a label like "Night 1"
+                  title: createdGroup?.name || formData.name || '',
+                  // Game type: pass-through. 'tournament' isn't in CreateGameForm's
+                  // GAME_TYPES list, so map it to empty so the user picks a valid one.
+                  game_type: formData.game_type === 'tournament' ? '' : (formData.game_type || 'nlhe'),
+                  // Stakes: resolve Custom to the typed-in value
+                  stakes: formData.stakes === 'Custom' ? (formData.custom_stakes || '') : (formData.stakes || ''),
+                  // Buy-ins: pass numbers as strings (text input expects strings)
+                  buy_in_min: formData.min_buyin !== '' && formData.min_buyin != null ? String(formData.min_buyin) : '',
+                  buy_in_max: formData.max_buyin !== '' && formData.max_buyin != null ? String(formData.max_buyin) : '',
+                  max_players: formData.max_players || 9,
+                  // Start/end time: prefill from group's typical schedule
+                  start_time: formData.start_time || '',
+                  end_time: formData.end_time || '',
+                  // City/state/zip: prefill from group address. Street address must come
+                  // from the user — group only stores approximate location, no exact street.
+                  city: formData.city || '',
+                  state: formData.state || '',
+                  zip: formData.zip_code || '',
+                  // requires_approval: carry the group setting forward
+                  requires_approval: !!formData.requires_approval,
+                }}
                 onSubmit={async (eventData) => {
                   setEventSubmitting(true);
                   try {
@@ -1681,6 +1723,7 @@ export default function CreateHomeGamePage() {
                 }}
                 onCancel={() => router.push(`/hub/commander/home-games/${createdGroup.id}`)}
               />
+              )}
 
               <button
                 onClick={() => router.push(`/hub/commander/home-games/${createdGroup.id}`)}
