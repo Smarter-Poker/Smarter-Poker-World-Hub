@@ -85,10 +85,6 @@ export default function CreateHomeGamePage() {
   // of field-name mismatches between CreateGameForm and /api/home-games/events).
   // Surface failures inline so the host knows what to fix.
   const [firstGameError, setFirstGameError] = useState(null);
-  // Audit-fix/event-idempotency (2026-05-12): per-submission idempotency token
-  // so a double-click never creates two events. Rotated after a 2xx or
-  // parseable 4xx (server processed and rejected).
-  const eventSubmissionTokenRef = useRef(makeToken());
 
   // Dan-fix/banner-existing-host (2026-05-11): track whether the user
   // already owns at least one home group. `null` = still checking, `0` = new
@@ -159,6 +155,14 @@ export default function CreateHomeGamePage() {
     ? crypto.randomUUID()
     : 'tok_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
   const submissionTokenRef = useRef(makeToken());
+  // Hotfix/tdz-event-token-ref (2026-05-12): eventSubmissionTokenRef was
+  // initially placed near firstGameError state (line ~91) which is BEFORE
+  // makeToken is declared on line 158. That triggered
+  // "ReferenceError: Cannot access \'O\' before initialization" at
+  // prerender time, breaking the entire build. Sitting next to the existing
+  // submissionTokenRef — which already proves the post-declaration position
+  // works — fixes it.
+  const eventSubmissionTokenRef = useRef(makeToken());
 
   // Form state
   const [formData, setFormData] = useState({

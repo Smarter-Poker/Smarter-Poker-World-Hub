@@ -1806,10 +1806,6 @@ TRAIN-WIRE-TRIVIA-HOOK-3
 # TriviaAnswerOption adopter. Replaced raw <button> answer map with
 # <TriviaAnswerOption variant="inline"> component. PR #513.
 TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4
-# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-5 — pages/hub/trivia/survival-game.js.
-# Fifth TriviaAnswerOption adopter. Replaced raw <button> answer map with
-# <TriviaAnswerOption variant="inline"> component. PR #514.
-TRAIN-WIRE-TRIVIA-ANSWER-OPTION-5
 # TRAIN-WIRE-TRIVIA-HOOK-4 — pages/hub/trivia/endless.js. Fourth hook
 # adopter. Replaced bare selectedAnswer/showResult useState with shared
 # useTriviaQuestion hook. PR #515.
