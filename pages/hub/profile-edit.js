@@ -1369,6 +1369,7 @@ export default function ProfilePage() {
 
         const updatePayload = {
             full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
+            display_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim() || (profile.username || '').trim() || null,
             first_name: (profile.first_name || '').trim(),
             last_name: (profile.last_name || '').trim(),
             username: (profile.username || '').trim() || null,

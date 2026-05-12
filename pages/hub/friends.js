@@ -28,11 +28,11 @@ import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
-    border: '#2a2a2a', blue: '#3b82f6', green: '#22c55e', red: '#ef4444',
-    purple: '#8b5cf6', pink: '#ec4899', orange: '#f97316', cyan: '#06b6d4',
-    gradient1: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-    gradient2: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
-    gradient3: 'linear-gradient(135deg, #22c55e 0%, #06b6d4 100%)',
+    border: '#2a2a2a', blue: '#3b82f6', teal: '#14b8a6', red: '#ef4444',
+    grey: '#6b7280', silver: '#e5e7eb', orange: '#f97316', cyan: '#06b6d4',
+    gradient1: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+    gradient2: 'linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%)',
+    gradient3: 'linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%)',
 };
 
 // Time ago helper for last active status
@@ -102,9 +102,9 @@ function FollowButton({ isFollowing, onFollow, onUnfollow, size = 'normal' }) {
                 onMouseLeave={() => setHovering(false)}
                 style={{
                     ...baseStyle,
-                    background: hovering ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)',
-                    color: hovering ? C.red : C.purple,
-                    border: `1px solid ${hovering ? C.red : C.purple}`,
+                    background: hovering ? 'rgba(229, 231, 235, 0.15)' : 'rgba(107, 114, 128, 0.15)',
+                    color: hovering ? C.silver : C.grey,
+                    border: `1px solid ${hovering ? C.silver : C.grey}`,
                 }}
             >
                 {hovering ? '× Unfollow' : ' Following'}
@@ -119,7 +119,7 @@ function FollowButton({ isFollowing, onFollow, onUnfollow, size = 'normal' }) {
                 ...baseStyle,
                 background: C.gradient2,
                 color: 'white',
-                boxShadow: '0 4px 15px rgba(236, 72, 153, 0.3)',
+                boxShadow: '0 4px 15px rgba(229, 231, 235, 0.3)',
             }}
         >Follow</button>
     );
@@ -234,7 +234,7 @@ function UserCard({
                     </div>
                 )}
                 {isFollower && !isFriend && (
-                    <div style={{ fontSize: 12, color: C.pink, marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, color: C.silver, marginBottom: 4 }}>
                         Follows you
                     </div>
                 )}
@@ -255,7 +255,7 @@ function UserCard({
                     return (
                         <div style={{
                             fontSize: 12,
-                            color: isOnline ? C.green : C.textSec,
+                            color: isOnline ? C.teal : C.textSec,
                             marginTop: 4,
                             display: 'flex',
                             alignItems: 'center',
@@ -266,8 +266,8 @@ function UserCard({
                                     <span style={{
                                         width: 8, height: 8,
                                         borderRadius: '50%',
-                                        background: C.green,
-                                        boxShadow: '0 0 6px rgba(34, 197, 94, 0.6)'
+                                        background: C.teal,
+                                        boxShadow: '0 0 6px rgba(20, 184, 166, 0.6)'
                                     }} />
                                     Online now
                                 </>
@@ -291,9 +291,9 @@ function UserCard({
                             boxSizing: 'border-box',
                             padding: '6px 14px',
                             borderRadius: 20,
-                            border: `1px solid ${C.green}`,
-                            background: 'rgba(34, 197, 94, 0.15)',
-                            color: C.green,
+                            border: `1px solid ${C.teal}`,
+                            background: 'rgba(20, 184, 166, 0.15)',
+                            color: C.teal,
                             fontWeight: 600,
                             fontSize: 12,
                             cursor: 'pointer',
@@ -388,7 +388,7 @@ function TabButton({ active, onClick, icon, label, count }) {
             <span>{label}</span>
             {count > 0 && (
                 <span style={{
-                    background: active ? 'rgba(255,255,255,0.25)' : C.purple,
+                    background: active ? 'rgba(255,255,255,0.25)' : C.grey,
                     color: 'white',
                     padding: '2px 8px',
                     borderRadius: 10,
@@ -714,6 +714,17 @@ function FriendsPage() {
             setFollowingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
             toast.error('Could not follow user. Please try again.');
         } else {
+            // Create follow notification
+            const token = getAccessToken();
+            if (token) {
+                fetch('/api/notifications/follow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ followingUserId: userId }),
+                }).then(() => {
+                    busEmit.dataMutated('notifications');
+                }).catch(e => console.warn('[App] Follow notif failed:', e));
+            }
             busEmit.dataMutated('friends');
             broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
         }
@@ -1174,9 +1185,9 @@ function FriendsPage() {
                     background: C.card,
                     borderBottom: `1px solid ${C.border}`,
                 }}>
-                    <StatItem label="Friends" value={friends.length} color={C.green} />
-                    <StatItem label="Following" value={following.length} color={C.pink} />
-                    <StatItem label="Followers" value={followers.length} color={C.purple} />
+                    <StatItem label="Friends" value={friends.length} color={C.teal} />
+                    <StatItem label="Following" value={following.length} color={C.silver} />
+                    <StatItem label="Followers" value={followers.length} color={C.grey} />
                 </div>
 
                 {/* Search Bar */}

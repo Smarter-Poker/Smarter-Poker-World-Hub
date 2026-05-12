@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         const { data, error } = await getSupabase()
           .from('profiles')
           .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, is_vip')
-          .or(`username.ilike.%${safeQ}%,full_name.ilike.%${safeQ}%,display_name.ilike.%${safeQ}%`)
+          .or(`username.ilike.%${safeQ}%,full_name.ilike.%${safeQ}%`)
           .neq('id', userId)
           .limit(50);
         if (error) {

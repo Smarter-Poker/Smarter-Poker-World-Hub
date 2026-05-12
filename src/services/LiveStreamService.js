@@ -69,6 +69,16 @@ class LiveStreamService {
     this.onStreamEndedExternally = null; // Bug25: broadcaster notified when stream is externally ended
     this.onConnectionQualityChange = null;
     this.onGiftReceived = null;
+    // BUG-FIX-AUDIT LSS-1: declare onTrackAdded alongside all other callbacks.
+    // Previously absent from constructor — started as `undefined` instead of `null`,
+    // breaking any `=== null` unregistered-callback check and silently diverging
+    // from the documented callback contract. Used in _connectRoom TrackSubscribed
+    // to force-reassign srcObject on mobile when video track arrives after audio.
+    this.onTrackAdded = null;
+    // BUG-FIX-AUDIT LSS-3: guestInviteCode must start null so _handleUnexpectedDisconnect
+    // never sends a stale invite code for plain viewers or after a session ends.
+    // Cleared in leaveStream/endBroadcast to prevent bleed into subsequent sessions.
+    this.guestInviteCode = null;
     this._viewerCountDebounceTimer = null;
     // NOTE: _giftChannel is intentionally absent — gift broadcast channels are
     // managed by React component refs (GoLiveModal / LiveStreamViewer) to tie
@@ -523,9 +533,15 @@ class LiveStreamService {
     await new Promise((r) => setTimeout(r, backoffMs));
 
     try {
+      // BUG-FIX-AUDIT LSS-2: guest co-hosts have this.isBroadcaster=true (they publish
+      // tracks) but the token API must receive broadcaster=false for guests — otherwise
+      // the server checks broadcaster_id and returns 403. Detect guests by the presence
+      // of guestInviteCode (only set by joinAsGuest). Primary broadcasters have
+      // guestInviteCode=null so this condition correctly passes true for them.
+      const isBroadcasterForToken = this.isBroadcaster && !this.guestInviteCode;
       const { token, url } = await this._getToken(
         this.currentStreamId,
-        this.isBroadcaster,
+        isBroadcasterForToken,
         this.guestInviteCode
       );
       // FIX: disconnect the old Room before creating a new one to prevent room leak
@@ -761,6 +777,10 @@ class LiveStreamService {
     this.isBroadcaster = false; // FIX: reset so next session isn't tainted
     this.currentUserId = null; // FIX: reset identity for next session
     this._remoteStreamDelivered = false; // FIX: reset guard for next session
+    // BUG-FIX-AUDIT LSS-3: clear guestInviteCode so it never bleeds into a
+    // subsequent joinStream() session — a stale code would be sent on reconnect
+    // for a stream that has nothing to do with the original guest invite.
+    this.guestInviteCode = null;
     return endedId;
   }
 
@@ -978,6 +998,10 @@ class LiveStreamService {
     this.currentStreamId = null;
     this.currentUserId = null; // FIX: was never reset in leaveStream()
     this.isManualDisconnect = false; // FIX: reset so next join can reconnect on disconnect
+    // BUG-FIX-AUDIT LSS-3: clear guestInviteCode so it never bleeds into a
+    // subsequent joinStream() — a stale invite code would cause _handleUnexpectedDisconnect
+    // to send broadcaster=false + a wrong invite code to the token API for the new stream.
+    this.guestInviteCode = null;
   }
 
   // ═══════════════════════════════════════════════════
