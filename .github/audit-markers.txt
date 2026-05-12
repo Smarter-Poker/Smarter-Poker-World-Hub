@@ -1333,3 +1333,39 @@ TRAIN-CSS-MOBILE-ADOPT-1
 # Long pill sequences scroll horizontally with snap below 600px instead of
 # wrapping into multiple visual rows.
 TRAIN-CSS-MOBILE-ADOPT-2
+
+# ─── Phase-19b: mobile data-attr adoption (batch 2) ─────────────────────────
+# TRAIN-CSS-MOBILE-ADOPT-3 — pages/hub/training/ev-trainer.js. data-stats-grid
+# on the 4-col stats panel (Accuracy/Correct/EV-loss/Streak).
+TRAIN-CSS-MOBILE-ADOPT-3
+# TRAIN-CSS-MOBILE-ADOPT-4 — pages/hub/training/spr-trainer.js. Marker-only
+# registration; trainer's 3-col grids use compact pills that already wrap
+# cleanly under 480px and its decision buttons aren't via ActionButtonRow.
+TRAIN-CSS-MOBILE-ADOPT-4
+# TRAIN-CSS-MOBILE-ADOPT-5 — pages/hub/training/spot-trainer.js.
+# data-pills-row x2 on the position selector + game-type pill rows.
+TRAIN-CSS-MOBILE-ADOPT-5
+# TRAIN-CSS-MOBILE-ADOPT-6 — pages/hub/training/short-deck-trainer.js.
+# Marker-only; this trainer's quiz mode now uses ProgressStrip (P12) which
+# already handles narrow viewports via compact mode.
+TRAIN-CSS-MOBILE-ADOPT-6
+# TRAIN-CSS-MOBILE-ADOPT-7 — pages/hub/training/scenario-demo.js.
+# data-pills-row on the scenario-type filter row.
+TRAIN-CSS-MOBILE-ADOPT-7
+# TRAIN-CSS-MOBILE-ADOPT-8 — pages/hub/training/blind-defense.js.
+# data-sticky-action-bar on the ActionButtonRow.
+TRAIN-CSS-MOBILE-ADOPT-8
+# TRAIN-CSS-MOBILE-ADOPT-9 — pages/hub/training/hand-lab.js. Marker-only;
+# hand-lab is a single-card visualizer with no pill rows or stat grids that
+# require the patterns.
+TRAIN-CSS-MOBILE-ADOPT-9
+# TRAIN-CSS-MOBILE-ADOPT-10 — pages/hub/training/hand-comparison.js.
+# data-stats-grid x2 on the per-position 7-col + per-spot 3-col grids,
+# data-pills-row on the filter strip.
+TRAIN-CSS-MOBILE-ADOPT-10
+# TRAIN-CSS-MOBILE-ADOPT-11 — pages/hub/training/pot-geometry.js.
+# data-pills-row on the answer-option strip.
+TRAIN-CSS-MOBILE-ADOPT-11
+# TRAIN-CSS-MOBILE-ADOPT-12 — pages/hub/training/range-builder.js.
+# data-pills-row x2 on the chart-type + position pill rows.
+TRAIN-CSS-MOBILE-ADOPT-12

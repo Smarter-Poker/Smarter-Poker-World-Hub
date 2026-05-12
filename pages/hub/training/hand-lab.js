@@ -1,4 +1,5 @@
 // TRAIN-CSS-TOKENS-ADOPT-9 — adoption of --sp-* token contract from PR #470
+// TRAIN-CSS-MOBILE-ADOPT-9 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';

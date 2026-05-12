@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// TRAIN-CSS-MOBILE-ADOPT-12 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -380,7 +381,7 @@ export default function RangeBuilder() {
           </div>
 
           {/* Position Selector */}
-          <div
+          <div data-pills-row
             style={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -433,7 +434,7 @@ export default function RangeBuilder() {
         </div>
 
         {/* ─── Main Content ───────────────────────────────────────── */}
-        <div
+        <div data-pills-row
           style={{
             padding: '20px 24px',
             display: 'flex',
