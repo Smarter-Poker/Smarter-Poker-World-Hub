@@ -1393,3 +1393,26 @@ TRAIN-CSS-TOKENS-SHARED-4
 # console.warn-backed handlers so dev-side gets visibility while preserving
 # existing fallback behavior.
 TRAIN-CATCH-FIX-1
+
+# ─── Phase-20b: motion-token adoption (15 trainers) ─────────────────────────
+# Each adopter file inserts a top-of-file `const MOTION = { fast: 0.12,
+# standard: 0.2, slow: 0.32, glacial: 0.52 }` matching the --sp-motion-*
+# CSS contract, then replaces literal duration numbers (e.g. duration:
+# 0.3) with MOTION.standard / .fast / .slow as appropriate. Values stay
+# in framer-motion's number-of-seconds contract; the body.world-training
+# blanket prefers-reduced-motion override still collapses them.
+TRAIN-CSS-MOTION-ADOPT-1
+TRAIN-CSS-MOTION-ADOPT-2
+TRAIN-CSS-MOTION-ADOPT-3
+TRAIN-CSS-MOTION-ADOPT-4
+TRAIN-CSS-MOTION-ADOPT-5
+TRAIN-CSS-MOTION-ADOPT-6
+TRAIN-CSS-MOTION-ADOPT-7
+TRAIN-CSS-MOTION-ADOPT-8
+TRAIN-CSS-MOTION-ADOPT-9
+TRAIN-CSS-MOTION-ADOPT-10
+TRAIN-CSS-MOTION-ADOPT-11
+TRAIN-CSS-MOTION-ADOPT-12
+TRAIN-CSS-MOTION-ADOPT-13
+TRAIN-CSS-MOTION-ADOPT-14
+TRAIN-CSS-MOTION-ADOPT-15

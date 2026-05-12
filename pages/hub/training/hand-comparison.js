@@ -26,6 +26,12 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
 
+// TRAIN-CSS-MOTION-ADOPT-3 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
     method: 'POST',
@@ -767,7 +773,7 @@ export default function HandComparison() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: MOTION.standard }}
               >
                 {/* Leader banner */}
                 <div
@@ -861,7 +867,7 @@ export default function HandComparison() {
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${row.eq}%` }}
-                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                          transition={{ duration: MOTION.glacial, ease: 'easeOut' }}
                           style={{ height: '100%', borderRadius: 5, background: row.color }}
                         />
                       </div>

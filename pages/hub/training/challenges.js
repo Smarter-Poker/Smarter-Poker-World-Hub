@@ -19,6 +19,12 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+
+// TRAIN-CSS-MOTION-ADOPT-10 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-3e — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-CHALLENGES-A11Y-1): SVG icon components replacing the page's
@@ -260,7 +266,7 @@ export default function ChallengesPage() {
                           }}
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
-                          transition={{ duration: 0.5, delay: i * 0.1 }}
+                          transition={{ duration: MOTION.slow, delay: i * 0.1 }}
                         />
                       </div>
                       <div style={styles.progressText}>

@@ -16,6 +16,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 
+// TRAIN-CSS-MOTION-ADOPT-6 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // QRE ENGINE — Quantal Response Equilibrium Adjustment
 // ═══════════════════════════════════════════════════════════════════════════
@@ -494,7 +500,7 @@ export default function QREExplorerPage() {
                     >
                       <motion.div
                         animate={{ width: `${a.gtoFreq}%` }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: MOTION.slow }}
                         style={{ height: '100%', background: '#22c55e', borderRadius: 3 }}
                       />
                     </div>
@@ -508,7 +514,7 @@ export default function QREExplorerPage() {
                     >
                       <motion.div
                         animate={{ width: `${a.qreFreq}%` }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: MOTION.slow }}
                         style={{ height: '100%', background: '#a78bfa', borderRadius: 3 }}
                       />
                     </div>

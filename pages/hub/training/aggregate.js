@@ -15,6 +15,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+
+// TRAIN-CSS-MOTION-ADOPT-1 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-5e — adoption: shared empty-state primitive
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -339,7 +345,7 @@ export default function AggregateReports() {
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.max((tex.cbetFreq / maxCbet) * 100, 2)}%` }}
-                          transition={{ duration: 0.6, delay: idx * 0.05 }}
+                          transition={{ duration: MOTION.slow, delay: idx * 0.05 }}
                           style={{
                             ...styles.barFill,
                             background: `linear-gradient(90deg, ${tex.color}88, ${tex.color})`,
@@ -355,7 +361,7 @@ export default function AggregateReports() {
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.max((tex.checkFreq / maxCbet) * 100, 2)}%` }}
-                          transition={{ duration: 0.6, delay: idx * 0.05 + 0.1 }}
+                          transition={{ duration: MOTION.slow, delay: idx * 0.05 + 0.1 }}
                           style={{
                             ...styles.barFill,
                             background: 'linear-gradient(90deg, #22c55e44, #22c55e)',

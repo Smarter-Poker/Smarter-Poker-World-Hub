@@ -14,6 +14,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
+// TRAIN-CSS-MOTION-ADOPT-14 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // DECISION TREE NODES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -384,7 +390,7 @@ export default function FrequencyLockingPage() {
                 <motion.div
                   key={i}
                   animate={{ width: `${a.freq}%` }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: MOTION.standard }}
                   style={{
                     background: a.color,
                     height: '100%',

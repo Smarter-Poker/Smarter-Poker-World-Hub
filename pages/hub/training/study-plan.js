@@ -19,6 +19,12 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+// TRAIN-CSS-MOTION-ADOPT-9 — durations routed through MOTION tokens matched to
+// --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
+// framer-motion contract) while the CSS sweep still collapses them under
+// prefers-reduced-motion via the body.world-training override.
+const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TRAINING LIBRARY REFERENCE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -360,7 +366,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: MOTION.standard }}
             style={{ overflow: 'hidden' }}
           >
             <div
@@ -660,7 +666,7 @@ export default function StudyPlanPage() {
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
+                transition={{ duration: MOTION.glacial, ease: 'easeOut' }}
                 style={{
                   height: '100%',
                   borderRadius: 3,
