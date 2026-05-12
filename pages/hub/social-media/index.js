@@ -1031,13 +1031,11 @@ const PostCard = React.memo(
                       .eq('post_id', post.id)
                       .eq('user_id', currentUserId)
                       .eq('interaction_type', 'report');
-                    const { error } = await supabase
-                      .from('social_interactions')
-                      .insert({
-                        post_id: post.id,
-                        user_id: currentUserId,
-                        interaction_type: 'report',
-                      });
+                    const { error } = await supabase.from('social_interactions').insert({
+                      post_id: post.id,
+                      user_id: currentUserId,
+                      interaction_type: 'report',
+                    });
                     if (error) throw error;
                     toast.success('Post reported. We will review it shortly.');
                   } catch (e) {
@@ -1416,7 +1414,11 @@ const PostCard = React.memo(
                         <LiveStreamCard
                           stream={{
                             id: streamId,
-                            thumbnail_url: post.thumbnail_url || post.thumbnailUrl || post.mediaUrls?.[0] || null, // Bug26/27: prefer thumbnail_url over first media frame
+                            thumbnail_url:
+                              post.thumbnail_url ||
+                              post.thumbnailUrl ||
+                              post.mediaUrls?.[0] ||
+                              null, // Bug26/27: prefer thumbnail_url over first media frame
                             title: post.content || '',
                           }}
                           inlineAutoplay
@@ -8488,7 +8490,7 @@ function SocialMediaPage() {
   // block feed render on this. Auth required server-side so this can't
   // be hammered anonymously.
   useEffect(() => {
-    const token = (typeof localStorage !== 'undefined') && localStorage.getItem('sb-access-token');
+    const token = typeof localStorage !== 'undefined' && localStorage.getItem('sb-access-token');
     fetch('/api/live/cleanup-stale', {
       method: 'POST',
       headers: {
@@ -8496,7 +8498,9 @@ function SocialMediaPage() {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: 'same-origin',
-    }).catch(() => { /* best-effort, don't surface */ });
+    }).catch(() => {
+      /* best-effort, don't surface */
+    });
   }, []);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
@@ -8872,40 +8876,40 @@ function SocialMediaPage() {
 
           if (!error && data) {
             const p = data;
-              let pref = 'full_name';
-              try {
-                const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-                pref = s.display_name_preference || 'full_name';
-              } catch (_) {}
-              const freshName =
-                pref === 'username'
-                  ? p.username || p.full_name || null
-                  : p.full_name || p.username || null;
-              setUser((prev) => ({
-                ...prev,
-                name: freshName || prev?.name,
-                full_name: p.full_name || prev?.full_name,
-                username: p.username || prev?.username,
-                avatar: p.avatar_url || null,
-              }));
-              // Keep sp-social-user cache in sync after any profile save
-              try {
-                const cached = JSON.parse(localStorage.getItem('sp-social-user') || '{}');
-                localStorage.setItem(
-                  'sp-social-user',
-                  JSON.stringify({
-                    ...cached,
-                    name: freshName || cached.name,
-                    full_name: p.full_name || cached.full_name,
-                    username: p.username || cached.username,
-                    avatar: p.avatar_url || cached.avatar,
-                    ts: Date.now(),
-                  })
-                );
-              } catch (_) {
-                /* non-critical */
-              }
+            let pref = 'full_name';
+            try {
+              const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
+              pref = s.display_name_preference || 'full_name';
+            } catch (_) {}
+            const freshName =
+              pref === 'username'
+                ? p.username || p.full_name || null
+                : p.full_name || p.username || null;
+            setUser((prev) => ({
+              ...prev,
+              name: freshName || prev?.name,
+              full_name: p.full_name || prev?.full_name,
+              username: p.username || prev?.username,
+              avatar: p.avatar_url || null,
+            }));
+            // Keep sp-social-user cache in sync after any profile save
+            try {
+              const cached = JSON.parse(localStorage.getItem('sp-social-user') || '{}');
+              localStorage.setItem(
+                'sp-social-user',
+                JSON.stringify({
+                  ...cached,
+                  name: freshName || cached.name,
+                  full_name: p.full_name || cached.full_name,
+                  username: p.username || cached.username,
+                  avatar: p.avatar_url || cached.avatar,
+                  ts: Date.now(),
+                })
+              );
+            } catch (_) {
+              /* non-critical */
             }
+          }
         } catch {
           /* non-critical */
         }
@@ -9327,22 +9331,22 @@ function SocialMediaPage() {
     if (router.query.stream && user) {
       const streamId = router.query.stream;
       if (processedStreamIdRef.current !== streamId) {
-          processedStreamIdRef.current = streamId;
-          (async () => {
-            try {
-          const streamData = await LiveStreamService.getStream(streamId);
-          if (streamData && streamData.status === 'live') {
-            setWatchingStream(streamData);
-          } else if (streamData && streamData.status === 'ended') {
-            toast.info('This stream has ended');
-          } else if (!streamData) {
-            toast.info('This stream is no longer available');
+        processedStreamIdRef.current = streamId;
+        (async () => {
+          try {
+            const streamData = await LiveStreamService.getStream(streamId);
+            if (streamData && streamData.status === 'live') {
+              setWatchingStream(streamData);
+            } else if (streamData && streamData.status === 'ended') {
+              toast.info('This stream has ended');
+            } else if (!streamData) {
+              toast.info('This stream is no longer available');
+            }
+          } catch (e) {
+            console.warn('[stream param] failed:', e);
           }
-        } catch (e) {
-          console.warn('[stream param] failed:', e);
-        }
-        router.replace('/hub/social-media', undefined, { shallow: true });
-      })();
+          router.replace('/hub/social-media', undefined, { shallow: true });
+        })();
       }
     }
   }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream]);

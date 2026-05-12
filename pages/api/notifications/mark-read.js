@@ -3,6 +3,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { invalidateFeedCache } from './feed';
+import { invalidateUnreadCache } from './unread-count';
 
 
 let _supabase = null;
@@ -61,6 +62,7 @@ export default async function handler(req, res) {
 
       // Invalidate server-side feed cache so next fetch reflects updated read state
       invalidateFeedCache(user.id);
+      invalidateUnreadCache(user.id);
 
       return res.json({ success: true });
 

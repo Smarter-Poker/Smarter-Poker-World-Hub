@@ -6164,11 +6164,11 @@ function MessengerPage() {
                                     )}
 
                                     <Link href={`/hub/user/${otherUser?.username}`}>
-                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={40} online={otherUserStatus === 'online'} />
+                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} size={40} online={otherUserStatus === 'online'} />
                                     </Link>
 
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.username}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.full_name || otherUser?.display_name || otherUser?.username}</div>
                                         <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
                                             {otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
@@ -6371,8 +6371,8 @@ function MessengerPage() {
                                     )}
                                     {/* User info header */}
                                     <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
-                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
-                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.username}</div>
+                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} size={80} showOnline={false} />
+                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.full_name || otherUser?.display_name || otherUser?.username}</div>
                                         <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
                                         <Link href={`/hub/user/${otherUser?.username}`} style={{
                                             display: 'inline-block',
@@ -6462,7 +6462,7 @@ function MessengerPage() {
                                         })
                                     ); })()}
                                     {/* Typing indicator */}
-                                    {otherTyping && <TypingIndicator name={otherUser?.username} />}
+                                    {otherTyping && <TypingIndicator name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} />}
                                     <div ref={messagesEndRef} />
                                 </div>
 

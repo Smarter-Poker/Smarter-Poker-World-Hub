@@ -372,64 +372,75 @@ function GuestInviteModal({ isOpen, onClose, streamId, inviteCode, currentUser }
           </div>
         ) : (
           <>
-          {/* Bug24: search input — show friends list only when user types */}
-          <input
-            type="text"
-            value={guestSearch}
-            onChange={e => setGuestSearch(e.target.value)}
-            placeholder="Search friends to invite..."
-            autoFocus
-            style={{
-              width: '100%', padding: '10px 14px', borderRadius: 8,
-              border: '1.5px solid #444', background: '#2a2c2f', color: '#fff',
-              fontSize: 15, outline: 'none', marginBottom: 12, boxSizing: 'border-box',
-            }}
-          />
-          {guestSearch.trim().length > 0 && (
-            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-              {(() => {
-                const q = guestSearch.trim().toLowerCase();
-                const filtered = friends.filter(f =>
-                  (f.display_name || f.username || '').toLowerCase().includes(q)
-                );
-                if (filtered.length === 0) {
-                  return <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>No matches found.</div>;
-                }
-                return filtered.map((f) => (
-                  <div
-                    key={f.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 0',
-                      borderBottom: '1px solid #333',
-                    }}
-                  >
-                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 500 }}>
-                      {f.display_name || f.username}
-                    </div>
-                    <button
-                      onClick={() => sendInvite(f.id)}
-                      disabled={sendingId === f.id}
+            {/* Bug24: search input — show friends list only when user types */}
+            <input
+              type="text"
+              value={guestSearch}
+              onChange={(e) => setGuestSearch(e.target.value)}
+              placeholder="Search friends to invite..."
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: 8,
+                border: '1.5px solid #444',
+                background: '#2a2c2f',
+                color: '#fff',
+                fontSize: 15,
+                outline: 'none',
+                marginBottom: 12,
+                boxSizing: 'border-box',
+              }}
+            />
+            {guestSearch.trim().length > 0 && (
+              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                {(() => {
+                  const q = guestSearch.trim().toLowerCase();
+                  const filtered = friends.filter((f) =>
+                    (f.display_name || f.username || '').toLowerCase().includes(q)
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <div style={{ color: '#aaa', textAlign: 'center', padding: '20px 0' }}>
+                        No matches found.
+                      </div>
+                    );
+                  }
+                  return filtered.map((f) => (
+                    <div
+                      key={f.id}
                       style={{
-                        background: sendingId === f.id ? '#444' : '#1877F2',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '6px 14px',
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        cursor: sendingId === f.id ? 'default' : 'pointer',
-                        fontSize: 13,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 0',
+                        borderBottom: '1px solid #333',
                       }}
                     >
-                      {sendingId === f.id ? 'Sending...' : 'Invite'}
-                    </button>
-                  </div>
-                ));
-              })()}
-            </div>
-          )}
+                      <div style={{ color: '#fff', fontSize: 15, fontWeight: 500 }}>
+                        {f.display_name || f.username}
+                      </div>
+                      <button
+                        onClick={() => sendInvite(f.id)}
+                        disabled={sendingId === f.id}
+                        style={{
+                          background: sendingId === f.id ? '#444' : '#1877F2',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '6px 14px',
+                          borderRadius: 6,
+                          fontWeight: 600,
+                          cursor: sendingId === f.id ? 'default' : 'pointer',
+                          fontSize: 13,
+                        }}
+                      >
+                        {sendingId === f.id ? 'Sending...' : 'Invite'}
+                      </button>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -661,8 +672,11 @@ export function GoLiveModal({
       const canvasStream = canvas.captureStream(30);
       const newVideoTrack = canvasStream.getVideoTracks()[0];
       if (newVideoTrack && liveStreamService.room) {
-        try { await liveStreamService.replaceVideoTrack(newVideoTrack); }
-        catch (e) { console.warn('[GoLive] beauty filter track replace failed:', e); }
+        try {
+          await liveStreamService.replaceVideoTrack(newVideoTrack);
+        } catch (e) {
+          console.warn('[GoLive] beauty filter track replace failed:', e);
+        }
       }
     };
     const stopBeautyCanvas = async () => {
@@ -674,12 +688,19 @@ export function GoLiveModal({
       if (liveStreamService.localStream && liveStreamService.room) {
         const originalTrack = liveStreamService.localStream.getVideoTracks()[0];
         if (originalTrack) {
-          try { await liveStreamService.replaceVideoTrack(originalTrack); }
-          catch (e) { console.warn('[GoLive] beauty filter restore failed:', e); }
+          try {
+            await liveStreamService.replaceVideoTrack(originalTrack);
+          } catch (e) {
+            console.warn('[GoLive] beauty filter restore failed:', e);
+          }
         }
       }
     };
-    if (beautyMode) { startBeautyCanvas(); } else { stopBeautyCanvas(); }
+    if (beautyMode) {
+      startBeautyCanvas();
+    } else {
+      stopBeautyCanvas();
+    }
     return () => {
       cancelled = true;
       if (beautyAnimFrameRef.current) {
@@ -729,8 +750,12 @@ export function GoLiveModal({
         }
       )
       // AUDIT-D: broadcaster's own chat must reflect deleted comments
-      .on('postgres_changes', {
-          event: 'DELETE', schema: 'public', table: 'live_comments',
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'live_comments',
           filter: `stream_id=eq.${streamId}`,
         },
         (payload) => {
@@ -781,8 +806,19 @@ export function GoLiveModal({
           setTopGifters((prev) => {
             const userId = payload.sender_id;
             if (!userId) return prev;
-            const existing = prev[userId] || { name: payload.sender_name || 'A fan', avatar: payload.sender_avatar || null, amount: 0 };
-            return { ...prev, [userId]: { name: existing.name, avatar: existing.avatar, amount: existing.amount + payload.amount } };
+            const existing = prev[userId] || {
+              name: payload.sender_name || 'A fan',
+              avatar: payload.sender_avatar || null,
+              amount: 0,
+            };
+            return {
+              ...prev,
+              [userId]: {
+                name: existing.name,
+                avatar: existing.avatar,
+                amount: existing.amount + payload.amount,
+              },
+            };
           });
           setTopGiftersVisible(true);
           if (topGiftersHideTimerRef.current) clearTimeout(topGiftersHideTimerRef.current);
@@ -810,8 +846,12 @@ export function GoLiveModal({
     if (!streamId) return;
     const pinCh = supabase
       .channel(`live-pins-broadcaster-${streamId}`)
-      .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'live_pins',
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_pins',
           filter: `stream_id=eq.${streamId}`,
         },
         async (payload) => {
@@ -2369,7 +2409,9 @@ export function GoLiveModal({
                       `${isMirrored ? 'scaleX(-1) ' : ''}${(!zoomCapability || softwareZoomFallback) && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
                       'none',
                     transition: 'all 0.3s ease',
-                    ...(beautyMode ? { filter: 'brightness(1.06) contrast(0.92) saturate(1.12) blur(0.4px)' } : {}),
+                    ...(beautyMode
+                      ? { filter: 'brightness(1.06) contrast(0.92) saturate(1.12) blur(0.4px)' }
+                      : {}),
                   }}
                 />
 
@@ -2457,16 +2499,57 @@ export function GoLiveModal({
               )}
               {/* Bug25: broadcaster alert when stale-cleanup ended their stream externally */}
               {streamEndedExternally && (
-                  <div style={{ position: 'absolute', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                      <div style={{ background: '#1C1E21', borderRadius: 16, padding: 28, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(255,100,100,0.4)' }}>
-                          <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-                          <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Stream Ended</div>
-                          <div style={{ color: '#aaa', fontSize: 14, marginBottom: 20 }}>Your stream was automatically ended due to a connection timeout. Your recording has been saved as a draft.</div>
-                          <button onClick={() => { setStreamEndedExternally(false); handleEndStream(); }} style={{ background: '#1877F2', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: 'pointer', width: '100%' }}>
-                              OK, Go to Recap
-                          </button>
-                      </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 200,
+                    background: 'rgba(0,0,0,0.85)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 24,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: '#1C1E21',
+                      borderRadius: 16,
+                      padding: 28,
+                      maxWidth: 340,
+                      textAlign: 'center',
+                      border: '1px solid rgba(255,100,100,0.4)',
+                    }}
+                  >
+                    <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+                    <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+                      Stream Ended
+                    </div>
+                    <div style={{ color: '#aaa', fontSize: 14, marginBottom: 20 }}>
+                      Your stream was automatically ended due to a connection timeout. Your
+                      recording has been saved as a draft.
+                    </div>
+                    <button
+                      onClick={() => {
+                        setStreamEndedExternally(false);
+                        handleEndStream();
+                      }}
+                      style={{
+                        background: '#1877F2',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '12px 28px',
+                        borderRadius: 8,
+                        fontWeight: 700,
+                        fontSize: 15,
+                        cursor: 'pointer',
+                        width: '100%',
+                      }}
+                    >
+                      OK, Go to Recap
+                    </button>
                   </div>
+                </div>
               )}
 
               {/* STREAM-BUG-6: Stuck-reconnect popup — appears after 60s.
@@ -3365,9 +3448,12 @@ export function GoLiveModal({
                 )}
                 {/* Bug10: Beauty / Face-Smoothing Toggle */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); setBeautyMode((b) => !b); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setBeautyMode((b) => !b);
+                  }}
                   title={beautyMode ? 'Disable beauty mode' : 'Enable beauty mode'}
-                  aria-label='Toggle beauty mode'
+                  aria-label="Toggle beauty mode"
                   style={{
                     width: 44,
                     height: 44,

@@ -22,6 +22,11 @@ function getSupabase() {
 const _cache = new Map(); // userId → { count, ts }
 const CACHE_TTL_MS = 30_000; // 30 seconds
 
+// Called by mark-read / delete APIs to bust the cache
+export function invalidateUnreadCache(userId) {
+    _cache.delete(userId);
+}
+
 export default async function handler(req, res) {
     try {
         if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', uid)
-            .or('read.eq.false,is_read.eq.false');
+            .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
 
         if (error) {
             console.warn('[unread-count] DB error:', error.message);

@@ -41,11 +41,14 @@ export default async function handler(req, res) {
       // ═══ SEARCH: Server-side profile search (bypasses RLS) ═══
       if (action === 'search') {
         const q = (req.query.q || '').trim();
-        if (!q) return res.status(200).json({ success: true, data: [] });
+        // Sanitize: strip PostgREST filter metacharacters (commas, dots, parens)
+        // to prevent filter injection via crafted query strings.
+        const safeQ = q.replace(/[^a-zA-Z0-9\s\-_']/g, '');
+        if (!safeQ) return res.status(200).json({ success: true, data: [] });
         const { data, error } = await getSupabase()
           .from('profiles')
           .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, is_vip')
-          .or(`username.ilike.%${q}%,full_name.ilike.%${q}%,display_name.ilike.%${q}%`)
+          .or(`username.ilike.%${safeQ}%,full_name.ilike.%${safeQ}%,display_name.ilike.%${safeQ}%`)
           .neq('id', userId)
           .limit(50);
         if (error) {

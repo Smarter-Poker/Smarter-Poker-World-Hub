@@ -61,12 +61,20 @@ function NotificationsPage() {
         const isPokerNotif = typeof notifId === 'string' && notifId.startsWith('poker-');
         setConfirmDeleteId(null);
         setSwipedId(null);
-        // [Audit#20] FIX: Read wasUnread synchronously from current state snapshot BEFORE
-        // calling setState. The previous pattern mutated wasUnread inside the updater (async)
-        // then read it synchronously — same closure timing bug as the old isReadOptimistic.
-        const wasUnread = notifications.some(n => n.id === notifId && !n.read);
+        // [AUDIT-PASS1] FIX: Read wasUnread from the setState updater to get the CURRENT
+        // snapshot, not from the closure (which is stale due to useCallback([])).
+        let wasUnread = false;
         let snapshot;
-        setNotifications(prev => { snapshot = prev; return prev; });
+        setNotifications(prev => {
+            snapshot = prev;
+            wasUnread = prev.some(n => n.id === notifId && !n.read);
+            return prev;
+        });
+        // Defer badge + broadcast work to after React flushes the setState above
+        // so wasUnread has the correct value from the updater.
+        // Using queueMicrotask ensures the setState updater has executed.
+        await new Promise(resolve => queueMicrotask(resolve));
+
         // If deleting an unread notification, decrement header badge immediately
         if (wasUnread) {
             eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
@@ -412,7 +420,7 @@ function NotificationsPage() {
                 // BUG-FIX: Removed mutation of notification type/message in DB.
                 // Changing type from 'friend_request' to 'friend_accepted' corrupts
                 // notification history. Only mark it as read.
-                supabase.from('notifications').update({ read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
+                supabase.from('notifications').update({ read: true, is_read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
 
                 // Sync friends page cross-tab + EventBus
                 busEmit.dataMutated('friends');
@@ -465,7 +473,7 @@ function NotificationsPage() {
             supabase.from('social_follows').upsert({ follower_id: requesterId, following_id: user.id }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('Exception:', e));
             // BUG-FIX: Removed mutation of notification type/message in DB.
             // Only mark as read — do not change type from 'friend_request' to 'new_follow'.
-            supabase.from('notifications').update({ read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
+            supabase.from('notifications').update({ read: true, is_read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');

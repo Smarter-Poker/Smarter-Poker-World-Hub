@@ -5,6 +5,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { invalidateFeedCache } from './feed';
+import { invalidateUnreadCache } from './unread-count';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -58,6 +60,10 @@ export default async function handler(req, res) {
             console.warn('[Notifications Delete] Error:', error);
             return res.status(500).json({ success: false, error: 'Failed to delete' });
         }
+
+        // Invalidate server-side feed cache so next fetch doesn't return deleted items
+        invalidateFeedCache(userId);
+        invalidateUnreadCache(userId);
 
         return res.status(200).json({ success: true, deleted: deleteIds.length });
 
