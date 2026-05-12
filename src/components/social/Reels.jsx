@@ -83,7 +83,23 @@ export function ReelsViewer({ onClose }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [muted, setMuted] = useState(true); // Start MUTED for mobile autoplay compliance — unmute after playback confirmed
+  const [muted, setMuted] = useState(() => {
+    // BUG FIX (2026-05-12 autoplay-final): muted is now bound to React state
+    // (JSX uses muted={muted}, not muted={true}). Initialize from localStorage
+    // so the user's unmute decision STICKS across reloads — same pattern
+    // TikTok / Facebook use. First load defaults to muted=true (cold autoplay
+    // is allowed without gesture); after the first gesture the preference
+    // flips and persists indefinitely.
+    if (typeof window === 'undefined') return true;
+    try { return localStorage.getItem('sp:reels:muted') !== '0'; }
+    catch (_) { return true; }
+  });
+  // Persist muted preference across reloads — see useState initializer above.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { localStorage.setItem('sp:reels:muted', muted ? '1' : '0'); }
+    catch (_) { /* sandboxed contexts may throw */ }
+  }, [muted]);
   const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
   const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
   const [ytError, setYtError] = useState(null); // YouTube embed error code (150=age-restricted, 100=not found)
@@ -2222,7 +2238,7 @@ export function ReelsViewer({ onClose }) {
                 // sound on swipe without re-clicking — the IntersectionObserver
                 // path runs too late (post-scroll) to count as a gesture
                 // context in Chrome/Safari.
-                muted={true}
+                muted={muted}
                 poster={reel.thumbnail_url || undefined}
                 style={{
                   width: '100%',
@@ -2235,7 +2251,7 @@ export function ReelsViewer({ onClose }) {
                 onCanPlay={(e) => {
                   if (isActive) {
                     // Always start muted; muted play() always succeeds.
-                    e.target.muted = true;
+                    e.target.muted = muted;
                     e.target.play().catch(() => {});
                   }
                 }}
