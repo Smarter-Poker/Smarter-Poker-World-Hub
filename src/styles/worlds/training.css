@@ -590,3 +590,48 @@ body.world-training {
        redeclared here to avoid drift. */
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAIN-CSS-MOTION-1 — semantic motion tokens for training pages
+   ═══════════════════════════════════════════════════════════════════════════
+   Standard duration ramp + easing curves that inline JS animation code
+   (framer-motion, transition styles, keyframes) can read via
+   var(--sp-motion-fast) etc. Tokens stay in sync with the global
+   reduced-motion override automatically: the @media block below zeroes
+   the duration tokens when the OS reports prefers-reduced-motion: reduce.
+   That means any code that reads var(--sp-motion-*) becomes
+   reduced-motion-safe by construction — no per-component logic needed.
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.world-training {
+    /* Duration ramp */
+    --sp-motion-instant:  0ms;
+    --sp-motion-fast:     120ms;
+    --sp-motion-standard: 200ms;
+    --sp-motion-slow:     320ms;
+    --sp-motion-glacial:  520ms;
+
+    /* Easing curves (cubic-bezier presets matching shadcn/Radix conventions) */
+    --sp-ease-linear:        linear;
+    --sp-ease-standard:      cubic-bezier(0.4, 0, 0.2, 1);
+    --sp-ease-in:            cubic-bezier(0.4, 0, 1, 1);
+    --sp-ease-out:           cubic-bezier(0, 0, 0.2, 1);
+    --sp-ease-in-out:        cubic-bezier(0.4, 0, 0.2, 1);
+    --sp-ease-spring-soft:   cubic-bezier(0.34, 1.56, 0.64, 1);
+    --sp-ease-spring-snap:   cubic-bezier(0.5, 1.8, 0.4, 0.9);
+}
+
+/* When the user has Reduced Motion turned on, collapse the duration tokens
+   to near-instant. The existing TRAIN-CSS-SWEEP-1 @media block above also
+   force-collapses animation-duration/transition-duration as a belt-and-
+   braces guard for code that read literal durations instead of these
+   tokens. The two layers are intentionally redundant. */
+@media (prefers-reduced-motion: reduce) {
+    body.world-training {
+        --sp-motion-instant:  0ms;
+        --sp-motion-fast:     0.01ms;
+        --sp-motion-standard: 0.01ms;
+        --sp-motion-slow:     0.01ms;
+        --sp-motion-glacial:  0.01ms;
+    }
+}
+
