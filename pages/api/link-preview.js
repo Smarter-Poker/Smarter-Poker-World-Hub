@@ -88,7 +88,58 @@ export default async function handler(req, res) {
     // Check if this is a social platform that needs Microlink for preview
     const isSocialPlatform = checkSocialPlatform(url);
 
-    // For social platforms (SmarterPoker, Instagram), skip direct fetch and use Microlink
+    // ─────────────────────────────────────────────────────────────────────────
+    // ESPN ARTICLE THUMBNAIL — ESPN Public API (free, no auth required)
+    // ESPN blocks all server-side scrapers AND Microlink with Cloudflare, but
+    // site.api.espn.com is a public JSON API that returns article images from
+    // ESPN's CDN (a.espncdn.com). We parse the URL sport slug to hit the
+    // correct sport endpoint, then match by story ID to get the real thumbnail.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (isSocialPlatform && isSocialPlatform.platformId === 'espn') {
+        const espnResult = await fetchEspnArticleMetadata(url);
+        if (espnResult) {
+            return res.status(200).json(espnResult);
+        }
+        // ESPN API miss — fall through to Microlink, then logo fallback
+        try {
+            const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
+            const microlinkRes = await fetchWithTimeout(microlinkUrl, {}, 6000);
+            if (microlinkRes.ok) {
+                const microlinkData = await microlinkRes.json();
+                if (microlinkData.status === 'success' && microlinkData.data) {
+                    const d = microlinkData.data;
+                    // Only accept Microlink's image if it's an article image (not the generic ESPN logo)
+                    const mlImage = d.image?.url || null;
+                    const isGenericLogo = mlImage && (
+                        mlImage.includes('espn_red') || mlImage.includes('espnlogo') ||
+                        mlImage.includes('/i/espn/espn_logos/')
+                    );
+                    return res.status(200).json({
+                        url,
+                        title: d.title || 'ESPN Article',
+                        description: d.description || 'Click to view on ESPN',
+                        image: isGenericLogo ? isSocialPlatform.fallbackImage : (mlImage || isSocialPlatform.fallbackImage),
+                        siteName: d.publisher || 'ESPN',
+                        platform: 'espn',
+                        contentType: 'article',
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('[link-preview] Microlink fallback for ESPN failed:', e.message);
+        }
+        return res.status(200).json({
+            url,
+            title: 'ESPN Article',
+            description: 'Click to view on ESPN',
+            image: isSocialPlatform.fallbackImage,
+            siteName: 'ESPN',
+            platform: 'espn',
+            contentType: 'article',
+        });
+    }
+
+    // For social platforms (Facebook, Instagram), skip direct fetch and use Microlink
     // because these platforms block server-side scraping but Microlink can access them
     if (isSocialPlatform) {
         try {
@@ -459,4 +510,79 @@ function checkSocialPlatform(url) {
     }
 }
 
+/**
+ * Fetches real article metadata directly from ESPN's public JSON API.
+ * ESPN blocks server-side scraping via Cloudflare, but their site API is open.
+ */
+async function fetchEspnArticleMetadata(url) {
+    try {
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        if (pathParts.length < 1) return null;
 
+        const sportSlug = pathParts[0].toLowerCase();
+        
+        // Extract story ID from URL (usually /_/id/12345/...)
+        const idMatch = url.match(/\/_\/id\/(\d+)\//) || url.match(/\/(\d+)$/);
+        const storyId = idMatch ? idMatch[1] : null;
+        
+        if (!storyId) return null;
+
+        // Map URL sport slug to ESPN API sport/league pair
+        const SPORT_MAP = {
+            'nba': ['basketball', 'nba'],
+            'wnba': ['basketball', 'wnba'],
+            'nfl': ['football', 'nfl'],
+            'mlb': ['baseball', 'mlb'],
+            'nhl': ['hockey', 'nhl'],
+            'mma': ['mma', 'ufc'],
+            'soccer': ['soccer', 'eng.1'],
+            'tennis': ['tennis', ''],
+            'golf': ['golf', 'pga'],
+            'boxing': ['boxing', ''],
+            'college-football': ['football', 'college-football'],
+            'college-sports': ['college-sports', ''],
+            'espn': ['basketball', 'nba'], // fallback for generic espn/betting URLs
+        };
+
+        const [sport, league] = SPORT_MAP[sportSlug] || [sportSlug, sportSlug];
+        const leaguePath = league ? `/${league}` : '';
+        const apiUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}${leaguePath}/news?limit=50`;
+
+        const response = await fetchWithTimeout(apiUrl, {
+            headers: { 'Accept': 'application/json' }
+        }, 5000);
+
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        const articles = data.articles || [];
+
+        // Find the article with the matching story ID
+        const article = articles.find(a => {
+            if (a.id && String(a.id) === storyId) return true;
+            const aLink = a.links?.web?.href || '';
+            return aLink.includes(storyId);
+        });
+
+        if (article) {
+            const images = article.images || [];
+            const imageUrl = images.length > 0 ? images[0].url : null;
+            
+            return {
+                url: url,
+                title: article.headline || 'ESPN Article',
+                description: article.description || 'Click to view on ESPN',
+                image: imageUrl || 'https://a.espncdn.com/combiner/i?img=/i/espn/espn_logos/espn_red.png',
+                siteName: 'ESPN',
+                platform: 'espn',
+                contentType: 'article'
+            };
+        }
+        
+        return null;
+    } catch (e) {
+        console.warn('[link-preview] ESPN API fetch failed:', e.message);
+        return null;
+    }
+}
