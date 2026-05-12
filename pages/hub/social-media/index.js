@@ -2225,6 +2225,11 @@ const PostCard = React.memo(
             {(() => {
               const topLevel = comments.filter((c) => !c.parentId);
               const replies = comments.filter((c) => c.parentId);
+              const topLevelIds = new Set(topLevel.map((c) => c.id));
+              // Recover orphaned replies (where parent was deleted)
+              const orphanedReplies = replies.filter((r) => !topLevelIds.has(r.parentId));
+              topLevel.push(...orphanedReplies);
+              const validReplies = replies.filter((r) => topLevelIds.has(r.parentId));
 
               const renderCommentBlock = (c, isReply = false) => {
                 const isEditingComment = editingCommentId === c.id;
@@ -2508,7 +2513,7 @@ const PostCard = React.memo(
                       {/* Render its children if it's a top-level comment AND has replies */}
                       {(() => {
                         if (isReply) return null;
-                        const childReplies = replies.filter((r) => r.parentId === c.id);
+                        const childReplies = validReplies.filter((r) => r.parentId === c.id);
                         if (childReplies.length === 0) return null;
                         const isCollapsed = collapsedThreads[c.id];
                         return (

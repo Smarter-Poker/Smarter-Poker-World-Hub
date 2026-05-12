@@ -125,7 +125,7 @@ export default function SharedPostCard({ postId, mediaMetadata, isOwn }) {
                         <img
                             src={authorAvatar}
                             alt={authorName}
-                            style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                            style={{ width: 24, height: 24, minWidth: 24, minHeight: 24, aspectRatio: '1 / 1', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                         />
                     ) : (
                         <div style={{
