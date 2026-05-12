@@ -22,6 +22,7 @@ import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -60,8 +61,46 @@ export default function MixedModePage() {
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [showResult, setShowResult] = useState(false);
+    // TRAIN-WIRE-TRIVIA-HOOK-1 - shared trivia answer-state plumbing
+    const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
+        onAnswer: ({ index, isCorrect }) => {
+            setIsTimerRunning(false);
+
+            const currentQuestion = questions[currentQuestionIndex];
+            const category = currentQuestion?.displayCategory || 'poker_history';
+
+            setCategoryStats(prev => ({
+                ...prev,
+                [category]: {
+                    answered: prev[category].answered + 1,
+                    correct: prev[category].correct + (isCorrect ? 1 : 0)
+                }
+            }));
+
+            if (isCorrect) {
+                setTotalCorrect(prev => prev + 1);
+                setDiamondsEarned(prev => prev + 1);
+                answersRef.current.push(true);
+                busEmit.decisionCorrect(totalCorrect + 1);
+            } else {
+                answersRef.current.push(false);
+                busEmit.decisionIncorrect(totalCorrect);
+                busEmit.screenShake('light');
+            }
+
+            setTimeout(() => {
+                if (currentQuestionIndex + 1 >= questions.length) {
+                    finishGame();
+                } else {
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    trivia.reset();
+                    setTimeLeft(24);
+                    setIsTimerRunning(true);
+                }
+            }, 1200);
+        }
+    });
+    const { selectedAnswer, showResult } = trivia;
 
     // Per-category stats for current session
     const [categoryStats, setCategoryStats] = useState({
@@ -279,8 +318,7 @@ export default function MixedModePage() {
             }
         }
         setCurrentQuestionIndex(0);
-        setSelectedAnswer(null);
-        setShowResult(false);
+        trivia.reset();
         setTotalCorrect(0);
         setDiamondsEarned(0);
         answersRef.current = [];
@@ -303,52 +341,7 @@ export default function MixedModePage() {
 
     function handleTimeout() {
         setIsTimerRunning(false);
-        selectAnswer(-1); // Wrong answer
-    }
-
-    function selectAnswer(index) {
-        if (selectedAnswer !== null || showResult) return;
-
-        setIsTimerRunning(false);
-        setSelectedAnswer(index);
-        setShowResult(true);
-
-        const currentQuestion = questions[currentQuestionIndex];
-        const isCorrect = index === currentQuestion?.correct_index;
-        const category = currentQuestion?.displayCategory || 'poker_history';
-
-        // Update per-category stats
-        setCategoryStats(prev => ({
-            ...prev,
-            [category]: {
-                answered: prev[category].answered + 1,
-                correct: prev[category].correct + (isCorrect ? 1 : 0)
-            }
-        }));
-
-        if (isCorrect) {
-            setTotalCorrect(prev => prev + 1);
-            setDiamondsEarned(prev => prev + 1); // 1 diamond per correct
-            answersRef.current.push(true);
-            busEmit.decisionCorrect(totalCorrect + 1);
-        } else {
-            answersRef.current.push(false);
-            busEmit.decisionIncorrect(totalCorrect);
-            busEmit.screenShake('light');
-        }
-
-        // Advance after delay
-        setTimeout(() => {
-            if (currentQuestionIndex + 1 >= questions.length) {
-                finishGame();
-            } else {
-                setCurrentQuestionIndex(prev => prev + 1);
-                setSelectedAnswer(null);
-                setShowResult(false);
-                setTimeLeft(24);
-                setIsTimerRunning(true);
-            }
-        }, 1200);
+        trivia.selectAnswer(-1); // Wrong answer - delegates to shared hook
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
@@ -662,7 +655,7 @@ export default function MixedModePage() {
                                     selectedAnswer={selectedAnswer}
                                     correctIndex={currentQuestion.correct_index}
                                     showResult={showResult}
-                                    onSelect={selectAnswer}
+                                    onSelect={trivia.selectAnswer}
                                   />
                                 ))}
                                 </div>
