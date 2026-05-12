@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 
@@ -323,6 +324,9 @@ const LESSONS = [
 ];
 
 export default function CoachModePage() {
+  // TRAIN-WIRE-FEEDBACK-HOOK-1 — wire useTrainingFeedback for fb.correct() / fb.incorrect()
+  const fb = useTrainingFeedback();
+
   const router = useRouter();
   useTrainingBus('coach-mode');
   const [activeLesson, setActiveLesson] = useState(null);
@@ -356,7 +360,13 @@ export default function CoachModePage() {
   const handleAnswer = (idx) => {
     if (selected !== null) return;
     setSelected(idx);
-    if (idx === activeLesson.quiz[quizIdx].answer) setScore((s) => s + 1);
+    const isCorrect = idx === activeLesson.quiz[quizIdx].answer;
+    if (isCorrect) {
+      setScore((s) => s + 1);
+      fb.correct();
+    } else {
+      fb.incorrect();
+    }
   };
 
   const nextQuizQuestion = () => {

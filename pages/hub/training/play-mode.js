@@ -18,6 +18,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../../src/hooks/useGTOWScore';
 import { evaluateHand } from '../../../src/utils/pokerHandEvaluator';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
 import EVGraph from '../../../src/components/training/EVGraph';
@@ -423,6 +424,13 @@ function usePlayMode() {
         });
 
         const totalEVLoss = decisionAnalysis.reduce((s, d) => s + d.evLoss, 0);
+
+        // TRAIN-WIRE-FEEDBACK-HOOK-3 — fire audio/haptic feedback at hand-completion
+        try {
+          if (totalEVLoss >= -0.2) fb.correct(); else fb.incorrect();
+        } catch (_err) {
+          if (typeof console !== 'undefined' && console.warn) console.warn('[play-mode] fb error:', _err);
+        }
 
         // Determine villain's range visualization at showdown
         const villainRange = `Villain held ${villainCards.join(' ')} (${villainEval.subType})`;
@@ -1019,6 +1027,9 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function PlayModePage() {
+  // TRAIN-WIRE-FEEDBACK-HOOK-3 — wire useTrainingFeedback for showdown feedback
+  const fb = useTrainingFeedback();
+
   const router = useRouter();
   const game = usePlayMode();
   const bus = useTrainingBus('play-mode', { format: game.config?.format });
