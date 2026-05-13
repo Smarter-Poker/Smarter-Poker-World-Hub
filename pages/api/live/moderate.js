@@ -284,11 +284,9 @@ export default async function handler(req, res) {
       }
 
       default:
-        return res
-          .status(400)
-          .json({
-            error: `Unknown action: ${action}. Use: delete_comment, pin_comment, unpin_comment, ban_user, unban_user`,
-          });
+        return res.status(400).json({
+          error: `Unknown action: ${action}. Use: delete_comment, pin_comment, unpin_comment, ban_user, unban_user`,
+        });
     }
   } catch (err) {
     console.warn('[/api/live/moderate] Error:', err.message);
