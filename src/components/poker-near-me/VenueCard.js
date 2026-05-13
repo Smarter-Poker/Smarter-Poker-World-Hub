@@ -155,14 +155,7 @@ function getVenueColor(venue) {
 
 // Get the correct detail URL for a venue or social page
 function getVenueUrl(venue) {
-    // Home games live in /hub/home-games/[slug] — NOT /hub/venues/[uuid].
-    // Routing a UUID to /hub/venues/ causes a 500 because poker_venues has
-    // no row for commander_home_groups IDs.
-    if (venue.venue_type === 'home_game') {
-        if (venue.slug) return '/hub/home-games/' + venue.slug;
-        if (venue.club_code) return '/home-game/' + venue.club_code;
-        if (venue.invite_code) return '/home-game/' + venue.invite_code;
-    }
+    // Home games live in /hub/venues/[uuid] (now standard for home groups)
     if (venue.is_social_page && venue.social_page_id) {
         return '/club/' + venue.social_page_id;
     }
@@ -1039,8 +1032,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </div>
             </div>
 
-            {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards === */}
-            {!['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
+            {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards or home games === */}
+            {!['tour_stop', 'poker_tour', 'tour', 'series', 'home_game'].includes(venue.venue_type) && (
             <div className="vc3-trust">
                 {reviewStats && reviewStats.total_reviews > 0 ? (
                     <>

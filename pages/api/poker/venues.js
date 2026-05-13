@@ -600,14 +600,65 @@ export default async function handler(req, res) {
           let venues = [];
 
           if (id) {
-              // --- Single venue lookup ---
+              const sb = getSupabase();
               const numericId = parseInt(id, 10);
-              
-              if (!isNaN(numericId) && numericId >= 1) {
+              const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+              if (isUuid) {
+                  // Phase 41: Native UUID lookup for Home Games (commander_home_groups)
+                  const { data: homeGroup } = await sb.from('commander_home_groups').select(`
+                      id, name, description, tagline, city, state, latitude, longitude,
+                      profile_photo_url, cover_photo_url, default_game_type, default_stakes,
+                      typical_buyin_min, typical_buyin_max, frequency, typical_day, typical_time,
+                      member_count, games_hosted, is_active, slug, settings, owner_id
+                  `).eq('id', id).maybeSingle();
+                  
+                  if (homeGroup && homeGroup.is_active !== false) {
+                      const { data: page } = await sb.from('social_pages')
+                          .select('id, follower_count')
+                          .eq('linked_entity_type', 'home_group')
+                          .eq('linked_entity_id', homeGroup.id)
+                          .maybeSingle();
+                      
+                      venues = [{
+                          id: homeGroup.id,
+                          name: homeGroup.name,
+                          description: homeGroup.description,
+                          tagline: homeGroup.tagline,
+                          venue_type: 'home_game',
+                          city: homeGroup.city,
+                          state: homeGroup.state,
+                          latitude: homeGroup.latitude,
+                          longitude: homeGroup.longitude,
+                          profile_photo_url: homeGroup.profile_photo_url,
+                          cover_photo_url: homeGroup.cover_photo_url,
+                          logo_url: homeGroup.profile_photo_url,
+                          default_game_type: homeGroup.default_game_type,
+                          default_stakes: homeGroup.default_stakes,
+                          typical_buyin_min: homeGroup.typical_buyin_min,
+                          typical_buyin_max: homeGroup.typical_buyin_max,
+                          frequency: homeGroup.frequency,
+                          typical_day: homeGroup.typical_day,
+                          typical_time: homeGroup.typical_time,
+                          member_count: homeGroup.member_count,
+                          games_hosted: homeGroup.games_hosted,
+                          follower_count: page?.follower_count || 0,
+                          slug: homeGroup.slug,
+                          settings: homeGroup.settings || {},
+                          owner_id: homeGroup.owner_id,
+                          social_page_id: page?.id || null,
+                          address: null,
+                          zip_code: null,
+                          phone: null,
+                          website: null,
+                          commander_enabled: false,
+                          is_suppressed: false,
+                          has_tournaments: false,
+                      }];
+                  }
+              } else if (!isNaN(numericId) && numericId >= 1) {
                   // Numeric ID: standard lookup
                   try {
-                      const { data, error } = await getSupabase()
-                          .from('poker_venues')
+                      const { data, error } = await sb.from('poker_venues')
                           .select('*')
                           .eq('id', numericId)
                           .maybeSingle();
@@ -621,7 +672,8 @@ export default async function handler(req, res) {
                       } else {
                           throw new Error(error?.message || 'Not found in Supabase');
                       }
-                  } catch (dbError) { console.warn('[App] Handled exception:', dbError?.message || dbError);
+                  } catch (dbError) { 
+                      console.warn('[App] Handled exception:', dbError?.message || dbError);
                   }
               } else {
                   // Non-numeric ID (slug): search by slug/bravo_slug in JSON data

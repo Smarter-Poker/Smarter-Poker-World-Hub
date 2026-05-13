@@ -252,6 +252,8 @@ export default function VenueDetailPage() {
   // Fast-load follow state from localStorage (instant, before API round-trip)
   const [isFollowed, setIsFollowed] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [friendState, setFriendState] = useState('none');
+  const [friendBusy, setFriendBusy] = useState(false);
 
   // Live Games state
   const [liveGames, setLiveGames] = useState([]);
@@ -598,6 +600,28 @@ export default function VenueDetailPage() {
   }, [id]);
 
   var fetchGameSchedule = async function () {
+    if (venue?.venue_type === 'home_game') {
+      if (venue.settings?.tables?.length > 0) {
+        // Map settings to the structure expected by the UI (grouped by today's day)
+        var todayKey = SCHEDULE_DAYS[(new Date().getDay() + 6) % 7];
+        var scheduleObj = {};
+        SCHEDULE_DAYS.forEach(d => { scheduleObj[d] = []; });
+        venue.settings.tables.forEach((t, i) => {
+           scheduleObj[todayKey].push({
+              id: 'hg-' + i,
+              game_name: (t.game_type ? t.game_type.toUpperCase() : 'Poker') + ' ' + (t.stakes || ''),
+              start_time: venue.typical_time || '',
+              end_time: '',
+              notes: venue.settings.schedule_summary || '',
+           });
+        });
+        setGameSchedule(scheduleObj);
+      } else {
+        setGameSchedule(null);
+      }
+      return;
+    }
+    
     setScheduleLoading(true);
     try {
       var res = await fetch('/api/poker/venue-schedules?venue_id=' + id);
@@ -620,6 +644,26 @@ export default function VenueDetailPage() {
 
   // Fetch daily tournaments
   var fetchTournamentSchedule = async function () {
+    if (venue?.venue_type === 'home_game') {
+      if (venue.settings?.tournaments?.length > 0) {
+        var tArr = venue.settings.tournaments.map((t, i) => ({
+           id: 'hg-t-' + i,
+           day_of_week: venue.typical_day || 'Upcoming',
+           start_time: venue.typical_time || 'TBD',
+           tournament_name: t.name || 'Tournament',
+           buy_in: t.buy_in || 0,
+           game_type: t.game_type || '',
+           guaranteed: t.guaranteed || 0,
+           starting_stack: t.starting_stack || null,
+           blind_levels: t.blind_levels || null,
+        }));
+        setTournamentSchedule(tArr);
+      } else {
+        setTournamentSchedule([]);
+      }
+      return;
+    }
+
     setTournamentScheduleLoading(true);
     try {
       var res = await fetch('/api/poker/daily-tournaments?venue_id=' + id + '&day=all');
@@ -972,6 +1016,49 @@ export default function VenueDetailPage() {
       setCopySuccess(true);
       setTimeout(function () { setCopySuccess(false); }, 2000);
     }
+  };
+
+  useEffect(() => {
+    const fetchFriendState = async () => {
+      if (!venue || venue.venue_type !== 'home_game' || !venue.owner_id) return;
+      try {
+        const u = getAuthUser();
+        const tk = localStorage.getItem('smarter-poker-auth');
+        if (!u || !tk) return;
+        const res = await fetch(`/api/social/friends?userId=${u.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const friends = data.friends || [];
+        const isF = friends.some((f) => f.id === venue.owner_id && f.status === 'friends');
+        const isP = friends.some((f) => f.id === venue.owner_id && f.status === 'pending');
+        if (isF) setFriendState('friends');
+        else if (isP) setFriendState('pending');
+        else setFriendState('none');
+      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
+    };
+    fetchFriendState();
+  }, [venue]);
+
+  const handleAddFriend = async () => {
+    if (!venue || !venue.owner_id) return;
+    try {
+      const u = getAuthUser();
+      const authRaw = localStorage.getItem('smarter-poker-auth');
+      if (!u || !authRaw) { alert('You must be logged in to add friends.'); return; }
+      setFriendBusy(true);
+      const auth = JSON.parse(authRaw);
+      const res = await fetch('/api/social/friends', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.access_token}`
+        },
+        body: JSON.stringify({ action: 'add', targetUserId: venue.owner_id })
+      });
+      if (res.ok) setFriendState('pending');
+      else alert('Failed to send friend request. You may already be friends.');
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
+    setFriendBusy(false);
   };
 
   var handleReportGame = async function (e) {
@@ -1421,6 +1508,32 @@ export default function VenueDetailPage() {
                   {isFollowed ? 'Following' : 'Follow'}
                   {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                 </button>
+                {venue.venue_type === 'home_game' && venue.owner_id && (getAuthUser()?.id !== venue.owner_id) && (
+                  <>
+                    <button
+                      className="action-btn"
+                      onClick={handleAddFriend}
+                      disabled={friendBusy || friendState !== 'none'}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="8.5" cy="7" r="4" />
+                        <line x1="20" y1="8" x2="20" y2="14" />
+                        <line x1="23" y1="11" x2="17" y2="11" />
+                      </svg>
+                      {friendBusy ? '...' : friendState === 'friends' ? 'Friends' : friendState === 'pending' ? 'Request Sent' : 'Add Friend'}
+                    </button>
+                    <button
+                      className="action-btn"
+                      onClick={() => router.push(`/hub/messages?user=${venue.owner_id}`)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      Message Host
+                    </button>
+                  </>
+                )}
                 <button className="action-btn share-btn" onClick={handleShare}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="18" cy="5" r="3" />
