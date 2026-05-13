@@ -1,87 +1,101 @@
-# Handoff: Deploy smarter-poker-workers (P50)
+# RULE 0 Handoff: P50 Workers Deploy
 
-**Date:** 2026-05-13  
-**Priority:** HIGH — stops 192 daily 404 failures in cron_execution_log  
-**Authored by:** Claude (Cowork session, P50 phase)
-
----
-
-## What was done
-
-`src/routes/trivia-quality-tools.ts` was created and pushed to the
-`smarter-poker-workers` repo (commit `18c0420447df936d7e25a7f1c3581a900534c451`).
-
-This file exports the four handlers that `src/index.ts` has imported since
-Phase 49 but that never existed:
-- `triviaEmbedBackfill` → GET/POST `/cron/trivia-embed-backfill`
-- `triviaThemeBackfill` → GET/POST `/cron/trivia-theme-backfill`
-- `triviaPlayerRetag`   → GET/POST `/cron/trivia-player-retag`
-- `triviaRegressionTests` → GET/POST `/cron/trivia-regression-tests`
-
-Their absence caused every request to those routes to return HTTP 404.
-The embed and theme backfill crons fire every 2 hours (at :15 and :45),
-producing ~192 failed entries/day in `cron_execution_log`.
+**Created:** 2026-05-13  
+**Priority:** MEDIUM — yt-transcode-worker has 7+ self-healer commits unreleased to Hetzner VM  
+**Requires:** Mac with SSH key at `~/.ssh/openclaw_ed25519` + macOS Keychain access  
+**Script:** `scripts/deploy-workers.sh` (created this session, commit 3bd76e43+)
 
 ---
 
-## What you need to do
+## What this does
 
-Run the deploy script from Dan's Mac (requires Keychain + SSH key):
+Syncs the latest `scripts/yt-transcode-worker/index.js` to the Hetzner
+`reels-transcode-worker` VM (ID 128782737, IP `5.161.49.206`, ash region)
+and restarts `sp-yt-transcode.service`.
+
+The script was missing from disk — created this session. It follows the
+same pattern as `scripts/deploy-openclaw.sh` (SSH key + Keychain IPs).
+
+---
+
+## Execution
+
+From the repo root on your Mac:
 
 ```bash
-cd ~/Documents/smarter-poker-workers
-bash scripts/deploy-workers.sh --release
+# 1. Dry run first — shows SHA diff, no changes applied
+bash scripts/deploy-workers.sh --dry-run
+
+# 2. If the SHAs differ (they should — 7+ commits since last VM sync):
+bash scripts/deploy-workers.sh
 ```
 
-The `--release` flag:
-1. Triggers `release.yml` workflow on GitHub Actions (builds + pushes the
-   Docker image to GHCR with `:latest` tag)
-2. Waits for the build to complete (~4-8 min)
-3. SSHes into the Hetzner VM and runs `docker compose pull && docker compose up -d`
-4. Probes `/health` to confirm the new container is live
+### Expected output (success)
+```
+[deploy-workers] reels-transcode-worker : 5.161.49.206 (ash)
+[deploy-workers] Deploying yt-transcode-worker/index.js → 5.161.49.206:...
+[deploy-workers] Restarting sp-yt-transcode.service ...
+[deploy-workers] sp-yt-transcode.service: active
+[deploy-workers] Recent logs:
+[yt-worker ...] Starting yt-transcode-worker
+[yt-worker ...]   Worker ID: hetzner-ash-yt-01
+...
+[deploy-workers] Workers deploy complete.
+```
 
-Expected output ends with:
+---
+
+## If Keychain entries are missing
+
+The script needs `reels-transcode-worker-ip` in Keychain. If it's not there,
+set the env var instead:
+
+```bash
+REELS_WORKER_IP=5.161.49.206 bash scripts/deploy-workers.sh
 ```
-[deploy-workers] ✓ Deploy complete.
+
+Or add it to Keychain:
+```bash
+security add-generic-password -a smarter-poker -s reels-transcode-worker-ip -w 5.161.49.206
 ```
+
+---
+
+## What's changed in the worker since last deploy
+
+Latest commits to `scripts/yt-transcode-worker/index.js`:
+
+- `004cddd` — TDZ fix in Reels.jsx + dead destructure killing fallback sweep
+- `38051f8` — feat: strandedReelRecoverySweep (7th self-healer)
+- `b48b42d` — fix: harden VIP guard against race conditions
+- `9b9933d` — feat: deadVideoHidingSweep (6th self-healer)
+- `ed745c2` — feat: iframeThumbnailDeriveSweep (5th self-healer)
+- `8d83422` — feat: nativePosterBackfillSweep (4th self-healer)
+- `599dadcf` — fix: transientFailureRetrySweep (3rd self-healer)
+
+The VM is running whichever version was last manually synced. These self-healers
+fix 404/stuck reels; without them the worker keeps retrying but misses recovery paths.
 
 ---
 
 ## Verification after deploy
 
-Wait for the next scheduled tick of either cron (embed at :15, theme at :45
-on even hours) and then check `cron_execution_log` in Supabase:
+```bash
+# Watch worker pick up queued jobs:
+ssh -i ~/.ssh/openclaw_ed25519 openclaw@5.161.49.206 \
+  'sudo journalctl -u sp-yt-transcode -f --no-pager'
 
-```sql
-SELECT job_name, status, started_at, result, error
-FROM cron_execution_log
-WHERE job_name IN (
-  '/cron/trivia-embed-backfill',
-  '/cron/trivia-theme-backfill',
-  '/cron/trivia-player-retag',
-  '/cron/trivia-regression-tests'
-)
-ORDER BY started_at DESC
-LIMIT 20;
+# Check job queue health in Supabase:
+# SELECT status, count(*) FROM video_transcode_jobs GROUP BY status;
 ```
 
-Success = `status = 'success'`, `error IS NULL`.
-
 ---
 
-## Prerequisites (should already be in place)
+## Hetzner VM reference
 
-- `~/.ssh/workers_ed25519` — SSH key for Hetzner workers VM
-- Keychain entry `smarter-poker / workers-server-ip`
-- Keychain entry `smarter-poker / workers-server-id`
-- Keychain entry `smarter-poker / github-pat-ghcr-read` (PAT with `read:packages` + `workflow` scopes)
+| VM | ID | IP | Region | Service |
+|---|---|---|---|---|
+| `reels-transcode-worker` | 128782737 | 5.161.49.206 | ash | sp-yt-transcode.service |
+| `workers-dispatcher` | 127930016 | 178.104.180.220 | fsn1 | Docker cron handlers |
 
-If any of these are missing, the script will exit with a clear error message.
-
----
-
-## No SQL needed
-
-`trivia_questions.embedding` (vector(384)), `trivia_questions.theme` (text),
-`trivia_questions.retagged_difficulty` (text), and `trivia_regression_runs`
-all already exist in the production Supabase schema. No migrations required.
+SSH user: `openclaw` | SSH key: `~/.ssh/openclaw_ed25519`
