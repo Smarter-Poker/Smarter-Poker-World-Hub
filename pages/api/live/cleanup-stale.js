@@ -6,10 +6,11 @@
  * user pulling their feed sweeps any stale (timed-out) live streams to
  * status='ended'. Cheap, requires no dedicated infrastructure.
  *
- * Stale = status='live' AND no preview_updated_at activity in 180 seconds (Bug25: increased from 60s).
- * The broadcaster's StreamPreviewCapture uploads every ~25s while alive,
- * so a 180s gap means they're disconnected (lost connection / power /
- * closed app).
+ * Stale = status='live' AND no preview_updated_at activity in 300 seconds (5 min).
+ * The broadcaster's StreamPreviewCapture uploads every ~25s while alive and
+ * the LiveStreamService broadcaster heartbeat pings every 60s, so a 300s gap
+ * means they're genuinely disconnected (lost connection / power / closed app).
+ * Per Dan's explicit mandate: NEVER kill a stream inactive for < 300 seconds.
  *
  * Auto-saves recordings rather than deleting them — the recording is
  * preserved as a draft so the broadcaster can publish or discard it
@@ -45,12 +46,12 @@ export default async function handler(req, res) {
       .from('live_streams')
       .select('id, broadcaster_id, video_url, started_at, preview_updated_at')
       .eq('status', 'live')
-      .lt('started_at', new Date(Date.now() - 180_000).toISOString());
+      .lt('started_at', new Date(Date.now() - 300_000).toISOString());
 
     // Filter to those that are also stale by preview_updated_at threshold
     const trulyStale = (stale || []).filter((s) => {
       if (!s.preview_updated_at) return true; // never had a preview update
-      return new Date(s.preview_updated_at).getTime() < Date.now() - 180_000;
+      return new Date(s.preview_updated_at).getTime() < Date.now() - 300_000;
     });
 
     if (trulyStale.length === 0) {
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
 
     // 2. Use the SQL function to atomically end them all (server clock).
     const { data: rpcResult, error: rpcErr } = await supabase.rpc('fn_auto_end_stale_streams', {
-      p_timeout_seconds: 180,
+      p_timeout_seconds: 300,
     });
     if (rpcErr) {
       console.warn('[live/cleanup-stale] RPC error:', rpcErr.message);

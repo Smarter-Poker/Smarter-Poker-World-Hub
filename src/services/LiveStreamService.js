@@ -345,6 +345,11 @@ class LiveStreamService {
     // 6. Create feed post so the live stream appears in the news feed
     this._createLiveFeedPost(stream.id, title || 'Live Stream');
 
+    // HARDENING: start broadcaster keepalive so backgrounded tabs don't lose
+    // the stream due to StreamPreviewCapture being throttled by the browser.
+    // This pings /api/live/heartbeat every 60s, independent of preview capture.
+    this._startBroadcasterHeartbeat(stream.id);
+
     console.debug('🔴 LiveKit broadcast started:', stream.id);
     return { streamId: stream.id, stream, guestInviteCode: stream.guest_invite_code };
   }
@@ -731,6 +736,9 @@ class LiveStreamService {
     // with server-clock now() — accurate regardless of the user's device
     // clock. Two writes racing also led to the duration computed from
     // (started_at, ended_at) becoming non-deterministic. Server wins.
+
+    // Stop broadcaster keepalive heartbeat before disconnecting
+    this._stopBroadcasterHeartbeat();
 
     // Disconnect LiveKit room (fire-and-forget)
     if (this.room) {
@@ -1207,6 +1215,60 @@ class LiveStreamService {
       this._viewerHeartbeatTimer = null;
     }
     this._viewerHeartbeatStreamId = null;
+  }
+
+  /**
+   * HARDENING: Broadcaster keepalive — independent of StreamPreviewCapture.
+   *
+   * StreamPreviewCapture (MediaRecorder + canvas) can be throttled or fully
+   * paused by the browser when the tab is backgrounded. A broadcaster whose
+   * tab is in the background is still live via LiveKit; only the local clip
+   * recording pauses. Without this heartbeat the stale-cleanup cron would
+   * see preview_updated_at stop refreshing and terminate an active stream
+   * well before the 300-second mandate.
+   *
+   * This timer fires every 60 seconds and POSTs to /api/live/heartbeat which
+   * does a server-side UPDATE of preview_updated_at (service role, bypasses
+   * RLS column restrictions). The 300s cleanup threshold gives 5× the ping
+   * interval as safety margin — even if 4 consecutive pings fail, the stream
+   * survives until the 5th fires.
+   *
+   * Called from startBroadcast() after the LiveKit room is connected.
+   * Stopped in endBroadcast() on clean teardown.
+   */
+  _startBroadcasterHeartbeat(streamId) {
+    this._stopBroadcasterHeartbeat(); // idempotent: replace any prior timer
+    this._broadcasterHeartbeatStreamId = streamId;
+    // Ping immediately so preview_updated_at is fresh on stream start, then
+    // every 60 seconds thereafter. Failures are non-fatal — the stream
+    // survives as long as any heartbeat lands within the 300s window.
+    const ping = () => {
+      if (this._broadcasterHeartbeatStreamId !== streamId) return;
+      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      fetch('/api/live/heartbeat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'same-origin',
+        keepalive: true, // survives tab navigation / beforeunload
+        body: JSON.stringify({ stream_id: streamId }),
+      }).catch((err) => {
+        // Non-fatal — next tick retries. 300s window allows up to 4 consecutive misses.
+        console.warn('[LiveStream] broadcaster heartbeat failed:', err?.message || err);
+      });
+    };
+    ping(); // immediate first ping on stream start
+    this._broadcasterHeartbeatTimer = setInterval(ping, 60_000);
+  }
+
+  _stopBroadcasterHeartbeat() {
+    if (this._broadcasterHeartbeatTimer) {
+      clearInterval(this._broadcasterHeartbeatTimer);
+      this._broadcasterHeartbeatTimer = null;
+    }
+    this._broadcasterHeartbeatStreamId = null;
   }
 
   /**

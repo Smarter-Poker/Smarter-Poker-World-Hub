@@ -13,9 +13,10 @@
  * Authorization: Bearer ${CRON_SECRET}. Same DB function, same auto-save
  * draft logic, no auth.uid() requirement.
  *
- * Stale = status='live' AND no preview_updated_at activity in 60 seconds.
- * The broadcaster's StreamPreviewCapture uploads every ~25s while alive;
- * a 60s gap means they're disconnected.
+ * Stale = status='live' AND no preview_updated_at activity in 300 seconds (5 min).
+ * The broadcaster's StreamPreviewCapture uploads every ~25s while alive and
+ * the LiveStreamService broadcaster heartbeat pings every 60s, so a 300s gap
+ * means they're genuinely disconnected. Per Dan's mandate: never kill < 300s.
  */
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
         // 1. Snapshot stale streams BEFORE we end them so we can flip each
         //    one to is_draft=true (preserving recordings, matching the
         //    explicit 'save' action).
-        const cutoffIso = new Date(Date.now() - 60_000).toISOString();
+        const cutoffIso = new Date(Date.now() - 300_000).toISOString();
         const { data: stale, error: scanErr } = await supabase
             .from('live_streams')
             .select('id, broadcaster_id, video_url, started_at, preview_updated_at')
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
 
         const trulyStale = (stale || []).filter(s => {
             if (!s.preview_updated_at) return true; // never had a preview update
-            return new Date(s.preview_updated_at).getTime() < Date.now() - 60_000;
+            return new Date(s.preview_updated_at).getTime() < Date.now() - 300_000;
         });
 
         if (trulyStale.length === 0) {
@@ -86,7 +87,7 @@ export default async function handler(req, res) {
         // 2. Atomically end them via the DB function. Server clock decides
         //    'now', so all rows get a consistent ended_at.
         const { data: rpcResult, error: rpcErr } = await supabase
-            .rpc('fn_auto_end_stale_streams', { p_timeout_seconds: 60 });
+            .rpc('fn_auto_end_stale_streams', { p_timeout_seconds: 300 });
 
         if (rpcErr) {
             console.warn('[cron/cleanup-stale-streams] RPC error:', rpcErr.message);
