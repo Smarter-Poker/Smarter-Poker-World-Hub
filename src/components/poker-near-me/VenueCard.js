@@ -100,7 +100,7 @@ const VENUE_TYPE_COLORS = {
     casino: { bg: 'rgba(255,255,255,0.10)', color: '#ffffff', border: 'rgba(255,255,255,0.28)', accent: '#ffffff' },
     card_room: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
     poker_club: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
-    home_game: { bg: 'rgba(245,158,11,0.10)', color: '#f59e0b', border: 'rgba(245,158,11,0.28)', accent: '#f59e0b' },
+    home_game: { bg: 'rgba(148,163,184,0.10)', color: '#94a3b8', border: 'rgba(148,163,184,0.28)', accent: '#94a3b8' },
     charity: { bg: 'rgba(59,130,246,0.10)', color: '#60a5fa', border: 'rgba(59,130,246,0.28)', accent: '#60a5fa' },
     tour: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
     tour_stop: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },

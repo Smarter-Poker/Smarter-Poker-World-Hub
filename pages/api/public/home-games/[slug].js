@@ -74,8 +74,7 @@ export default async function handler(req, res) {
         typical_buyin_min, typical_buyin_max, max_players,
         typical_day, typical_time, frequency, member_count, games_hosted,
         cover_photo_url, profile_photo_url, invite_code, club_code, owner_id,
-        contact_phone, website_url,
-        created_at, updated_at,
+        created_at, updated_at, settings,
         profiles:owner_id (id, display_name, avatar_url)
       `
       )
@@ -173,6 +172,7 @@ export default async function handler(req, res) {
           // Contact info — only present if host has set them
           ...(group.contact_phone ? { contact_phone: group.contact_phone } : {}),
           ...(group.website_url   ? { website_url:   group.website_url   } : {}),
+          settings: group.settings || {},
           created_at: group.created_at,
         },
         host: group.profiles

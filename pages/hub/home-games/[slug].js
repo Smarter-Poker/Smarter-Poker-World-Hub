@@ -558,6 +558,23 @@ export default function PublicHomeGamePage({ data, serverError }) {
             >
               {followBusy ? '…' : (isFollowing ? '✓ Following' : '+ Follow')}
             </button>
+            {host && currentUserId !== host.id && (
+              <>
+                <button
+                  className="hgs-ghost-btn"
+                  onClick={handleAddFriend}
+                  disabled={friendBusy || friendState !== 'none'}
+                >
+                  {friendBusy ? '…' : friendState === 'friends' ? '✓ Friends' : friendState === 'pending' ? 'Request Sent' : '+ Add Friend'}
+                </button>
+                <button
+                  className="hgs-ghost-btn"
+                  onClick={() => router.push(`/hub/messages?user=${host.id}`)}
+                >
+                  Message Host
+                </button>
+              </>
+            )}
             <button className="hgs-ghost-btn" onClick={copyShareUrl}>
               {copyState || 'Share'}
             </button>
@@ -653,9 +670,30 @@ export default function PublicHomeGamePage({ data, serverError }) {
             <section className="hgs-section hgs-card">
               <h2>Schedule</h2>
               <dl className="hgs-kv">
-                <div><dt>Game</dt><dd>{formatStakesLine(group)}</dd></div>
-                {formatSchedule(group) && <div><dt>Cadence</dt><dd>{formatSchedule(group)}</dd></div>}
-                {group.typical_time && <div><dt>Time</dt><dd>{formatTime(group.typical_time)}</dd></div>}
+                {group.settings?.tables?.length > 0 ? (
+                  <div>
+                    <dt>Cash Games</dt>
+                    <dd>
+                      {group.settings.tables.map((t, idx) => (
+                        <div key={idx}>{GAME_TYPE_LABELS[t.game_type] || t.game_type?.toUpperCase() || 'Poker'} {t.stakes}</div>
+                      ))}
+                    </dd>
+                  </div>
+                ) : (
+                  <div><dt>Game</dt><dd>{formatStakesLine(group)}</dd></div>
+                )}
+                {group.settings?.tournaments?.length > 0 && (
+                  <div>
+                    <dt>Tournaments</dt>
+                    <dd>
+                      {group.settings.tournaments.map((t, idx) => (
+                        <div key={idx}>{t.name} {t.buy_in ? `($${t.buy_in})` : ''}</div>
+                      ))}
+                    </dd>
+                  </div>
+                )}
+                {(group.settings?.schedule_summary || formatSchedule(group)) && <div><dt>Cadence</dt><dd>{group.settings?.schedule_summary || formatSchedule(group)}</dd></div>}
+                {group.typical_time && !group.settings?.schedule_summary && <div><dt>Time</dt><dd>{formatTime(group.typical_time)}</dd></div>}
                 {(group.typical_buyin_min || group.typical_buyin_max) && (
                   <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>
                 )}
