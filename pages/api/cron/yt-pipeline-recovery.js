@@ -38,7 +38,10 @@ function getAdmin() {
 
 export const config = { maxDuration: 60 };
 
-const REQUEUE_CAP = 200;
+// 2026-05-13: bumped from 200 to 1000 after observing worker capacity (~120
+// jobs/hour theoretical, ~80 sustained) vs cron budget (was 200/6h = 33/hour).
+// At cap=1000/2h = 500/hour, worker becomes the bottleneck (correct ordering).
+const REQUEUE_CAP = 1000;
 
 // Failure patterns that are now likely-recoverable thanks to PR #523's POT stack.
 // We DON'T include 'filtered_too_long_or_large' (legitimate filter) or
