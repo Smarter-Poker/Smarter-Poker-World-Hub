@@ -1119,11 +1119,49 @@ Both shipped as commit `082c4dea48` on `origin/main`. Vercel READY.
 
 ---
 
-## CURRENT STATE — 2026-05-05
+## PHASE 49 — Trivia Timer System Refactor (2026-05-12)
 
-Production is green. Latest deploy READY. Postgres clean. Worker queues healthy.
-Welcome-popup flow verified self-healing top-to-bottom. Trivia API surface
-audited line-by-line (Phase 47) PLUS deeper schema-mismatch audit completed
-(Phase 48 — caught + fixed 2 silent INSERT/UPSERT failures the first pass
-missed). No active incidents. No actionable backlog (per `FUTURE PHASES`
-section above — App Router migration is the only deferred item, parked Q3 2026+).
+Extracted the duplicated shot-clock timer pattern from 5 trivia game pages
+into a shared hook, and fixed a tab-switch bug that permanently broke the
+countdown when a user switched tabs mid-question.
+
+| Deliverable | Detail |
+|---|---|
+| `useTriviaTimer` hook created | New `src/hooks/useTriviaTimer.js` -- encapsulates `timeLeft`, `isTimerRunning`, `timerRef`, visibility-change pause/resume, and shot-clock `setInterval`. Accepts `initialTime`, `showResult`, `gameState`, `playingState`, `onTimeout`, `autoResumeOnVisible` props. |
+| Tab-switch auto-resume bug fixed | Previously all 5 pages paused the timer on `document.hidden` but never resumed on tab return -- user came back to a frozen countdown with no way to proceed. Fixed by adding auto-resume branch to the visibility handler. Default is ON; `endless.js` passes `autoResumeOnVisible=false` since it has its own explicit resume UI. |
+| 5 pages migrated | `mixed.js`, `pvp.js`, `tournaments.js`, `endless.js`, `survival-game.js` -- all inlined timer state replaced with `useTriviaTimer(...)`. Dead code and duplicated `useEffect` blocks removed from each. |
+
+**Files Created:** `src/hooks/useTriviaTimer.js`
+**Files Changed:** `pages/hub/trivia/mixed.js`, `pvp.js`, `tournaments.js`, `endless.js`, `survival-game.js`
+**Impact:** Timer now reliably resumes after tab switch on all 5 game modes. ~200 lines of duplicated timer logic removed.
+
+---
+
+## PHASE 50 — Notifications and Social System DB Hardening (2026-05-12)
+
+10 SQL migrations applied to production addressing notification actor enrichment,
+auto-connect spam suppression, asymmetric friendship repair, streaming gift cap
+logic, training session RLS, and notification read-state sync.
+
+| Migration | Effect |
+|---|---|
+| `20260512100000_training_sessions_owner_update_delete_rls.sql` | Added UPDATE + DELETE RLS policies to `training_sessions` so authenticated users can finalize or quit their own sessions. |
+| `20260512143000_streaming_trigger_null_safe_channel_guard.sql` | `fn_enforce_anti_farming_caps()` -- null-safe COALESCE guard for `transaction_type` and `source` columns so NULL values fall through correctly. |
+| `20260512145000_streaming_cap_popup_messaging.sql` | New `fn_check_anti_farming_gift_cap(sender, recipient, amount)` JSONB function -- 7-tier trust ladder with rich popup messages. CAP_PER_PAIR_24H=5000, CAP_PER_USER_24H=50000, CAP_BURST_60S=2000, CAP_FRESH_PAID_24H=500. |
+| `20260512_add_interaction_triggers.sql` | `trg_notify_interaction_like` on `social_interactions`; `fn_notify_interaction_share()` + `trg_notify_interaction_share`; updated `fn_notify_friend_accepted()` with `actor_id` set. |
+| `20260512_backfill_notification_is_read.sql` | Backfilled `is_read` from `read` column -- fixed badge-count persistence bug where `read=true` rows still counted as unread. |
+| `20260512_fix_asymmetric_friendships.sql` | Inserted missing reverse-direction rows for accepted friendships. Added profile-existence guard to skip orphan FK rows from deleted accounts. |
+| `20260512_fix_autoconnect_notification_spam.sql` | `auto_connect_to_dan_bekavac()` sets `app.suppress_friend_notifications='true'` session config around auto-connect inserts. `fn_notify_friend_request()` checks flag and returns early -- eliminates inbox flood on new signups. Deleted existing ghost notifications. |
+| `20260512_fix_friend_accept_trigger.sql` | Corrected notification direction: accepted status notifies the original requester (NEW.friend_id), actor is the accepter (NEW.user_id). |
+| `20260512_fix_notification_actor_enrichment.sql` | Final authoritative versions of all 4 notification trigger functions with `actor_id` column populated: `fn_notify_friend_request`, `fn_notify_post_like`, `fn_notify_post_comment`, `fn_notify_post_share`. Data JSONB uses consistent `actor_id`/`actor_name` keys. `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id UUID`. Index created on `actor_id`. |
+| `20260512_myspace_tom_auto_connect.sql` | Final `auto_connect_to_dan_bekavac()` with notification suppression + bidirectional friendship + auto-follow. Trigger drop/recreate. GRANT to service_role. |
+
+**Root cause fixed:** All notification triggers previously left `actor_id` NULL. The enrichment pipeline checks `n.actor_id` to look up name and avatar -- since it was always NULL and data keys were inconsistent (`liker_id`, `commenter_id` not recognized), every notification showed "Someone" with no avatar. All triggers now set `actor_id` column + use `actor_id`/`actor_name` in data JSONB.
+
+**All 10 migrations confirmed applied** in `supabase_migrations.schema_migrations`.
+
+---
+
+## CURRENT STATE — 2026-05-12
+
+Production is green. Latest deploy READY. Postgres clean. All 10 Phase 50 migrations applied and confirmed. Notification actor enrichment fixed across all trigger types. Auto-connect spam suppressed. Friendship bidirectionality repaired. Trivia timer extracted to shared hook with tab-switch resume fix. No active incidents.
