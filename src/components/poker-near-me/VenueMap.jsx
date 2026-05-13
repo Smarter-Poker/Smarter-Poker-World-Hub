@@ -85,15 +85,15 @@ const LEAFLET_CUSTOM_CSS = `
 /* ═══ PREMIUM MAP CONTROLS ═══ */
 .leaflet-control-zoom {
   border: none !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 1px rgba(212,168,83,0.3) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.3) !important;
   border-radius: 10px !important;
   overflow: hidden !important;
 }
 .leaflet-control-zoom a {
   background: rgba(10,10,21,0.92) !important;
-  color: #d4a853 !important;
+  color: #ffffff !important;
   border: none !important;
-  border-bottom: 1px solid rgba(212,168,83,0.15) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.15) !important;
   width: 36px !important;
   height: 36px !important;
   line-height: 36px !important;
@@ -102,8 +102,8 @@ const LEAFLET_CUSTOM_CSS = `
   transition: all 0.2s ease !important;
 }
 .leaflet-control-zoom a:hover {
-  background: rgba(212,168,83,0.15) !important;
-  color: #f0d48a !important;
+  background: rgba(255,255,255,0.15) !important;
+  color: #ffffff !important;
 }
 .leaflet-control-zoom a:last-child {
   border-bottom: none !important;
@@ -199,7 +199,7 @@ const LEAFLET_CUSTOM_CSS = `
   z-index: 1000;
   background: rgba(10,10,21,0.92);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(212,168,83,0.2);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 10px;
   padding: 10px 14px;
   font-family: 'Inter', -apple-system, sans-serif;
@@ -211,7 +211,7 @@ const LEAFLET_CUSTOM_CSS = `
 .venue-map-legend-title {
   font-size: 10px;
   font-weight: 700;
-  color: rgba(212,168,83,0.7);
+  color: rgba(255,255,255,0.7);
   letter-spacing: 1px;
   text-transform: uppercase;
   margin-bottom: 6px;
@@ -284,9 +284,9 @@ const LEAFLET_CUSTOM_CSS = `
   background: rgba(10,14,25,0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(212,168,83,0.15);
+  border: 1px solid rgba(255,255,255,0.15);
   border-radius: 20px;
-  color: rgba(212,168,83,0.6);
+  color: rgba(255,255,255,0.8);
   font-size: 11px;
   font-weight: 700;
   font-family: 'Inter', -apple-system, sans-serif;
@@ -1242,7 +1242,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       {/* Visible venue count badge */}
       {mapReady && visibleCount > 0 && (
         <div className="map-venue-count-badge">
-          {visibleCount} venue{visibleCount !== 1 ? 's' : ''}
+          {visibleCount} Venue{visibleCount !== 1 ? 's' : ''}
         </div>
       )}
     </div>

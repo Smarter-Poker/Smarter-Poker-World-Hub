@@ -189,6 +189,7 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
             created_at,
             last_activity_at,
             visibility_override_until,
+            settings,
             owner_id
         `)
         .eq('is_active', true)
@@ -296,46 +297,81 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
     // Final shape — add venue_type discriminator and normalize fields
     // so the frontend map/list components can render home groups alongside
     // regular venues.
-    return rows.map((g) => ({
-        id: g.id,                                // UUID (intentionally string, not int)
-        name: g.name,
-        description: g.description,
-        tagline: g.tagline,
-        venue_type: 'home_game',                 // Discriminator for frontend
-        city: g.city,
-        state: g.state,
-        latitude: g.latitude,
-        longitude: g.longitude,
-        profile_photo_url: g.profile_photo_url,
-        cover_photo_url: g.cover_photo_url,
-        logo_url: g.profile_photo_url,           // Alias — some components read logo_url
-        default_game_type: g.default_game_type,
-        default_stakes: g.default_stakes,
-        typical_buyin_min: g.typical_buyin_min,
-        typical_buyin_max: g.typical_buyin_max,
-        frequency: g.frequency,
-        typical_day: g.typical_day,
-        typical_time: g.typical_time,
-        member_count: g.member_count,
-        games_hosted: g.games_hosted,
-        follower_count: g.follower_count ?? 0,
-        slug: g.slug,
-        social_page_id: g.social_page_id,
-        owner_id: g.owner_id,
-        created_at: g.created_at,
-        last_activity_at: g.last_activity_at,
-        distance_km: g.distance_km,
-        distance_mi: g.distance_mi,
-        // Fields that regular venues have but home groups don't —
-        // nulled out so the frontend doesn't crash on missing keys.
-        address: null,
-        zip_code: null,
-        phone: null,
-        website: null,
-        commander_enabled: false,
-        is_suppressed: false,
-        has_tournaments: false,
-    }));
+    return rows.map((g) => {
+        const settings = g.settings || {};
+        let stakes = [];
+        let games = [];
+        let tournaments = [];
+        
+        if (Array.isArray(settings.tables)) {
+            settings.tables.forEach(t => {
+                const gameName = t.game_type ? t.game_type.toUpperCase() : 'POKER';
+                if (!games.includes(gameName)) games.push(gameName);
+                if (t.stakes) {
+                    const stakeStr = `${t.stakes}`;
+                    if (!stakes.includes(stakeStr)) stakes.push(stakeStr);
+                }
+            });
+        }
+        
+        if (Array.isArray(settings.tournaments)) {
+            settings.tournaments.forEach((t, i) => {
+                tournaments.push({
+                    id: 'hg-t-' + i,
+                    tournament_name: (t.buy_in ? `$${t.buy_in} ` : '') + (t.tournament_name || 'Bounty Tournament'),
+                    start_time: g.typical_time || '',
+                    buy_in: t.buy_in || 0,
+                    guaranteed: null,
+                    _is_today: true // Display always if it's rendered
+                });
+            });
+        }
+
+        return {
+            id: g.id,                                // UUID (intentionally string, not int)
+            name: g.name,
+            description: g.description,
+            tagline: g.tagline,
+            venue_type: 'home_game',                 // Discriminator for frontend
+            city: g.city,
+            state: g.state,
+            latitude: g.latitude,
+            longitude: g.longitude,
+            profile_photo_url: g.profile_photo_url,
+            cover_photo_url: g.cover_photo_url,
+            logo_url: g.profile_photo_url,           // Alias — some components read logo_url
+            default_game_type: g.default_game_type,
+            default_stakes: g.default_stakes,
+            typical_buyin_min: g.typical_buyin_min,
+            typical_buyin_max: g.typical_buyin_max,
+            frequency: g.frequency,
+            typical_day: g.typical_day,
+            typical_time: g.typical_time,
+            member_count: g.member_count,
+            games_hosted: g.games_hosted,
+            follower_count: g.follower_count ?? 0,
+            slug: g.slug,
+            social_page_id: g.social_page_id,
+            owner_id: g.owner_id,
+            created_at: g.created_at,
+            last_activity_at: g.last_activity_at,
+            distance_km: g.distance_km,
+            distance_mi: g.distance_mi,
+            stakes_cash: stakes,
+            games_offered: games,
+            daily_tournaments: tournaments,
+            has_tournaments: tournaments.length > 0,
+            settings: settings,
+            // Fields that regular venues have but home groups don't —
+            // nulled out so the frontend doesn't crash on missing keys.
+            address: null,
+            zip_code: null,
+            phone: null,
+            website: null,
+            commander_enabled: false,
+            is_suppressed: false,
+        };
+    });
 }
 
 /**
