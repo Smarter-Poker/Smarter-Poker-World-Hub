@@ -61,8 +61,10 @@ export async function getServerSideProps({ params, res, req }) {
   }
 
   // Resolve absolute API URL from the request headers for same-host fetch.
-  const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
-  const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const rawHost = req.headers['x-forwarded-host'] || req.headers.host || '';
+  const host = String(rawHost).split(',')[0].trim();
+  const rawProto = req.headers['x-forwarded-proto'] || 'https';
+  const proto = String(rawProto).split(',')[0].trim();
   const base = host ? `${proto}://${host}` : SITE_URL;
 
   try {

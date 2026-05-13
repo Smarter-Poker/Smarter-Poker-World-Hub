@@ -639,9 +639,9 @@ export default function VenueDetailPage() {
   };
 
   useEffect(function () {
-    if (!id) return;
+    if (!id || !venue) return;
     fetchGameSchedule();
-  }, [id]);
+  }, [id, venue]);
 
   // Fetch daily tournaments
   var fetchTournamentSchedule = async function () {
@@ -681,9 +681,9 @@ export default function VenueDetailPage() {
   };
 
   useEffect(function () {
-    if (!id) return;
+    if (!id || !venue) return;
     fetchTournamentSchedule();
-  }, [id]);
+  }, [id, venue]);
 
   var handleAddScheduleEntry = async function (e) {
     e.preventDefault();

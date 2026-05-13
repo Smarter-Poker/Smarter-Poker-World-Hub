@@ -912,14 +912,25 @@ export default async function handler(req, res) {
               }
               venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
 
-              // --- Merge public social pages (clubs, charities, home games) ---
-              // Linked pages enrich their parent JSON venue; unlinked pages create new entries
-              try {
-                  let spQuery = getSupabase()
-                      .from('social_pages')
-                      .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id')
-                      .eq('is_public', true)
-                      .not('location_city', 'is', null);
+                  // --- Merge public social pages (clubs, charities, home games) ---
+                  // Linked pages enrich their parent JSON venue; unlinked pages create new entries
+                  let homeGroups = [];
+                  try {
+                      homeGroups = await fetchPublicHomeGroups({ state, city, search, lat, lng, radius, effectiveType });
+                  } catch (e) {
+                      console.warn('[venues] Home group UNION failed (non-fatal):', e.message);
+                  }
+                  const homeGroupMap = new Map();
+                  for (const hg of homeGroups) {
+                      homeGroupMap.set(String(hg.id), hg);
+                  }
+
+                  try {
+                      let spQuery = getSupabase()
+                          .from('social_pages')
+                          .select('id, slug, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id, linked_entity_id, linked_entity_type')
+                          .eq('is_public', true)
+                          .not('location_city', 'is', null);
 
                   // Apply matching filters to social pages query
                   if (state) spQuery = spQuery.ilike('location_state', state);
@@ -1255,7 +1266,54 @@ export default async function handler(req, res) {
                                       });
                                   }
                               } else {
-                                  // Clubs and home games: single entry with primary coords
+                                  let finalGames = schedGames || [];
+                                  let finalStakes = [];
+                                  let finalHasTourneys = hasTourneys;
+                                  let finalDailyTournaments = [];
+                                  let finalScheduleString = null;
+                                  let hostDisplayName = null;
+                                  let hostAvatarUrl = null;
+                                  let hostUsername = null;
+                                  let hostSocialPageSlug = sp.slug || null;
+
+                                  if (sp.page_type === 'home_game' && sp.linked_entity_id && sp.linked_entity_type === 'home_group') {
+                                      const hg = homeGroupMap.get(String(sp.linked_entity_id));
+                                      if (hg) {
+                                          if (hg.settings) {
+                                              if (Array.isArray(hg.settings.tables)) {
+                                                  hg.settings.tables.forEach(t => {
+                                                      const gName = t.game_type ? t.game_type.toUpperCase() : 'POKER';
+                                                      if (!finalGames.includes(gName)) finalGames.push(gName);
+                                                      if (t.stakes && !finalStakes.includes(t.stakes)) finalStakes.push(t.stakes);
+                                                  });
+                                              } else if (hg.default_game_type && hg.default_stakes) {
+                                                  finalGames = [hg.default_game_type.toUpperCase()];
+                                                  finalStakes = [hg.default_stakes];
+                                              }
+                                              if (Array.isArray(hg.settings.tournaments) && hg.settings.tournaments.length > 0) {
+                                                  finalHasTourneys = true;
+                                                  hg.settings.tournaments.forEach((t, i) => {
+                                                      finalDailyTournaments.push({
+                                                          id: 'hg-t-' + i,
+                                                          tournament_name: t.name || t.tournament_name || 'Bounty Tournament',
+                                                          buy_in: t.buy_in || 0,
+                                                          start_time: t.scheduled_time || '00:00:00',
+                                                          _is_today: false
+                                                      });
+                                                  });
+                                              }
+                                              if (hg.settings.schedule_description) {
+                                                  finalScheduleString = hg.settings.schedule_description;
+                                              }
+                                          }
+                                          if (!finalScheduleString && hg.frequency && hg.typical_day) {
+                                              finalScheduleString = `${hg.frequency} on ${hg.typical_day}s`;
+                                          }
+                                          hostDisplayName = sp.name;
+                                          hostAvatarUrl = sp.avatar_url;
+                                      }
+                                  }
+
                                   mappedPages.push({
                                       id: `sp-${sp.id}`,
                                       name: sp.name,
@@ -1270,9 +1328,16 @@ export default async function handler(req, res) {
                                       follower_count: sp.follower_count || 0,
                                       latitude: primaryLat,
                                       longitude: primaryLng,
-                                      games_offered: schedGames,
-                                      has_tournaments: hasTourneys,
+                                      games_offered: finalGames,
+                                      stakes_cash: finalStakes.length > 0 ? finalStakes : undefined,
+                                      has_tournaments: finalHasTourneys,
+                                      daily_tournaments: finalDailyTournaments.length > 0 ? finalDailyTournaments : undefined,
+                                      schedule: finalScheduleString,
                                       is_featured: isFeatured,
+                                      host_display_name: hostDisplayName,
+                                      host_avatar_url: hostAvatarUrl,
+                                      host_username: hostUsername,
+                                      host_social_page_slug: hostSocialPageSlug
                                   });
                               }
                           }
@@ -1821,24 +1886,8 @@ export default async function handler(req, res) {
           const limited = venues;
 
           // ── PHASE 19: HOME GROUP UNION ────────────────────────────────
-          // Fetch public home groups (Phase 18 auto-hide filter baked in)
-          // and return them under a separate top-level `home_groups` key.
-          // Skip when caller is looking at a single venue (id in query)
-          // since home groups aren't in poker_venues anyway.
-          let homeGroups = [];
-          try {
-              homeGroups = await fetchPublicHomeGroups({
-                  state,
-                  city,
-                  search,
-                  lat,
-                  lng,
-                  radius,
-                  effectiveType,
-              });
-          } catch (e) {
-              console.warn('[venues] Home group UNION failed (non-fatal):', e.message);
-          }
+          // Home groups are already fetched early and included in `venues`
+          // but we still return them under `home_groups` key for compatibility.
 
           return res.status(200).json({
               success: true,

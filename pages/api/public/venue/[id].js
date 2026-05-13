@@ -164,6 +164,17 @@ export default async function handler(req, res) {
           }
         }
 
+        // Bridge: if it's a home game, grab its home group to extract settings for games/stakes/tournaments
+        let homeGroup = null;
+        if (socialPage.page_type === 'home_game' && socialPage.linked_entity_id) {
+          const { data: hg } = await getSupabase()
+            .from('commander_home_groups')
+            .select('id, settings, default_game_type, default_stakes')
+            .eq('id', socialPage.linked_entity_id)
+            .maybeSingle();
+          homeGroup = hg;
+        }
+
         const commanderEnabled = linkedVenue?.commander_enabled || false;
         const venueIdForCommander = linkedVenueId;
 
@@ -280,6 +291,36 @@ export default async function handler(req, res) {
           }
         }
 
+        // Extract home game settings if available
+        let hgGames = linkedVenue?.games_offered || [];
+        let hgStakes = linkedVenue?.stakes_cash || [];
+        let hgTournaments = [];
+        
+        if (homeGroup && homeGroup.settings) {
+          const settings = homeGroup.settings;
+          if (Array.isArray(settings.tables)) {
+             settings.tables.forEach(t => {
+                const gameName = t.game_type ? t.game_type.toUpperCase() : 'POKER';
+                if (!hgGames.includes(gameName)) hgGames.push(gameName);
+                if (t.stakes && !hgStakes.includes(t.stakes)) hgStakes.push(t.stakes);
+             });
+          } else if (homeGroup.default_game_type && homeGroup.default_stakes) {
+             hgGames = [homeGroup.default_game_type.toUpperCase()];
+             hgStakes = [homeGroup.default_stakes];
+          }
+          if (Array.isArray(settings.tournaments)) {
+             settings.tournaments.forEach((t, i) => {
+                hgTournaments.push({
+                   id: 'hg-t-' + i,
+                   name: (t.buy_in ? `$${t.buy_in} ` : '') + (t.name || t.tournament_name || 'Bounty Tournament'),
+                   buy_in_amount: t.buy_in || 0,
+                   scheduled_start: t.scheduled_date && t.scheduled_time ? `${t.scheduled_date}T${t.scheduled_time}:00` : new Date().toISOString(),
+                   status: 'scheduled'
+                });
+             });
+          }
+        }
+
         // Extract coordinates from geocoded_locations metadata
         const geocoded = meta.geocoded_locations || {};
         const primaryLocStr = socialPage.location_city + (socialPage.location_state ? ', ' + socialPage.location_state : '');
@@ -312,20 +353,20 @@ export default async function handler(req, res) {
               commander_enabled: commanderEnabled,
               linked_venue_id: venueIdForCommander,
               amenities: meta.amenities || {},
-              games_offered: linkedVenue?.games_offered || [],
-              stakes_cash: linkedVenue?.stakes_cash || [],
-              poker_tables: linkedVenue?.poker_tables || null,
+              games_offered: hgGames,
+              stakes_cash: hgStakes,
+              poker_tables: linkedVenue?.poker_tables || (homeGroup?.settings?.tables_count || null),
               hours_weekday: linkedVenue?.hours_weekday || null,
               hours_weekend: linkedVenue?.hours_weekend || null,
               trust_score: linkedVenue?.trust_score || null,
               is_featured: linkedVenue?.is_featured || false,
-              has_tournaments: linkedVenue?.has_tournaments || false,
+              has_tournaments: linkedVenue?.has_tournaments || hgTournaments.length > 0,
               photos: meta.photos || [],
               run_schedule: meta.run_schedule || null,
               social_links: meta.social_links || {},
             },
             live_games: liveGames,
-            upcoming_tournaments: upcomingTournaments,
+            upcoming_tournaments: upcomingTournaments.length > 0 ? upcomingTournaments : hgTournaments,
             daily_schedule: [],
             promotions: [],
             waitlist_stats: waitlistStats,
