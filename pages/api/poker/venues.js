@@ -529,6 +529,7 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
 }
 
 export default async function handler(req, res) {
+  let homeGroups = [];
   try {
     // CDN cache: fresh for 120s, serve stale up to 600s
     if (req.method === 'GET') {
@@ -645,7 +646,7 @@ export default async function handler(req, res) {
                       id, name, description, tagline, city, state, latitude, longitude,
                       profile_photo_url, cover_photo_url, default_game_type, default_stakes,
                       typical_buyin_min, typical_buyin_max, frequency, typical_day, typical_time,
-                      member_count, games_hosted, is_active, slug, settings, owner_id
+                      member_count, games_hosted, is_active, settings, owner_id
                   `).eq('id', id).maybeSingle();
                   
                   if (homeGroup && homeGroup.is_active !== false) {
@@ -678,7 +679,7 @@ export default async function handler(req, res) {
                           member_count: homeGroup.member_count,
                           games_hosted: homeGroup.games_hosted,
                           follower_count: page?.follower_count || 0,
-                          slug: homeGroup.slug,
+                          slug: null,
                           settings: homeGroup.settings || {},
                           owner_id: homeGroup.owner_id,
                           social_page_id: page?.id || null,
@@ -914,7 +915,6 @@ export default async function handler(req, res) {
 
                   // --- Merge public social pages (clubs, charities, home games) ---
                   // Linked pages enrich their parent JSON venue; unlinked pages create new entries
-                  let homeGroups = [];
                   try {
                       homeGroups = await fetchPublicHomeGroups({ state, city, search, lat, lng, radius, effectiveType });
                   } catch (e) {
