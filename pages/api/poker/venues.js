@@ -916,7 +916,7 @@ export default async function handler(req, res) {
                   // --- Merge public social pages (clubs, charities, home games) ---
                   // Linked pages enrich their parent JSON venue; unlinked pages create new entries
                   try {
-                      homeGroups = await fetchPublicHomeGroups({ state, city, search, lat, lng, radius, effectiveType });
+                      homeGroups = await fetchPublicHomeGroups({ state, city, search, effectiveType });
                   } catch (e) {
                       console.warn('[venues] Home group UNION failed (non-fatal):', e.message);
                   }
