@@ -1564,7 +1564,7 @@ export function SharedPostCreator({
                       letterSpacing: 0.5,
                     }}
                   >
-                    Home Groups
+                    Home Games
                   </div>
                   {homeGroupTargets.map((hg) => {
                     const isActive = activeHomeGroup?.target_id === hg.target_id;
