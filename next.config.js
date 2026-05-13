@@ -381,7 +381,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.supabase.co' },                    // Any Supabase project
       { protocol: 'https', hostname: 'images.unsplash.com' },              // Fallback stock photos
       { protocol: 'https', hostname: 'smarter.poker' },                    // Platform CDN
-      { protocol: 'https', hostname: '*.smarter.poker' },                  // Auth/storage CNAME (auth.smarter.poker hosts Supabase storage), Commander, Diamond, etc.
+      { protocol: 'https', hostname: '*.smarter.poker' },                  // Auth/storage CNAME (auth.smarter.poker hosts Supabase storage), Commander, Diamond, etc. PR#531 touch.
       { protocol: 'https', hostname: 'diamond.smarter.poker' },            // Diamond assets (kept explicit for clarity even though *.smarter.poker covers it)
       { protocol: 'https', hostname: 'api.qrserver.com' },                 // QR code generation
       { protocol: 'https', hostname: 'img.youtube.com' },                  // YouTube thumbnails
