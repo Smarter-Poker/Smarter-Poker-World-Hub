@@ -329,7 +329,7 @@ ALL_CRONS = [
     # stack (PR #523). Most cookie-auth failures from earlier weeks will now
     # succeed because the pipeline no longer depends on Google login.
     # Safe: caps at 200 jobs/fire, skips jobs <1h old, skips attempts>=5.
-    ('/api/cron/yt-pipeline-recovery',            dict(hour='*/2')),          # every 2h (cap=1000)
+    ('/api/cron/yt-pipeline-recovery',            dict(minute='*/15')),       # every 15 min — keeps worker queue topped up continuously (cap=1000, auto-marks permanent failures)
 
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.

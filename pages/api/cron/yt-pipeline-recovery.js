@@ -38,9 +38,11 @@ function getAdmin() {
 
 export const config = { maxDuration: 60 };
 
-// 2026-05-13: bumped from 200 to 1000 after observing worker capacity (~120
-// jobs/hour theoretical, ~80 sustained) vs cron budget (was 200/6h = 33/hour).
-// At cap=1000/2h = 500/hour, worker becomes the bottleneck (correct ordering).
+// 2026-05-13 v2: cadence flipped from */2h to */15min. With only ~162
+// unique queueable URLs in the entire system and 3-min avg per job, the
+// worker drains the queue in minutes. Frequent small cron fires keep the
+// queue topped up continuously instead of draining and waiting 2h.
+// CAP stays at 1000 (would re-queue everything in one fire anyway).
 const REQUEUE_CAP = 1000;
 
 // Failure patterns that are now likely-recoverable thanks to PR #523's POT stack.
@@ -75,7 +77,39 @@ export default async function handler(req, res) {
     let requeued = 0;
     const sampleIds = [];
 
+    let permanentlyHidden = 0;
+
     try {
+        // PHASE 0: auto-mark permanent-failure reels is_public=false so
+        // they stop showing in /hub/reels. These are videos that can never
+        // be transcoded by ANY pipeline (geo-blocked, members-only,
+        // private, removed from YouTube).
+        try {
+            const { data: permJobs } = await admin
+                .from('video_transcode_jobs')
+                .select('reel_id, error_message')
+                .eq('status', 'failed')
+                .or([
+                    'error_message.ilike.%uploader has not made%',
+                    'error_message.ilike.%available to this channel%',
+                    'error_message.ilike.%Private video%',
+                    'error_message.ilike.%video is unavailable%',
+                ].join(','))
+                .limit(500);
+            if (permJobs && permJobs.length) {
+                const ids = [...new Set(permJobs.map(j => j.reel_id).filter(Boolean))];
+                if (ids.length) {
+                    const { count } = await admin
+                        .from('social_reels')
+                        .update({ is_public: false })
+                        .in('id', ids)
+                        .eq('is_public', true)
+                        .select('id', { count: 'exact', head: true });
+                    permanentlyHidden = count || 0;
+                }
+            }
+        } catch (e) { /* non-fatal */ }
+
         // Build the OR clause: error_message ILIKE any-of-recoverable
         const orClause = RECOVERABLE_PATTERNS
             .map(p => `error_message.ilike.%${p.replace(/[%,()]/g, '_')}%`)
@@ -122,13 +156,14 @@ export default async function handler(req, res) {
         try {
             await admin.from('probe_heartbeats').insert({
                 probe_name: 'yt-pipeline-recovery',
-                metadata: { requeued, scanned, duration_ms: Date.now() - started },
+                metadata: { requeued, scanned, permanentlyHidden, duration_ms: Date.now() - started },
             });
         } catch (_) { /* heartbeats table may not exist on all envs */ }
 
         return res.status(200).json({
             status: 'ok',
             requeued,
+            permanentlyHidden,
             scanned,
             sample_ids: sampleIds,
             duration_ms: Date.now() - started,
