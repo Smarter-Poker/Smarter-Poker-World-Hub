@@ -1,8 +1,6 @@
-fetch("http://localhost:3000/api/poker/venues?limit=500")
-  .then(r => r.json())
-  .then(d => {
-    console.log("Success:", d.success);
-    if (!d.success) console.log("Error:", d);
-    else console.log("Venues found:", d.data.length, "Midway?", d.data.some(v => v.name.includes("Midway")));
-  })
+fetch("https://smarter.poker/club/4fed1703-766c-45c7-8d4f-6637ed0ceea4")
+  .then(r => console.log("Club Page Status:", r.status))
+  .catch(console.error);
+fetch("https://smarter.poker/hub/home-games/the-midway-club")
+  .then(r => console.log("Home Game Page Status:", r.status))
   .catch(console.error);

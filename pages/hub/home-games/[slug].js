@@ -839,7 +839,7 @@ const pageStyles = `
 @media (max-width: 900px){.hgs-body{grid-template-columns:1fr}}
 .hgs-section{background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:20px;margin-bottom:18px}
 .hgs-section h2{font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.55);margin:0 0 14px;font-weight:800}
-.hgs-section p{color:rgba(255,255,255,.78);line-height:1.55;margin:0;white-space:pre-wrap}
+.hgs-section p{color:rgba(255,255,255,.5);font-size:13px;font-style:italic;line-height:1.55;margin:0;white-space:pre-wrap}
 .hgs-empty{color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:14px}
 .hgs-games-list{display:flex;flex-direction:column;gap:10px}
 .hgs-game-card{display:flex;align-items:stretch;gap:14px;padding:14px;background:rgba(0,0,0,.25);border:1px solid rgba(148,163,184,.1);border-radius:10px}

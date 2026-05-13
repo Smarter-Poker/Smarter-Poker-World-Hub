@@ -112,7 +112,7 @@ const LEAFLET_CUSTOM_CSS = `
 /* ═══ ATTRIBUTION — Smarter.Poker Branding ═══ */
 .leaflet-control-attribution {
   background: linear-gradient(90deg, rgba(10,10,21,0.85), rgba(10,10,21,0.7)) !important;
-  color: rgba(212,168,83,0.7) !important;
+  color: rgba(255,255,255,0.7) !important;
   font-size: 10px !important;
   padding: 3px 10px !important;
   border-radius: 6px 0 0 0 !important;
@@ -121,7 +121,7 @@ const LEAFLET_CUSTOM_CSS = `
   font-family: 'Inter', -apple-system, sans-serif !important;
 }
 .leaflet-control-attribution a {
-  color: #d4a853 !important;
+  color: #ffffff !important;
   text-decoration: none !important;
 }
 
@@ -129,8 +129,8 @@ const LEAFLET_CUSTOM_CSS = `
 .leaflet-popup-content-wrapper {
   background: linear-gradient(145deg, rgba(15,23,42,0.98) 0%, rgba(10,10,21,0.99) 100%) !important;
   border-radius: 14px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 1px rgba(212,168,83,0.4), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-  border: 1px solid rgba(212,168,83,0.2) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.4), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
   padding: 0 !important;
 }
 .leaflet-popup-content {
@@ -139,7 +139,7 @@ const LEAFLET_CUSTOM_CSS = `
 }
 .leaflet-popup-tip {
   background: rgba(15,23,42,0.98) !important;
-  border: 1px solid rgba(212,168,83,0.15) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
 }
 .leaflet-popup-close-button {
@@ -151,7 +151,7 @@ const LEAFLET_CUSTOM_CSS = `
   pointer-events: auto !important;
 }
 .leaflet-popup-close-button:hover {
-  color: #d4a853 !important;
+  color: #ffffff !important;
 }
 
 /* ═══ MARKER PULSE ANIMATION ═══ */
@@ -248,14 +248,14 @@ const LEAFLET_CUSTOM_CSS = `
   background: rgba(10,14,25,0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(212,168,83,0.3);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 10px;
-  color: #d4a853;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   font-family: 'Inter', -apple-system, sans-serif;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 0 1px rgba(212,168,83,0.2);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.2);
   transition: all 0.2s;
   -webkit-appearance: none;
   appearance: none;
@@ -263,9 +263,9 @@ const LEAFLET_CUSTOM_CSS = `
 }
 .navigate-nearest-btn:hover {
   background: rgba(20,28,45,0.95);
-  border-color: rgba(212,168,83,0.5);
+  border-color: rgba(255,255,255,0.5);
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 2px rgba(212,168,83,0.3);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 2px rgba(255,255,255,0.3);
 }
 .navigate-nearest-text {
   overflow: hidden;
@@ -328,7 +328,7 @@ export class MapErrorBoundary extends React.Component {
           )}
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            style={{ marginTop: 16, padding: '10px 20px', background: 'rgba(212,168,83,0.2)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8, color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            style={{ marginTop: 16, padding: '10px 20px', background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, color: '#ffffff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >Try Again</button>
         </div>
       );
@@ -414,20 +414,20 @@ function createClusterIcon(L, cluster) {
   // Color gradient based on count
   let bgGradient, glowColor, textColor;
   if (count >= 100) {
-    bgGradient = 'linear-gradient(135deg, #d4a853 0%, #b8860b 50%, #8B6914 100%)';
-    glowColor = 'rgba(212,168,83,0.5)';
+    bgGradient = 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #8B6914 100%)';
+    glowColor = 'rgba(255,255,255,0.5)';
     textColor = '#000';
   } else if (count >= 50) {
-    bgGradient = 'linear-gradient(135deg, #f0d48a 0%, #d4a853 50%, #b8860b 100%)';
-    glowColor = 'rgba(212,168,83,0.4)';
+    bgGradient = 'linear-gradient(135deg, #f0d48a 0%, #ffffff 50%, #e2e8f0 100%)';
+    glowColor = 'rgba(255,255,255,0.4)';
     textColor = '#000';
   } else if (count >= 20) {
-    bgGradient = 'linear-gradient(135deg, rgba(212,168,83,0.9) 0%, rgba(184,134,11,0.85) 100%)';
-    glowColor = 'rgba(212,168,83,0.35)';
+    bgGradient = 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(184,134,11,0.85) 100%)';
+    glowColor = 'rgba(255,255,255,0.35)';
     textColor = '#000';
   } else {
-    bgGradient = 'linear-gradient(135deg, rgba(212,168,83,0.75) 0%, rgba(184,134,11,0.7) 100%)';
-    glowColor = 'rgba(212,168,83,0.25)';
+    bgGradient = 'linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(184,134,11,0.7) 100%)';
+    glowColor = 'rgba(255,255,255,0.25)';
     textColor = '#1a1a2e';
   }
 
@@ -459,7 +459,7 @@ const TOUR_MARKER_COLORS = {
 // One tour circle with colored ring and pulse animation.
 // No venue initials circle — removed to keep the map clean.
 function createTourLogoIcon(L, venue) {
-  const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#d4a853';
+  const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ffffff';
   const tourLogoUrl = venue.logo_url || '';
   const tourCode = (venue.tour_code || 'TOUR').slice(0, 4);
 
@@ -505,7 +505,7 @@ function createTourLogoIcon(L, venue) {
 
 // ─── Helper: Build tour-specific popup HTML ───
 function buildTourPopupHtml(venue) {
-  const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#d4a853';
+  const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ffffff';
   // Poker tours always use red ring — they are poker tour stops, not regular venues
   const ringColor = '#ef4444';
   const logoHtml = venue.logo_url
@@ -575,7 +575,7 @@ function buildPopupHtml(venue) {
   const logoUrl = venue.logo_url || venue.profile_photo_url || venue.cover_photo_url || venue.image_url || '';
   const initials = escapeHtml((venue.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase());
   const logoBadge = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid rgba(212,168,83,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
+    ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid rgba(255,255,255,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
     : `<div style="display:flex;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`;
 
   // Phone call button
@@ -605,7 +605,7 @@ function buildPopupHtml(venue) {
     </div>
     ${addrLine}
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-      <span style="padding:3px 10px;border-radius:6px;background:${colors.badgeBg || 'rgba(212,168,83,0.15)'};color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
+      <span style="padding:3px 10px;border-radius:6px;background:${colors.badgeBg || 'rgba(255,255,255,0.15)'};color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
       ${openBadge}
       ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${hours}</span>` : ''}
     </div>
@@ -616,7 +616,7 @@ function buildPopupHtml(venue) {
       <div style="font-size:11px;color:rgba(148,163,184,0.5);">${venue.trust_score || '—'}/5</div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(venue.name) || 'Venue Details'}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;border:none;cursor:pointer;">View Details</button>
+      <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(venue.name) || 'Venue Details'}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#ffffff,#e2e8f0);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;border:none;cursor:pointer;">View Details</button>
       <button class="directions-trigger" data-addr="${encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;transition:all 0.15s;">Directions</button>
       ${phoneBtn}
     </div>
@@ -871,7 +871,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         L.geoJSON(statesData, {
           style: function() {
             return {
-              color: 'rgba(212,168,83,0.15)',
+              color: 'rgba(255,255,255,0.15)',
               weight: 1,
               fillColor: 'transparent',
               fillOpacity: 0,
@@ -1027,7 +1027,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         const base = createVenueIcon(L, venue, uniformColor || null);
         const size = base.options?.iconSize?.[0] || 36;
         const favHtml = `<div style="position:relative;width:${size + 10}px;height:${size + 10}px;">
-          <div style="position:absolute;top:-1px;left:-1px;width:${size + 2}px;height:${size + 2}px;border-radius:50%;border:2.5px solid #d4a853;opacity:0.85;animation:markerPulse 1.8s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:-1px;left:-1px;width:${size + 2}px;height:${size + 2}px;border-radius:50%;border:2.5px solid #ffffff;opacity:0.85;animation:markerPulse 1.8s ease-in-out infinite;"></div>
           ${base.options.html}
         </div>`;
         return L.divIcon({ ...base.options, html: favHtml, iconSize: [size + 10, size + 10] });
@@ -1181,7 +1181,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           ...(fullHeight ? { height: '100%', minHeight: 400 } : { aspectRatio: '16 / 9', maxHeight: '50vh' }),
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexDirection: 'column', gap: 12,
-          color: 'rgba(212,168,83,0.6)',
+          color: 'rgba(255,255,255,0.6)',
           background: 'linear-gradient(180deg, rgba(10,10,21,0.95) 0%, rgba(6,8,13,1) 100%)',
           borderRadius: fullHeight ? 0 : 12,
           position: 'relative',
@@ -1190,19 +1190,19 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           {/* Animated gradient sweep */}
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(90deg, transparent 0%, rgba(212,168,83,0.04) 50%, transparent 100%)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)',
             animation: 'shimmer 2s ease-in-out infinite',
           }} />
           <div style={{
-            width: 48, height: 48, border: '3px solid rgba(212,168,83,0.15)',
-            borderTopColor: '#d4a853', borderRadius: '50%',
+            width: 48, height: 48, border: '3px solid rgba(255,255,255,0.15)',
+            borderTopColor: '#ffffff', borderRadius: '50%',
             animation: 'spin 1s linear infinite',
           }} />
           <span style={{ fontFamily: 'Inter, -apple-system, sans-serif', fontSize: 14, fontWeight: 600, letterSpacing: '1px' }}>
             LOADING MAP...
           </span>
           <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.4)' }}>
-            {(venues || []).length} venues ready
+            {(venues || []).length} Venues Ready
           </span>
           <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
         </div>
@@ -1216,7 +1216,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
             : { aspectRatio: '16 / 9', maxHeight: '50vh', minHeight: 260 }),
           borderRadius: fullHeight ? 0 : 12,
           overflow: 'hidden',
-          border: fullHeight ? 'none' : '1px solid rgba(212,168,83,0.15)',
+          border: fullHeight ? 'none' : '1px solid rgba(255,255,255,0.15)',
           display: mapReady ? 'block' : 'none',
           boxShadow: fullHeight ? 'none' : '0 4px 24px rgba(0,0,0,0.4)',
         }}
