@@ -24,7 +24,9 @@ function getSupabase() {
     return _supabase;
 }
 // Reuse singleton anti-cheat (with supabase for DB persistence)
-if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(supabaseAdmin);
+// FIX: supabaseAdmin was undefined (never declared) → ReferenceError at module load → 500 on every request.
+// getSupabase() is the lazy singleton already declared above.
+if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(getSupabase());
 const antiCheat = globalThis.__ANTI_CHEAT__;
 
 
@@ -50,7 +52,7 @@ try {
 
       if (!tableId) return res.status(400).json({ success: false, error: 'tableId required' });
 
-      // ── IDEMPOTENCY LOCK ──────────────────────────────────────
+      // ── IDEMPOTENCY LOCK ────────────────────────────
       const idempotencyKey = req.headers['x-idempotency-key'];
       if (idempotencyKey) {
         const { error: lockErr } = await getSupabase()
@@ -71,7 +73,7 @@ try {
 
       const controller = await getController();
 
-      // ── COLD-START AUTO-RECOVERY ──────────────────────────────────
+      // ── COLD-START AUTO-RECOVERY ──────────────────────────────
       // If this serverless function spun up fresh and the table isn't in
       // memory yet, ensureTable() re-connects it from DB before we fail.
       if (!controller.lobby.tables.has(tableId)) {
@@ -81,7 +83,7 @@ try {
         }
       }
 
-      // ── SPECIAL ACTIONS (non-game) ─────────────────────────────
+      // ── SPECIAL ACTIONS (non-game) ─────────────────────────
       // These are handled outside the standard game action flow
 
       // Emoji Throwing: broadcast to table channel
@@ -125,7 +127,7 @@ try {
         return res.json({ success: true });
       }
 
-      // ── STANDARD GAME ACTIONS ──────────────────────────────────
+      // ── STANDARD GAME ACTIONS ──────────────────────────
       if (!action || !action.type) return res.status(400).json({ success: false, error: 'action.type required' });
       if (!VALID_ACTIONS.has(action.type)) {
         return res.status(400).json({ success: false, error: `Invalid action: ${action.type}` });

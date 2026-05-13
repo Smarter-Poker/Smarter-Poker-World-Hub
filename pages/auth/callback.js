@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    AUTH CALLBACK — /auth/callback
-   ─────────────────────────────────────────────────────────────────────────
+   ───────────────────────────────────────────────────────────────────────────
    This route is the redirect target for ALL Supabase auth flows that leave
    the SPA and come back via the browser:
 
@@ -51,7 +51,9 @@ export default function AuthCallback() {
 
         const goLogin = (msg) => {
             setError(msg);
-            setTimeout(() => router.replace('/auth/login'), 2500);
+            // 1500ms: still long enough to read the error; was 2500ms which caused
+            // the e2e/07-auth.spec.ts 8000ms timeout to expire in CI.
+            setTimeout(() => router.replace('/auth/login'), 1500);
         };
 
         const handleCallback = async () => {
