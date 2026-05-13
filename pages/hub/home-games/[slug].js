@@ -382,6 +382,37 @@ export default function PublicHomeGamePage({ data, serverError }) {
     setTimeout(() => setCopyState(''), 2000);
   };
 
+  // ── Message Host ────────────────────────────────────────────────
+  // Opens a DM thread with the game host. Signed-in users go straight through;
+  // anonymous visitors are bounced to login with ?redirect back here.
+  const handleMessageHost = async () => {
+    const hostId = host?.id;
+    if (!hostId) return;
+    const token = await getAccessToken();
+    if (!token) {
+      const returnTo = typeof window !== 'undefined' ? window.location.pathname : `/hub/home-games/${page.slug}`;
+      router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    // Start / open the DM conversation via the messenger API.
+    try {
+      const res = await fetch('/api/messenger/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ recipient_id: hostId }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (json.conversation_id || json.id) {
+        router.push(`/hub/messenger?conversation=${json.conversation_id || json.id}`);
+      } else {
+        // Fall back: just open the messenger inbox — user can search for the host
+        router.push('/hub/messenger');
+      }
+    } catch {
+      router.push('/hub/messenger');
+    }
+  };
+
   return (
     <>
       <SEOHead
@@ -448,6 +479,16 @@ export default function PublicHomeGamePage({ data, serverError }) {
             >
               Join Group
             </button>
+            {host?.id && (
+              <button
+                id="hgs-message-host-btn"
+                className="hgs-ghost-btn"
+                onClick={handleMessageHost}
+                title={`Message ${host.display_name || 'Host'}`}
+              >
+                Message Host
+              </button>
+            )}
             <button
               className={'hgs-follow-btn' + (isFollowing ? ' hgs-follow-btn-on' : '')}
               onClick={handleFollowToggle}
@@ -559,6 +600,31 @@ export default function PublicHomeGamePage({ data, serverError }) {
                   <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>
                 )}
                 {group.max_players && <div><dt>Max</dt><dd>{group.max_players} players</dd></div>}
+                {group.contact_phone && (
+                  <div>
+                    <dt>Phone</dt>
+                    <dd>
+                      <a href={`tel:${group.contact_phone.replace(/\D/g, '')}`} style={{ color: 'inherit' }}>
+                        {group.contact_phone}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                {group.website_url && (
+                  <div>
+                    <dt>Website</dt>
+                    <dd>
+                      <a
+                        href={group.website_url.startsWith('http') ? group.website_url : `https://${group.website_url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#22d3ee', wordBreak: 'break-all' }}
+                      >
+                        {group.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    </dd>
+                  </div>
+                )}
               </dl>
             </section>
 

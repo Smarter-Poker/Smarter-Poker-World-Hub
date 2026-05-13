@@ -1369,7 +1369,46 @@ export default function ManageHomeGamePage() {
                 </div>
               </div>
 
+              {/* Contact Info — optional public contact details */}
+              <div className="cmd-panel p-6">
+                <h3 className="font-semibold text-white mb-1">Contact Info</h3>
+                <p className="text-sm text-[#64748B] mb-4">
+                  These are shown publicly on your home game card and details page so players can reach you directly.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={group?.contact_phone || ''}
+                      onChange={(e) => setGroup(prev => ({ ...prev, contact_phone: e.target.value }))}
+                      onBlur={(e) => handleUpdateSettings({ contact_phone: e.target.value.trim() || null })}
+                      placeholder="(555) 000-0000"
+                      maxLength={30}
+                      className="w-full h-10 px-3 cmd-input"
+                    />
+                    <p className="text-xs text-[#4A5E78] mt-1">Appears as a clickable tel: link on mobile.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">Website / Social Link</label>
+                    <input
+                      type="url"
+                      value={group?.website_url || ''}
+                      onChange={(e) => setGroup(prev => ({ ...prev, website_url: e.target.value }))}
+                      onBlur={(e) => handleUpdateSettings({ website_url: e.target.value.trim() || null })}
+                      placeholder="https://yoursite.com"
+                      maxLength={255}
+                      className="w-full h-10 px-3 cmd-input"
+                    />
+                    <p className="text-xs text-[#4A5E78] mt-1">Link to your Facebook group, website, or any other URL.</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Privacy Settings */}
+
               <div className="cmd-panel p-6">
                 <h3 className="font-semibold text-white mb-4">Privacy</h3>
 

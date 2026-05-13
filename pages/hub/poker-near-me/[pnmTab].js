@@ -3037,13 +3037,13 @@ export default function PokerNearMePage({ initialTab }) {
                             'Loading Live Data...'
                         ) : (
                             <>
-                                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues
+                                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'}{' '}Venues
                                 &nbsp;&bull;&nbsp;
                                 {liveTableCount.toLocaleString()} Live Tables
                                 {dbStats.tournaments > 0 && (
                                     <>
                                         &nbsp;&bull;&nbsp;
-                                        {dbStats.tournaments.toLocaleString()} Today&apos;s Tournaments
+                                        {dbStats.tournaments.toLocaleString()}{' '}Tournaments Today
                                     </>
                                 )}
                             </>
