@@ -550,10 +550,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     )}
                 </div>
             )}
-            {/* Home Game Description */}
-            {venue.venue_type === 'home_game' && venue.description && (
-                <p className="vc3-description">{venue.description}</p>
-            )}
 
             {/* === REVIEW RATING === */}
             {reviewStats && reviewStats.total_reviews > 0 && (
