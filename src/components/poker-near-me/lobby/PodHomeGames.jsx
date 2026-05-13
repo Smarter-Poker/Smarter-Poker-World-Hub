@@ -24,10 +24,71 @@ const CreateHomeGame = dynamic(() => import('../CreateHomeGame'), { ssr: false }
 // API) into the venue-shaped object VenueCard expects. This adapter lets us
 // keep the existing VenueCard UI while pulling from the canonical home-game
 // feed. Navigation is routed to /hub/home-games/[slug].
+// Build a rich stakes array from the discover API response.
+// The host enters stakes as a freeform string (e.g. "NLH 1/2" or "PLO 2/5").
+// We try to split it into per-game rows; if it looks like a single combined
+// stake we just keep the whole string as one row. Additional game types
+// (typical_buyin_min/max) also generate a formatted row.
+function buildStakesArray(g) {
+  const rows = [];
+
+  // Primary stake — split on commas/semicolons if the host listed multiple
+  if (g.default_stakes) {
+    const parts = String(g.default_stakes).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+    parts.forEach(p => rows.push(p));
+  }
+
+  // If the host set a buyin range but no stakes string, synthesise one
+  if (rows.length === 0 && (g.typical_buyin_min || g.typical_buyin_max)) {
+    const gameLabel = (g.default_game_type || 'NLH').toUpperCase();
+    const min = g.typical_buyin_min ? `$${g.typical_buyin_min}` : '';
+    const max = g.typical_buyin_max ? `$${g.typical_buyin_max}` : '';
+    const range = min && max ? `${min}–${max} Buy-In` : (min || max ? `${min || max} Buy-In` : '');
+    rows.push(`${gameLabel}${range ? ' · ' + range : ''}`);
+  }
+
+  return rows;
+}
+
+// Build a games_offered chip array from the discover API response.
+function buildGamesOffered(g) {
+  const chips = [];
+  if (g.default_game_type) {
+    chips.push((g.default_game_type || '').toUpperCase());
+  }
+  return chips;
+}
+
+// Build a synthetic daily_tournaments array from the group's next game
+// so VenueCard's right column ("Today's Tournaments") shows the upcoming
+// game — exactly the same pattern charity cards use.
+function buildNextGameTournaments(g) {
+  if (!g.next_game_date) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  // Show if scheduled within the next 7 days (not just today)
+  const diffDays = Math.round(
+    (new Date(g.next_game_date) - new Date(today)) / 86400000
+  );
+  if (diffDays < 0 || diffDays > 7) return [];
+  return [{
+    id: `hg-next-${g.id}`,
+    tournament_name: g.next_game_title || `${(g.default_game_type || 'Poker').toUpperCase()} Game`,
+    start_time: g.next_game_time || null,
+    buy_in: g.typical_buyin_min || 0,
+    game_type: (g.default_game_type || 'NLH').toUpperCase(),
+    _days_away: diffDays,
+    _is_today: diffDays === 0,
+  }];
+}
+
 function adaptHomeGameToVenueShape(g) {
-  const stakesArr = g.default_stakes ? [g.default_stakes] : [];
-  const gameTypeLabel = (g.default_game_type || '').toString().toUpperCase();
-  const gamesOffered = gameTypeLabel ? [gameTypeLabel] : [];
+  const stakesArr = buildStakesArray(g);
+  const gamesOffered = buildGamesOffered(g);
+  const nextGameTournaments = buildNextGameTournaments(g);
+
+  // Host data comes from the discover API's nested `host` object
+  const host = g.host || null;
+
   return {
     id: g.id,
     name: g.name,
@@ -43,8 +104,11 @@ function adaptHomeGameToVenueShape(g) {
     games_offered: gamesOffered,
     stakes_cash: stakesArr,
     about: g.description || g.tagline || '',
+    description: g.description || g.tagline || '',
     tagline: g.tagline || '',
-    trust_score: 3.0,
+    // No hardcoded trust_score — let VenueCard show "New" for groups with no reviews.
+    // Only set if the group has an explicit rating in the future.
+    trust_score: g.trust_score || 0,
     is_active: true,
     is_featured: false,
     cover_photo_url: g.cover_url || null,
@@ -56,13 +120,20 @@ function adaptHomeGameToVenueShape(g) {
     slug: g.slug || null,
     invite_code: g.invite_code || null,
     club_code: g.club_code || null,
-    // Preserve useful extras for card decorations if VenueCard knows them.
-    host_display_name: g.host_display_name || null,
+    // Host info — populated from discover API's `host` join
+    host_display_name: host?.display_name || g.host_display_name || null,
+    host_avatar_url: host?.avatar_url || null,
+    host_id: host?.id || null,
     member_count: g.member_count || 0,
     games_hosted: g.games_hosted || 0,
     next_game_date: g.next_game_date || null,
     next_game_title: g.next_game_title || null,
     next_game_seats_left: g.next_game_seats_left ?? null,
+    // Synthetic tournament list for VenueCard right column (next scheduled game)
+    has_tournaments: nextGameTournaments.length > 0,
+    daily_tournaments: nextGameTournaments,
+    // Distance from discover API (Phase 21)
+    distance_mi: g.distance_miles ?? null,
   };
 }
 

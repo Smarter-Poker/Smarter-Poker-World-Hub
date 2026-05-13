@@ -133,7 +133,8 @@ function getGameChipStyle(gameName) {
 }
 
 function getTrustLevel(score) {
-    // Use actual ratio for bar fill (score/5 * 100)
+    // A score of 0 means "no rating yet" — treat as New, not Low
+    if (!score || score <= 0) return { label: 'New', color: '#64748b', pct: 0 };
     const pct = Math.round((score / 5) * 100);
     if (score >= 4.5) return { label: 'Excellent', color: '#22c55e', pct };
     if (score >= 4.0) return { label: 'Good', color: '#3b82f6', pct };
@@ -154,6 +155,14 @@ function getVenueColor(venue) {
 
 // Get the correct detail URL for a venue or social page
 function getVenueUrl(venue) {
+    // Home games live in /hub/home-games/[slug] — NOT /hub/venues/[uuid].
+    // Routing a UUID to /hub/venues/ causes a 500 because poker_venues has
+    // no row for commander_home_groups IDs.
+    if (venue.venue_type === 'home_game') {
+        if (venue.slug) return '/hub/home-games/' + venue.slug;
+        if (venue.club_code) return '/home-game/' + venue.club_code;
+        if (venue.invite_code) return '/home-game/' + venue.invite_code;
+    }
     if (venue.is_social_page && venue.social_page_id) {
         return '/club/' + venue.social_page_id;
     }
@@ -749,9 +758,20 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         const charityToday = venue.venue_type === 'charity' && venue.is_today && venue.today_event;
                         const charityUpcoming = venue.venue_type === 'charity' && !venue.is_today && venue.next_event;
                         const hasRegularToday = venue.has_tournaments && Array.isArray(venue.daily_tournaments) && venue.daily_tournaments.length > 0;
+                        // For home games: check if any of the daily_tournaments are today vs upcoming
+                        const homeGameTodayGames = venue.venue_type === 'home_game' && hasRegularToday
+                            ? venue.daily_tournaments.filter(t => t._is_today)
+                            : [];
+                        const homeGameUpcomingGames = venue.venue_type === 'home_game' && hasRegularToday
+                            ? venue.daily_tournaments.filter(t => !t._is_today)
+                            : [];
                         
                         let colTitle = 'Today\'s Tournaments';
-                        if (charityToday || hasRegularToday) {
+                        if (venue.venue_type === 'home_game') {
+                            if (homeGameTodayGames.length > 0) colTitle = 'Today\'s Game';
+                            else if (homeGameUpcomingGames.length > 0) colTitle = 'Upcoming Game';
+                            else colTitle = 'Upcoming Game';
+                        } else if (charityToday || hasRegularToday) {
                             colTitle = 'Today\'s Tournaments';
                         } else if (charityUpcoming || (venue.has_tournaments && !hasRegularToday)) {
                             colTitle = 'Upcoming Tournaments';
@@ -856,8 +876,20 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                         {venue.daily_tournaments.filter(t => !t?.is_suppressed).slice(0, 3).map((t, idx) => {
                                             const tName = t?.tournament_name || t?.name || 'Tournament';
+                                            // Build date label for home game entries with _days_away
+                                            let daysBadgeLabel = null;
+                                            if (venue.venue_type === 'home_game' && t._days_away != null) {
+                                                if (t._is_today) daysBadgeLabel = 'Today';
+                                                else if (t._days_away === 1) daysBadgeLabel = 'Tomorrow';
+                                                else {
+                                                    const d = new Date();
+                                                    d.setDate(d.getDate() + t._days_away);
+                                                    daysBadgeLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                                                }
+                                            }
+                                            const daysBadgeColor = t._is_today ? '#4ade80' : '#60a5fa';
                                             return (
-                                                <div key={`daily-tourney-${t?.id || tName.replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-tourney-item">
+                                                <div key={`daily-tourney-${t?.id || tName.replace(/\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-tourney-item">
                                                     <div className="vc3-tourney-name" title={tName}>{tName}</div>
                                                     <div className="vc3-tourney-details">
                                                         <span className="vc3-tourney-time">{formatTime(t?.start_time) || 'Time TBD'}</span>
@@ -869,6 +901,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                     )}
                                                     {t?.blind_levels != null && String(t.blind_levels).trim() && String(t.blind_levels) !== 'N/A' && (
                                                         <div className="vc3-tourney-blinds">{t.blind_levels} Levels</div>
+                                                    )}
+                                                    {daysBadgeLabel && (
+                                                        <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={daysBadgeColor} strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                                            </svg>
+                                                            <span style={{ color: daysBadgeColor, fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{daysBadgeLabel}</span>
+                                                        </div>
                                                     )}
                                                 </div>
                                             );
@@ -921,7 +961,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     </div>
                                 ) : (
                                     <div className="vc3-empty-state">
-                                        {colTitle === 'Upcoming Tournaments' ? 'See Schedule For Details' : 'No Tournaments Today'}
+                                        {venue.venue_type === 'home_game'
+                                            ? 'No Games Scheduled'
+                                            : (colTitle === 'Upcoming Tournaments' ? 'See Schedule For Details' : 'No Tournaments Today')}
                                     </div>
                                 )}
                             </div>
@@ -1020,7 +1062,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <>
                         <div className="vc3-trust-header">
                             <span className="vc3-trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                            <span className="vc3-trust-val" style={{ color: trust.color }}>{venue.trust_score || '-'}/5</span>
+                            <span className="vc3-trust-val" style={{ color: trust.color }}>{(venue.trust_score && venue.trust_score > 0) ? venue.trust_score + '/5' : '—'}</span>
                         </div>
                         <div className="vc3-trust-track">
                             <div className="vc3-trust-fill" style={{

@@ -223,6 +223,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const [followerCount, setFollowerCount] = useState(initialFollowerCount);
   const [followBusy, setFollowBusy] = useState(false);
   const [followError, setFollowError] = useState('');
+  // Add Friend state
+  const [friendState, setFriendState] = useState('none'); // 'none' | 'pending' | 'friends'
+  const [friendBusy, setFriendBusy] = useState(false);
 
   // Seat-picker modal state (phase 41 — replaces old yes/maybe/no request-seat flow)
   const [seatEvent, setSeatEvent] = useState(null);        // event object when picker is open
@@ -382,7 +385,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
     setTimeout(() => setCopyState(''), 2000);
   };
 
-  // ── Message Host ────────────────────────────────────────────────
+  // ── Message Host ────────────────────────────────────────────────────────────
   // Opens a DM thread with the game host. Signed-in users go straight through;
   // anonymous visitors are bounced to login with ?redirect back here.
   const handleMessageHost = async () => {
@@ -411,6 +414,52 @@ export default function PublicHomeGamePage({ data, serverError }) {
     } catch {
       router.push('/hub/messenger');
     }
+  };
+
+  // ── Add Friend ──────────────────────────────────────────────────────────────
+  // Check friend status on mount, then allow sending a request.
+  useEffect(() => {
+    if (!host?.id || !currentUserId || currentUserId === host.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await fetch(`/api/friends?action=status&user_id=${host.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (json.status === 'friends') setFriendState('friends');
+        else if (json.status === 'pending') setFriendState('pending');
+        else setFriendState('none');
+      } catch { /* non-fatal */ }
+    })();
+    return () => { cancelled = true; };
+  }, [host?.id, currentUserId]);
+
+  const handleAddFriend = async () => {
+    if (friendBusy || friendState !== 'none') return;
+    const token = await getAccessToken();
+    if (!token) {
+      const returnTo = typeof window !== 'undefined' ? window.location.pathname : `/hub/home-games/${page.slug}`;
+      router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    setFriendBusy(true);
+    try {
+      const res = await fetch('/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'send_request', to_user_id: host.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && (json.success || json.status)) {
+        setFriendState('pending');
+      }
+    } catch { /* non-fatal */ }
+    setFriendBusy(false);
   };
 
   return (
@@ -487,6 +536,17 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 title={`Message ${host.display_name || 'Host'}`}
               >
                 Message Host
+              </button>
+            )}
+            {host?.id && currentUserId && currentUserId !== host.id && (
+              <button
+                id="hgs-add-friend-btn"
+                className="hgs-ghost-btn"
+                onClick={handleAddFriend}
+                disabled={friendBusy || friendState !== 'none'}
+                title={friendState === 'friends' ? 'Already Friends' : friendState === 'pending' ? 'Request Sent' : `Add ${host.display_name || 'Host'} as Friend`}
+              >
+                {friendState === 'friends' ? '✓ Friends' : friendState === 'pending' ? 'Request Sent' : friendBusy ? '…' : 'Add Friend'}
               </button>
             )}
             <button

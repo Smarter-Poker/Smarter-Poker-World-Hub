@@ -1137,7 +1137,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
               left: '50%',
               transform: 'translate(-50%,-50%)',
               zIndex: 25,
-              animation: 'cdPop 0.5s ease-out',
+              animation: 'giftPop 0.5s ease-out',
               textAlign: 'center',
               pointerEvents: 'none',
             }}

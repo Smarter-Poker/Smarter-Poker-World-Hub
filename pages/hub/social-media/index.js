@@ -3646,6 +3646,64 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
   const [metaSaving, setMetaSaving] = useState(false);
   const [metaSaved, setMetaSaved] = useState('');
 
+  // "Edit Poker Near Me Details" — only for home_game pages
+  // These fields write directly to commander_home_groups via the commander API
+  // (same endpoint as manage.js Settings tab).
+  const [pnmPhone, setPnmPhone] = useState('');
+  const [pnmWebsite, setPnmWebsite] = useState('');
+  const [pnmSaving, setPnmSaving] = useState(false);
+  const [pnmSaved, setPnmSaved] = useState('');
+  const [showPnmEdit, setShowPnmEdit] = useState(false);
+
+  // Fetch current contact_phone / website_url on mount if this is a home game page
+  useEffect(() => {
+    if (page.page_type !== 'home_game' || !page.linked_entity_id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = getAccessToken();
+        const res = await fetch(`/api/commander/home-games/groups/${page.linked_entity_id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json().catch(() => ({}));
+        const g = json.group || json.data?.group || {};
+        if (!cancelled) {
+          setPnmPhone(g.contact_phone || '');
+          setPnmWebsite(g.website_url || '');
+        }
+      } catch { /* non-fatal */ }
+    })();
+    return () => { cancelled = true; };
+  }, [page.linked_entity_id, page.page_type]);
+
+  const handleSavePnmDetails = async () => {
+    if (!page.linked_entity_id) return;
+    setPnmSaving(true);
+    setPnmSaved('');
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`/api/commander/home-games/groups/${page.linked_entity_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          contact_phone: pnmPhone.trim() || null,
+          website_url: pnmWebsite.trim() || null,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && !json.error) {
+        setPnmSaved('Saved!');
+        setTimeout(() => setPnmSaved(''), 3000);
+      } else {
+        setPnmSaved('Error saving');
+      }
+    } catch {
+      setPnmSaved('Error saving');
+    }
+    setPnmSaving(false);
+  };
+
   // Fetch tournaments on mount (always, so floating Live Event button works on all tabs)
   useEffect(() => {
     let cancelled = false;
@@ -4763,6 +4821,72 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Edit Poker Near Me Details — home_game pages only */}
+      {page.page_type === 'home_game' && (
+        <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPnmEdit ? 12 : 0 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Edit Poker Near Me Details</h3>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: C.textSec }}>Contact info shown publicly on your Poker Near Me card and details page.</p>
+            </div>
+            <button
+              onClick={() => setShowPnmEdit(!showPnmEdit)}
+              style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: showPnmEdit ? C.blue : '#E4E6EB', color: showPnmEdit ? '#fff' : C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', marginLeft: 12 }}
+            >
+              {showPnmEdit ? 'Hide' : 'Edit'}
+            </button>
+          </div>
+          {showPnmEdit && (
+            <>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Phone Number</label>
+                  <input
+                    type="tel"
+                    value={pnmPhone}
+                    onChange={(e) => setPnmPhone(e.target.value)}
+                    placeholder="(555) 000-0000"
+                    maxLength={30}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textSec }}>Shown as a tap-to-call link on mobile.</p>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Website / Social Link</label>
+                  <input
+                    type="url"
+                    value={pnmWebsite}
+                    onChange={(e) => setPnmWebsite(e.target.value)}
+                    placeholder="https://yoursite.com"
+                    maxLength={255}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textSec }}>Facebook group, website, or any URL.</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={handleSavePnmDetails}
+                  disabled={pnmSaving}
+                  style={{ padding: '8px 20px', borderRadius: 20, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: pnmSaving ? 0.5 : 1 }}
+                >
+                  {pnmSaving ? 'Saving...' : 'Save Poker Near Me Details'}
+                </button>
+                {pnmSaved && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: pnmSaved === 'Error saving' ? '#F02849' : '#42B72A' }}>{pnmSaved}</span>
+                )}
+                <a
+                  href={`/hub/commander/home-games/${page.linked_entity_id}/manage?tab=settings`}
+                  style={{ marginLeft: 'auto', fontSize: 12, color: C.blue, textDecoration: 'none', fontWeight: 600 }}
+                >
+                  Full Settings →
+                </a>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -12796,7 +12920,7 @@ function SocialMediaPage() {
               .then((streams) => setLiveStreams(streams || []))
               .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
             if (action === 'posted') {
-              fetchPosts?.();
+              loadFeed();
             }
           }}
           user={user}
