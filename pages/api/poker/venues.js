@@ -1311,6 +1311,12 @@ export default async function handler(req, res) {
                                           }
                                           hostDisplayName = sp.name;
                                           hostAvatarUrl = sp.avatar_url;
+
+                                          // Inherit coordinates from commander_home_groups if missing from social_pages geocoding
+                                          if (!primaryLat && !primaryLng && hg.latitude && hg.longitude) {
+                                              primaryLat = hg.latitude;
+                                              primaryLng = hg.longitude;
+                                          }
                                       }
                                   }
 
@@ -1892,9 +1898,9 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               data: limited,
-              home_groups: homeGroups,
+              home_groups: [],
               total,
-              total_home_groups: homeGroups.length,
+              total_home_groups: 0,
               hasGpsData: hasGps,
               offset,
           });
