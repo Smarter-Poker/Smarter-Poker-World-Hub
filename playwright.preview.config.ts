@@ -22,6 +22,12 @@ export default defineConfig({
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
+        // Pass the Vercel deployment-protection bypass header on every
+        // Playwright request so the runner can reach protected preview URLs.
+        // The header is a no-op on production and local (env var is empty).
+        ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+            ? { extraHTTPHeaders: { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET } }
+            : {}),
     },
     projects: [
         { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

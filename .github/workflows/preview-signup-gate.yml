@@ -47,12 +47,15 @@ jobs:
       - name: Health probe — must NOT return degraded
         env:
           PREVIEW_URL: ${{ github.event.deployment_status.environment_url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           set -euo pipefail
           echo "Probing $PREVIEW_URL/api/health/signup"
           # Retry up to 5x because preview cold-start can be slow
           for i in 1 2 3 4 5; do
-            BODY=$(curl -fsS --max-time 15 "$PREVIEW_URL/api/health/signup" || true)
+            BODY=$(curl -fsS --max-time 15 \
+              -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" \
+              "$PREVIEW_URL/api/health/signup" || true)
             if [ -n "$BODY" ]; then break; fi
             echo "  attempt $i failed, sleeping…"
             sleep 5
@@ -72,6 +75,9 @@ jobs:
           # Service-role key allows the test to clean up after itself
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          # Bypass Vercel deployment protection on preview URLs so
+          # Playwright can reach /auth/signup, /auth/login, etc.
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           npx playwright test e2e/signup-real.spec.ts \
             --reporter=list \
@@ -95,6 +101,6 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: pr.number,
-                body: `🚨 **Signup gate FAILED on preview ${url}**\n\nThe synthetic signup did not complete on this preview deploy. This blocks merge to main because the same failure would brick production signups.\n\nSee the workflow run logs for the failing step. Common causes:\n- Geo-block middleware blocking /auth/*\n- Trigger function error in handle_new_user\n- Supabase env vars missing on the preview\n\nFix and re-push to retest.`,
+                body: `🚨 **Signup gate FAILED on preview ${url}**\n\nThe synthetic signup did not complete on this preview deploy. This blocks merge to main because the same failure would brick production signups.\n\nSee the workflow run logs for the failing step. Common causes:\n- Geo-block middleware blocking /auth/*\n- Trigger function error in handle_new_user\n- Supabase env vars missing on the preview\n- Vercel deployment protection blocking the probe (check VERCEL_AUTOMATION_BYPASS_SECRET secret)\n\nFix and re-push to retest.`,
               });
             }
