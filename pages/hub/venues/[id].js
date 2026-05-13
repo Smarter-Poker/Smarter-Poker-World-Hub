@@ -396,8 +396,9 @@ export default function VenueDetailPage() {
     ]);
     if (!venueRes.ok) throw new Error(`Request failed (${venueRes.status})`);
     const [vj, fj, sj] = await Promise.all([venueRes.json(), followRes.json(), socialRes.json()]);
-    const venueData = vj.success && vj.data
-      ? (Array.isArray(vj.data) ? (vj.data.find(function (v) { return String(v.id) === String(id); }) || vj.data[0]) : vj.data)
+    const allVenues = [...(vj.data || []), ...(vj.home_groups || [])];
+    const venueData = allVenues.length > 0
+      ? (allVenues.find(function (v) { return String(v.id) === String(id); }) || allVenues[0])
       : null;
     return {
       venue: venueData,
