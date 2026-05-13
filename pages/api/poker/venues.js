@@ -111,6 +111,14 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+// Ensure Title Case formatting for venue names
+function toTitleCase(str) {
+    if (!str) return str;
+    return str.replace(/\w\S*/g, (txt) => {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+}
+
 // ══════════════════════════════════════════════════════════════════════
 //  PHASE 19 — HOME GROUP UNION
 // ══════════════════════════════════════════════════════════════════════
@@ -1322,7 +1330,8 @@ export default async function handler(req, res) {
 
                                   mappedPages.push({
                                       id: `sp-${sp.id}`,
-                                      name: sp.name,
+                                      slug: sp.slug,
+                                      name: toTitleCase(sp.name),
                                       city: sp.location_city,
                                       state: sp.location_state,
                                       venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
@@ -1889,7 +1898,10 @@ export default async function handler(req, res) {
           // Only count physical playable venues in the total — series and tours are NOT counted as venues
           const total = venues.filter(v => !['series', 'tour'].includes(v.venue_type)).length;
           // No cap — return all venues (dataset is manageable size)
-          const limited = venues;
+          const limited = venues.map(v => {
+              if (v.name) v.name = toTitleCase(v.name);
+              return v;
+          });
 
           // ── PHASE 19: HOME GROUP UNION ────────────────────────────────
           // Home groups are already fetched early and included in `venues`

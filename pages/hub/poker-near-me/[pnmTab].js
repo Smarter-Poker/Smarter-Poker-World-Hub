@@ -206,95 +206,7 @@ const POPULAR_CITIES = [
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 // TOTAL_VENUES removed — now derived dynamically from allVenuesForMap.length
 
-// ─── Home games adapter ───────────────────────────────────────────────
-// Pulls home groups from /api/public/home-games/discover and maps each
-// one into the same shape that the rest of this page (cards, map, sort,
-// filter) already uses for casinos / poker clubs / charity / tour stops.
-//
-// Mapping notes:
-//   • venue_type: 'home_game'   → map marker is the gold dot (already
-//     defined in VenueMap.jsx VENUE_TYPE_COLORS), and createVenueIcon
-//     renders venue.logo_url || profile_photo_url inside the dot.
-//   • logo_url ← g.avatar_url   → so the marker shows the actual venue
-//     logo (e.g. The Midway Club's Midway Union crown) instead of
-//     falling back to initials.
-//   • id: 'hg_' + g.id          → namespaced to prevent UUID collisions
-//     with the numeric venue IDs from the legacy /data/all-venues.json
-//     dataset.
-//   • detailUrl points to the native /hub/home-games/<slug> page rather
-//     than the venue detail page (which is for scraped casino venues).
-//   • games_offered: synthesized from default_game_type + default_stakes
-//     so existing chips/cards on the PNM page render correctly.
-async function fetchHomeGamesAsVenues() {
-  try {
-    const res = await fetch('/api/public/home-games/discover?limit=200');
-    if (!res.ok) return [];
-    const j = await res.json();
-    if (!j || !j.success || !Array.isArray(j.groups)) return [];
-    return j.groups.map((g) => ({
-      id: 'hg_' + g.id,
-      home_group_id: g.id,
-      slug: g.slug,
-      club_code: g.club_code,
-      invite_code: g.invite_code,
-      name: g.name,
-      description: g.description,
-      venue_type: 'home_game',
-      city: g.city,
-      state: g.state,
-      country: g.country || 'US',
-      latitude: g.approximate_lat ?? g.latitude ?? null,
-      longitude: g.approximate_lng ?? g.longitude ?? null,
-      distance_mi: g.distance_miles ?? null,
-      // Marker + card avatar / cover
-      logo_url: g.avatar_url || null,
-      profile_photo_url: g.avatar_url || null,
-      cover_photo_url: g.cover_url || null,
-      avatar_url: g.avatar_url || null,
-      // Game data (drives chips, sort, badges)
-      games_offered: g.default_game_type
-        ? [
-            (g.default_game_type || '').toUpperCase() +
-              (g.default_stakes ? ' ' + g.default_stakes : ''),
-          ]
-        : [],
-      default_game_type: g.default_game_type,
-      default_stakes: g.default_stakes,
-      typical_buyin_min: g.typical_buyin_min,
-      typical_buyin_max: g.typical_buyin_max,
-      frequency: g.frequency,
-      typical_day: g.typical_day,
-      typical_time: g.typical_time,
-      max_players: g.max_players,
-      // Counts (footer stats on cards)
-      member_count: g.member_count || 0,
-      saves_count: g.follower_count || 0,
-      games_hosted: g.games_hosted || 0,
-      // Next scheduled game
-      next_game_date: g.next_game_date,
-      next_game_time: g.next_game_time,
-      next_game_title: g.next_game_title,
-      next_game_seats_left: g.next_game_seats_left,
-      // Host
-      host_display_name: g.host?.display_name || null,
-      host_avatar_url: g.host?.avatar_url || null,
-      // Status (home games are always "live" in the sense of being
-      // discoverable; the actual session is gated by next_game_date)
-      is_active: true,
-      is_24_hours: false,
-      trust_score: null,
-      // Click destination — native home-game page, not the scraped
-      // venue page used for casinos
-      detailUrl:
-        '/hub/home-games/' + encodeURIComponent(g.slug || g.club_code || g.invite_code || g.id),
-    }));
-  } catch (e) {
-    if (typeof console !== 'undefined' && console.warn) {
-      console.warn('[PNM] fetchHomeGamesAsVenues failed:', e?.message || e);
-    }
-    return [];
-  }
-}
+// Home games are now fetched and merged in the backend via /api/poker/venues.js
 
 // Haversine distance in miles — used to apply the user's selected radius
 // to home games after the static fetch (which has no radius param).
@@ -1320,23 +1232,9 @@ export default function PokerNearMePage({ initialTab }) {
           console.warn('[App] Handled exception:', e?.message || e);
         }
 
-        // ─── [HOME-GAMES MERGE] ──────────────────────────────
-        // Pull home games from the discover API and append them
-        // to the venue list so they appear on the PNM map (as
-        // gold dots with their venue logo inside) and in the
-        // card grid alongside casinos / poker clubs / charity.
-        // This is a separate fetch because home games live in
-        // commander_home_groups, not in the static /data/all-
-        // venues.json snapshot used for scraped venues.
-        fetchHomeGamesAsVenues()
-          .then(function (hgs) {
-            if (hgs && hgs.length > 0) {
-              setGlobalVenues(activeArr.concat(hgs));
-            }
-          })
-          .catch(function () {
-            /* non-fatal */
-          });
+        // ─── [HOME-GAMES MERGE REMOVED] ──────────────────────────────
+        // Home games are now merged in the backend via /api/poker/venues.js
+        // so we just rely on `activeArr`.
       })
       .catch(function () {
         // Only show error if we have no cached data at all
@@ -2433,56 +2331,8 @@ export default function PokerNearMePage({ initialTab }) {
 
       setVenues(filteredData);
 
-      // ─── [HOME-GAMES MERGE] ──────────────────────────────
-      // Same logic as initial load, plus respect the active venue
-      // type filter and radius filter. The /api/poker/venues call
-      // never returns home games (it queries the scraped venues
-      // table), so they'd be missing from filtered results unless
-      // we merge them here.
-      fetchHomeGamesAsVenues()
-        .then(function (hgs) {
-          if (!hgs || hgs.length === 0) return;
-          // Respect venue type filter
-          if (
-            filters.venueType &&
-            filters.venueType !== 'all' &&
-            filters.venueType !== 'home_game'
-          ) {
-            return;
-          }
-          let merged = hgs;
-          // Respect radius filter when user has a location
-          if (userLocation && filters.radius && filters.radius !== 'Any') {
-            const radiusMi = Number(filters.radius);
-            if (!isNaN(radiusMi)) {
-              merged = merged.filter(function (hg) {
-                if (hg.latitude == null || hg.longitude == null) return false;
-                const d = _hgHaversineMi(
-                  userLocation.lat,
-                  userLocation.lng,
-                  hg.latitude,
-                  hg.longitude
-                );
-                hg.distance_mi = d;
-                return d <= radiusMi;
-              });
-            }
-          }
-          // Optional state filter (if present in the page)
-          if (filters.selectedState && filters.selectedState !== 'all') {
-            merged = merged.filter(function (hg) {
-              return hg.state === filters.selectedState;
-            });
-          }
-          if (merged.length > 0) {
-            setVenues(function (prev) {
-              return prev.concat(merged);
-            });
-          }
-        })
-        .catch(function () {
-          /* non-fatal */
-        });
+      // ─── [HOME-GAMES MERGE REMOVED] ──────────────────────────────
+      // Home games are now merged in the backend via /api/poker/venues.js
 
       // Update stats from response (only update states, leave global total alone)
       if (json.total) {

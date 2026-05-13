@@ -155,6 +155,9 @@ function getVenueColor(venue) {
 
 // Get the correct detail URL for a venue or social page
 function getVenueUrl(venue) {
+    if (venue.venue_type === 'home_game' && (venue.slug || venue.host_social_page_slug)) {
+        return '/hub/home-games/' + encodeURIComponent(venue.slug || venue.host_social_page_slug);
+    }
     // Home games live in /hub/venues/[uuid] (now standard for home groups)
     if (venue.is_social_page && venue.social_page_id) {
         return '/club/' + venue.social_page_id;
