@@ -1069,6 +1069,18 @@ export default function PokerNearMePage({ initialTab }) {
                     const activeFromCache = parsed.venues.filter(v => v.is_active !== false && v.id !== 3109);
                     setGlobalVenues(activeFromCache);
                     hadCacheHit = true;
+                    // [HOME-GAMES MERGE — cache path] Without this, users with a
+                    // warm `sp-offline-venues` cache see the map without home
+                    // games for the entire ~hundreds-of-ms window before the
+                    // live /data/all-venues.json fetch lands. The live-fetch
+                    // path (below) ALREADY merges home games — but if the
+                    // live fetch fails or stalls, home games would never
+                    // appear at all. Firing the merge here too closes that gap.
+                    fetchHomeGamesAsVenues().then(function (hgs) {
+                        if (hgs && hgs.length > 0) {
+                            setGlobalVenues(activeFromCache.concat(hgs));
+                        }
+                    }).catch(function () { /* non-fatal */ });
                 }
             }
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
@@ -3120,10 +3132,11 @@ export default function PokerNearMePage({ initialTab }) {
                                     value={filters.venueType}
                                     onChange={e => setFilters(f => ({ ...f, venueType: e.target.value }))}
                                 >
-                                    <option value="all">All Locations</option>
+                                    <option value="all">All Venues</option>
                                     <option value="casino">Casino</option>
                                     <option value="poker_club">Poker Club</option>
                                     <option value="charity">Charity</option>
+                                    <option value="home_game">Home Game</option>
                                     <option value="tour_stop">Poker Tour</option>
                                 </select>
                             </div>
