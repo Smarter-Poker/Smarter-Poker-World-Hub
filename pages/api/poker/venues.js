@@ -651,7 +651,7 @@ export default async function handler(req, res) {
                   
                   if (homeGroup && homeGroup.is_active !== false) {
                       const { data: page } = await sb.from('social_pages')
-                          .select('id, follower_count')
+                          .select('id, follower_count, slug')
                           .eq('linked_entity_type', 'home_group')
                           .eq('linked_entity_id', homeGroup.id)
                           .maybeSingle();
@@ -679,7 +679,7 @@ export default async function handler(req, res) {
                           member_count: homeGroup.member_count,
                           games_hosted: homeGroup.games_hosted,
                           follower_count: page?.follower_count || 0,
-                          slug: null,
+                          slug: page?.slug || null,
                           settings: homeGroup.settings || {},
                           owner_id: homeGroup.owner_id,
                           social_page_id: page?.id || null,
