@@ -1091,7 +1091,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-next-event-detail { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); }
                 .vc3-next-event-today .vc3-next-event-label { color: #4ade80; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.9); }
-                .vc3-logo-img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+                .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
                 .vc3-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 60px; }
                 .vc3-fav { position: relative; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; }
