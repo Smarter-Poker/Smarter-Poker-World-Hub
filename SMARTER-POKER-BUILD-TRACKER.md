@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-05-12
 **Owner:** Dan / Antigravity Agents + Cowork Agents
 
 ---
@@ -775,12 +775,12 @@ silent leaks the prior phases might have missed.
 | All 7 client realtime subscription filters | 0 invalid column refs (the `receiver_id` bug was the only one) | Verified live — no fixes needed |
 | Parallel session's recent SECDEF RPCs | All have `search_path` locked | None |
 | `fn_get_or_create_conversation(user1_id,user2_id)` live execution | TWO bugs: (a) inserts `role='owner'` violating CHECK constraint, (b) FK target mismatch (`messenger_conversations` row referenced via `messenger_participants` whose FK targets `conversations`) | Documented in `.agent/audits/2026-05-01-conversation-schema-pivot.md`. Not shipped — only caller is dead code (zero production impact) and fix requires architectural decisions in the parallel session's lane. |
-| `diamond_reward_claims` orphans (claim row with no matching transaction) | **59 orphans across 4 reward types** | Retro-credited via 2 migrations (`retrocredit_orphaned_daily_login_claims` + `retrocredit_all_reward_type_orphans`). 1,759 💎 restored to affected users. KingFish (Dan): 1,400 💎. mason: 10. SeanHovater: 10. AudreyGaliunas: 5. plus the older Feb-Apr orphans. |
+| `diamond_reward_claims` orphans (claim row with no matching transaction) | **59 orphans across 4 reward types** | Retro-credited via 2 migrations (`retrocredit_orphaned_daily_login_claims` + `retrocredit_all_reward_type_orphans`). 1,759 credited to affected users. KingFish (Dan): 1,400. mason: 10. SeanHovater: 10. AudreyGaliunas: 5. plus the older Feb-Apr orphans. |
 | `commander_promotion_awards` (status='paid' AND paid_at IS NULL) | 20 inconsistent seed/test rows | Backfilled `paid_at = created_at` (`backfill_promotion_awards_paid_at` migration). |
 | Money-tracking tables (cashout_requests, agent_commissions, rakeback_periods, bbj_payouts, tournament_bounties) | All clean — 0 inconsistencies | None needed |
 | profile.diamonds vs sum(diamond_transactions) | 1.95M drift, all "excess" direction (572 profiles have more diamonds than ledger). 0 users owed. | Tracked as task #126 (audit-completeness, not user-impact, deferred). |
 
-**Net economic effect for users this session: +1,759 💎 restored.**
+**Net economic effect for users this session: +1,759 diamonds restored.**
 
 ---
 
@@ -836,9 +836,9 @@ Audit doc `.agent/audits/2026-05-01-conversation-schema-pivot.md` updated with a
 
 ## PHASE 41 — Diamond ledger reconciliation (2026-05-03)
 
-Migration: `20260503_phase41_diamond_ledger_reconciliation.sql`. Inserted 572 reconciliation `diamond_transactions` rows to close the 1,945,149 💎 cumulative drift between `profiles.diamonds` and `sum(diamond_transactions.amount)`.
+Migration: `20260503_phase41_diamond_ledger_reconciliation.sql`. Inserted 572 reconciliation `diamond_transactions` rows to close the 1,945,149 diamond cumulative drift between `profiles.diamonds` and `sum(diamond_transactions.amount)`.
 
-Pre-flight: 298 real-user profiles with +1,765,949 💎 excess + 274 horse profiles with +179,200 💎 excess. 0 deficits — no users were owed money.
+Pre-flight: 298 real-user profiles with +1,765,949 diamond excess + 274 horse profiles with +179,200 diamond excess. 0 deficits — no users were owed money.
 Post-apply: 0 profiles drifted, 1008 balanced.
 
 Each reconciliation row uses:
@@ -1052,19 +1052,19 @@ subagents over-reported in places, so **only confirmed bugs were shipped**.
 |---|------|-----|-----|
 | 1 | `pages/api/trivia/render-gto-panel.js` line 277 | `reportApiError(error, req)` referenced `req` from inside `checkCachedImage` helper where `req` is out of scope → `ReferenceError` on every cache miss. | Replaced `req` with `{route, stage}` tag object. |
 | 2 | `pages/api/trivia/daily.js` lines 163-189 | `userStats` and `hasPlayedToday` were HARDCODED `{0,0,0}` / `false` — comment admitted "placeholder, would use auth". Front-end consumers showed stale zeros regardless of activity. | Reads `Authorization: Bearer` header, calls `auth.getUser`, queries `daily_trivia_plays` (today's play) + `trivia_streaks` (totals) for real values. Switches `Cache-Control` to `private, no-cache` when auth header present so personalized data isn't CDN-cached. |
-| 3 | `pages/api/trivia/submit.js` (whole handler) | (a) unauthenticated — any anon could post `Guest_xxx` scores polluting leaderboard; (b) email-prefix PII leak via `user.email.split('@')[0]` username fallback; (c) NO input validation (score=999999, negative, etc.); (d) insert was silently failing on EVERY call because `trivia_scores.mode` is NOT NULL but the handler never set it (comment misdiagnosed it as "table might not exist yet"); (e) phantom `xp_earned` column write (column doesn't exist). | Hardened: requires Bearer JWT (401 otherwise); drops PII fallback (uses 'Player'); validates score (0-100k), correct_count (0-1k), totalQuestions, correct≤total; provides NOT NULL defaults (mode='unknown', diamonds_earned=0, total_questions falls back to correct_count); drops phantom xp_earned write; surfaces real insert errors as 500 instead of swallowing. |
+| 3 | `pages/api/trivia/submit.js` (whole handler) | (a) unauthenticated — any anon could post `Guest_xxx` scores polluting leaderboard; (b) email-prefix PII leak via `user.email.split('@')[0]` username fallback; (c) NO input validation (score=999999, negative, etc.); (d) insert was silently failing on EVERY call because `trivia_scores.mode` is NOT NULL but the handler never set it (comment misdiagnosed it as "table might not exist yet"); (e) phantom `xp_earned` column write (column doesn't exist). | Hardened: requires Bearer JWT (401 otherwise); drops PII fallback (uses 'Player'); validates score (0-100k), correct_count (0-1k), totalQuestions, correct<=total; provides NOT NULL defaults (mode='unknown', diamonds_earned=0, total_questions falls back to correct_count); drops phantom xp_earned write; surfaces real insert errors as 500 instead of swallowing. |
 | 4 | `pages/api/trivia/tournament-enter.js` line 73 | Selected `max_entries` + `current_entries` columns that DO NOT EXIST on `trivia_tournaments` (verified vs live schema). Cap check at lines 87-89 was silently dead — no tournament could ever be "full". | Removed dead select. Added comment that if a cap is needed in the future, add the columns first. |
-| 5 | `pages/api/trivia/tournament-enter.js` lines 178-185 | Prize-pool update was read-then-write: `newPrizePool = (current\|\|0) + net; UPDATE prize_pool=newPrizePool`. Two simultaneous entries both read same start, both wrote start+net, second clobbered first → entry fee silently absorbed by house on every concurrent entry. | Shipped `fn_trivia_tournament_increment_prize_pool(p_tournament_id, p_amount)` SECDEF RPC (atomic `UPDATE prize_pool = COALESCE(prize_pool,0) + p_amount`, service-role only). Handler now calls the RPC. |
+| 5 | `pages/api/trivia/tournament-enter.js` lines 178-185 | Prize-pool update was read-then-write: `newPrizePool = (current||0) + net; UPDATE prize_pool=newPrizePool`. Two simultaneous entries both read same start, both wrote start+net, second clobbered first → entry fee silently absorbed by house on every concurrent entry. | Shipped `fn_trivia_tournament_increment_prize_pool(p_tournament_id, p_amount)` SECDEF RPC (atomic `UPDATE prize_pool = COALESCE(prize_pool,0) + p_amount`, service-role only). Handler now calls the RPC. |
 
 **Live smoke test verified all 5:**
 
-- `POST /api/trivia/submit` no auth → `401 authentication_required` ✓
-- `POST /api/trivia/submit` bogus bearer → `401 invalid_token` ✓
-- `POST /api/trivia/submit` invalid score → `400 invalid_score` ✓
-- `POST /api/trivia/tournament-enter` no auth → `401 Authentication required` ✓
-- `POST /api/trivia/render-gto-panel` no auth → `401 Authentication required` ✓
-- `GET /api/trivia/daily` no auth → `200`, real questions, zero stats (no token) ✓
-- `GET /api/trivia/daily` bogus auth → `200`, zero stats (token rejected) ✓
+- `POST /api/trivia/submit` no auth → `401 authentication_required`
+- `POST /api/trivia/submit` bogus bearer → `401 invalid_token`
+- `POST /api/trivia/submit` invalid score → `400 invalid_score`
+- `POST /api/trivia/tournament-enter` no auth → `401 Authentication required`
+- `POST /api/trivia/render-gto-panel` no auth → `401 Authentication required`
+- `GET /api/trivia/daily` no auth → `200`, real questions, zero stats (no token)
+- `GET /api/trivia/daily` bogus auth → `200`, zero stats (token rejected)
 
 **Subagent claims reviewed and disproven (not real bugs, no fix needed):**
 
@@ -1109,13 +1109,13 @@ Both shipped as commit `082c4dea48` on `origin/main`. Vercel READY.
 
 **Verification matrix (all green after Phase 48):**
 
-- ✅ All `.from()` inserts/upserts cross-checked against live schema. NN columns either have DEFAULTs or are provided by every caller. No phantom column writes remain.
-- ✅ All `onConflict` patterns map to actual UNIQUE constraints (`daily_trivia_plays_user_id_played_date_key`, `survival_progress_user_id_key`, `trivia_pvp_stats_pkey`, `trivia_streaks_user_id_key`, `trivia_user_question_history_user_id_question_id_key`, `endless_high_scores_user_id_mode_key`).
-- ✅ All `.rpc()` callers match the live `add_diamonds_to_balance(uuid, integer, text, text, text)` signature including all DEFAULT-valued args.
-- ✅ Every realtime subscription's target table is in the `supabase_realtime` publication AND has SELECT-permitting RLS for authenticated subscribers (`trivia_scores`, `trivia_streaks`, `trivia_survival_runs`, `daily_trivia_plays`, `trivia_tournament_rounds`, `trivia_tournaments`, `endless_high_scores`, `profiles`).
-- ✅ Pure-logic helpers (`triviaEngine.ts`, `triviaQuestionLoader.js`, `triviaValidator.js`, `triviaPreferences.js`) — no DB calls in engine or validator; loader uses correct schema; preferences use localStorage only. Clean.
-- ✅ Component DB writes (`StrategyTrivia.jsx`, `TriviaLobby.jsx`) all schema-correct.
-- ✅ No TODO/FIXME/STUB comments in trivia logic (only CSS `placeholder=` props).
+- All `.from()` inserts/upserts cross-checked against live schema. NN columns either have DEFAULTs or are provided by every caller. No phantom column writes remain.
+- All `onConflict` patterns map to actual UNIQUE constraints (`daily_trivia_plays_user_id_played_date_key`, `survival_progress_user_id_key`, `trivia_pvp_stats_pkey`, `trivia_streaks_user_id_key`, `trivia_user_question_history_user_id_question_id_key`, `endless_high_scores_user_id_mode_key`).
+- All `.rpc()` callers match the live `add_diamonds_to_balance(uuid, integer, text, text, text)` signature including all DEFAULT-valued args.
+- Every realtime subscription's target table is in the `supabase_realtime` publication AND has SELECT-permitting RLS for authenticated subscribers (`trivia_scores`, `trivia_streaks`, `trivia_survival_runs`, `daily_trivia_plays`, `trivia_tournament_rounds`, `trivia_tournaments`, `endless_high_scores`, `profiles`).
+- Pure-logic helpers (`triviaEngine.ts`, `triviaQuestionLoader.js`, `triviaValidator.js`, `triviaPreferences.js`) — no DB calls in engine or validator; loader uses correct schema; preferences use localStorage only. Clean.
+- Component DB writes (`StrategyTrivia.jsx`, `TriviaLobby.jsx`) all schema-correct.
+- No TODO/FIXME/STUB comments in trivia logic (only CSS `placeholder=` props).
 
 ---
 
@@ -1241,6 +1241,53 @@ Platform infrastructure modernized: 32 Next.js patch versions, Club Arena naviga
 
 ---
 
-## CURRENT STATE — 2026-05-13
+## PHASE 55 — Poker Engine + Auth Callback Bug Fixes + Home Games PNM Integration (2026-05-12)
 
-Production is green. Latest deploy READY. Phases 51-54 shipped across live stream hardening, Club Commander chip ledger, Club Arena 4-pass security audit (58 routes hardened, critical chat auth bypass closed), and infrastructure upgrades (Next.js 14.2.35, SPA catch-all, Railway migration). No active incidents. Next focus: identify next build priority from GSD roadmap.
+Two production crashes eliminated and home games integrated as first-class PNM venues.
+
+### Bug Fix: `/api/poker/engine/action.js` — ReferenceError at module load
+`supabaseAdmin` was referenced at module scope but never declared anywhere in the file.
+This caused a `ReferenceError` at import time, crashing the module on every cold start,
+making 100% of requests to `/api/poker/engine/action` return 500 regardless of auth or payload.
+
+**Fix:** Replaced bare `supabaseAdmin` reference with the lazy singleton `getSupabase()` already
+declared in the same file. The `AntiCheat` instance now receives a valid Supabase client.
+
+```js
+// Before:
+if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(supabaseAdmin);
+// After:
+if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(getSupabase());
+```
+
+### Bug Fix: `/pages/auth/callback.js` — E2E timeout (2500ms → 1500ms)
+`goLogin()` used a 2500ms redirect delay. The upstream 5-retry `getSession()` loop (each retry:
+network call + 400ms sleep) consumed 2000–4500ms before `goLogin()` was even called. Combined
+total of 4500–7000ms+ regularly exceeded the `e2e/07-auth.spec.ts` `waitForURL` 8000ms timeout,
+causing flaky CI failures. Reduced delay to 1500ms — long enough to read the error, short enough
+to stay under the CI budget.
+
+### PR #533 — Home Games: Integrate as First-Class PNM Venues + Avatar Whitelist
+Squash-merged commit `c86ca2a86e` off branch `feat/home-games-pnm-integration`:
+
+| Deliverable | Detail |
+|---|---|
+| Home games on PNM map | Home game entries now appear as full venue pins in Poker Near Me — same display logic as card rooms and casinos, filtered to `venue_type = 'home_game'`. |
+| Avatar whitelist for `auth.smarter.poker` | `next.config.js` image `remotePatterns` extended to allow `auth.smarter.poker` origin — previously caused broken avatar images in the identity switcher for SSO-linked accounts. |
+| "HOME GAMES" rename | Identity switcher label changed from the internal code name to the user-facing "HOME GAMES" label. |
+
+**Commit:** `355553cc89099bae654ceca567b2963b84b0562c` (bug fixes)
+**PR merge commit:** `c86ca2a86e11074ed930a27f14ea2badbfe8c32e`
+**Impact:** Poker engine action route no longer crashes on cold start. Auth callback CI test no longer times out. Home games are first-class citizens on the PNM map.
+
+---
+
+## CURRENT STATE — 2026-05-12
+
+Production is green. Latest deploy READY. Session shipped: Phase 49 (trivia timer hook, 5 pages), Phase 50 (10 notification/social SQL migrations), Phase 55 (poker engine `supabaseAdmin` crash fix, auth callback E2E timeout fix, PR #533 home games PNM integration). All SQL applied to production Supabase. No active incidents.
+
+**Pending (deferred):**
+- Task #106: Drop ~20 unused indexes (due ~2026-05-14) — same dynamic DROP INDEX approach as Phase 39
+- P50 workers deploy: `bash scripts/deploy-workers.sh --release` — requires SSH/Keychain, handoff at `.agent/handoffs/2026-05-13-deploy-workers-p50.md`
+- P51 brain modularization: 8-wave modularization of `HorsePokerBrain.js` — handoff at `.agent/handoffs/2026-05-12-brain-modularization-p51.md`
+- Vercel preview auth bypass: Add `VERCEL_AUTOMATION_BYPASS_SECRET` to "Preview Signup Gate" workflow (persistent 401 on preview health probes in CI)
