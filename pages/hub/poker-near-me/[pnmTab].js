@@ -3043,7 +3043,7 @@ export default function PokerNearMePage({ initialTab }) {
                                 {dbStats.tournaments > 0 && (
                                     <>
                                         &nbsp;&bull;&nbsp;
-                                        {dbStats.tournaments.toLocaleString()}{' '}Tournament&apos;s Today
+                                        {dbStats.tournaments.toLocaleString()}{' '}Tournaments Today
                                     </>
                                 )}
                             </>
