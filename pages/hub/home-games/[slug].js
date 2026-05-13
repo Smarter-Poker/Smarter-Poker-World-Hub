@@ -61,8 +61,8 @@ export async function getServerSideProps({ params, res, req }) {
   }
 
   // Resolve absolute API URL from the request headers for same-host fetch.
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+  const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
   const base = host ? `${proto}://${host}` : SITE_URL;
 
   try {
@@ -558,23 +558,6 @@ export default function PublicHomeGamePage({ data, serverError }) {
             >
               {followBusy ? '…' : (isFollowing ? '✓ Following' : '+ Follow')}
             </button>
-            {host && currentUserId !== host.id && (
-              <>
-                <button
-                  className="hgs-ghost-btn"
-                  onClick={handleAddFriend}
-                  disabled={friendBusy || friendState !== 'none'}
-                >
-                  {friendBusy ? '…' : friendState === 'friends' ? '✓ Friends' : friendState === 'pending' ? 'Request Sent' : '+ Add Friend'}
-                </button>
-                <button
-                  className="hgs-ghost-btn"
-                  onClick={() => router.push(`/hub/messages?user=${host.id}`)}
-                >
-                  Message Host
-                </button>
-              </>
-            )}
             <button className="hgs-ghost-btn" onClick={copyShareUrl}>
               {copyState || 'Share'}
             </button>
@@ -605,7 +588,40 @@ export default function PublicHomeGamePage({ data, serverError }) {
             <section className="hgs-section">
               <h2>Upcoming Games</h2>
               {(upcoming_games || []).filter((g) => g.format !== 'tournament').length === 0 ? (
-                <div className="hgs-empty">No upcoming games scheduled. Check back soon.</div>
+                (group.settings?.tables?.length > 0 || group.settings?.tournaments?.length > 0) ? (
+                  <div className="hgs-empty" style={{ textAlign: 'left', padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                    <h3 style={{ fontSize: '16px', color: '#fff', marginBottom: '8px' }}>Regular Schedule</h3>
+                    <p style={{ color: '#9ca3af', marginBottom: '16px' }}>{group.settings.schedule_summary || formatSchedule(group)}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {group.settings.tables?.length > 0 && (
+                        <div>
+                          <strong style={{ color: '#22d3ee', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Cash Games</strong>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {group.settings.tables.map((t, idx) => (
+                              <span key={idx} style={{ padding: '4px 10px', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: '6px', fontSize: '13px', color: '#22d3ee', fontWeight: '500' }}>
+                                {GAME_TYPE_LABELS[t.game_type] || t.game_type?.toUpperCase() || 'Poker'} {t.stakes}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {group.settings.tournaments?.length > 0 && (
+                        <div>
+                          <strong style={{ color: '#a78bfa', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Tournaments</strong>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {group.settings.tournaments.map((t, idx) => (
+                              <span key={idx} style={{ padding: '4px 10px', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: '6px', fontSize: '13px', color: '#a78bfa', fontWeight: '500' }}>
+                                {t.name} {t.buy_in ? `($${t.buy_in})` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="hgs-empty">No upcoming games scheduled. Check back soon.</div>
+                )
               ) : (
                 <div className="hgs-games-list">
                   {(upcoming_games || []).filter((g) => g.format !== 'tournament').map((g) => {
