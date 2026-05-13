@@ -1414,7 +1414,7 @@ export function GoLiveModal({
     });
   }, []);
 
-  const handleEndStream = async () => {
+  const handleEndStream = async ({ skipConfirm = false } = {}) => {
     // BUG-FIX-LIVE-10 hardening: ignore re-entry. Without this, a fast
     // double-tap on End Stream runs two finalizeRecording promises in
     // parallel and the mediaRecorder errors out before either resolves.
@@ -1450,7 +1450,7 @@ export function GoLiveModal({
     }
 
     // #1: Confirm before ending — prevents accidental stream kills
-    if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) {
+    if (!skipConfirm && !confirm('End your live stream? This will stop broadcasting to all viewers.')) {
       setIsEnding(false);
       return;
     }
@@ -1597,6 +1597,10 @@ export function GoLiveModal({
       setError('Please allow camera access before reconnecting.');
       return;
     }
+    // BUG-FIX-GLM-RECONNECT-REENTRY: belt-and-suspenders guard. The button is
+    // disabled={isStarting} but there is a tick between tap and re-render; a
+    // second tap in that window would launch a second concurrent reconnect.
+    if (isStarting) return;
     setIsStarting(true);
     setError('');
     try {
@@ -1606,21 +1610,47 @@ export function GoLiveModal({
       liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
       liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps);
       // Re-join the existing LiveKit room
-      const { token, url } = await liveStreamService._getToken(existingLiveStream.id, true);
+      const reconnectStreamId = existingLiveStream.id;
+      const { token, url } = await liveStreamService._getToken(reconnectStreamId, true);
       if (liveStreamService.room) {
         liveStreamService.room.disconnect().catch(() => {});
         liveStreamService.room = null;
       }
-      liveStreamService.currentStreamId = existingLiveStream.id;
+      liveStreamService.currentStreamId = reconnectStreamId;
       liveStreamService.isBroadcaster = true;
       liveStreamService.isManualDisconnect = false;
       liveStreamService.localStream = streamRef.current;
       await liveStreamService._connectRoom(url, token, true, streamRef.current);
-      setStreamId(existingLiveStream.id);
+      // BUG-FIX-GLM-HEARTBEAT-RESTART: restart heartbeat so stale-cleanup cron
+      // doesn't kill the recovered stream.
+      liveStreamService._startBroadcasterHeartbeat(reconnectStreamId);
+      setStreamId(reconnectStreamId);
       setTitle(existingLiveStream.title || '');
       setStage('live');
       setExistingLiveStream(null);
       startRecording();
+      // BUG-FIX-GLM-PREVIEW-RESTART: re-acquire media on reconnect so the
+      // rolling 12-second clip uploader resumes for the recovered stream.
+      try {
+        if (streamRef.current) {
+          if (previewCaptureRef.current) {
+            try { previewCaptureRef.current.stop(); } catch (_) {}
+          }
+          previewCaptureRef.current = new StreamPreviewCapture({
+            mediaStream: streamRef.current,
+            streamId: reconnectStreamId,
+            userId: user.id,
+            getAccessToken: () => getAccessToken(),
+            supabase,
+            onError: (err) => {
+              console.warn('[StreamPreviewCapture/reconnect]', err?.message || err);
+            },
+          });
+          previewCaptureRef.current.start();
+        }
+      } catch (previewErr) {
+        console.warn('[GoLive/reconnect] preview capture init failed:', previewErr?.message || previewErr);
+      }
       timerRef.current = setInterval(() => setElapsedTime((p) => p + 1), 1000);
       toast.success('Reconnected to your live stream!');
       busEmit.dataMutated?.('live_streams');
