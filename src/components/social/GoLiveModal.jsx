@@ -641,6 +641,11 @@ export function GoLiveModal({
       liveStreamService.onReconnected = null;
       liveStreamService.onConnectionQualityChange = null;
       liveStreamService.onStreamEndedExternally = null; // Bug25
+      // BUG-FIX-GLM-STALE-FLAGS: reset overlay-trigger booleans so they don't
+      // bleed into the next broadcast session if the modal is force-closed
+      setStreamEndedExternally(false);
+      setReconnectStuck(false);
+      setIsReconnecting(false);
     };
   }, [isOpen]);
 
@@ -1758,6 +1763,12 @@ export function GoLiveModal({
     // fires the dedup guard and silently skips sending the invite.
     setPendingCohost(null);
     setCohostInviteSent(false);
+    // BUG-FIX-GLM-VIEWERCOUNT: reset viewer count so next session starts at 0
+    setViewerCount(0);
+    // BUG-FIX-GLM-TOPGIFTERS: clear gifter leaderboard so stale names/amounts
+    // don't bleed into the next broadcast session
+    setTopGifters({});
+    setTopGiftersVisible(false);
     onClose(action);
   };
 
@@ -2539,7 +2550,8 @@ export function GoLiveModal({
                     <button
                       onClick={() => {
                         setStreamEndedExternally(false);
-                        handleEndStream();
+                        // BUG-FIX-GLM-EXTERNALLY-ENDED-CONFIRM: stream is already ended by the cron
+                        handleEndStream({ skipConfirm: true });
                       }}
                       style={{
                         background: '#1877F2',
@@ -2666,7 +2678,8 @@ export function GoLiveModal({
                             clearTimeout(reconnectWatchdogRef.current);
                             reconnectWatchdogRef.current = null;
                           }
-                          handleEndStream();
+                          // BUG-FIX-GLM-RECONNECT-DOUBLE-CONFIRM: popup already called window.confirm()
+                          handleEndStream({ skipConfirm: true });
                         }}
                         style={{
                           width: '100%',
