@@ -1549,7 +1549,9 @@ export function SharedPostCreator({
                   )}
                 </button>
               )}
-              {/* Home Groups section */}
+              {/* Home Games section — formerly "Home Groups"; the user-facing
+                   product surface is "Home Games" everywhere else, so the dropdown
+                   header now matches. */}
               {homeGroupTargets.length > 0 && (
                 <>
                   <div
@@ -1564,7 +1566,7 @@ export function SharedPostCreator({
                       letterSpacing: 0.5,
                     }}
                   >
-                    Home Groups
+                    Home Games
                   </div>
                   {homeGroupTargets.map((hg) => {
                     const isActive = activeHomeGroup?.target_id === hg.target_id;
