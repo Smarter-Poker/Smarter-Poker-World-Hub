@@ -1859,7 +1859,17 @@ export default function PokerNearMePage({ initialTab }) {
             }
             
             const data = json.data;
-            let filteredData = data || [];
+            const homeGroups = json.home_groups || [];
+            // ── Phase 19 merge — home games come back under a separate top-level
+            // `home_groups` key on the response envelope (see /api/poker/venues.js
+            // line ~1755). They already carry `venue_type: 'home_game'`,
+            // `logo_url`, `latitude/longitude`, and the home-game-specific fields
+            // (default_game_type, default_stakes, frequency, typical_day,
+            // typical_time, member_count) so they slot directly into the venues
+            // pipeline alongside casinos, poker clubs, and charities. The map
+            // marker code already paints `home_game` gold and embeds `logo_url`
+            // inside the circle — same visual treatment as the rest.
+            let filteredData = [...(data || []), ...homeGroups];
             
             // Merge live data immediately to prevent extra renders
             filteredData = filteredData.map(venue => {
