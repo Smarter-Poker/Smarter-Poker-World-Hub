@@ -1162,6 +1162,85 @@ logic, training session RLS, and notification read-state sync.
 
 ---
 
-## CURRENT STATE — 2026-05-12
+## PHASE 51 — Live Stream Hardening (2026-05-12)
 
-Production is green. Latest deploy READY. Postgres clean. All 10 Phase 50 migrations applied and confirmed. Notification actor enrichment fixed across all trigger types. Auto-connect spam suppressed. Friendship bidirectionality repaired. Trivia timer extracted to shared hook with tab-switch resume fix. No active incidents.
+Broadcaster heartbeat system, 300s stale-stream protection, co-host moderation, and a full live-stream audit pass. Eliminates stream-killing false positives and closes co-host moderation gaps.
+
+| Deliverable | Detail |
+|---|---|
+| Broadcaster keepalive heartbeat | New `pages/api/live/heartbeat.js` — auth-required POST, rate-limited, updates `preview_updated_at` only for the authed stream owner via service role. |
+| Heartbeat wired into LiveStreamService | `_startBroadcasterHeartbeat(stream.id)` called in `startBroadcast()` after LiveKit room connects; `_stopBroadcasterHeartbeat()` in `endBroadcast()`. Heartbeat intentionally continues during reconnect so the cleanup cron never kills an active stream mid-recovery. |
+| 300s cleanup threshold enforced everywhere | `pages/api/live/cleanup-stale.js`: 180s → 300s at all 3 enforcement points. `pages/api/cron/cleanup-stale-streams.js`: 60s → 300s at all 3 points. Both now pass `p_timeout_seconds: 300` to `fn_auto_end_stale_streams` RPC. |
+| Moderate co-host support | `pages/api/live/moderate.js`: co-hosts can issue ban/kick actions; ban persists to DB before kick; multi-device `vw-*` channel eviction on ban. |
+| Live-stream audit fixes (ES / MOD / LN) | Error checks on `live_streams` UPDATE calls (ES-1/2/3); guard ban-upsert before kick (MOD-1); `display_name` added to live-notify chain (LN-1). |
+| LSS audit fixes | `onTrackAdded` constructor guard (LSS-1); guest reconnect token flag corrected (LSS-2); `guestInviteCode` cleanup on stream end (LSS-3). |
+
+**Files Changed:** `src/services/LiveStreamService.js`, `pages/api/live/cleanup-stale.js`, `pages/api/cron/cleanup-stale-streams.js`, `pages/api/live/moderate.js`
+**Files Created:** `pages/api/live/heartbeat.js`
+**Impact:** Broadcasters are no longer killed by the cleanup cron during tab switches, reconnects, or brief network drops. Co-hosts have full moderate authority. Ban state persists across all active viewer devices.
+
+---
+
+## PHASE 52 — Club Commander: Chip Ledger + Critical Bug Fixes (2026-05-13)
+
+Full chain-of-custody chip tracking system shipped for Club Arena, with 4 critical crashes and silent-auth bugs eliminated from Club Commander staff UI.
+
+| Deliverable | Detail |
+|---|---|
+| `chip_ledger` table | RLS + realtime publication. Logs every chip transfer, mint, and cashout action. SQL migration: `increment_union_chip_balance`. |
+| ChipFlowService / WalletService integration | All chip transfers and mints log to `chip_ledger`. `PostgresSyncHooks` subscribed for live updates. MasterBus `TRANSACTION_LOGGED` event triggers UI refresh. |
+| TransactionLedgerView on 6 pages | Cashier, history, union, agent, and portal pages all show the chip_ledger audit trail. |
+| UnionDashboard deposit + clawback UI | Owner can deposit to and clawback from agent accounts with full chain-of-custody record. |
+| CRITICAL: dashboard.js + floor.js silent auth | Missing `x-staff-session` + `x-staff-venue` headers on all staff endpoints — every fetch was unauthorized but showed no error. Fixed. |
+| CRITICAL: staff.js crash | `toast` + error state was only in `StaffModal` child component, not the parent `CommanderStaff` context. Crash on any staff action. Moved state up. |
+| CRITICAL: tables.js crash | Same pattern as staff.js — `toast` state only in `AddTableModal`. Fixed. |
+| CRITICAL: clock-setup + game-types silent 401 | Raw fetch calls missing `x-staff-session` header. Writes silently failed. Headers added. |
+| Commander audit Pass 2 | TDZ crash in `activity.js`; `TABLE_TO_ENTITY` / `ENTITY_TO_TABLES` consistency; confetti/shake/flash timer leak prevention on unmount; `settings` API `guardStaff` for GET + `guardManager` for PUT. |
+
+**Impact:** Complete financial audit trail for all chip movements in Club Arena. 4 critical crashes and silent auth failures eliminated from Club Commander staff flows.
+
+---
+
+## PHASE 53 — Club Arena 4-Pass Security Audit + SWR Performance (2026-05-13)
+
+A 4-pass security audit across all 58 Club Arena API routes closed a critical chat auth bypass and XSS vector, hardened config, and added SWR-based caching to eliminate duplicate API calls.
+
+| Deliverable | Detail |
+|---|---|
+| CRITICAL: chat.js auth bypass | GET endpoint was serving any club's chat to unauthenticated requests via service role bypass (no Bearer check). Now requires auth JWT + club membership verification. |
+| XSS patched | `displayName` and `message` in `chat.js` POST now pass through `sanitizeNote()`. `clubId` and `tableId` validated as UUID format. |
+| Idempotency guards | `chat.js` POST: mobile double-tap idempotency guard. `marketplace-purchase.js`: purchase idempotency to prevent double-charges. |
+| Input validation | `cashier-info.js` preset amounts array: positive integers only, 100-10M range, max 10 items. |
+| Supabase config hardening | Singleton throws immediately when `SUPABASE_SERVICE_ROLE_KEY` is missing (not silently fallback to anon key). Prevents silent RLS failures across all 58 routes. |
+| useSessionCache SWR hook | New hook prevents duplicate API calls on rapid re-mount. Wired into header + core data fetchers. |
+| Persistent header data store | Prefetch-on-hover + persistent header data store eliminates re-fetch on every route change. |
+| Bus listener leak fix | Critical fix preventing memory leak accumulation on Club Arena page navigation. |
+| sw-bus.js hardening | Offline crash guard + cache eviction cap (200 entries). |
+| Purchase API balance | `marketplace-purchase.js` now returns accurate post-deduction balance from DB (not optimistic client-computed value). |
+| 4-pass re-audit | userId staleness guard; all bug fixes from passes 1-3 applied and verified. |
+
+**Impact:** Critical unauthenticated chat read closed. All 58 Club Arena API routes hardened. SWR caching eliminates duplicate API calls. Purchase flow returns verified server balance.
+
+---
+
+## PHASE 54 — Infrastructure: Next.js Upgrade + SPA Catch-All + Railway Migration (2026-05-13)
+
+Platform infrastructure modernized: 32 Next.js patch versions, Club Arena navigation converted to SPA, game server migrated to Railway, and agent workflow documentation overhauled.
+
+| Deliverable | Detail |
+|---|---|
+| Next.js 14.2.3 → 14.2.35 | 32 patch versions of security and performance fixes. Zero breaking changes. |
+| Club Arena SPA catch-all | 15 standalone `pages/hub/club-arena/*.js` pages replaced with `pages/hub/club-arena/[[...slug]].js` SPA catch-all. Eliminates full page reloads on Club Arena navigation. `document.write()` fallback replaced with safe `window.location.replace()`. |
+| Railway game server migration | `GameServerAPI` now points to Railway production URL across all Club Arena environments. |
+| Root cleanup | 157 one-off legacy files moved to `_legacy/` directories. Supabase SQL workflow added. |
+| Agent Isolation Protocol | Added to CLAUDE.md: file-level ownership, browser isolation, git conflict safety rules for concurrent multi-agent sessions. |
+| Speed Mandate | Task tier system (Tier 1-3), tier-based verification, deploy-first protocol for Tier 1-2. Added to CLAUDE.md. |
+| CLAUDE.md trim | Removed ~120 lines of duplicate content, simplified Rule 7 for the tier system. |
+
+**Impact:** 32 Next.js patches applied. Club Arena navigation no longer forces full page reloads. Railway is now the canonical game server. Agent workflow documentation reflects actual current practice.
+
+---
+
+## CURRENT STATE — 2026-05-13
+
+Production is green. Latest deploy READY. Phases 51-54 shipped across live stream hardening, Club Commander chip ledger, Club Arena 4-pass security audit (58 routes hardened, critical chat auth bypass closed), and infrastructure upgrades (Next.js 14.2.35, SPA catch-all, Railway migration). No active incidents. Next focus: identify next build priority from GSD roadmap.
