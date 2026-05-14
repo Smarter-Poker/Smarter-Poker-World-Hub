@@ -7823,7 +7823,7 @@ function ClubPagesView({
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {isStaff && (
               <button
-                onClick={() => (window.top.location.href = '/commander/dashboard')}
+                onClick={() => (window.top.location.href = '/hub/commander')}
                 style={{
                   background: 'linear-gradient(135deg, #1a1a2e, #0f0f0f)',
                   border: '1px solid #22D3EE',
