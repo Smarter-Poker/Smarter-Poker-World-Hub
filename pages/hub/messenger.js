@@ -2352,7 +2352,7 @@ function MessengerPage() {
     }, []);
 
     // Identity switching
-    const { isClubMode, clubPage, hasClubPage } = useActiveIdentity();
+    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub } = useActiveIdentity();
 
     // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
     // Prevents "Sign In" flash while async profile fetch completes
@@ -5888,6 +5888,45 @@ function MessengerPage() {
                         composing={composing}
                     />
 
+                    {/* Identity Switcher Widgets */}
+                    {hasClubPage && (
+                        <div className="no-scrollbar" style={{ padding: '0 16px', marginBottom: 12, display: 'flex', gap: 8, overflowX: 'auto', flexShrink: 0 }}>
+                            <button
+                                onClick={() => switchToPersonal()}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: 16,
+                                    border: `1px solid ${!isClubMode ? C.blue : C.border}`,
+                                    background: !isClubMode ? C.blue : 'transparent',
+                                    color: !isClubMode ? 'white' : C.text,
+                                    fontWeight: 600,
+                                    fontSize: 13,
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    transition: 'all 0.2s',
+                                }}
+                            >Personal</button>
+                            {ownedPages.map(page => (
+                                <button
+                                    key={page.id}
+                                    onClick={() => switchToClub(page)}
+                                    style={{
+                                        padding: '6px 12px',
+                                        borderRadius: 16,
+                                        border: `1px solid ${isClubMode && clubPage?.id === page.id ? C.blue : C.border}`,
+                                        background: isClubMode && clubPage?.id === page.id ? C.blue : 'transparent',
+                                        color: isClubMode && clubPage?.id === page.id ? 'white' : C.text,
+                                        fontWeight: 600,
+                                        fontSize: 13,
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        transition: 'all 0.2s',
+                                    }}
+                                >{page.name}</button>
+                            ))}
+                        </div>
+                    )}
+
 
                     {/* Message Requests Banner — Facebook-style */}
                     {messageRequestCount > 0 && (
@@ -5947,92 +5986,7 @@ function MessengerPage() {
                                     }}>Search For People</button>
                             </div>
                         ) : (
-                            <>
-                                {/* Jarvis AI - Locked at Top */}
-                                <div
-                                    onClick={() => handleSelectConversation({
-                                        id: 'jarvis-ai',
-                                        isJarvis: true,
-                                        otherUser: {
-                                            id: 'jarvis',
-                                            username: 'jarvis',
-                                            full_name: 'Jarvis',
-                                            avatar_url: null
-                                        },
-                                        last_message_preview: 'Your Poker AI Assistant',
-                                        last_message_at: new Date().toISOString(),
-                                        unreadCount: 0
-                                    })}
-                                    style={{
-                                        padding: '12px 16px',
-                                        cursor: 'pointer',
-                                        background: activeConversation?.id === 'jarvis-ai'
-                                            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
-                                            : '#2a2a2a',
-                                        borderBottom: `1px solid ${C.border}`,
-                                        borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
-                                        transition: 'all 0.2s',
-                                        position: 'relative'
-                                    }}
-                                    onMouseEnter={e => {
-                                        if (activeConversation?.id !== 'jarvis-ai') {
-                                            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)';
-                                        }
-                                    }}
-                                    onMouseLeave={e => {
-                                        if (activeConversation?.id !== 'jarvis-ai') {
-                                            e.currentTarget.style.background = '#2a2a2a';
-                                        }
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        {/* Jarvis Avatar */}
-                                        <Image src="/images/jarvis-avatar.png" alt="Jarvis AI" width={1024} height={682} style={{
-                                            width: 48,
-                                            height: 48,
-                                            borderRadius: '50%',
-                                            objectFit: 'cover',
-                                            boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
-                                            border: '2px solid #00D4FF',
-                                            position: 'relative'
-                                        }} />
-                                        {/* Always Online Indicator */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            bottom: 0,
-                                            left: 36,
-                                            width: 14,
-                                            height: 14,
-                                            borderRadius: '50%',
-                                            background: C.green,
-                                            border: '2px solid white'
-                                        }} />
-
-                                        {/* Jarvis Info */}
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{
-                                                marginBottom: 4
-                                            }}>
-                                                <span style={{
-                                                    fontWeight: 600,
-                                                    fontSize: 15,
-                                                    color: '#00D4FF'
-                                                }}>Jarvis</span>
-                                            </div>
-                                            <div style={{
-                                                fontSize: 13,
-                                                color: '#00D4FF',
-                                                lineHeight: 1.3
-                                            }}>
-                                                Your Personal Smarter.Poker Coach - Always Online Always Available! Ask Me Anything...
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-
-                                {/* Regular Conversations */}
+                            <>                                {/* Regular Conversations */}
                                 {conversations.filter(conv => {
                                     if (!searchQuery) return true;
                                     const q = searchQuery.toLowerCase();
@@ -6096,24 +6050,110 @@ function MessengerPage() {
 
                     {/* Footer */}
                     <div style={{
-                        padding: 12,
                         borderTop: `1px solid ${C.border}`,
-                        textAlign: 'center',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 12,
                     }}>
-                        <ReportBugWidget contextPath="/hub/messenger" />
-                        
-                        <Link href="/hub/social-media" style={{
-                            color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        {/* Jarvis AI - Locked at Bottom (above Report Bug) */}
+                        <div
+                            onClick={() => handleSelectConversation({
+                                id: 'jarvis-ai',
+                                isJarvis: true,
+                                otherUser: {
+                                    id: 'jarvis',
+                                    username: 'jarvis',
+                                    full_name: 'Jarvis',
+                                    avatar_url: null
+                                },
+                                last_message_preview: 'Your Poker AI Assistant',
+                                last_message_at: new Date().toISOString(),
+                                unreadCount: 0
+                            })}
+                            style={{
+                                padding: '12px 16px',
+                                cursor: 'pointer',
+                                background: activeConversation?.id === 'jarvis-ai'
+                                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
+                                    : '#2a2a2a',
+                                borderBottom: `1px solid ${C.border}`,
+                                borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
+                                transition: 'all 0.2s',
+                                position: 'relative'
+                            }}
+                            onMouseEnter={e => {
+                                if (activeConversation?.id !== 'jarvis-ai') {
+                                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)';
+                                }
+                            }}
+                            onMouseLeave={e => {
+                                if (activeConversation?.id !== 'jarvis-ai') {
+                                    e.currentTarget.style.background = '#2a2a2a';
+                                }
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                {/* Jarvis Avatar */}
+                                <Image src="/images/jarvis-avatar.png" alt="Jarvis AI" width={48} height={48} style={{
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
+                                    border: '2px solid #00D4FF',
+                                    position: 'relative'
+                                }} />
+                                {/* Always Online Indicator */}
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    left: 36,
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: '50%',
+                                    background: C.green,
+                                    border: '2px solid white'
+                                }} />
+
+                                {/* Jarvis Info */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{
+                                        marginBottom: 4
+                                    }}>
+                                        <span style={{
+                                            fontWeight: 600,
+                                            fontSize: 15,
+                                            color: '#00D4FF'
+                                        }}>Jarvis</span>
+                                    </div>
+                                    <div style={{
+                                        fontSize: 13,
+                                        color: '#00D4FF',
+                                        lineHeight: 1.3
+                                    }}>
+                                        Your Personal Smarter.Poker Coach - Always Online Always Available! Ask Me Anything...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{
+                            padding: 12,
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 12,
                         }}>
-                            <span style={{
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                width: 28, height: 28, borderRadius: '50%', background: C.bg,
-                                fontSize: 14, color: C.text,
-                            }}>←</span>
+                            <ReportBugWidget contextPath="/hub/messenger" />
+                            
+                            <Link href="/hub/social-media" style={{
+                                color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            }}>
+                                <span style={{
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    width: 28, height: 28, borderRadius: '50%', background: C.bg,
+                                    fontSize: 14, color: C.text,
+                                }}>←</span>
                             Back To Social Hub
                         </Link>
                     </div>
