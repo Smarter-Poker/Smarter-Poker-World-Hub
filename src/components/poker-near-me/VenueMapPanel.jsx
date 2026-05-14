@@ -124,7 +124,7 @@ function createVenueIcon(L, venue) {
   const label = truncateName(venue.name, 20);
   const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  const logoUrl = venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
+  const logoUrl = venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 
   // Logo or initials — matches the Poker Tours round-circle style

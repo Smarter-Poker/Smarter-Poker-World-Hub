@@ -5890,39 +5890,42 @@ function MessengerPage() {
 
                     {/* Identity Switcher Widgets */}
                     {hasClubPage && (
-                        <div className="no-scrollbar" style={{ padding: '0 16px', marginBottom: 12, display: 'flex', gap: 8, overflowX: 'auto', flexShrink: 0 }}>
-                            <button
-                                onClick={() => switchToPersonal()}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: 16,
-                                    border: `1px solid ${!isClubMode ? C.blue : C.border}`,
-                                    background: !isClubMode ? C.blue : 'transparent',
-                                    color: !isClubMode ? 'white' : C.text,
-                                    fontWeight: 600,
-                                    fontSize: 13,
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.2s',
-                                }}
-                            >Personal</button>
+                        <div className="no-scrollbar" style={{ padding: '0 16px', marginBottom: 16, marginTop: 4, display: 'flex', gap: 16, overflowX: 'auto', flexShrink: 0 }}>
+                            <div onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
+                                <div style={{ 
+                                    padding: 3, 
+                                    borderRadius: '50%', 
+                                    border: `2px solid ${!isClubMode ? C.blue : 'transparent'}`,
+                                    transition: 'border-color 0.2s'
+                                }}>
+                                    <Avatar src={user?.user_metadata?.avatar_url} name={user?.user_metadata?.full_name || 'Personal'} size={52} showOnline={false} />
+                                </div>
+                                <span style={{ fontSize: 12, fontWeight: !isClubMode ? 700 : 500, color: !isClubMode ? C.blue : C.textSec }}>Personal</span>
+                            </div>
+                            
                             {ownedPages.map(page => (
-                                <button
-                                    key={page.id}
-                                    onClick={() => switchToClub(page)}
-                                    style={{
-                                        padding: '6px 12px',
-                                        borderRadius: 16,
-                                        border: `1px solid ${isClubMode && clubPage?.id === page.id ? C.blue : C.border}`,
-                                        background: isClubMode && clubPage?.id === page.id ? C.blue : 'transparent',
-                                        color: isClubMode && clubPage?.id === page.id ? 'white' : C.text,
-                                        fontWeight: 600,
-                                        fontSize: 13,
-                                        cursor: 'pointer',
+                                <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
+                                    <div style={{ 
+                                        padding: 3, 
+                                        borderRadius: '50%', 
+                                        border: `2px solid ${isClubMode && clubPage?.id === page.id ? C.blue : 'transparent'}`,
+                                        transition: 'border-color 0.2s'
+                                    }}>
+                                        <Avatar src={page.avatar_url} name={page.name} size={52} showOnline={false} />
+                                    </div>
+                                    <span style={{ 
+                                        fontSize: 12, 
+                                        fontWeight: isClubMode && clubPage?.id === page.id ? 700 : 500, 
+                                        color: isClubMode && clubPage?.id === page.id ? C.blue : C.textSec,
                                         whiteSpace: 'nowrap',
-                                        transition: 'all 0.2s',
-                                    }}
-                                >{page.name}</button>
+                                        maxWidth: 68,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        textAlign: 'center'
+                                    }}>
+                                        {page.name}
+                                    </span>
+                                </div>
                             ))}
                         </div>
                     )}

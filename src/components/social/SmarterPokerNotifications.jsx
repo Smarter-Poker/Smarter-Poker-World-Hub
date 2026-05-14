@@ -186,6 +186,14 @@ export const NotificationsDropdown = ({
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
+    useEffect(() => {
+        // Auto mark as read when dropdown is opened (as requested by user)
+        if (unreadCount > 0 && onMarkAllRead) {
+            onMarkAllRead();
+            busEmit.notificationsRead(unreadCount);
+        }
+    }, [unreadCount, onMarkAllRead]);
+
     return (
         <div className="notifications-dropdown">
             {/* Header */}
@@ -213,14 +221,6 @@ export const NotificationsDropdown = ({
             {/* Earlier Label */}
             <div className="notif-section-header">
                 <span>Earlier</span>
-                {unreadCount > 0 && (
-                    <button className="mark-read-btn" onClick={() => {
-                        onMarkAllRead?.();
-                        busEmit.notificationsRead(unreadCount);
-                    }}>
-                        Mark all as read
-                    </button>
-                )}
             </div>
 
             {/* Notification List */}

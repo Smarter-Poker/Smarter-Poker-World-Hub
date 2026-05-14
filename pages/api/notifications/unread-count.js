@@ -48,7 +48,7 @@ export default async function handler(req, res) {
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', uid)
-            .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
+            .or('is_read.eq.false,is_read.is.null');
 
         if (error) {
             console.warn('[unread-count] DB error:', error.message);

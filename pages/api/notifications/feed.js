@@ -18,6 +18,14 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
+function toTitleCase(str) {
+    if (!str) return '';
+    return str.split(/(\s+)/).map(w => {
+        if (!w.trim()) return w;
+        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    }).join('');
+}
+
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
 // On warm Vercel instances, repeated fetches within 15s return instantly (<5ms)
 // instead of paying the full Supabase round-trip cost every call.
@@ -246,11 +254,13 @@ export default async function handler(req, res) {
                     return key ? profileByName[key.toLowerCase()] : null;
                 })();
 
-            const displayName = profile?.full_name || profile?.username 
+            const displayNameRaw = profile?.full_name || profile?.username 
                 || n.data?.actor_name || n.data?.sender_name
                 || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1]
                 || n.title
                 || 'Someone';
+            
+            const displayName = toTitleCase(displayNameRaw);
 
             // BUG-28 FIX: Rewrite home_group message with real group name
             // BUG-36 FIX: Handle groups with null name (dev/test groups) and deleted groups.
@@ -269,6 +279,7 @@ export default async function handler(req, res) {
                     message = 'Your friend joined a Home Game — check it out';
                 }
             }
+            message = toTitleCase(message);
 
             return {
                 ...n,

@@ -154,6 +154,17 @@ function NotificationsPage() {
         return () => { mounted.current = false; };
     }, []);
 
+    // ── Clear badge count on mount ──
+    useEffect(() => {
+        getAccessToken().then(token => {
+            fetch('/api/notifications/mark-seen', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({})
+            }).catch(() => {});
+        });
+    }, []);
+
     useTrainingBus('notifications');
 
     const menuConfig = getMenuConfig('notifications', user, {}, {});
@@ -208,54 +219,7 @@ function NotificationsPage() {
                     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
 
-                // ── Mark all as read FIRE-AND-FORGET (do not block UI render) ──
-                if (totalUnread > 0) {
-                    // Instantly update badge (optimistic) 
-                    try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-                    eventBus.emit(EventType.NOTIFICATIONS_READ, { count: totalUnread }, 'NotificationsPage');
-                    try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: 0 }, '*'); } catch (_) {}
-
-                    // Mark social notifications read (non-blocking — user already sees the page)
-                    const hasUnreadSocial = enriched.some(n => !n.read && n._source === 'social');
-                    const hasUnreadPoker = enriched.some(n => !n.read && n._source === 'poker');
-
-                    // If totalUnread > 0, there are unread notifications in the DB.
-                    // Even if hasUnreadSocial is false in the first 50, there might be unread ones past 50.
-                    // BUG-FIX: Use server API to mark all read — it sets BOTH read=true AND is_read=true.
-                    // The direct Supabase client update only set `read=true`, but unread-count queries
-                    // check BOTH columns, so badges persisted after viewing notifications.
-                    getAccessToken().then(markToken => 
-                        fetch('/api/notifications/mark-read', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...(markToken ? { Authorization: `Bearer ${markToken}` } : {}) },
-                            body: JSON.stringify({}),  // empty body = mark ALL unread as read
-                        })
-                        .then(() => {
-                            if (mounted.current) {
-                                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                                try {
-                                    const now = Date.now();
-                                    const updated = enriched.map(n => ({ ...n, read: true }));
-                                    localStorage.setItem('sp-notif-cache', JSON.stringify(
-                                        updated.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
-                                    ));
-                                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                            }
-                        })
-                        .catch(e => console.warn('[Notifications] mark-read API failed:', e))
-                    );
-
-                    if (hasUnreadPoker) {
-                        getAccessToken().then(t =>
-                            fetch('/api/poker/notifications', {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-                                body: JSON.stringify({ mark_all: true })
-                            }).catch(e => console.warn('[Notifications] poker mark_all failed:', e))
-                        );
-                    }
-                } else if (enriched.length === 0 && mounted.current) {
+                if (totalUnread === 0 && enriched.length === 0 && mounted.current) {
                     setLoading(false);
                 }
 
@@ -377,6 +341,33 @@ function NotificationsPage() {
             );
         }
     };
+
+    // Auto mark as read when visually seen
+    const observerRef = useRef(null);
+    useEffect(() => {
+        if (loading || notifications.length === 0) return;
+
+        observerRef.current = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('data-notif-id');
+                    if (id) {
+                        markAsRead(id);
+                        observerRef.current.unobserve(entry.target);
+                    }
+                }
+            });
+        }, { threshold: 0.5 });
+
+        const elements = document.querySelectorAll('.unread-notification-row');
+        elements.forEach(el => observerRef.current.observe(el));
+
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+        };
+    }, [notifications, loading]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // FRIEND REQUEST HANDLERS (SmarterPoker-style: Decline = Auto-Follow)
@@ -689,17 +680,34 @@ function NotificationsPage() {
                                 // [Audit#17] Dismiss any open swipe
                                 setSwipedId(null);
 
-                                // When rendered inside FullScreenPageOverlay, router.push navigates
-                                // the iframe's own URL — useless. Break out to the parent window instead.
                                 const navigate = (path) => {
+                                    if (!path) return;
+                                    
+                                    // Handle absolute URLs correctly instead of passing them to router.push
+                                    let localPath = path;
+                                    if (path.startsWith('http://') || path.startsWith('https://')) {
+                                        try {
+                                            const urlObj = new URL(path);
+                                            // Only use pathname+search if it's our domain, else redirect fully
+                                            if (urlObj.hostname === window.location.hostname || urlObj.hostname === 'smarter.poker') {
+                                                localPath = urlObj.pathname + urlObj.search;
+                                            } else {
+                                                window.open(path, '_blank');
+                                                return;
+                                            }
+                                        } catch(e) {
+                                            console.warn('Invalid URL:', path);
+                                        }
+                                    }
+
                                     try {
                                         if (window.self !== window.top) {
-                                            window.top.location.href = path;
+                                            window.top.location.href = localPath;
                                         } else {
-                                            router.push(path);
+                                            router.push(localPath);
                                         }
                                     } catch (_) {
-                                        router.push(path);
+                                        window.location.href = localPath;
                                     }
                                 };
 
@@ -805,6 +813,8 @@ function NotificationsPage() {
                             return (
                                 <div
                                     key={n.id}
+                                    className={!n.read ? "unread-notification-row" : ""}
+                                    data-notif-id={n.id}
                                     style={{
                                         position: 'relative', overflow: 'hidden',
                                         borderBottom: `1px solid ${C.border}`,

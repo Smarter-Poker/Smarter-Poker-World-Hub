@@ -356,7 +356,7 @@ function createVenueIcon(L, venue, overrideColor) {
   const label = truncateName(venue.name, 22);
   const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   
-  const logoUrl = venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
+  const logoUrl = venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
   // [VM4 FIX] initials injected into HTML template raw — if venue.name starts with < > & the first
   // character is inserted unescaped. escapeHtml() prevents any HTML injection via venue name data.

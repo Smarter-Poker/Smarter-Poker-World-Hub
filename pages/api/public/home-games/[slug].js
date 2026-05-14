@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         'id, slug, name, description, avatar_url, cover_url, location_city, location_state, location_country, is_public, follower_count, post_count, view_count, linked_entity_type, linked_entity_id, metadata, created_at, updated_at'
       )
       .eq('slug', slug)
-      .eq('page_type', 'home_game')
+      .in('page_type', ['home_game', 'club'])
       .maybeSingle();
 
     if (pageErr) throw pageErr;
