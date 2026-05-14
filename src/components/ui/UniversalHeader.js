@@ -183,7 +183,7 @@ export default function UniversalHeader({
     // cached data — so there is zero visual flash despite the gate.
     
     // Override with Club Identity if active
-    const activeAvatarUrl = isClubMode && clubPage ? clubPage.avatar_url : (contextAvatar?.imageUrl || user?.avatar);
+    const activeAvatarUrl = isClubMode && clubPage ? (clubPage.avatar_url || contextAvatar?.imageUrl || user?.avatar) : (contextAvatar?.imageUrl || user?.avatar);
     const activeName = isClubMode && clubPage ? clubPage.name : (user?.name || '');
     
     const displayAvatar = isMounted ? (activeAvatarUrl || '/default-avatar.png') : null;
