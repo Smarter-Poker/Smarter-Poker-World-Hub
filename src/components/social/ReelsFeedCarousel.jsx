@@ -887,7 +887,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
       // Authoritative state resynchronization
       try {
         const [{ data: postData }, { data: likeData }] = await Promise.all([
-          supabase.from('social_posts').select('like_count').eq('id', currentId).single(),
+          supabase.from('social_posts').select('like_count').eq('id', currentId).maybeSingle(),
           supabase.from('social_likes').select('reaction_type').eq('post_id', currentId).eq('user_id', userId)
         ]);
         if (postData) setLikeCounts(prev => ({ ...prev, [currentId]: postData.like_count || 0 }));
@@ -968,7 +968,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
       // Authoritative state resynchronization
       try {
         const [{ data: postData }, { data: likeData }] = await Promise.all([
-          supabase.from('social_posts').select('like_count').eq('id', currentId).single(),
+          supabase.from('social_posts').select('like_count').eq('id', currentId).maybeSingle(),
           supabase.from('social_likes').select('reaction_type').eq('post_id', currentId).eq('user_id', userId)
         ]);
         if (postData) setLikeCounts(prev => ({ ...prev, [currentId]: postData.like_count || 0 }));
@@ -1166,7 +1166,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
       // Authoritative state resynchronization
       try {
         const [{ data: commentData }, { data: likeData }] = await Promise.all([
-          supabase.from('social_comments').select('like_count').eq('id', commentId).single(),
+          supabase.from('social_comments').select('like_count').eq('id', commentId).maybeSingle(),
           supabase.from('social_likes').select('reaction_type').eq('comment_id', commentId).eq('user_id', userId)
         ]);
         if (commentData) setCommentLikeCounts(prev => ({ ...prev, [commentId]: commentData.like_count || 0 }));

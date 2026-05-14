@@ -260,7 +260,7 @@ export const EnhancedSpatialFeed = ({
             // Authoritative state resynchronization on failure
             try {
                 const [{ data: postData }, { data: likeData }] = await Promise.all([
-                    supabase.from('social_posts').select('like_count').eq('id', postId).single(),
+                    supabase.from('social_posts').select('like_count').eq('id', postId).maybeSingle(),
                     supabase.from('social_likes').select('reaction_type').eq('post_id', postId).eq('user_id', user.id)
                 ]);
                 

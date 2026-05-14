@@ -450,7 +450,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             // Authoritative state resynchronization on failure
             try {
                 const [{ data: postData }, { data: likeData }] = await Promise.all([
-                    supabase.from('social_posts').select('like_count').eq('id', postId).single(),
+                    supabase.from('social_posts').select('like_count').eq('id', postId).maybeSingle(),
                     supabase.from('social_likes').select('reaction_type').eq('post_id', postId).eq('user_id', currentUser.id)
                 ]);
                 
@@ -458,7 +458,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                     if (p.id !== postId) return p;
                     return {
                         ...p,
-                        isLiked: likeData?.some(r => r.reaction_type === 'like') || false,
+                        isLiked: likeData?.length > 0,
                         reactionType: likeData?.[0]?.reaction_type || 'like',
                         engagement: {
                             ...p.engagement,

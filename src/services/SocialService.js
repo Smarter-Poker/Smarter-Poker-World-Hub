@@ -31,8 +31,8 @@ export class SocialService {
      */
     async getFeed({ userId, filter = 'recent', limit = 20, offset = 0 }) {
         try {
-            // 1. Try V2 RPC first (Fixed function)
-            const { data: rpcData, error: rpcError } = await this.supabase.rpc('fn_get_social_feed_v2', {
+            // 1. Try RPC first
+            const { data: rpcData, error: rpcError } = await this.supabase.rpc('fn_get_social_feed', {
                 p_user_id: userId || null,
                 p_limit: limit + 1,
                 p_offset: offset,
