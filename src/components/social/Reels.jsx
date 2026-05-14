@@ -1089,18 +1089,20 @@ export function ReelsViewer({ onClose }) {
     try {
       if (wasLiked) {
         // DB trigger (trig_sync_like_count) handles like_count decrement atomically - no RPC needed
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', currentReel.id)
           .eq('user_id', userId)
           .eq('reaction_type', 'like');
+        if (error) throw error;
         busEmit.socialPostLiked(currentReel.id, userId, { added: false, reactionType: 'like' });
       } else {
         // DB trigger (trig_sync_like_count) handles like_count increment atomically - no RPC needed
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'like' });
+        if (error) throw error;
         busEmit.socialPostLiked(currentReel.id, userId, { added: true, reactionType: 'like' });
       }
     } catch (err) {
@@ -1370,20 +1372,22 @@ export function ReelsViewer({ onClose }) {
       if (wasLiked) {
         // BUG FIX: .match({ metadata: { comment_id } }) does FULL-OBJECT equality match.
         // If metadata has extra keys it won't match. Use PostgREST JSON path filter instead.
-        await supabase
+        const { error } = await supabase
           .from('social_interactions')
           .delete()
           .eq('user_id', currentUserId)
           .eq('post_id', currentReel.id)
           .eq('interaction_type', 'comment_like')
           .eq('metadata->>comment_id', commentId);
+        if (error) throw error;
       } else {
-        await supabase.from('social_interactions').insert({
+        const { error } = await supabase.from('social_interactions').insert({
           user_id: currentUserId,
           post_id: currentReel.id,
           interaction_type: 'comment_like',
           metadata: { comment_id: commentId },
         });
+        if (error) throw error;
       }
     } catch {
       setCommentLikes((prev) => ({ ...prev, [commentId]: wasLiked }));

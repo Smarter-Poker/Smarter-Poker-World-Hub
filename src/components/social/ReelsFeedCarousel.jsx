@@ -867,18 +867,20 @@ function ReelViewer({ reels, startIndex, onClose }) {
     try {
       if (wasLiked) {
         // DB trigger (trig_sync_like_count) handles like_count atomically - no RPC needed
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', currentId)
           .eq('user_id', userId)
           .eq('reaction_type', 'like');
+        if (error) throw error;
         busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
       } else {
         // DB trigger (trig_sync_like_count) handles like_count atomically - no RPC needed
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
+        if (error) throw error;
         busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
       }
     } catch (err) {
@@ -1145,20 +1147,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
         // .match() applies JSONB '=' (exact object equality) and fails if
         // the stored value has any extra keys or different serialization.
         // The text-cast operator maps to the partial index on metadata->>'comment_id'.
-        await supabase
+        const { error } = await supabase
           .from('social_interactions')
           .delete()
           .eq('user_id', authUser.id)
           .eq('post_id', currentReel.id)
           .eq('interaction_type', 'comment_like')
           .eq('metadata->>comment_id', commentId);
+        if (error) throw error;
       } else {
-        await supabase.from('social_interactions').insert({
+        const { error } = await supabase.from('social_interactions').insert({
           user_id: authUser.id,
           post_id: currentReel.id,
           interaction_type: 'comment_like',
           metadata: { comment_id: commentId },
         });
+        if (error) throw error;
       }
     } catch (err) {
       console.warn('Comment like persistence failed:', err.message);
