@@ -518,16 +518,16 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                             const { getAccessToken } = await import('../lib/authUtils');
                             const token = getAccessToken();
                             if (token) {
-                                const res = await fetch('/api/commander/check-access', {
+                                const res = await fetch('/api/check-access', {
                                     headers: { 'Authorization': `Bearer ${token}` },
                                 });
                                 if (res.ok) {
                                     const data = await res.json();
-                                    if (data.hasAccess && data.staff) {
+                                    if (data.hasAccess) {
                                         setHasCommanderAccount(true);
                                         // Backfill localStorage so future visits are instant
                                         try {
-                                            localStorage.setItem('commander_staff', JSON.stringify(data.staff));
+                                            localStorage.setItem('commander_staff', JSON.stringify({ role: 'owner', venue_id: data.venueIds?.[0] || '1' }));
                                             // Store tier for tier-gated sidebar
                                             if (data.tier) {
                                                 const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
@@ -609,9 +609,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         recordCardVisit(cardId);
         selectOrb(cardId as any);
 
-        // Commander card routes to commander dashboard
+        // Commander card routes to commander dashboard (rewritten to commander.smarter.poker)
         if (cardId === 'club-commander') {
-            router.push('/hub/commander');
+            window.location.href = 'https://commander.smarter.poker/commander/dashboard';
             return;
         }
 
@@ -675,9 +675,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
         const targetRoute = `/hub/${orbId}`;
 
-        // Commander card routes to commander dashboard
+        // Commander card routes to commander dashboard (rewritten to commander.smarter.poker)
         if (orbId === 'club-commander') {
-            router.push('/hub/commander');
+            window.location.href = 'https://commander.smarter.poker/commander/dashboard';
             return;
         }
 
