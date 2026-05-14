@@ -595,70 +595,9 @@ const nextConfig = {
       // afterFiles handles SPA routing — serves index.html for routes that
       // don't match a real file in public/ or a native Next.js page.
       beforeFiles: [
-        // Phase 3-deploy: commander.smarter.poker proxy.
-        // beforeFiles runs BEFORE Next.js pages/, so this beats the legacy
-        // pages/commander/* monolith routes that still exist during the
-        // migration window. Phase 3.7 monolith cleanup will delete those.
-        //
-        // Note: must list /commander BARE in addition to /commander/:path*.
-        // The :path* matcher with empty path captures '' and produces
-        // destination '.../commander/' (trailing slash) which next.js then
-        // 308-redirects back to '/commander', creating a loop. Listing the
-        // bare path explicitly ensures no trailing slash is appended.
-        {
-          source: '/commander',
-          destination: 'https://commander.smarter.poker/commander',
-        },
-        {
-          source: '/commander/:path*',
-          destination: 'https://commander.smarter.poker/commander/:path*',
-        },
-        {
-          source: '/api/commander/:path*',
-          destination: 'https://commander.smarter.poker/api/:path*',
-        },
-        // Commander-specific /api/admin paths only — explicit per-route to
-        // avoid hijacking the 28 monolith /api/admin/* routes (check-*, etc).
-        {
-          source: '/api/admin/api-keys/:path*',
-          destination: 'https://commander.smarter.poker/api/admin/api-keys/:path*',
-        },
-        {
-          source: '/api/admin/api-keys',
-          destination: 'https://commander.smarter.poker/api/admin/api-keys',
-        },
-        {
-          source: '/api/admin/audit-logs',
-          destination: 'https://commander.smarter.poker/api/admin/audit-logs',
-        },
-        {
-          source: '/api/admin/leads',
-          destination: 'https://commander.smarter.poker/api/admin/leads',
-        },
-        {
-          source: '/api/admin/pilots',
-          destination: 'https://commander.smarter.poker/api/admin/pilots',
-        },
-        {
-          source: '/api/admin/pin-logout',
-          destination: 'https://commander.smarter.poker/api/admin/pin-logout',
-        },
-        {
-          source: '/api/admin/pin-setup',
-          destination: 'https://commander.smarter.poker/api/admin/pin-setup',
-        },
-        {
-          source: '/api/admin/pin-verify',
-          destination: 'https://commander.smarter.poker/api/admin/pin-verify',
-        },
-        {
-          source: '/api/admin/venues/:path*',
-          destination: 'https://commander.smarter.poker/api/admin/venues/:path*',
-        },
-        {
-          source: '/api/admin/venues',
-          destination: 'https://commander.smarter.poker/api/admin/venues',
-        },
+        // Phase 3-deploy: commander proxy has been removed to restore
+        // the native monolithic routes in /pages/commander/* because
+        // the standalone deployment is currently failing/unavailable.
       ],
       afterFiles: [],
       // fallback rewrites run LAST — after pages AND public/ files.
