@@ -827,7 +827,7 @@ function ProfileVideoCard({ url, postId, thumbnailUrl, style = {} }) {
 
   const ytId = getYtId(url);
   const isYouTube = !!ytId;
-  const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+  const resolvedThumbnail = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : thumbnailUrl;
 
   const handleClick = () => {
     if (postId) router.push(`/hub/reels?id=${postId}`);
@@ -849,7 +849,7 @@ function ProfileVideoCard({ url, postId, thumbnailUrl, style = {} }) {
       {/* YouTube: show thumbnail image */}
       {isYouTube && !thumbError && (
         <img
-          src={thumbnailUrl}
+          src={resolvedThumbnail}
           alt="Video thumbnail"
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           loading="lazy"
