@@ -281,6 +281,7 @@ export const EnhancedSpatialFeed = ({
             } catch (resyncError) {
                 console.warn('Resync failed:', resyncError);
             }
+            throw error;
         }
     }, [socialService, user]);
 
