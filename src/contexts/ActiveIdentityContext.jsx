@@ -163,7 +163,11 @@ export function ActiveIdentityProvider({ children }) {
     }, []);
 
     const switchToClub = useCallback((clubPage = null) => {
-        const page = clubPage || (ownedPages.length > 0 ? ownedPages[0] : null);
+        // When called without an explicit page, auto-select the first non-home_game page.
+        // home_game pages are handled via the homeGroupTargets flow in SharedPostCreator
+        // and should never be auto-promoted as the Commander club identity.
+        const clubOnlyPages = ownedPages.filter(p => p.page_type !== 'home_game');
+        const page = clubPage || (clubOnlyPages.length > 0 ? clubOnlyPages[0] : null);
         if (!page) {
             console.warn('[ActiveIdentity] No club page available to switch to');
             return;
@@ -270,13 +274,17 @@ export function ActiveIdentityProvider({ children }) {
         };
     }, [ownedPages.map(p => p.id).join(',')]);
 
+    const clubOnlyOwnedPages = ownedPages.filter(p => p.page_type !== 'home_game');
+
     const value = {
         activeIdentity,
         switchToPersonal,
         switchToClub,
         isClubMode: activeIdentity.mode === 'club',
-        clubPage: activeIdentity.clubPage || (ownedPages.length > 0 ? ownedPages[0] : null),
-        hasClubPage: ownedPages.length > 0,
+        // clubPage fallback only uses non-home_game pages — home_game identities
+        // are surfaced separately via homeGroupTargets in SharedPostCreator.
+        clubPage: activeIdentity.clubPage || (clubOnlyOwnedPages.length > 0 ? clubOnlyOwnedPages[0] : null),
+        hasClubPage: clubOnlyOwnedPages.length > 0,
         ownedPages,
     };
 

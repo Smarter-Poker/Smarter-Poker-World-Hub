@@ -2723,9 +2723,13 @@ function MessengerPage() {
     // ── Handle ?conversation=convId&draft=text deep-link (from Message Host button) ──
     const lastHandledConvLink = useRef(null);
     useEffect(() => {
-        if (!user?.id || !conversations.length) return;
+        if (!user?.id) return;
         const { conversation: convIdParam, recipientId, draft } = router.query;
         const linkKey = convIdParam || recipientId;
+        // BUG-FIX: do NOT guard on conversations.length here.
+        // If we do, lastHandledConvLink.current gets set to linkKey on the first
+        // render (before conversations load), and the effect never re-runs for
+        // the same linkKey once conversations are available.
         if (!linkKey || lastHandledConvLink.current === linkKey) return;
         lastHandledConvLink.current = linkKey;
 
@@ -2736,10 +2740,19 @@ function MessengerPage() {
             const found = conversations.find(c => c.id === convIdParam);
             if (found) {
                 setActiveConversation(found);
+                // BUG-FIX: set draft only for THIS conversation; cleared after mount
+                // via the useEffect below that watches activeConversation.id changes.
                 if (draftText) setConversationDraft(draftText);
                 setComposeFocus(true);
                 if (isMobile) setShowSidebar(false);
+            } else if (conversations.length > 0) {
+                // Conversations loaded but this ID wasn't found— reset ref so
+                // a future conversations update can retry (e.g. if still loading)
+                lastHandledConvLink.current = null;
             }
+            // If conversations.length === 0, do nothing — keep ref set so
+            // we don't re-enter; the conversations subscription will update state
+            // and rerender, re-running this effect once conversations arrive.
         } else if (recipientId) {
             // Recipient-based — look up profile and start conversation
             (async () => {
@@ -2760,7 +2773,22 @@ function MessengerPage() {
             })();
         }
         window.history.replaceState(null, '', '/hub/messenger');
-    }, [user?.id, router.query, conversations.length]);
+    }, [user?.id, router.query, conversations]);
+
+    // BUG-FIX: Clear conversationDraft when the user switches to a different
+    // conversation AFTER the initial deep-link draft has been consumed.
+    // Without this, every subsequent conversation gets the stale draft
+    // pre-filled because conversationDraft state never resets.
+    const lastDraftConvId = useRef(null);
+    useEffect(() => {
+        if (!activeConversation?.id) return;
+        if (lastDraftConvId.current !== null &&
+            lastDraftConvId.current !== activeConversation.id &&
+            conversationDraft) {
+            setConversationDraft('');
+        }
+        lastDraftConvId.current = activeConversation.id;
+    }, [activeConversation?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MESSAGE REQUEST COUNT: Fetch pending message requests for sidebar badge

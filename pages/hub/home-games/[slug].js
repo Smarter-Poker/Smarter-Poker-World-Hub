@@ -611,7 +611,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
         }),
       });
       const json = await res.json().catch(() => ({}));
-      const convId = json.conversation_id || json.id;
+      // API returns { conversationId } (camelCase) — not conversation_id
+      const convId = json.conversationId || json.conversation_id || json.id;
       if (convId) {
         router.push(`/hub/messenger?conversation=${convId}&draft=Hi!+I'm+interested+in+joining+${encodeURIComponent(page.name)}.+Can+you+tell+me+more%3F`);
       } else {

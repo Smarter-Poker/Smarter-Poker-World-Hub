@@ -241,10 +241,10 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
                                 <div style={{ padding: '10px 12px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                                         {page.avatar_url ? (
-                                            <img src={page.avatar_url} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }} />
+                                            <img src={page.avatar_url} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                                         ) : (
                                             <div style={{
-                                                width: 36, height: 36, borderRadius: 8,
+                                                width: 36, height: 36, borderRadius: '50%',
                                                 background: tc.light, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: tc.bg, flexShrink: 0
                                             }}>
