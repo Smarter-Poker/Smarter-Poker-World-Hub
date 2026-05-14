@@ -8077,7 +8077,7 @@ function ClubPagesView({
                         style={{
                           width: 36,
                           height: 36,
-                          borderRadius: 8,
+                          borderRadius: '50%',
                           background: tc.light,
                           display: 'flex',
                           alignItems: 'center',
