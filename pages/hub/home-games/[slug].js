@@ -978,9 +978,11 @@ export default function PublicHomeGamePage({ data, serverError }) {
                   <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>
                 )}
                 {(() => {
-                    const numTables = group.settings?.tables?.length || group.num_tables || 1;
-                    const seatsPerTable = group.seats_per_table || group.max_players || null;
-                    const totalMax = seatsPerTable ? numTables * seatsPerTable : (group.max_players || null);
+                    // num_tables: count configured cash-game tables from settings (fallback: 1)
+                    const numTables = group.settings?.tables?.length || 1;
+                    // seatsPerTable: max_players is the total cap for the whole game
+                    const seatsPerTable = group.max_players || null;
+                    const totalMax = seatsPerTable ? numTables * seatsPerTable : null;
                     if (!totalMax) return null;
                     const detail = numTables > 1 ? ` (${numTables} tables × ${seatsPerTable})` : '';
                     return <div><dt>Max Players</dt><dd>{totalMax}{detail}</dd></div>;
