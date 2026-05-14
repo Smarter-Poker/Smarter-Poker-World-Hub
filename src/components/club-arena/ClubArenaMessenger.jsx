@@ -16,18 +16,7 @@ import LocationEnableModal from '../ui/LocationEnableModal';
 import SPImage from '../common/SPImage';
 const SharedPostCard = lazy(() => import('../social/SharedPostCard'));
 
-// ─── Lazy Supabase Getter ──────────────────────────────────────────────
-let _supabase = null;
-function getSupabase() {
-    if (_supabase) return _supabase;
-    if (typeof window === 'undefined') return null;
-    const { createClient } = require('@supabase/supabase-js');
-    _supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-    return _supabase;
-}
+import { supabase } from '../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💾 PERSISTENCE HOOK (Local + Supabase Background Sync)
@@ -175,7 +164,7 @@ const useMessengerPrefs = () => {
 
     // Phase 6 Deep Sweep: Background sync to SQL
     const syncToSupabase = async (state) => {
-        const sb = await getSupabase();
+        const sb = supabase;
         if (!sb) return;
         // Read token from localStorage — avoids auth.getSession() lock contention
         let _uid = null;
@@ -873,7 +862,7 @@ export const ChatWindow = ({
 
         const initPresence = async () => {
             if (!conversationId || !currentUser) return;
-            const sb = await getSupabase();
+            const sb = supabase;
             if (!sb) return;
 
             channel = sb.channel(`room:${conversationId}`, {
@@ -1398,7 +1387,7 @@ export const ChatWindow = ({
         if (!file || !currentUser || !conversationId) return;
 
         try {
-            const sb = await getSupabase();
+            const sb = supabase;
             if (!sb) return;
 
             // Client-side image compression for large images
