@@ -1497,9 +1497,9 @@ export default function SocialPageDetail() {
             }
         } catch (e) {
             console.warn("[[pageId].js]", e);
-            // Rollback optimistic update
-            setIsFollowing(!newState);
-            setPage(prev => prev ? { ...prev, follower_count: prevCount } : prev);
+            // Re-fetch authoritative state on error instead of manual rollback
+            toast.error('Network error. Resyncing state...');
+            fetchPage();
         }
         setFollowLoading(false);
     };

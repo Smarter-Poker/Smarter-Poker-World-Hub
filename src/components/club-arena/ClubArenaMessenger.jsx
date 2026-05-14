@@ -92,8 +92,17 @@ const autoLinkify = (text) => {
 };
 
 // P4-3 + P5-7: Markdown parser + auto-link
-const parseMarkdown = (text) => {
-    if (!text || typeof text !== 'string') return text;
+const parseMarkdown = (rawText) => {
+    if (!rawText || typeof rawText !== 'string') return rawText;
+    
+    // P24-1: Escape HTML to prevent XSS before parsing markdown
+    let text = rawText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
     let result = text
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
