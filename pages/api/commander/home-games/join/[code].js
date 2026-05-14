@@ -37,6 +37,13 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Invite code is required' });
         }
 
+        // Sanitize code — reject anything containing Supabase filter meta-characters
+        // (comma, period, parentheses) that could poison the .or() query string.
+        // A legitimate invite_code / club_code is alphanumeric + dashes only.
+        if (!/^[a-zA-Z0-9\-]+$/.test(code) && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code)) {
+            return res.status(400).json({ success: false, error: 'Invalid invite code format.' });
+        }
+
         // Check if code is a UUID to allow joining by group ID directly
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code);
         const orQuery = isUuid
