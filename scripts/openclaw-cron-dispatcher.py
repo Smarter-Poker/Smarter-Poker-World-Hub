@@ -298,6 +298,14 @@ ALL_CRONS = [
     # rows accumulated because nothing was actually deleting them.
     ('/api/cron/cleanup-expired-stories',         dict(minute='17', hour='*/6')),  # every 6 hours, off-the-hour
 
+    # ── Social Page Completion Nudge (2026-05-14) ─────────────────────────
+    # Finds social_pages with missing avatar_url / cover_url / description,
+    # inserts an in-app notification for the owner_id nudging them to finish
+    # their profile. 7-day dedup via social_pages.metadata.nudge_sent_at.
+    # Fires every 3 days at 09:30 UTC — low-traffic, non-critical.
+    ('/api/cron/social-page-completion-nudge',    dict(day='*/3', hour=9, minute=30)),
+
+
     # ══ WAVE 5 — Club Arena platform crons (Round 9 + X7.4, 2026-04-29) ═════
     # Wired in Round 23 of the relaunch sweep. All 7 handlers existed in
     # smarter-poker-workers/src/routes and were route-registered in workers

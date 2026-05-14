@@ -229,6 +229,16 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const [friendState, setFriendState] = useState('none'); // 'none' | 'pending' | 'friends'
   const [friendBusy, setFriendBusy] = useState(false);
 
+  // Vouch state
+  const [hasVouched, setHasVouched] = useState(false);
+  const [vouchCount, setVouchCount] = useState(0);
+  const [vouchBusy, setVouchBusy] = useState(false);
+  const [vouchers, setVouchers] = useState([]);
+  const [vouchersModalOpen, setVouchersModalOpen] = useState(false);
+  // Host Reputation (from quality_score + vitality_score)
+  const [qualityScore, setQualityScore] = useState(0);
+  const [vitalityScore, setVitalityScore] = useState(0);
+
   // Seat-picker modal state (phase 41 — replaces old yes/maybe/no request-seat flow)
   const [seatEvent, setSeatEvent] = useState(null);        // event object when picker is open
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -273,6 +283,28 @@ export default function PublicHomeGamePage({ data, serverError }) {
     return () => { cancelled = true; };
   }, [slugForFollow]);
 
+  // Fetch vouch state + voucher list on mount
+  useEffect(() => {
+    if (!slugForFollow) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const resp = await fetch(`/api/public/home-games/${slugForFollow}/vouch`, { headers });
+        if (!resp.ok) return;
+        const json = await resp.json();
+        if (cancelled) return;
+        if (typeof json.vouch_count === 'number') setVouchCount(json.vouch_count);
+        if (typeof json.has_vouched === 'boolean') setHasVouched(json.has_vouched);
+        if (Array.isArray(json.vouchers)) setVouchers(json.vouchers);
+        if (typeof json.quality_score === 'number') setQualityScore(json.quality_score);
+        if (typeof json.vitality_score === 'number') setVitalityScore(json.vitality_score);
+      } catch { /* non-fatal */ }
+    })();
+    return () => { cancelled = true; };
+  }, [slugForFollow]);
+
   const handleFollowToggle = async () => {
     if (followBusy) return;
     setFollowBusy(true);
@@ -308,6 +340,55 @@ export default function PublicHomeGamePage({ data, serverError }) {
       setFollowBusy(false);
     }
   };
+
+  const handleVouchToggle = async () => {
+    if (vouchBusy) return;
+    // Gate: must be signed in
+    const token = await getAccessToken();
+    if (!token) {
+      const returnTo = typeof window !== 'undefined' ? window.location.pathname : `/hub/home-games/${slugForFollow}`;
+      router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    setVouchBusy(true);
+    const wasVouched = hasVouched;
+    // Optimistic update
+    setHasVouched(!wasVouched);
+    setVouchCount(prev => wasVouched ? Math.max(0, prev - 1) : prev + 1);
+    try {
+      const method = wasVouched ? 'DELETE' : 'POST';
+      const resp = await fetch(`/api/public/home-games/${slugForFollow}/vouch`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || !json.success) throw new Error(json.error || 'Vouch action failed');
+      if (typeof json.vouch_count === 'number') setVouchCount(json.vouch_count);
+      // Refresh vouchers list for the modal
+      const listResp = await fetch(`/api/public/home-games/${slugForFollow}/vouch`, { headers: { Authorization: `Bearer ${token}` } });
+      if (listResp.ok) {
+        const listJson = await listResp.json();
+        if (Array.isArray(listJson.vouchers)) setVouchers(listJson.vouchers);
+      }
+    } catch (err) {
+      // Rollback on failure
+      setHasVouched(wasVouched);
+      setVouchCount(prev => wasVouched ? prev + 1 : Math.max(0, prev - 1));
+      console.warn('[App] Handled exception:', err?.message || err);
+    } finally {
+      setVouchBusy(false);
+    }
+  };
+
+  // Compute Host Reputation label + color from quality + vitality
+  function getReputationBadge(quality, vitality) {
+    const score = (quality || 0) * 0.6 + (vitality || 0) * 8; // weighted blend
+    if (score >= 80) return { label: 'Elite Host', color: '#fbbf24', bg: 'rgba(251,191,36,.12)', border: 'rgba(251,191,36,.3)' };
+    if (score >= 55) return { label: 'Trusted Host', color: '#34d399', bg: 'rgba(52,211,153,.12)', border: 'rgba(52,211,153,.3)' };
+    if (score >= 30) return { label: 'Active Host', color: '#22d3ee', bg: 'rgba(34,211,238,.12)', border: 'rgba(34,211,238,.3)' };
+    if (score >= 10) return { label: 'New Host', color: '#94a3b8', bg: 'rgba(148,163,184,.08)', border: 'rgba(148,163,184,.2)' };
+    return null; // don't show badge until there's any score
+  }
 
   // ── Pick-a-Seat ──────────────────────────────────────────────────────────
   // Open the seat-picker overlay for a specific upcoming game. If the user
@@ -531,7 +612,26 @@ export default function PublicHomeGamePage({ data, serverError }) {
               <span><strong>{group.member_count}</strong> Members</span>
               <span><strong>{followerCount}</strong> Followers</span>
               <span><strong>{group.games_hosted}</strong> Games Hosted</span>
+              {vouchCount > 0 && (
+                <button
+                  className="hgs-vouch-count-btn"
+                  onClick={() => setVouchersModalOpen(true)}
+                  title="See who vouched for this game"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <strong>{vouchCount}</strong> {vouchCount === 1 ? 'Player' : 'Players'} Vouched
+                </button>
+              )}
             </div>
+            {getReputationBadge(qualityScore, vitalityScore) && (() => {
+              const rep = getReputationBadge(qualityScore, vitalityScore);
+              return (
+                <div className="hgs-rep-badge" style={{ color: rep.color, background: rep.bg, border: `1px solid ${rep.border}` }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  {rep.label}
+                </div>
+              );
+            })()}
           </div>
           <div className="hgs-cta-row">
             <button
@@ -569,6 +669,21 @@ export default function PublicHomeGamePage({ data, serverError }) {
               aria-label={isFollowing ? 'Unfollow this home game' : 'Follow this home game'}
             >
               {followBusy ? '…' : (isFollowing ? '✓ Following' : '+ Follow')}
+            </button>
+            <button
+              id="hgs-vouch-btn"
+              className={'hgs-vouch-btn' + (hasVouched ? ' hgs-vouch-btn-on' : '')}
+              onClick={handleVouchToggle}
+              disabled={vouchBusy}
+              aria-pressed={hasVouched}
+              title={hasVouched ? 'Remove your vouch' : 'Vouch for this game'}
+            >
+              {vouchBusy ? '…' : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill={hasVouched ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                  {hasVouched ? 'Vouched' : 'Vouch'}
+                </>
+              )}
             </button>
             <button className="hgs-ghost-btn" onClick={copyShareUrl}>
               {copyState || 'Share'}
@@ -777,6 +892,61 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
 
+        {/* ── Vouchers Modal ──────────────────────────────────────────── */}
+        {vouchersModalOpen && (
+          <div
+            className="hgs-seat-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Players who vouched"
+            onClick={(e) => { if (e.target === e.currentTarget) setVouchersModalOpen(false); }}
+          >
+            <div className="hgs-vouchers-modal">
+              <div className="hgs-seat-header">
+                <h2 className="hgs-seat-title" style={{fontSize:'18px'}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2.5" style={{marginRight:8,verticalAlign:'middle'}}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  {vouchCount} {vouchCount === 1 ? 'Player' : 'Players'} Vouched
+                </h2>
+                <button className="hgs-seat-close" onClick={() => setVouchersModalOpen(false)} aria-label="Close">×</button>
+              </div>
+              <p style={{fontSize:'13px',color:'rgba(255,255,255,.5)',margin:'0 0 16px',lineHeight:'1.5'}}>
+                These players have personally vouched for this home game.
+              </p>
+              {vouchers.length === 0 ? (
+                <div className="hgs-empty">No vouches yet. Be the first!</div>
+              ) : (
+                <div className="hgs-vouchers-list">
+                  {vouchers.map((v) => (
+                    <div key={v.user_id} className="hgs-voucher-row">
+                      <div className="hgs-voucher-avatar">
+                        {v.avatar_url
+                          ? <img src={v.avatar_url} alt="" loading="lazy" />
+                          : <span>{(v.display_name || 'P')[0].toUpperCase()}</span>
+                        }
+                      </div>
+                      <div className="hgs-voucher-info">
+                        <strong>{v.display_name}</strong>
+                        <span>{new Date(v.vouched_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
+                      <div className="hgs-voucher-check">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                className={'hgs-vouch-btn hgs-full' + (hasVouched ? ' hgs-vouch-btn-on' : '')}
+                style={{marginTop:'16px',justifyContent:'center'}}
+                onClick={() => { setVouchersModalOpen(false); handleVouchToggle(); }}
+                disabled={vouchBusy}
+              >
+                {vouchBusy ? '…' : (hasVouched ? '✓ You Vouched — Remove' : '+ Add Your Vouch')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Request-Seat Modal ───────────────────────────────────────── */}
         {seatEvent && (
           <div
@@ -918,4 +1088,23 @@ const pageStyles = `
 .hgs-footer-link{text-align:center;padding:20px 0;font-size:13px}
 .hgs-back-btn{background:transparent;border:none;color:rgba(14,165,233,.8);font-size:13px;font-weight:600;cursor:pointer;padding:0;text-decoration:none}
 .hgs-back-btn:hover{color:#38bdf8}
+/* ── Vouch & Reputation ── */
+.hgs-vouch-count-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:20px;color:#22d3ee;font-size:12px;font-weight:600;cursor:pointer;padding:3px 10px;transition:all .15s;white-space:nowrap}
+.hgs-vouch-count-btn:hover{background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.5)}
+.hgs-vouch-count-btn strong{color:#fff;font-weight:700}
+.hgs-rep-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;margin-top:8px;letter-spacing:.3px}
+.hgs-vouch-btn{padding:10px 16px;background:rgba(34,211,238,.1);color:#22d3ee;border:1.5px solid rgba(34,211,238,.35);border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.hgs-vouch-btn:hover:not(:disabled){background:rgba(34,211,238,.2);border-color:rgba(34,211,238,.6)}
+.hgs-vouch-btn:disabled{opacity:.5;cursor:not-allowed}
+.hgs-vouch-btn-on{background:rgba(34,211,238,.22);color:#fff;border-color:#22d3ee;box-shadow:0 0 12px rgba(34,211,238,.2)}
+/* ── Vouchers Modal ── */
+.hgs-vouchers-modal{background:linear-gradient(180deg,#152036 0%,#0d1626 100%);border:1px solid rgba(148,163,184,.16);border-radius:16px;padding:24px;max-width:440px;width:100%;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:hgs-seat-rise .18s ease-out;max-height:85vh;overflow-y:auto}
+.hgs-vouchers-list{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto}
+.hgs-voucher-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(148,163,184,.08)}
+.hgs-voucher-avatar{width:40px;height:40px;border-radius:50%;background:#1e293b;border:2px solid rgba(34,211,238,.3);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#22d3ee}
+.hgs-voucher-avatar img{width:100%;height:100%;object-fit:cover}
+.hgs-voucher-info{flex:1;min-width:0}
+.hgs-voucher-info strong{display:block;font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hgs-voucher-info span{display:block;font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+.hgs-voucher-check{flex-shrink:0;width:28px;height:28px;background:rgba(34,211,238,.1);border-radius:50%;display:flex;align-items:center;justify-content:center}
 `;
