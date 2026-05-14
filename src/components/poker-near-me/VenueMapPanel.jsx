@@ -128,10 +128,8 @@ function createVenueIcon(L, venue) {
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 
   // Logo or initials — matches the Poker Tours round-circle style
-  const innerContent = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:12px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`
-    : `<div style="font-size:12px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`;
+  const finalLogoUrl = logoUrl || '/smarter-poker-logo-nobg.png';
+  const innerContent = `<img src="${finalLogoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;background:#fff;" onerror="this.src='/smarter-poker-logo-nobg.png';" />`;
 
   // Name label — dark pill badge underneath (same style as tour pins)
   const labelHtml = escapedLabel
@@ -496,9 +494,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         // Build logo/initials badge
         const logoUrl = v.logo_url || v.profile_photo_url || '';
         const initials = (v.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-        const logoBadge = logoUrl
-          ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#fff;padding:0px;border:1px solid rgba(255,255,255,0.2);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,0.2);">${initials}</div>`
-          : `<div style="display:flex;width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,0.2);">${initials}</div>`;
+        const finalLogoBadgeUrl = logoUrl || '/smarter-poker-logo-nobg.png';
+        const logoBadge = `<img src="${escapeHtml(finalLogoBadgeUrl)}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#fff;padding:0px;border:1px solid rgba(255,255,255,0.2);flex-shrink:0;" onerror="this.src='/smarter-poker-logo-nobg.png';" />`;
 
         // Live games info
         const gamesInfo = Array.isArray(v.games) && v.games.length
