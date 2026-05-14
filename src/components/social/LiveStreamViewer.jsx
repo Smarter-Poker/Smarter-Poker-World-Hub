@@ -1791,19 +1791,21 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     try {
                       const broadcasterId = streamData?.broadcaster_id || stream?.broadcaster_id;
                       if (isFollowing) {
-                        await supabase
+                        const { error } = await supabase
                           .from('social_follows')
                           .delete()
                           .eq('follower_id', userId)
                           .eq('following_id', broadcasterId);
+                        if (error) throw error;
                         setIsFollowing(false);
                       } else {
-                        await supabase
+                        const { error } = await supabase
                           .from('social_follows')
                           .upsert(
                             { follower_id: userId, following_id: broadcasterId },
                             { onConflict: 'follower_id,following_id' }
                           );
+                        if (error) throw error;
                         setIsFollowing(true);
                       }
                     } catch (e) {

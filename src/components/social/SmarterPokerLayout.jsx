@@ -121,10 +121,11 @@ const SPNavBar = ({
                                     // Mark as read in Supabase
                                     if (notif?.id && !notif.read) {
                                         try {
-                                            await supabase
+                                            const { error } = await supabase
                                                 .from('notifications')
                                                 .update({ read: true })
                                                 .eq('id', notif.id);
+                                            if (error) throw error;
                                             setNotifications(prev => prev.map(n =>
                                                 n.id === notif.id ? { ...n, read: true } : n
                                             ));
@@ -143,11 +144,12 @@ const SPNavBar = ({
                                 onMarkAllRead={async () => {
                                     if (!authUser?.id) return;
                                     try {
-                                        await supabase
+                                        const { error } = await supabase
                                             .from('notifications')
                                             .update({ read: true })
                                             .eq('user_id', authUser.id)
                                             .eq('read', false);
+                                        if (error) throw error;
                                         // Update local state immediately
                                         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
                                         setUnreadCount(0);

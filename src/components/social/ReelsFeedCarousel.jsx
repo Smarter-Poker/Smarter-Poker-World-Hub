@@ -853,12 +853,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
     if (!wasLiked && disliked[currentId]) {
       setDisliked((prev) => ({ ...prev, [currentId]: false }));
       try {
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', currentId)
           .eq('user_id', userId)
           .eq('reaction_type', 'dislike');
+        if (error) throw error;
       } catch (e) {
         console.warn('[ReelsFeedCarousel] Handled exception:', e);
       }
@@ -924,12 +925,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
     if (!wasDisliked && liked[currentId]) {
       try {
         // DB trigger handles like_count decrement when like is removed - no RPC needed
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', currentId)
           .eq('user_id', userId)
           .eq('reaction_type', 'like');
+        if (error) throw error;
       } catch (e) {
         console.warn('[ReelsFeedCarousel] Handled exception:', e);
       }
@@ -1431,12 +1433,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const authUserLocal = getAuthUser();
     if (!authUserLocal?.id) return;
     try {
-      await supabase.from('social_interactions').insert({
+      const { error } = await supabase.from('social_interactions').insert({
         user_id: authUserLocal.id,
         post_id: currentReel.id,
         interaction_type: 'report',
         metadata: { reason: reportReason.trim() },
       });
+      if (error) throw error;
       setReportSubmitted(true);
       // BUG FIX (RFC-7): track report modal dismiss timer — prevents setState-after-unmount.
       if (reportModalTimerRef.current) clearTimeout(reportModalTimerRef.current);

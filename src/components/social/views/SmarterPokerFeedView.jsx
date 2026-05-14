@@ -501,6 +501,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             setPosts(prev => prev.filter(p => p.id !== postId));
         } catch (err) {
             console.warn('Delete failed:', err);
+            throw err;
         }
     };
 

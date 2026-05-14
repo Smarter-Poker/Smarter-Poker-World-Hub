@@ -1079,12 +1079,13 @@ export function ReelsViewer({ onClose }) {
     if (!wasLiked && disliked[currentReel.id]) {
       setDisliked((prev) => ({ ...prev, [currentReel.id]: false }));
       try {
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', currentReel.id)
           .eq('user_id', userId)
           .eq('reaction_type', 'dislike');
+        if (error) throw error;
       } catch (e) {
         console.warn('Handled exception:', e);
       }

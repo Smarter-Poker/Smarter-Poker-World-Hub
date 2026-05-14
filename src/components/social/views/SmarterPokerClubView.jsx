@@ -587,8 +587,10 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             }));
         });
         return () => {
-            unsub1(); unsub2(); unsub3();
-            unsub1_refresh(); unsub2(); unsub3();
+            if (unsub1) unsub1(); 
+            if (unsub1_refresh) unsub1_refresh(); 
+            if (unsub2) unsub2(); 
+            if (unsub3) unsub3();
             if (debounceTimer) clearTimeout(debounceTimer);
         };
     }, [loadClubData, currentUser?.id]);
@@ -675,6 +677,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             await socialService.createComment({ postId, authorId: currentUser.id, content: text });
         } catch (error) {
             console.warn('Comment failed:', error);
+            throw error;
         }
     };
 
@@ -684,7 +687,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             return await socialService.getComments(postId);
         } catch (error) {
             console.warn('Load comments failed:', error);
-            return [];
+            throw error;
         }
     };
 
@@ -695,6 +698,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             setPosts(prev => prev.filter(p => p.id !== postId));
         } catch (err) {
             console.warn('Delete failed:', err);
+            throw err;
         }
     };
 
