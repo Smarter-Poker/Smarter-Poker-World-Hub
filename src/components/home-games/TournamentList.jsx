@@ -67,10 +67,14 @@ const STRUCTURE_LABELS = {
 function formatDate(iso) {
   if (!iso) return '';
   try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
+    // If the value is a plain date string (no 'T'), append T00:00:00 so it
+    // parses as LOCAL midnight instead of UTC midnight (which shows the
+    // previous calendar day in all US timezones).
+    const normalized = typeof iso === 'string' && !iso.includes('T') ? `${iso}T00:00:00` : iso;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return String(iso);
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  } catch (_e) { return iso; }
+  } catch (_e) { return String(iso); }
 }
 
 function formatTime(time) {
