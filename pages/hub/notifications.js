@@ -48,6 +48,7 @@ function NotificationsPage() {
     const [swipedId, setSwipedId] = useState(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingIds, setDeletingIds] = useState(new Set());
+    const processingReadIds = useRef(new Set());
     const touchStartRef = useRef({ x: 0, y: 0, id: null });
     // 🔲 Detect when rendered inside FullScreenPageOverlay iframe — hide chrome
     const [isInIframe, setIsInIframe] = useState(false);
@@ -294,6 +295,10 @@ function NotificationsPage() {
     }, [user?.id]);
 
     const markAsRead = (id) => {
+        // Prevent double-execution in the exact same tick (e.g. click + observer)
+        if (processingReadIds.current.has(id)) return;
+        processingReadIds.current.add(id);
+
         // [Audit#19] FIX: Check read status from current state snapshot SYNCHRONOUSLY
         // before calling setState. We use notificationsRef to avoid stale closures inside
         // the IntersectionObserver (which only depends on notifications.length).

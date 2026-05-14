@@ -35,22 +35,22 @@ export default async function handler(req, res) {
         if (safeIds.length > 0) {
           await getSupabase()
             .from('notifications')
-            .update({ is_read: true })
+            .update({ read: true, is_read: true })
             .in('id', safeIds)
             .eq('user_id', user.id);
         }
       } else if (notificationId) {
         await getSupabase()
           .from('notifications')
-          .update({ is_read: true })
+          .update({ read: true, is_read: true })
           .eq('id', notificationId)
           .eq('user_id', user.id);
       } else {
         await getSupabase()
           .from('notifications')
-          .update({ is_read: true })
+          .update({ read: true, is_read: true })
           .eq('user_id', user.id)
-          .or('is_read.eq.false,is_read.is.null');
+          .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
       }
 
       // Invalidate server-side feed cache so next fetch reflects updated read state
