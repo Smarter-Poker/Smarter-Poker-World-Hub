@@ -274,8 +274,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
     let cancelled = false;
     (async () => {
       try {
+        // BUG-FIX: was 'commander_home_group_members' (doesn't exist).
+        // Correct table is 'commander_home_members'.
         const { data: memberRow } = await supabase
-          .from('commander_home_group_members')
+          .from('commander_home_members')
           .select('status')
           .eq('group_id', groupIdForMemberCheck)
           .eq('user_id', currentUserId)

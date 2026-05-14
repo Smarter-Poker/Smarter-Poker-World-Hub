@@ -8070,7 +8070,7 @@ function ClubPagesView({
                       <img
                         src={page.avatar_url}
                         alt=""
-                        style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }}
+                        style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
                       />
                     ) : (
                       <div

@@ -291,7 +291,9 @@ export default async function handler(req, res) {
 
         });
 
-        const totalUnread = enriched.filter(n => !n.read).length;
+        // BUG-FIX: notifications table uses is_read as canonical; read is an alias
+        // that may not be populated on all rows. Check both to avoid under-counting.
+        const totalUnread = enriched.filter(n => !n.read && !n.is_read).length;
 
         const payload = {
             success: true,

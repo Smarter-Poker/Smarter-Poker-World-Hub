@@ -356,7 +356,7 @@ export async function sendVenueOnboardingEmail(email, venueName, adminName) {
                 <li>Set Up Promotions</li>
             </ol>
             <div style="text-align: center; margin: 24px 0;">
-                <a href="https://smarter.poker/commander/dashboard" class="btn">Go To Dashboard</a>
+                <a href="https://smarter.poker/hub/commander" class="btn">Go To Dashboard</a>
             </div>
         `),
     });

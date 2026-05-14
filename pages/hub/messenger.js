@@ -2745,14 +2745,15 @@ function MessengerPage() {
                 if (draftText) setConversationDraft(draftText);
                 setComposeFocus(true);
                 if (isMobile) setShowSidebar(false);
-            } else if (conversations.length > 0) {
-                // Conversations loaded but this ID wasn't found— reset ref so
-                // a future conversations update can retry (e.g. if still loading)
+            } else {
+                // Conversation not found. This covers two sub-cases:
+                //  (a) conversations.length > 0 but convId not in the list (genuine 404)
+                //  (b) conversations.length === 0 (still loading)
+                // In both cases we MUST reset the ref so the effect can retry
+                // once conversations arrive via Realtime subscription.
+                // BUG-FIX: previously kept the ref set when length===0, which blocked
+                // the retry — the early-return guard (line 2733) would fire first.
                 lastHandledConvLink.current = null;
-            }
-            // If conversations.length === 0, do nothing — keep ref set so
-            // we don't re-enter; the conversations subscription will update state
-            // and rerender, re-running this effect once conversations arrive.
         } else if (recipientId) {
             // Recipient-based — look up profile and start conversation
             (async () => {

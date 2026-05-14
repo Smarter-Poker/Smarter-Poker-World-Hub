@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
         // Check if user is already a member
         const { data: existingMember } = await supabase
-            .from('commander_home_group_members')
+            .from('commander_home_members')
             .select('id, status')
             .eq('group_id', group.id)
             .eq('user_id', user.id)
@@ -79,11 +79,15 @@ export default async function handler(req, res) {
             return res.status(409).json({ success: false, error: 'You are already a member of this group.' });
         }
 
-        const memberStatus = group.is_private ? 'pending' : 'active';
+        // BUG-FIX: was 'active' — real table uses 'approved' for active members.
+        // 'pending' stays as 'pending' for private groups.
+        const memberStatus = group.is_private ? 'pending' : 'approved';
 
-        // Add user to the group
+        // Add user to the group.
+        // BUG-FIX: table was 'commander_home_group_members' (doesn't exist).
+        // Correct table is 'commander_home_members'.
         const { error: insertErr } = await supabase
-            .from('commander_home_group_members')
+            .from('commander_home_members')
             .insert({
                 group_id: group.id,
                 user_id: user.id,
@@ -119,20 +123,19 @@ export default async function handler(req, res) {
                     },
                     link: `/hub/home-games/${group.id}/manage`,
                     action_url: `/hub/home-games/${group.id}/manage`,
-                    read: false
+                    is_read: false,
+                    read: false,
                 });
             } catch (notifyErr) {
                 console.warn('[join API] Failed to notify host:', notifyErr);
             }
-        } else {
-            // Update member count
-            await supabase.rpc('fn_increment_commander_home_group_member_count', {
-                p_group_id: group.id
-            }).catch(() => {
-                // Ignore failure if RPC doesn't exist
-            });
         }
+        // NOTE: member_count is maintained atomically by the DB trigger
+        // trg_home_members_bump_activity / update_home_group_member_count.
+        // No application-level RPC call needed.
 
+        // Return 'pending' for private groups, 'approved' for direct joins.
+        // The frontend checks: pending → "Request Pending" state; else → "Member" state.
         return res.status(200).json({ 
             success: true, 
             status: memberStatus,

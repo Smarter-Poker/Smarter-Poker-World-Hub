@@ -113,7 +113,7 @@ export default async function handler(req, res) {
               <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 32px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${loginUrl || 'https://hub-vanguard-smarter-poker.vercel.app/commander/login'}" style="display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%); color: white; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600;">
+                    <a href="${loginUrl || 'https://smarter.poker/hub/commander'}" style="display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%); color: white; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600;">
                       Go to Dashboard →
                     </a>
                   </td>
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
           <tr>
             <td style="padding: 32px 20px; text-align: center;">
               <p style="color: #a1a1aa; font-size: 12px; margin: 0;">
-                © 2026 Smarter.Poker • <a href="https://smarter.poker" style="color: #a1a1aa;">Website</a> • <a href="https://hub-vanguard-smarter-poker.vercel.app/legal/terms" style="color: #a1a1aa;">Terms</a> • <a href="https://hub-vanguard-smarter-poker.vercel.app/legal/privacy" style="color: #a1a1aa;">Privacy</a>
+                © 2026 Smarter.Poker • <a href="https://smarter.poker" style="color: #a1a1aa;">Website</a> • <a href="https://smarter.poker/legal/terms" style="color: #a1a1aa;">Terms</a> • <a href="https://smarter.poker/legal/privacy" style="color: #a1a1aa;">Privacy</a>
               </p>
               <p style="color: #d4d4d8; font-size: 11px; margin: 8px 0 0 0;">
                 You're receiving this because you signed up for Club Commander.
