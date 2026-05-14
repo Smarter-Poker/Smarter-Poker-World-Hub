@@ -286,26 +286,34 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id) return;
         try {
-            await supabase.from('messenger_reactions').upsert({
+            const { error } = await supabase.from('messenger_reactions').upsert({
                 message_id: messageId,
                 user_id: currentUser.id,
                 reaction_type: type,
                 emoji: type === 'emoji' ? emoji : null,
                 gif_url: type === 'gif' ? gifUrl : null,
             }, { onConflict: 'message_id,user_id,emoji' });
-        } catch (e) { console.warn('[Reaction] Add error:', e); }
+            if (error) throw error;
+        } catch (e) {
+            console.warn('[Reaction] Add error:', e);
+            throw e;
+        }
     }, [currentUser?.id]);
 
     const removeReaction = useCallback(async (messageId, emoji) => {
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id) return;
         try {
-            await supabase.from('messenger_reactions')
+            const { error } = await supabase.from('messenger_reactions')
                 .delete()
                 .eq('message_id', messageId)
                 .eq('user_id', currentUser.id)
                 .eq('emoji', emoji);
-        } catch (e) { console.warn('[Reaction] Remove error:', e); }
+            if (error) throw error;
+        } catch (e) {
+            console.warn('[Reaction] Remove error:', e);
+            throw e;
+        }
     }, [currentUser?.id]);
 
     const loadReactions = useCallback(async (messageId) => {
@@ -722,13 +730,17 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id) return;
         try {
-            await supabase
+            const { error } = await supabase
                 .from('messenger_messages')
                 .update({ is_deleted: true, text: null, media_url: null, updated_at: new Date().toISOString() })
                 .eq('id', messageId)
                 .eq('sender_id', currentUser.id);
+            if (error) throw error;
             setMessages(prev => prev.map(m => m.id === messageId ? { ...m, is_deleted: true, text: null } : m));
-        } catch (e) { console.warn('[Messenger] Delete error:', e); }
+        } catch (e) {
+            console.warn('[Messenger] Delete error:', e);
+            throw e;
+        }
     }, [currentUser?.id]);
 
     // ═══════════════════════════════════════════════════════════
@@ -998,26 +1010,34 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id) return;
         try {
-            await supabase
+            const { error } = await supabase
                 .from('messenger_participants')
                 .update({ metadata: { archived: true, archived_at: new Date().toISOString() } })
                 .eq('conversation_id', convId || conversationId)
                 .eq('user_id', currentUser.id);
+            if (error) throw error;
             setConversations(prev => prev.filter(c => c.id !== (convId || conversationId)));
-        } catch (e) { console.warn('[Archive] Error:', e); }
+        } catch (e) {
+            console.warn('[Archive] Error:', e);
+            throw e;
+        }
     }, [conversationId, currentUser?.id]);
 
     const unarchiveConversation = useCallback(async (convId) => {
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id) return;
         try {
-            await supabase
+            const { error } = await supabase
                 .from('messenger_participants')
                 .update({ metadata: { archived: false } })
                 .eq('conversation_id', convId)
                 .eq('user_id', currentUser.id);
+            if (error) throw error;
             await loadConversations();
-        } catch (e) { console.warn('[Unarchive] Error:', e); }
+        } catch (e) {
+            console.warn('[Unarchive] Error:', e);
+            throw e;
+        }
     }, [currentUser?.id, loadConversations]);
 
     const exportConversation = useCallback(async (format = 'json') => {
@@ -1122,15 +1142,20 @@ ${messages.map(m =>
         if (!supabase || !currentUser?.id || !conversationId) return;
         try {
             // BUG-FIX: Merge with existing metadata instead of overwriting
-            const { data: existing } = await supabase.from('messenger_messages').select('media_metadata').eq('id', messageId).maybeSingle();
+            const { data: existing, error: fetchError } = await supabase.from('messenger_messages').select('media_metadata').eq('id', messageId).maybeSingle();
+            if (fetchError) throw fetchError;
             const merged = { ...(existing?.media_metadata || {}), pinned: true, pinned_by: currentUser.id, pinned_at: new Date().toISOString() };
-            await supabase
+            const { error: updateError } = await supabase
                 .from('messenger_messages')
                 .update({ media_metadata: merged })
                 .eq('id', messageId);
+            if (updateError) throw updateError;
             const msg = messages.find(m => m.id === messageId);
             if (msg) setPinnedMessages(prev => [...prev.filter(p => p.id !== messageId), { ...msg, pinned: true }]);
-        } catch (e) { console.warn('[Pin] Error:', e); }
+        } catch (e) {
+            console.warn('[Pin] Error:', e);
+            throw e;
+        }
     }, [conversationId, currentUser?.id, messages]);
 
     const unpinMessage = useCallback(async (messageId) => {
@@ -1138,17 +1163,22 @@ ${messages.map(m =>
         if (!supabase) return;
         try {
             // BUG-FIX: Preserve existing metadata, only remove pin fields
-            const { data: existing } = await supabase.from('messenger_messages').select('media_metadata').eq('id', messageId).maybeSingle();
+            const { data: existing, error: fetchError } = await supabase.from('messenger_messages').select('media_metadata').eq('id', messageId).maybeSingle();
+            if (fetchError) throw fetchError;
             const cleaned = { ...(existing?.media_metadata || {}) };
             delete cleaned.pinned;
             delete cleaned.pinned_by;
             delete cleaned.pinned_at;
-            await supabase
+            const { error: updateError } = await supabase
                 .from('messenger_messages')
                 .update({ media_metadata: cleaned })
                 .eq('id', messageId);
+            if (updateError) throw updateError;
             setPinnedMessages(prev => prev.filter(p => p.id !== messageId));
-        } catch (e) { console.warn('[Unpin] Error:', e); }
+        } catch (e) {
+            console.warn('[Unpin] Error:', e);
+            throw e;
+        }
     }, []);
 
     const loadPinnedMessages = useCallback(async () => {

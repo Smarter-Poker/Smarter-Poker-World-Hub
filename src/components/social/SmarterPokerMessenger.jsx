@@ -15,18 +15,7 @@ import { useMessengerService } from '../../hooks/useMessengerService';
 import GiphyPicker from '../shared/GiphyPicker';
 import LocationEnableModal from '../ui/LocationEnableModal';
 
-// ─── Lazy Supabase Getter ──────────────────────────────────────────────
-let _supabase = null;
-function getSupabase() {
-    if (_supabase) return _supabase;
-    if (typeof window === 'undefined') return null;
-    const { createClient } = require('@supabase/supabase-js');
-    _supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-    return _supabase;
-}
+import { supabase } from '../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💾 PERSISTENCE HOOK (Local + Supabase Background Sync)
@@ -174,7 +163,7 @@ const useMessengerPrefs = () => {
 
     // Phase 6 Deep Sweep: Background sync to SQL
     const syncToSupabase = async (state) => {
-        const sb = await getSupabase();
+        const sb = supabase;
         if (!sb) return;
         // Read token from localStorage — bypasses Supabase client lock contention
         let _uid = null;
@@ -867,7 +856,7 @@ export const ChatWindow = ({
 
         const initPresence = async () => {
             if (!conversationId || !currentUser) return;
-            const sb = await getSupabase();
+            const sb = supabase;
             if (!sb) return;
 
             channel = sb.channel(`room:${conversationId}`, {
@@ -1067,15 +1056,25 @@ export const ChatWindow = ({
         }
         // P4-1 + P14-10: Pin/unpin (local + Supabase)
         if (action === 'pin') {
-            // P14-10: Supabase pin/unpin
             const current = prefs.pinnedMessages?.[conversationId] || [];
             const isPinned = current.includes(msg.id);
-            if (isPinned) { svc.unpinMessage?.(msg.id); } else { svc.pinMessage?.(msg.id); }
             updatePrefs(p => {
                 const curr = p.pinnedMessages[conversationId] || [];
                 busEmit.messagePinned(conversationId, msg.id);
                 return { ...p, pinnedMessages: { ...p.pinnedMessages, [conversationId]: isPinned ? curr.filter(id => id !== msg.id) : [...curr, msg.id] } };
             });
+
+            (async () => {
+                try {
+                    if (isPinned) { await svc.unpinMessage?.(msg.id); } else { await svc.pinMessage?.(msg.id); }
+                } catch (e) {
+                    console.warn('[Messenger] Pin failed, authoritative resync...', e);
+                    updatePrefs(p => {
+                        const curr = p.pinnedMessages[conversationId] || [];
+                        return { ...p, pinnedMessages: { ...p.pinnedMessages, [conversationId]: isPinned ? [...curr, msg.id] : curr.filter(id => id !== msg.id) } };
+                    });
+                }
+            })();
         }
         // P4-2 + P14-7: Forward (open Supabase-backed picker modal)
         if (action === 'forward') {
@@ -1121,8 +1120,21 @@ export const ChatWindow = ({
                     deletedSet.add(msg.id);
                     return { ...p, deletedMessages: [...deletedSet] };
                 });
-                svc.deleteMessage(msg.id);
                 busEmit.messageDeleted?.(conversationId, msg.id);
+
+                (async () => {
+                    try {
+                        await svc.deleteMessage(msg.id);
+                    } catch (e) {
+                        console.warn('[Messenger] Delete failed, authoritative resync...', e);
+                        updatePrefs(p => {
+                            const deletedSet = new Set(p.deletedMessages || []);
+                            deletedSet.delete(msg.id);
+                            return { ...p, deletedMessages: [...deletedSet] };
+                        });
+                        svc.loadMessages?.(1, 50);
+                    }
+                })();
             }
         }
         // P15-6: Report
@@ -1161,20 +1173,35 @@ export const ChatWindow = ({
         }
     };
 
-    // P5-2: Handle emoji reaction (P12-3: Supabase persistence)
     const handleReaction = (msgId, emoji) => {
+        const currentBefore = prefs.reactions[msgId] || [];
+        const existsBefore = currentBefore.find(r => r.emoji === emoji && r.by === currentUser?.name);
+
         updatePrefs(p => {
             const current = p.reactions[msgId] || [];
             const exists = current.find(r => r.emoji === emoji && r.by === currentUser?.name);
             busEmit.messageReacted(conversationId, msgId, emoji);
-            if (exists) {
-                svc.removeReaction(msgId, emoji); // P12-3
-            } else {
-                svc.addReaction(msgId, emoji, 'emoji'); // P12-3
-            }
             return { ...p, reactions: { ...p.reactions, [msgId]: exists ? current.filter(r => !(r.emoji === emoji && r.by === currentUser?.name)) : [...current, { emoji, by: currentUser?.name || 'You' }] } };
         });
         setShowEmojiPicker(null);
+
+        (async () => {
+            try {
+                if (existsBefore) {
+                    await svc.removeReaction(msgId, emoji);
+                } else {
+                    await svc.addReaction(msgId, emoji, 'emoji');
+                }
+            } catch (err) {
+                console.warn('[Messenger] Reaction failed, authoritative resync...', err);
+                const authReactions = await svc.loadReactions?.(msgId);
+                if (authReactions) {
+                    updatePrefs(p => {
+                        return { ...p, reactions: { ...p.reactions, [msgId]: authReactions.map(r => ({ emoji: r.reaction_type === 'gif' ? `gif:${r.gif_url}` : r.emoji, by: r.user_id === currentUser?.id ? (currentUser?.name || 'You') : 'User' })) } };
+                    });
+                }
+            }
+        })();
     };
 
     // P9-1: GIF Reaction Handler — uses GIPHY proxy (P10-11: Debounced)
@@ -1202,11 +1229,24 @@ export const ChatWindow = ({
             const current = p.reactions[msgId] || [];
             return { ...p, reactions: { ...p.reactions, [msgId]: [...current, { emoji: `gif:${gifUrl}`, by: currentUser?.name || 'You' }] } };
         });
-        svc.addReaction(msgId, null, 'gif', gifUrl); // P12-3: Supabase GIF reaction
         busEmit.messageReacted(conversationId, msgId, 'gif_reaction');
         setShowGifReactionPicker(null);
         setGifReactionResults([]);
         setGifReactionSearch('');
+
+        (async () => {
+            try {
+                await svc.addReaction(msgId, null, 'gif', gifUrl);
+            } catch (err) {
+                console.warn('[Messenger] GIF Reaction failed, authoritative resync...', err);
+                const authReactions = await svc.loadReactions?.(msgId);
+                if (authReactions) {
+                    updatePrefs(p => {
+                        return { ...p, reactions: { ...p.reactions, [msgId]: authReactions.map(r => ({ emoji: r.reaction_type === 'gif' ? `gif:${r.gif_url}` : r.emoji, by: r.user_id === currentUser?.id ? (currentUser?.name || 'You') : 'User' })) } };
+                    });
+                }
+            }
+        })();
     };
 
     // P9-2: GIF search is now handled by the shared GiphyPicker component
@@ -1407,7 +1447,7 @@ export const ChatWindow = ({
         if (!file || !currentUser || !conversationId) return;
 
         try {
-            const sb = await getSupabase();
+            const sb = supabase;
             if (!sb) return;
 
             // Client-side image compression for large images
