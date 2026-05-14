@@ -276,14 +276,18 @@ function NotificationsPage() {
             })
             .subscribe();
 
-        // BroadcastChannel: cross-tab notif sync
         const cleanupNotifBc = listenBroadcast('smarter_poker_notif_sync', (msg) => {
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             // [Audit#3] Another tab deleted a notif — sync it here too
             if (msg?.action === 'delete' && msg?.id && mounted.current) {
                 setNotifications(prev => prev.filter(n => n.id !== msg.id));
-            } else if (mounted.current) {
-                // Another tab marked all as read
+            } else if (msg?.action === 'mark_read' && msg?.id && mounted.current) {
+                // [Audit] Another tab marked ONE notif as read — sync it
+                setNotifications(prev => prev.map(n => n.id === msg.id ? { ...n, read: true } : n));
+            } else if ((msg === 'refresh_notifications' || msg?.action === 'refresh_notifications') && mounted.current) {
+                // Generic refresh - ignore local feed state, handled natively by Supabase Realtime
+            } else if (mounted.current && msg?.action === 'mark_all_read') {
+                // Explicit mark all as read command
                 setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             }
         });
@@ -325,7 +329,7 @@ function NotificationsPage() {
             newCount = Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1);
             localStorage.setItem('sp-notif-count', String(newCount)); 
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+        broadcastSync('smarter_poker_notif_sync', { action: 'mark_read', id: id, tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
         try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: newCount }, '*'); } catch (_) {}
