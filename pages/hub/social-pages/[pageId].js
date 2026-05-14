@@ -1668,7 +1668,7 @@ export default function SocialPageDetail() {
     if (loading) {
         return (
             <>
-                <UniversalHeader />
+                <UniversalHeader pageDepth={2} />
                 <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, padding: '76px 16px 80px', fontFamily: "var(--font-inter), -apple-system, sans-serif", maxWidth: 700, margin: '0 auto' }}>
                     <SkeletonLight variant="profile" />
                     <SkeletonLight variant="feed" rows={2} />
@@ -1680,7 +1680,7 @@ export default function SocialPageDetail() {
     if (!page) {
         return (
             <>
-                <UniversalHeader />
+                <UniversalHeader pageDepth={2} />
                 <div style={{
                     minHeight: '100vh', background: C.bg, display: 'flex',
                     alignItems: 'center', justifyContent: 'center', paddingTop: 60,
@@ -1719,7 +1719,7 @@ export default function SocialPageDetail() {
                     ...(page.avatar_url ? { logo: page.avatar_url } : {}),
                 }}
             />
-            <UniversalHeader />
+            <UniversalHeader pageDepth={2} />
 
             <div style={{
                 minHeight: '100vh', background: C.bg, paddingBottom: 72,
@@ -1825,7 +1825,7 @@ export default function SocialPageDetail() {
                                     }} />
                                 )}
                                 <div style={{
-                                    width: 130, height: 130, borderRadius: 20, border: `4px solid ${C.card}`,
+                                    width: 130, height: 130, borderRadius: '50%', border: `4px solid ${C.card}`,
                                     background: page.avatar_url ? `url(${page.avatar_url}) center/cover` : pageColor,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     color: '#fff', fontWeight: 800, fontSize: 44, flexShrink: 0,

@@ -503,8 +503,17 @@ export default function HamburgerMenu({
                                     if (isClubMode && clubPage?.id === page.id) return null;
                                     return (
                                         <div 
-                                            key={page.id}
-                                            onClick={() => { switchToClub(page); onClose(); }}
+                                            onClick={() => { 
+                                                switchToClub(page); 
+                                                onClose(); 
+                                                if (page.page_type === 'home_game') {
+                                                    router.push(`/hub/home-games/${page.slug || page.id}`);
+                                                } else if (page.page_type === 'club') {
+                                                    window.location.href = `/hub/club-arena`;
+                                                } else {
+                                                    router.push(`/hub/social-pages/${page.id}`);
+                                                }
+                                            }}
                                             style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
                                             onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -529,14 +538,13 @@ export default function HamburgerMenu({
                             YOUR SHORTCUTS
                         </h4>
                         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
-                            {ownedPages.slice(0, 3).map((page) => (
-                                <Link
-                                    key={page.id}
-                                    href={`/hub/social-pages/${page.id}`}
-                                    onClick={onClose}
-                                    style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 64 }}
-                                >
-                                    <div
+                            {ownedPages.slice(0, 3).map((page) => {
+                                const targetHref = page.page_type === 'home_game' ? `/hub/home-games/${page.slug || page.id}` : page.page_type === 'club' ? `/hub/club-arena` : `/hub/social-pages/${page.id}`;
+                                const isArena = page.page_type === 'club';
+                                
+                                const innerContent = (
+                                    <>
+                                        <div
                                         style={{
                                             width: 56,
                                             height: 56,
@@ -557,8 +565,33 @@ export default function HamburgerMenu({
                                     <div style={{ fontSize: 11, marginTop: 6, color: colors.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {page.name}
                                     </div>
-                                </Link>
-                            ))}
+                                    </>
+                                );
+
+                                if (isArena) {
+                                    return (
+                                        <a
+                                            key={page.id}
+                                            href={targetHref}
+                                            onClick={(e) => { e.preventDefault(); switchToClub(page); onClose(); window.location.href = targetHref; }}
+                                            style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 64 }}
+                                        >
+                                            {innerContent}
+                                        </a>
+                                    );
+                                }
+
+                                return (
+                                    <Link
+                                        key={page.id}
+                                        href={targetHref}
+                                        onClick={() => { switchToClub(page); onClose(); }}
+                                        style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 64 }}
+                                    >
+                                        {innerContent}
+                                    </Link>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

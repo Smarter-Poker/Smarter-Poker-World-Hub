@@ -18,6 +18,7 @@ import TrendingPosts from '../TrendingPosts';
 import FeedFilterTabs from '../FeedFilterTabs';
 import GhostPostCard from '../GhostPostCard';
 import UploadRecoveryBanner from '../UploadRecoveryBanner';
+import { useActiveIdentity } from '../../../contexts/ActiveIdentityContext';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)
@@ -269,6 +270,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [feedFilter, setFeedFilter] = useState('recent');
+    const { activeIdentity } = useActiveIdentity();
 
     // Mock Data for non-connected parts
     const [stories] = useState([]);
@@ -289,10 +291,14 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             return;
         }
 
+        const fetchId = activeIdentity?.mode === 'club' && activeIdentity?.clubPage?.id 
+            ? activeIdentity.clubPage.id 
+            : currentUser.id;
+
         try {
             setLoading(true);
             const { posts: newPosts } = await socialService.getFeed({
-                userId: currentUser.id,
+                userId: fetchId,
                 filter: feedFilter
             });
             setPosts(newPosts || []);
@@ -302,7 +308,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         } finally {
             setLoading(false);
         }
-    }, [socialService, currentUser?.id, feedFilter]);
+    }, [socialService, currentUser?.id, feedFilter, activeIdentity?.mode, activeIdentity?.clubPage?.id]);
 
     useEffect(() => {
         loadFeed();

@@ -215,8 +215,12 @@ export default async function handler(req, res) {
           // List pages with filters
           let query = getSupabase()
               .from('social_pages')
-              .select('*')
-              .neq('page_type', 'home_game');   // Phase 15: exclude home games from generic directory
+              .select('*');
+
+          // Phase 15: exclude home games from generic directory, except for owner
+          if (!owner_id) {
+              query = query.neq('page_type', 'home_game');
+          }
 
           // Only filter by is_public when NOT fetching own pages
           if (!owner_id) query = query.eq('is_public', true);
