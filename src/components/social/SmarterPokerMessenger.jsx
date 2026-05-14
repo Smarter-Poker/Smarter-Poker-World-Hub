@@ -185,21 +185,24 @@ const useMessengerPrefs = () => {
                 // Bookmarks
                 const bms = state.bookmarks || [];
                 for (const b of bms) {
-                    await sb.from('messenger_bookmarks').upsert({ message_id: b.id, user_id: uid, message_text: b.text }, { onConflict: 'message_id,user_id' });
+                    const { error } = await sb.from('messenger_bookmarks').upsert({ message_id: b.id, user_id: uid, message_text: b.text }, { onConflict: 'message_id,user_id' });
+                    if (error) throw error;
                 }
                 
                 // Labels
                 const lbls = state.labels || {};
                 for (const [msgId, msgLabels] of Object.entries(lbls || {})) {
                     for (const lbl of msgLabels) {
-                        await sb.from('messenger_labels').upsert({ message_id: msgId, user_id: uid, label: lbl }, { onConflict: 'message_id,user_id,label' });
+                        const { error } = await sb.from('messenger_labels').upsert({ message_id: msgId, user_id: uid, label: lbl }, { onConflict: 'message_id,user_id,label' });
+                        if (error) throw error;
                     }
                 }
                 
                 // Themes
                 const thms = state.themes || {};
                 for (const [convId, themeStr] of Object.entries(thms || {})) {
-                    await sb.from('messenger_themes').upsert({ conversation_id: convId, user_id: uid, theme_value: themeStr }, { onConflict: 'conversation_id,user_id' });
+                    const { error } = await sb.from('messenger_themes').upsert({ conversation_id: convId, user_id: uid, theme_value: themeStr }, { onConflict: 'conversation_id,user_id' });
+                    if (error) throw error;
                 }
                 
                 // Note: Other tables (reactions, pins, edit history) can be synced similarly, 
