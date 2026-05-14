@@ -638,16 +638,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
       </Head>
       <div className="hgs-page">
         <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} onBackClick={() => router.back()} />
-        {/* ── True Back Button ── */}
-        <div style={{ position: 'relative', zIndex: 10, padding: '8px 20px 0' }}>
-          <button
-            onClick={() => typeof window !== 'undefined' && window.history.length > 1 ? window.history.back() : router.push('/hub/poker-near-me/venues')}
-            style={{ background: 'transparent', border: '1px solid rgba(34,211,238,0.3)', color: '#22d3ee', borderRadius: '8px', padding: '6px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
-            Back
-          </button>
-        </div>
+
 
         <div className="hgs-cover">
           {page.cover_url ? (
@@ -802,7 +793,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                           <strong style={{ color: '#22d3ee', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Tournaments</strong>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {group.settings.tournaments.map((t, idx) => {
-                              const dayStr = t.day ? (t.day.charAt(0).toUpperCase() + t.day.slice(1).toLowerCase()) : (group.typical_day ? group.typical_day.split(',').map(d => d.trim().charAt(0).toUpperCase() + d.trim().slice(1).toLowerCase()).join(', ') : '');
+                              const dayStr = t.day ? (t.day.charAt(0).toUpperCase() + t.day.slice(1).toLowerCase()) : (t.scheduled_date ? new Date(t.scheduled_date + 'T12:00:00').toLocaleDateString('en-US', {weekday: 'long'}) : '');
                               const timeStr = t.scheduled_time || t.time ? ` · ${t.scheduled_time || t.time}` : '';
                               return (
                                 <span key={idx} style={{ padding: '4px 10px', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: '6px', fontSize: '13px', color: '#e2e8f0', fontWeight: '500' }}>
@@ -905,7 +896,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                     </dd>
                   </div>
                 )}
-                {(group.settings?.schedule_summary || formatSchedule(group)) && <div><dt>Schedule</dt><dd>{group.settings?.schedule_summary || formatSchedule(group)}</dd></div>}
+                {(group.settings?.schedule_summary || formatSchedule(group)) && <div><dt></dt><dd>{group.settings?.schedule_summary || formatSchedule(group)}</dd></div>}
                 {group.typical_time && !group.settings?.schedule_summary && <div><dt>Time</dt><dd>{formatTime(group.typical_time)}</dd></div>}
                 {(group.typical_buyin_min || group.typical_buyin_max) && (
                   <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>

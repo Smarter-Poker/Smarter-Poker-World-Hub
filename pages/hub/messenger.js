@@ -3474,7 +3474,10 @@ function MessengerPage() {
                             'Content-Type': 'application/json',
                             ...(token ? { Authorization: `Bearer ${token}` } : {}),
                         },
-                        body: JSON.stringify({ userId }),
+                        body: JSON.stringify({ 
+                            userId,
+                            contextEntityId: isClubMode && clubPage ? clubPage.id : null
+                        }),
                     });
                     if (!resp.ok) throw new Error(`API returned ${resp.status}`);
                     return await resp.json();
