@@ -1300,13 +1300,28 @@ export default async function handler(req, res) {
                                               }
                                               if (Array.isArray(hg.settings.tournaments) && hg.settings.tournaments.length > 0) {
                                                   finalHasTourneys = true;
+                                                  const todayDow = new Date().getDay();
+                                                  const dowMap = { sunday:0, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6 };
+                                                  const runDays = (hg.typical_day || '').split(',').map(d => d.trim().toLowerCase()).filter(d => dowMap[d] !== undefined).map(d => dowMap[d]);
                                                   hg.settings.tournaments.forEach((t, i) => {
+                                                      let isToday = false;
+                                                      let daysAway = null;
+                                                      if (runDays.length > 0) {
+                                                          let minDays = 8;
+                                                          runDays.forEach(d => {
+                                                              let diff = (d - todayDow + 7) % 7;
+                                                              if (diff === 0) isToday = true;
+                                                              if (diff < minDays) minDays = diff;
+                                                          });
+                                                          daysAway = minDays;
+                                                      }
                                                       finalDailyTournaments.push({
                                                           id: 'hg-t-' + i,
                                                           tournament_name: t.name || t.tournament_name || 'Bounty Tournament',
                                                           buy_in: t.buy_in || 0,
-                                                          start_time: t.scheduled_time || '00:00:00',
-                                                          _is_today: false
+                                                          start_time: t.scheduled_time || t.time || '00:00:00',
+                                                          _is_today: isToday,
+                                                          _days_away: daysAway,
                                                       });
                                                   });
                                               }
@@ -1315,7 +1330,9 @@ export default async function handler(req, res) {
                                               }
                                           }
                                           if (!finalScheduleString && hg.frequency && hg.typical_day) {
-                                              finalScheduleString = `${hg.frequency} on ${hg.typical_day}s`;
+                                              const freq = hg.frequency.charAt(0).toUpperCase() + hg.frequency.slice(1).toLowerCase();
+                                              const days = hg.typical_day.split(',').map(d => d.trim()).filter(Boolean).map(d => d.charAt(0).toUpperCase() + d.slice(1).toLowerCase()).join(', ');
+                                              finalScheduleString = `${freq} On ${days}`;
                                           }
                                           hostDisplayName = sp.name;
                                           hostAvatarUrl = sp.avatar_url;

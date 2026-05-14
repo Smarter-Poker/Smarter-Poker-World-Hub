@@ -245,6 +245,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const [logoFallbackTried, setLogoFallbackTried] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
+    const [checkinModal, setCheckinModal] = useState(false);
+    const [checkinMsg, setCheckinMsg] = useState('');
+    const [checkinBusy, setCheckinBusy] = useState(false);
+    const [checkinDone, setCheckinDone] = useState(false);
     const cardRef = useRef(null);
 
     // New: Fetch follow status on mount for home games
@@ -339,6 +343,35 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         } finally {
             setFollowLoading(false);
         }
+    };
+
+    const handleCheckinOpen = (e) => {
+        e.stopPropagation();
+        const defaultMsg = `Checked in at ${venue.name}${venue.city ? ` in ${venue.city}` : ''} 🃏😎`;
+        setCheckinMsg(defaultMsg);
+        setCheckinDone(false);
+        setCheckinModal(true);
+    };
+
+    const handleCheckinSubmit = async () => {
+        if (checkinBusy || !checkinMsg.trim()) return;
+        setCheckinBusy(true);
+        try {
+            const token = getAccessToken();
+            if (!token) { if (onNavigate) onNavigate('/auth/login'); return; }
+            await fetch('/api/social/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    content: checkinMsg.trim(),
+                    post_type: 'checkin',
+                    metadata: { venue_id: venue.id, venue_name: venue.name, venue_type: venue.venue_type },
+                }),
+            });
+            setCheckinDone(true);
+            setTimeout(() => setCheckinModal(false), 1500);
+        } catch (err) { console.warn('Checkin error:', err); }
+        finally { setCheckinBusy(false); }
     };
 
     return (
@@ -516,7 +549,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         )}
                     </div>
                     {venue.host_social_page_slug && (
-                        <a href={getVenueUrl(venue)} onClick={e => e.stopPropagation()} className="vc3-host-link">View Page</a>
+                        <a href={venue.social_page_id ? '/club/' + venue.social_page_id : getVenueUrl(venue)} onClick={e => e.stopPropagation()} className="vc3-host-link">View Page</a>
                     )}
                 </div>
             )}
@@ -524,7 +557,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {venue.venue_type === 'home_game' && venue.schedule && (
                 <div className="vc3-schedule">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                    <span>{String(venue.schedule).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}</span>
+                    <span>{venue.schedule}</span>
                 </div>
             )}
             {/* Home Game — Saves count only (Follow button is on the Details page) */}
@@ -743,9 +776,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         
                         let colTitle = 'Today\'s Tournaments';
                         if (venue.venue_type === 'home_game') {
-                            if (homeGameTodayGames.length > 0) colTitle = 'Today\'s Game';
-                            else if (homeGameUpcomingGames.length > 0) colTitle = 'Upcoming Game';
-                            else colTitle = 'Upcoming Game';
+                            if (homeGameTodayGames.length > 0) colTitle = 'Today\'s Tournament';
+                            else if (homeGameUpcomingGames.length > 0 || hasRegularToday) colTitle = 'Upcoming Tournaments';
+                            else colTitle = 'Upcoming Tournaments';
                         } else if (charityToday || hasRegularToday) {
                             colTitle = 'Today\'s Tournaments';
                         } else if (charityUpcoming || (venue.has_tournaments && !hasRegularToday)) {
@@ -983,7 +1016,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
                 {/* Primary actions */}
                 <div className="vc3-actions-primary">
-                    <button className="vc3-pill vc3-pill-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(venue.venue_type === 'home_game' ? detailUrl : detailUrl + '?action=checkin'); }} title="Check In">
+                    <button className="vc3-pill vc3-pill-checkin" onClick={handleCheckinOpen} title="Check In">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
@@ -1053,6 +1086,39 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             </div>
             )}
             </div>
+
+            {/* === CHECK-IN MODAL === */}
+            {checkinModal && (
+                <div className="vc3-checkin-backdrop" onClick={e => { e.stopPropagation(); setCheckinModal(false); }}>
+                    <div className="vc3-checkin-modal" onClick={e => e.stopPropagation()}>
+                        <div className="vc3-checkin-header">
+                            <span>Check In at {venue.name}</span>
+                            <button className="vc3-checkin-close" onClick={() => setCheckinModal(false)}>×</button>
+                        </div>
+                        {checkinDone ? (
+                            <div className="vc3-checkin-done">✓ Checked in!</div>
+                        ) : (
+                            <>
+                                <textarea
+                                    className="vc3-checkin-textarea"
+                                    value={checkinMsg}
+                                    onChange={e => setCheckinMsg(e.target.value)}
+                                    rows={3}
+                                    maxLength={280}
+                                    placeholder="What's happening at the table?"
+                                />
+                                <div className="vc3-checkin-actions">
+                                    <span className="vc3-checkin-count">{checkinMsg.length}/280</span>
+                                    <button className="vc3-checkin-cancel" onClick={() => setCheckinModal(false)}>Cancel</button>
+                                    <button className="vc3-checkin-submit" onClick={handleCheckinSubmit} disabled={checkinBusy || !checkinMsg.trim()}>
+                                        {checkinBusy ? 'Posting...' : 'Post Check-In'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Old Calendar display successfully abstracted */}
             <style>{`
@@ -1476,6 +1542,20 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     .vc3-header { flex-wrap: nowrap; gap: 6px; }
                     .vc3-right-stack { gap: 2px; }
                 }
+                .vc3-checkin-backdrop { position: fixed; inset: 0; background: rgba(5,8,16,0.75); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; animation: vc3-fade-in 0.15s ease; }
+                @keyframes vc3-fade-in { from { opacity: 0; } to { opacity: 1; } }
+                .vc3-checkin-modal { background: linear-gradient(180deg,#1a2744 0%,#0d1626 100%); border: 1px solid rgba(34,211,238,0.2); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+                .vc3-checkin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 15px; font-weight: 700; color: #22d3ee; }
+                .vc3-checkin-close { background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; }
+                .vc3-checkin-close:hover { color: #fff; }
+                .vc3-checkin-textarea { width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(34,211,238,0.2); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; padding: 10px 12px; resize: vertical; min-height: 80px; line-height: 1.5; }
+                .vc3-checkin-textarea:focus { outline: none; border-color: rgba(34,211,238,0.5); }
+                .vc3-checkin-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+                .vc3-checkin-count { font-size: 11px; color: rgba(255,255,255,0.35); margin-right: auto; }
+                .vc3-checkin-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+                .vc3-checkin-submit { background: linear-gradient(135deg,#0ea5e9,#0284c7); border: none; color: #fff; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+                .vc3-checkin-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+                .vc3-checkin-done { text-align: center; padding: 20px; font-size: 18px; font-weight: 700; color: #22d3ee; }
             `}</style>
         </div>
     );
