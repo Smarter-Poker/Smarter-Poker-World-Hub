@@ -811,13 +811,21 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     // Comment + Delete handlers
     const handleComment = async (postId, text) => {
         if (!socialService || !authUser?.id) return;
-        await socialService.createComment({ postId, authorId: authUser.id, content: text });
-        // Note: SocialService.createComment already emits SOCIAL_COMMENT_ADDED internally
+        try {
+            await socialService.createComment({ postId, authorId: authUser.id, content: text });
+        } catch (error) {
+            console.warn('Comment failed:', error);
+        }
     };
 
     const handleLoadComments = async (postId) => {
         if (!socialService) return [];
-        return await socialService.getComments(postId);
+        try {
+            return await socialService.getComments(postId);
+        } catch (error) {
+            console.warn('Load comments failed:', error);
+            return [];
+        }
     };
 
     const handleDeletePost = async (postId) => {

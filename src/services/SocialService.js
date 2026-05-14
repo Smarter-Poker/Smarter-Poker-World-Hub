@@ -285,7 +285,7 @@ export class SocialService {
                 .maybeSingle();
 
             if (error) throw error;
-            if (!data) return null; // Post not found or RLS blocked
+            if (!data) throw new Error('Post not found or update blocked by RLS');
 
             return createPost(data);
         } catch (error) {
@@ -536,16 +536,17 @@ export class SocialService {
                 .maybeSingle();
 
             if (error) throw error;
+            if (!data) throw new Error('Comment insertion failed (blocked by RLS or constraint)');
 
             // Award comment diamonds (fire-and-forget, 5💎 max 3/day)
             if (authorId) {
-                claimReward('/api/rewards/comment', { userId: authorId, commentId: data?.id }, 'Strategy Comment');
+                claimReward('/api/rewards/comment', { userId: authorId, commentId: data.id }, 'Strategy Comment');
             }
 
-            // Emit EventBus for cross-page comment count updates
+            // Emit EventBus for cross-page comment count updates ONLY IF SUCCESSFUL
             busEmit.socialCommentAdded(postId, authorId);
 
-            return data ? createComment({
+            return createComment({
                 ...data,
                 author_username: data.author?.username,
                 author_avatar: data.author?.avatar_url,
