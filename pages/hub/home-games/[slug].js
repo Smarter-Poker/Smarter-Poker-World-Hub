@@ -753,7 +753,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
             </section>
 
             <div className="hgs-footer-link">
-              <Link href="/hub/home-games">← Back to all home games</Link>
+              <button onClick={() => typeof window !== 'undefined' && window.history.length > 1 ? window.history.back() : router.push('/hub/poker-near-me/venues')} className="hgs-back-btn">
+                ← Back
+              </button>
             </div>
           </aside>
         </div>
@@ -812,28 +814,28 @@ const pageStyles = `
 .hgs-notfound p{color:rgba(255,255,255,.6);margin-bottom:20px;max-width:420px}
 .hgs-cover{position:relative;height:220px;width:100%;overflow:hidden;background:linear-gradient(135deg,#1e293b,#0f172a)}
 .hgs-cover-img{width:100%;height:100%;object-fit:cover}
-.hgs-cover-fallback{width:100%;height:100%;background:linear-gradient(135deg,#dc2626 0%,#7c2d12 50%,#0f172a 100%)}
+.hgs-cover-fallback{width:100%;height:100%;background:linear-gradient(135deg,#0d2137 0%,#0a1628 50%,#050810 100%)}
 .hgs-cover-fade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,15,28,0) 40%,rgba(10,15,28,.85) 100%)}
 .hgs-header{max-width:1100px;margin:-60px auto 0;padding:0 20px;display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;position:relative;z-index:2}
 .hgs-avatar{width:128px;height:128px;border-radius:16px;background:#111827;border:4px solid #050810;overflow:hidden;flex-shrink:0;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .hgs-avatar img{width:100%;height:100%;object-fit:cover}
-.hgs-avatar-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:900;color:#ef4444;background:#1a1f2e}
+.hgs-avatar-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:900;color:#22d3ee;background:#0d1f33}
 .hgs-header-info{flex:1;min-width:260px}
 .hgs-name{font-size:28px;font-weight:900;margin:0 0 4px;letter-spacing:-.5px}
 .hgs-meta{color:rgba(255,255,255,.65);font-size:14px;margin:0 0 10px}
 .hgs-stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:rgba(255,255,255,.5)}
 .hgs-stats strong{color:#fff;font-weight:700;margin-right:4px}
 .hgs-cta-row{display:flex;gap:8px;flex-wrap:wrap}
-.hgs-primary-btn{padding:10px 18px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,.3);display:inline-block;text-decoration:none;transition:transform .15s}
+.hgs-primary-btn{padding:10px 18px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 14px rgba(14,165,233,.3);display:inline-block;text-decoration:none;transition:transform .15s}
 .hgs-primary-btn:hover{transform:translateY(-1px)}
 .hgs-ghost-btn{padding:10px 18px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
 .hgs-ghost-btn:hover{background:rgba(255,255,255,.14)}
-.hgs-follow-btn{padding:10px 18px;background:rgba(16,185,129,.12);color:#10b981;border:1.5px solid rgba(16,185,129,.4);border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
-.hgs-follow-btn:hover:not(:disabled){background:rgba(16,185,129,.22);border-color:rgba(16,185,129,.6)}
+.hgs-follow-btn{padding:10px 18px;background:rgba(14,165,233,.12);color:#38bdf8;border:1.5px solid rgba(14,165,233,.4);border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.hgs-follow-btn:hover:not(:disabled){background:rgba(14,165,233,.22);border-color:rgba(14,165,233,.6)}
 .hgs-follow-btn:disabled{opacity:.5;cursor:not-allowed}
-.hgs-follow-btn-on{background:rgba(16,185,129,.25);color:#fff;border-color:#10b981}
-.hgs-follow-btn-on:hover:not(:disabled){background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#ef4444}
-.hgs-follow-err{color:#ef4444;font-size:12px;padding:6px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;align-self:center}
+.hgs-follow-btn-on{background:rgba(14,165,233,.25);color:#fff;border-color:#0ea5e9}
+.hgs-follow-btn-on:hover:not(:disabled){background:rgba(14,165,233,.35);border-color:#0ea5e9}
+.hgs-follow-err{color:#f87171;font-size:12px;padding:6px 10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:6px;align-self:center}
 .hgs-full{width:100%}
 .hgs-body{max-width:1100px;margin:30px auto 0;padding:0 20px;display:grid;grid-template-columns:1fr 320px;gap:24px}
 @media (max-width: 900px){.hgs-body{grid-template-columns:1fr}}
@@ -843,7 +845,7 @@ const pageStyles = `
 .hgs-empty{color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:14px}
 .hgs-games-list{display:flex;flex-direction:column;gap:10px}
 .hgs-game-card{display:flex;align-items:stretch;gap:14px;padding:14px;background:rgba(0,0,0,.25);border:1px solid rgba(148,163,184,.1);border-radius:10px}
-.hgs-game-date{flex-shrink:0;width:72px;padding:8px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:8px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.hgs-game-date{flex-shrink:0;width:72px;padding:8px;background:linear-gradient(135deg,#0ea5e9,#0369a1);border-radius:8px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .hgs-game-mon{font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700;opacity:.85}
 .hgs-game-day{font-size:24px;font-weight:900;line-height:1}
 .hgs-game-dow{font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-top:2px}
@@ -851,8 +853,8 @@ const pageStyles = `
 .hgs-game-body h3{font-size:16px;font-weight:700;margin:0 0 4px}
 .hgs-game-meta{font-size:13px;color:rgba(255,255,255,.55);display:flex;gap:6px;flex-wrap:wrap}
 .hgs-game-desc{font-size:13px;color:rgba(255,255,255,.5);margin:6px 0 0 !important}
-.hgs-game-rsvp{padding:8px 14px;background:rgba(139,92,246,.18);color:#c4b5fd;border:1px solid rgba(139,92,246,.45);border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;align-self:center;flex-shrink:0;transition:background .15s ease,transform .1s ease}
-.hgs-game-rsvp:hover{background:rgba(139,92,246,.28);color:#fff}
+.hgs-game-rsvp{padding:8px 14px;background:rgba(14,165,233,.18);color:#7dd3fc;border:1px solid rgba(14,165,233,.45);border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;align-self:center;flex-shrink:0;transition:background .15s ease,transform .1s ease}
+.hgs-game-rsvp:hover{background:rgba(14,165,233,.28);color:#fff}
 .hgs-game-rsvp:active{transform:scale(.97)}
 .hgs-seat-backdrop{position:fixed;inset:0;background:rgba(5,8,15,.78);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:hgs-seat-fade .15s ease-out}
 @keyframes hgs-seat-fade{from{opacity:0}to{opacity:1}}
@@ -882,13 +884,13 @@ const pageStyles = `
 .hgs-seat-btn:disabled{opacity:.5;cursor:not-allowed}
 .hgs-seat-btn-ghost{background:transparent;color:rgba(255,255,255,.65);border-color:rgba(148,163,184,.2)}
 .hgs-seat-btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.06);color:#fff}
-.hgs-seat-btn-primary{background:linear-gradient(180deg,#8b5cf6 0%,#7c3aed 100%);color:#fff;box-shadow:0 4px 14px rgba(139,92,246,.4)}
-.hgs-seat-btn-primary:hover:not(:disabled){background:linear-gradient(180deg,#9867fe 0%,#8b5cf6 100%)}
+.hgs-seat-btn-primary{background:linear-gradient(180deg,#0ea5e9 0%,#0284c7 100%);color:#fff;box-shadow:0 4px 14px rgba(14,165,233,.4)}
+.hgs-seat-btn-primary:hover:not(:disabled){background:linear-gradient(180deg,#38bdf8 0%,#0ea5e9 100%)}
 .hgs-posts{display:flex;flex-direction:column;gap:12px}
 .hgs-post{background:rgba(0,0,0,.2);border:1px solid rgba(148,163,184,.08);border-radius:10px;padding:14px}
 .hgs-post header{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13px;color:rgba(255,255,255,.6)}
 .hgs-post header strong{color:#fff;font-size:14px;font-weight:700}
-.hgs-post-pin{background:rgba(239,68,68,.15);color:#ef4444;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:auto}
+.hgs-post-pin{background:rgba(14,165,233,.15);color:#38bdf8;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:auto}
 .hgs-post p{margin:0 !important;color:rgba(255,255,255,.8) !important}
 .hgs-post footer{margin-top:8px;font-size:12px;color:rgba(255,255,255,.4);display:flex;gap:6px}
 .hgs-kv{margin:0;padding:0}
@@ -899,6 +901,6 @@ const pageStyles = `
 .hgs-card{padding:18px}
 .hgs-share-url{font-size:12px;color:rgba(255,255,255,.5);word-break:break-all;background:rgba(0,0,0,.3);padding:8px 10px;border-radius:6px;margin-bottom:8px;font-family:monospace}
 .hgs-footer-link{text-align:center;padding:20px 0;font-size:13px}
-.hgs-footer-link :global(a){color:rgba(239,68,68,.8);text-decoration:none;font-weight:600}
-.hgs-footer-link :global(a:hover){color:#ef4444}
+.hgs-back-btn{background:transparent;border:none;color:rgba(14,165,233,.8);font-size:13px;font-weight:600;cursor:pointer;padding:0;text-decoration:none}
+.hgs-back-btn:hover{color:#38bdf8}
 `;

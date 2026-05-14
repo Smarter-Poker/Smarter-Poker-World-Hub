@@ -8732,6 +8732,37 @@ function SocialMediaPage() {
       )
       .on(
         'postgres_changes',
+        {
+          // BUG-11 FIX: thumbnail race condition.
+          // Device A receives INSERT when thumbnail_url is NULL (upload still in-flight).
+          // Device B opens later and gets the row with thumbnail already set via REST.
+          // Device A never re-rendered because it only subscribed to INSERT.
+          // Fix: handle UPDATE events and merge changed fields (especially thumbnail_url)
+          // into the local posts state so Device A sees the thumbnail without a reload.
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'social_posts',
+        },
+        (payload) => {
+          const updatedPost = payload.new;
+          if (!updatedPost?.id) return;
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === updatedPost.id
+                ? {
+                    ...p,
+                    thumbnail_url: updatedPost.thumbnail_url ?? p.thumbnail_url,
+                    thumbnailUrl: updatedPost.thumbnail_url ?? p.thumbnailUrl,
+                    metadata: updatedPost.metadata ?? p.metadata,
+                    content: updatedPost.content ?? p.content,
+                  }
+                : p
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'social_likes' },
         (payload) => {
           if (payload.new && payload.new.post_id) {

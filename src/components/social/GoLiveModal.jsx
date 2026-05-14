@@ -1605,8 +1605,31 @@ export function GoLiveModal({
     setError('');
     try {
       liveStreamService.onViewerCountChange = (c) => setViewerCount(c);
-      liveStreamService.onReconnecting = () => setIsReconnecting(true);
-      liveStreamService.onReconnected = () => setIsReconnecting(false);
+      // BUG-14 FIX: use same crash watchdog as startBroadcast. Without this,
+      // a permanent reconnect failure during handleReconnectToExisting left
+      // the broadcaster with no notification and a frozen UI.
+      liveStreamService.onReconnecting = () => {
+        setIsReconnecting(true);
+        if (reconnectWatchdogRef.current) clearTimeout(reconnectWatchdogRef.current);
+        reconnectWatchdogRef.current = setTimeout(() => {
+          reconnectWatchdogRef.current = null;
+          setIsReconnecting((prev) => {
+            if (prev) {
+              console.warn('[GoLive/reconnect] 60s watchdog fired — surfacing stuck popup');
+              setReconnectStuck(true);
+            }
+            return prev;
+          });
+        }, 60000);
+      };
+      liveStreamService.onReconnected = () => {
+        setIsReconnecting(false);
+        setReconnectStuck(false);
+        if (reconnectWatchdogRef.current) {
+          clearTimeout(reconnectWatchdogRef.current);
+          reconnectWatchdogRef.current = null;
+        }
+      };
       liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
       liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps);
       // Re-join the existing LiveKit room

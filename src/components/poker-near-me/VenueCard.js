@@ -516,7 +516,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         )}
                     </div>
                     {venue.host_social_page_slug && (
-                        <a href={'/social/@' + encodeURIComponent(venue.host_social_page_slug)} onClick={e => e.stopPropagation()} className="vc3-host-link">View Page</a>
+                        <a href={getVenueUrl(venue)} onClick={e => e.stopPropagation()} className="vc3-host-link">View Page</a>
                     )}
                 </div>
             )}
@@ -524,33 +524,16 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {venue.venue_type === 'home_game' && venue.schedule && (
                 <div className="vc3-schedule">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                    <span>{venue.schedule}</span>
+                    <span>{String(venue.schedule).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}</span>
                 </div>
             )}
-            {/* Home Game — Follow & Saves Row */}
-            {venue.venue_type === 'home_game' && (venue.host_social_page_slug || venue.saves_count > 0) && (
+            {/* Home Game — Saves count only (Follow button is on the Details page) */}
+            {venue.venue_type === 'home_game' && venue.saves_count > 0 && (
                 <div className="vc3-follow-row">
-                    {venue.host_social_page_slug && (
-                        <button
-                            onClick={handleFollowClick}
-                            disabled={followLoading}
-                            className={`vc3-follow-btn ${isFollowing ? 'following' : ''}`}
-                            style={isFollowing ? { background: '#10B981', color: '#fff', borderColor: '#10B981' } : {}}
-                        >
-                            {isFollowing ? (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                            ) : (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                            )}
-                            {followLoading ? 'Following...' : (isFollowing ? 'Followed' : 'Follow')}
-                        </button>
-                    )}
-                    {venue.saves_count > 0 && (
-                        <span className="vc3-saves-count">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
-                            {venue.saves_count} Saved
-                        </span>
-                    )}
+                    <span className="vc3-saves-count">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
+                        {venue.saves_count} Saved
+                    </span>
                 </div>
             )}
 
@@ -884,10 +867,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 <div key={`daily-tourney-${t?.id || tName.replace(/\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-tourney-item">
                                                     <div className="vc3-tourney-name" title={tName}>{tName}</div>
                                                     <div className="vc3-tourney-details">
-                                                        <span className="vc3-tourney-time">{formatTime(t?.start_time) || 'Time TBD'}</span>
-                                                        <span className="vc3-tourney-buyin">{t?.buy_in != null && Number(t.buy_in) > 0 ? `$${t.buy_in} Buy-In` : (venue.venue_type !== 'charity' && t?.buy_in != null && String(t.buy_in) !== 'N/A' && Number(t.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
-                                                        {t?.guaranteed != null && Number(t.guaranteed) > 0 ? <span className="vc3-tourney-gtd">{formatMoney(t.guaranteed)} GTD</span> : null}
-                                                    </div>
+                                                         <span className="vc3-tourney-time-buyin">
+                                                             {formatTime(t?.start_time) || 'Time TBD'}
+                                                             {t?.buy_in != null && Number(t.buy_in) > 0 ? ` · $${t.buy_in} Buy-In` : ''}
+                                                         </span>
+                                                         {t?.guaranteed != null && Number(t.guaranteed) > 0 ? <span className="vc3-tourney-gtd">{formatMoney(t.guaranteed)} GTD</span> : null}
+                                                     </div>
                                                     {t?.starting_stack != null && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' && (
                                                         <div className="vc3-tourney-stack">{t.starting_stack} Starting Stack</div>
                                                     )}
@@ -926,7 +911,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             }
                                             const buyInStr = ntp.buy_in != null && Number(ntp.buy_in) > 0
                                                 ? `$${ntp.buy_in} Buy-In`
-                                                : (venue.venue_type !== 'charity' && ntp.buy_in === 0 ? 'Free Entry' : 'Buy-In TBD');
+                                                : 'Buy-In TBD';
                                             const tName = ntp.tournament_name || (ntp.buy_in > 0 ? `$${ntp.buy_in} NLH` : 'Tournament');
                                             return (
                                                 <div className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
@@ -998,7 +983,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
                 {/* Primary actions */}
                 <div className="vc3-actions-primary">
-                    <button className="vc3-pill vc3-pill-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?action=checkin'); }} title="Check In">
+                    <button className="vc3-pill vc3-pill-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(venue.venue_type === 'home_game' ? detailUrl : detailUrl + '?action=checkin'); }} title="Check In">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
@@ -1031,8 +1016,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </div>
             </div>
 
-            {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards or home games === */}
-            {!['tour_stop', 'poker_tour', 'tour', 'series', 'home_game'].includes(venue.venue_type) && (
+            {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards === */}
+            {!['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
             <div className="vc3-trust">
                 {reviewStats && reviewStats.total_reviews > 0 ? (
                     <>
