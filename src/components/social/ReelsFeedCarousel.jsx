@@ -937,12 +937,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     try {
       if (wasDisliked) {
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', currentId)
           .eq('user_id', userId)
           .eq('reaction_type', 'dislike');
+        if (error) throw error;
         // #4 Not Interested - remove from filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
@@ -952,9 +953,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
           return n;
         });
       } else {
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .insert({ post_id: currentId, user_id: userId, reaction_type: 'dislike' });
+        if (error) throw error;
         // #4 Not Interested - add to filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
@@ -1092,7 +1094,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
           // column names were silently swallowed by .catch(), preventing
           // the proxy FK row from ever being created — causing all comments
           // on social_reels-sourced reels to fail with a FK violation.
-          await supabase
+          const { error: proxyErr } = await supabase
             .from('social_posts')
             .insert({
               id: currentReel.id,
@@ -1101,10 +1103,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
               content_type: 'video',
               media_urls: currentReel.video_url ? [currentReel.video_url] : [],
               visibility: 'public',
-            })
-            .catch((e) =>
-              console.warn('[ReelsFeedCarousel] Proxy post creation failed:', e?.message)
-            );
+            });
+          if (proxyErr) console.warn('[ReelsFeedCarousel] Proxy post creation failed:', proxyErr?.message);
         }
       }
       const payload = { post_id: currentReel.id, author_id: authUser.id, content: text || '' };
@@ -1465,15 +1465,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
     haptic(wasFollowing ? 5 : 15);
     try {
       if (wasFollowing) {
-        await supabase
+        const { error } = await supabase
           .from('social_follows')
           .delete()
           .eq('follower_id', authUser.id)
           .eq('following_id', authorId);
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from('social_follows')
           .insert({ follower_id: authUser.id, following_id: authorId });
+        if (error) throw error;
       }
       busEmit.socialFollowChanged &&
         busEmit.socialFollowChanged(authorId, authUser.id, { added: !wasFollowing });
@@ -1622,20 +1624,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
     haptic(wasSaved ? 5 : 15);
     try {
       if (wasSaved) {
-        await supabase
+        const { error } = await supabase
           .from('social_interactions')
           .delete()
           .eq('post_id', currentReel.id)
           .eq('user_id', authUser.id)
           .eq('interaction_type', 'bookmark');
+        if (error) throw error;
       } else {
         // Removed redundant DELETE before INSERT — if state says not saved,
         // no row exists to delete. The extra round-trip wasted latency.
-        await supabase.from('social_interactions').insert({
+        const { error } = await supabase.from('social_interactions').insert({
           post_id: currentReel.id,
           user_id: authUser.id,
           interaction_type: 'bookmark',
         });
+        if (error) throw error;
       }
       busEmit.socialPostBookmarked(currentReel.id, authUser.id, { added: !wasSaved });
     } catch {

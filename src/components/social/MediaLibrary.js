@@ -398,15 +398,17 @@ export function MediaLibrary({
 
         try {
             // Delete from storage
-            await supabase.storage
+            const { error: storageError } = await supabase.storage
                 .from('user-media')
                 .remove([mediaItem.storage_path]);
+            if (storageError) throw storageError;
 
             // Delete from database
-            await supabase
+            const { error: dbError } = await supabase
                 .from('user_media')
                 .delete()
                 .eq('id', mediaItem.id);
+            if (dbError) throw dbError;
 
             fetchMedia();
             setLightboxMedia(null);

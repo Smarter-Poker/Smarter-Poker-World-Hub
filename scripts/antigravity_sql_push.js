@@ -115,7 +115,7 @@ const passwords = getPasswordCandidates();
 const connConfigs = passwords.flatMap(pw => [
     // Supabase Supavisor pooler — port 6543 (transaction mode)
     {
-        host: 'aws-0-us-west-2.pooler.supabase.com',
+        host: 'aws-0-us-east-1.pooler.supabase.com',
         port: 6543,
         user: `postgres.${projectRef}`,
         password: pw,

@@ -639,20 +639,22 @@ export function ReelsViewer({ onClose }) {
     haptic(wasSaved ? 5 : 15);
     try {
       if (wasSaved) {
-        await supabase
+        const { error } = await supabase
           .from('social_interactions')
           .delete()
           .eq('post_id', currentReel.id)
           .eq('user_id', currentUserId)
           .eq('interaction_type', 'bookmark');
+        if (error) throw error;
       } else {
         // BUG FIX (Bug 31): removed redundant DELETE before INSERT on save path
         // Old: always deleted first even when not saved (wasteful extra roundtrip)
-        await supabase.from('social_interactions').insert({
+        const { error } = await supabase.from('social_interactions').insert({
           post_id: currentReel.id,
           user_id: currentUserId,
           interaction_type: 'bookmark',
         });
+        if (error) throw error;
       }
       busEmit.socialPostBookmarked(currentReel.id, currentUserId, { added: !wasSaved });
     } catch {
@@ -692,15 +694,17 @@ export function ReelsViewer({ onClose }) {
     haptic(wasFollowing ? 5 : 15);
     try {
       if (wasFollowing) {
-        await supabase
+        const { error } = await supabase
           .from('social_follows')
           .delete()
           .eq('follower_id', currentUserId)
           .eq('following_id', authorId);
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from('social_follows')
           .insert({ follower_id: currentUserId, following_id: authorId });
+        if (error) throw error;
       }
       busEmit.socialFollowChanged &&
         busEmit.socialFollowChanged(authorId, currentUserId, { added: !wasFollowing });
@@ -1142,12 +1146,13 @@ export function ReelsViewer({ onClose }) {
     // Clean up like from DB if needed
     if (!wasDisliked && liked[currentReel.id]) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', currentReel.id)
           .eq('user_id', userId)
           .eq('reaction_type', 'like');
+        if (error) throw error;
         incrementMetric(currentReel, 'like_count', -1);
       } catch (e) {
         console.warn('Handled exception:', e);

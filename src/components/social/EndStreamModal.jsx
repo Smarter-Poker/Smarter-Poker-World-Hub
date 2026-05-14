@@ -145,10 +145,11 @@ export function EndStreamModal({
               const pubUrl = `${SUPABASE_URL}/storage/v1/object/public/live-recordings/${path}`;
               setResolvedThumbUrl(pubUrl);
               // Also update the live_streams row so end-stream API picks it up
-              await supabase
+              const { error: thumbUpdateErr } = await supabase
                 .from('live_streams')
                 .update({ thumbnail_url: pubUrl })
                 .eq('id', streamId);
+              if (thumbUpdateErr) throw thumbUpdateErr;
             }
           },
           'image/jpeg',
@@ -323,7 +324,7 @@ export function EndStreamModal({
       setUploadProgress(70);
 
       // 2. Update stream record with video URL (client-side, owns the row)
-      await supabase
+      const { error: postUpdateErr } = await supabase
         .from('live_streams')
         .update({
           video_url: videoUrl,
@@ -331,6 +332,7 @@ export function EndStreamModal({
           thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
         })
         .eq('id', streamId);
+      if (postUpdateErr) throw postUpdateErr;
 
       setUploadProgress(80);
 
@@ -372,7 +374,7 @@ export function EndStreamModal({
       setUploadProgress(75);
 
       // 2. Update stream record with video URL
-      await supabase
+      const { error: saveUpdateErr } = await supabase
         .from('live_streams')
         .update({
           video_url: videoUrl,
@@ -380,6 +382,7 @@ export function EndStreamModal({
           thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
         })
         .eq('id', streamId);
+      if (saveUpdateErr) throw saveUpdateErr;
 
       // 3. Server-side: mark as draft
       await callEndStream('save');
