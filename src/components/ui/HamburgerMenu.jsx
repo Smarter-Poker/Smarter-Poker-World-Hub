@@ -509,7 +509,7 @@ export default function HamburgerMenu({
                                                 if (page.page_type === 'home_game') {
                                                     router.push(`/hub/home-games/${page.slug || page.id}`);
                                                 } else if (page.page_type === 'club') {
-                                                    window.location.href = `/hub/club-arena`;
+                                                    window.location.href = `/hub/commander`;
                                                 } else {
                                                     router.push(`/hub/social-pages/${page.id}`);
                                                 }
@@ -539,7 +539,7 @@ export default function HamburgerMenu({
                         </h4>
                         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
                             {ownedPages.slice(0, 3).map((page) => {
-                                const targetHref = page.page_type === 'home_game' ? `/hub/home-games/${page.slug || page.id}` : page.page_type === 'club' ? `/hub/club-arena` : `/hub/social-pages/${page.id}`;
+                                const targetHref = page.page_type === 'home_game' ? `/hub/home-games/${page.slug || page.id}` : page.page_type === 'club' ? `/hub/commander` : `/hub/social-pages/${page.id}`;
                                 const isArena = page.page_type === 'club';
                                 
                                 const innerContent = (

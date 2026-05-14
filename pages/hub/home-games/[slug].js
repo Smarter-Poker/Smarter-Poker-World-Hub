@@ -686,6 +686,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
         ogImage={page.cover_url || page.avatar_url || undefined}
       />
       <Head>
+        {group.is_private && <meta name="robots" content="noindex, nofollow" />}
         {jsonLd.map((entry, i) => (
           <script
             key={i}

@@ -643,18 +643,29 @@ export default function HomeGamesPage() {
         return states[stateName] || stateName;
     };
 
-    // Toggle favorite
+    // Toggle favorite (Optimistic with Rollback)
     const toggleFavorite = async (venueId, e, venueData) => {
         if (e) e.stopPropagation();
         if (!userId) return;
         const key = 'venue-' + venueId;
         const isFav = !!favorites[key];
         if (isFav) {
+            const backup = favorites[key];
             setFavorites(prev => { const n = { ...prev }; delete n[key]; return n; });
-            try { await removeVenueFavorite(userId, venueId); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            try { 
+                await removeVenueFavorite(userId, venueId); 
+            } catch (e) { 
+                console.warn('[App] Failed to remove favorite, rolling back:', e?.message || e); 
+                setFavorites(prev => ({ ...prev, [key]: backup }));
+            }
         } else {
             setFavorites(prev => ({ ...prev, [key]: Date.now() }));
-            try { await addVenueFavorite(userId, venueId, venueData); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            try { 
+                await addVenueFavorite(userId, venueId, venueData); 
+            } catch (e) { 
+                console.warn('[App] Failed to add favorite, rolling back:', e?.message || e); 
+                setFavorites(prev => { const n = { ...prev }; delete n[key]; return n; });
+            }
         }
     };
 

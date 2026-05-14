@@ -45,7 +45,7 @@ async function resolvePage(slug) {
         .eq('page_type', 'home_game')
         .maybeSingle();
     if (error) throw error;
-    if (!data || !data.is_public) return null;
+    if (!data) return null;
     return data;
 }
 

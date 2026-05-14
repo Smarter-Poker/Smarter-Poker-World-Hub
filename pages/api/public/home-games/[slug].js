@@ -55,7 +55,7 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (pageErr) throw pageErr;
-    if (!page || !page.is_public) {
+    if (!page) {
       return res.status(404).json({ success: false, error: 'Home game not found' });
     }
 
