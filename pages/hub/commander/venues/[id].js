@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
 
 function GameRow({ game, onJoinWaitlist }) {
@@ -52,6 +52,7 @@ export default function VenueDetailPage() {
   const [reviews, setReviews] = useState([]);
   const [reviewsTotal, setReviewsTotal] = useState(0);
   const [liveGames, setLiveGames] = useState([]);
+  const [socialPageSlug, setSocialPageSlug] = useState(null); // linked social page slug/id
 
   const fetchData = useCallback(async () => {
 
@@ -103,6 +104,16 @@ export default function VenueDetailPage() {
     } finally {
       setLoading(false);
     }
+
+    // Fetch linked social page (best-effort, non-blocking)
+    try {
+      const spRes = await fetch(`/api/social/pages?linked_venue_id=${id}&limit=1`);
+      if (spRes.ok) {
+        const spJson = await spRes.json();
+        const sp = spJson.data?.pages?.[0] || spJson.data?.[0];
+        if (sp) setSocialPageSlug(sp.slug || sp.id);
+      }
+    } catch (_) { /* non-critical */ }
   }, [id]);
 
   useEffect(() => {
@@ -191,6 +202,18 @@ export default function VenueDetailPage() {
             <Users className="w-6 h-6" />
             Check In
           </button>
+
+          {/* Edit Social Page — shown when a linked social page exists */}
+          {socialPageSlug && (
+            <button
+              id="btn-edit-social-page"
+              onClick={() => router.push(`/hub/social-pages/${socialPageSlug}/manage`)}
+              className="w-full h-12 flex items-center justify-center gap-2 text-sm font-semibold rounded-xl border border-[#22D3EE] text-[#22D3EE] bg-transparent hover:bg-[#22D3EE]/10 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Edit Social Page
+            </button>
+          )}
 
           {/* Venue Info */}
           <div className="cmd-panel overflow-hidden">

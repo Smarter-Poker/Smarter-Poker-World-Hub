@@ -1896,13 +1896,71 @@ export default function SocialPageDetail() {
                             </p>
                         )}
 
+                        {/* Incomplete Page Banner — owner-only nudge when profile is missing key info */}
+                        {userRole === 'owner' && (() => {
+                            const missing = [];
+                            if (!page.avatar_url) missing.push('Logo');
+                            if (!page.cover_url) missing.push('Cover Photo');
+                            if (!page.description?.trim()) missing.push('Description');
+                            if (missing.length === 0) return null;
+                            return (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #FFF7ED, #FFFBF0)',
+                                    border: '1.5px solid #F59E0B',
+                                    borderRadius: 12, padding: '12px 16px',
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    marginBottom: 4, flexWrap: 'wrap',
+                                }}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#92400E' }}>Finish Your Page Setup</p>
+                                        <p style={{ margin: '2px 0 0', fontSize: 13, color: '#B45309' }}>Missing: {missing.join(', ')}</p>
+                                    </div>
+                                    <button
+                                        id="btn-finish-page-setup"
+                                        onClick={() => router.push(`/hub/social-pages/${pageId}/manage`)}
+                                        style={{
+                                            padding: '7px 16px', borderRadius: 8, border: 'none',
+                                            background: '#F59E0B', color: '#fff', fontSize: 13,
+                                            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                                            whiteSpace: 'nowrap', flexShrink: 0,
+                                        }}
+                                    >
+                                        Complete Setup
+                                    </button>
+                                </div>
+                            );
+                        })()}
+
                         {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
+                            {/* Edit Page — owner primary action, shown FIRST and prominently */}
+                            {userRole === 'owner' && (
+                                <button
+                                    id="btn-edit-page"
+                                    onClick={() => router.push(`/hub/social-pages/${pageId}/manage`)}
+                                    style={{
+                                        padding: '10px 22px', borderRadius: 10, border: 'none',
+                                        background: C.blue, color: '#fff', fontSize: 15,
+                                        fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                                        display: 'flex', alignItems: 'center', gap: 7,
+                                        boxShadow: '0 2px 8px rgba(24,119,242,0.25)',
+                                    }}
+                                >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    Edit Page
+                                </button>
+                            )}
                             <button onClick={handleFollow} aria-label={isFollowing ? 'Unfollow this page' : 'Follow this page'} style={{
                                 padding: '10px 24px', borderRadius: 10, border: 'none', fontSize: 15,
                                 fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                                background: isFollowing ? '#E4E6EB' : C.blue,
-                                color: isFollowing ? C.text : '#fff',
+                                background: isFollowing ? '#E4E6EB' : (userRole === 'owner' ? '#E4E6EB' : C.blue),
+                                color: isFollowing ? C.text : (userRole === 'owner' ? C.text : '#fff'),
                                 display: 'flex', alignItems: 'center', gap: 6,
                             }}>
                                 {followLoading ? (
@@ -1946,16 +2004,6 @@ export default function SocialPageDetail() {
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                                 Message
                             </button>
-                            {userRole === 'owner' && (
-                                <button onClick={() => router.push(`/hub/social-pages/${pageId}/manage`)} style={{
-                                    padding: '10px 20px', borderRadius: 10, border: 'none',
-                                    background: '#E4E6EB', color: C.text, fontSize: 14,
-                                    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                    display: 'flex', alignItems: 'center', gap: 6,
-                                }}>
-                                    Manage Page
-                                </button>
-                            )}
                         </div>
 
                         {/* Social Actions — Secondary Row */}
