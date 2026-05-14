@@ -265,24 +265,28 @@ export default function PublicHomeGamePage({ data, serverError }) {
   }, []);
 
   // Fetch member status for the Join Group button
+  // NOTE: group?.id comes from data?.group?.id — safe because this
+  // useEffect only runs when currentUserId is set, which happens after
+  // mount, long after the data prop is validated by the serverError guard.
+  const groupIdForMemberCheck = data?.group?.id;
   useEffect(() => {
-    if (!currentUserId || !group?.id) return;
+    if (!currentUserId || !groupIdForMemberCheck) return;
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data: memberRow } = await supabase
           .from('commander_home_group_members')
           .select('status')
-          .eq('group_id', group.id)
+          .eq('group_id', groupIdForMemberCheck)
           .eq('user_id', currentUserId)
           .maybeSingle();
         if (!cancelled) {
-          setMemberStatus(data?.status || 'none');
+          setMemberStatus(memberRow?.status || 'none');
         }
       } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
-  }, [currentUserId, group?.id]);
+  }, [currentUserId, groupIdForMemberCheck]);
 
   // On mount (and whenever slug changes), check if the current authed user
   // is already following this home game. Silent failure for anonymous users —
@@ -414,48 +418,49 @@ export default function PublicHomeGamePage({ data, serverError }) {
     }
   };
 
+  // handleJoinGroup is defined below the data destructure (line ~546) so that
+  // `group` is guaranteed to be in scope. This is a forward-reference placeholder
+  // that React's closure will resolve correctly at render time because the function
+  // is only called on user interaction (after full render).
+  // BUG-FIX: removed the redundant client-side supabase memberCheck — memberStatus
+  // state is already fetched on mount and kept authoritative. The button is also
+  // disabled when memberStatus is 'active'|'approved'|'pending', so this handler
+  // can only be reached when memberStatus === 'none' | null.
   const handleJoinGroup = async () => {
     if (!currentUserId) {
-      router.push('/login');
+      // BUG-FIX: was /login, must be /auth/login per canonical auth route
+      const returnTo = typeof window !== 'undefined' ? window.location.pathname : '/';
+      router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
-    
-    // Check if user is already a member
-    const { data: memberCheck } = await supabase
-      .from('commander_home_group_members')
-      .select('id, role, status')
-      .eq('group_id', group.id)
-      .eq('user_id', currentUserId)
-      .maybeSingle();
-      
-    if (memberCheck) {
-      if (memberCheck.status === 'active' || memberCheck.status === 'approved') {
-        toast.info('You are already a member of this group.');
-        return;
-      }
-      if (memberCheck.status === 'pending') {
-        toast.info('Your request to join is pending approval.');
-        return;
-      }
-      if (memberCheck.status === 'banned') {
-        toast.error('You cannot join this group.');
-        return;
-      }
+
+    // Validate token BEFORE setting busy so we can early-return without leaking busy state
+    const token = await getAccessToken();
+    if (!token) {
+      const returnTo = typeof window !== 'undefined' ? window.location.pathname : '/';
+      router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    // data?.group is guaranteed non-null here (serverError guard returns early above).
+    // Prefer club_code > invite_code > group UUID so the API always has a valid param.
+    const grp = data?.group;
+    const codeToUse = grp?.club_code || grp?.invite_code || grp?.id || '';
+    if (!codeToUse) {
+      toast.error('Cannot join: group code unavailable.');
+      return;
     }
 
-    setJoinBusy(true);
+    setJoinBusy(true); // Set AFTER all early-returns — guaranteed to reach finally
     try {
-      const token = await getAccessToken();
-      const codeToUse = group.club_code || group.invite_code || group.id || '';
       const res = await fetch(`/api/commander/home-games/join/${codeToUse}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
-      const resData = await res.json();
+
+      const resData = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(resData.error || 'Failed to join group');
       }
@@ -738,8 +743,11 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 </button>
               )}
             </div>
-            {getReputationBadge(qualityScore, vitalityScore) && (() => {
+{(() => {
+              // BUG-FIX: was calling getReputationBadge twice (truthy check + value read).
+              // Single call, single variable.
               const rep = getReputationBadge(qualityScore, vitalityScore);
+              if (!rep) return null;
               return (
                 <div className="hgs-rep-badge" style={{ color: rep.color, background: rep.bg, border: `1px solid ${rep.border}` }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>

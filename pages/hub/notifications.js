@@ -41,6 +41,7 @@ function NotificationsPage() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const notificationsRef = useRef([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
     const hasCacheRef = useRef(false);
@@ -147,6 +148,11 @@ function NotificationsPage() {
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, []);
+
+    // Sync ref to state
+    useEffect(() => {
+        notificationsRef.current = notifications;
+    }, [notifications]);
 
 
     const mounted = useRef(true);
@@ -289,9 +295,9 @@ function NotificationsPage() {
 
     const markAsRead = (id) => {
         // [Audit#19] FIX: Check read status from current state snapshot SYNCHRONOUSLY
-        // before calling setState. The previous pattern mutated isReadOptimistic inside
-        // a React setState updater (async) then read it synchronously — always false.
-        const alreadyRead = notifications.some(n => n.id === id && n.read);
+        // before calling setState. We use notificationsRef to avoid stale closures inside
+        // the IntersectionObserver (which only depends on notifications.length).
+        const alreadyRead = notificationsRef.current.some(n => n.id === id && n.read);
         if (alreadyRead) return; // already read — no badge decrement needed
 
         // EAGER STATE SYNCHRONIZATION: Update React state before DB

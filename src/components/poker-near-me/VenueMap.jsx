@@ -357,27 +357,22 @@ function createVenueIcon(L, venue, overrideColor) {
   const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   
   const logoUrl = venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
-  const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-  // [VM4 FIX] initials injected into HTML template raw — if venue.name starts with < > & the first
-  // character is inserted unescaped. escapeHtml() prevents any HTML injection via venue name data.
-  const escapedInitials = escapeHtml(initials);
+  const fallbackLogo = '/smarter-poker-logo-nobg.png';
 
   // When logo exists: fill entire circle with the logo (edge-to-edge, no white gap)
-  // When no logo: white circle with colored initials
-  const hasLogo = !!logoUrl;
-  const innerContent = hasLogo
-    ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;background:#fff;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${escapedInitials}</div>`
-    : `<div style="font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${escapedInitials}</div>`;
+  // When no logo: use fallback smarter poker logo edge-to-edge
+  const finalLogoUrl = logoUrl || fallbackLogo;
+  
+  const innerContent = `<img src="${escapeHtml(finalLogoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;background:#fff;" onerror="this.src='${fallbackLogo}';" />`;
 
   // Name label — dark pill badge underneath (same style as tour pins)
   const labelHtml = escapedLabel
     ? `<div class="venue-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:800;white-space:nowrap;border:1px solid ${colors.fill}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.3px;z-index:999;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${escapedLabel}</div>`
     : '';
 
-  // Circle background: white for logos (so logos contrast), dark for initials-only
-  const circleBg = hasLogo ? '#ffffff' : '#ffffff';
-  const borderColor = hasLogo ? colors.fill : '#94a3b8';
+  // Circle background: white for logos
+  const circleBg = '#ffffff';
+  const borderColor = colors.fill;
 
   return L.divIcon({
     className: 'venue-map-marker',

@@ -183,15 +183,11 @@ function createTourIcon(L, venue) {
        <div style="display:none;font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
     : `<div style="font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
 
-  // ═══ VENUE CIRCLE (bottom, gray ring) ═══
   const hostLogoUrl = venue.host_venue_logo_url || '';
   const hostName = venue.host_venue_name || venue.stop_venue || '';
-  const hostInitials = hostName.split(/\s+/).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase() || 'V';
+  const finalHostLogoUrl = hostLogoUrl || '/smarter-poker-logo-nobg.png';
 
-  const venueInner = hostLogoUrl
-    ? `<img src="${hostLogoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`
-    : `<div style="font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`;
+  const venueInner = `<img src="${finalHostLogoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.src='/smarter-poker-logo-nobg.png';" />`;
 
   const venueCircleHtml = hostName
     ? `<div style="position:absolute;top:${circleSize - overlap}px;left:${(totalWidth - circleSize) / 2}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 8px rgba(148,163,184,0.5), 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;">${venueInner}</div>`
