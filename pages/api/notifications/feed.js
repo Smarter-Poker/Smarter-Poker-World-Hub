@@ -18,12 +18,9 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
-function toTitleCase(str) {
+function enforceTitleCase(str) {
     if (!str) return '';
-    return str.split(/(\s+)/).map(w => {
-        if (!w.trim()) return w;
-        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-    }).join('');
+    return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
@@ -260,16 +257,6 @@ export default async function handler(req, res) {
                 || n.title
                 || 'Someone';
             
-            // To ensure we present exactly as they have it (or at least properly capitalized)
-            // if we pulled a raw DB string, we title case it.
-            // But if it's their EXACT display_name, we should probably just use it as is?
-            // The user requested: "The first letter of every word MUST ALWAYS BE CAPITALIZED... PRESENTED EXACTLY AS THEY HAVE IT".
-            // Since they want "Exactly as they have it" AND "First letter of every word capitalized", we will enforce Title Case.
-            
-            function enforceTitleCase(str) {
-                if (!str) return '';
-                return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-            }
 
             const displayName = enforceTitleCase(displayNameRaw);
 

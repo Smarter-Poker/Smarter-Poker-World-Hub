@@ -48,7 +48,7 @@ const HOTSPOTS = [
   {
     id: 'club-commander',
     top: 74.5, left: 51, width: 48, height: 24,
-    action: 'navigate', href: '/commander/login',
+    action: 'navigate', href: '/hub/commander',
   },
 ];
 

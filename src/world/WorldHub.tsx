@@ -609,9 +609,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         recordCardVisit(cardId);
         selectOrb(cardId as any);
 
-        // Commander card routes to commander dashboard (rewritten to commander.smarter.poker)
+        // Commander card routes to the native monolithic /hub/commander page
         if (cardId === 'club-commander') {
-            window.location.href = 'https://commander.smarter.poker/commander/dashboard';
+            router.push('/hub/commander');
             return;
         }
 
@@ -675,9 +675,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
         const targetRoute = `/hub/${orbId}`;
 
-        // Commander card routes to commander dashboard (rewritten to commander.smarter.poker)
+        // Commander card routes to the native monolithic /hub/commander page
         if (orbId === 'club-commander') {
-            window.location.href = 'https://commander.smarter.poker/commander/dashboard';
+            router.push('/hub/commander');
             return;
         }
 
