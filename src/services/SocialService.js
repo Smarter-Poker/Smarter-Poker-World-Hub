@@ -551,7 +551,7 @@ export class SocialService {
                 author_username: data.author?.username,
                 author_avatar: data.author?.avatar_url,
                 author_level: data.author?.current_level
-            }) : null;
+            });
         } catch (error) {
             console.warn('Comment creation error:', error);
             throw error;

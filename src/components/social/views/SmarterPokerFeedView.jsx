@@ -470,6 +470,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                 console.warn('Resync failed:', resyncError);
                 loadFeed(); // Fallback to full reload if single-item resync fails
             }
+            throw error;
         }
     };
 
@@ -479,6 +480,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             await socialService.createComment({ postId, authorId: currentUser.id, content: text });
         } catch (error) {
             console.warn('Comment failed:', error);
+            throw error;
         }
     };
 
@@ -487,8 +489,8 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         try {
             return await socialService.getComments(postId);
         } catch (error) {
-            console.warn('Load comments failed:', error);
-            return [];
+            console.warn('Failed to load comments:', error);
+            throw error;
         }
     };
 

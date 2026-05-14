@@ -664,6 +664,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                 console.warn('Resync failed:', resyncError);
                 loadClubData(); // Fallback to full reload if single-item resync fails
             }
+            throw error;
         }
     };
 

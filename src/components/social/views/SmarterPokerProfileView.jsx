@@ -805,6 +805,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                 console.warn('Resync failed:', resyncError);
                 fetchPosts(); // Fallback to full reload if single-item resync fails
             }
+            throw error;
         }
     };
 
@@ -815,6 +816,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             await socialService.createComment({ postId, authorId: authUser.id, content: text });
         } catch (error) {
             console.warn('Comment failed:', error);
+            throw error;
         }
     };
 
@@ -824,7 +826,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             return await socialService.getComments(postId);
         } catch (error) {
             console.warn('Load comments failed:', error);
-            return [];
+            throw error;
         }
     };
 

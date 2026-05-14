@@ -240,6 +240,7 @@ export const SpatialFeed = ({
       } catch (resyncError) {
         console.warn('Resync failed:', resyncError);
       }
+      throw error;
     }
   }, [socialService, user]);
 
