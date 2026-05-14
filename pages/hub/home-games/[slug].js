@@ -491,11 +491,11 @@ export default function PublicHomeGamePage({ data, serverError }) {
       if (json.conversation_id || json.id) {
         router.push(`/hub/messenger?conversation=${json.conversation_id || json.id}`);
       } else {
-        // Fall back: just open the messenger inbox — user can search for the host
-        router.push('/hub/messenger');
+        // Fall back: just open the messenger inbox with host pre-selected
+        router.push(`/hub/messenger?recipientId=${hostId}`);
       }
     } catch {
-      router.push('/hub/messenger');
+      router.push(`/hub/messenger?recipientId=${hostId}`);
     }
   };
 
@@ -573,7 +573,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
         ))}
       </Head>
       <div className="hgs-page">
-        <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
+        <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} onBackClick={() => router.back()} />
         {/* ── True Back Button ── */}
         <div style={{ position: 'relative', zIndex: 10, padding: '8px 20px 0' }}>
           <button
@@ -840,7 +840,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                     </dd>
                   </div>
                 )}
-                {(group.settings?.schedule_summary || formatSchedule(group)) && <div><dt>Cadence</dt><dd>{group.settings?.schedule_summary || formatSchedule(group)}</dd></div>}
+                {(group.settings?.schedule_summary || formatSchedule(group)) && <div><dt>Schedule</dt><dd>{group.settings?.schedule_summary || formatSchedule(group)}</dd></div>}
                 {group.typical_time && !group.settings?.schedule_summary && <div><dt>Time</dt><dd>{formatTime(group.typical_time)}</dd></div>}
                 {(group.typical_buyin_min || group.typical_buyin_max) && (
                   <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>

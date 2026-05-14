@@ -234,14 +234,14 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                     transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
                 }
                 .hgc-card:hover {
-                    border-color: rgba(239,68,68,.5);
+                    border-color: rgba(59,130,246,.5);
                     transform: translateY(-2px);
-                    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(239,68,68,.12);
+                    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.12);
                 }
                 .hgc-card:focus-visible {
-                    border-color: rgba(239,68,68,.5);
+                    border-color: rgba(59,130,246,.5);
                     transform: translateY(-2px);
-                    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(239,68,68,.12);
+                    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.12);
                     outline: none;
                 }
                 .hgc-cover {
@@ -268,13 +268,13 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                     overflow: hidden;
                     background: #1a1f2e;
                     flex-shrink: 0;
-                    border: 1px solid rgba(239,68,68,.25);
+                    border: 1px solid rgba(59,130,246,.25);
                 }
                 .hgc-avatar img { width: 100%; height: 100%; object-fit: cover; }
                 .hgc-avatar-fallback {
                     width: 100%; height: 100%;
                     display: flex; align-items: center; justify-content: center;
-                    font-size: 20px; font-weight: 900; color: #ef4444;
+                    font-size: 20px; font-weight: 900; color: #60a5fa;
                 }
                 .hgc-title-block { min-width: 0; flex: 1; }
                 .hgc-name {
@@ -298,9 +298,9 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                 .hgc-badge-home {
                     display: inline-flex; align-items: center;
                     padding: 2px 7px;
-                    background: rgba(239,68,68,.12);
-                    border: 1px solid rgba(239,68,68,.25);
-                    color: #ef4444;
+                    background: rgba(59,130,246,.12);
+                    border: 1px solid rgba(59,130,246,.25);
+                    color: #60a5fa;
                     font-size: 9px;
                     font-weight: 800;
                     letter-spacing: .8px;
@@ -333,8 +333,8 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                     -webkit-backdrop-filter: blur(4px);
                     transition: background .15s ease;
                 }
-                .hgc-fav:hover { background: rgba(239,68,68,.4); }
-                .hgc-fav-on { color: #ef4444; }
+                .hgc-fav:hover { background: rgba(59,130,246,.4); }
+                .hgc-fav-on { color: #60a5fa; }
 
                 .hgc-status {
                     display: flex;
@@ -433,9 +433,9 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                     align-items: center;
                     gap: 5px;
                     padding: 7px 14px;
-                    background: rgba(239,68,68,.12);
-                    border: 1px solid rgba(239,68,68,.3);
-                    color: #ef4444;
+                    background: rgba(59,130,246,.12);
+                    border: 1px solid rgba(59,130,246,.3);
+                    color: #60a5fa;
                     font-size: 12px;
                     font-weight: 700;
                     letter-spacing: .3px;
@@ -444,8 +444,8 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                     transition: all .15s ease;
                 }
                 .hgc-action-btn:hover {
-                    background: rgba(239,68,68,.2);
-                    border-color: rgba(239,68,68,.5);
+                    background: rgba(59,130,246,.2);
+                    border-color: rgba(59,130,246,.5);
                 }
             `}</style>
         </div>
@@ -1342,34 +1342,34 @@ export default function HomeGamesPage() {
                     .hg-sort-select {
                         padding: 5px 28px 5px 10px;
                         border-radius: 8px;
-                        border: 1px solid rgba(212,168,83,0.25);
+                        border: 1px solid rgba(226,232,240,0.25);
                         background: rgba(10,16,28,0.8);
-                        color: #d4a853;
+                        color: #e2e8f0;
                         font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
                         cursor: pointer;
                         appearance: none;
-                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4a853' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
                         background-repeat: no-repeat;
                         background-position: right 8px center;
                         transition: all 0.2s;
                     }
                     .hg-sort-select:hover,
                     .hg-sort-select:focus {
-                        border-color: rgba(212,168,83,0.5);
+                        border-color: rgba(226,232,240,0.5);
                         outline: none;
-                        box-shadow: 0 0 8px rgba(212,168,83,0.15);
+                        box-shadow: 0 0 8px rgba(226,232,240,0.1);
                     }
                     .hg-expand-map-btn {
                         display: inline-flex;
                         align-items: center;
                         gap: 5px;
                         padding: 5px 12px;
-                        background: rgba(212,168,83,0.08);
-                        border: 1px solid rgba(212,168,83,0.25);
+                        background: rgba(226,232,240,0.06);
+                        border: 1px solid rgba(226,232,240,0.2);
                         border-radius: 8px;
-                        color: #d4a853;
+                        color: #e2e8f0;
                         font-size: 12px;
                         font-weight: 600;
                         cursor: pointer;
@@ -1378,9 +1378,9 @@ export default function HomeGamesPage() {
                         white-space: nowrap;
                     }
                     .hg-expand-map-btn:hover {
-                        background: rgba(212,168,83,0.16);
-                        border-color: rgba(212,168,83,0.4);
-                        box-shadow: 0 0 10px rgba(212,168,83,0.15);
+                        background: rgba(226,232,240,0.12);
+                        border-color: rgba(226,232,240,0.35);
+                        box-shadow: 0 0 10px rgba(226,232,240,0.08);
                     }
 
                     /* ═══ CARD GRID ═══ */
