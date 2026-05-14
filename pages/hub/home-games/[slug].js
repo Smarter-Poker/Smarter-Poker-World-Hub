@@ -845,7 +845,14 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 {(group.typical_buyin_min || group.typical_buyin_max) && (
                   <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>
                 )}
-                {group.max_players && <div><dt>Max</dt><dd>{group.max_players} players</dd></div>}
+                {(() => {
+                    const numTables = group.settings?.tables?.length || group.num_tables || 1;
+                    const seatsPerTable = group.seats_per_table || group.max_players || null;
+                    const totalMax = seatsPerTable ? numTables * seatsPerTable : (group.max_players || null);
+                    if (!totalMax) return null;
+                    const detail = numTables > 1 ? ` (${numTables} tables × ${seatsPerTable})` : '';
+                    return <div><dt>Max Players</dt><dd>{totalMax}{detail}</dd></div>;
+                })()}
                 {group.contact_phone && (
                   <div>
                     <dt>Phone</dt>

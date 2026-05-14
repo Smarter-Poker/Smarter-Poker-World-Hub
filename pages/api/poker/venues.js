@@ -1302,8 +1302,11 @@ export default async function handler(req, res) {
                                                   finalHasTourneys = true;
                                                   const todayDow = new Date().getDay();
                                                   const dowMap = { sunday:0, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6 };
-                                                  const runDays = (hg.typical_day || '').split(',').map(d => d.trim().toLowerCase()).filter(d => dowMap[d] !== undefined).map(d => dowMap[d]);
                                                   hg.settings.tournaments.forEach((t, i) => {
+                                                      // Prefer tournament-specific day(s), fall back to group's typical_day
+                                                      const tDay = t.day || t.days || t.typical_day || null;
+                                                      const daySource = tDay || hg.typical_day || '';
+                                                      const runDays = daySource.split(',').map(d => d.trim().toLowerCase()).filter(d => dowMap[d] !== undefined).map(d => dowMap[d]);
                                                       let isToday = false;
                                                       let daysAway = null;
                                                       if (runDays.length > 0) {
@@ -1320,6 +1323,7 @@ export default async function handler(req, res) {
                                                           tournament_name: t.name || t.tournament_name || 'Bounty Tournament',
                                                           buy_in: t.buy_in || 0,
                                                           start_time: t.scheduled_time || t.time || '00:00:00',
+                                                          _tournament_day: tDay || null,
                                                           _is_today: isToday,
                                                           _days_away: daysAway,
                                                       });
