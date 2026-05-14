@@ -28,6 +28,7 @@ import { getAccessToken, getSafeUser } from '../../../src/lib/authUtils';
 import HomeGamesSeatReservation from '../../../src/components/home-games/HomeGamesSeatReservation';
 import TournamentList from '../../../src/components/home-games/TournamentList';
 import { safeCopyToClipboard } from '../../../src/lib/clipboard';
+import { toast } from '../../../src/stores/toastStore';
 
 const GAME_TYPE_LABELS = {
   nlh: "No-Limit Hold'em",
@@ -229,6 +230,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const [friendState, setFriendState] = useState('none'); // 'none' | 'pending' | 'friends'
   const [friendBusy, setFriendBusy] = useState(false);
 
+  // Join Group State
+  const [joinBusy, setJoinBusy] = useState(false);
+
   // Vouch state
   const [hasVouched, setHasVouched] = useState(false);
   const [vouchCount, setVouchCount] = useState(0);
@@ -373,10 +377,70 @@ export default function PublicHomeGamePage({ data, serverError }) {
     } catch (err) {
       // Rollback on failure
       setHasVouched(wasVouched);
-      setVouchCount(prev => wasVouched ? prev + 1 : Math.max(0, prev - 1));
-      console.warn('[App] Handled exception:', err?.message || err);
+      setVouchCount(prev => prev + 1);
+      console.warn('Vouch error:', err);
+      toast.error('Failed to vouch. Please try again.');
     } finally {
       setVouchBusy(false);
+    }
+  };
+
+  const handleJoinGroup = async () => {
+    if (!currentUserId) {
+      router.push('/login');
+      return;
+    }
+    
+    // Check if user is already a member
+    const { data: memberCheck } = await supabase
+      .from('commander_home_group_members')
+      .select('id, role, status')
+      .eq('group_id', group.id)
+      .eq('user_id', currentUserId)
+      .maybeSingle();
+      
+    if (memberCheck) {
+      if (memberCheck.status === 'active' || memberCheck.status === 'approved') {
+        toast.info('You are already a member of this group.');
+        return;
+      }
+      if (memberCheck.status === 'pending') {
+        toast.info('Your request to join is pending approval.');
+        return;
+      }
+      if (memberCheck.status === 'banned') {
+        toast.error('You cannot join this group.');
+        return;
+      }
+    }
+
+    setJoinBusy(true);
+    try {
+      const token = await getAccessToken();
+      const codeToUse = group.club_code || group.invite_code || '';
+      const res = await fetch(`/api/commander/home-games/join/${codeToUse}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || 'Failed to join group');
+      }
+
+      if (resData.status === 'pending') {
+        toast.success('You Have Requested To Join This Group, You Will Be Notified By The Host When You Are Accepted');
+      } else {
+        toast.success('Successfully Joined Group!');
+      }
+    } catch (err) {
+      console.warn('Join Group error:', err);
+      toast.error(err.message || 'Failed to join group.');
+    } finally {
+      setJoinBusy(false);
     }
   };
 
@@ -636,9 +700,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
           <div className="hgs-cta-row">
             <button
               className="hgs-primary-btn"
-              onClick={() => router.push(`/hub/commander/home-games?code=${group.club_code || group.invite_code || ''}`)}
+              onClick={handleJoinGroup}
+              disabled={joinBusy}
             >
-              Join Group
+              {joinBusy ? 'Requesting...' : 'Join Group'}
             </button>
             {host?.id && (
               <button

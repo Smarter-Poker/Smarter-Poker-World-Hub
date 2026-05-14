@@ -9,8 +9,9 @@ import { toastSlideIn } from '../../utils/animations';
 
 const toastStyles = {
     success: {
-        background: 'linear-gradient(135deg, #00ff88, #00cc66)',
-        color: '#000',
+        background: '#ffffff',
+        color: '#000000',
+        border: '1px solid #e2e8f0',
         icon: '✓',
     },
     error: {
@@ -33,6 +34,11 @@ const toastStyles = {
 export default function ToastContainer() {
     const toasts = useToastStore((s) => s.toasts);
     const removeToast = useToastStore((s) => s.removeToast);
+
+    const toTitleCase = (str) => {
+        if (!str || typeof str !== 'string') return str;
+        return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    };
 
     return (
         <div style={{
@@ -83,9 +89,9 @@ export default function ToastContainer() {
                                 userSelect: 'none',
                             }}
                         >
-                            <span style={{ fontSize: 20, fontWeight: 700, flexShrink: 0 }}>{style.icon}</span>
+                            <span style={{ fontSize: 20, fontWeight: 700, flexShrink: 0, color: t.type === 'success' ? '#10b981' : 'inherit' }}>{style.icon}</span>
                             <span style={{ flex: 1, fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>
-                                {t.message}
+                                {t.type === 'success' ? toTitleCase(t.message) : t.message}
                                 {isActionable && (
                                     <span style={{ display: 'block', fontSize: 11, opacity: 0.75, marginTop: 2 }}>
                                         Tap to view →

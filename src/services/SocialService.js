@@ -8,7 +8,7 @@
 import { createPost, createComment, createAuthor } from './social-types';
 import { claimReward } from '../lib/claimReward';
 import { busEmit } from '../engine/EventBus';
-import { getAuthUser } from '../lib/authUtils';
+import { getAuthUser, getAccessToken } from '../lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS
@@ -301,6 +301,40 @@ export class SocialService {
      */
     async deletePost(postId) {
         try {
+            // Defense in depth: Delete associated reel if any
+            try {
+                await this.supabase.from('social_reels').delete().eq('source_post_id', postId);
+            } catch (e) {
+                console.warn('[SocialService] Reel cleanup after post delete failed:', e?.message || e);
+            }
+
+            // Defense in depth: Cleanup associated live stream if any
+            try {
+                const { data: streamInfo } = await this.supabase
+                    .from('live_streams')
+                    .select('id')
+                    .eq('feed_post_id', postId)
+                    .maybeSingle();
+
+                if (streamInfo) {
+                    const token = getAccessToken();
+                    fetch('/api/live/end-stream', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify({
+                            streamId: streamInfo.id,
+                            finalAction: 'delete',
+                            deleteReason: 'post_deleted_by_user',
+                        }),
+                    }).catch(e => console.warn('[SocialService] End-stream API call failed:', e));
+                }
+            } catch (e) {
+                console.warn('[SocialService] Stream cleanup check failed:', e?.message || e);
+            }
+
             const { error } = await this.supabase
                 .from('social_posts')
                 .delete()

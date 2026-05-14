@@ -40,7 +40,8 @@ import PostImageLightbox from '../../../src/components/social/PostImageLightbox'
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ViralGrowthModule from '../../../src/components/social/ViralGrowthModule';
 import CrewDashboard from '../../../src/components/social/CrewDashboard';
-
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -810,7 +811,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
 // SELF-CONTAINED VIDEO CARD — Handles YouTube embed URLs and direct video files
 // Renders a thumbnail + play button overlay; click navigates to Reels viewer
 // ═══════════════════════════════════════════════════════════════════════════
-function ProfileVideoCard({ url, postId, style = {} }) {
+function ProfileVideoCard({ url, postId, thumbnailUrl, style = {} }) {
   const router = useRouter();
   const [thumbError, setThumbError] = useState(false);
 
@@ -856,10 +857,11 @@ function ProfileVideoCard({ url, postId, style = {} }) {
         />
       )}
 
-      {/* Direct video file: show preloaded video frame */}
+      {/* Direct video file: show preloaded video frame with iOS black-screen fix */}
       {!isYouTube && (
         <video
-          src={url}
+          src={url ? (url.includes('#') ? url : `${url}#t=0.001`) : ''}
+          poster={thumbnailUrl || undefined}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           muted
           playsInline
@@ -935,7 +937,6 @@ function PostCard({
   horseProfileIds = new Set(),
 }) {
   const router = useRouter();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -1136,6 +1137,7 @@ function PostCard({
   };
 
   const handleDelete = async () => {
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
     setDeleting(true);
     try {
       await onDelete(post.id);
@@ -1144,7 +1146,6 @@ function PostCard({
       toast.error('Could not delete post');
     }
     setDeleting(false);
-    setShowDeleteConfirm(false);
   };
 
   return (
@@ -1157,75 +1158,7 @@ function PostCard({
         position: 'relative',
       }}
     >
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          <div
-            style={{
-              background: C.card,
-              borderRadius: 12,
-              padding: 24,
-              maxWidth: 320,
-              width: '100%',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Delete Post?
-            </div>
-            <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-              This action cannot be undone. The post will be permanently removed.
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  background: C.bg,
-                  color: C.text,
-                  border: 'none',
-                  borderRadius: 20,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  background: '#F02849',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 20,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  opacity: deleting ? 0.6 : 1,
-                }}
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
         <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -1285,7 +1218,7 @@ function PostCard({
             </button>
             {onDelete && (
               <button
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={handleDelete}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -1328,7 +1261,7 @@ function PostCard({
           <div>
             {post.media_urls.length === 1 ? (
               post.content_type === 'video' ? (
-                <ProfileVideoCard url={post.media_urls[0]} postId={post.id} />
+                <ProfileVideoCard url={post.media_urls[0]} postId={post.id} thumbnailUrl={post.thumbnail_url} />
               ) : (
                 <img
                   src={post.media_urls[0]}
@@ -1879,6 +1812,7 @@ export default function UserProfilePage() {
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const pullStartY = useRef(null);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Poker Activity state
   const [pokerCheckins, setPokerCheckins] = useState([]);
@@ -2428,7 +2362,7 @@ export default function UserProfilePage() {
 
         // Sum the exact counts
         finalStats = {
-          friends: (sentFriendsRes.count || 0) + (receivedFriendsRes.count || 0),
+          friends: data?.friends_count ?? 0,
           following: followingRes.count || 0,
           followers: followersRes.count || 0,
           posts: postsRes.count || 0,
@@ -2814,7 +2748,7 @@ export default function UserProfilePage() {
             ...prev,
             following: followingRes.count || prev.following,
             followers: followersRes.count || prev.followers,
-            friends: (sentFriendsRes.count || 0) + (receivedFriendsRes.count || 0),
+            friends: data?.friends_count ?? 0,
             posts: postsCountRes.count ?? prev.posts,
           }));
         } catch (e) {
@@ -3284,11 +3218,6 @@ export default function UserProfilePage() {
   // first, then AWAIT the DB delete, then broadcast cache invalidation.
   const handleDeleteReel = async (reelId) => {
     if (!reelId || !currentUser?.id) return;
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm('Delete this reel? This cannot be undone.')
-    )
-      return;
     const prevReels = reels;
     const prevStats = { ...stats };
     setReels((prev) => prev.filter((r) => r.id !== reelId));
@@ -3326,13 +3255,6 @@ export default function UserProfilePage() {
   // the FK SET NULL leaves it behind. RLS-safety: only own streams.
   const handleDeleteLive = async (liveId /* feedPostId unused — endpoint handles it */) => {
     if (!liveId || !currentUser?.id) return;
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm(
-        'Delete this live replay? Comments, reactions, viewer history, and the recording file will also be removed. This cannot be undone.'
-      )
-    )
-      return;
     // BUG FIX (2026-05-11 audit): route through /api/live/end-stream?action=delete
     // instead of inline Supabase deletes. That endpoint ALSO removes the .mp4
     // from the live-recordings storage bucket — inline deletes left the file
@@ -3563,7 +3485,39 @@ export default function UserProfilePage() {
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
         }}
       >
-        <UniversalHeader pageDepth={2} />
+        <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+
+        <HamburgerMenu
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          direction="left"
+          theme="dark"
+          user={currentUser}
+          showProfile={true}
+          menuItems={getMenuConfig('profile').menuItems}
+          profileExtras={
+            currentUser ? (
+              <div style={{ padding: '0 12px 16px' }}>
+                {isOwnProfile && (
+                  <div style={{ marginBottom: 16 }}>
+                    <LiveSessionToggle currentUser={currentUser} />
+                  </div>
+                )}
+                <div style={{ marginBottom: 16 }}>
+                  <LiveActivityFeed currentUser={currentUser} />
+                </div>
+                {isOwnProfile && (
+                  <>
+                    <div style={{ marginBottom: 16 }}>
+                      <ViralGrowthModule currentUser={currentUser} />
+                    </div>
+                    <CrewDashboard currentUser={currentUser} />
+                  </>
+                )}
+              </div>
+            ) : null
+          }
+        />
 
         {/* Pull-to-Refresh Indicator */}
         {pullRefreshing && (
@@ -4650,28 +4604,6 @@ export default function UserProfilePage() {
                 <div style={{ marginBottom: 16 }}>
                   <PlayerNotes targetPlayerId={profile.id} targetPlayerName={profile.username} />
                 </div>
-              )}
-
-              {/* Live Session Toggle (Own Profile Only) */}
-              {isOwnProfile && currentUser && (
-                <div style={{ marginBottom: 16 }}>
-                  <LiveSessionToggle currentUser={currentUser} />
-                </div>
-              )}
-
-              {/* Live Activity Feed — Friends Currently Playing */}
-              {currentUser && (
-                <div style={{ marginBottom: 16 }}>
-                  <LiveActivityFeed currentUser={currentUser} />
-                </div>
-              )}
-
-              {/* Viral Growth & Crews (Only for Own Profile) */}
-              {isOwnProfile && (
-                <>
-                  <ViralGrowthModule currentUser={currentUser} />
-                  <CrewDashboard currentUser={currentUser} />
-                </>
               )}
 
               {/* Bio — below Poker Resume */}
@@ -6110,7 +6042,7 @@ export default function UserProfilePage() {
                         key={`${video.id}-${i}`}
                         style={{ overflow: 'hidden', borderRadius: 8, background: '#000' }}
                       >
-                        <ProfileVideoCard url={url} postId={video.id} />
+                        <ProfileVideoCard url={url} postId={video.id} thumbnailUrl={video.thumbnail_url} />
                       </div>
                     ));
                   })}
