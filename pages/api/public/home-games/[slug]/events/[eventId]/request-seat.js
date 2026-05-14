@@ -98,7 +98,7 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (pageErr) throw pageErr;
-    if (!page || !page.is_public || page.linked_entity_type !== 'home_group' || !page.linked_entity_id) {
+    if (!page || page.linked_entity_type !== 'home_group' || !page.linked_entity_id) {
       return res.status(404).json({ success: false, error: 'Home game not found' });
     }
 
