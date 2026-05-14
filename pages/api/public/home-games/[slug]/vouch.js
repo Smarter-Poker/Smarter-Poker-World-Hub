@@ -66,6 +66,7 @@ export default async function handler(req, res) {
 
         const page = await resolvePage(slug);
         if (!page) return res.status(404).json({ success: false, error: 'Home game not found' });
+        if (!page.linked_entity_id) return res.status(400).json({ success: false, error: 'Home game not fully initialized' });
 
         const supabase = getSupabase();
 

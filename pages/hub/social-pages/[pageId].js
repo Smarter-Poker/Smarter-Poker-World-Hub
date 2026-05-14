@@ -543,7 +543,15 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                             });
                             const json = await res.json();
                             if (!json.success) { setBookmarked(!newState); toast.error('Could not save post'); }
-                            else toast.success(newState ? 'Post saved' : 'Post unsaved');
+                            else {
+                                toast.success(newState ? 'Post saved' : 'Post unsaved');
+                                eventBus.emit(EventType.SOCIAL_REACTION_UPDATE, { 
+                                    postId: post.id, 
+                                    userId: user.id, 
+                                    action: newState ? 'add' : 'remove', 
+                                    reactionType: 'bookmark' 
+                                });
+                            }
                         } catch { setBookmarked(!newState); toast.error('Could not save post'); }
                     }, active: bookmarked, onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
                 ].map((btn, i) => (
@@ -1531,10 +1539,34 @@ export default function SocialPageDetail() {
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id, ...(reactionType ? { reaction_type: reactionType } : {}) }),
             });
             if (!res.ok) throw new Error('Like failed');
+            
+            const json = await res.json();
+            if (json.success) {
+                // Reconcile optimistic state with server truth to fix desyncs (e.g. changing reaction type via main Like button)
+                setPosts(prev => prev.map(p => {
+                    if (p.id !== postId) return p;
+                    let newLikeCount = p.like_count || 0;
+                    if (!isReactionChange) {
+                        if (json.liked && !p.user_liked) newLikeCount += 1;
+                        if (!json.liked && p.user_liked) newLikeCount = Math.max(0, newLikeCount - 1);
+                    }
+                    return {
+                        ...p,
+                        user_liked: json.liked,
+                        like_count: newLikeCount
+                    };
+                }));
+            }
+
             busEmit.dataMutated('social-pages');
-            busEmit.socialPostLiked(postId, user.id, { added: !wasLiked });
-            // Phase 4: Broadcast real-time reaction update via EventBus (cross-tab via BroadcastChannel)
-            eventBus.emit(EventType.SOCIAL_REACTION_UPDATE, { postId, userId: user.id, action: wasLiked ? 'remove' : 'add', reactionType: reactionType || 'like' });
+            busEmit.socialPostLiked(postId, user.id, { added: json.success ? json.liked : !wasLiked });
+            // Phase 4: Broadcast real-time reaction update via EventBus
+            eventBus.emit(EventType.SOCIAL_REACTION_UPDATE, { 
+                postId, 
+                userId: user.id, 
+                action: (json.success ? json.liked : !wasLiked) ? 'add' : 'remove', 
+                reactionType: (json.success && json.reaction_type) ? json.reaction_type : (reactionType || 'like') 
+            });
         } catch (e) {
             console.warn("[[pageId].js]", e);
             // Rollback optimistic update

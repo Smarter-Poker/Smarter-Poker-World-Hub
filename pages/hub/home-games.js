@@ -775,6 +775,7 @@ export default function HomeGamesPage() {
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}
+                    user={user}
                 />
 
                 {/* ═══ PAGE TITLE ═══ */}

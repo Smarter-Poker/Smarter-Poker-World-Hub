@@ -503,6 +503,7 @@ export default function HamburgerMenu({
                                     if (isClubMode && clubPage?.id === page.id) return null;
                                     return (
                                         <div 
+                                            key={page.id}
                                             onClick={() => { 
                                                 switchToClub(page); 
                                                 onClose(); 
