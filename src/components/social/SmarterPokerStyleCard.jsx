@@ -467,8 +467,11 @@ export const SPPostCard = ({
 
     try {
       await onSubmitComment?.(post.id, text);
-    } catch {
-      /* optimistic stays — will sync on next load */
+    } catch (err) {
+      console.warn('Comment failed, rolling back:', err);
+      // Rollback optimistic comment on failure
+      setComments((prev) => prev.filter(c => c.id !== optimisticComment.id));
+      setCommentText(text); // Restore text so user can try again
     }
     setSubmittingComment(false);
   };

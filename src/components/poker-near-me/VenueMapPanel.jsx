@@ -122,7 +122,7 @@ function truncateName(name, maxLen) {
 function createVenueIcon(L, venue) {
   const colors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
   const label = truncateName(venue.name, 20);
-  const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const escapedLabel = escapeHtml(label || '');
 
   const logoUrl = venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
 
@@ -193,8 +193,8 @@ function createTourIcon(L, venue) {
     : '';
 
   // ═══ DOUBLE-LABEL PILL ═══
-  const tourLabel = (venue.tour_name || venue.tour_code || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const venueLabel = truncateName(venue.stop_venue || venue.stop_name || '', 22).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const tourLabel = escapeHtml(venue.tour_name || venue.tour_code || '');
+  const venueLabel = escapeHtml(truncateName(venue.stop_venue || venue.stop_name || '', 22));
 
   const doublePillHtml = `<div class="vmp-pin-label" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px 8px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${tourColor}30;text-shadow:0 1px 2px #000;z-index:999;display:flex;flex-direction:column;align-items:center;gap:1px;max-width:160px;">
     <div style="font-size:9px;color:${tourColor};letter-spacing:0.4px;font-weight:900;overflow:hidden;text-overflow:ellipsis;max-width:150px;text-shadow:0 0 6px ${tourColor}40;">${tourLabel}</div>
@@ -233,7 +233,7 @@ function buildTourPopupHtml(v) {
       ${logoHtml}
       <div>
         <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${escapeHtml(v.tour_name || v.tour_code || v.name)}</div>
-        <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${v.city || ''}, ${v.state || ''}</div>
+        <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${escapeHtml(v.city || '')}, ${escapeHtml(v.state || '')}</div>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
@@ -505,7 +505,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
             ${logoBadge}
             <div>
               <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.2;">${escapeHtml(v.name)}</div>
-              <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${v.city || ''}, ${v.state || ''}</div>
+              <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${escapeHtml(v.city || '')}, ${escapeHtml(v.state || '')}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">

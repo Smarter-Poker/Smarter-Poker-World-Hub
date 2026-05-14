@@ -354,7 +354,7 @@ function createVenueIcon(L, venue, overrideColor) {
     ? { fill: overrideColor, glow: overrideColor + '80' }
     : (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR);
   const label = truncateName(venue.name, 22);
-  const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const escapedLabel = escapeHtml(label || '');
   
   const logoUrl = venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const fallbackLogo = '/smarter-poker-logo-nobg.png';
@@ -593,7 +593,7 @@ function buildPopupHtml(venue) {
       <div style="flex:1;min-width:0;">
         <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(venue.name)}</div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
-          <span style="font-size:11px;color:rgba(148,163,184,0.7);">${venue.city || ''}, ${venue.state || ''}</span>
+          <span style="font-size:11px;color:rgba(148,163,184,0.7);">${escapeHtml(venue.city || '')}, ${escapeHtml(venue.state || '')}</span>
           ${distLine}
         </div>
       </div>
