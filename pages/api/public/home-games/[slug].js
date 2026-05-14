@@ -74,6 +74,7 @@ export default async function handler(req, res) {
         typical_buyin_min, typical_buyin_max, max_players,
         typical_day, typical_time, frequency, member_count, games_hosted,
         cover_photo_url, profile_photo_url, invite_code, club_code, owner_id,
+        contact_phone, website_url,
         created_at, updated_at, settings,
         profiles:owner_id (id, display_name, avatar_url)
       `
@@ -82,7 +83,12 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (groupErr) throw groupErr;
-    if (!group || !group.is_active || group.is_private) {
+    // BUG-FIX: removed `group.is_private` from this guard.
+    // Private groups are VISIBLE on the public page — their join flow creates
+    // a pending request instead of immediately adding the member. Returning 404
+    // for private groups broke the entire join-request flow and made private
+    // game pages unreachable.
+    if (!group || !group.is_active) {
       return res.status(404).json({ success: false, error: 'Home game not available' });
     }
 
