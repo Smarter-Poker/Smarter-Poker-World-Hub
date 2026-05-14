@@ -50,6 +50,7 @@ DROP POLICY IF EXISTS "stories_public_read" ON storage.objects;
 DROP POLICY IF EXISTS "uploads_public_read" ON storage.objects;
 DROP POLICY IF EXISTS "user_media_public_read" ON storage.objects;
 
+DROP POLICY IF EXISTS "Authenticated users can list own objects in all buckets" ON storage.objects;
 CREATE POLICY "Authenticated users can list own objects in all buckets" 
 ON storage.objects FOR SELECT TO authenticated USING (owner = auth.uid());
 
