@@ -301,22 +301,40 @@ export class SocialService {
      */
     async deletePost(postId) {
         try {
-            // Defense in depth: Delete associated reel if any
+            // Defense in depth: Check for associated live stream BEFORE deleting the post
+            // (in case ON DELETE CASCADE removes the stream record)
+            let streamInfo = null;
+            try {
+                const { data } = await this.supabase
+                    .from('live_streams')
+                    .select('id')
+                    .eq('feed_post_id', postId)
+                    .maybeSingle();
+                streamInfo = data;
+            } catch (e) {
+                console.warn('[SocialService] Stream check failed:', e?.message || e);
+            }
+
+            // ATOMIC DELETE with .select() to verify RLS permitted the deletion
+            const { data: deletedPost, error } = await this.supabase
+                .from('social_posts')
+                .delete()
+                .eq('id', postId)
+                .select('id')
+                .maybeSingle();
+
+            if (error) throw error;
+            if (!deletedPost) throw new Error('Not authorized to delete this post or post not found');
+
+            // POST-DELETE CLEANUP: Only execute if we successfully deleted the post
             try {
                 await this.supabase.from('social_reels').delete().eq('source_post_id', postId);
             } catch (e) {
                 console.warn('[SocialService] Reel cleanup after post delete failed:', e?.message || e);
             }
 
-            // Defense in depth: Cleanup associated live stream if any
-            try {
-                const { data: streamInfo } = await this.supabase
-                    .from('live_streams')
-                    .select('id')
-                    .eq('feed_post_id', postId)
-                    .maybeSingle();
-
-                if (streamInfo) {
+            if (streamInfo) {
+                try {
                     const token = getAccessToken();
                     fetch('/api/live/end-stream', {
                         method: 'POST',
@@ -330,17 +348,10 @@ export class SocialService {
                             deleteReason: 'post_deleted_by_user',
                         }),
                     }).catch(e => console.warn('[SocialService] End-stream API call failed:', e));
+                } catch (e) {
+                    console.warn('[SocialService] Stream cleanup failed:', e?.message || e);
                 }
-            } catch (e) {
-                console.warn('[SocialService] Stream cleanup check failed:', e?.message || e);
             }
-
-            const { error } = await this.supabase
-                .from('social_posts')
-                .delete()
-                .eq('id', postId);
-
-            if (error) throw error;
 
             return true;
         } catch (error) {
@@ -375,19 +386,21 @@ export class SocialService {
 
             if (existing) {
                 if (existing.interaction_type === interactionType) {
-                    // SAME type → toggle OFF (remove)
+                    // SAME type → toggle OFF (remove all duplicates)
                     const { error } = await this.supabase
                         .from('social_interactions')
                         .delete()
-                        .eq('id', existing.id);
+                        .eq('post_id', postId)
+                        .eq('user_id', userId);
                     if (error) throw error;
                     return { added: false, type: interactionType };
                 } else {
-                    // DIFFERENT type → SWAP (delete old, insert new)
+                    // DIFFERENT type → SWAP (delete all old, insert new)
                     const { error: delErr } = await this.supabase
                         .from('social_interactions')
                         .delete()
-                        .eq('id', existing.id);
+                        .eq('post_id', postId)
+                        .eq('user_id', userId);
                     if (delErr) throw delErr;
 
                     const { error: insErr } = await this.supabase
@@ -446,7 +459,7 @@ export class SocialService {
             return data?.interaction_type || null;
         } catch (error) {
             console.warn('Get reaction error:', error);
-            return null;
+            throw error;
         }
     }
 
@@ -620,7 +633,7 @@ export class SocialService {
             return !!data;
         } catch (error) {
             console.warn('Is following check error:', error);
-            return false;
+            throw error;
         }
     }
 
@@ -647,11 +660,8 @@ export class SocialService {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.warn('Clubs fetch failed, returning mock', error);
-            return [
-                { id: 1, name: 'Las Vegas Grinders', members: 1240, cover: null },
-                { id: 2, name: 'GTO Academy', members: 850, cover: null }
-            ];
+            console.warn('Clubs fetch failed', error);
+            throw error;
         }
     }
 
@@ -666,7 +676,7 @@ export class SocialService {
             return data || null;
         } catch (error) {
             console.warn('Club fetch failed', error);
-            return null;
+            throw error;
         }
     }
 
@@ -685,14 +695,7 @@ export class SocialService {
             return data || null;
         } catch (error) {
             console.warn('Profile fetch error', error);
-            // Return mock if needed or null
-            return {
-                user_id: userId,
-                username: 'Unknown Player',
-                avatar_url: null,
-                current_level: 1,
-                stats: {}
-            };
+            throw error;
         }
     }
 
@@ -742,8 +745,8 @@ export class SocialService {
 
             return Array.from(convMap.values());
         } catch (err) {
-            console.warn('getConversations failed, using fallback:', err.message);
-            return [];
+            console.warn('getConversations failed:', err.message);
+            throw err;
         }
     }
 
@@ -773,7 +776,7 @@ export class SocialService {
             }));
         } catch (err) {
             console.warn('getMessages failed:', err.message);
-            return [];
+            throw err;
         }
     }
 
@@ -803,7 +806,7 @@ export class SocialService {
             };
         } catch (err) {
             console.warn('sendMessage failed:', err.message);
-            return null; // Let caller handle failure
+            throw err;
         }
     }
 
