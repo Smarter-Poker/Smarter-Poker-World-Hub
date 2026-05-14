@@ -37,11 +37,17 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Invite code is required' });
         }
 
-        // Find the group by invite_code or club_code
+        // Check if code is a UUID to allow joining by group ID directly
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code);
+        const orQuery = isUuid
+            ? `invite_code.eq.${code},club_code.eq.${code},id.eq.${code}`
+            : `invite_code.eq.${code},club_code.eq.${code}`;
+
+        // Find the group by invite_code, club_code, or id
         const { data: group, error: groupErr } = await supabase
             .from('commander_home_groups')
             .select('id, name, is_private, owner_id')
-            .or(`invite_code.eq.${code},club_code.eq.${code}`)
+            .or(orQuery)
             .maybeSingle();
 
         if (groupErr || !group) {

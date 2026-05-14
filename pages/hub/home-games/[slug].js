@@ -234,6 +234,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
   // Join Group State
   const [joinBusy, setJoinBusy] = useState(false);
+  const [memberStatus, setMemberStatus] = useState(null); // 'none', 'active', 'pending', 'banned'
 
   // Vouch state
   const [hasVouched, setHasVouched] = useState(false);
@@ -262,6 +263,26 @@ export default function PublicHomeGamePage({ data, serverError }) {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Fetch member status for the Join Group button
+  useEffect(() => {
+    if (!currentUserId || !group?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('commander_home_group_members')
+          .select('status')
+          .eq('group_id', group.id)
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+        if (!cancelled) {
+          setMemberStatus(data?.status || 'none');
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [currentUserId, group?.id]);
 
   // On mount (and whenever slug changes), check if the current authed user
   // is already following this home game. Silent failure for anonymous users —
@@ -342,7 +363,13 @@ export default function PublicHomeGamePage({ data, serverError }) {
       }
       // Server may have authoritative count — use it if provided
       if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } finally {
+    } catch (err) {
+      console.warn('[App] Handled exception:', err?.message || err);
+      // Rollback optimistic state on failure
+      setIsFollowing(wasFollowing);
+      setFollowerCount(prev => wasFollowing ? prev + 1 : Math.max(0, prev - 1));
+      toast.error('Failed to update follow status. Please try again.');
+    } finally {
       setFollowBusy(false);
     }
   };
@@ -379,7 +406,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
     } catch (err) {
       // Rollback on failure
       setHasVouched(wasVouched);
-      setVouchCount(prev => prev + 1);
+      setVouchCount(prev => wasVouched ? prev + 1 : Math.max(0, prev - 1));
       console.warn('Vouch error:', err);
       toast.error('Failed to vouch. Please try again.');
     } finally {
@@ -419,7 +446,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
     setJoinBusy(true);
     try {
       const token = await getAccessToken();
-      const codeToUse = group.club_code || group.invite_code || '';
+      const codeToUse = group.club_code || group.invite_code || group.id || '';
       const res = await fetch(`/api/commander/home-games/join/${codeToUse}`, {
         method: 'POST',
         headers: {
@@ -434,8 +461,10 @@ export default function PublicHomeGamePage({ data, serverError }) {
       }
 
       if (resData.status === 'pending') {
+        setMemberStatus('pending');
         toast.success('You Have Requested To Join This Group, You Will Be Notified By The Host When You Are Accepted');
       } else {
+        setMemberStatus('active');
         toast.success('Successfully Joined Group!');
       }
     } catch (err) {
@@ -720,13 +749,19 @@ export default function PublicHomeGamePage({ data, serverError }) {
             })()}
           </div>
           <div className="hgs-cta-row">
-            <button
-              className="hgs-primary-btn"
-              onClick={handleJoinGroup}
-              disabled={joinBusy}
-            >
-              {joinBusy ? 'Requesting...' : 'Join Group'}
-            </button>
+            {memberStatus === 'banned' ? null : (
+              <button
+                className={memberStatus === 'active' || memberStatus === 'approved' ? 'hgs-ghost-btn' : 'hgs-primary-btn'}
+                onClick={handleJoinGroup}
+                disabled={joinBusy || memberStatus === 'active' || memberStatus === 'approved' || memberStatus === 'pending'}
+                title={memberStatus === 'pending' ? 'Request pending' : ''}
+              >
+                {joinBusy ? 'Requesting...' :
+                 memberStatus === 'pending' ? 'Request Pending' :
+                 (memberStatus === 'active' || memberStatus === 'approved') ? '✓ Member' :
+                 'Join Group'}
+              </button>
+            )}
             {host?.id && (
               <button
                 id="hgs-message-host-btn"
