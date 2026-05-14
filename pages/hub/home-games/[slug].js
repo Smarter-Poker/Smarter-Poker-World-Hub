@@ -418,14 +418,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
     }
   };
 
-  // handleJoinGroup is defined below the data destructure (line ~546) so that
-  // `group` is guaranteed to be in scope. This is a forward-reference placeholder
-  // that React's closure will resolve correctly at render time because the function
-  // is only called on user interaction (after full render).
-  // BUG-FIX: removed the redundant client-side supabase memberCheck — memberStatus
-  // state is already fetched on mount and kept authoritative. The button is also
-  // disabled when memberStatus is 'active'|'approved'|'pending', so this handler
-  // can only be reached when memberStatus === 'none' | null.
+  // handleJoinGroup: uses data?.group via optional chain — safe before and after serverError guard.
   const handleJoinGroup = async () => {
     if (!currentUserId) {
       // BUG-FIX: was /login, must be /auth/login per canonical auth route
@@ -441,8 +434,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
-    // data?.group is guaranteed non-null here (serverError guard returns early above).
-    // Prefer club_code > invite_code > group UUID so the API always has a valid param.
+    // data?.group is accessed via the prop — safe with optional chaining even if data is null.
+    // The Join button only renders after the serverError guard passes (line ~533), so in practice
+    // this handler is only reachable when data is a valid object.
     const grp = data?.group;
     const codeToUse = grp?.club_code || grp?.invite_code || grp?.id || '';
     if (!codeToUse) {
@@ -669,9 +663,15 @@ export default function PublicHomeGamePage({ data, serverError }) {
       const json = await res.json().catch(() => ({}));
       if (res.ok && (json.success || json.status)) {
         setFriendState('pending');
+      } else if (!res.ok) {
+        toast.error(json.error || 'Could not send friend request.');
       }
-    } catch { /* non-fatal */ }
-    setFriendBusy(false);
+    } catch (err) {
+      console.warn('Add friend error:', err);
+      toast.error('Could not send friend request.');
+    } finally {
+      setFriendBusy(false);
+    }
   };
 
   return (
@@ -743,9 +743,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 </button>
               )}
             </div>
-{(() => {
-              // BUG-FIX: was calling getReputationBadge twice (truthy check + value read).
-              // Single call, single variable.
+            {(() => {
+              // Single call — avoids double computation (was previously called twice).
               const rep = getReputationBadge(qualityScore, vitalityScore);
               if (!rep) return null;
               return (
