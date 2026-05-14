@@ -24,6 +24,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../../src/lib/sentryWrap';
+import { sendPushNotification } from '../../../../../src/lib/commander/pushNotifications';
 
 let _supabase = null;
 function getSupabase() {
@@ -49,7 +50,7 @@ async function resolveUser(req) {
 async function resolvePage(slug) {
     const { data, error } = await getSupabase()
         .from('social_pages')
-        .select('id, page_type, is_public, follower_count, slug, name')
+        .select('id, page_type, is_public, follower_count, slug, name, linked_entity_id')
         .eq('slug', slug)
         .eq('page_type', 'home_game')
         .maybeSingle();
@@ -167,6 +168,12 @@ export default async function handler(req, res) {
             }
 
             const newCount = await readFollowerCount(page.id, (page.follower_count || 0) + 1);
+
+            // Notify the host that someone followed their home game.
+            // Non-blocking — never fails the main request.
+            try { await dispatchFollowNotification(supabase, { page, follower_user_id: user.id }); }
+            catch (e) { console.warn('[follow] notify threw:', e?.message || e); }
+
             return res.status(201).json({
                 success: true,
                 is_following: true,
@@ -224,5 +231,83 @@ export default async function handler(req, res) {
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
         }
+    }
+}
+
+/**
+ * dispatchFollowNotification
+ * Sends in-app notification + push to the host whenever someone follows
+ * their home game page. Deduped to once per follower per 24 hours so
+ * re-follows (e.g. unfollow then re-follow) don't spam.
+ */
+async function dispatchFollowNotification(supabase, { page, follower_user_id }) {
+    try {
+        // Resolve the group owner (host) via social_pages.linked_entity_id
+        const { data: groupRow } = await supabase
+            .from('commander_home_groups')
+            .select('owner_id, name')
+            .eq('id', page.linked_entity_id)
+            .maybeSingle();
+
+        const host_user_id = groupRow?.owner_id;
+        if (!host_user_id || host_user_id === follower_user_id) return;
+
+        // 24-hour dedup
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recent } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', host_user_id)
+            .eq('type', 'home_game_new_follower')
+            .gte('created_at', oneDayAgo)
+            .filter('metadata->>follower_id', 'eq', String(follower_user_id))
+            .limit(1);
+        if (recent && recent.length > 0) return;
+
+        // Resolve follower display name
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, full_name, first_name, username')
+            .eq('id', follower_user_id)
+            .maybeSingle();
+        const followerName = profile?.display_name || profile?.full_name || profile?.first_name || profile?.username || 'Someone';
+
+        const gameName = groupRow?.name || page.name || 'your home game';
+        const manageUrl = `https://smarter.poker/hub/home-games/${encodeURIComponent(page.slug)}`;
+        const titleText = `${followerName} is now following ${gameName}`;
+        const bodyText = `Tap to view your home game page.`;
+        const metadata = {
+            follower_id: String(follower_user_id),
+            follower_name: followerName,
+            page_id: String(page.id),
+            page_slug: page.slug,
+            group_name: gameName,
+        };
+
+        // In-app notification
+        await supabase.from('notifications').insert({
+            user_id: host_user_id,
+            type: 'home_game_new_follower',
+            title: titleText,
+            message: bodyText,
+            data: metadata,
+            metadata,
+            actor_id: follower_user_id,
+            action_url: manageUrl,
+            link: manageUrl,
+            is_read: false,
+            read: false,
+        });
+
+        // Push notification
+        await sendPushNotification({
+            externalUserIds: [host_user_id],
+            title: titleText,
+            message: bodyText,
+            url: manageUrl,
+            data: { ...metadata, notification_type: 'home_game_new_follower' },
+        });
+    } catch (e) {
+        console.warn('[follow] dispatchFollowNotification failed (non-fatal):', e?.message || e);
     }
 }
