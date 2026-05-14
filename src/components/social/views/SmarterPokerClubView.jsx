@@ -652,7 +652,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                     if (p.id !== postId) return p;
                     return {
                         ...p,
-                        isLiked: likeData?.some(r => r.reaction_type === 'like') || false,
+                        isLiked: likeData?.length > 0,
                         reactionType: likeData?.[0]?.reaction_type || 'like',
                         engagement: {
                             ...p.engagement,
