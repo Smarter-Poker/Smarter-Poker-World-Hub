@@ -229,31 +229,30 @@ export function ActiveIdentityProvider({ children }) {
                 if (!mounted || !json.success || !json.data) return;
                 
                 const freshPages = json.data;
-                const freshMap = new Map(freshPages.map(p => [p.id, p]));
-                
-                let changed = false;
-                const updatedOwned = ownedPages.map(op => {
-                    const fresh = freshMap.get(op.id);
-                    if (fresh && (fresh.name !== op.name || fresh.avatar_url !== op.avatar_url)) {
-                        changed = true;
-                        return { ...op, name: fresh.name, avatar_url: fresh.avatar_url };
-                    }
-                    return op;
-                });
+                const newOwnedPages = freshPages.map(page => ({
+                    id: page.id,
+                    name: page.name,
+                    avatar_url: page.avatar_url,
+                    page_type: page.page_type || 'club',
+                }));
 
-                if (changed) {
-                    setOwnedPages(updatedOwned);
+                const isChanged = JSON.stringify(newOwnedPages) !== JSON.stringify(ownedPages);
+
+                if (isChanged) {
+                    setOwnedPages(newOwnedPages);
                     // Also update active identity if currently in club mode
                     setActiveIdentity(prev => {
                         if (prev.mode !== 'club' || !prev.clubPage?.id) return prev;
-                        const freshActive = freshMap.get(prev.clubPage.id);
+                        const freshActive = freshPages.find(p => p.id === prev.clubPage.id);
                         if (freshActive) {
                             return { 
                                 ...prev, 
                                 clubPage: { ...prev.clubPage, name: freshActive.name, avatar_url: freshActive.avatar_url } 
                             };
+                        } else {
+                            // The active club page was deleted
+                            return { mode: 'personal', clubPage: null };
                         }
-                        return prev;
                     });
                     console.debug('[ActiveIdentity] Club data refreshed');
                 }

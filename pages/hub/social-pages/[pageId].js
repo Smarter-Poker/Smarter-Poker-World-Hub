@@ -94,8 +94,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     const [lightboxUrl, setLightboxUrl] = useState(null);
     // Feature parity: FullScreen video viewer (from social-media)
     const [showCommentsForPost, setShowCommentsForPost] = useState({});
-    // Phase 3: Bookmark support (feature parity with social-media)
     const [bookmarked, setBookmarked] = useState(false);
+    const isSavingRef = useRef(false);
+    const pendingCommentLikesRef = useRef(new Set());
     // Phase 3: Comment media (GIF/image attachments)
     const [commentMediaUrl, setCommentMediaUrl] = useState(null);
     const [commentMediaType, setCommentMediaType] = useState(null);
@@ -531,7 +532,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     { label: 'Comment', action: fetchComments, onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
                     { label: 'Share', action: () => setShowShareModal(true), onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
                     { label: bookmarked ? 'Saved' : 'Save', action: async () => {
-                        if (!user) return;
+                        if (!user || isSavingRef.current) return;
+                        isSavingRef.current = true;
                         const newState = !bookmarked;
                         setBookmarked(newState);
                         try {
@@ -553,6 +555,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 });
                             }
                         } catch { setBookmarked(!newState); toast.error('Could not save post'); }
+                        finally { isSavingRef.current = false; }
                     }, active: bookmarked, onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
                 ].map((btn, i) => (
                     <button key={i} onClick={btn.action}
@@ -716,17 +719,52 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             <div style={{ display: 'flex', gap: 12, padding: '2px 8px', fontSize: 11, color: C.textSec, alignItems: 'center' }}>
                                                 <span>{timeAgo(c.created_at)}</span>
                                                 {user && <button onClick={() => {
+                                                    if (pendingCommentLikesRef.current.has(c.id)) return;
+                                                    pendingCommentLikesRef.current.add(c.id);
+                                                    
+                                                    const wasLiked = c.user_liked_comment;
+                                                    // Optimistic UI update
+                                                    setComments(prev => prev.map(x => x.id === c.id ? { 
+                                                        ...x, 
+                                                        user_liked_comment: !wasLiked, 
+                                                        comment_like_count: !wasLiked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) 
+                                                    } : x));
+
                                                     const token = getAccessToken();
                                                     fetch('/api/social/pages/engage', {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                                         body: JSON.stringify({ action: 'like_comment', post_id: post.id, comment_id: c.id }),
                                                     }).then(r => r.json()).then(j => {
-                                                        if (j.success) {
-                                                            setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
+                                                        if (!j.success) {
+                                                            // Rollback
+                                                            setComments(prev => prev.map(x => x.id === c.id ? { 
+                                                                ...x, 
+                                                                user_liked_comment: wasLiked, 
+                                                                comment_like_count: wasLiked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) 
+                                                            } : x));
+                                                        } else {
+                                                            // Reconcile
+                                                            setComments(prev => prev.map(x => x.id === c.id ? { 
+                                                                ...x, 
+                                                                user_liked_comment: j.liked, 
+                                                                comment_like_count: j.liked && !wasLiked ? ((x.comment_like_count || 0) + 1) : !j.liked && wasLiked ? Math.max(0, (x.comment_like_count || 1) - 1) : x.comment_like_count 
+                                                            } : x));
                                                             busEmit.dataMutated('social-pages');
                                                         }
-                                                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                                                    }).catch(e => {
+                                                        console.warn('[App] Handled promise rejection:', e?.message || e);
+                                                        // Rollback
+                                                        setComments(prev => prev.map(x => x.id === c.id ? { 
+                                                            ...x, 
+                                                            user_liked_comment: wasLiked, 
+                                                            comment_like_count: wasLiked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) 
+                                                        } : x));
+                                                    }).finally(() => {
+                                                        setTimeout(() => {
+                                                            pendingCommentLikesRef.current.delete(c.id);
+                                                        }, 300);
+                                                    });
                                                 }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: c.user_liked_comment ? C.blue : C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>
                                                     {c.user_liked_comment ? 'Liked' : 'Like'}{c.comment_like_count > 0 ? ` (${c.comment_like_count})` : ''}
                                                 </button>}
@@ -1419,6 +1457,7 @@ export default function SocialPageDetail() {
 
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }
+        if (followLoading) return;
         setFollowLoading(true);
         const newState = !isFollowing;
         const prevCount = page?.follower_count || 0;
@@ -1467,6 +1506,7 @@ export default function SocialPageDetail() {
 
     const handlePostSubmit = async (postContent, urls, type, mentions, linkPreview, visibility, thumbnailUrl = null) => {
         if ((!postContent.trim() && urls.length === 0) || !user || !page) return false;
+        if (posting) return false;
         setPosting(true);
         try {
             const token = getAccessToken();
@@ -1515,8 +1555,13 @@ export default function SocialPageDetail() {
         return false;
     };
 
+    const pendingLikesRef = useRef(new Set());
+
     const handleLike = async (postId, reactionType) => {
         if (!user) return;
+        if (pendingLikesRef.current.has(postId)) return;
+        pendingLikesRef.current.add(postId);
+
         const prevPosts = posts;
         const targetPost = posts.find(p => p.id === postId);
         const wasLiked = targetPost?.user_liked;
@@ -1571,6 +1616,11 @@ export default function SocialPageDetail() {
             console.warn("[[pageId].js]", e);
             // Rollback optimistic update
             setPosts(prevPosts);
+        } finally {
+            // Unblock
+            setTimeout(() => {
+                pendingLikesRef.current.delete(postId);
+            }, 300);
         }
     };
 

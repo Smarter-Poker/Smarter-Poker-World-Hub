@@ -12,9 +12,11 @@ import WaitlistCard from '../../../src/components/commander/player/WaitlistCard'
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
 
 export default function CommanderHub() {
+  const { user } = useAvatar();
   const [venues, setVenues] = useState([]);
   const [confirmLeaveId, setConfirmLeaveId] = useState(null);
   const [myWaitlists, setMyWaitlists] = useState([]);
@@ -124,7 +126,7 @@ export default function CommanderHub() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, () => { fetchVenues(); fetchLiveGames(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, []);
+  }, [userLocation]);
 
   async function handleLeaveWaitlist(entryId) {
     if (confirmLeaveId !== entryId) {
@@ -422,6 +424,7 @@ export default function CommanderHub() {
           onClose={() => setMenuOpen(false)}
           direction="right"
           theme="dark"
+          user={user}
         />
       </div>
     </>
