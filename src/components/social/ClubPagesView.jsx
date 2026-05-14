@@ -90,6 +90,27 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
             else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
             localStorage.setItem(storageKey, JSON.stringify(stored));
         } catch (e) { console.warn('[App] Handled exception:', e); }
+        const rollbackState = () => {
+            setFollowingIds(prev => {
+                const next = new Set(prev);
+                if (!isNowFollowing) next.add(key); else next.delete(key);
+                return next;
+            });
+            setPages(prev => prev.map(p => {
+                if (p.page_type === pageType && p.page_id === pageId) {
+                    return { ...p, is_following: !isNowFollowing, follower_count: !isNowFollowing ? (p.follower_count || 0) + 1 : Math.max(0, (p.follower_count || 0) - 1) };
+                }
+                return p;
+            }));
+            try {
+                const storageKey = `followed-${pageType === 'venue' ? 'venues' : pageType === 'tour' ? 'tours' : 'series'}`;
+                const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                if (!isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
+                else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
+                localStorage.setItem(storageKey, JSON.stringify(stored));
+            } catch (e) { }
+        };
+
         try {
             // Extract JWT from Supabase localStorage key — required by the follow API
             let _token = null;
@@ -103,12 +124,19 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
             // home_game/charity/club are Club Social Pages — follows persist via ClubPageDashboard's own API
             if (!['venue', 'tour', 'series'].includes(pageType)) return;
 
-            await fetch('/api/poker/follow', {
+            const res = await fetch('/api/poker/follow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
                 body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow' }),
             });
-        } catch (e) { console.warn('[App] Handled exception:', e); }
+            
+            if (!res.ok) {
+                throw new Error(`API returned status ${res.status}`);
+            }
+        } catch (e) { 
+            console.warn('[App] Handled exception:', e);
+            rollbackState();
+        }
     };
 
     const cats = [

@@ -79,7 +79,13 @@ export const SocialCard = ({
 
     try {
       await onLike?.(post.id, reactionType);
-    } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
+    } catch (error) {
+      console.warn('[App] Handled exception:', error?.message || error);
+      // Rollback optimistic update
+      setIsLiked(wasLiked);
+      setCurrentReactionType(prevType);
+      setLikeCount(prevCount);
+    }
 
     likePendingRef.current = false;
     setTimeout(() => setIsAnimating(false), 600);

@@ -639,22 +639,10 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             if (added !== null && added !== undefined) {
                 busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
             }
-        } catch {
-            // Revert on failure
-            setPosts(prev => prev.map(p => {
-                if (p.id === postId) {
-                    const isLiked = p.isLiked;
-                    return {
-                        ...p,
-                        isLiked: !isLiked,
-                        engagement: {
-                            ...p.engagement,
-                            likeCount: isLiked ? (p.engagement?.likeCount || 0) - 1 : (p.engagement?.likeCount || 0) + 1
-                        }
-                    };
-                }
-                return p;
-            }));
+        } catch (error) {
+            console.warn('Reaction failed:', error);
+            // Revert optimistic update
+            loadClubData();
         }
     };
 

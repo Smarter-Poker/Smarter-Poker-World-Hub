@@ -743,7 +743,11 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                     busEmit.friendRequestSent(targetUser?.id || 'unknown');
                 }
             }
-        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
+        } catch (error) {
+            console.warn('[App] Handled exception:', error?.message || error);
+            // Revert optimistic update
+            setIsFriend(wasFriend);
+        }
     };
 
     // Like handler — persists to Supabase
@@ -775,22 +779,10 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             if (added !== null && added !== undefined) {
                 busEmit.socialPostLiked(postId, authUser.id, { added, reactionType: type });
             }
-        } catch {
-            // Revert on failure
-            setUserPosts(prev => prev.map(p => {
-                if (p.id === postId) {
-                    const isLiked = p.isLiked;
-                    return {
-                        ...p,
-                        isLiked: !isLiked,
-                        engagement: {
-                            ...p.engagement,
-                            likeCount: isLiked ? (p.engagement?.likeCount || 0) - 1 : (p.engagement?.likeCount || 0) + 1
-                        }
-                    };
-                }
-                return p;
-            }));
+        } catch (error) {
+            console.warn('Reaction failed:', error);
+            // Revert optimistic update
+            fetchPosts();
         }
     };
 
