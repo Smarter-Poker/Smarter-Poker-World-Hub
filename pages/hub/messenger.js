@@ -6157,6 +6157,7 @@ function MessengerPage() {
                             Back To Social Hub
                         </Link>
                     </div>
+                </div>
                 </aside>
 
                 {/* ════════════════════════════════════════════════════════
