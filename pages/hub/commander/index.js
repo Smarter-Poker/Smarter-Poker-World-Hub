@@ -6,9 +6,10 @@ import { useState, useEffect } from 'react';
 import LocationEnableModal from '../../../src/components/ui/LocationEnableModal';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe, Menu } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
@@ -25,6 +26,7 @@ export default function CommanderHub() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [liveGames, setLiveGames] = useState([]);
   const [hasClubPage, setHasClubPage] = useState(null); // null=loading, false=no page, string=page id
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function fetchVenues() {
     try {
@@ -167,10 +169,15 @@ export default function CommanderHub() {
                 <p className="text-sm text-[#64748B] font-medium tracking-wide">Find Games And Join Waitlists</p>
               </div>
               {/* Rivets */}
-              <div className="ml-auto flex gap-2">
-                <span className="cmd-rivet" />
-                <span className="cmd-rivet" />
-                <span className="cmd-rivet" />
+              <div className="ml-auto flex gap-4 items-center">
+                <div className="flex gap-2">
+                  <span className="cmd-rivet" />
+                  <span className="cmd-rivet" />
+                  <span className="cmd-rivet" />
+                </div>
+                <button onClick={() => setMenuOpen(true)} className="cmd-icon-box hover:cmd-icon-box-glow transition-all" style={{ width: 40, height: 40 }}>
+                  <Menu className="w-5 h-5 text-white" />
+                </button>
               </div>
             </div>
           </div>
@@ -409,6 +416,13 @@ export default function CommanderHub() {
             onManualEntry={() => setShowLocationModal(false)}
           />
         )}
+
+        <HamburgerMenu
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          direction="right"
+          theme="dark"
+        />
       </div>
     </>
   );

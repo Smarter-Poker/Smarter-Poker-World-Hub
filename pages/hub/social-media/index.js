@@ -8500,7 +8500,7 @@ function SocialMediaPage() {
   // Club Pages View State — hydration-safe: read URL param after mount
   const [showClubPages, setShowClubPages] = useState(false);
   // Identity context for feed filter
-  const { hasClubPage, clubPage } = useActiveIdentity();
+  const { activeIdentity, switchToPersonal, switchToClub, isClubMode, clubPage, hasClubPage, ownedPages } = useActiveIdentity();
   const [showClubPostsOnly, setShowClubPostsOnly] = useState(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -10831,53 +10831,67 @@ function SocialMediaPage() {
           </button>
         </div>
 
-        {/* User Profile Card */}
+        {/* Active Identity Switcher */}
         {user && (
-          <Link
-            href="/hub/profile"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '12px 16px',
-              margin: '0 12px 16px',
-              background: C.card,
-              borderRadius: 12,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-              textDecoration: 'none',
-              color: 'inherit',
-            }}
-          >
-            <Avatar src={user.avatar} name={user.name} size={48} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 17 }}>{user.name}</div>
-              <div style={{ fontSize: 13, color: C.textSec }}>View Your Profile</div>
-            </div>
-            {(() => {
-              const unread = notifications.filter((n) => !n.read).length;
-              if (!unread) return null;
-              // BUG-06 FIX: was hardcoded '9+' regardless of real count
-              return (
-                <div
-                  style={{
-                    background: C.blue,
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: 24,
-                    height: 24,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 600,
-                  }}
-                >
-                  {unread > 9 ? '9+' : unread}
+          <div style={{ margin: '0 12px 16px', background: C.card, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.15)', border: '1px solid ' + C.border, overflow: 'hidden' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: ownedPages.length > 0 ? `1px solid ${C.border}` : 'none' }}>
+                <Avatar src={isClubMode && clubPage ? clubPage.avatar_url : user.avatar} name={isClubMode && clubPage ? clubPage.name : user.name} size={48} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 17, color: isClubMode ? C.blue : 'inherit' }}>
+                    {isClubMode && clubPage ? clubPage.name : user.name}
+                  </div>
+                  <Link href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`} onClick={() => setSidebarOpen(false)} style={{ fontSize: 13, color: C.textSec, textDecoration: 'none' }}>
+                    View Profile
+                  </Link>
                 </div>
-              );
-            })()}
-          </Link>
+                {(() => {
+                  const unread = notifications.filter((n) => !n.read).length;
+                  if (!unread || isClubMode) return null; // Notifications are for personal right now
+                  return (
+                    <div
+                      style={{ background: C.blue, color: 'white', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600 }}
+                    >
+                      {unread > 9 ? '9+' : unread}
+                    </div>
+                  );
+                })()}
+             </div>
+             
+             {/* Switch Options (if any owned pages) */}
+             {ownedPages.length > 0 && (
+                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 0' }}>
+                     <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 600, color: C.textSec, textTransform: 'uppercase' }}>Switch Account</div>
+                     
+                     {isClubMode && (
+                         <div 
+                           onClick={() => { switchToPersonal(); setSidebarOpen(false); }}
+                           style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
+                           onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                         >
+                            <Avatar src={user.avatar} name={user.name} size={32} />
+                            <div style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{user.name} (Personal)</div>
+                         </div>
+                     )}
+                     
+                     {ownedPages.map(page => {
+                         if (isClubMode && clubPage?.id === page.id) return null;
+                         return (
+                             <div 
+                               key={page.id}
+                               onClick={() => { switchToClub(page); setSidebarOpen(false); }}
+                               style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
+                               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                             >
+                                <Avatar src={page.avatar_url} name={page.name} size={32} />
+                                <div style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{page.name}</div>
+                             </div>
+                         );
+                     })}
+                 </div>
+             )}
+          </div>
         )}
 
         {/* Poker Resume - Show when HendonMob is linked */}
@@ -10941,58 +10955,46 @@ function SocialMediaPage() {
           </Link>
         )}
 
-        {/* Your Shortcuts */}
-        <div style={{ padding: '0 16px', marginBottom: 24 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>
-            Your Shortcuts
-          </h4>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <Link
-              href="/hub/club-arena"
-              onClick={() => setSidebarOpen(false)}
-              style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}
-            >
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 8,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
-                  <path d="M4 4h4v16H4V4zm6 0h4v16h-4V4zm6 0h4v16h-4V4z" />
-                </svg>
-              </div>
-              <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Club Arena</div>
-            </Link>
-            <Link
-              href="/hub"
-              onClick={() => setSidebarOpen(false)}
-              style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}
-            >
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 8,
-                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
-                  <path d="M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zm0 5a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM9 15h6v2H9v-2z" />
-                </svg>
-              </div>
-              <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Games Hub</div>
-            </Link>
+        {/* Your Shortcuts - Dynamic from Owned Pages */}
+        {ownedPages.length > 0 && (
+          <div style={{ padding: '0 16px', marginBottom: 24 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>
+              Your Shortcuts
+            </h4>
+            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+              {ownedPages.slice(0, 3).map((page) => (
+                <Link
+                  key={page.id}
+                  href={`/hub/social-pages/${page.id}`}
+                  onClick={() => setSidebarOpen(false)}
+                  style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 64 }}
+                >
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      margin: '0 auto',
+                      borderRadius: 12,
+                      background: page.avatar_url ? `url(${page.avatar_url}) center/cover` : 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
+                      border: '1px solid ' + C.border,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {!page.avatar_url && page.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ fontSize: 11, marginTop: 6, color: C.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {page.name}
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Menu Grid - Custom AI-Generated Smarter.Poker Icons */}
         <div

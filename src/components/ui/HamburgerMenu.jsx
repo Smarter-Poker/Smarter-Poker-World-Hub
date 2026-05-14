@@ -11,6 +11,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import InviteFriendsModal from './InviteFriendsModal';
 import GeevesMenuWidget from './GeevesMenuWidget';
+import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
+import { useAvatar } from '../../contexts/AvatarContext';
+import { getAuthUser } from '../../lib/authUtils';
 
 export default function HamburgerMenu({
     isOpen,
@@ -27,6 +30,15 @@ export default function HamburgerMenu({
 }) {
     const router = useRouter();
     const [showInviteModal, setShowInviteModal] = useState(false);
+    const [localUser, setLocalUser] = useState(null);
+    const { activeIdentity, switchToPersonal, switchToClub, isClubMode, clubPage, ownedPages } = useActiveIdentity();
+    const { notifications = [] } = useAvatar() || {};
+
+    useEffect(() => {
+        setLocalUser(getAuthUser());
+    }, []);
+
+    const activeUser = user || localUser;
 
     // Close on ESC key
     useEffect(() => {
@@ -442,48 +454,114 @@ export default function HamburgerMenu({
                     </button>
                 </div>
 
-                {/* User Profile Card */}
-                {showProfile && user && (
-                    <Link
-                        href="/hub/profile"
-                        onClick={onClose}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
-                            padding: '12px 16px',
-                            margin: '0 12px 16px',
-                            background: theme === 'light' ? colors.bg : colors.cardBg,
-                            borderRadius: 12,
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-                            textDecoration: 'none',
-                            color: 'inherit',
-                            border: `1px solid ${colors.border}`
-                        }}
-                    >
-                        <img
-                            src={user.avatar || '/default-avatar.png'}
-                            alt={user.name}
-                            style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: '50%',
-                                objectFit: 'cover'
-                            }}
-                        />
-                        <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: 17, color: colors.text }}>
-                                {user.name}
+                {/* Active Identity Switcher */}
+                {showProfile && activeUser && (
+                    <div style={{ margin: '0 12px 16px', background: theme === 'light' ? colors.bg : colors.cardBg, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.15)', border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: ownedPages.length > 0 ? `1px solid ${colors.border}` : 'none' }}>
+                            <img
+                                src={isClubMode && clubPage ? (clubPage.avatar_url || '/default-avatar.png') : (activeUser.avatar || '/default-avatar.png')}
+                                alt={isClubMode && clubPage ? clubPage.name : activeUser.name}
+                                style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, fontSize: 17, color: isClubMode ? colors.blue : colors.text }}>
+                                    {isClubMode && clubPage ? clubPage.name : activeUser.name}
+                                </div>
+                                <Link href={isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : `/hub/profile`} onClick={onClose} style={{ fontSize: 13, color: colors.textSec, textDecoration: 'none' }}>
+                                    View Profile
+                                </Link>
                             </div>
-                            <div style={{ fontSize: 13, color: colors.textSec }}>
-                                View Your Profile
-                            </div>
+                            {(() => {
+                                const unread = notifications.filter((n) => !n.read).length;
+                                if (!unread || isClubMode) return null;
+                                return (
+                                    <div style={{ background: colors.blue, color: 'white', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600 }}>
+                                        {unread > 9 ? '9+' : unread}
+                                    </div>
+                                );
+                            })()}
                         </div>
-                    </Link>
+                        
+                        {/* Switch Options */}
+                        {ownedPages.length > 0 && (
+                            <div style={{ background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(0,0,0,0.2)', padding: '8px 0' }}>
+                                <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 600, color: colors.textSec, textTransform: 'uppercase' }}>Switch Account</div>
+                                
+                                {isClubMode && (
+                                    <div 
+                                        onClick={() => { switchToPersonal(); onClose(); }}
+                                        style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <img src={activeUser.avatar || '/default-avatar.png'} alt={activeUser.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                                        <div style={{ fontSize: 14, fontWeight: 500, flex: 1, color: colors.text }}>{activeUser.name} (Personal)</div>
+                                    </div>
+                                )}
+                                
+                                {ownedPages.map(page => {
+                                    if (isClubMode && clubPage?.id === page.id) return null;
+                                    return (
+                                        <div 
+                                            key={page.id}
+                                            onClick={() => { switchToClub(page); onClose(); }}
+                                            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', transition: 'background 0.2s' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = colors.hoverBg}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <img src={page.avatar_url || '/default-avatar.png'} alt={page.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: theme === 'light' ? '#eee' : '#333' }} />
+                                            <div style={{ fontSize: 14, fontWeight: 500, flex: 1, color: colors.text }}>{page.name}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* Profile Extras (e.g., Poker Resume) */}
                 {profileExtras}
+
+                {/* Dynamic Shortcuts from Owned Pages */}
+                {ownedPages.length > 0 && (
+                    <div style={{ padding: '0 16px', marginBottom: 16 }}>
+                        <h4 style={{ fontSize: 14, fontWeight: 600, color: colors.textSec, marginBottom: 12, marginTop: 8 }}>
+                            YOUR SHORTCUTS
+                        </h4>
+                        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+                            {ownedPages.slice(0, 3).map((page) => (
+                                <Link
+                                    key={page.id}
+                                    href={`/hub/social-pages/${page.id}`}
+                                    onClick={onClose}
+                                    style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 64 }}
+                                >
+                                    <div
+                                        style={{
+                                            width: 56,
+                                            height: 56,
+                                            margin: '0 auto',
+                                            borderRadius: 12,
+                                            background: page.avatar_url ? `url(${page.avatar_url}) center/cover` : (theme === 'light' ? 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)' : 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'),
+                                            border: `1px solid ${colors.border}`,
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: theme === 'light' ? '#475569' : 'white',
+                                            fontWeight: 700,
+                                        }}
+                                    >
+                                        {!page.avatar_url && page.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div style={{ fontSize: 11, marginTop: 6, color: colors.textSec, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {page.name}
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Menu Items */}
                 <div style={{ flex: 1 }}>
