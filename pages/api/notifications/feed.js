@@ -223,13 +223,13 @@ export default async function handler(req, res) {
             const [byIdResult, byNameResult] = await Promise.all([
                 actorIds.length > 0
                     ? supabase.from('profiles')
-                        .select('id, username, full_name, avatar_url')
+                        .select('id, username, full_name, display_name, avatar_url')
                         .in('id', actorIds)
                         .limit(50)
                     : Promise.resolve({ data: [] }),
                 actorNames.length > 0
                     ? supabase.from('profiles')
-                        .select('id, username, full_name, avatar_url')
+                        .select('id, username, full_name, display_name, avatar_url')
                         .in('full_name', actorNames)
                         .limit(50)
                     : Promise.resolve({ data: [] }),
@@ -254,13 +254,24 @@ export default async function handler(req, res) {
                     return key ? profileByName[key.toLowerCase()] : null;
                 })();
 
-            const displayNameRaw = profile?.full_name || profile?.username 
+            const displayNameRaw = profile?.display_name || profile?.full_name || profile?.username 
                 || n.data?.actor_name || n.data?.sender_name
                 || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1]
                 || n.title
                 || 'Someone';
             
-            const displayName = toTitleCase(displayNameRaw);
+            // To ensure we present exactly as they have it (or at least properly capitalized)
+            // if we pulled a raw DB string, we title case it.
+            // But if it's their EXACT display_name, we should probably just use it as is?
+            // The user requested: "The first letter of every word MUST ALWAYS BE CAPITALIZED... PRESENTED EXACTLY AS THEY HAVE IT".
+            // Since they want "Exactly as they have it" AND "First letter of every word capitalized", we will enforce Title Case.
+            
+            function enforceTitleCase(str) {
+                if (!str) return '';
+                return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            }
+
+            const displayName = enforceTitleCase(displayNameRaw);
 
             // BUG-28 FIX: Rewrite home_group message with real group name
             // BUG-36 FIX: Handle groups with null name (dev/test groups) and deleted groups.
@@ -279,7 +290,7 @@ export default async function handler(req, res) {
                     message = 'Your friend joined a Home Game — check it out';
                 }
             }
-            message = toTitleCase(message);
+            message = enforceTitleCase(message);
 
             return {
                 ...n,

@@ -41,7 +41,7 @@ export default async function handler(req, res) {
         const { data: group, error: groupErr } = await supabase
             .from('commander_home_groups')
             .select('id, name, is_private, owner_id')
-            .or(`invite_code.eq."${code}",club_code.eq."${code}"`)
+            .or(`invite_code.eq.${code},club_code.eq.${code}`)
             .maybeSingle();
 
         if (groupErr || !group) {

@@ -207,8 +207,8 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 //  MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend, disabled, autoFocus }) {
-    const [text, setText] = useState('');
+function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend, disabled, autoFocus, initialText }) {
+    const [text, setText] = useState(initialText || '');
     const [showEmoji, setShowEmoji] = useState(false);
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [gifSearchQuery, setGifSearchQuery] = useState('');
@@ -2676,6 +2676,7 @@ function MessengerPage() {
     // different user in the same session correctly opens THAT conversation.
     const lastHandledUid = useRef(null);
     const [composeFocus, setComposeFocus] = useState(false);
+    const [conversationDraft, setConversationDraft] = useState(''); // pre-filled text from ?draft= param
     useEffect(() => {
         if (!user?.id) return;
         const { compose, uid } = router.query;
@@ -2718,6 +2719,48 @@ function MessengerPage() {
 
         openCompose();
     }, [user?.id, router.query]);
+
+    // ── Handle ?conversation=convId&draft=text deep-link (from Message Host button) ──
+    const lastHandledConvLink = useRef(null);
+    useEffect(() => {
+        if (!user?.id || !conversations.length) return;
+        const { conversation: convIdParam, recipientId, draft } = router.query;
+        const linkKey = convIdParam || recipientId;
+        if (!linkKey || lastHandledConvLink.current === linkKey) return;
+        lastHandledConvLink.current = linkKey;
+
+        const draftText = draft ? decodeURIComponent(draft) : '';
+
+        if (convIdParam) {
+            // Find the conversation in our list and open it
+            const found = conversations.find(c => c.id === convIdParam);
+            if (found) {
+                setActiveConversation(found);
+                if (draftText) setConversationDraft(draftText);
+                setComposeFocus(true);
+                if (isMobile) setShowSidebar(false);
+            }
+        } else if (recipientId) {
+            // Recipient-based — look up profile and start conversation
+            (async () => {
+                try {
+                    const { data: targetProfile } = await supabase
+                        .from('profiles')
+                        .select('id, username, full_name, avatar_url')
+                        .eq('id', recipientId)
+                        .maybeSingle();
+                    if (targetProfile) {
+                        await handleStartConversation(targetProfile);
+                        if (draftText) setConversationDraft(draftText);
+                        setComposeFocus(true);
+                    }
+                } catch (e) {
+                    console.warn('[Messenger] recipientId deep-link error:', e?.message || e);
+                }
+            })();
+        }
+        window.history.replaceState(null, '', '/hub/messenger');
+    }, [user?.id, router.query, conversations.length]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MESSAGE REQUEST COUNT: Fetch pending message requests for sidebar badge
@@ -6610,7 +6653,7 @@ function MessengerPage() {
                                     </div>
                                 )}
 
-                                <MessageInput key={activeConversation.id} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} />
+                                <MessageInput key={activeConversation.id} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} initialText={conversationDraft} />
                             </>
                         ) : (
                             /* No conversation selected */

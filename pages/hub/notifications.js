@@ -367,7 +367,7 @@ function NotificationsPage() {
                 observerRef.current.disconnect();
             }
         };
-    }, [notifications, loading]);
+    }, [notifications.length, loading]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // FRIEND REQUEST HANDLERS (SmarterPoker-style: Decline = Auto-Follow)

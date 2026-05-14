@@ -221,6 +221,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
   useTrainingBus('hub-home-games-slug');
   const [menuOpen, setMenuOpen] = useState(false);
   const [copyState, setCopyState] = useState('');
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharePosted, setSharePosted] = useState(false);
   const initialFollowerCount = data?.page?.follower_count || 0;
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(initialFollowerCount);
@@ -526,10 +528,37 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // The previous code awaited the promise (good) but had no execCommand
   // fallback, so non-secure / unfocused contexts always returned "Copy Failed"
   // even though the textarea-based fallback would have succeeded.
+  const handleShare = () => setShareModalOpen(true);
   const copyShareUrl = async () => {
     const ok = await safeCopyToClipboard(shareUrl);
     setCopyState(ok ? 'Copied!' : 'Copy Failed');
     setTimeout(() => setCopyState(''), 2000);
+  };
+
+  const handleShareToFeed = async () => {
+    const token = await getAccessToken();
+    if (!token) {
+      router.push('/auth/login');
+      return;
+    }
+    try {
+      const res = await fetch('/api/social/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          content: `Check out ${page.name} — a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}! ${shareUrl}`,
+          link_url: shareUrl,
+          link_title: page.name,
+          link_description: metaDesc,
+          link_image: page.avatar_url || page.cover_url || null,
+          post_type: 'link',
+        }),
+      });
+      if (res.ok) {
+        setSharePosted(true);
+        setTimeout(() => { setSharePosted(false); setShareModalOpen(false); }, 2000);
+      }
+    } catch { /* non-fatal */ }
   };
 
   // ── Message Host ────────────────────────────────────────────────────────────
@@ -544,22 +573,24 @@ export default function PublicHomeGamePage({ data, serverError }) {
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
-    // Start / open the DM conversation via the messenger API.
+    // Create or find existing DM conversation, then navigate to it with draft pre-filled
     try {
-      const res = await fetch('/api/messenger/conversations', {
+      const res = await fetch('/api/messenger/start-conversation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ recipient_id: hostId }),
+        body: JSON.stringify({ 
+          otherUserId: hostId,
+        }),
       });
       const json = await res.json().catch(() => ({}));
-      if (json.conversation_id || json.id) {
-        router.push(`/hub/messenger?conversation=${json.conversation_id || json.id}`);
+      const convId = json.conversation_id || json.id;
+      if (convId) {
+        router.push(`/hub/messenger?conversation=${convId}&draft=Hi!+I'm+interested+in+joining+${encodeURIComponent(page.name)}.+Can+you+tell+me+more%3F`);
       } else {
-        // Fall back: just open the messenger inbox with host pre-selected
-        router.push(`/hub/messenger?recipientId=${hostId}`);
+        router.push(`/hub/messenger?recipientId=${hostId}&recipientName=${encodeURIComponent(host?.display_name || 'Host')}&draft=Hi!+I'm+interested+in+joining+${encodeURIComponent(page.name)}.+Can+you+tell+me+more%3F`);
       }
     } catch {
-      router.push(`/hub/messenger?recipientId=${hostId}`);
+      router.push(`/hub/messenger?recipientId=${hostId}&recipientName=${encodeURIComponent(host?.display_name || 'Host')}`);
     }
   };
 
@@ -741,7 +772,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 </>
               )}
             </button>
-            <button className="hgs-ghost-btn" onClick={copyShareUrl}>
+            <button className="hgs-ghost-btn" onClick={handleShare}>
               {copyState || 'Share'}
             </button>
             {followError && <span className="hgs-follow-err">{followError}</span>}
@@ -793,7 +824,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
                           <strong style={{ color: '#22d3ee', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Tournaments</strong>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {group.settings.tournaments.map((t, idx) => {
-                              const dayStr = t.day ? (t.day.charAt(0).toUpperCase() + t.day.slice(1).toLowerCase()) : (t.scheduled_date ? new Date(t.scheduled_date + 'T12:00:00').toLocaleDateString('en-US', {weekday: 'long'}) : '');
+                              const dayStr = t.day 
+                                ? (t.day.charAt(0).toUpperCase() + t.day.slice(1).toLowerCase())
+                                : '';
                               const timeStr = t.scheduled_time || t.time ? ` · ${t.scheduled_time || t.time}` : '';
                               return (
                                 <span key={idx} style={{ padding: '4px 10px', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: '6px', fontSize: '13px', color: '#e2e8f0', fontWeight: '500' }}>
@@ -1006,6 +1039,74 @@ export default function PublicHomeGamePage({ data, serverError }) {
               >
                 {vouchBusy ? '…' : (hasVouched ? '✓ You Vouched — Remove' : '+ Add Your Vouch')}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Share Modal ──────────────────────────────────────────────── */}
+        {shareModalOpen && (
+          <div
+            className="hgs-seat-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Share this home game"
+            onClick={(e) => { if (e.target === e.currentTarget) setShareModalOpen(false); }}
+          >
+            <div className="hgs-vouchers-modal" style={{ maxWidth: '380px' }}>
+              <div className="hgs-seat-header">
+                <h2 className="hgs-seat-title" style={{ fontSize: '18px' }}>Share {page.name}</h2>
+                <button className="hgs-seat-close" onClick={() => setShareModalOpen(false)} aria-label="Close">×</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 0 0' }}>
+                {/* Share to Smarter.Poker Feed */}
+                <button
+                  onClick={handleShareToFeed}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.25)', borderRadius: '10px', padding: '12px 16px', color: '#e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: '600', textAlign: 'left' }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <div>
+                    <div>{sharePosted ? '✓ Posted to Feed!' : 'Post to Smarter.Poker Feed'}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Share with the community</div>
+                  </div>
+                </button>
+                {/* Twitter/X */}
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${page.name} — a poker home game! `)}&url=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#e2e8f0', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#e2e8f0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.256 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  <div>
+                    <div>Share on X (Twitter)</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Post to your followers</div>
+                  </div>
+                </a>
+                {/* Facebook */}
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#e2e8f0', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  <div>
+                    <div>Share on Facebook</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Share with friends</div>
+                  </div>
+                </a>
+                {/* Copy Link */}
+                <button
+                  onClick={async () => { await copyShareUrl(); setTimeout(() => setShareModalOpen(false), 1200); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: '600', textAlign: 'left' }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <div>
+                    <div>{copyState || 'Copy Link'}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>{shareUrl.replace(/^https?:\/\//, '')}</div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         )}
