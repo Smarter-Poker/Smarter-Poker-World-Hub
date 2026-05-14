@@ -337,7 +337,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         });
         return () => {
             if (unsub) unsub();
-            if (unsub) unsub_refresh();
+            if (unsub_refresh) unsub_refresh();
             if (debounceTimer) clearTimeout(debounceTimer);
         };
     }, [loadFeed]);
