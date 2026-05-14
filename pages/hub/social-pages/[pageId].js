@@ -1128,7 +1128,7 @@ export default function SocialPageDetail() {
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
         } catch (e) { if (e.name !== 'AbortError') console.warn("[[pageId].js]", e); }
-    }, [page, user]);
+    }, [page?.id, user?.id]);
 
     const fetchFollowers = useCallback(async () => {
         if (!page?.id) return;
@@ -1139,7 +1139,7 @@ export default function SocialPageDetail() {
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
         } catch (e) { console.warn("[[pageId].js]", e); }
-    }, [page, user]);
+    }, [page?.id, user?.id]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -1151,8 +1151,8 @@ export default function SocialPageDetail() {
         const controller = new AbortController();
         fetchPosts(controller.signal);
         return () => controller.abort();
-    }, [fetchPosts, page]);
-    useEffect(() => { if (page && activeTab === 'members') fetchFollowers(); }, [fetchFollowers, page, activeTab]);
+    }, [fetchPosts, page?.id]);
+    useEffect(() => { if (page?.id && activeTab === 'members') fetchFollowers(); }, [fetchFollowers, page?.id, activeTab]);
 
     // Fetch Reviews (#1) — MUST be declared before cross-tab sync effect
     const fetchReviews = useCallback(async () => {
@@ -1171,8 +1171,8 @@ export default function SocialPageDetail() {
             }
         } catch (e) { console.warn('Reviews fetch error:', e); }
         setReviewsLoading(false);
-    }, [page]);
-    useEffect(() => { if (page && activeTab === 'reviews') fetchReviews(); }, [fetchReviews, page, activeTab]);
+    }, [page?.id]);
+    useEffect(() => { if (page?.id && activeTab === 'reviews') fetchReviews(); }, [fetchReviews, page?.id, activeTab]);
 
     // #10: View count — already handled server-side via rpc('increment_page_views') on GET by slug
 
@@ -1186,8 +1186,8 @@ export default function SocialPageDetail() {
             if (json.success) setGames(json.data || []);
         } catch (e) { console.warn('Games fetch error:', e); }
         setGamesLoading(false);
-    }, [page]);
-    useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
+    }, [page?.id]);
+    useEffect(() => { if (page?.id && activeTab === 'games') fetchGames(); }, [fetchGames, page?.id, activeTab]);
 
     // Cross-tab sync: refresh data when other tabs mutate social-pages
     useEffect(() => {
@@ -1257,7 +1257,7 @@ export default function SocialPageDetail() {
         } catch (e) { console.warn('Fetch tournaments error:', e); }
         setTournamentsLoading(false);
     }, [page?.id]);
-    useEffect(() => { if (page && activeTab === 'schedule') fetchTournaments(); }, [fetchTournaments, page, activeTab]);
+    useEffect(() => { if (page?.id && activeTab === 'schedule') fetchTournaments(); }, [fetchTournaments, page?.id, activeTab]);
 
     // Fetch venue check-ins (resolves integer venue_id from page data)
     const fetchVenueCheckins = useCallback(async () => {
@@ -1294,8 +1294,8 @@ export default function SocialPageDetail() {
                 setCheckinCount(checkinsData.count || 0);
             }
         } catch (e) { console.warn('Venue checkins fetch error:', e); }
-    }, [page]);
-    useEffect(() => { if (page && activeTab === 'posts') fetchVenueCheckins(); }, [fetchVenueCheckins, page, activeTab]);
+    }, [page?.name, page?.linked_venue_id]);
+    useEffect(() => { if (page?.name && activeTab === 'posts') fetchVenueCheckins(); }, [fetchVenueCheckins, page?.name, activeTab]);
 
     const handleSeatAction = async (gameId, actionType) => {
         if (seatAction) return;
@@ -1398,7 +1398,7 @@ export default function SocialPageDetail() {
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId, page, fetchPosts, fetchFollowers, fetchPage, fetchReviews]);
+  }, [pageId, page?.id, fetchPosts, fetchFollowers, fetchPage, fetchReviews]);
 
     // Phase 9: Fetch live streams for this page
     useEffect(() => {

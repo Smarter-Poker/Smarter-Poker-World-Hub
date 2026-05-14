@@ -299,7 +299,8 @@ export const SPPostCard = ({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [shareToast, setShareToast] = useState(false);
-  const [likePending, setLikePending] = useState(false);
+  const likePendingRef = useRef(false);
+  const submittingCommentRef = useRef(false);
   const moreMenuRef = useRef(null);
   const longPressTimerRef = useRef(null);
   const reactionPickerRef = useRef(null);
@@ -371,8 +372,8 @@ export const SPPostCard = ({
 
   // Like with proper async error handling + rollback
   const handleLike = async (selectedType = 'like') => {
-    if (likePending) return; // prevent rapid fire
-    setLikePending(true);
+    if (likePendingRef.current) return; // prevent rapid fire
+    likePendingRef.current = true;
     setShowReactionPicker(false);
 
     const wasLiked = liked;
@@ -398,7 +399,7 @@ export const SPPostCard = ({
       setLiked(wasLiked);
       setReactionType(prevType);
     }
-    setLikePending(false);
+    likePendingRef.current = false;
   };
 
   // Long-press handlers for reaction picker
@@ -451,9 +452,9 @@ export const SPPostCard = ({
 
   // Submit comment on Enter key
   const handleCommentSubmit = async (e) => {
-    if (e.key !== 'Enter' || !commentText.trim() || submittingComment) return;
+    if (e.key !== 'Enter' || !commentText.trim() || submittingCommentRef.current) return;
     const text = commentText.trim();
-    setSubmittingComment(true);
+    submittingCommentRef.current = true;
     setCommentText('');
 
     // Optimistic append
@@ -468,12 +469,18 @@ export const SPPostCard = ({
     try {
       await onSubmitComment?.(post.id, text);
     } catch (err) {
-      console.warn('Comment failed, rolling back:', err);
-      // Rollback optimistic comment on failure
-      setComments((prev) => prev.filter(c => c.id !== optimisticComment.id));
+      console.warn('Comment failed, syncing authoritative state:', err);
+      // Re-fetch authoritative state on error instead of manual rollback
+      try {
+        const fetched = await onLoadComments?.(post.id);
+        if (fetched) setComments(fetched);
+      } catch (e) {
+        // Fallback if fetch fails
+        setComments((prev) => prev.filter(c => c.id !== optimisticComment.id));
+      }
       setCommentText(text); // Restore text so user can try again
     }
-    setSubmittingComment(false);
+    submittingCommentRef.current = false;
   };
 
   // Delete post

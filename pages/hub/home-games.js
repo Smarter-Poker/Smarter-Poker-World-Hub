@@ -8,6 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
+import { getAccessToken } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
@@ -494,7 +495,9 @@ export default function HomeGamesPage() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const ac = new AbortController();
-        fetch('/api/public/home-games/discover?limit=100', { signal: ac.signal })
+        const token = getAccessToken();
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        fetch('/api/public/home-games/discover?limit=100', { signal: ac.signal, headers })
             .then(r => r.json())
             .then(json => {
                 if (!json?.success) throw new Error(json?.error || 'discover failed');

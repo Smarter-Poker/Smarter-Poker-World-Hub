@@ -883,13 +883,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
       }
     } catch (err) {
       console.warn('Reel like persistence failed:', err.message);
-      // Roll back optimistic update on failure
-      setLiked((prev) => ({ ...prev, [currentId]: wasLiked }));
-      setLikeCounts((prev) => ({
-        ...prev,
-        [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)),
-      }));
-      showErrorToast('Like failed - try again');
+      showErrorToast('Like failed - resyncing state...');
+      // Authoritative state resynchronization
+      try {
+        const [{ data: postData }, { data: likeData }] = await Promise.all([
+          supabase.from('social_posts').select('like_count').eq('id', currentId).single(),
+          supabase.from('social_likes').select('reaction_type').eq('post_id', currentId).eq('user_id', userId)
+        ]);
+        if (postData) setLikeCounts(prev => ({ ...prev, [currentId]: postData.like_count || 0 }));
+        if (likeData) {
+          setLiked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'like') }));
+          setDisliked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'dislike') }));
+        }
+      } catch (e) { console.warn('Resync failed:', e); }
     }
   };
 
@@ -956,15 +962,21 @@ function ReelViewer({ reels, startIndex, onClose }) {
           return n;
         });
       }
-    } catch {
-      // Roll back optimistic dislike update and alert the user
-      setDisliked((prev) => ({ ...prev, [currentId]: wasDisliked }));
-      // Also roll back the like-count adjustment that mutual exclusion made
-      if (!wasDisliked && liked[currentId]) {
-        setLiked((prev) => ({ ...prev, [currentId]: true }));
-        setLikeCounts((prev) => ({ ...prev, [currentId]: (prev[currentId] || 0) + 1 }));
-      }
-      showErrorToast('Dislike failed \u2014 try again');
+    } catch (err) {
+      console.warn('Reel dislike persistence failed:', err.message);
+      showErrorToast('Action failed - resyncing state...');
+      // Authoritative state resynchronization
+      try {
+        const [{ data: postData }, { data: likeData }] = await Promise.all([
+          supabase.from('social_posts').select('like_count').eq('id', currentId).single(),
+          supabase.from('social_likes').select('reaction_type').eq('post_id', currentId).eq('user_id', userId)
+        ]);
+        if (postData) setLikeCounts(prev => ({ ...prev, [currentId]: postData.like_count || 0 }));
+        if (likeData) {
+          setLiked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'like') }));
+          setDisliked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'dislike') }));
+        }
+      } catch (e) { console.warn('Resync failed:', e); }
     }
   };
 
@@ -1148,14 +1160,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
           metadata: { comment_id: commentId },
         });
       }
-    } catch {
-      // Roll back optimistic update and alert user
-      setCommentLikes((prev) => ({ ...prev, [commentId]: wasLiked }));
-      setCommentLikeCounts((prev) => ({
-        ...prev,
-        [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? 1 : -1)),
-      }));
-      showErrorToast('Like failed \u2014 try again');
+    } catch (err) {
+      console.warn('Comment like persistence failed:', err.message);
+      showErrorToast('Like failed - resyncing state...');
+      // Authoritative state resynchronization
+      try {
+        const [{ data: commentData }, { data: likeData }] = await Promise.all([
+          supabase.from('social_comments').select('like_count').eq('id', commentId).single(),
+          supabase.from('social_likes').select('reaction_type').eq('comment_id', commentId).eq('user_id', userId)
+        ]);
+        if (commentData) setCommentLikeCounts(prev => ({ ...prev, [commentId]: commentData.like_count || 0 }));
+        if (likeData) setCommentLikes(prev => ({ ...prev, [commentId]: likeData.some(r => r.reaction_type === 'like') }));
+      } catch (e) { console.warn('Resync failed:', e); }
     }
   };
 
@@ -1215,7 +1231,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
         .eq('author_id', authUser.id);
       if (error) throw error;
     } catch {
-      if (orig) setReelComments((prev) => prev.map((c) => (c.id === commentId ? orig : c)));
+      // Re-fetch to restore accurate state (safer than restoring a stale snapshot)
+      supabase
+        .from('social_comments')
+        .select('*, profiles:author_id (username, avatar_url)')
+        .eq('post_id', orig.post_id)
+        .order('created_at', { ascending: commentSort === 'oldest' })
+        .limit(50)
+        .then(({ data }) => {
+          if (data) setReelComments(data);
+        });
+      showErrorToast('Edit failed \u2014 please try again');
     }
     setEditCommentText('');
   };

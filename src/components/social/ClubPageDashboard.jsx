@@ -403,6 +403,14 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         if (postMediaRef.current) postMediaRef.current.value = '';
     };
 
+    const fetchPending = async () => {
+        try {
+            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`);
+            const json = await res.json();
+            if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
+        } catch (e) { if (e.name !== 'AbortError') console.warn('Pending fetch error:', e); }
+    };
+
     // Fetch live games
     useEffect(() => {
         if (activeTab === 'live_games') {
@@ -416,14 +424,6 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 } catch (e) { if (e.name !== 'AbortError') console.warn('Games fetch error:', e); }
                 setLoadingGames(false);
             };
-            const fetchPending = async () => {
-                const controller = new AbortController();
-                try {
-                    const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`, { signal: controller.signal });
-                    const json = await res.json();
-                    if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
-                } catch (e) { if (e.name !== 'AbortError') console.warn('Pending fetch error:', e); }
-            };
             fetchGames();
             fetchPending();
             const interval = setInterval(() => { fetchGames(); fetchPending(); }, 15000);
@@ -436,14 +436,13 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         const prevPending = pendingFollowers;
         setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
 
-        // Fire-and-forget API call with rollback on failure
+        // Fire-and-forget API call with fetch-on-failure
         fetch('/api/social/pages/follow', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
         }).catch(e => {
             console.warn('Approve/reject error:', e);
-            // Rollback on failure
-            setPendingFollowers(prevPending);
+            fetchPending();
         });
     };
 
@@ -494,19 +493,19 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
     };
 
     // Fetch posts
+    const fetchPosts = async (signal) => {
+        setLoadingPosts(true);
+        try {
+            const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`, { signal });
+            const json = await res.json();
+            if (json.success) setPosts(json.data || []);
+        } catch (e) { if (e.name !== 'AbortError') console.warn('Club page posts fetch error:', e); }
+        setLoadingPosts(false);
+    };
+
     useEffect(() => {
         const controller = new AbortController();
-        const fetchPosts = async () => {
-            setLoadingPosts(true);
-            try {
-                const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`, { signal: controller.signal });
-                const json = await res.json();
-                if (json.success) setPosts(json.data || []);
-            } catch (e) { if (e.name !== 'AbortError') console.warn('Club page posts fetch error:', e); }
-            setLoadingPosts(false);
-        };
-
-        fetchPosts();
+        fetchPosts(controller.signal);
         return () => controller.abort();
     }, [page.id, userId]);
 
@@ -540,11 +539,11 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         const prevPosts = posts;
         setPosts(prev => prev.filter(p => p.id !== postId));
 
-        // Fire-and-forget with rollback on failure
+        // Fire-and-forget API call with fetch-on-failure
         fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' })
             .catch(e => {
                 console.warn('Delete error:', e);
-                setPosts(prevPosts);
+                fetchPosts();
             });
     };
 
@@ -627,13 +626,13 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         const prevPosts = posts;
         setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
 
-        // Fire-and-forget with rollback on failure
+        // Fire-and-forget API call with fetch-on-failure
         fetch('/api/social/pages/posts', {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned })
         }).catch(e => {
             console.warn('Pin error:', e);
-            setPosts(prevPosts);
+            fetchPosts();
         });
     };
 

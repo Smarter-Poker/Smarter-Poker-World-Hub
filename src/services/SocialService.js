@@ -376,8 +376,8 @@ export class SocialService {
             // Check if ANY reaction by this user on this post already exists (any type)
             // Use .limit(1) instead of .maybeSingle() — legacy data may have multiple rows
             const { data: rows } = await this.supabase
-                .from('social_interactions')
-                .select('id, interaction_type')
+                .from('social_likes')
+                .select('id, reaction_type')
                 .eq('post_id', postId)
                 .eq('user_id', userId)
                 .limit(1);
@@ -385,10 +385,10 @@ export class SocialService {
             const existing = rows?.[0] || null;
 
             if (existing) {
-                if (existing.interaction_type === interactionType) {
+                if (existing.reaction_type === interactionType) {
                     // SAME type → toggle OFF (remove all duplicates)
                     const { error } = await this.supabase
-                        .from('social_interactions')
+                        .from('social_likes')
                         .delete()
                         .eq('post_id', postId)
                         .eq('user_id', userId);
@@ -397,18 +397,18 @@ export class SocialService {
                 } else {
                     // DIFFERENT type → SWAP (delete all old, insert new)
                     const { error: delErr } = await this.supabase
-                        .from('social_interactions')
+                        .from('social_likes')
                         .delete()
                         .eq('post_id', postId)
                         .eq('user_id', userId);
                     if (delErr) throw delErr;
 
                     const { error: insErr } = await this.supabase
-                        .from('social_interactions')
+                        .from('social_likes')
                         .insert({
                             post_id: postId,
                             user_id: userId,
-                            interaction_type: interactionType
+                            reaction_type: interactionType
                         });
                     if (insErr) throw insErr;
 
@@ -418,11 +418,11 @@ export class SocialService {
             } else {
                 // NO existing reaction → ADD new
                 const { error } = await this.supabase
-                    .from('social_interactions')
+                    .from('social_likes')
                     .insert({
                         post_id: postId,
                         user_id: userId,
-                        interaction_type: interactionType
+                        reaction_type: interactionType
                     });
                 if (error) throw error;
 
@@ -448,15 +448,15 @@ export class SocialService {
     async getUserReaction(postId, userId) {
         try {
             const { data, error } = await this.supabase
-                .from('social_interactions')
-                .select('interaction_type')
+                .from('social_likes')
+                .select('reaction_type')
                 .eq('post_id', postId)
                 .eq('user_id', userId)
                 .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
 
-            return data?.interaction_type || null;
+            return data?.reaction_type || null;
         } catch (error) {
             console.warn('Get reaction error:', error);
             throw error;

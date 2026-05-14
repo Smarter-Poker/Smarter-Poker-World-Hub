@@ -2,7 +2,7 @@
  * Player Commander Hub - Browse venues and manage waitlists
  * UI: Dark industrial sci-fi gaming UI with metallic chrome frames
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import LocationEnableModal from '../../../src/components/ui/LocationEnableModal';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
 
@@ -36,7 +36,9 @@ export default function CommanderHub() {
       if (userLocation) {
         url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
       }
-      const res = await fetch(url);
+      const token = getAccessToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(url, { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -52,7 +54,9 @@ export default function CommanderHub() {
 
   async function fetchMyWaitlists() {
     try {
-      const res = await fetch('/api/commander/waitlist/my');
+      const token = getAccessToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch('/api/commander/waitlist/my', { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -65,7 +69,9 @@ export default function CommanderHub() {
 
   async function fetchLiveGames() {
     try {
-      const res = await fetch('/api/commander/games/live?limit=10');
+      const token = getAccessToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch('/api/commander/games/live?limit=10', { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -96,12 +102,11 @@ export default function CommanderHub() {
     // Check if user has a club page
     (async () => {
       try {
-        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-        const token = authData?.access_token;
+        const token = getAccessToken();
         if (!token) return;
         const user = getAuthUser();
         if (user) {
-          const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
+          const res = await fetch(`/api/social/pages?owner_id=${user.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
           if (json.success && json.data && json.data.length > 0) {
@@ -128,20 +133,30 @@ export default function CommanderHub() {
     return () => { supabase.removeChannel(ch); };
   }, [userLocation]);
 
+  const isLeavingRef = useRef(false);
+
   async function handleLeaveWaitlist(entryId) {
     if (confirmLeaveId !== entryId) {
       setConfirmLeaveId(entryId);
       setTimeout(() => setConfirmLeaveId(null), 4000);
       return;
     }
+    
+    if (isLeavingRef.current) return;
+    isLeavingRef.current = true;
+    
     setConfirmLeaveId(null);
     try {
-      const res = await fetch(`/api/commander/waitlist/${entryId}`, { method: 'DELETE' });
+      const token = getAccessToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`/api/commander/waitlist/${entryId}`, { method: 'DELETE', headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) fetchMyWaitlists();
     } catch (err) {
       console.warn('Failed to leave waitlist:', err);
+    } finally {
+      isLeavingRef.current = false;
     }
   }
 

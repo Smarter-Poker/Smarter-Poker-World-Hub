@@ -56,6 +56,64 @@ function NotificationsPage() {
         try { setIsInIframe(window.self !== window.top); } catch (_) { setIsInIframe(true); }
     }, []);
 
+    // ── Fetch Notifications (Authoritative Sync) ──
+    const fetchNotifications = useCallback(async (signal) => {
+        const au = getAuthUser();
+        if (!au) {
+            if (mounted.current) setLoading(false);
+            return;
+        }
+        setUser(au);
+
+        try {
+            const token = await getAccessToken();
+
+            // ── Single unified API call: social + poker + actor profiles server-side ──
+            const res = await fetch('/api/notifications/feed?limit=50', {
+                headers: { Authorization: 'Bearer ' + token },
+                signal,
+            });
+
+            if (!res.ok) {
+                console.warn('[Notifications] feed API returned', res.status);
+                if (mounted.current) setLoading(false);
+                return;
+            }
+
+            const feedData = await res.json();
+            if (!feedData.success) {
+                if (mounted.current) setLoading(false);
+                return;
+            }
+
+            const enriched = feedData.notifications || [];
+            const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
+
+            if (mounted.current) {
+                setNotifications(enriched);
+                setLoading(false);
+
+                // ── Cache with timestamp for 5-min TTL on next load ──
+                try {
+                    const now = Date.now();
+                    localStorage.setItem('sp-notif-cache', JSON.stringify(
+                        enriched.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
+                    ));
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            }
+
+            if (totalUnread === 0 && enriched.length === 0 && mounted.current) {
+                setLoading(false);
+            }
+
+        } catch (err) {
+            if (err?.name !== 'AbortError') {
+                console.warn('[Notifications] fetch failed:', err);
+                if (mounted.current) setLoading(false);
+            }
+        }
+    }, []);
+
     // ── Delete notification ──────────────────────────────────────
     const handleDelete = useCallback(async (notifId, e) => {
         if (e) { e.stopPropagation(); e.preventDefault(); }
@@ -113,10 +171,10 @@ function NotificationsPage() {
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({ id: notifId })
             });
-            // [Audit#2] Rollback optimistic remove on API failure
-            if (!resp.ok && snapshot && mounted.current) {
-                console.warn('[Delete Notif] API error, rolling back UI');
-                setNotifications(snapshot);
+            // [Audit#2] Re-fetch on API failure instead of manual rollback
+            if (!resp.ok && mounted.current) {
+                console.warn('[Delete Notif] API error, syncing state from server');
+                fetchNotifications();
                 setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
                 // [Pass4-Fix] Trigger header re-fetch to restore badge count we decremented
                 if (wasUnread) {
@@ -128,8 +186,9 @@ function NotificationsPage() {
             if (wasUnread) {
                 broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
             }
+            fetchNotifications();
         }
-    }, []);
+    }, [fetchNotifications]);
 
     // 🛡️ INSTANT UI: Hydrate from localStorage AFTER mount (prevents SSR mismatch)
     // [Audit#20] Added 5-minute TTL — discard stale cache to prevent old data flashing
@@ -179,68 +238,9 @@ function NotificationsPage() {
     useEffect(() => {
         const controller = new AbortController();
         const { signal } = controller;
-
-        const fetchNotifications = async () => {
-            const au = getAuthUser();
-            if (!au) {
-                if (mounted.current) setLoading(false);
-                return;
-            }
-            setUser(au);
-
-            try {
-                const token = await getAccessToken();
-
-                // ── Single unified API call: social + poker + actor profiles server-side ──
-                // Replaces 4 round-trips (2 APIs + 2 Supabase profile queries) with one.
-                const res = await fetch('/api/notifications/feed?limit=50', {
-                    headers: { Authorization: 'Bearer ' + token },
-                    signal,
-                });
-
-                if (!res.ok) {
-                    console.warn('[Notifications] feed API returned', res.status);
-                    if (mounted.current) setLoading(false);
-                    return;
-                }
-
-                const feedData = await res.json();
-                if (!feedData.success) {
-                    if (mounted.current) setLoading(false);
-                    return;
-                }
-
-                const enriched = feedData.notifications || [];
-                const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
-
-                if (mounted.current) {
-                    setNotifications(enriched);
-                    setLoading(false);
-
-                    // ── Cache with timestamp for 5-min TTL on next load ──
-                    try {
-                        const now = Date.now();
-                        localStorage.setItem('sp-notif-cache', JSON.stringify(
-                            enriched.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
-                        ));
-                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                }
-
-                if (totalUnread === 0 && enriched.length === 0 && mounted.current) {
-                    setLoading(false);
-                }
-
-            } catch (err) {
-                if (err?.name !== 'AbortError') {
-                    console.warn('[Notifications] fetch failed:', err);
-                    if (mounted.current) setLoading(false);
-                }
-            }
-        };
-
-        fetchNotifications();
+        fetchNotifications(signal);
         return () => controller.abort();
-    }, []);
+    }, [fetchNotifications]);
 
     // Realtime subscription — live updates
     useEffect(() => {
@@ -334,7 +334,7 @@ function NotificationsPage() {
         busEmit.dataMutated('notifications');
         try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: newCount }, '*'); } catch (_) {}
 
-        // Fire-and-forget DB update (do not block execution)
+        // Fire-and-forget DB update with fetch-on-failure
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
         if (!isPoker && user?.id) {
             // Route through server API to invalidate feed + unread-count caches
@@ -343,7 +343,13 @@ function NotificationsPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ notificationId: id }),
-                }).catch(e => console.warn('[mark-read] single failed:', e))
+                }).then(res => {
+                    if (!res.ok) throw new Error('API failed');
+                }).catch(e => {
+                    console.warn('[mark-read] single failed:', e);
+                    fetchNotifications();
+                    broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+                })
             );
         } else if (isPoker && user?.id) {
             const realId = id.replace('poker-', '');
@@ -352,7 +358,13 @@ function NotificationsPage() {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ notification_id: realId })
-                }).catch(console.warn)
+                }).then(res => {
+                    if (!res.ok) throw new Error('API failed');
+                }).catch(e => {
+                    console.warn('[mark-read] single failed:', e);
+                    fetchNotifications();
+                    broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+                })
             );
         }
     };
@@ -431,13 +443,15 @@ function NotificationsPage() {
                     toast.success('Friend request accepted!');
                 }
 
-                // Fire-and-forget DB updates (do not block execution)
-                supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId).then().catch(e => console.warn('Exception:', e));
-                supabase.from('friendships').upsert({ user_id: user.id, friend_id: requesterId, status: 'accepted' }, { onConflict: 'user_id,friend_id' }).then().catch(e => console.warn('Exception:', e));
-                // BUG-FIX: Removed mutation of notification type/message in DB.
-                // Changing type from 'friend_request' to 'friend_accepted' corrupts
-                // notification history. Only mark it as read.
-                supabase.from('notifications').update({ read: true, is_read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
+                // Fire-and-forget DB updates with fetch-on-failure
+                Promise.all([
+                    supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId),
+                    supabase.from('friendships').upsert({ user_id: user.id, friend_id: requesterId, status: 'accepted' }, { onConflict: 'user_id,friend_id' }),
+                    supabase.from('notifications').update({ read: true, is_read: true }).eq('id', notification.id)
+                ]).catch(e => {
+                    console.warn('Exception:', e);
+                    fetchNotifications();
+                });
 
                 // Sync friends page cross-tab + EventBus
                 busEmit.dataMutated('friends');
@@ -480,17 +494,19 @@ function NotificationsPage() {
                 toast.success('Request declined — they now follow you.');
             }
 
-            // Fire-and-forget DB updates (do not block execution)
-            if (friendshipId) {
-                supabase.from('friendships').delete().eq('id', friendshipId).then().catch(e => console.warn('Exception:', e));
-            } else {
-                supabase.from('friendships').delete().eq('user_id', requesterId).eq('friend_id', user.id).eq('status', 'pending').then().catch(e => console.warn('Exception:', e));
-            }
-
-            supabase.from('social_follows').upsert({ follower_id: requesterId, following_id: user.id }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('Exception:', e));
-            // BUG-FIX: Removed mutation of notification type/message in DB.
-            // Only mark as read — do not change type from 'friend_request' to 'new_follow'.
-            supabase.from('notifications').update({ read: true, is_read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
+            // Fire-and-forget DB updates with fetch-on-failure
+            const p1 = friendshipId
+                ? supabase.from('friendships').delete().eq('id', friendshipId)
+                : supabase.from('friendships').delete().eq('user_id', requesterId).eq('friend_id', user.id).eq('status', 'pending');
+            
+            Promise.all([
+                p1,
+                supabase.from('social_follows').upsert({ follower_id: requesterId, following_id: user.id }, { onConflict: 'follower_id,following_id' }),
+                supabase.from('notifications').update({ read: true, is_read: true }).eq('id', notification.id)
+            ]).catch(e => {
+                console.warn('Exception:', e);
+                fetchNotifications();
+            });
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');

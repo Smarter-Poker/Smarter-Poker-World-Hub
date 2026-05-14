@@ -607,21 +607,22 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     const [userPosts, setUserPosts] = useState([]);
 
     // Check if the logged-in user is following this profile
-    useEffect(() => {
-        const checkFollowing = async () => {
-            if (!socialService || !authUser?.id) return;
-            try {
-                // Use the profile user ID (or fallback to authUser)
-                const targetId = user?.id || authUser.id;
-                if (targetId === authUser.id) return; // Can't follow self
-                const following = await socialService.isFollowing(authUser.id, targetId);
-                setIsFriend(following);
-            } catch (err) {
-                console.warn('isFollowing check failed:', err.message);
-            }
-        };
-        checkFollowing();
+    const checkFollowing = useCallback(async () => {
+        if (!socialService || !authUser?.id) return;
+        try {
+            // Use the profile user ID (or fallback to authUser)
+            const targetId = user?.id || authUser.id;
+            if (targetId === authUser.id) return; // Can't follow self
+            const following = await socialService.isFollowing(authUser.id, targetId);
+            setIsFriend(following);
+        } catch (err) {
+            console.warn('isFollowing check failed:', err.message);
+        }
     }, [socialService, authUser?.id, user?.id]);
+
+    useEffect(() => {
+        checkFollowing();
+    }, [checkFollowing]);
 
     // Fetch user's posts from Supabase
     const fetchPosts = useCallback(async () => {
@@ -745,8 +746,8 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             }
         } catch (error) {
             console.warn('[App] Handled exception:', error?.message || error);
-            // Revert optimistic update
-            setIsFriend(wasFriend);
+            // Revert optimistic update by refetching authoritative state
+            checkFollowing();
         }
     };
 
@@ -781,8 +782,29 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             }
         } catch (error) {
             console.warn('Reaction failed:', error);
-            // Revert optimistic update
-            fetchPosts();
+            // Authoritative state resynchronization on failure
+            try {
+                const [{ data: postData }, { data: likeData }] = await Promise.all([
+                    supabase.from('social_posts').select('like_count').eq('id', postId).single(),
+                    supabase.from('social_likes').select('reaction_type').eq('post_id', postId).eq('user_id', authUser.id)
+                ]);
+                
+                setUserPosts(prev => prev.map(p => {
+                    if (p.id !== postId) return p;
+                    return {
+                        ...p,
+                        isLiked: likeData?.some(r => r.reaction_type === 'like') || false,
+                        reactionType: likeData?.[0]?.reaction_type || 'like',
+                        engagement: {
+                            ...p.engagement,
+                            likeCount: postData?.like_count || 0
+                        }
+                    };
+                }));
+            } catch (resyncError) {
+                console.warn('Resync failed:', resyncError);
+                fetchPosts(); // Fallback to full reload if single-item resync fails
+            }
         }
     };
 

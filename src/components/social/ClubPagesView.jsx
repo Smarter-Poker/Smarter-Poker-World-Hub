@@ -28,39 +28,40 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
         } catch { return 'anon-fallback'; }
     }
 
+    const fetchClubPages = async () => {
+        setLoading(true);
+        try {
+            const uid = getAnonUserId();
+            const baseParams = { sort: 'popular', limit: '80' };
+            if (search) baseParams.search = search;
+            if (uid) baseParams.user_id = uid;
+            if (showFollowedOnly) baseParams.followed_only = 'true';
+
+            let allPages = [];
+            if (category === 'all') {
+                const [hgRes, charRes, clubRes] = await Promise.all(
+                    ['home_games', 'charity', 'clubs'].map(cat =>
+                        fetch(`/api/poker/pages?${new URLSearchParams({ ...baseParams, category: cat })}`).then(r => r.json())
+                    )
+                );
+                if (hgRes.success) allPages.push(...(hgRes.data || []));
+                if (charRes.success) allPages.push(...(charRes.data || []));
+                if (clubRes.success) allPages.push(...(clubRes.data || []));
+            } else {
+                const res = await fetch(`/api/poker/pages?${new URLSearchParams({ ...baseParams, category })}`);
+                const json = await res.json();
+                if (json.success) allPages = json.data || [];
+            }
+
+            setPages(allPages);
+            const fSet = new Set();
+            allPages.forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
+            setFollowingIds(fSet);
+        } catch (e) { console.warn('Club pages fetch error:', e); }
+        setLoading(false);
+    };
+
     useEffect(() => {
-        const fetchClubPages = async () => {
-            setLoading(true);
-            try {
-                const uid = getAnonUserId();
-                const baseParams = { sort: 'popular', limit: '80' };
-                if (search) baseParams.search = search;
-                if (uid) baseParams.user_id = uid;
-                if (showFollowedOnly) baseParams.followed_only = 'true';
-
-                let allPages = [];
-                if (category === 'all') {
-                    const [hgRes, charRes, clubRes] = await Promise.all(
-                        ['home_games', 'charity', 'clubs'].map(cat =>
-                            fetch(`/api/poker/pages?${new URLSearchParams({ ...baseParams, category: cat })}`).then(r => r.json())
-                        )
-                    );
-                    if (hgRes.success) allPages.push(...(hgRes.data || []));
-                    if (charRes.success) allPages.push(...(charRes.data || []));
-                    if (clubRes.success) allPages.push(...(clubRes.data || []));
-                } else {
-                    const res = await fetch(`/api/poker/pages?${new URLSearchParams({ ...baseParams, category })}`);
-                    const json = await res.json();
-                    if (json.success) allPages = json.data || [];
-                }
-
-                setPages(allPages);
-                const fSet = new Set();
-                allPages.forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
-                setFollowingIds(fSet);
-            } catch (e) { console.warn('Club pages fetch error:', e); }
-            setLoading(false);
-        };
         fetchClubPages();
     }, [category, search, showFollowedOnly]);
 
@@ -90,27 +91,6 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
             else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
             localStorage.setItem(storageKey, JSON.stringify(stored));
         } catch (e) { console.warn('[App] Handled exception:', e); }
-        const rollbackState = () => {
-            setFollowingIds(prev => {
-                const next = new Set(prev);
-                if (!isNowFollowing) next.add(key); else next.delete(key);
-                return next;
-            });
-            setPages(prev => prev.map(p => {
-                if (p.page_type === pageType && p.page_id === pageId) {
-                    return { ...p, is_following: !isNowFollowing, follower_count: !isNowFollowing ? (p.follower_count || 0) + 1 : Math.max(0, (p.follower_count || 0) - 1) };
-                }
-                return p;
-            }));
-            try {
-                const storageKey = `followed-${pageType === 'venue' ? 'venues' : pageType === 'tour' ? 'tours' : 'series'}`;
-                const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                if (!isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
-                else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
-                localStorage.setItem(storageKey, JSON.stringify(stored));
-            } catch (e) { }
-        };
-
         try {
             // Extract JWT from Supabase localStorage key — required by the follow API
             let _token = null;
@@ -135,7 +115,7 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
             }
         } catch (e) { 
             console.warn('[App] Handled exception:', e);
-            rollbackState();
+            fetchClubPages();
         }
     };
 

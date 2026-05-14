@@ -447,8 +447,29 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             }
         } catch (error) {
             console.warn('Reaction failed:', error);
-            // Revert optimistic update
-            loadFeed();
+            // Authoritative state resynchronization on failure
+            try {
+                const [{ data: postData }, { data: likeData }] = await Promise.all([
+                    supabase.from('social_posts').select('like_count').eq('id', postId).single(),
+                    supabase.from('social_likes').select('reaction_type').eq('post_id', postId).eq('user_id', currentUser.id)
+                ]);
+                
+                setPosts(prev => prev.map(p => {
+                    if (p.id !== postId) return p;
+                    return {
+                        ...p,
+                        isLiked: likeData?.some(r => r.reaction_type === 'like') || false,
+                        reactionType: likeData?.[0]?.reaction_type || 'like',
+                        engagement: {
+                            ...p.engagement,
+                            likeCount: postData?.like_count || 0
+                        }
+                    };
+                }));
+            } catch (resyncError) {
+                console.warn('Resync failed:', resyncError);
+                loadFeed(); // Fallback to full reload if single-item resync fails
+            }
         }
     };
 
