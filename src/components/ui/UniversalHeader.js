@@ -35,6 +35,7 @@ import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDiamondBalance } from '../../hooks/useDiamondBalance';
 import useCurrentUser from '../../hooks/useCurrentUser';
+import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { listenBroadcast } from '../../lib/broadcastSync';
 
@@ -140,6 +141,9 @@ export default function UniversalHeader({
 
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
+    
+    // Global Active Identity State (for Commander/Page Owners)
+    const { isClubMode, clubPage } = useActiveIdentity();
 
     // Global Unread Messages State (instant caching)
     // BUG-FIX-LIVE-6: useUnreadCount is now the single source of truth for
@@ -177,8 +181,13 @@ export default function UniversalHeader({
     // Because user/isVip are initialized synchronously from localStorage,
     // the FIRST post-mount render (when isMounted flips true) already has
     // cached data — so there is zero visual flash despite the gate.
-    const displayAvatar = isMounted ? (contextAvatar?.imageUrl || user?.avatar || '/default-avatar.png') : null;
-    const isVipDisplay = isMounted ? (isVip || contextVip) : false;
+    
+    // Override with Club Identity if active
+    const activeAvatarUrl = isClubMode && clubPage ? clubPage.avatar_url : (contextAvatar?.imageUrl || user?.avatar);
+    const activeName = isClubMode && clubPage ? clubPage.name : (user?.name || '');
+    
+    const displayAvatar = isMounted ? (activeAvatarUrl || '/default-avatar.png') : null;
+    const isVipDisplay = isMounted ? (!isClubMode && (isVip || contextVip)) : false; // VIP badge is for personal profiles only
     const safeUnreadCount = isMounted ? unreadCount : 0;
     const safeNotificationCount = isMounted ? notificationCount : 0;
 
@@ -1062,10 +1071,10 @@ export default function UniversalHeader({
                     {/* Avatar/Profile */}
                     <div
                         className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
-                        onClick={() => router.push(profileHref)}
+                        onClick={() => router.push(isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : profileHref)}
                         role="button"
                         tabIndex={0}
-                        aria-label="My Profile"
+                        aria-label={isClubMode && clubPage ? clubPage.name : "My Profile"}
                         style={{
                             background: displayAvatar
                                 ? `url(${displayAvatar}) center/cover`
@@ -1077,7 +1086,7 @@ export default function UniversalHeader({
                         }}
                     >
                         <span style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>
-                            {!displayAvatar && (isMounted ? (user?.name || '').charAt(0).toUpperCase() || '?' : '')}
+                            {!displayAvatar && (isMounted ? activeName.charAt(0).toUpperCase() || '?' : '')}
                         </span>
                     </div>
 

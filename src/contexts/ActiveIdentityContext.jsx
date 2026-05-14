@@ -22,6 +22,7 @@ const ActiveIdentityContext = createContext({
     isClubMode: false,
     clubPage: null,
     hasClubPage: false,
+    ownedPages: [], // All pages owned/managed by user
 });
 
 const STORAGE_KEY = 'active-identity';
@@ -44,7 +45,7 @@ export function ActiveIdentityProvider({ children }) {
         }
         return { mode: 'personal', clubPage: null };
     });
-    const [availableClubPage, setAvailableClubPage] = useState(null);
+    const [ownedPages, setOwnedPages] = useState([]);
 
     // Auto-detect club page for Commander users
     // HARDENED: Always checks by owner_id as fallback, even without commander_staff in localStorage.
@@ -62,6 +63,8 @@ export function ActiveIdentityProvider({ children }) {
 
                 if (!userId) return; // Not logged in, nothing to detect
 
+                let pagesFound = [];
+
                 // ── Step 2: Try venue_id lookup (if commander_staff exists) ──
                 try {
                     const stored = localStorage.getItem('commander_staff');
@@ -69,20 +72,11 @@ export function ActiveIdentityProvider({ children }) {
                         const data = JSON.parse(stored);
                         if (data?.venue_id) {
                             const res = await fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`);
-                            if (!mounted) return; // Guard: component unmounted during fetch
-                            const json = await res.json();
-                            if (json.success && json.data && json.data.length > 0) {
-                                const page = json.data[0];
-                                if (mounted) {
-                                    setAvailableClubPage({
-                                        id: page.id,
-                                        name: page.name,
-                                        avatar_url: page.avatar_url,
-                                        page_type: page.page_type || 'club',
-                                    });
+                            if (mounted && res.ok) {
+                                const json = await res.json();
+                                if (json.success && json.data && json.data.length > 0) {
+                                    pagesFound = [...json.data];
                                 }
-                                console.debug('[ActiveIdentity] Club page found (by venue):', page.name);
-                                return; // Found — done
                             }
                         }
                     }
@@ -90,21 +84,33 @@ export function ActiveIdentityProvider({ children }) {
 
                 // ── Step 3: Always fallback to owner_id lookup ──
                 // This catches freshly registered Commanders who haven't logged into
-                // Commander yet (so commander_staff isn't in localStorage).
-                const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
-                if (!mounted) return; // Guard: component unmounted during fetch
-                const json2 = await res2.json();
-                if (json2.success && json2.data && json2.data.length > 0) {
-                    const page = json2.data[0];
-                    if (mounted) {
-                        setAvailableClubPage({
-                            id: page.id,
-                            name: page.name,
-                            avatar_url: page.avatar_url,
-                            page_type: page.page_type || 'club',
-                        });
+                // Commander yet (so commander_staff isn't in localStorage), and also
+                // gets ALL pages the user owns.
+                try {
+                    const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
+                    if (mounted && res2.ok) {
+                        const json2 = await res2.json();
+                        if (json2.success && json2.data && json2.data.length > 0) {
+                            // Merge without duplicates by ID
+                            const existingIds = new Set(pagesFound.map(p => p.id));
+                            for (const p of json2.data) {
+                                if (!existingIds.has(p.id)) {
+                                    pagesFound.push(p);
+                                    existingIds.add(p.id);
+                                }
+                            }
+                        }
                     }
-                    console.debug('[ActiveIdentity] Club page found (by owner):', page.name);
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+
+                if (mounted && pagesFound.length > 0) {
+                    setOwnedPages(pagesFound.map(page => ({
+                        id: page.id,
+                        name: page.name,
+                        avatar_url: page.avatar_url,
+                        page_type: page.page_type || 'club',
+                    })));
+                    console.debug('[ActiveIdentity] Club pages found:', pagesFound.length);
                 }
             } catch (e) {
                 console.warn('[ActiveIdentity] Club page detection failed:', e);
@@ -157,7 +163,7 @@ export function ActiveIdentityProvider({ children }) {
     }, []);
 
     const switchToClub = useCallback((clubPage = null) => {
-        const page = clubPage || availableClubPage;
+        const page = clubPage || (ownedPages.length > 0 ? ownedPages[0] : null);
         if (!page) {
             console.warn('[ActiveIdentity] No club page available to switch to');
             return;
@@ -168,7 +174,7 @@ export function ActiveIdentityProvider({ children }) {
             console.debug('[ActiveIdentity] Switching to club:', page.name);
             setActiveIdentity({ mode: 'club', clubPage: page });
         }, 100);
-    }, [availableClubPage]);
+    }, [ownedPages]);
 
     // ── Stale Identity Guard ──
     // If the stored club page was deleted (admin action, etc.), auto-reset to personal
@@ -183,7 +189,7 @@ export function ActiveIdentityProvider({ children }) {
                     // 404 or server error — page likely deleted
                     console.warn('[ActiveIdentity] Stale club page detected (HTTP', res.status, '), resetting');
                     setActiveIdentity({ mode: 'personal', clubPage: null });
-                    setAvailableClubPage(null);
+                    setOwnedPages(prev => prev.filter(p => p.id !== activeIdentity.clubPage.id));
                     return;
                 }
                 const json = await res.json();
@@ -192,7 +198,7 @@ export function ActiveIdentityProvider({ children }) {
                 if (!json.success || !json.data) {
                     console.warn('[ActiveIdentity] Stale club page detected, resetting to personal');
                     setActiveIdentity({ mode: 'personal', clubPage: null });
-                    setAvailableClubPage(null);
+                    setOwnedPages(prev => prev.filter(p => p.id !== activeIdentity.clubPage.id));
                 }
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         };
@@ -204,27 +210,48 @@ export function ActiveIdentityProvider({ children }) {
     // Refreshes club page data when tab regains focus or every 5 minutes.
     // Catches name/avatar changes made in Commander without requiring a page reload.
     useEffect(() => {
-        if (!availableClubPage?.id) return;
+        if (ownedPages.length === 0) return;
         let mounted = true;
 
         const refreshClubData = async () => {
             try {
-                const res = await fetch(`/api/social/pages?id=${availableClubPage.id}`);
+                // Fetch all owned pages to bulk-refresh
+                const authUser = getAuthUser();
+                if (!authUser?.id) return;
+                
+                const res = await fetch(`/api/social/pages?owner_id=${authUser.id}`);
                 if (!mounted || !res.ok) return;
                 const json = await res.json();
                 if (!mounted || !json.success || !json.data) return;
-                const fresh = json.data;
+                
+                const freshPages = json.data;
+                const freshMap = new Map(freshPages.map(p => [p.id, p]));
+                
+                let changed = false;
+                const updatedOwned = ownedPages.map(op => {
+                    const fresh = freshMap.get(op.id);
+                    if (fresh && (fresh.name !== op.name || fresh.avatar_url !== op.avatar_url)) {
+                        changed = true;
+                        return { ...op, name: fresh.name, avatar_url: fresh.avatar_url };
+                    }
+                    return op;
+                });
 
-                // Update availableClubPage if name or avatar changed
-                if (fresh.name !== availableClubPage.name || fresh.avatar_url !== availableClubPage.avatar_url) {
-                    const updated = { id: fresh.id, name: fresh.name, avatar_url: fresh.avatar_url, page_type: fresh.page_type || 'club' };
-                    setAvailableClubPage(updated);
+                if (changed) {
+                    setOwnedPages(updatedOwned);
                     // Also update active identity if currently in club mode
                     setActiveIdentity(prev => {
-                        if (prev.mode !== 'club' || prev.clubPage?.id !== fresh.id) return prev;
-                        return { ...prev, clubPage: updated };
+                        if (prev.mode !== 'club' || !prev.clubPage?.id) return prev;
+                        const freshActive = freshMap.get(prev.clubPage.id);
+                        if (freshActive) {
+                            return { 
+                                ...prev, 
+                                clubPage: { ...prev.clubPage, name: freshActive.name, avatar_url: freshActive.avatar_url } 
+                            };
+                        }
+                        return prev;
                     });
-                    console.debug('[ActiveIdentity] Club data refreshed:', fresh.name);
+                    console.debug('[ActiveIdentity] Club data refreshed');
                 }
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         };
@@ -241,16 +268,16 @@ export function ActiveIdentityProvider({ children }) {
             document.removeEventListener('visibilitychange', handleVisibility);
             clearInterval(interval);
         };
-    }, [availableClubPage?.id]);
+    }, [ownedPages.map(p => p.id).join(',')]);
 
     const value = {
         activeIdentity,
         switchToPersonal,
         switchToClub,
         isClubMode: activeIdentity.mode === 'club',
-        clubPage: activeIdentity.clubPage || availableClubPage,
-        hasClubPage: !!availableClubPage,
-        availableClubPage,
+        clubPage: activeIdentity.clubPage || (ownedPages.length > 0 ? ownedPages[0] : null),
+        hasClubPage: ownedPages.length > 0,
+        ownedPages,
     };
 
     return (

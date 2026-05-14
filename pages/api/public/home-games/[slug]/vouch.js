@@ -73,22 +73,40 @@ export default async function handler(req, res) {
         if (method === 'GET') {
             const user = await resolveUser(req);
 
-            // Fetch the group's vouch_count and up to 50 vouchers with profiles
+            // Fetch the group's vouch_count
             const { data: group } = await supabase
                 .from('commander_home_groups')
                 .select('vouch_count, quality_score, vitality_score')
                 .eq('id', page.linked_entity_id)
                 .maybeSingle();
 
+            // Fetch recent vouches
             const { data: vouches } = await supabase
                 .from('home_game_vouches')
-                .select('user_id, created_at, profiles:user_id(display_name, full_name, first_name, username, avatar_url)')
+                .select('user_id, created_at')
                 .eq('group_id', page.linked_entity_id)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
+            // Fetch profiles for the vouchers
+            let profiles = [];
+            if (vouches && vouches.length > 0) {
+                const userIds = vouches.map(v => v.user_id);
+                const { data: pData } = await supabase
+                    .from('profiles')
+                    .select('id, display_name, full_name, first_name, username, avatar_url')
+                    .in('id', userIds);
+                if (pData) profiles = pData;
+            }
+
+            // Map profiles to vouches
+            const profileMap = profiles.reduce((acc, p) => {
+                acc[p.id] = p;
+                return acc;
+            }, {});
+
             const voucherList = (vouches || []).map((v) => {
-                const p = v.profiles || {};
+                const p = profileMap[v.user_id] || {};
                 return {
                     user_id: v.user_id,
                     display_name: p.display_name || p.full_name || p.first_name || p.username || 'Player',
