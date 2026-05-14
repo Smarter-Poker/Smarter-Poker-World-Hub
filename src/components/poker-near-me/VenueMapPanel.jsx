@@ -129,7 +129,7 @@ function createVenueIcon(L, venue) {
 
   // Logo or initials — matches the Poker Tours round-circle style
   const innerContent = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:30px;height:30px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+    ? `<img src="${logoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
        <div style="display:none;font-size:12px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`
     : `<div style="font-size:12px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`;
 
@@ -181,7 +181,7 @@ function createTourIcon(L, venue) {
     : '';
 
   const tourInner = tourLogoUrl
-    ? `<img src="${tourLogoUrl}" alt="" style="width:${circleSize - 8}px;height:${circleSize - 8}px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+    ? `<img src="${escapeHtml(tourLogoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
        <div style="display:none;font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
     : `<div style="font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
 
@@ -191,7 +191,7 @@ function createTourIcon(L, venue) {
   const hostInitials = hostName.split(/\s+/).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase() || 'V';
 
   const venueInner = hostLogoUrl
-    ? `<img src="${hostLogoUrl}" alt="" style="width:${circleSize - 8}px;height:${circleSize - 8}px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+    ? `<img src="${hostLogoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
        <div style="display:none;font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`
     : `<div style="font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`;
 
@@ -228,8 +228,8 @@ function createTourIcon(L, venue) {
 function buildTourPopupHtml(v) {
   const tourColor = TOUR_MARKER_COLORS[v.tour_code] || '#ef4444';
   const logoHtml = v.logo_url
-    ? `<img src="${v.logo_url}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:2px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0;">${(v.tour_code || '').slice(0, 4)}</div>`
-    : `<div style="display:flex;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0;">${(v.tour_code || '').slice(0, 4)}</div>`;
+    ? `<img src="${escapeHtml(v.logo_url)}" alt="" style="width:34px;height:34px;border-radius:6px;object-fit:cover;background:rgba(255,255,255,0.08);padding:0px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${(v.tour_code || '').slice(0, 4)}</div>`
+    : `<div style="display:flex;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${(v.tour_code || '').slice(0, 4)}</div>`;
 
   const statusBadge = v.is_running
     ? `<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE NOW</span>`
@@ -497,8 +497,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         const logoUrl = v.logo_url || v.profile_photo_url || '';
         const initials = (v.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
         const logoBadge = logoUrl
-          ? `<img src="${logoUrl}" alt="" style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid ${colors.fill}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>`
-          : `<div style="display:flex;width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>`;
+          ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#fff;padding:0px;border:1px solid rgba(255,255,255,0.2);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,0.2);">${initials}</div>`
+          : `<div style="display:flex;width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,0.2);">${initials}</div>`;
 
         // Live games info
         const gamesInfo = Array.isArray(v.games) && v.games.length

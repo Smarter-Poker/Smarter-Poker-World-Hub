@@ -609,9 +609,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         recordCardVisit(cardId);
         selectOrb(cardId as any);
 
-        // Commander card routes to commander dashboard, not /hub/
+        // Commander card routes to commander dashboard
         if (cardId === 'club-commander') {
-            router.push('/commander/dashboard');
+            router.push('/hub/commander');
             return;
         }
 
@@ -675,9 +675,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
         const targetRoute = `/hub/${orbId}`;
 
-        // Commander card routes to commander dashboard, not /hub/
+        // Commander card routes to commander dashboard
         if (orbId === 'club-commander') {
-            router.push('/commander/dashboard');
+            router.push('/hub/commander');
             return;
         }
 
