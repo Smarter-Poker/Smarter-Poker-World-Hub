@@ -27,6 +27,7 @@
  * @returns {SocialAuthor}
  */
 export function createAuthor(profile) {
+    if (!profile) return { id: null, username: 'Anonymous', full_name: null, display_name_preference: 'full_name', avatarUrl: null, level: 1, tier: 'BRONZE', isVerified: false, isFollowing: false };
     return {
         id: profile.user_id || profile.id,
         username: profile.username || 'Anonymous',

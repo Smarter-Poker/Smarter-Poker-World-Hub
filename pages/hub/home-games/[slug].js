@@ -15,7 +15,7 @@
  *      so search engines drop dead links correctly.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
@@ -250,6 +250,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const [seatEvent, setSeatEvent] = useState(null);        // event object when picker is open
   const [currentUserId, setCurrentUserId] = useState(null);
 
+  // Synchronous locks to prevent rapid-fire race conditions
+  const followLockRef = useRef(false);
+  const vouchLockRef = useRef(false);
+  const joinLockRef = useRef(false);
+  const friendLockRef = useRef(false);
+
   // Resolve the signed-in user once on mount so the seat picker can highlight own claims
   useEffect(() => {
     let cancelled = false;
@@ -339,7 +345,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
   }, [slugForFollow]);
 
   const handleFollowToggle = async () => {
-    if (followBusy) return;
+    if (followBusy || followLockRef.current) return;
+    followLockRef.current = true;
     setFollowBusy(true);
     setFollowError('');
 
@@ -371,21 +378,35 @@ export default function PublicHomeGamePage({ data, serverError }) {
       if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
     } catch (err) {
       console.warn('[App] Handled exception:', err?.message || err);
-      // Rollback optimistic state on failure
-      setIsFollowing(wasFollowing);
-      setFollowerCount(prev => wasFollowing ? prev + 1 : Math.max(0, prev - 1));
-      toast.error('Failed to update follow status. Please try again.');
+      toast.error('Failed to update follow status. Resyncing state...');
+      // Authoritative state resynchronization
+      try {
+        const token = await getAccessToken();
+        if (token) {
+          const resp = await fetch(`/api/public/home-games/${slugForFollow}/follow`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (typeof json.is_following === 'boolean') setIsFollowing(json.is_following);
+            if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
+          }
+        }
+      } catch (e) {}
     } finally {
       setFollowBusy(false);
+      followLockRef.current = false;
     }
   };
 
   const handleVouchToggle = async () => {
-    if (vouchBusy) return;
+    if (vouchBusy || vouchLockRef.current) return;
+    vouchLockRef.current = true;
     // Gate: must be signed in
     const token = await getAccessToken();
     if (!token) {
       const returnTo = typeof window !== 'undefined' ? window.location.pathname : `/hub/home-games/${slugForFollow}`;
+      vouchLockRef.current = false;
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
@@ -410,21 +431,32 @@ export default function PublicHomeGamePage({ data, serverError }) {
         if (Array.isArray(listJson.vouchers)) setVouchers(listJson.vouchers);
       }
     } catch (err) {
-      // Rollback on failure
-      setHasVouched(wasVouched);
-      setVouchCount(prev => wasVouched ? prev + 1 : Math.max(0, prev - 1));
       console.warn('Vouch error:', err);
-      toast.error('Failed to vouch. Please try again.');
+      toast.error('Network error. Resyncing state...');
+      try {
+        const listResp = await fetch(`/api/public/home-games/${slugForFollow}/vouch`, { headers: { Authorization: `Bearer ${token}` } });
+        if (listResp.ok) {
+          const listJson = await listResp.json();
+          if (typeof listJson.has_vouched === 'boolean') setHasVouched(listJson.has_vouched);
+          if (typeof listJson.vouch_count === 'number') setVouchCount(listJson.vouch_count);
+          if (Array.isArray(listJson.vouchers)) setVouchers(listJson.vouchers);
+        }
+      } catch (e) {}
     } finally {
       setVouchBusy(false);
+      vouchLockRef.current = false;
     }
   };
 
   // handleJoinGroup: uses data?.group via optional chain — safe before and after serverError guard.
   const handleJoinGroup = async () => {
+    if (joinBusy || joinLockRef.current) return;
+    joinLockRef.current = true;
+
     if (!currentUserId) {
       // BUG-FIX: was /login, must be /auth/login per canonical auth route
       const returnTo = typeof window !== 'undefined' ? window.location.pathname : '/';
+      joinLockRef.current = false;
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
@@ -433,6 +465,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
     const token = await getAccessToken();
     if (!token) {
       const returnTo = typeof window !== 'undefined' ? window.location.pathname : '/';
+      joinLockRef.current = false;
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
@@ -443,6 +476,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
     const codeToUse = grp?.club_code || grp?.invite_code || grp?.id || '';
     if (!codeToUse) {
       toast.error('Cannot join: group code unavailable.');
+      joinLockRef.current = false;
       return;
     }
 
@@ -473,6 +507,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
       toast.error(err.message || 'Failed to join group.');
     } finally {
       setJoinBusy(false);
+      joinLockRef.current = false;
     }
   };
 
@@ -649,10 +684,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
   }, [host?.id, currentUserId]);
 
   const handleAddFriend = async () => {
-    if (friendBusy || friendState !== 'none') return;
+    if (friendBusy || friendState !== 'none' || friendLockRef.current) return;
+    friendLockRef.current = true;
     const token = await getAccessToken();
     if (!token) {
       const returnTo = typeof window !== 'undefined' ? window.location.pathname : `/hub/home-games/${page.slug}`;
+      friendLockRef.current = false;
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
@@ -671,9 +708,21 @@ export default function PublicHomeGamePage({ data, serverError }) {
       }
     } catch (err) {
       console.warn('Add friend error:', err);
-      toast.error('Could not send friend request.');
+      toast.error('Could not send friend request. Resyncing state...');
+      try {
+        const res = await fetch(`/api/friends?action=status&user_id=${host.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === 'friends') setFriendState('friends');
+          else if (json.status === 'pending') setFriendState('pending');
+          else setFriendState('none');
+        }
+      } catch (e) {}
     } finally {
       setFriendBusy(false);
+      friendLockRef.current = false;
     }
   };
 
