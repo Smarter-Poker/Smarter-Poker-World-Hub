@@ -2754,6 +2754,7 @@ function MessengerPage() {
                 // BUG-FIX: previously kept the ref set when length===0, which blocked
                 // the retry — the early-return guard (line 2733) would fire first.
                 lastHandledConvLink.current = null;
+            }
         } else if (recipientId) {
             // Recipient-based — look up profile and start conversation
             (async () => {
