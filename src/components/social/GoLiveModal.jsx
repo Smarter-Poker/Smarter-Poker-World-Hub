@@ -568,6 +568,10 @@ export function GoLiveModal({
   // Bug20: canvas refs for applying beauty filter to the outgoing LiveKit stream
   const beautyCanvasRef = useRef(null);
   const beautyAnimFrameRef = useRef(null);
+  // BUG-FIX-9: guest (co-host) realtime viewer count channel.
+  // The host heartbeat updates live_streams.viewer_count in the DB; guests
+  // subscribe to this Postgres channel so their viewer counter stays in sync.
+  const guestViewerCountChannelRef = useRef(null);
 
   // BUG-FIX-LIVE-7+8: lock viewport, kill pinch zoom, recover from rotation
   // during live/countdown. Prevents the "icons stay zoomed and screen won't
@@ -626,6 +630,21 @@ export function GoLiveModal({
         clearInterval(timerRef._cdInterval);
         timerRef._cdInterval = null;
       }
+      // FIX: null stale singleton callbacks
+      liveStreamService.onViewerCountChange = null;
+      liveStreamService.onReconnecting = null;
+      liveStreamService.onReconnected = null;
+      liveStreamService.onConnectionQualityChange = null;
+      liveStreamService.onStreamEndedExternally = null; // Bug25
+      liveStreamService.onStreamEnded = null; // BUG-FIX-11: clear guest auto-close callback
+      liveStreamService.onTrackAdded = null; // BUG-FIX-2: clear guest track-add callback
+      // BUG-FIX-9: clean up guest viewer count realtime subscription
+      if (guestViewerCountChannelRef.current) {
+        try {
+          supabase.removeChannel(guestViewerCountChannelRef.current);
+        } catch (_) {}
+        guestViewerCountChannelRef.current = null;
+      }
       // FIX: if modal is force-closed during live broadcast, end the broadcast to prevent zombie room
       if (liveStreamService.room && liveStreamService.isBroadcaster) {
         liveStreamService.endBroadcast().catch(() => {});
@@ -638,12 +657,6 @@ export function GoLiveModal({
         } catch (_) {}
         previewCaptureRef.current = null;
       }
-      // FIX: null stale singleton callbacks
-      liveStreamService.onViewerCountChange = null;
-      liveStreamService.onReconnecting = null;
-      liveStreamService.onReconnected = null;
-      liveStreamService.onConnectionQualityChange = null;
-      liveStreamService.onStreamEndedExternally = null; // Bug25
       // BUG-FIX-GLM-STALE-FLAGS: reset overlay-trigger booleans so they don't
       // bleed into the next broadcast session if the modal is force-closed
       setStreamEndedExternally(false);
@@ -1401,6 +1414,40 @@ export function GoLiveModal({
       setStage('live');
       setElapsedTime(0);
       startRecording();
+
+      // BUG-FIX-9: guest viewer count realtime subscription.
+      // The host's heartbeat is the authoritative writer of live_streams.viewer_count.
+      // Guests don't run the heartbeat, so they never receive viewer count updates
+      // via liveStreamService.onViewerCountChange (which is driven by LiveKit room
+      // metadata, only updated by the host). Subscribe to Postgres changes directly
+      // so the guest's HUD shows the real viewer count, not the 0 from join time.
+      if (guestMode && activeStreamId) {
+        try {
+          if (guestViewerCountChannelRef.current) {
+            supabase.removeChannel(guestViewerCountChannelRef.current);
+          }
+          const guestVCCh = supabase
+            .channel(`live-streams-guest-vc-${activeStreamId}`)
+            .on(
+              'postgres_changes',
+              {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'live_streams',
+                filter: `id=eq.${activeStreamId}`,
+              },
+              (payload) => {
+                if (typeof payload.new?.viewer_count === 'number') {
+                  setViewerCount(payload.new.viewer_count);
+                }
+              }
+            )
+            .subscribe();
+          guestViewerCountChannelRef.current = guestVCCh;
+        } catch (guestVCErr) {
+          console.warn('[GoLiveModal] guest viewer count subscription failed:', guestVCErr?.message);
+        }
+      }
 
       // BUG-FIX-LIVE-5: start the rolling preview clip uploader. It
       // runs in parallel to the main MediaRecorder using the SAME local
