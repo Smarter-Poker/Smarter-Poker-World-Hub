@@ -102,10 +102,11 @@ self.addEventListener('fetch', (event: FetchEvent) => {
 self.addEventListener('push', (event: PushEvent) => {
   const data = event.data?.json() || {};
 
-  const options = {
+  const options: NotificationOptions = {
     body: data.body || 'New notification from Club Arena',
     icon: '/hub/club-arena/poker-chip-logo.png',
     badge: '/hub/club-arena/poker-chip-logo.png',
+    vibrate: [200, 100, 200],
     data: data.url || '/',
     actions: [
       { action: 'open', title: 'Open' },
