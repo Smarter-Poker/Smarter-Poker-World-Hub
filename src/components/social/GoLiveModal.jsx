@@ -1589,6 +1589,9 @@ export function GoLiveModal({
       try {
         busEmit.dataMutated?.('live_streams');
       } catch (_) {}
+      // AUDIT-FIX: reset isEnding before onClose so the button isn't frozen
+      // if the parent component doesn't immediately unmount this modal.
+      setIsEnding(false);
       onClose?.();
       return;
     }
@@ -1896,8 +1899,11 @@ export function GoLiveModal({
       // BUG FIX (GLM-2): broadcaster comments now go through /api/live/comment
       // (just like viewers do) so ban-check, slow-mode, and server-side author_name
       // resolution all apply uniformly. Direct anon-key insert bypassed all of this.
-      const { getAccessToken } = await import('../../lib/authUtils');
-      const token = getAccessToken();
+      // AUDIT-FIX: use getFreshAccessToken() to prevent 401 loops on long streams.
+      // The broadcaster is on-air for hours; getAccessToken() returns the cached JWT
+      // which expires after ~1h, causing comment POSTs to 401 silently.
+      const { getFreshAccessToken, getAccessToken } = await import('../../lib/authUtils');
+      const token = (await getFreshAccessToken()) || getAccessToken();
       const resp = await fetch('/api/live/comment', {
         method: 'POST',
         headers: {
