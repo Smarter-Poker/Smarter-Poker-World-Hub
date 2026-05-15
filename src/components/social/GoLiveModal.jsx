@@ -506,7 +506,10 @@ export function GoLiveModal({
   const [topGifters, setTopGifters] = useState({}); // Feature 5: Top Supporters
   const [topGiftersVisible, setTopGiftersVisible] = useState(false); // Bug3: auto-hide
   const [softwareZoomFallback, setSoftwareZoomFallback] = useState(false); // Bug5
-  const [beautyMode, setBeautyMode] = useState(false); // Bug10: face-smoothing
+  // BUG-FIX-BEAUTY-AUTO: beauty mode is always enabled — no user toggle needed.
+  // The canvas filter (brightness/contrast/saturation/blur) is applied on go-live
+  // and never disabled. The icon has been removed from the UI.
+  const [beautyMode, setBeautyMode] = useState(true);
   const [streamEndedExternally, setStreamEndedExternally] = useState(false); // Bug25: stale-cleanup ended stream while broadcaster was live
   const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
   const [guestInviteCode, setGuestInviteCode] = useState(initialInviteCode || null); // #6: guest invite
@@ -1003,7 +1006,10 @@ export function GoLiveModal({
       const cached = getCachedMediaStream();
       if (cached) {
         streamRef.current = cached;
-        if (videoRef.current) videoRef.current.srcObject = cached;
+        if (videoRef.current) {
+          videoRef.current.srcObject = cached;
+          try { await videoRef.current.play(); } catch (_) {}
+        }
         setStage('preview');
         setError('');
         detectAndApplyZoom(cached); // BUG-HUNT-1
@@ -1016,10 +1022,42 @@ export function GoLiveModal({
       if (!mediaAccessMountedRef.current) return;
 
       streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        try { await videoRef.current.play(); } catch (_) {}
+      }
       setStage('preview');
       setError('');
       detectAndApplyZoom(stream); // BUG-HUNT-1
+
+      // BUG-FIX-1: Black-frame watchdog.
+      // On iOS Safari, the camera sometimes returns a valid MediaStream whose
+      // video track reports readyState='live' but produces a black frame for
+      // 1-2 seconds on first acquire (camera hardware cold-start). Detect this
+      // by checking videoWidth 3s after attach; if it's still 0 (no decoded
+      // frame), force-release the singleton and re-acquire to kick the hardware.
+      setTimeout(async () => {
+        if (!mediaAccessMountedRef.current) return;
+        const vEl = videoRef.current;
+        if (vEl && vEl.readyState < 2 && !vEl.videoWidth) {
+          console.warn('[GoLive] Black-frame watchdog: no decoded frame after 3s — re-acquiring camera');
+          // Force-release the singleton so acquireMediaStream gets a fresh track
+          releaseMediaStream({ force: true });
+          // Re-request from scratch (may briefly show black, then correct itself)
+          try {
+            const freshStream = await acquireMediaStream();
+            if (!mediaAccessMountedRef.current) return;
+            streamRef.current = freshStream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = freshStream;
+              try { await videoRef.current.play(); } catch (_) {}
+            }
+            detectAndApplyZoom(freshStream);
+          } catch (e) {
+            console.warn('[GoLive] Black-frame watchdog re-acquire failed:', e?.message);
+          }
+        }
+      }, 3000);
     } catch (err) {
       if (mediaAccessMountedRef.current) {
         setError('Camera access denied. Please allow camera and microphone permissions.');
@@ -1142,7 +1180,15 @@ export function GoLiveModal({
       return;
     }
     setRecordingFailed(false);
-    const mr = new MediaRecorder(streamRef.current, {
+    // BUG-FIX-12: record from liveStreamService.localStream instead of streamRef.current.
+    // When beauty mode is active, liveStreamService.localStream holds the post-filter
+    // canvas video track + original audio track (the actual published stream).
+    // streamRef.current may point to the raw getUserMedia stream whose video track was
+    // ended/replaced by the beauty canvas, resulting in empty chunks and a 1-second recording.
+    // localStream always reflects the current live published stream; fall back to
+    // streamRef.current if the service stream isn't available yet.
+    const recordingStream = liveStreamService.localStream || streamRef.current;
+    const mr = new MediaRecorder(recordingStream, {
       mimeType: mime,
       videoBitsPerSecond: 2500000,
     });
@@ -1153,6 +1199,8 @@ export function GoLiveModal({
     mr.start(1000);
     mediaRecorderRef.current = mr;
   };
+
+
 
   const handleGoLive = async () => {
     // #3/#11: Prevent double-tap / double-broadcast on slow networks
@@ -1219,6 +1267,19 @@ export function GoLiveModal({
   const startBroadcast = async (thumbUrl) => {
     try {
       liveStreamService.onViewerCountChange = (c) => setViewerCount(c);
+      // BUG-FIX-11: when host ends stream, auto-close guest modal
+      liveStreamService.onStreamEnded = () => {
+        if (guestMode) {
+          onClose?.();
+        }
+      };
+      // BUG-FIX-2: re-attach guest camera tracks as they arrive post-publish
+      liveStreamService.onTrackAdded = (mediaStream, kind) => {
+        if (!guestMode && kind === 'video' && videoRef.current) {
+          // Force re-attach if a new video track arrives (e.g. guest joins)
+          setParticipants((prev) => [...prev]);
+        }
+      };
       liveStreamService.onReconnecting = () => {
         setIsReconnecting(true);
         // STREAM-BUG-6: after 60s of failed reconnects, surface a
@@ -2023,7 +2084,10 @@ export function GoLiveModal({
                   style={{
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
+                    // BUG-FIX-1: use 'contain' in preview so native high-res cameras
+                    // (2K/4K on modern phones) don't appear super-zoomed inside the
+                    // 16/9 preview box. The live stage keeps 'cover' for immersive full-screen.
+                    objectFit: 'contain',
                     transform:
                       `${isMirrored ? 'scaleX(-1) ' : ''}${(!zoomCapability || softwareZoomFallback) && zoomLevel !== 1 ? `scale(${zoomLevel})` : ''}`.trim() ||
                       'none',
@@ -2486,8 +2550,12 @@ export function GoLiveModal({
                   }}
                 />
 
-                {/* Secondary Participants (Guest) */}
-                {participants.map((p, idx) => {
+                {/* Secondary Participants (Guest) — BUG-FIX-5: filter out broadcaster's own identity
+                     so the host video never duplicates below the primary videoRef. Host is always
+                     rendered first (videoRef above) = top of the column = top of screen. */}
+                {participants
+                  .filter((p) => String(p.identity) !== String(user?.id))
+                  .map((p, idx) => {
                   const pubs = Array.from(p.videoTrackPublications.values());
                   const videoPub = pubs.find((pub) => pub.track);
                   if (!videoPub) return null;

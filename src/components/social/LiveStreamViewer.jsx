@@ -13,7 +13,7 @@ import { LiveViewerList } from './LiveViewerList';
 import { LiveDiamondGift } from './LiveDiamondGift';
 import { supabase } from '../../lib/supabase';
 import { busEmit } from '../../engine/EventBus';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../lib/authUtils';
 import Lottie from 'lottie-react';
 import diamondAnimation from '../../../public/diamond-animation.json';
 import useStreamingViewportLock from '../../lib/useStreamingViewportLock';
@@ -844,9 +844,13 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     };
     setComments((prev) => [...prev, optimisticComment]);
     try {
-      // BUG FIX (V1): include Authorization header — getServerUserWithFallback
-      // requires a bearer token on browsers where cookie-based fallback fails
-      const token = getAccessToken();
+      // BUG-FIX-7: use getFreshAccessToken() instead of getAccessToken(). On
+      // long live streams (1h+), the JWT expires and subsequent comment POSTs
+      // return 401. Each failed attempt sets commentError, which clears after
+      // 3s, but if the user retries before 3s the old timer fires and clears
+      // the new error — causing the "error repeats" symptom. Using a fresh
+      // token prevents the 401 loop entirely.
+      const token = (await getFreshAccessToken()) || getAccessToken();
       const resp = await fetch('/api/live/comment', {
         method: 'POST',
         headers: {
@@ -906,6 +910,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     } catch (err) {
       console.error('[LiveStreamViewer] Failed to cleanly leave stream:', err);
     } finally {
+      // BUG-FIX-13: explicitly null currentStreamId so GlobalPiPManager
+      // stops polling and the PiP widget doesn't reappear when the user
+      // navigates to their profile after watching a stream.
+      liveStreamService.currentStreamId = null;
+      liveStreamService.room = null;
       busEmit.dataMutated?.('live_streams');
       onClose();
     }

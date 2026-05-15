@@ -131,10 +131,15 @@ export function LiveDiamondGift({
 
   return (
     <>
+      {/* BUG-FIX-8: CapHitPopup onClose only clears the popup \u2014 does NOT close the
+           gift panel. The user sees the rate-limit explanation and can dismiss it,
+           then retry with a different amount or just leave on their own. Previously
+           this called onClose() which immediately shut the entire gift panel,
+           making it look like the gift silently vanished. */}
       <CapHitPopup
         open={!!popupData}
         data={popupData}
-        onClose={() => { setPopupData(null); onClose(); }}
+        onClose={() => setPopupData(null)}
       />
       <div
         onClick={() => {

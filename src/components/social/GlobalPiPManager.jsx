@@ -13,9 +13,20 @@ export default function GlobalPiPManager() {
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState({ x: 20, y: 80 });
     const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
+    // BUG-FIX-13: once the user explicitly closes PiP via the X button,
+    // prevent polling from re-activating it on the same page load.
+    // Reset on route change so a fresh stream can show PiP again.
+    const dismissedRef = useRef(false);
+
+    // Reset dismissed flag on route change so new streams can show PiP
+    useEffect(() => {
+        dismissedRef.current = false;
+    }, [router.pathname]);
 
     useEffect(() => {
         const checkStream = () => {
+            // BUG-FIX-13: don't re-activate if user dismissed this session's PiP
+            if (dismissedRef.current) return;
             const hasStream = liveStreamService.room !== null && liveStreamService.currentStreamId !== null;
             const isLiveRoute = router.pathname.includes('/social-media') || router.pathname.includes('/hub/live');
             
@@ -81,14 +92,23 @@ export default function GlobalPiPManager() {
     };
 
     const handleEndOrLeave = async () => {
+        // BUG-FIX-13: mark dismissed FIRST before any async work so the
+        // polling interval can't re-activate PiP during the async leave.
+        dismissedRef.current = true;
+        setIsActive(false);
         if (streamContext?.isBroadcaster) {
-            if (!confirm('End your live stream?')) return;
+            if (!confirm('End your live stream?')) {
+                dismissedRef.current = false; // user cancelled — allow reactivation
+                return;
+            }
             try {
                 await liveStreamService.endBroadcast();
             } catch (err) {
                 console.warn('[GlobalPiP] Failed to end cleanly:', err);
             } finally {
-                setIsActive(false);
+                // Null stream state so polling stays quiet
+                liveStreamService.currentStreamId = null;
+                liveStreamService.room = null;
             }
         } else {
             try {
@@ -96,7 +116,9 @@ export default function GlobalPiPManager() {
             } catch (err) {
                 console.warn('[GlobalPiP] Failed to leave cleanly:', err);
             } finally {
-                setIsActive(false);
+                // BUG-FIX-13: null stream state so polling stays quiet
+                liveStreamService.currentStreamId = null;
+                liveStreamService.room = null;
             }
         }
     };

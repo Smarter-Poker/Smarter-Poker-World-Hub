@@ -186,7 +186,13 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
                 {REACTION_EMOJIS.map(emoji => (
                     <button
                         key={emoji}
-                        onClick={() => sendReaction(emoji)}
+                        onClick={(e) => {
+                            // BUG-FIX-6: stop propagation so the click doesn't bubble up to
+                            // the chat-expand overlay div or any other parent click handler,
+                            // which was causing false error messages when tapping emojis.
+                            e.stopPropagation();
+                            sendReaction(emoji);
+                        }}
                         style={{
                             width: 40,
                             height: 40,
@@ -203,10 +209,9 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
                         }}
                         onMouseDown={e => { e.currentTarget.style.transform = 'scale(1.3)'; }}
                         onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                        onTouchStart={e => { e.currentTarget.style.transform = 'scale(1.3)'; }}
+                        onTouchStart={e => { e.stopPropagation(); e.currentTarget.style.transform = 'scale(1.3)'; }}
                         onTouchEnd={e => {
-                            // FIX: Don't preventDefault here — let the synthetic click fire
-                            // so sendReaction works on both mobile and desktop via onClick.
+                            e.stopPropagation();
                             e.currentTarget.style.transform = 'scale(1)';
                         }}
                         aria-label={`React with ${emoji}`}
