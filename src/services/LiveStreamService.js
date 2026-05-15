@@ -21,7 +21,7 @@
 
 import { Room, RoomEvent, Track, VideoPresets } from 'livekit-client';
 import { supabase } from '../lib/supabase';
-import { getAccessToken } from '../lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
 
 const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
@@ -1035,7 +1035,8 @@ class LiveStreamService {
       const clamped = Math.max(1, Math.min(120, Math.round(delay)));
       payload.slow_mode_delay = clamped;
     }
-    await supabase.from('live_streams').update(payload).eq('id', streamId);
+    const { error } = await supabase.from('live_streams').update(payload).eq('id', streamId);
+    if (error) throw new Error(`setSlowMode failed: ${error.message}`);
   }
 
   /**
@@ -1200,7 +1201,9 @@ class LiveStreamService {
     this._viewerHeartbeatStreamId = streamId;
     this._viewerHeartbeatTimer = setInterval(() => {
       if (this._viewerHeartbeatStreamId !== streamId) return;
-      supabase.rpc('fn_heartbeat_live_viewer', { p_stream_id: streamId }).catch((err) => {
+      supabase.rpc('fn_heartbeat_live_viewer', { p_stream_id: streamId }).then(({ error }) => {
+        if (error) throw new Error(error.message);
+      }).catch((err) => {
         // Non-fatal — next tick retries. If the RPC vanishes
         // (DB rollback), the user is still in the room, they
         // just risk being pruned by the 5-min cleanup.
@@ -1242,9 +1245,16 @@ class LiveStreamService {
     // Ping immediately so preview_updated_at is fresh on stream start, then
     // every 60 seconds thereafter. Failures are non-fatal — the stream
     // survives as long as any heartbeat lands within the 300s window.
-    const ping = () => {
+    const ping = async () => {
       if (this._broadcasterHeartbeatStreamId !== streamId) return;
-      const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      
+      let token = null;
+      try {
+        token = typeof getFreshAccessToken === 'function' ? await getFreshAccessToken() : getAccessToken();
+      } catch (err) {
+        token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+      }
+      
       fetch('/api/live/heartbeat', {
         method: 'POST',
         headers: {
@@ -1329,10 +1339,11 @@ class LiveStreamService {
     // the RPC bypasses the trigger via SECURITY DEFINER and atomically
     // updates both fields in one statement.
     try {
-      await supabase.rpc('update_live_metrics', {
+      const { error: rpcErr } = await supabase.rpc('update_live_metrics', {
         p_stream_id: this.currentStreamId,
         p_viewer_count: count,
       });
+      if (rpcErr) throw new Error(rpcErr.message);
     } catch (err) {
       // Non-fatal — the next debounce tick will retry. We never fall
       // through to a direct UPDATE here because the trigger would

@@ -103,14 +103,22 @@ export default async function handler(req, res) {
         .select('feed_post_id')
         .eq('id', stream_id)
         .maybeSingle();
+      let postDelErr = null;
       if (streamRow?.feed_post_id) {
-        await supabase.from('social_posts').delete().eq('id', streamRow.feed_post_id);
+        const { error } = await supabase.from('social_posts').delete().eq('id', streamRow.feed_post_id);
+        postDelErr = error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from('social_posts')
           .delete()
           .eq('content_type', 'live')
           .contains('metadata', { stream_id });
+        postDelErr = error;
+      }
+      
+      if (postDelErr) {
+        console.warn('[end-stream] social_posts delete error:', postDelErr.message);
+        return res.status(500).json({ error: postDelErr.message });
       }
       if (stream.video_url) {
         const path = stream.video_url.split('/live-recordings/')[1];
@@ -197,7 +205,7 @@ export default async function handler(req, res) {
         // from the previous JS fetch→merge→update sequence.
         await markFeedPostEnded(stream_id);
         // Content-field update only — metadata already handled atomically above.
-        await supabase
+        const { error: updateErr } = await supabase
           .from('social_posts')
           .update({
             content: caption || `🔴 Live replay: ${stream.title || 'Stream'}`,
@@ -206,6 +214,11 @@ export default async function handler(req, res) {
             thumbnail_url: stream.thumbnail_url || null,
           })
           .eq('id', postId);
+
+        if (updateErr) {
+          console.warn('[end-stream] social_posts update error:', updateErr.message);
+          return res.status(500).json({ error: 'Failed to update social post' });
+        }
       } else {
         const { data: post, error: postErr } = await supabase
           .from('social_posts')
@@ -261,7 +274,7 @@ export default async function handler(req, res) {
       // calls (keepalive retry on 5xx, multi-tab scenario, reconnect race) don't
       // overwrite the original timestamp — which would shift stream-duration
       // calculations forward.
-      await supabase
+      const { error: forceEndErr } = await supabase
         .from('live_streams')
         .update({
           status: 'ended',
@@ -269,6 +282,11 @@ export default async function handler(req, res) {
         })
         .eq('id', stream_id)
         .is('ended_at', null);
+
+      if (forceEndErr) {
+        console.warn('[end-stream] force_end update error:', forceEndErr.message);
+        return res.status(500).json({ error: forceEndErr.message });
+      }
 
       return res.json({ success: true, action: 'force_ended' });
     }

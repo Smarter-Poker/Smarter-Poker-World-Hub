@@ -232,13 +232,15 @@ export class StreamPreviewCapture {
 
       // Update the live_streams row so feed cards can see the new preview
       // and bust the CDN cache via preview_updated_at.
-      await this.supabase
+      const { error: updateErr } = await this.supabase
         .from('live_streams')
         .update({
           preview_clip_url: urlData.publicUrl,
           preview_updated_at: new Date().toISOString(),
         })
         .eq('id', this.streamId);
+        
+      if (updateErr) throw new Error(`DB update failed: ${updateErr.message}`);
     } finally {
       this.uploading = false;
     }

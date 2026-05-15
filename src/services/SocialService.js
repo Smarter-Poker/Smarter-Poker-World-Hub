@@ -8,7 +8,7 @@
 import { createPost, createComment, createAuthor } from './social-types';
 import { claimReward } from '../lib/claimReward';
 import { busEmit } from '../engine/EventBus';
-import { getAuthUser, getAccessToken } from '../lib/authUtils';
+import { getAuthUser, getAccessToken, getFreshAccessToken } from '../lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS
@@ -335,7 +335,7 @@ export class SocialService {
 
             if (streamInfo) {
                 try {
-                    const token = getAccessToken();
+                    const token = typeof getFreshAccessToken === 'function' ? await getFreshAccessToken() : getAccessToken();
                     fetch('/api/live/end-stream', {
                         method: 'POST',
                         headers: {
@@ -343,8 +343,8 @@ export class SocialService {
                             ...(token ? { Authorization: `Bearer ${token}` } : {}),
                         },
                         body: JSON.stringify({
-                            streamId: streamInfo.id,
-                            finalAction: 'delete',
+                            stream_id: streamInfo.id,
+                            action: 'delete',
                             deleteReason: 'post_deleted_by_user',
                         }),
                     }).catch(e => console.warn('[SocialService] End-stream API call failed:', e));

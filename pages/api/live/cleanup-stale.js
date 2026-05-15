@@ -88,10 +88,12 @@ export default async function handler(req, res) {
         }
 
         // Auto-save: keep recording as draft (matches explicit 'save' action)
-        await supabase
+        const { error: updateErr } = await supabase
           .from('live_streams')
           .update({ is_posted: false, is_draft: true })
           .eq('id', s.id);
+          
+        if (updateErr) throw new Error(updateErr.message);
       } catch (saveErr) {
         console.warn(`[live/cleanup-stale] auto-save failed for ${s.id}:`, saveErr.message);
         // Non-fatal — the row is still ended, just not saved as draft
