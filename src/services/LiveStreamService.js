@@ -223,67 +223,37 @@ class LiveStreamService {
     const insertPayload = {
       broadcaster_id: userId,
       title: title || 'Live Stream',
-      status: 'live',
+      // BUG-FIX-PRE-FLIGHT: Insert as ended/draft so it is invisible to viewers and
+      // social feed until the WebRTC connection is 100% established.
+      status: 'ended',
+      is_draft: true,
       category: category || 'general',
     };
     if (thumbnailUrl) insertPayload.thumbnail_url = thumbnailUrl;
     if (description) insertPayload.description = description;
 
+    // BUG-FIX-PRE-FLIGHT: Explicitly kill any zombie live streams before we create the new one.
+    // This prevents the unique index on (broadcaster_id) WHERE status='live' from blocking
+    // our subsequent update from 'ended' -> 'live' after the WebRTC connection connects.
+    try {
+      const { data: existing } = await supabase
+        .from('live_streams')
+        .select('id')
+        .eq('broadcaster_id', userId)
+        .eq('status', 'live')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from('live_streams').update({ status: 'ended' }).eq('id', existing.id);
+      }
+    } catch (_) {}
+
     let { data: stream, error } = await supabase
       .from('live_streams')
       .insert(insertPayload)
-      // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: enumerate safe columns. After
-      // the column-level GRANT lockdown, `.select()` (= '*') raises
-      // permission denied because guest_invite_code is no longer in
-      // the role's column set. The broadcaster's own code is fetched
-      // separately via fn_get_my_guest_invite_code below.
+      // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: enumerate safe columns.
       .select(LIVE_STREAM_SAFE_COLS)
       .maybeSingle();
-
-    if (error?.code === '23505') {
-      // RIGOR-AUDIT E5b/E5c: another live row exists for this broadcaster.
-      // Two scenarios produce 23505 here:
-      //   (a) A previous tab crashed without endBroadcast cleanup and
-      //       left a zombie 'live' row.
-      //   (b) A second tab is racing this one and got there first — its
-      //       row is genuinely live and we should NOT auto-end it.
-      //
-      // E5c gate: only auto-recover if the existing live row is older
-      // than the LiveKit token TTL (8 hours). A row older than the token
-      // TTL is guaranteed a zombie because the LiveKit room cannot still
-      // be active with an expired token. Younger rows are likely a
-      // concurrent valid tab — surface the friendly error and let the
-      // user end the other tab.
-      try {
-        const { data: existing } = await supabase
-          .from('live_streams')
-          .select('id, started_at')
-          .eq('broadcaster_id', userId)
-          .eq('status', 'live')
-          .maybeSingle();
-
-        const ageMs = existing?.started_at
-          ? Date.now() - new Date(existing.started_at).getTime()
-          : 0;
-        const TOKEN_TTL_MS = 8 * 60 * 60 * 1000; // matches LiveKit token TTL
-
-        if (existing) {
-          // Always auto-end any existing live stream for this broadcaster.
-          // This prevents soft-locks where a crashed stream prevents a new one.
-          await supabase.from('live_streams').update({ status: 'ended' }).eq('id', existing.id);
-          const retry = await supabase
-            .from('live_streams')
-            .insert(insertPayload)
-            // Same safe-column enumeration as above (GUEST-1).
-            .select(LIVE_STREAM_SAFE_COLS)
-            .maybeSingle();
-          stream = retry.data;
-          error = retry.error;
-        }
-      } catch (retryErr) {
-        error = retryErr;
-      }
-    }
 
     if (error || !stream) {
       throw new Error(`Failed to create stream: ${error?.message || 'no row returned'}`);
@@ -341,6 +311,19 @@ class LiveStreamService {
       // 3. Get LiveKit token and connect
       const { token, url } = await this._getToken(stream.id, true);
       await this._connectRoom(url, token, true, mediaStream);
+
+    // BUG-FIX-PRE-FLIGHT: WebRTC Connection established! Now reveal the stream to the world.
+    const { error: liveFlipErr } = await supabase
+      .from('live_streams')
+      .update({ status: 'live', is_draft: false })
+      .eq('id', stream.id);
+
+    if (liveFlipErr) {
+      throw new Error(`Failed to flip stream status to live: ${liveFlipErr.message}`);
+    }
+      
+    stream.status = 'live'; // Update local object so subsequent logic works correctly
+
     } catch (connectErr) {
       // ── ROLLBACK ──────────────────────────────────────────────────────────
       console.warn(
