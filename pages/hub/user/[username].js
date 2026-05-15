@@ -1916,6 +1916,8 @@ export default function UserProfilePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuShortcuts, setMenuShortcuts] = useState([]);
   const [showLiveSessionPanel, setShowLiveSessionPanel] = useState(false);
+  const [showViralGrowthPanel, setShowViralGrowthPanel] = useState(false);
+  const [showCrewsPanel, setShowCrewsPanel] = useState(false);
 
   // Load shortcuts: owned pages FIRST, then user favorites
   useEffect(() => {
@@ -3693,58 +3695,33 @@ export default function UserProfilePage() {
           profileExtras={
             currentUser ? (
               <div style={{ padding: '0 12px 8px' }}>
-                {/* ── LIVE SESSION NAV BAR ── */}
-                {isOwnProfile && (
-                  <MenuNavBar
-                    icon={
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M5.636 18.364a9 9 0 0 1 0-12.728" />
-                        <path d="M18.364 5.636a9 9 0 0 1 0 12.728" />
-                        <path d="M8.464 15.536a5 5 0 0 1 0-7.072" />
-                        <path d="M15.536 8.464a5 5 0 0 1 0 7.072" />
-                        <circle cx="12" cy="12" r="1" />
-                      </svg>
-                    }
-                    label="Start Live Session"
-                    sub="Broadcast Your Session"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setShowLiveSessionPanel(true);
-                    }}
-                    accentColor="#3b82f6"
-                  />
-                )}
-
-                {/* ── LIVE SESSIONS NAV BAR ── */}
+                {/* ── LIVE SESSION & BROADCASTING NAV BAR ── */}
                 <MenuNavBar
                   icon={
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="12" r="4" />
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        opacity="0.4"
-                      />
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5.636 18.364a9 9 0 0 1 0-12.728" />
+                      <path d="M18.364 5.636a9 9 0 0 1 0 12.728" />
+                      <path d="M8.464 15.536a5 5 0 0 1 0-7.072" />
+                      <path d="M15.536 8.464a5 5 0 0 1 0 7.072" />
+                      <circle cx="12" cy="12" r="1" />
                     </svg>
                   }
-                  label="Live Sessions"
-                  sub="Friends At The Table Right Now"
-                  href="/hub/social-media"
-                  onClick={() => setMenuOpen(false)}
-                  accentColor="#22c55e"
+                  label={isOwnProfile ? 'Live Sessions & Broadcast' : 'Live Sessions'}
+                  sub="View Active Tables & Broadcast"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setShowLiveSessionPanel(true);
+                  }}
+                  accentColor="#3b82f6"
                   badge="Live"
                 />
 
@@ -3768,8 +3745,10 @@ export default function UserProfilePage() {
                     }
                     label="Viral Growth"
                     sub="Invite Friends & Earn Diamonds"
-                    href="/hub/profile-edit"
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowViralGrowthPanel(true);
+                    }}
                     accentColor="#06b6d4"
                   />
                 )}
@@ -3796,8 +3775,10 @@ export default function UserProfilePage() {
                     }
                     label="Your Crews"
                     sub="Team Up & Compete"
-                    href="/hub/social-media"
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowCrewsPanel(true);
+                    }}
                     accentColor="#38bdf8"
                   />
                 )}
@@ -3806,8 +3787,8 @@ export default function UserProfilePage() {
           }
         />
 
-        {/* Live Session Panel — opens from hamburger menu "Start Live Session" */}
-        {showLiveSessionPanel && isOwnProfile && currentUser && (
+        {/* Live Session Panel — opens from hamburger menu */}
+        {showLiveSessionPanel && currentUser && (
           <div
             onClick={(e) => {
               if (e.target === e.currentTarget) setShowLiveSessionPanel(false);
@@ -3842,7 +3823,7 @@ export default function UserProfilePage() {
                   marginBottom: 16,
                 }}
               >
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>Live Session</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>Live Sessions</div>
                 <button
                   onClick={() => setShowLiveSessionPanel(false)}
                   style={{
@@ -3859,8 +3840,124 @@ export default function UserProfilePage() {
                   ✕
                 </button>
               </div>
-              <LiveSessionToggle currentUser={currentUser} />
+              {isOwnProfile && <LiveSessionToggle currentUser={currentUser} />}
               <LiveActivityFeed currentUser={currentUser} />
+            </div>
+          </div>
+        )}
+
+        {/* Viral Growth Panel — opens from hamburger menu */}
+        {showViralGrowthPanel && isOwnProfile && currentUser && (
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowViralGrowthPanel(false);
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              zIndex: 10200,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 480,
+                background: '#0d1f3c',
+                borderRadius: '16px 16px 0 0',
+                padding: 20,
+                paddingBottom: 40,
+                border: '1px solid rgba(59,130,246,0.3)',
+                boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>Viral Growth</div>
+                <button
+                  onClick={() => setShowViralGrowthPanel(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: 'none',
+                    color: '#fff',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <ViralGrowthModule currentUser={currentUser} />
+            </div>
+          </div>
+        )}
+
+        {/* Crews Panel — opens from hamburger menu */}
+        {showCrewsPanel && isOwnProfile && currentUser && (
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowCrewsPanel(false);
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              zIndex: 10200,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 480,
+                background: '#0d1f3c',
+                borderRadius: '16px 16px 0 0',
+                padding: 20,
+                paddingBottom: 40,
+                border: '1px solid rgba(59,130,246,0.3)',
+                boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>Your Crews</div>
+                <button
+                  onClick={() => setShowCrewsPanel(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: 'none',
+                    color: '#fff',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <CrewDashboard currentUser={currentUser} />
             </div>
           </div>
         )}
