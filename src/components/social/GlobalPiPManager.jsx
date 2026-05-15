@@ -92,31 +92,33 @@ export default function GlobalPiPManager() {
     };
 
     const handleEndOrLeave = async () => {
-        // BUG-FIX-13: mark dismissed FIRST before any async work so the
-        // polling interval can't re-activate PiP during the async leave.
-        dismissedRef.current = true;
-        setIsActive(false);
         if (streamContext?.isBroadcaster) {
-            if (!confirm('End your live stream?')) {
-                dismissedRef.current = false; // user cancelled — allow reactivation
-                return;
-            }
+            // AUDIT-FIX: only set dismissed+inactive AFTER the user confirms.
+            // Previously setIsActive(false) fired unconditionally before the
+            // confirm() call, so the PiP widget disappeared on every X tap —
+            // even when the broadcaster clicked "Cancel". A 1s polling cycle
+            // would eventually restore it, but the flash was confusing and a
+            // broadcaster could miss their stream position on the screen.
+            if (!confirm('End your live stream?')) return; // user cancelled — PiP stays visible
+            dismissedRef.current = true;
+            setIsActive(false);
             try {
                 await liveStreamService.endBroadcast();
             } catch (err) {
                 console.warn('[GlobalPiP] Failed to end cleanly:', err);
             } finally {
-                // Null stream state so polling stays quiet
                 liveStreamService.currentStreamId = null;
                 liveStreamService.room = null;
             }
         } else {
+            // Viewers: no confirm needed — just leave immediately.
+            dismissedRef.current = true;
+            setIsActive(false);
             try {
                 await liveStreamService.leaveStream();
             } catch (err) {
                 console.warn('[GlobalPiP] Failed to leave cleanly:', err);
             } finally {
-                // BUG-FIX-13: null stream state so polling stays quiet
                 liveStreamService.currentStreamId = null;
                 liveStreamService.room = null;
             }
