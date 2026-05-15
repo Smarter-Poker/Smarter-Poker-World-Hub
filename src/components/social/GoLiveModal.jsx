@@ -681,6 +681,13 @@ export function GoLiveModal({
       const ctx = canvas.getContext('2d');
       const draw = () => {
         if (cancelled || !beautyCanvasRef.current) return;
+        // GAP-3 AUDIT FIX: skip frames while video metadata hasn't loaded.
+        // drawImage() on an unready video element produces a black frame —
+        // beauty canvas would replace the published track with solid black.
+        if (video.readyState < 2 || !video.videoWidth) {
+          beautyAnimFrameRef.current = requestAnimationFrame(draw);
+          return;
+        }
         if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
@@ -1178,6 +1185,11 @@ export function GoLiveModal({
   };
 
   const startRecording = () => {
+    // GAP-1 AUDIT FIX: guests must not record. Only the primary broadcaster
+    // owns the live_streams row and has write access to live-recordings bucket.
+    // A guest recording would either 403 on upload or create an orphaned artifact
+    // with no valid stream_id linkage.
+    if (guestMode) return;
     if (!streamRef.current) return;
     recordedChunksRef.current = [];
     const types = [
@@ -1201,6 +1213,25 @@ export function GoLiveModal({
     // localStream always reflects the current live published stream; fall back to
     // streamRef.current if the service stream isn't available yet.
     const recordingStream = liveStreamService.localStream || streamRef.current;
+    // GAP-5 AUDIT FIX: validate that a live video track exists before starting.
+    // If beauty canvas crashed silently, localStream may have no video tracks,
+    // producing an audio-only recording that the user would see as broken video.
+    const videoTracks = recordingStream.getVideoTracks();
+    if (!videoTracks.length || videoTracks[0].readyState === 'ended') {
+      console.warn('[GoLive] startRecording: no live video track on recording stream — using raw camera fallback');
+      // Fall back to raw camera stream which always has a live video track
+      const fallback = streamRef.current;
+      if (!fallback || !fallback.getVideoTracks().length) {
+        setRecordingFailed(true);
+        return;
+      }
+      const mr2 = new MediaRecorder(fallback, { mimeType: mime, videoBitsPerSecond: 2500000 });
+      mr2.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+      mr2.onstop = () => setRecordedBlob(new Blob(recordedChunksRef.current, { type: mime }));
+      mr2.start(1000);
+      mediaRecorderRef.current = mr2;
+      return;
+    }
     const mr = new MediaRecorder(recordingStream, {
       mimeType: mime,
       videoBitsPerSecond: 2500000,
@@ -1286,11 +1317,16 @@ export function GoLiveModal({
           onClose?.();
         }
       };
-      // BUG-FIX-2: re-attach guest camera tracks as they arrive post-publish
+      // BUG-FIX-2 + AUDIT-GAP-2: re-attach guest camera tracks as they arrive post-publish.
+      // Previous impl spread [...prev] which is a no-op re-render — React may bail if
+      // participant identities haven't changed. Pull the live list from the room directly
+      // so the video ref callback fires and track.attach(el) is called on the new track.
       liveStreamService.onTrackAdded = (mediaStream, kind) => {
-        if (!guestMode && kind === 'video' && videoRef.current) {
-          // Force re-attach if a new video track arrives (e.g. guest joins)
-          setParticipants((prev) => [...prev]);
+        if (!guestMode && kind === 'video') {
+          const fresh = Array.from(
+            liveStreamService.room?.remoteParticipants?.values() ?? []
+          );
+          setParticipants(fresh);
         }
       };
       liveStreamService.onReconnecting = () => {
