@@ -288,11 +288,11 @@ export const VIP_FEATURE_MATRIX = {
   // Club Commander
   // ═══════════════════════════════════════════════════════════════
   'club-commander': {
-    page: '/hub/commander',
+    page: 'https://commander.smarter.poker/commander/login',
     gate: 'VIP',
     free: [],
     vip: ['Full club management', 'Tournament director', 'Staff management', 'Analytics'],
-    currentState: 'Requires Club Commander subscription (separate Stripe product)',
+    currentState: 'Requires Club Commander subscription (separate Stripe product) — standalone app at commander.smarter.poker',
   },
 
   // ═══════════════════════════════════════════════════════════════
