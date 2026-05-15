@@ -25,6 +25,7 @@ import {
   acquireMediaStream,
   releaseMediaStream,
   getCachedMediaStream,
+  hasMediaPermissionGrant,
 } from '../../lib/mediaStreamSingleton';
 import StreamPreviewCapture from '../../lib/streamPreviewCapture';
 import { getAccessToken } from '../../lib/authUtils';
@@ -1028,7 +1029,9 @@ export function GoLiveModal({
         streamRef.current = cached;
         if (videoRef.current) {
           videoRef.current.srcObject = cached;
-          try { await videoRef.current.play(); } catch (_) {}
+          try {
+            await videoRef.current.play();
+          } catch (_) {}
         }
         setStage('preview');
         setError('');
@@ -1044,7 +1047,9 @@ export function GoLiveModal({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        try { await videoRef.current.play(); } catch (_) {}
+        try {
+          await videoRef.current.play();
+        } catch (_) {}
       }
       setStage('preview');
       setError('');
@@ -1060,7 +1065,9 @@ export function GoLiveModal({
         if (!mediaAccessMountedRef.current) return;
         const vEl = videoRef.current;
         if (vEl && vEl.readyState < 2 && !vEl.videoWidth) {
-          console.warn('[GoLive] Black-frame watchdog: no decoded frame after 3s — re-acquiring camera');
+          console.warn(
+            '[GoLive] Black-frame watchdog: no decoded frame after 3s — re-acquiring camera'
+          );
           // Force-release the singleton so acquireMediaStream gets a fresh track
           releaseMediaStream({ force: true });
           // Re-request from scratch (may briefly show black, then correct itself)
@@ -1070,7 +1077,9 @@ export function GoLiveModal({
             streamRef.current = freshStream;
             if (videoRef.current) {
               videoRef.current.srcObject = freshStream;
-              try { await videoRef.current.play(); } catch (_) {}
+              try {
+                await videoRef.current.play();
+              } catch (_) {}
             }
             detectAndApplyZoom(freshStream);
           } catch (e) {
@@ -1218,7 +1227,9 @@ export function GoLiveModal({
     // producing an audio-only recording that the user would see as broken video.
     const videoTracks = recordingStream.getVideoTracks();
     if (!videoTracks.length || videoTracks[0].readyState === 'ended') {
-      console.warn('[GoLive] startRecording: no live video track on recording stream — using raw camera fallback');
+      console.warn(
+        '[GoLive] startRecording: no live video track on recording stream — using raw camera fallback'
+      );
       // Fall back to raw camera stream which always has a live video track
       const fallback = streamRef.current;
       if (!fallback || !fallback.getVideoTracks().length) {
@@ -1226,7 +1237,9 @@ export function GoLiveModal({
         return;
       }
       const mr2 = new MediaRecorder(fallback, { mimeType: mime, videoBitsPerSecond: 2500000 });
-      mr2.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+      mr2.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
       mr2.onstop = () => setRecordedBlob(new Blob(recordedChunksRef.current, { type: mime }));
       mr2.start(1000);
       mediaRecorderRef.current = mr2;
@@ -1243,8 +1256,6 @@ export function GoLiveModal({
     mr.start(1000);
     mediaRecorderRef.current = mr;
   };
-
-
 
   const handleGoLive = async () => {
     // #3/#11: Prevent double-tap / double-broadcast on slow networks
@@ -1323,9 +1334,7 @@ export function GoLiveModal({
       // so the video ref callback fires and track.attach(el) is called on the new track.
       liveStreamService.onTrackAdded = (mediaStream, kind) => {
         if (!guestMode && kind === 'video') {
-          const fresh = Array.from(
-            liveStreamService.room?.remoteParticipants?.values() ?? []
-          );
+          const fresh = Array.from(liveStreamService.room?.remoteParticipants?.values() ?? []);
           setParticipants(fresh);
         }
       };
@@ -1481,7 +1490,10 @@ export function GoLiveModal({
             .subscribe();
           guestViewerCountChannelRef.current = guestVCCh;
         } catch (guestVCErr) {
-          console.warn('[GoLiveModal] guest viewer count subscription failed:', guestVCErr?.message);
+          console.warn(
+            '[GoLiveModal] guest viewer count subscription failed:',
+            guestVCErr?.message
+          );
         }
       }
 
@@ -1597,7 +1609,10 @@ export function GoLiveModal({
     }
 
     // #1: Confirm before ending — prevents accidental stream kills
-    if (!skipConfirm && !confirm('End your live stream? This will stop broadcasting to all viewers.')) {
+    if (
+      !skipConfirm &&
+      !confirm('End your live stream? This will stop broadcasting to all viewers.')
+    ) {
       setIsEnding(false);
       return;
     }
@@ -1804,7 +1819,9 @@ export function GoLiveModal({
       try {
         if (streamRef.current) {
           if (previewCaptureRef.current) {
-            try { previewCaptureRef.current.stop(); } catch (_) {}
+            try {
+              previewCaptureRef.current.stop();
+            } catch (_) {}
           }
           previewCaptureRef.current = new StreamPreviewCapture({
             mediaStream: streamRef.current,
@@ -1819,7 +1836,10 @@ export function GoLiveModal({
           previewCaptureRef.current.start();
         }
       } catch (previewErr) {
-        console.warn('[GoLive/reconnect] preview capture init failed:', previewErr?.message || previewErr);
+        console.warn(
+          '[GoLive/reconnect] preview capture init failed:',
+          previewErr?.message || previewErr
+        );
       }
       timerRef.current = setInterval(() => setElapsedTime((p) => p + 1), 1000);
       toast.success('Reconnected to your live stream!');
@@ -2163,6 +2183,38 @@ export function GoLiveModal({
 
               {/* Camera preview */}
               <div style={{ position: 'relative', background: '#000', aspectRatio: '16/9' }}>
+                {/* BUG-FIX-PERM-1: show appropriate UX copy while waiting for getUserMedia */}
+                {!streamRef.current && !error && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      zIndex: 1,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 24,
+                        height: 24,
+                        border: '3px solid rgba(255,255,255,0.3)',
+                        borderTopColor: 'white',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        marginBottom: 12,
+                      }}
+                    />
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>
+                      {hasMediaPermissionGrant()
+                        ? 'Reconnecting camera...'
+                        : 'Waiting for camera permission...'}
+                    </div>
+                  </div>
+                )}
                 <video
                   ref={videoRef}
                   autoPlay
@@ -2194,6 +2246,7 @@ export function GoLiveModal({
                     borderRadius: 6,
                     fontSize: 13,
                     fontWeight: 600,
+                    zIndex: 2,
                   }}
                 >
                   Preview
@@ -2645,51 +2698,51 @@ export function GoLiveModal({
                 {participants
                   .filter((p) => String(p.identity) !== String(user?.id))
                   .map((p, idx) => {
-                  const pubs = Array.from(p.videoTrackPublications.values());
-                  const videoPub = pubs.find((pub) => pub.track);
-                  if (!videoPub) return null;
+                    const pubs = Array.from(p.videoTrackPublications.values());
+                    const videoPub = pubs.find((pub) => pub.track);
+                    if (!videoPub) return null;
 
-                  return (
-                    <div
-                      key={p.identity}
-                      style={{ flex: 1, minHeight: 0, position: 'relative', width: '100%' }}
-                    >
-                      <video
-                        autoPlay
-                        playsInline
-                        muted
-                        ref={(el) => {
-                          if (el && videoPub.track) {
-                            try {
-                              videoPub.track.attach(el);
-                            } catch (e) {}
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
+                    return (
                       <div
-                        style={{
-                          position: 'absolute',
-                          bottom: 12,
-                          left: 12,
-                          background: 'rgba(0,0,0,0.6)',
-                          padding: '4px 8px',
-                          borderRadius: 4,
-                          color: 'white',
-                          fontSize: 12,
-                        }}
+                        key={p.identity}
+                        style={{ flex: 1, minHeight: 0, position: 'relative', width: '100%' }}
                       >
-                        {p.name || 'Guest'}
+                        <video
+                          autoPlay
+                          playsInline
+                          muted
+                          ref={(el) => {
+                            if (el && videoPub.track) {
+                              try {
+                                videoPub.track.attach(el);
+                              } catch (e) {}
+                            }
+                          }}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: 12,
+                            left: 12,
+                            background: 'rgba(0,0,0,0.6)',
+                            padding: '4px 8px',
+                            borderRadius: 4,
+                            color: 'white',
+                            fontSize: 12,
+                          }}
+                        >
+                          {p.name || 'Guest'}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
 
               {/* Reconnect overlay (initial 60s — auto-recovery in progress) */}

@@ -137,6 +137,17 @@ export async function acquireMediaStream(opts = {}) {
         }
       }
       cachedStream = stream;
+      // BUG-FIX-PERM-1: persist the fact that the user granted camera+mic so
+      // subsequent GoLive modal opens can show "Reconnecting camera..." instead
+      // of the permission-request copy — avoids the UX feeling like a re-ask.
+      // localStorage survives page reloads on the same device/browser.
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('sp_media_granted', '1');
+        }
+      } catch (_) {
+        /* Safari private mode — non-fatal */
+      }
       // If a track ends asynchronously (user revokes permission while backgrounded),
       // drop our cache so the next acquire re-requests cleanly.
       stream.getTracks().forEach((t) => {
@@ -168,7 +179,9 @@ export function releaseMediaStream({ force = false } = {}) {
   if (!force) return;
   if (cachedStream) {
     cachedStream.getTracks().forEach((t) => {
-      try { t.stop(); } catch (_) {}
+      try {
+        t.stop();
+      } catch (_) {}
     });
     cachedStream = null;
   }
@@ -189,7 +202,25 @@ export function getCachedMediaStream() {
  */
 export function setTrackEnabled(kind, enabled) {
   if (!cachedStream) return;
-  cachedStream.getTracks()
+  cachedStream
+    .getTracks()
     .filter((t) => t.kind === kind)
-    .forEach((t) => { t.enabled = enabled; });
+    .forEach((t) => {
+      t.enabled = enabled;
+    });
+}
+
+/**
+ * BUG-FIX-PERM-1: Returns true if the user has previously granted camera+mic
+ * access on this device/browser (stored in localStorage after first successful
+ * getUserMedia). Used by GoLiveModal to show "Reconnecting camera..." instead
+ * of the permission-request prompt on re-opens — so it doesn't FEEL like
+ * they're being asked again even though getUserMedia is still called internally.
+ */
+export function hasMediaPermissionGrant() {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('sp_media_granted') === '1';
+  } catch (_) {
+    return false;
+  }
 }

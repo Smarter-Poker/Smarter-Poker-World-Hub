@@ -332,14 +332,50 @@ class LiveStreamService {
     // 2. Update record with LiveKit room name (= stream id)
     await supabase.from('live_streams').update({ livekit_room: stream.id }).eq('id', stream.id);
 
-    // 3. Get LiveKit token and connect
-    const { token, url } = await this._getToken(stream.id, true);
-    await this._connectRoom(url, token, true, mediaStream);
+    // BUG-FIX-GHOST-STREAM: Steps 3–6 wrapped in try/catch so that if LiveKit
+    // connection fails (e.g. invalid API key, network error), we immediately
+    // rollback: delete the DB row and the premature feed post. Previously a
+    // connection failure left status='live' forever — viewers saw the live card,
+    // got notifications, but the broadcaster had no actual connection.
+    try {
+      // 3. Get LiveKit token and connect
+      const { token, url } = await this._getToken(stream.id, true);
+      await this._connectRoom(url, token, true, mediaStream);
+    } catch (connectErr) {
+      // ── ROLLBACK ──────────────────────────────────────────────────────────
+      console.warn(
+        '[LiveStream] _connectRoom failed — rolling back stream row:',
+        connectErr?.message || connectErr
+      );
+      try {
+        const rollbackToken = getAccessToken();
+        fetch('/api/live/end-stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(rollbackToken ? { Authorization: `Bearer ${rollbackToken}` } : {}),
+          },
+          credentials: 'same-origin',
+          keepalive: true,
+          body: JSON.stringify({ stream_id: stream.id, action: 'delete' }),
+        }).catch(() => {});
+      } catch (_) {}
+      // Clear localStorage so orphan-detect doesn't offer a resume
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.removeItem('liveBroadcasterState');
+      } catch (_) {}
+      // Reset service state so the next attempt starts clean
+      this.currentStreamId = null;
+      this.isBroadcaster = false;
+      this.localStream = null;
+      // Re-throw so GoLiveModal catches it and shows the error to the user
+      throw connectErr;
+    }
 
-    // 4. Subscribe to viewer count changes
+    // 4. Subscribe to viewer count changes (only after confirmed connection)
     this._subscribeToViewers(stream.id);
 
-    // 5. Notify followers
+    // 5. Notify followers (only after confirmed connection)
     this._notifyFollowers(userId, title || 'Live Stream', stream.id);
 
     // 6. Create feed post so the live stream appears in the news feed
@@ -1201,14 +1237,17 @@ class LiveStreamService {
     this._viewerHeartbeatStreamId = streamId;
     this._viewerHeartbeatTimer = setInterval(() => {
       if (this._viewerHeartbeatStreamId !== streamId) return;
-      supabase.rpc('fn_heartbeat_live_viewer', { p_stream_id: streamId }).then(({ error }) => {
-        if (error) throw new Error(error.message);
-      }).catch((err) => {
-        // Non-fatal — next tick retries. If the RPC vanishes
-        // (DB rollback), the user is still in the room, they
-        // just risk being pruned by the 5-min cleanup.
-        console.warn('[LiveStream] viewer heartbeat:', err?.message || err);
-      });
+      supabase
+        .rpc('fn_heartbeat_live_viewer', { p_stream_id: streamId })
+        .then(({ error }) => {
+          if (error) throw new Error(error.message);
+        })
+        .catch((err) => {
+          // Non-fatal — next tick retries. If the RPC vanishes
+          // (DB rollback), the user is still in the room, they
+          // just risk being pruned by the 5-min cleanup.
+          console.warn('[LiveStream] viewer heartbeat:', err?.message || err);
+        });
     }, 30_000);
   }
 
@@ -1247,14 +1286,17 @@ class LiveStreamService {
     // survives as long as any heartbeat lands within the 300s window.
     const ping = async () => {
       if (this._broadcasterHeartbeatStreamId !== streamId) return;
-      
+
       let token = null;
       try {
-        token = typeof getFreshAccessToken === 'function' ? await getFreshAccessToken() : getAccessToken();
+        token =
+          typeof getFreshAccessToken === 'function'
+            ? await getFreshAccessToken()
+            : getAccessToken();
       } catch (err) {
         token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       }
-      
+
       fetch('/api/live/heartbeat', {
         method: 'POST',
         headers: {

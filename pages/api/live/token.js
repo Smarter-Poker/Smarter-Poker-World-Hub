@@ -22,9 +22,18 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-  const apiKey = process.env.LIVEKIT_API_KEY?.trim();
-  const apiSecret = process.env.LIVEKIT_API_SECRET?.trim();
-  const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL?.trim();
+  // BUG-FIX-TOKEN-1: strip literal \n/\r sequences that get embedded when env vars
+  // are copy-pasted from .env files into the Vercel dashboard. These two-char sequences
+  // (backslash + n) are NOT stripped by .trim() which only removes real whitespace.
+  // A dirty key here makes every JWT invalid → LiveKit rejects with "invalid api key".
+  const sanitizeEnv = (v) =>
+    (v || '')
+      .replace(/\\n|\\r/g, '')
+      .replace(/[\r\n]/g, '')
+      .trim();
+  const apiKey = sanitizeEnv(process.env.LIVEKIT_API_KEY);
+  const apiSecret = sanitizeEnv(process.env.LIVEKIT_API_SECRET);
+  const livekitUrl = sanitizeEnv(process.env.NEXT_PUBLIC_LIVEKIT_URL);
 
   if (!apiKey || !apiSecret || !livekitUrl) {
     return res.status(503).json({
