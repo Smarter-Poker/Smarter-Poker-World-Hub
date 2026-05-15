@@ -623,6 +623,103 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MenuNavBar — Compact clickable row for hamburger menu profile extras
+// Renders like "View Profile" / "Edit Profile" nav bars
+// ─────────────────────────────────────────────────────────────────────────────
+function MenuNavBar({ icon, label, sub, href, onClick, accentColor = '#3b82f6', badge = null }) {
+  const [hovered, setHovered] = React.useState(false);
+  const baseStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '11px 12px',
+    borderRadius: 10,
+    background: hovered ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
+    textDecoration: 'none',
+    color: 'inherit',
+    cursor: 'pointer',
+    transition: 'background 0.15s',
+    width: '100%',
+    border: 'none',
+    fontFamily: 'inherit',
+    textAlign: 'left',
+    marginBottom: 2,
+  };
+  const iconWrap = (
+    <div
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        flexShrink: 0,
+        background: `${accentColor}22`,
+        border: `1px solid ${accentColor}44`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: accentColor,
+      }}
+    >
+      {icon}
+    </div>
+  );
+  const textWrap = (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: '#E4E6EB', lineHeight: 1.2 }}>
+        {label}
+      </div>
+      {sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+  const rightSide = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+      {badge && (
+        <span
+          style={{
+            background: accentColor,
+            color: '#fff',
+            borderRadius: 10,
+            padding: '2px 7px',
+            fontSize: 10,
+            fontWeight: 700,
+          }}
+        >
+          {badge}
+        </span>
+      )}
+      <span style={{ color: '#94a3b8', fontSize: 16 }}>›</span>
+    </div>
+  );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={onClick}
+        style={baseStyle}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {iconWrap}
+        {textWrap}
+        {rightSide}
+      </Link>
+    );
+  }
+  return (
+    <button
+      onClick={onClick}
+      style={baseStyle}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {iconWrap}
+      {textWrap}
+      {rightSide}
+    </button>
+  );
+}
+
 // Poker Resume Badge - Always shows, with placeholder if no HendonMob linked
 function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
   const hasHendon = hendonData?.hendon_url;
@@ -827,7 +924,9 @@ function ProfileVideoCard({ url, postId, thumbnailUrl, style = {} }) {
 
   const ytId = getYtId(url);
   const isYouTube = !!ytId;
-  const resolvedThumbnail = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : thumbnailUrl;
+  const resolvedThumbnail = ytId
+    ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+    : thumbnailUrl;
 
   const handleClick = () => {
     if (postId) router.push(`/hub/reels?id=${postId}`);
@@ -1158,8 +1257,6 @@ function PostCard({
         position: 'relative',
       }}
     >
-
-
       <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
         <div style={{ position: 'relative', display: 'inline-block' }}>
           <img
@@ -1261,7 +1358,11 @@ function PostCard({
           <div>
             {post.media_urls.length === 1 ? (
               post.content_type === 'video' ? (
-                <ProfileVideoCard url={post.media_urls[0]} postId={post.id} thumbnailUrl={post.thumbnail_url} />
+                <ProfileVideoCard
+                  url={post.media_urls[0]}
+                  postId={post.id}
+                  thumbnailUrl={post.thumbnail_url}
+                />
               ) : (
                 <img
                   src={post.media_urls[0]}
@@ -1813,6 +1914,99 @@ export default function UserProfilePage() {
   const pullStartY = useRef(null);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuShortcuts, setMenuShortcuts] = useState([]);
+  const [showLiveSessionPanel, setShowLiveSessionPanel] = useState(false);
+
+  // Load shortcuts: owned pages FIRST, then user favorites
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    let mounted = true;
+    const loadShortcuts = async () => {
+      try {
+        const shortcuts = [];
+        const seenIds = new Set();
+
+        // 1. Pull owned pages from API (clubs, home games, charities, casinos)
+        try {
+          const pagesRes = await fetch(`/api/social/pages?owner_id=${currentUser.id}`);
+          if (pagesRes.ok) {
+            const pagesJson = await pagesRes.json();
+            if (pagesJson.success && pagesJson.data) {
+              for (const page of pagesJson.data) {
+                if (!seenIds.has(`page-${page.id}`)) {
+                  seenIds.add(`page-${page.id}`);
+                  shortcuts.push({
+                    id: `page-${page.id}`,
+                    name: page.name,
+                    avatar_url: page.avatar_url || null,
+                    href:
+                      page.page_type === 'home_game'
+                        ? `/hub/home-games/${page.slug || page.id}`
+                        : page.page_type === 'club'
+                          ? `/hub/commander`
+                          : `/hub/social-pages/${page.id}`,
+                    isArena: page.page_type === 'club',
+                    page: {
+                      id: page.id,
+                      name: page.name,
+                      avatar_url: page.avatar_url,
+                      page_type: page.page_type || 'club',
+                    },
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[Shortcuts] owned pages error:', e);
+        }
+
+        // 2. Pull favorite venues from Supabase (poker_near_me_favorites)
+        try {
+          const { data: favs } = await supabase
+            .from('poker_near_me_favorites')
+            .select('venue_id, venue_name')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false })
+            .limit(6);
+          if (favs && favs.length > 0) {
+            for (const fav of favs) {
+              const key = `fav-${fav.venue_id}`;
+              if (seenIds.has(key)) continue;
+              seenIds.add(key);
+              // Try to get venue logo from social pages API
+              let avatarUrl = null;
+              try {
+                const vpRes = await fetch(`/api/public/venue/${fav.venue_id}`);
+                if (vpRes.ok) {
+                  const vpData = await vpRes.json();
+                  avatarUrl = vpData?.profile_photo_url || vpData?.logo_url || null;
+                }
+              } catch (_) {}
+              shortcuts.push({
+                id: key,
+                name: fav.venue_name || 'Venue',
+                avatar_url: avatarUrl,
+                href: `/hub/poker-near-me/${fav.venue_id}`,
+                isArena: false,
+                page: null,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('[Shortcuts] favorites error:', e);
+        }
+
+        if (mounted) setMenuShortcuts(shortcuts);
+      } catch (e) {
+        console.warn('[Shortcuts] load error:', e);
+      }
+    };
+    loadShortcuts();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?.id]);
 
   // Poker Activity state
   const [pokerCheckins, setPokerCheckins] = useState([]);
@@ -3495,29 +3689,181 @@ export default function UserProfilePage() {
           user={currentUser}
           showProfile={true}
           menuItems={getMenuConfig('profile').menuItems}
+          shortcuts={menuShortcuts}
           profileExtras={
             currentUser ? (
-              <div style={{ padding: '0 12px 16px' }}>
+              <div style={{ padding: '0 12px 8px' }}>
+                {/* ── LIVE SESSION NAV BAR ── */}
                 {isOwnProfile && (
-                  <div style={{ marginBottom: 16 }}>
-                    <LiveSessionToggle currentUser={currentUser} />
-                  </div>
+                  <MenuNavBar
+                    icon={
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M5.636 18.364a9 9 0 0 1 0-12.728" />
+                        <path d="M18.364 5.636a9 9 0 0 1 0 12.728" />
+                        <path d="M8.464 15.536a5 5 0 0 1 0-7.072" />
+                        <path d="M15.536 8.464a5 5 0 0 1 0 7.072" />
+                        <circle cx="12" cy="12" r="1" />
+                      </svg>
+                    }
+                    label="Start Live Session"
+                    sub="Broadcast Your Session"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowLiveSessionPanel(true);
+                    }}
+                    accentColor="#3b82f6"
+                  />
                 )}
-                <div style={{ marginBottom: 16 }}>
-                  <LiveActivityFeed currentUser={currentUser} />
-                </div>
+
+                {/* ── LIVE SESSIONS NAV BAR ── */}
+                <MenuNavBar
+                  icon={
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="12" r="4" />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        opacity="0.4"
+                      />
+                    </svg>
+                  }
+                  label="Live Sessions"
+                  sub="Friends At The Table Right Now"
+                  href="/hub/social-media"
+                  onClick={() => setMenuOpen(false)}
+                  accentColor="#22c55e"
+                  badge="Live"
+                />
+
+                {/* ── VIRAL GROWTH NAV BAR ── */}
                 {isOwnProfile && (
-                  <>
-                    <div style={{ marginBottom: 16 }}>
-                      <ViralGrowthModule currentUser={currentUser} />
-                    </div>
-                    <CrewDashboard currentUser={currentUser} />
-                  </>
+                  <MenuNavBar
+                    icon={
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M22 2L11 13" />
+                        <path d="M22 2L15 22l-4-9-9-4 19-7z" />
+                      </svg>
+                    }
+                    label="Viral Growth"
+                    sub="Invite Friends & Earn Diamonds"
+                    href="/hub/profile-edit"
+                    onClick={() => setMenuOpen(false)}
+                    accentColor="#06b6d4"
+                  />
+                )}
+
+                {/* ── YOUR CREWS NAV BAR ── */}
+                {isOwnProfile && (
+                  <MenuNavBar
+                    icon={
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    }
+                    label="Your Crews"
+                    sub="Team Up & Compete"
+                    href="/hub/social-media"
+                    onClick={() => setMenuOpen(false)}
+                    accentColor="#38bdf8"
+                  />
                 )}
               </div>
             ) : null
           }
         />
+
+        {/* Live Session Panel — opens from hamburger menu "Start Live Session" */}
+        {showLiveSessionPanel && isOwnProfile && currentUser && (
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowLiveSessionPanel(false);
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              zIndex: 10200,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 480,
+                background: '#0d1f3c',
+                borderRadius: '16px 16px 0 0',
+                padding: 20,
+                paddingBottom: 40,
+                border: '1px solid rgba(59,130,246,0.3)',
+                boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>Live Session</div>
+                <button
+                  onClick={() => setShowLiveSessionPanel(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: 'none',
+                    color: '#fff',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <LiveSessionToggle currentUser={currentUser} />
+              <LiveActivityFeed currentUser={currentUser} />
+            </div>
+          </div>
+        )}
 
         {/* Pull-to-Refresh Indicator */}
         {pullRefreshing && (
@@ -6042,7 +6388,11 @@ export default function UserProfilePage() {
                         key={`${video.id}-${i}`}
                         style={{ overflow: 'hidden', borderRadius: 8, background: '#000' }}
                       >
-                        <ProfileVideoCard url={url} postId={video.id} thumbnailUrl={video.thumbnail_url} />
+                        <ProfileVideoCard
+                          url={url}
+                          postId={video.id}
+                          thumbnailUrl={video.thumbnail_url}
+                        />
                       </div>
                     ));
                   })}
