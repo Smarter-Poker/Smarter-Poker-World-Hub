@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { getAccessToken } from '../../src/lib/authHelpers';
+import { getAccessToken } from '../../lib/authUtils';
 
 // ─── Priority config ───────────────────────────────────────────────────────
 const PRIORITIES = [
