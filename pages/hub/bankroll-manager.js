@@ -506,35 +506,7 @@ export default function BankrollManagerPage() {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 3 REALTIME: Bankroll Data Sync
-  // ═══════════════════════════════════════════════════════════════════════════
-  useEffect(() => {
-    if (!userId) return;
 
-    // Subscribe to changes on relevant bankroll tables
-    const bankrollChannel = supabase
-      .channel(`bankroll:${userId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'bankroll_ledger',
-        filter: `user_id=eq.${userId}`
-      }, () => {
-        loadData();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'bankroll_trips',
-        filter: `user_id=eq.${userId}`
-      }, () => {
-        loadData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(bankrollChannel);
-    };
-  }, [userId, loadData]);
 
   useEffect(() => {
     loadData();
@@ -769,6 +741,7 @@ export default function BankrollManagerPage() {
     const _ch = supabase
       .channel(`bankroll:${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bankroll_ledger', filter: `user_id=eq.${userId}` }, debouncedReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bankroll_trips', filter: `user_id=eq.${userId}` }, debouncedReload)
       .subscribe();
     return () => {
       if (rtTimerRef.current) clearTimeout(rtTimerRef.current);
