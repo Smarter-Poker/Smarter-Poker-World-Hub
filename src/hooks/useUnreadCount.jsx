@@ -222,8 +222,10 @@ export function UnreadProvider({ children }) {
             // BroadcastChannel for cross-tab sync (instantly updates other tabs when read)
             const cleanupUnreadSync = listenBroadcast('smarter_poker_unread_sync', (msg) => {
                 if (msg === 'refresh_unread') {
+                    // AUDIT-FIX: only refresh message count here. This broadcast fires when
+                    // a DM is read in another tab. Calling refreshNotifications() was a waste
+                    // — notification count has its own Realtime subscription above.
                     refreshUnread();
-                    refreshNotifications();
                 }
             });
 

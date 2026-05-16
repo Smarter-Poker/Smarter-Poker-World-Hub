@@ -38,7 +38,10 @@ export default async function handler(req, res) {
         const { id, ids } = req.body || {};
         // [Audit#8] filter falsy/empty values — empty string "" has length=1 and bypasses check
         const rawIds = ids || (id ? [id] : []);
-        const deleteIds = rawIds.filter(v => v && typeof v === 'string' && v.trim().length > 0);
+        // AUDIT-FIX: add UUID regex validation (mark-read.js standard). Non-UUID strings
+        // silently returned { deleted: 0, success: true } masking the error to the client.
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const deleteIds = rawIds.filter(v => v && typeof v === 'string' && uuidRe.test(v));
 
         if (!deleteIds.length) {
             return res.status(400).json({ success: false, error: 'No notification id(s) provided' });

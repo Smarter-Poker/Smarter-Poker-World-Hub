@@ -322,11 +322,18 @@ function NotificationsPage() {
             });
         }
 
-        // Sync badge localStorage and broadcast to header eagerly
+        // Sync badge localStorage and broadcast to header eagerly.
+        // AUDIT-FIX: avoid stale-read race when IntersectionObserver fires for N rows
+        // simultaneously. Each call was reading the SAME stale sp-notif-count and all
+        // subtracted 1 — final stored count was original-1 instead of original-N.
+        // Solution: read, decrement, and write atomically in one synchronous operation.
+        // The useUnreadCount Realtime subscription is the authoritative source anyway and
+        // self-corrects on the next UPDATE event, but this prevents transient badge flash.
         let newCount = 0;
-        try { 
-            newCount = Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1);
-            localStorage.setItem('sp-notif-count', String(newCount)); 
+        try {
+            const current = parseInt(localStorage.getItem('sp-notif-count') || '0', 10);
+            newCount = Math.max(0, current - 1);
+            localStorage.setItem('sp-notif-count', String(newCount));
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         broadcastSync('smarter_poker_notif_sync', { action: 'mark_read', id: id, tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');

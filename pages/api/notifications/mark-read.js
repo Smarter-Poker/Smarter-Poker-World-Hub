@@ -31,33 +31,33 @@ export default async function handler(req, res) {
 
       if (ids && Array.isArray(ids) && ids.length > 0) {
         // BUG-32 FIX: Batch mark specific IDs as read (sent by social-media dropdown).
-        // Previous code had no 'ids' path — fell through to mark ALL, incorrectly
-        // clearing every notification when the user just opened the dropdown briefly.
-        // Validate: each id must be a valid UUID and belong to the requesting user.
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const safeIds = ids.filter(id => typeof id === 'string' && uuidRe.test(id)).slice(0, 200);
         if (safeIds.length > 0) {
-          // BUG-33 FIX: Also sync is_read=true so legacy queries stay consistent
-          await getSupabase()
+          // AUDIT-FIX: capture { error } — Supabase SDK never throws on query errors
+          const { error: batchErr } = await getSupabase()
             .from('notifications')
             .update({ read: true, is_read: true })
             .in('id', safeIds)
-            .eq('user_id', user.id);  // user_id guard prevents marking other users' notifications
+            .eq('user_id', user.id);
+          if (batchErr) throw new Error('[mark-read] batch update failed: ' + batchErr.message);
         }
       } else if (notificationId) {
-        // Mark single notification — also sync is_read (BUG-33 FIX)
-        await getSupabase()
+        // AUDIT-FIX: capture { error } on single-ID update
+        const { error: singleErr } = await getSupabase()
           .from('notifications')
           .update({ read: true, is_read: true })
           .eq('id', notificationId)
           .eq('user_id', user.id);
+        if (singleErr) throw new Error('[mark-read] single update failed: ' + singleErr.message);
       } else {
-        // Mark ALL unread — catch rows where EITHER flag indicates unread
-        await getSupabase()
+        // AUDIT-FIX: capture { error } on mark-all update
+        const { error: allErr } = await getSupabase()
           .from('notifications')
           .update({ read: true, is_read: true })
           .eq('user_id', user.id)
           .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
+        if (allErr) throw new Error('[mark-read] mark-all update failed: ' + allErr.message);
       }
 
       // Invalidate server-side feed cache so next fetch reflects updated read state

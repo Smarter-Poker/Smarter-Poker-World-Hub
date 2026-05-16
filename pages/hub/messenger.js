@@ -2577,20 +2577,25 @@ function MessengerPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
 
-    // Reload conversations and clear active chat when switching identity contexts (Personal <-> Club)
-    useEffect(() => {
-        if (!user?.id) return;
-        setActiveConversation(null);
-        setMessages([]);
-        setConversations([]);
-        loadConversationsRef.current?.(user.id);
-    }, [isClubMode, clubPage?.id, user?.id]);
+    // NOTE: Identity-switch reload effect is placed AFTER loadConversationsRef declaration below
 
     // Phase 3: Connection status monitor (navigator.onLine + Supabase health)
     // On reconnect, reload conversations and the active conversation to catch missed messages.
     const goOnlineUserRef = useRef(null);
     const loadConversationsRef = useRef(null);
     const loadMessagesRef = useRef(null);
+
+    // Reload conversations and clear active chat when switching identity contexts (Personal <-> Club)
+    // MUST be placed AFTER loadConversationsRef declaration so the ref exists when the effect fires.
+    useEffect(() => {
+        if (!user?.id) return;
+        setActiveConversation(null);
+        setMessages([]);
+        setConversations([]);
+        // loadConversationsRef.current is set later in the render body (line ~3694)
+        // but effects fire post-render, so by the time this callback executes the ref is populated.
+        loadConversationsRef.current?.(user.id);
+    }, [isClubMode, clubPage?.id, user?.id]);
     useEffect(() => { goOnlineUserRef.current = user; }, [user]);
     useEffect(() => {
         const goOnline = () => {
@@ -5978,10 +5983,16 @@ function MessengerPage() {
                         <div className="no-scrollbar" style={{ padding: '0 16px', marginBottom: 16, marginTop: 4, display: 'flex', gap: 16, overflowX: 'auto', flexShrink: 0 }}>
                             <div onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
                                 <div style={{ 
-                                    padding: 3, 
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: 58,
+                                    height: 58,
                                     borderRadius: '50%', 
                                     border: `2px solid ${!isClubMode ? C.blue : 'transparent'}`,
-                                    transition: 'border-color 0.2s'
+                                    transition: 'border-color 0.2s',
+                                    overflow: 'hidden',
+                                    flexShrink: 0,
                                 }}>
                                     <Avatar src={user?.avatar_url || user?.user_metadata?.avatar_url} name={user?.full_name || user?.user_metadata?.full_name || user?.username || 'Personal'} size={52} showOnline={false} />
                                 </div>
@@ -5991,27 +6002,18 @@ function MessengerPage() {
                             {ownedPages.map(page => (
                                 <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
                                     <div style={{ 
-                                        padding: 3, 
-                                        borderRadius: 8, 
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 58,
+                                        height: 58,
+                                        borderRadius: '50%', 
                                         border: `2px solid ${isClubMode && clubPage?.id === page.id ? C.blue : 'transparent'}`,
-                                        transition: 'border-color 0.2s'
+                                        transition: 'border-color 0.2s',
+                                        overflow: 'hidden',
+                                        flexShrink: 0,
                                     }}>
-                                        {page.avatar_url ? (
-                                            <img 
-                                                src={page.avatar_url} 
-                                                alt={page.name}
-                                                style={{ width: 52, height: 52, borderRadius: 6, objectFit: 'cover' }}
-                                                loading="lazy"
-                                            />
-                                        ) : (
-                                            <div style={{
-                                                width: 52, height: 52, borderRadius: 6, background: '#1877F2',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: 'white', fontWeight: 600, fontSize: 24
-                                            }}>
-                                                {page.name?.[0]?.toUpperCase() || 'C'}
-                                            </div>
-                                        )}
+                                        <Avatar src={page.avatar_url} name={page.name} size={52} showOnline={false} />
                                     </div>
                                     <span style={{ 
                                         fontSize: 12, 

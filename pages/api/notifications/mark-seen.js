@@ -33,24 +33,30 @@ export default async function handler(req, res) {
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const safeIds = ids.filter(id => typeof id === 'string' && uuidRe.test(id)).slice(0, 200);
         if (safeIds.length > 0) {
-          await getSupabase()
+          // AUDIT-FIX: capture { error } — Supabase SDK never throws on query errors
+          const { error: batchErr } = await getSupabase()
             .from('notifications')
             .update({ read: true, is_read: true })
             .in('id', safeIds)
             .eq('user_id', user.id);
+          if (batchErr) throw new Error('[mark-seen] batch update failed: ' + batchErr.message);
         }
       } else if (notificationId) {
-        await getSupabase()
+        // AUDIT-FIX: capture { error } on single-ID update
+        const { error: singleErr } = await getSupabase()
           .from('notifications')
           .update({ read: true, is_read: true })
           .eq('id', notificationId)
           .eq('user_id', user.id);
+        if (singleErr) throw new Error('[mark-seen] single update failed: ' + singleErr.message);
       } else {
-        await getSupabase()
+        // AUDIT-FIX: capture { error } on mark-all update
+        const { error: allErr } = await getSupabase()
           .from('notifications')
           .update({ read: true, is_read: true })
           .eq('user_id', user.id)
           .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
+        if (allErr) throw new Error('[mark-seen] mark-all update failed: ' + allErr.message);
       }
 
       // Invalidate server-side feed cache so next fetch reflects updated read state

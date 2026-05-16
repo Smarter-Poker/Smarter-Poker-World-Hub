@@ -68,9 +68,14 @@ export default async function handler(req, res) {
         const userId = localUser.id;
 
         // ── PRIMARY: fn_get_user_conversations ──
+        // contextEntityId: null = Personal inbox, UUID = Club page inbox
+        const contextEntityId = req.body?.contextEntityId || null;
         const { data: rpcData, error: rpcError } = await getSupabase().rpc(
             'fn_get_user_conversations',
-            { p_user_id: userId }
+            {
+                p_user_id: userId,
+                p_context_entity_id: contextEntityId,
+            }
         );
 
         if (!rpcError) {
