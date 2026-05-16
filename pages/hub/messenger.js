@@ -6013,55 +6013,115 @@ function MessengerPage() {
 
                     {/* Identity Switcher Widgets */}
                     {hasClubPage && (
-                        <div className="no-scrollbar" style={{ padding: '0 16px', marginBottom: 16, marginTop: 4, display: 'flex', gap: 16, overflowX: 'auto', flexShrink: 0 }}>
-                            <div onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
-                                <div style={{ 
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 58,
-                                    height: 58,
-                                    borderRadius: '50%', 
-                                    border: `2px solid ${!isClubMode ? C.blue : 'transparent'}`,
-                                    transition: 'border-color 0.2s',
-                                    overflow: 'hidden',
-                                    flexShrink: 0,
-                                }}>
-                                    <Avatar src={user?.avatar_url || user?.user_metadata?.avatar_url} name={user?.full_name || user?.user_metadata?.full_name || user?.username || 'Personal'} size={52} showOnline={false} />
-                                </div>
-                                <span style={{ fontSize: 12, fontWeight: !isClubMode ? 700 : 500, color: !isClubMode ? C.blue : C.textSec }}>Personal</span>
-                            </div>
-                            
-                            {ownedPages.map(page => (
-                                <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
+                        <div style={{ padding: '0 16px 12px 16px', borderBottom: `1px solid ${C.border}`, marginBottom: 8, flexShrink: 0 }}>
+                            <div className="no-scrollbar" style={{ display: 'flex', gap: 20, overflowX: 'auto', padding: '4px 0 8px 0' }}>
+                                {/* Personal Identity */}
+                                <div onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
                                     <div style={{ 
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        width: 58,
-                                        height: 58,
+                                        width: 60,
+                                        height: 60,
                                         borderRadius: '50%', 
-                                        border: `2px solid ${isClubMode && clubPage?.id === page.id ? C.blue : 'transparent'}`,
-                                        transition: 'border-color 0.2s',
+                                        border: `2px solid ${!isClubMode ? C.blue : 'transparent'}`,
+                                        boxShadow: !isClubMode ? `0 0 10px ${C.blue}44` : 'none',
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                         overflow: 'hidden',
                                         flexShrink: 0,
+                                        background: C.card,
                                     }}>
-                                        <Avatar src={page.avatar_url} name={page.name} size={52} showOnline={false} />
+                                        <Avatar src={user?.avatar_url || user?.user_metadata?.avatar_url} name={user?.full_name || user?.user_metadata?.full_name || user?.username || 'Personal'} size={54} showOnline={false} />
                                     </div>
-                                    <span style={{ 
-                                        fontSize: 12, 
-                                        fontWeight: isClubMode && clubPage?.id === page.id ? 700 : 500, 
-                                        color: isClubMode && clubPage?.id === page.id ? C.blue : C.textSec,
-                                        whiteSpace: 'nowrap',
-                                        maxWidth: 68,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        textAlign: 'center'
-                                    }}>
-                                        {page.name}
-                                    </span>
+                                    <span style={{ fontSize: 11, fontWeight: !isClubMode ? 700 : 500, color: !isClubMode ? C.blue : C.textSec, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Me</span>
+                                    
+                                    {/* Personal Unread Count (Placeholder if needed, usually personal count is in header) */}
+                                    {!isClubMode && totalUnreadCount > 0 && (
+                                        <div style={{ position: 'absolute', top: -2, right: -2, background: '#ef4444', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', border: `2px solid ${C.bg}` }}>
+                                            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
+                                
+                                {ownedPages.map(page => (
+                                    <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
+                                        <div style={{ 
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: 60,
+                                            height: 60,
+                                            borderRadius: '50%', 
+                                            border: `2px solid ${isClubMode && clubPage?.id === page.id ? C.blue : 'transparent'}`,
+                                            boxShadow: isClubMode && clubPage?.id === page.id ? `0 0 12px ${C.blue}66` : 'none',
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            overflow: 'hidden',
+                                            flexShrink: 0,
+                                            background: C.card,
+                                            transform: isClubMode && clubPage?.id === page.id ? 'scale(1.05)' : 'scale(1)',
+                                        }}>
+                                            <Avatar src={page.avatar_url} name={page.name} size={54} showOnline={false} />
+                                        </div>
+                                        
+                                        {/* Entity Type Badge */}
+                                        <div style={{ 
+                                            position: 'absolute', 
+                                            bottom: 18, 
+                                            right: 0, 
+                                            background: C.bg, 
+                                            borderRadius: '50%', 
+                                            width: 18, 
+                                            height: 18, 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center',
+                                            border: `1px solid ${C.border}`,
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                            color: page.page_type === 'home_game' ? '#10b981' : (page.page_type === 'casino' ? '#f59e0b' : C.blue),
+                                        }}>
+                                            {page.page_type === 'home_game' ? <Home size={10} /> : (page.page_type === 'casino' ? <Building size={10} /> : <Crown size={10} />)}
+                                        </div>
+
+                                        <span title={page.name} style={{ 
+                                            fontSize: 11, 
+                                            fontWeight: isClubMode && clubPage?.id === page.id ? 700 : 500, 
+                                            color: isClubMode && clubPage?.id === page.id ? C.blue : C.textSec,
+                                            whiteSpace: 'nowrap',
+                                            maxWidth: 64,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            textAlign: 'center'
+                                        }}>
+                                            {page.name}
+                                        </span>
+
+                                        {/* Unread Badge */}
+                                        {page.unread_count > 0 && (
+                                            <div style={{ position: 'absolute', top: -2, right: -2, background: '#ef4444', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', border: `2px solid ${C.bg}` }}>
+                                                {page.unread_count > 99 ? '99+' : page.unread_count}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Messaging As Banner */}
+                            <div style={{ 
+                                marginTop: 8, 
+                                padding: '6px 12px', 
+                                background: isClubMode ? `${C.blue}15` : `${C.textSec}10`, 
+                                borderRadius: 8, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 8,
+                                border: `1px dashed ${isClubMode ? `${C.blue}44` : 'transparent'}`,
+                                transition: 'all 0.3s ease'
+                            }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: isClubMode ? C.blue : C.textSec, boxShadow: isClubMode ? `0 0 6px ${C.blue}` : 'none' }} />
+                                <span style={{ fontSize: 11, color: isClubMode ? C.blue : C.textSec, fontWeight: 600, letterSpacing: '0.01em' }}>
+                                    {isClubMode ? `MESSAGING AS: ${clubPage?.name.toUpperCase()}` : 'MESSAGING AS: PERSONAL ACCOUNT'}
+                                </span>
+                            </div>
                         </div>
                     )}
 

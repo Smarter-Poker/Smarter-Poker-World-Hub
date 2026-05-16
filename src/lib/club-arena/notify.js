@@ -8,7 +8,7 @@
  *   2. Push notification (via OneSignal /api/notifications/send)
  *
  * Usage:
- *   import { notifyUser, notifyClubAdmins } from '../../src/lib/club-arena/notify';
+ *   import { notifyUser, notifyClubAdmins } from '@/lib/club-arena/notify';
  *   await notifyUser(supabaseAdmin, { userId, type, title, message, data, pushUrl });
  *   await notifyClubAdmins(supabaseAdmin, { clubId, type, title, message, data });
  *

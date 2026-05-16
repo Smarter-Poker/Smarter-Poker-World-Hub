@@ -85,9 +85,9 @@ export function ActiveIdentityProvider({ children }) {
                 // ── Step 3: Always fallback to owner_id lookup ──
                 // This catches freshly registered Commanders who haven't logged into
                 // Commander yet (so commander_staff isn't in localStorage), and also
-                // gets ALL pages the user owns.
+                // gets ALL pages the user owns or is a member of.
                 try {
-                    const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
+                    const res2 = await fetch(`/api/social/pages?owner_id=${userId}&include_memberships=true`);
                     if (mounted && res2.ok) {
                         const json2 = await res2.json();
                         if (json2.success && json2.data && json2.data.length > 0) {
@@ -109,6 +109,7 @@ export function ActiveIdentityProvider({ children }) {
                         name: page.name,
                         avatar_url: page.avatar_url,
                         page_type: page.page_type || 'club',
+                        unread_count: page.unread_count || 0,
                     })));
                     console.debug('[ActiveIdentity] Club pages found:', pagesFound.length);
                 }
@@ -220,7 +221,7 @@ export function ActiveIdentityProvider({ children }) {
                 const authUser = getAuthUser();
                 if (!authUser?.id) return;
                 
-                const res = await fetch(`/api/social/pages?owner_id=${authUser.id}`);
+                const res = await fetch(`/api/social/pages?owner_id=${authUser.id}&include_memberships=true`);
                 if (!mounted || !res.ok) return;
                 const json = await res.json();
                 if (!mounted || !json.success || !json.data) return;
@@ -231,6 +232,7 @@ export function ActiveIdentityProvider({ children }) {
                     name: page.name,
                     avatar_url: page.avatar_url,
                     page_type: page.page_type || 'club',
+                    unread_count: page.unread_count || 0,
                 }));
 
                 const isChanged = JSON.stringify(newOwnedPages) !== JSON.stringify(ownedPages);

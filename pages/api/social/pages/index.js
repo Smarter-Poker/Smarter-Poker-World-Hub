@@ -217,6 +217,8 @@ export default async function handler(req, res) {
               .from('social_pages')
               .select('*');
 
+          const include_memberships = safeP(req.query.include_memberships) === 'true';
+
           // Phase 15: exclude home games from generic directory, except for owner
           if (!owner_id) {
               query = query.neq('page_type', 'home_game');
@@ -230,7 +232,35 @@ export default async function handler(req, res) {
           // produce zero rows — that's intentional. Home-game consumers use
           // /api/public/home-games/discover instead.
           if (page_type) query = query.eq('page_type', page_type);
-          if (owner_id) query = query.eq('owner_id', owner_id);
+          
+          if (owner_id) {
+              if (include_memberships) {
+                  // Advanced Identity Lookup: find pages user owns OR is a member of (as player, agent, etc)
+                  try {
+                      // 1. Get clubs where user is an active member
+                      const { data: memberships } = await getSupabase()
+                          .from('club_members')
+                          .select('club_id')
+                          .eq('user_id', owner_id)
+                          .eq('status', 'active');
+                      
+                      const joinedClubIds = (memberships || []).map(m => m.club_id);
+                      
+                      if (joinedClubIds.length > 0) {
+                          // OR logic: (owner_id = userId) OR (linked_entity_type = 'club' AND linked_entity_id IN (...))
+                          query = query.or(`owner_id.eq.${owner_id},and(linked_entity_type.eq.club,linked_entity_id.in.(${joinedClubIds.join(',')}))`);
+                      } else {
+                          query = query.eq('owner_id', owner_id);
+                      }
+                  } catch (e) {
+                      console.warn('[SocialPages] Membership lookup failed:', e);
+                      query = query.eq('owner_id', owner_id);
+                  }
+              } else {
+                  query = query.eq('owner_id', owner_id);
+              }
+          }
+          
           if (category && category !== 'all') query = query.eq('category', category);
           if (search) query = query.ilike('name', `%${search}%`);
 
@@ -263,6 +293,40 @@ export default async function handler(req, res) {
 
           // Check follow status for each page
           let enriched = data || [];
+
+          // Fix relative avatar URLs (e.g. /hub/club-arena/images/...)
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker';
+          enriched = enriched.map(p => {
+              let avatar = p.avatar_url;
+              if (avatar && avatar.startsWith('/') && !avatar.startsWith('//')) {
+                  avatar = `${siteUrl}${avatar}`;
+              }
+              return { ...p, avatar_url: avatar };
+          });
+
+          // Fetch unread counts if fetching own identities
+          if (owner_id && include_memberships && enriched.length > 0) {
+              try {
+                  const { data: unreadCounts } = await getSupabase().rpc('fn_get_all_identity_unread_counts', {
+                      p_user_id: owner_id
+                  });
+                  
+                  if (unreadCounts) {
+                      const countMap = {};
+                      unreadCounts.forEach(row => {
+                          if (row.entity_id) countMap[row.entity_id] = parseInt(row.unread_total) || 0;
+                      });
+                      
+                      enriched = enriched.map(p => ({
+                          ...p,
+                          unread_count: countMap[p.id] || 0
+                      }));
+                  }
+              } catch (e) {
+                  console.warn('[SocialPages] Failed to fetch unread counts:', e);
+              }
+          }
+
           if (user_id && enriched.length > 0) {
               const pageIds = enriched.map(p => p.id);
               const { data: follows } = await getSupabase()
