@@ -97,7 +97,7 @@ export default async function handler(req, res) {
             const ticketRef = ticketId ? `BUG-${ticketId.substring(0, 8).toUpperCase()}` : `BUG-${Date.now().toString(36).toUpperCase()}`;
 
             await resend.emails.send({
-                from: 'Bug Reports <support@smarter.poker>',
+                from: `Bug Reports <${process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker'}>`,
                 to: ['support@smarter.poker'],
                 replyTo: userEmail !== 'unknown' ? userEmail : undefined,
                 subject: `[${priority.toUpperCase()}] Bug Report: ${subject.trim().substring(0, 80)}`,
