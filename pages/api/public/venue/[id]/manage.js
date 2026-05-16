@@ -207,9 +207,9 @@ async function handlePatch(req, res, venueId, user, manager) {
         }
 
         // Log the update
-        await getSupabase()
-            .from('venue_verification_log')
-            .insert({
+        const { error: err_venue_verification_log_hb4g1 } = await getSupabase()
+          .from('venue_verification_log')
+          .insert({
                 venue_id: parseInt(venueId),
                 action: 'info_updated',
                 performed_by: user.id,
@@ -217,6 +217,7 @@ async function handlePatch(req, res, venueId, user, manager) {
                     fields_updated: Object.keys(filteredUpdates || {}).filter(f => f !== 'updated_at')
                 }
             });
+        if (err_venue_verification_log_hb4g1) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_hb4g1.message);
 
         return res.status(200).json({
             success: true,

@@ -133,11 +133,11 @@ async function processDirectMessages() {
         // Phase 17: Read Receipt — Mark the human's last message as "Seen"
         const lastHumanMsg = [...history].reverse().find(h => h.sender_id !== targetHorseId);
         if (lastHumanMsg && !lastHumanMsg.read_at) {
-            await getSupabase().from('social_messages')
-                .update({ read_at: new Date().toISOString() })
+            const { error: err_social_messages_q5dj9 } = await getSupabase().from('social_messages').update({ read_at: new Date().toISOString() })
                 .eq('conversation_id', convId)
                 .eq('sender_id', lastHumanMsg.sender_id)
                 .is('read_at', null);
+            if (err_social_messages_q5dj9) console.warn('[Supabase] Silent mutation failed in social_messages:', err_social_messages_q5dj9.message);
             console.debug(`   ${horse.name} read the message (Seen)`);
         }
 
@@ -175,12 +175,12 @@ async function processDirectMessages() {
 
         if (!insertErr) {
             // Update conversation preview
-            await getSupabase().from('social_conversations')
-                .update({ 
+            const { error: err_social_conversations_hygyh } = await getSupabase().from('social_conversations').update({ 
                     last_message_preview: replyContent, 
                     updated_at: new Date().toISOString() 
                 })
                 .eq('id', convId);
+            if (err_social_conversations_hygyh) console.warn('[Supabase] Silent mutation failed in social_conversations:', err_social_conversations_hygyh.message);
 
             console.debug(`   ${horse.name} 💬: "${replyContent}" ✓`);
             repliesSent++;

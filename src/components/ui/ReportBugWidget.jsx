@@ -22,7 +22,8 @@ const CATEGORIES = [
     'Other',
 ];
 
-export default function ReportBugWidget({ contextPath }) {
+export default function ReportBugWidget({ contextPath, theme = 'dark' }) {
+    const isLight = theme === 'light';
     const [open, setOpen]               = useState(false);
     const [subject, setSubject]         = useState('');
     const [category, setCategory]       = useState('');
@@ -92,12 +93,30 @@ export default function ReportBugWidget({ contextPath }) {
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     width: '100%', padding: '11px 16px', borderRadius: 10,
-                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.25)',
-                    color: '#e5e7eb', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    background: isLight ? 'transparent' : 'rgba(255,255,255,0.08)',
+                    border: isLight ? '1px solid rgba(0,132,255,0.35)' : '1px solid rgba(255,255,255,0.25)',
+                    color: isLight ? '#0084FF' : '#e5e7eb',
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
                     transition: 'all 0.2s', fontFamily: 'inherit',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.45)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
+                onMouseEnter={e => {
+                    if (isLight) {
+                        e.currentTarget.style.background = 'rgba(0,132,255,0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(0,132,255,0.6)';
+                    } else {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.45)';
+                    }
+                }}
+                onMouseLeave={e => {
+                    if (isLight) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.borderColor = 'rgba(0,132,255,0.35)';
+                    } else {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                    }
+                }}
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />

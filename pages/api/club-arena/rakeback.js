@@ -276,10 +276,11 @@ export default async function handler(req, res) {
           }
 
           // Close master period
-          await getSupabase()
+          const { error: err_rakeback_periods_tvtud } = await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'closed', period_end: new Date().toISOString() })
             .eq('id', openPeriod.id);
+          if (err_rakeback_periods_tvtud) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_tvtud.message);
 
           // Notify players with rakeback available (fire-and-forget)
           for (const ins of inserts.filter(i => i.rakeback_amount > 0)) {
@@ -332,10 +333,11 @@ export default async function handler(req, res) {
           if (debitErr) {
             // Rollback period status
             const ids = pending.map(p => p.id);
-            await getSupabase()
+            const { error: err_rakeback_periods_b5mtd } = await getSupabase()
               .from('rakeback_periods')
               .update({ status: 'closed' })
               .in('id', ids);
+            if (err_rakeback_periods_b5mtd) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_b5mtd.message);
             throw debitErr;
           }
 
@@ -355,10 +357,11 @@ export default async function handler(req, res) {
 
             // Rollback period status
             const ids = pending.map(p => p.id);
-            await getSupabase()
+            const { error: err_rakeback_periods_zz98s } = await getSupabase()
               .from('rakeback_periods')
               .update({ status: 'closed' })
               .in('id', ids);
+            if (err_rakeback_periods_zz98s) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_zz98s.message);
             throw creditErr;
           }
 
@@ -373,7 +376,7 @@ export default async function handler(req, res) {
           const newBalance = freshMember?.chip_balance || 0;
 
           // Record transaction
-          await getSupabase()
+          const { error: err_chip_transactions_xcocx } = await getSupabase()
             .from('chip_transactions')
             .insert({
               club_id: clubId,
@@ -382,13 +385,15 @@ export default async function handler(req, res) {
               transaction_type: 'rakeback',
               notes: `Rakeback claim: ${pending.length} period(s)`,
             });
+          if (err_chip_transactions_xcocx) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_xcocx.message);
 
           // Mark periods as fully claimed
           const ids = pending.map(p => p.id);
-          await getSupabase()
+          const { error: err_rakeback_periods_6uyuf } = await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'claimed' })
             .in('id', ids);
+          if (err_rakeback_periods_6uyuf) console.warn('[Supabase] Silent mutation failed in rakeback_periods:', err_rakeback_periods_6uyuf.message);
 
           const responseObj = {
             success: true,

@@ -408,7 +408,8 @@ export async function completeGig(userId: string, gigId: string, mileage = 0): P
     if (openDowns?.length) {
         const now = new Date().toISOString();
         for (const d of openDowns) {
-            await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+            const { error: err_toke_downs_bu0xv } = await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+            if (err_toke_downs_bu0xv) console.warn('[Supabase] Silent mutation failed in toke_downs:', err_toke_downs_bu0xv.message);
         }
     }
 
@@ -422,7 +423,8 @@ export async function completeGig(userId: string, gigId: string, mileage = 0): P
     if (openDays?.length) {
         const now = new Date().toISOString();
         for (const d of openDays) {
-            await supabase.from('toke_gig_days').update({ ended_at: now }).eq('id', d.id);
+            const { error: err_toke_gig_days_xn250 } = await supabase.from('toke_gig_days').update({ ended_at: now }).eq('id', d.id);
+            if (err_toke_gig_days_xn250) console.warn('[Supabase] Silent mutation failed in toke_gig_days:', err_toke_gig_days_xn250.message);
         }
     }
 
@@ -523,7 +525,8 @@ export async function closeDay(dayId: string): Promise<TokeGigDay> {
     if (openDowns?.length) {
         const now = new Date().toISOString();
         for (const d of openDowns) {
-            await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+            const { error: err_toke_downs_z2jpc } = await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+            if (err_toke_downs_z2jpc) console.warn('[Supabase] Silent mutation failed in toke_downs:', err_toke_downs_z2jpc.message);
         }
     }
 
@@ -559,7 +562,8 @@ export async function createDown(
     if (openDowns?.length) {
         const now = new Date().toISOString();
         for (const d of openDowns) {
-            await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+            const { error: err_toke_downs_8nd0k } = await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+            if (err_toke_downs_8nd0k) console.warn('[Supabase] Silent mutation failed in toke_downs:', err_toke_downs_8nd0k.message);
         }
     }
 

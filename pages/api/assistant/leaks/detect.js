@@ -568,10 +568,11 @@ export default async function handler(req, res) {
         .map(([, existingLeak]) => existingLeak.id);
 
       if (resolvedIds.length > 0) {
-        await getSupabase()
+        const { error: err_user_leaks_fs60f } = await getSupabase()
           .from('user_leaks')
           .update({ status: 'resolved', resolved_at: now, updated_at: now })
           .in('id', resolvedIds);
+        if (err_user_leaks_fs60f) console.warn('[Supabase] Silent mutation failed in user_leaks:', err_user_leaks_fs60f.message);
       }
 
       // 🚀 NEW BUG #11 FIX: Update Global PA Stats
@@ -595,7 +596,7 @@ export default async function handler(req, res) {
       const currentHands = existingStats?.total_hands_analyzed || 0;
 
       // Atomic Upsert for Stats Sync
-      await getSupabase()
+      const { error: err_user_assistant_stats_l0t65 } = await getSupabase()
         .from('user_assistant_stats')
         .upsert({
           user_id: userId,
@@ -604,6 +605,7 @@ export default async function handler(req, res) {
           resolved_leaks_count: resolvedLeaksCount,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
+      if (err_user_assistant_stats_l0t65) console.warn('[Supabase] Silent mutation failed in user_assistant_stats:', err_user_assistant_stats_l0t65.message);
 
       return res.status(200).json({
         success: true,

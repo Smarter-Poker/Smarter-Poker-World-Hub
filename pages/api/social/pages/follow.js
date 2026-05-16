@@ -50,17 +50,19 @@ async function syncToVenueFollowers(userId, pageId, action) {
                 .eq('page_id', String(venueId))
                 .maybeSingle();
             if (!existing) {
-                await getSupabase()
-                    .from('page_followers')
-                    .insert({ user_id: userId, page_type: 'venue', page_id: String(venueId) });
+                const { error: err_page_followers_uf1xf } = await getSupabase()
+                  .from('page_followers')
+                  .insert({ user_id: userId, page_type: 'venue', page_id: String(venueId) });
+                if (err_page_followers_uf1xf) console.warn('[Supabase] Silent mutation failed in page_followers:', err_page_followers_uf1xf.message);
             }
         } else {
-            await getSupabase()
-                .from('page_followers')
-                .delete()
+            const { error: err_page_followers_xl1cv } = await getSupabase()
+              .from('page_followers')
+              .delete()
                 .eq('user_id', userId)
                 .eq('page_type', 'venue')
                 .eq('page_id', String(venueId));
+            if (err_page_followers_xl1cv) console.warn('[Supabase] Silent mutation failed in page_followers:', err_page_followers_xl1cv.message);
         }
     } catch (e) {
         console.warn('[Social Follow] Venue cross-sync error:', e.message);

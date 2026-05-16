@@ -194,10 +194,11 @@ function HorsesDashboard({ user, onLogout }) {
         ));
 
         try {
-            await supabase
-                .from('content_authors')
-                .update({ is_active: newStatus })
+            const { error: err_content_authors_gbtpm } = await supabase
+              .from('content_authors')
+              .update({ is_active: newStatus })
                 .eq('id', id);
+            if (err_content_authors_gbtpm) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_gbtpm.message);
             showNotification(`Persona ${newStatus ? 'activated' : 'deactivated'}`);
         } catch (err) {
             showNotification('Demo mode - changes not saved', 'info');
@@ -208,10 +209,11 @@ function HorsesDashboard({ user, onLogout }) {
         setPersonas(personas.map(p => ({ ...p, is_active: activate })));
 
         try {
-            await supabase
-                .from('content_authors')
-                .update({ is_active: activate })
+            const { error: err_content_authors_y6i0g } = await supabase
+              .from('content_authors')
+              .update({ is_active: activate })
                 .neq('id', 0);
+            if (err_content_authors_y6i0g) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_y6i0g.message);
             showNotification(`All personas ${activate ? 'activated' : 'deactivated'}`);
         } catch (err) {
             showNotification('Demo mode - changes not saved', 'info');
@@ -223,9 +225,10 @@ function HorsesDashboard({ user, onLogout }) {
         setSettings(newSettings);
 
         try {
-            await supabase
-                .from('content_settings')
-                .upsert({ id: 1, ...newSettings });
+            const { error: err_content_settings_dz1iw } = await supabase
+              .from('content_settings')
+              .upsert({ id: 1, ...newSettings });
+            if (err_content_settings_dz1iw) console.warn('[Supabase] Silent mutation failed in content_settings:', err_content_settings_dz1iw.message);
         } catch (err) {
             console.debug('Demo mode - settings not saved');
         }
@@ -314,7 +317,8 @@ function HorsesDashboard({ user, onLogout }) {
 
     const dismissReport = async (handId) => {
         try {
-            await supabase.from('hand_history').update({ reported: false }).eq('id', handId);
+            const { error: err_hand_history_hvgh0 } = await supabase.from('hand_history').update({ reported: false }).eq('id', handId);
+            if (err_hand_history_hvgh0) console.warn('[Supabase] Silent mutation failed in hand_history:', err_hand_history_hvgh0.message);
             setReportedHands(reportedHands.filter(h => h.id !== handId));
             showNotification('Report dismissed', 'success');
         } catch { showNotification('Error dismissing report', 'error'); }

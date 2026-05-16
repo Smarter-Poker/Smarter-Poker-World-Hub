@@ -42,10 +42,11 @@ export default async function handler(req, res) {
           if (existing) {
               if (!existing.is_active) {
                   // Reactivate subscription
-                  await getSupabase()
-                      .from('newsletter_subscribers')
-                      .update({ is_active: true, unsubscribed_at: null })
+                  const { error: err_newsletter_subscribers_j66ri } = await getSupabase()
+                    .from('newsletter_subscribers')
+                    .update({ is_active: true, unsubscribed_at: null })
                       .eq('id', existing.id);
+                  if (err_newsletter_subscribers_j66ri) console.warn('[Supabase] Silent mutation failed in newsletter_subscribers:', err_newsletter_subscribers_j66ri.message);
 
                   return res.status(200).json({ success: true, message: 'Subscription reactivated!' });
               }

@@ -41,26 +41,30 @@ export function usePersistedFilters(pageKey, defaults, options = {}) {
   const keysToSync = queryKeys || Object.keys(defaults || {});
 
   // ── Load from storage on mount ───────────────────────────────────────
-  const [filters, setFiltersRaw] = useState(() => {
-    if (typeof window === 'undefined') return { ...defaults };
+  // IMPORTANT: Always init with defaults (SSR-safe). Reading localStorage in
+  // useState initializer causes React error #418 (hydration mismatch) because
+  // the server renders with defaults but client hydrates with stored values.
+  const [filters, setFiltersRaw] = useState({ ...defaults });
+
+  // ── Hydrate from localStorage after mount (client-only) ─────────────
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      if (!raw) return { ...defaults };
+      if (!raw) return;
       const parsed = JSON.parse(raw);
 
       // TTL check
       if (parsed.__exp && Date.now() > parsed.__exp) {
         localStorage.removeItem(storageKey);
-        return { ...defaults };
+        return;
       }
 
       const stored = parsed.__v || parsed;
-      // Merge stored with defaults (defaults fill in any missing keys)
-      return { ...defaults, ...stored };
+      setFiltersRaw((prev) => ({ ...prev, ...stored }));
     } catch {
-      return { ...defaults };
+      // ignore corrupt storage
     }
-  });
+  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Override from URL query params on first mount ────────────────────
   useEffect(() => {

@@ -258,10 +258,11 @@ class HorseAvatarGenerator {
         }
 
         // Also update profiles table
-        await this.supabase
-            .from('profiles')
-            .update({ avatar_url: publicUrl })
+        const { error: err_profiles_5jytv } = await this.supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrl })
             .eq('id', horse.profile_id);
+        if (err_profiles_5jytv) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_5jytv.message);
 
         console.debug(`   ✅ Avatar uploaded: ${publicUrl}`);
         return publicUrl;

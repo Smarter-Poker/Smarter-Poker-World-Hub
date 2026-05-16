@@ -128,11 +128,12 @@ async function checkVelocity(supabaseAdmin, { userId, clubId, actionType, amount
 async function autoSuspendForFraud(supabaseAdmin, { userId, clubId, reason, ip }) {
     try {
         // Suspend the member
-        await supabaseAdmin
-            .from('club_members')
-            .update({ status: 'suspended' })
+        const { error: err_club_members_rhbv5 } = await supabaseAdmin
+          .from('club_members')
+          .update({ status: 'suspended' })
             .eq('club_id', clubId)
             .eq('user_id', userId);
+        if (err_club_members_rhbv5) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_rhbv5.message);
 
         // Get club owner
         const { data: owner } = await supabaseAdmin

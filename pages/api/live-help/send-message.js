@@ -154,10 +154,11 @@ export default async function handler(req, res) {
           }
 
           // Update conversation updated_at
-          await getSupabase()
-              .from('live_help_conversations')
-              .update({ updated_at: new Date().toISOString() })
+          const { error: err_live_help_conversations_jkjwu } = await getSupabase()
+            .from('live_help_conversations')
+            .update({ updated_at: new Date().toISOString() })
               .eq('id', conversationId);
+          if (err_live_help_conversations_jkjwu) console.warn('[Supabase] Silent mutation failed in live_help_conversations:', err_live_help_conversations_jkjwu.message);
 
           return res.status(200).json({
               userMessage,

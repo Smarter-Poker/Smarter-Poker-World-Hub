@@ -35,10 +35,11 @@ export default async function handler(req, res) {
 
       try {
           // Clean up expired calls first
-          await getSupabase()
-              .from('pending_calls')
-              .delete()
+          const { error: err_pending_calls_kghzp } = await getSupabase()
+            .from('pending_calls')
+            .delete()
               .lt('expires_at', new Date().toISOString());
+          if (err_pending_calls_kghzp) console.warn('[Supabase] Silent mutation failed in pending_calls:', err_pending_calls_kghzp.message);
 
           // Get pending calls for this user
           const { data: calls, error } = await getSupabase()

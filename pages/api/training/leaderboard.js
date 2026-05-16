@@ -82,9 +82,9 @@ export default async function handler(req, res) {
                   if (existing) {
                       const newTotal = existing.questions_answered + questionsAnswered;
                       const newCorrect = existing.questions_correct + questionsCorrect;
-                      await supabase
-                          .from('training_leaderboard')
-                          .update({
+                      const { error: err_training_leaderboard_iyx6f } = await supabase
+                        .from('training_leaderboard')
+                        .update({
                               sessions_completed: existing.sessions_completed + 1,
                               questions_answered: newTotal,
                               questions_correct: newCorrect,
@@ -95,10 +95,11 @@ export default async function handler(req, res) {
                               updated_at: new Date().toISOString()
                           })
                           .eq('id', existing.id);
+                      if (err_training_leaderboard_iyx6f) console.warn('[Supabase] Silent mutation failed in training_leaderboard:', err_training_leaderboard_iyx6f.message);
                   } else {
-                      await supabase
-                          .from('training_leaderboard')
-                          .insert({
+                      const { error: err_training_leaderboard_sql0n } = await supabase
+                        .from('training_leaderboard')
+                        .insert({
                               user_id: userId,
                               period_type: period.type,
                               period_key: period.key,
@@ -110,6 +111,7 @@ export default async function handler(req, res) {
                               perfect_rounds: isPerfectRound ? 1 : 0,
                               total_xp: earnedXp
                           });
+                      if (err_training_leaderboard_sql0n) console.warn('[Supabase] Silent mutation failed in training_leaderboard:', err_training_leaderboard_sql0n.message);
                   }
               }
 

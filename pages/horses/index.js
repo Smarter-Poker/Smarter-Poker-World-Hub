@@ -709,9 +709,14 @@ export default function HorsesAdmin() {
 
   const updateBugReportStatus = async (ticketId, newStatus) => {
     try {
+      const updateData = {
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+        ...(newStatus === 'resolved' ? { resolved_at: new Date().toISOString() } : { resolved_at: null }),
+      };
       const { error } = await supabase
         .from('live_help_tickets')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', ticketId);
         
       if (error) throw error;
@@ -884,7 +889,8 @@ export default function HorsesAdmin() {
   const toggleClubStatus = async (club, newStatus) => {
     setCaProcessing(true);
     try {
-      await supabase.from('clubs').update({ status: newStatus }).eq('id', club.id);
+      const { error: err_clubs_c3zg0 } = await supabase.from('clubs').update({ status: newStatus }).eq('id', club.id);
+      if (err_clubs_c3zg0) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_c3zg0.message);
       setCaClubs(prev => prev.map(c => c.id === club.id ? { ...c, status: newStatus } : c));
       if (caSelectedClub?.id === club.id) setCaSelectedClub(prev => ({ ...prev, status: newStatus }));
       showNotification(`Club ${newStatus === 'suspended' ? 'suspended' : 'reactivated'}`);
@@ -927,7 +933,8 @@ export default function HorsesAdmin() {
     setPersonas(personas.map((p) => (p.id === id ? { ...p, is_active: newStatus } : p)));
 
     try {
-      await supabase.from('content_authors').update({ is_active: newStatus }).eq('id', id);
+      const { error: err_content_authors_70s8i } = await supabase.from('content_authors').update({ is_active: newStatus }).eq('id', id);
+      if (err_content_authors_70s8i) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_70s8i.message);
       showNotification(`Persona ${newStatus ? 'activated' : 'deactivated'}`);
       broadcastUpdate('horses-updated');
     } catch (err) {
@@ -938,7 +945,8 @@ export default function HorsesAdmin() {
   const toggleAllPersonas = async (activate) => {
     setPersonas(personas.map((p) => ({ ...p, is_active: activate })));
     try {
-      await supabase.from('content_authors').update({ is_active: activate }).neq('id', 0);
+      const { error: err_content_authors_iuwij } = await supabase.from('content_authors').update({ is_active: activate }).neq('id', 0);
+      if (err_content_authors_iuwij) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_iuwij.message);
       showNotification(`All personas ${activate ? 'activated' : 'deactivated'}`);
       broadcastUpdate('horses-updated');
     } catch (err) {
@@ -1022,7 +1030,8 @@ export default function HorsesAdmin() {
     setPersonas(personas.filter((p) => p.id !== id));
 
     try {
-      await supabase.from('content_authors').delete().eq('id', id);
+      const { error: err_content_authors_tly5w } = await supabase.from('content_authors').delete().eq('id', id);
+      if (err_content_authors_tly5w) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_tly5w.message);
       showNotification(`${name} retired`, 'info');
       broadcastUpdate('horses-updated');
     } catch (err) {
@@ -2212,26 +2221,35 @@ export default function HorsesAdmin() {
                       <tr>
                         <th>User</th>
                         <th>Subject</th>
+                        <th>Priority</th>
                         <th>Status</th>
                         <th>Date</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {bugReports.map(ticket => (
+                      {bugReports.map(ticket => {
+                        const pColor = { high: '#f87171', medium: '#fbbf24', low: '#60a5fa' }[ticket.priority] || '#9ca3af';
+                        const pBg = { high: 'rgba(239,68,68,0.1)', medium: 'rgba(251,191,36,0.1)', low: 'rgba(96,165,250,0.1)' }[ticket.priority] || 'rgba(156,163,175,0.1)';
+                        return (
                         <tr key={ticket.id}>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <img src={ticket.profiles?.avatar_url || '/default-avatar.png'} alt="" style={{ width: 24, height: 24, borderRadius: '50%' }} />
                               <div>
-                                <div style={{ fontWeight: 600 }}>{ticket.profiles?.display_name || 'Unknown'}</div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>@{ticket.profiles?.username || 'user'}</div>
+                                <div style={{ fontWeight: 600 }}>{ticket.profiles?.display_name || ticket.profiles?.username || 'Anonymous'}</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>@{ticket.profiles?.username || 'unknown'}</div>
                               </div>
                             </div>
                           </td>
                           <td>
                             <div style={{ fontWeight: 600 }}>{ticket.subject}</div>
-                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticket.description}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticket.description}</div>
+                          </td>
+                          <td>
+                            <span style={{ padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', background: pBg, color: pColor, border: `1px solid ${pColor}44` }}>
+                              {ticket.priority || 'medium'}
+                            </span>
                           </td>
                           <td>
                             <span style={{
@@ -2253,12 +2271,13 @@ export default function HorsesAdmin() {
                                 <button onClick={() => updateBugReportStatus(ticket.id, 'open')} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', padding: '4px 8px', borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Reopen</button>
                               )}
                               {ticket.conversation_id && (
-                                <a href={`/hub/messenger?cid=${ticket.conversation_id}`} target="_blank" rel="noreferrer" style={{ background: 'rgba(0,180,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', padding: '4px 8px', borderRadius: 4, fontSize: 12, textDecoration: 'none' }}>Chat</a>
+                                <a href={`/hub/messenger?conversation=${ticket.conversation_id}`} target="_blank" rel="noreferrer" style={{ background: 'rgba(0,180,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', padding: '4px 8px', borderRadius: 4, fontSize: 12, textDecoration: 'none' }}>Chat</a>
                               )}
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

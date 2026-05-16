@@ -114,10 +114,14 @@ export default async function handler(req, res) {
                     console.warn(`[cron/cleanup-stale-streams] fn_mark_feed_post_ended ${s.id}:`, rpcErr2.message);
                 }
 
-                await supabase
-                    .from('live_streams')
-                    .update({ is_posted: false, is_draft: true })
+                const { error: err_live_streams_v8cmd } = await supabase
+
+                  .from('live_streams')
+
+                  .update({ is_posted: false, is_draft: true })
                     .eq('id', s.id);
+
+                if (err_live_streams_v8cmd) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_v8cmd.message);
 
                 savedCount += 1;
             } catch (saveErr) {

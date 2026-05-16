@@ -226,7 +226,7 @@ export default async function handler(req, res) {
         if (linkErr) throw linkErr;
 
         // Update club's union_id and commission rate
-        await getSupabase()
+        const { error: err_clubs_anag7 } = await getSupabase()
           .from('clubs')
           .update({
             union_id: unionId,
@@ -234,6 +234,7 @@ export default async function handler(req, res) {
             auto_settlement_enabled: true,
           })
           .eq('id', club.id);
+        if (err_clubs_anag7) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_anag7.message);
 
         return res.status(200).json({ success: true, clubName: club.name, club_commission_rate: clubCommissionRate });
       }
@@ -245,19 +246,24 @@ export default async function handler(req, res) {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can remove clubs' });
 
-        await getSupabase()
+        const { error: err_union_clubs_zmfv7 } = await getSupabase()
+
           .from('union_clubs')
+
           .delete()
           .eq('union_id', unionId)
           .eq('club_id', clubId);
 
+        if (err_union_clubs_zmfv7) console.warn('[Supabase] Silent mutation failed in union_clubs:', err_union_clubs_zmfv7.message);
+
         // BUG-IDOR FIX: Only update clubs that actually belong to this union
         // Prevents a union_lead from clearing another union's club.union_id
-        await getSupabase()
+        const { error: err_clubs_esutn } = await getSupabase()
           .from('clubs')
           .update({ union_id: null, auto_settlement_enabled: false, club_commission_rate: 0 })
           .eq('id', clubId)
           .eq('union_id', unionId);
+        if (err_clubs_esutn) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_esutn.message);
 
         return res.status(200).json({ success: true });
       }
@@ -366,17 +372,22 @@ export default async function handler(req, res) {
         if (!uc) return res.status(404).json({ success: false, error: 'Club not found in this union' });
 
         // Update both union_clubs join table AND clubs table (keep in sync)
-        await getSupabase()
+        const { error: err_union_clubs_rycsh } = await getSupabase()
           .from('union_clubs')
           .update({ club_commission_rate: newRate })
           .eq('union_id', unionId)
           .eq('club_id', clubId);
+        if (err_union_clubs_rycsh) console.warn('[Supabase] Silent mutation failed in union_clubs:', err_union_clubs_rycsh.message);
 
-        await getSupabase()
+        const { error: err_clubs_dtq1a } = await getSupabase()
+
           .from('clubs')
+
           .update({ club_commission_rate: newRate })
           .eq('id', clubId)
-          .eq('union_id', unionId); // IDOR guard: only update clubs in this union
+          .eq('union_id', unionId);
+
+        if (err_clubs_dtq1a) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_dtq1a.message); // IDOR guard: only update clubs in this union
 
         return res.status(200).json({ success: true, commissionRate: newRate });
       }
@@ -466,15 +477,21 @@ export default async function handler(req, res) {
 
         const newStatus = action === 'approve_leave' ? 'approved' : 'denied';
 
-        await getSupabase()
+        const { error: err_union_leave_requests_dc2c4 } = await getSupabase()
+
           .from('union_leave_requests')
+
           .update({ status: newStatus, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
           .eq('id', leaveRequestId);
 
+        if (err_union_leave_requests_dc2c4) console.warn('[Supabase] Silent mutation failed in union_leave_requests:', err_union_leave_requests_dc2c4.message);
+
         if (action === 'approve_leave') {
           // Remove club from union
-          await getSupabase().from('union_clubs').delete().eq('union_id', unionId).eq('club_id', leaveReq.club_id);
-          await getSupabase().from('clubs').update({ union_id: null }).eq('id', leaveReq.club_id).eq('union_id', unionId);
+          const { error: err_union_clubs_3g8br } = await getSupabase().from('union_clubs').delete().eq('union_id', unionId).eq('club_id', leaveReq.club_id);
+          if (err_union_clubs_3g8br) console.warn('[Supabase] Silent mutation failed in union_clubs:', err_union_clubs_3g8br.message);
+          const { error: err_clubs_kcht8 } = await getSupabase().from('clubs').update({ union_id: null }).eq('id', leaveReq.club_id).eq('union_id', unionId);
+          if (err_clubs_kcht8) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_kcht8.message);
         }
 
         return res.status(200).json({ success: true, status: newStatus });

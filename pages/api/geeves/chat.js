@@ -109,7 +109,8 @@ export default async function handler(req, res) {
 
               if (cached) {
                   // Increment served counter
-                  await getSupabase().rpc('increment_cache_served', { cache_uuid: cached.id }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                  const { error: incErr } = await getSupabase().rpc('increment_cache_served', { cache_uuid: cached.id });
+                  if (incErr) console.warn('[App] Handled promise rejection:', incErr.message);
 
                   return res.status(200).json({
                       response: cached.answer,
@@ -183,12 +184,13 @@ export default async function handler(req, res) {
           try {
               // Use raw SQL so we can do a proper ON CONFLICT DO UPDATE with arithmetic
               // The RPC is preferred but falls back to direct PostgREST if not yet created.
-              await getSupabase().rpc('geeves_upsert_missed_question', {
+              const { error: upsertErr } = await getSupabase().rpc('geeves_upsert_missed_question', {
                   p_question: message,
                   p_hash: questionHash,
                   p_page: currentPage || null,
                   p_grok_answer: answer,
               });
+              if (upsertErr) throw upsertErr; // fall into catch → insert fallback
           } catch (_rpcErr) {
               console.warn('[Geeves Chat] RPC upsert failed, falling back to insert:', _rpcErr?.message || _rpcErr);
               try {
@@ -206,17 +208,19 @@ export default async function handler(req, res) {
 
                   if (insErr && insErr.code === '23505') {
                       // Unique constraint violation = already exists, increment count
-                      await getSupabase().rpc('geeves_increment_missed_count', {
+                      const { error: incrErr } = await getSupabase().rpc('geeves_increment_missed_count', {
                           p_hash: questionHash,
                           p_grok_answer: answer.slice(0, 2000),
                           p_page: currentPage || null,
-                      }).catch(async () => {
-                          // Final fallback: direct update
-                          await getSupabase()
-                              .from('geeves_missed_questions')
-                              .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
-                              .eq('question_hash', questionHash);
                       });
+                      if (incrErr) {
+                          // Final fallback: direct update
+                          const { error: err_geeves_missed_questions_r5udf } = await getSupabase()
+                            .from('geeves_missed_questions')
+                            .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
+                              .eq('question_hash', questionHash);
+                          if (err_geeves_missed_questions_r5udf) console.warn('[Supabase] Silent mutation failed in geeves_missed_questions:', err_geeves_missed_questions_r5udf.message);
+                      }
                   }
               } catch { /* truly silent — never break the user experience */ }
           }

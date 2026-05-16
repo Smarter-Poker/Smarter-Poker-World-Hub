@@ -216,9 +216,11 @@ export default function PvPPage() {
             }
             newStats.updated_at = new Date().toISOString();
 
-            await supabase
-                .from('trivia_pvp_stats')
-                .upsert({
+            const { error: err_trivia_pvp_stats_nz6cn } = await supabase
+
+              .from('trivia_pvp_stats')
+
+              .upsert({
                     user_id: userId,
                     wins: newStats.wins,
                     losses: newStats.losses,
@@ -229,6 +231,8 @@ export default function PvPPage() {
                     total_diamonds_lost: newStats.total_diamonds_lost,
                     updated_at: newStats.updated_at
                 }, { onConflict: 'user_id' });
+
+            if (err_trivia_pvp_stats_nz6cn) console.warn('[Supabase] Silent mutation failed in trivia_pvp_stats:', err_trivia_pvp_stats_nz6cn.message);
 
             setStats({
                 wins: newStats.wins,

@@ -141,15 +141,16 @@ export default async function handler(req, res) {
     let heldChipsReturned = 0;
     for (const co of (pendingCashouts || [])) {
       // Return held chips to player balance
-      await supabaseAdmin.rpc('fn_credit_chips', {
+      const { error: creditHeldErr } = await supabaseAdmin.rpc('fn_credit_chips', {
         p_club_id: clubId,
         p_user_id: user.id,
         p_amount: co.amount,
       });
+      if (creditHeldErr) console.warn('[leave-club] fn_credit_chips for held cashout failed:', creditHeldErr.message);
       heldChipsReturned += co.amount;
 
       // Cancel the request
-      await supabaseAdmin
+      const { error: err_cashout_requests_bmcqu } = await supabaseAdmin
         .from('cashout_requests')
         .update({
           status: 'cancelled',
@@ -157,6 +158,7 @@ export default async function handler(req, res) {
           agent_note: 'Auto-cancelled: player left club',
         })
         .eq('id', co.id);
+      if (err_cashout_requests_bmcqu) console.warn('[Supabase] Silent mutation failed in cashout_requests:', err_cashout_requests_bmcqu.message);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -185,23 +187,26 @@ export default async function handler(req, res) {
         console.warn('[leave-club] Player debit failed (possible race):', debitErr.message);
         // Don't credit treasury — chips weren't actually debited
       } else {
-        await supabaseAdmin.rpc('fn_credit_treasury', {
+        const { error: creditTreasuryErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
           p_club_id: clubId,
           p_amount: totalChips,
         });
+        if (creditTreasuryErr) {
+          console.warn('[leave-club] fn_credit_treasury failed after successful debit — chips may be lost:', creditTreasuryErr.message);
+        } else {
+          chipsReturnedToTreasury = totalChips;
 
-        chipsReturnedToTreasury = totalChips;
-
-        // Audit trail
-        const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
-          club_id: clubId,
-          from_user_id: user.id,
-          to_user_id: null,
-          amount: totalChips,
-          transaction_type: 'withdrawal',
-          notes: `Player left club — ${totalChips.toLocaleString()} chips returned to club treasury`,
-        });
-        if (chipTxErr) console.warn('[leave-club] Failed to log chip tx:', chipTxErr.message);
+          // Audit trail
+          const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
+            club_id: clubId,
+            from_user_id: user.id,
+            to_user_id: null,
+            amount: totalChips,
+            transaction_type: 'withdrawal',
+            notes: `Player left club — ${totalChips.toLocaleString()} chips returned to club treasury`,
+          });
+          if (chipTxErr) console.warn('[leave-club] Failed to log chip tx:', chipTxErr.message);
+        }
       }
     }
 
@@ -226,18 +231,20 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
       // Unassign all players under this agent
-      await supabaseAdmin
+      const { error: err_club_members_xgak1 } = await supabaseAdmin
         .from('club_members')
         .update({ agent_id: null })
         .eq('club_id', clubId)
         .eq('agent_id', user.id);
+      if (err_club_members_xgak1) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_xgak1.message);
 
       // Deactivate agent record
-      await supabaseAdmin
+      const { error: err_agents_tbeu7 } = await supabaseAdmin
         .from('agents')
         .update({ status: 'inactive', active_player_count: 0 })
         .eq('user_id', user.id)
         .eq('club_id', clubId);
+      if (err_agents_tbeu7) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_tbeu7.message);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -260,10 +267,14 @@ export default async function handler(req, res) {
       .eq('club_id', clubId)
       .limit(500);
 
-    await supabaseAdmin
+    const { error: err_clubs_b7i9i } = await supabaseAdmin
+
       .from('clubs')
+
       .update({ member_count: count || 0 })
       .eq('id', clubId);
+
+    if (err_clubs_b7i9i) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_b7i9i.message);
 
     // ═══════════════════════════════════════════════════════════════
     // 10. NOTIFY MANAGEMENT — Owner + Agent

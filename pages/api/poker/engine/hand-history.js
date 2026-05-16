@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       const { tableId, hand } = req.body || {};
       if (!tableId || !hand) return res.status(400).json({ error: 'tableId and hand required' });
       try {
-        await getSupabase().from('hand_history').upsert({
+        const { error: err_hand_history_8sdl8 } = await getSupabase().from('hand_history').upsert({
           hand_id: hand.handId || `${tableId}-${Date.now()}`,
           table_id: tableId,
           user_id: user.id,
@@ -41,6 +41,7 @@ export default async function handler(req, res) {
           pot_total: hand.potTotal || 0,
           created_at: new Date().toISOString(),
         }, { onConflict: 'hand_id,user_id' });
+        if (err_hand_history_8sdl8) console.warn('[Supabase] Silent mutation failed in hand_history:', err_hand_history_8sdl8.message);
         return res.status(200).json({ ok: true });
       } catch (err) {
         console.warn('[hand-history] POST error:', err);

@@ -72,10 +72,11 @@ export default async function handler(req, res) {
                 // ── Upsert daily tournaments ──
                 if (tournaments && Array.isArray(tournaments) && tournaments.length > 0) {
                     // Delete existing tournaments for this venue (full refresh)
-                    await getSupabase()
-                        .from('venue_daily_tournaments')
-                        .delete()
+                    const { error: err_venue_daily_tournaments_wytc3 } = await getSupabase()
+                      .from('venue_daily_tournaments')
+                      .delete()
                         .eq('venue_id', vid);
+                    if (err_venue_daily_tournaments_wytc3) console.warn('[Supabase] Silent mutation failed in venue_daily_tournaments:', err_venue_daily_tournaments_wytc3.message);
 
                     // Get venue name from the batch data
                     const venueName = venueData.venue_name || venueData.name || null;
@@ -156,15 +157,16 @@ export default async function handler(req, res) {
 
         // ── Log the receive run ──
         try {
-            await getSupabase()
-                .from('scraper_runs')
-                .insert({
+            const { error: err_scraper_runs_rz6n3 } = await getSupabase()
+              .from('scraper_runs')
+              .insert({
                     source: `venue-scraper-receive-${source_tier || 'unknown'}`,
                     status: results.errors.length === 0 ? 'success' : 'partial',
                     stats: results,
                     metadata: { batch_id, source_tier },
                     started_at: new Date().toISOString(),
                 });
+            if (err_scraper_runs_rz6n3) console.warn('[Supabase] Silent mutation failed in scraper_runs:', err_scraper_runs_rz6n3.message);
         } catch (logErr) {
             console.warn('[Venue Receive] Failed to log run:', logErr.message);
         }

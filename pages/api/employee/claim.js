@@ -105,10 +105,11 @@ export default async function handler(req, res) {
           }
 
           // Mark token as claimed
-          await getSupabase()
-              .from('staff_claim_tokens')
-              .update({ claimed_by: user.id, claimed_at: new Date().toISOString() })
+          const { error: err_staff_claim_tokens_na2ji } = await getSupabase()
+            .from('staff_claim_tokens')
+            .update({ claimed_by: user.id, claimed_at: new Date().toISOString() })
               .eq('id', claim.id);
+          if (err_staff_claim_tokens_na2ji) console.warn('[Supabase] Silent mutation failed in staff_claim_tokens:', err_staff_claim_tokens_na2ji.message);
 
           // Get venue name
           const { data: venue } = await getSupabase()

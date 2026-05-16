@@ -3342,7 +3342,8 @@ export default function UserProfilePage() {
     // this post. The migration moves the FK to ON DELETE CASCADE so this becomes
     // a no-op once it lands, but until then it prevents orphan reels.
     try {
-      await supabase.from('social_reels').delete().eq('source_post_id', postId);
+      const { error: err_social_reels_vu4qv } = await supabase.from('social_reels').delete().eq('source_post_id', postId);
+      if (err_social_reels_vu4qv) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_vu4qv.message);
     } catch (e) {
       console.warn('[App] Reel cleanup after post delete failed (non-fatal):', e?.message || e);
     }
@@ -7048,10 +7049,11 @@ export default function UserProfilePage() {
                     // settings export, and the new get_visible_live_streams /
                     // get_visible_live_comments RPCs. Writing to user_blocks
                     // silently no-op'd — the block didn't take effect anywhere.
-                    await supabase.from('blocked_users').insert({
+                    const { error: err_blocked_users_iabdf } = await supabase.from('blocked_users').insert({
                       blocker_id: currentUser.id,
                       blocked_id: profile.id,
                     });
+                    if (err_blocked_users_iabdf) console.warn('[Supabase] Silent mutation failed in blocked_users:', err_blocked_users_iabdf.message);
                     setProfileMenuMsg('User blocked');
                   } catch (e) {
                     setProfileMenuMsg('Already blocked or error');
@@ -7169,11 +7171,12 @@ export default function UserProfilePage() {
                     return;
                   }
                   try {
-                    await supabase.from('user_reports').insert({
+                    const { error: err_user_reports_dhzg0 } = await supabase.from('user_reports').insert({
                       reporter_id: currentUser.id,
                       reported_id: profile.id,
                       reason: reportReason.trim(),
                     });
+                    if (err_user_reports_dhzg0) console.warn('[Supabase] Silent mutation failed in user_reports:', err_user_reports_dhzg0.message);
                     setProfileMenuMsg('Report submitted');
                   } catch (e) {
                     setProfileMenuMsg('Report failed');

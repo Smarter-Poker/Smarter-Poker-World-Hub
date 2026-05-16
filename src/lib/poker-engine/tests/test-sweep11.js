@@ -101,7 +101,8 @@ function assert(condition, label) {
     assert(readBack?.tendency === 'loose-aggressive', `Opponent tendency: ${readBack?.tendency}`);
 
     // Cleanup
-    await supabase.from('horse_opponent_reads').delete().eq('horse_id', HORSE).eq('opponent_id', OPP_ID);
+    const { error: err_horse_opponent_reads_u3aeu } = await supabase.from('horse_opponent_reads').delete().eq('horse_id', HORSE).eq('opponent_id', OPP_ID);
+    if (err_horse_opponent_reads_u3aeu) console.warn('[Supabase] Silent mutation failed in horse_opponent_reads:', err_horse_opponent_reads_u3aeu.message);
 
     // ═══════════════════════════════════════════════════
     // TEST 3: EVALUATE SESSIONS EXISTS
@@ -201,7 +202,8 @@ function assert(condition, label) {
     assert(saved === true, 'saveSessionAnalytics works');
 
     // Cleanup
-    await supabase.from('horse_session_stats').delete().eq('table_id', 'test-sweep11');
+    const { error: err_horse_session_stats_kxqyu } = await supabase.from('horse_session_stats').delete().eq('table_id', 'test-sweep11');
+    if (err_horse_session_stats_kxqyu) console.warn('[Supabase] Silent mutation failed in horse_session_stats:', err_horse_session_stats_kxqyu.message);
 
     // ═══════════════════════════════════════════════════
     // TEST 10: ALL KEY EXPORTS
@@ -233,7 +235,8 @@ function assert(condition, label) {
     }
 
     // Cleanup evolution test data
-    await supabase.from('horse_session_stats').delete().eq('table_id', `evolution_${HORSE}`);
+    const { error: err_horse_session_stats_gkx3z } = await supabase.from('horse_session_stats').delete().eq('table_id', `evolution_${HORSE}`);
+    if (err_horse_session_stats_gkx3z) console.warn('[Supabase] Silent mutation failed in horse_session_stats:', err_horse_session_stats_gkx3z.message);
 
     console.debug('');
     process.exit(failed > 0 ? 1 : 0);

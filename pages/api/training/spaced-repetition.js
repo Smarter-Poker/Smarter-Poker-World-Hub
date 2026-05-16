@@ -179,9 +179,11 @@ export default async function handler(req, res) {
           const nextReview = new Date();
           nextReview.setDate(nextReview.getDate() + newInterval);
 
-          await getSupabase()
-              .from('training_spaced_repetition')
-              .update({
+          const { error: err_training_spaced_repetition_q4afj } = await getSupabase()
+
+            .from('training_spaced_repetition')
+
+            .update({
                   review_interval: newInterval,
                   ease_factor: newEase,
                   review_count: (spot.review_count || 0) + 1,
@@ -190,6 +192,8 @@ export default async function handler(req, res) {
               })
               .eq('user_id', userId)
               .eq('spot_signature', spotSignature);
+
+          if (err_training_spaced_repetition_q4afj) console.warn('[Supabase] Silent mutation failed in training_spaced_repetition:', err_training_spaced_repetition_q4afj.message);
 
           return res.status(200).json({ success: true, newInterval, nextReview: nextReview.toISOString() });
       }

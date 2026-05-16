@@ -167,10 +167,11 @@ export default async function handler(req, res) {
       if (pErr) throw pErr;
 
       // Reset all agents' weekly_rake_generated — single batch UPDATE (was serial loop, O(n) round-trips)
-      await supabaseAdmin
+      const { error: err_agents_8n8q4 } = await supabaseAdmin
         .from('agents')
         .update({ weekly_rake_generated: 0 })
         .eq('club_id', clubId);
+      if (err_agents_8n8q4) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_8n8q4.message);
 
       const responseObj = {
         success: true,
@@ -379,10 +380,11 @@ export default async function handler(req, res) {
 
       // Update the period with the actual total
       if (actualTotalRake > 0) {
-        await supabaseAdmin
+        const { error: err_settlement_periods_ekp4u } = await supabaseAdmin
           .from('settlement_periods')
           .update({ total_rake_collected: actualTotalRake })
           .eq('id', pid);
+        if (err_settlement_periods_ekp4u) console.warn('[Supabase] Silent mutation failed in settlement_periods:', err_settlement_periods_ekp4u.message);
       }
 
       // Debit union hold from club treasury, credit to union rake_wallet
@@ -481,7 +483,7 @@ export default async function handler(req, res) {
       }
 
       // Close the period
-      await supabaseAdmin
+      const { error: err_settlement_periods_3wobo } = await supabaseAdmin
         .from('settlement_periods')
         .update({
           status: 'closed',
@@ -489,6 +491,7 @@ export default async function handler(req, res) {
           settled_by: user.id,
         })
         .eq('id', pid);
+      if (err_settlement_periods_3wobo) console.warn('[Supabase] Silent mutation failed in settlement_periods:', err_settlement_periods_3wobo.message);
 
       const responseObj = {
         success: true,
@@ -555,11 +558,12 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Insufficient club treasury to pay commission' });
         }
 
-        await supabaseAdmin.rpc('fn_credit_chips', {
+        const { error: creditChipsErr } = await supabaseAdmin.rpc('fn_credit_chips', {
           p_club_id: clubId,
           p_user_id: agentData.user_id,
           p_amount: cr.commission_amount,
         });
+        if (creditChipsErr) throw new Error('[settle-period] Manual fn_credit_chips failed: ' + creditChipsErr.message);
 
         const { error: manualTxErr } = await supabaseAdmin.from('chip_transactions').insert({
           club_id: clubId,
@@ -585,17 +589,18 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       // Also update commission_history for this specific period only
-      await supabaseAdmin
+      const { error: err_commission_history_zkxov } = await supabaseAdmin
         .from('commission_history')
         .update({ status: 'paid', paid_at: now })
         .eq('agent_id', cr.agent_id)
         .eq('club_id', clubId)
         .eq('period_start', periodData?.start_at)
         .eq('status', 'pending');
+      if (err_commission_history_zkxov) console.warn('[Supabase] Silent mutation failed in commission_history:', err_commission_history_zkxov.message);
 
       // Update the corresponding settlement invoice
       if (agentData) {
-        await supabaseAdmin
+        const { error: err_settlement_invoices_kfcss } = await supabaseAdmin
           .from('settlement_invoices')
           .update({ status: 'paid', chips_transferred: true, transferred_at: now })
           .eq('club_id', clubId)
@@ -603,6 +608,7 @@ export default async function handler(req, res) {
           .eq('invoice_type', 'club_to_agent')
           .eq('to_entity_id', String(agentData.user_id))
           .eq('status', 'generated');
+        if (err_settlement_invoices_kfcss) console.warn('[Supabase] Silent mutation failed in settlement_invoices:', err_settlement_invoices_kfcss.message);
       }
 
       logAudit(supabaseAdmin, { actionType: 'commission_paid', userId: user.id, targetUserId: agentData?.user_id, clubId, amount: cr.commission_amount, ip: extractIP(req), details: { commissionId, periodId: cr.period_id } });
@@ -663,11 +669,12 @@ export default async function handler(req, res) {
 
           if (!debitErr) {
             // Credit agent's chip balance
-            await supabaseAdmin.rpc('fn_credit_chips', {
+            const { error: payAllCreditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
               p_club_id: clubId,
               p_user_id: agentData.user_id,
               p_amount: cr.commission_amount,
             });
+            if (payAllCreditErr) throw new Error('[settle-period] pay_all fn_credit_chips failed: ' + payAllCreditErr.message);
 
             // Record chip transaction
             const { error: payAllTxErr } = await supabaseAdmin.from('chip_transactions').insert({
@@ -694,17 +701,18 @@ export default async function handler(req, res) {
         }
 
         // Update commission_history
-        await supabaseAdmin
+        const { error: err_commission_history_cvwkq } = await supabaseAdmin
           .from('commission_history')
           .update({ status: 'paid', paid_at: now })
           .eq('agent_id', cr.agent_id)
           .eq('club_id', clubId)
           .eq('period_start', verifyPeriod.start_at)
           .eq('status', 'pending');
+        if (err_commission_history_cvwkq) console.warn('[Supabase] Silent mutation failed in commission_history:', err_commission_history_cvwkq.message);
 
         // Update settlement invoice for this agent
         if (agentData) {
-          await supabaseAdmin
+          const { error: err_settlement_invoices_86ezc } = await supabaseAdmin
             .from('settlement_invoices')
             .update({ status: 'paid', chips_transferred: true, transferred_at: now })
             .eq('club_id', clubId)
@@ -712,6 +720,7 @@ export default async function handler(req, res) {
             .eq('invoice_type', 'club_to_agent')
             .eq('to_entity_id', String(agentData.user_id))
             .eq('status', 'generated');
+          if (err_settlement_invoices_86ezc) console.warn('[Supabase] Silent mutation failed in settlement_invoices:', err_settlement_invoices_86ezc.message);
         }
 
         // NOTE: lifetime_earnings is already credited per-hand in real-time by the
@@ -722,11 +731,12 @@ export default async function handler(req, res) {
 
       // Now mark ONLY successfully-distributed commissions as paid
       if (paidIds.length > 0) {
-        await supabaseAdmin
+        const { error: err_commission_records_ojc4k } = await supabaseAdmin
           .from('commission_records')
           .update({ status: 'paid', paid_at: now })
           .in('id', paidIds)
-          .eq('status', 'pending'); // Guard: only update still-pending ones
+          .eq('status', 'pending');
+        if (err_commission_records_ojc4k) console.warn('[Supabase] Silent mutation failed in commission_records:', err_commission_records_ojc4k.message); // Guard: only update still-pending ones
       }
 
       const totalPaid = pending

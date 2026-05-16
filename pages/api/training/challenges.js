@@ -341,18 +341,19 @@ export default async function handler(req, res) {
                   const isNowComplete = newProgress >= def.target_value;
 
                   if (existing) {
-                      await supabase
-                          .from('training_user_challenges')
-                          .update({
+                      const { error: err_training_user_challenges_x77bv } = await supabase
+                        .from('training_user_challenges')
+                        .update({
                               progress: newProgress,
                               completed: isNowComplete,
                               completed_at: isNowComplete && !existing.completed ? new Date().toISOString() : existing.completed_at
                           })
                           .eq('id', existing.id);
+                      if (err_training_user_challenges_x77bv) console.warn('[Supabase] Silent mutation failed in training_user_challenges:', err_training_user_challenges_x77bv.message);
                   } else {
-                      await supabase
-                          .from('training_user_challenges')
-                          .insert({
+                      const { error: err_training_user_challenges_jzcrm } = await supabase
+                        .from('training_user_challenges')
+                        .insert({
                               user_id: userId,
                               challenge_id: def.id,
                               period_key: periodKey,
@@ -360,6 +361,7 @@ export default async function handler(req, res) {
                               completed: isNowComplete,
                               completed_at: isNowComplete ? new Date().toISOString() : null
                           });
+                      if (err_training_user_challenges_jzcrm) console.warn('[Supabase] Silent mutation failed in training_user_challenges:', err_training_user_challenges_jzcrm.message);
                   }
 
                   if (isNowComplete && !existing?.completed) {
@@ -453,10 +455,11 @@ export default async function handler(req, res) {
                   if (rpcErr) {
                       // Roll back the claimed flag so the user can retry.
                       try {
-                          await supabase
-                              .from('training_user_challenges')
-                              .update({ claimed: false, claimed_at: null })
+                          const { error: err_training_user_challenges_hyjo3 } = await supabase
+                            .from('training_user_challenges')
+                            .update({ claimed: false, claimed_at: null })
                               .eq('id', progress.id);
+                          if (err_training_user_challenges_hyjo3) console.warn('[Supabase] Silent mutation failed in training_user_challenges:', err_training_user_challenges_hyjo3.message);
                       } catch (rbErr) {
                           console.warn('[Challenges] Rollback claimed=false failed:', rbErr?.message || rbErr);
                       }

@@ -166,16 +166,18 @@ export default async function handler(req, res) {
               }
 
               // Update content_authors
-              await getSupabase()
-                  .from('content_authors')
-                  .update({ avatar_url: permanentUrl })
+              const { error: err_content_authors_q9b4w } = await getSupabase()
+                .from('content_authors')
+                .update({ avatar_url: permanentUrl })
                   .eq('id', horse.id);
+              if (err_content_authors_q9b4w) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_q9b4w.message);
 
               // Update profiles
-              await getSupabase()
-                  .from('profiles')
-                  .update({ avatar_url: permanentUrl })
+              const { error: err_profiles_g2rzs } = await getSupabase()
+                .from('profiles')
+                .update({ avatar_url: permanentUrl })
                   .eq('id', horse.profile_id);
+              if (err_profiles_g2rzs) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_g2rzs.message);
 
               results.push({ horse: horse.name, success: true, url: permanentUrl });
 

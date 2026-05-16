@@ -80,11 +80,12 @@ export default async function handler(req, res) {
         try {
             // Delete if content is completely empty
             if (!noteContent || noteContent.trim() === '') {
-                await getSupabase()
-                    .from('player_notes')
-                    .delete()
+                const { error: err_player_notes_5rksk } = await getSupabase()
+                  .from('player_notes')
+                  .delete()
                     .eq('user_id', user.id)
                     .eq('target_player_id', targetPlayerId);
+                if (err_player_notes_5rksk) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_5rksk.message);
                     
                 return res.status(200).json({ success: true, note: null, deleted: true });
             }

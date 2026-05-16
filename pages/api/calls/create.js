@@ -71,11 +71,12 @@ export default async function handler(req, res) {
               return res.status(403).json({ success: false, error: 'No conversations found' });
           }
           // Delete any existing pending calls from this caller to this callee
-          await getSupabase()
-              .from('pending_calls')
-              .delete()
+          const { error: err_pending_calls_rxb79 } = await getSupabase()
+            .from('pending_calls')
+            .delete()
               .eq('caller_id', callerId)
               .eq('callee_id', calleeId);
+          if (err_pending_calls_rxb79) console.warn('[Supabase] Silent mutation failed in pending_calls:', err_pending_calls_rxb79.message);
 
           // Create new pending call
           const { data, error } = await getSupabase()

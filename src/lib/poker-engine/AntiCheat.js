@@ -370,7 +370,7 @@ class AntiCheat {
     if (flags.length === 0) return;
 
     try {
-      await this.supabase
+      const { error: err_anti_cheat_flags_akku2 } = await this.supabase
         .from('anti_cheat_flags')
         .insert(flags.map(f => ({
           player_id: playerId,
@@ -381,9 +381,10 @@ class AntiCheat {
           severity: f.severity,
           flagged_at: new Date(f.timestamp).toISOString(),
         })));
+      if (err_anti_cheat_flags_akku2) console.warn('[Supabase] Silent mutation failed in anti_cheat_flags:', err_anti_cheat_flags_akku2.message);
 
       // Also log events
-      await this.supabase
+      const { error: err_anti_cheat_events_i9bro } = await this.supabase
         .from('anti_cheat_events')
         .insert(flags.map(f => ({
           event_type: 'flag_created',
@@ -393,6 +394,7 @@ class AntiCheat {
           details: { flag_type: f.type, reason: f.reason, severity: f.severity },
           triggered_by: 'system',
         })));
+      if (err_anti_cheat_events_i9bro) console.warn('[Supabase] Silent mutation failed in anti_cheat_events:', err_anti_cheat_events_i9bro.message);
     } catch (err) {
       console.warn('[AntiCheat] Persist flags error:', err.message);
     }
@@ -413,7 +415,7 @@ class AntiCheat {
     if (!this.supabase) return;
 
     try {
-      await this.supabase
+      const { error: err_table_sessions_5ns6g } = await this.supabase
         .from('table_sessions')
         .upsert({
           table_id: tableId,
@@ -433,9 +435,12 @@ class AntiCheat {
           onConflict: 'table_id,player_id',
           ignoreDuplicates: false,
         });
+      if (err_table_sessions_5ns6g) console.warn('[Supabase] Silent mutation failed in table_sessions:', err_table_sessions_5ns6g.message);
 
-      await this.supabase
+      const { error: err_anti_cheat_events_kn2h7 } = await this.supabase
+
         .from('anti_cheat_events')
+
         .insert({
           event_type: 'session_started',
           player_id: playerId,
@@ -449,6 +454,8 @@ class AntiCheat {
           },
           triggered_by: 'system',
         });
+
+      if (err_anti_cheat_events_kn2h7) console.warn('[Supabase] Silent mutation failed in anti_cheat_events:', err_anti_cheat_events_kn2h7.message);
     } catch (err) {
       console.warn('[AntiCheat] Record session error:', err.message);
     }
@@ -470,8 +477,10 @@ class AntiCheat {
         p_reason: reason || null,
       });
 
-      await this.supabase
+      const { error: err_anti_cheat_events_p8xbt } = await this.supabase
+
         .from('anti_cheat_events')
+
         .insert({
           event_type: 'session_ended',
           player_id: playerId,
@@ -479,6 +488,8 @@ class AntiCheat {
           details: { reason: reason || 'voluntary' },
           triggered_by: 'system',
         });
+
+      if (err_anti_cheat_events_p8xbt) console.warn('[Supabase] Silent mutation failed in anti_cheat_events:', err_anti_cheat_events_p8xbt.message);
     } catch (err) {
       console.warn('[AntiCheat] Close session error:', err.message);
     }
@@ -495,7 +506,7 @@ class AntiCheat {
     if (!this.supabase) return;
 
     try {
-      await this.supabase
+      const { error: err_anti_cheat_events_kt5de } = await this.supabase
         .from('anti_cheat_events')
         .insert({
           event_type: 'seat_blocked',
@@ -505,6 +516,7 @@ class AntiCheat {
           details: { reason },
           triggered_by: 'system',
         });
+      if (err_anti_cheat_events_kt5de) console.warn('[Supabase] Silent mutation failed in anti_cheat_events:', err_anti_cheat_events_kt5de.message);
     } catch (err) {
       console.warn('[AntiCheat] Log seat blocked error:', err.message);
     }

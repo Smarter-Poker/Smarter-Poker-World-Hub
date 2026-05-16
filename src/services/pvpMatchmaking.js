@@ -60,11 +60,12 @@ export async function joinMatchmakingQueue(userId, stakeAmount) {
  */
 export async function leaveMatchmakingQueue(userId) {
     try {
-        await supabase
-            .from('trivia_pvp_queue')
-            .update({ status: 'cancelled' })
+        const { error: err_trivia_pvp_queue_t18er } = await supabase
+          .from('trivia_pvp_queue')
+          .update({ status: 'cancelled' })
             .eq('user_id', userId)
             .eq('status', 'waiting');
+        if (err_trivia_pvp_queue_t18er) console.warn('[Supabase] Silent mutation failed in trivia_pvp_queue:', err_trivia_pvp_queue_t18er.message);
 
         return { success: true };
     } catch (error) {
@@ -167,11 +168,12 @@ export async function findMatch(userId, stakeAmount) {
         }
 
         // Update both queue entries to matched
-        await supabase
-            .from('trivia_pvp_queue')
-            .update({ status: 'matched', match_id: match.id })
+        const { error: err_trivia_pvp_queue_ufns9 } = await supabase
+          .from('trivia_pvp_queue')
+          .update({ status: 'matched', match_id: match.id })
             .in('user_id', [userId, opponent.user_id])
             .eq('status', 'waiting');
+        if (err_trivia_pvp_queue_ufns9) console.warn('[Supabase] Silent mutation failed in trivia_pvp_queue:', err_trivia_pvp_queue_ufns9.message);
 
         return {
             match,
@@ -266,14 +268,18 @@ export async function submitMatchScore(matchId, playerId, score, isPlayer1) {
                     ? match.player2_id
                     : null; // Tie
 
-            await supabase
-                .from('trivia_pvp_matches')
-                .update({
+            const { error: err_trivia_pvp_matches_9besc } = await supabase
+
+              .from('trivia_pvp_matches')
+
+              .update({
                     status: 'complete',
                     winner_id: winnerId,
                     completed_at: new Date().toISOString()
                 })
                 .eq('id', matchId);
+
+            if (err_trivia_pvp_matches_9besc) console.warn('[Supabase] Silent mutation failed in trivia_pvp_matches:', err_trivia_pvp_matches_9besc.message);
 
             return { match, winnerId, complete: true };
         }

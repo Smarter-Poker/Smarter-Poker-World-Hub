@@ -189,7 +189,8 @@ export default async function handler(req, res) {
             // Atomic decrement update
             const { data: club } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
             if (club) {
-              await getSupabase().from('clubs').update({ table_count: Math.max(0, (club.table_count || 1) - 1) }).eq('id', clubId);
+              const { error: err_clubs_yqump } = await getSupabase().from('clubs').update({ table_count: Math.max(0, (club.table_count || 1) - 1) }).eq('id', clubId);
+              if (err_clubs_yqump) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_yqump.message);
             }
           }
 

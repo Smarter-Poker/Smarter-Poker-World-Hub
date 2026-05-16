@@ -84,7 +84,8 @@ export default async function handler(req, res) {
         }
 
         // === STEP 3: Reset broken multipliers — fire-and-forget ===
-        getSupabase().rpc('fn_reset_broken_streak_multipliers').catch(() => {});
+        const { error: rpcErr } = await getSupabase().rpc('fn_reset_broken_streak_multipliers');
+        if (rpcErr) console.warn('[social] fn_reset_broken_streak_multipliers failed:', rpcErr.message);
 
         // === STEP 4: Increment post/reel share count ===
         const { data: reelCheck } = await getSupabase()

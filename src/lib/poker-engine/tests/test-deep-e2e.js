@@ -425,10 +425,10 @@ function assert(condition, label) {
             assert(row.session_minutes >= 0, `Supabase has session_minutes: ${row.session_minutes}`);
 
             // Clean up test data
-            await supabase.from('horse_session_stats')
-                .delete()
+            const { error: err_horse_session_stats_c0pk3 } = await supabase.from('horse_session_stats').delete()
                 .eq('profile_id', HORSE)
                 .eq('table_id', 'test-table-verify');
+            if (err_horse_session_stats_c0pk3) console.warn('[Supabase] Silent mutation failed in horse_session_stats:', err_horse_session_stats_c0pk3.message);
         } else {
             assert(false, `Read back from Supabase (error: ${error?.message || 'no data'})`);
         }

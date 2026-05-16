@@ -203,11 +203,12 @@ export default async function handler(req, res) {
                   // Roll back the daily-bonus claim row so the user can retry. The unique
                   // constraint on (user_id, bonus_date) would otherwise lock them out.
                   try {
-                      await supabase
-                          .from('training_daily_bonus')
-                          .delete()
+                      const { error: err_training_daily_bonus_vl5km } = await supabase
+                        .from('training_daily_bonus')
+                        .delete()
                           .eq('user_id', userId)
                           .eq('bonus_date', today);
+                      if (err_training_daily_bonus_vl5km) console.warn('[Supabase] Silent mutation failed in training_daily_bonus:', err_training_daily_bonus_vl5km.message);
                   } catch (rbErr) {
                       console.warn('[DailyBonus] Rollback delete failed:', rbErr?.message || rbErr);
                   }

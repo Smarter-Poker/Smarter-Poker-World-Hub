@@ -110,7 +110,8 @@ export default async function handler(req, res) {
             }));
             const CHUNK = 50;
             for (let i = 0; i < notifications.length; i += CHUNK) {
-                await supabase.from('notifications').insert(notifications.slice(i, i + CHUNK));
+                const { error: err_notifications_6tpsi } = await supabase.from('notifications').insert(notifications.slice(i, i + CHUNK));
+                if (err_notifications_6tpsi) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_6tpsi.message);
             }
         }
 

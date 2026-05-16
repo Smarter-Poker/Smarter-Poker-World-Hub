@@ -67,9 +67,11 @@ export async function setCachedResponse(endpoint, params, response, ttlDays = 30
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + ttlDays);
 
-        await supabase
-            .from('jarvis_response_cache')
-            .upsert({
+        const { error: err_jarvis_response_cache_hie5q } = await supabase
+
+          .from('jarvis_response_cache')
+
+          .upsert({
                 cache_key: cacheKey,
                 endpoint,
                 request_params: params,
@@ -79,6 +81,8 @@ export async function setCachedResponse(endpoint, params, response, ttlDays = 30
                 last_accessed_at: new Date().toISOString(),
                 expires_at: expiresAt.toISOString()
             }, { onConflict: 'cache_key' });
+
+        if (err_jarvis_response_cache_hie5q) console.warn('[Supabase] Silent mutation failed in jarvis_response_cache:', err_jarvis_response_cache_hie5q.message);
 
         console.debug(`[JarvisCache] STORED for ${endpoint}`);
 

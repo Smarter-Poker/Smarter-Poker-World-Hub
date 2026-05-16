@@ -160,7 +160,7 @@ class ClubLedger {
   async _recordTransaction(clubId, userId, amount, type, meta = {}) {
     if (!this.supabase) return;
     try {
-      await this.supabase.from('chip_transactions').insert({
+      const { error: err_chip_transactions_8k8f6 } = await this.supabase.from('chip_transactions').insert({
         club_id: clubId,
         from_user_id: amount < 0 ? userId : null,
         to_user_id: amount > 0 ? userId : null,
@@ -169,6 +169,7 @@ class ClubLedger {
         metadata: meta,
         notes: meta.type || meta.reason || type,
       });
+      if (err_chip_transactions_8k8f6) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_8k8f6.message);
     } catch (err) {
       console.warn('[ClubLedger] Transaction record failed:', err.message);
     }
@@ -282,24 +283,26 @@ class ClubLedger {
       if (error) {
         console.warn(`[ClubLedger] Overlay debit failed for club ${clubId}: ${error.message}`);
         // Record as pending if treasury insufficient
-        await this.supabase.from('chip_transactions').insert({
+        const { error: err_chip_transactions_mnfey } = await this.supabase.from('chip_transactions').insert({
           club_id: clubId,
           transaction_type: 'guarantee_overlay',
           amount,
           notes: `Tournament guarantee overlay (pending): ${metadata.tournamentId}`,
           metadata: { ...metadata, status: 'pending', error: error.message },
         });
+        if (err_chip_transactions_mnfey) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_mnfey.message);
         return { success: false, error: error.message };
       }
 
       // Record successful overlay transaction
-      await this.supabase.from('chip_transactions').insert({
+      const { error: err_chip_transactions_emi67 } = await this.supabase.from('chip_transactions').insert({
         club_id: clubId,
         transaction_type: 'guarantee_overlay',
         amount,
         notes: `Tournament guarantee overlay: ${metadata.tournamentId}`,
         metadata,
       });
+      if (err_chip_transactions_emi67) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_emi67.message);
 
       return { success: true };
     } catch (err) {

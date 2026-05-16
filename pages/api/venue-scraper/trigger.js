@@ -221,9 +221,9 @@ POST body format:
 
         // ── Log the scrape run ──
         try {
-            await getSupabase()
-                .from('scraper_runs')
-                .insert({
+            const { error: err_scraper_runs_w7wdm } = await getSupabase()
+              .from('scraper_runs')
+              .insert({
                     source: 'venue-scraper-trigger',
                     status: errors.length === 0 ? 'success' : 'partial',
                     stats: {
@@ -237,6 +237,7 @@ POST body format:
                     metadata: { errors: errors.slice(0, 10) },
                     started_at: new Date().toISOString(),
                 });
+            if (err_scraper_runs_w7wdm) console.warn('[Supabase] Silent mutation failed in scraper_runs:', err_scraper_runs_w7wdm.message);
         } catch (logErr) {
             console.warn('[Venue Scraper] Failed to log run:', logErr.message);
         }

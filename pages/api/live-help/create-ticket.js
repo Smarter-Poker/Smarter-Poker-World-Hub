@@ -62,10 +62,11 @@ export default async function handler(req, res) {
               }
 
               // Update conversation status to escalated
-              await getSupabase()
-                  .from('live_help_conversations')
-                  .update({ status: 'escalated' })
+              const { error: err_live_help_conversations_8znhb } = await getSupabase()
+                .from('live_help_conversations')
+                .update({ status: 'escalated' })
                   .eq('id', conversationId);
+              if (err_live_help_conversations_8znhb) console.warn('[Supabase] Silent mutation failed in live_help_conversations:', err_live_help_conversations_8znhb.message);
           }
 
           // Create ticket

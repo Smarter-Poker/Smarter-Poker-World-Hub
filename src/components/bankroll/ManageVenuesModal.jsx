@@ -45,11 +45,12 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
         setDeletingId(venueId);
         try {
             // Unlink ledger entries first (non-critical)
-            await supabase
-                .from('bankroll_ledger')
-                .update({ location_id: null })
+            const { error: err_bankroll_ledger_nbcd5 } = await supabase
+              .from('bankroll_ledger')
+              .update({ location_id: null })
                 .eq('user_id', userId)
                 .eq('location_id', venueId);
+            if (err_bankroll_ledger_nbcd5) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_nbcd5.message);
 
             // Delete the location directly via Supabase
             const { error } = await supabase

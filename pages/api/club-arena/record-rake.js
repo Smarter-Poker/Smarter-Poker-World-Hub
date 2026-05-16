@@ -113,11 +113,12 @@ export default async function handler(req, res) {
       // STEP 3: Increment the open settlement period's counters
       // (record_rake RPC updates clubs.total_rake but NOT settlement_periods)
       if (rakeAmount > 0) {
-        await getSupabase().rpc('increment_settlement_counters', {
+        const { error: settleCtrErr } = await getSupabase().rpc('increment_settlement_counters', {
           p_club_id: clubId,
           p_rake: rakeAmount,
           p_hands: 1,
-        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+        });
+        if (settleCtrErr) console.warn('[record-rake] increment_settlement_counters failed:', settleCtrErr.message);
       }
 
       return res.status(200).json({

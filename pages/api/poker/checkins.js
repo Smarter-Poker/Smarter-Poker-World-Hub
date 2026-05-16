@@ -102,7 +102,7 @@ try {
               }
             }
             const postContent = 'Just checked in at ' + venueName + '! #PokerLife';
-            await getSupabase()
+            const { error: err_social_posts_qhn9i } = await getSupabase()
               .from('social_posts')
               .insert({
                 author_id: authUser.id,
@@ -112,6 +112,7 @@ try {
                 metadata: { type: 'checkin', venue_id: venueIdNum },
                 created_at: new Date().toISOString(),
               });
+            if (err_social_posts_qhn9i) console.warn('[Supabase] Silent mutation failed in social_posts:', err_social_posts_qhn9i.message);
           } catch (postErr) { console.warn('[App] Handled exception:', postErr?.message || postErr); }
         }
 

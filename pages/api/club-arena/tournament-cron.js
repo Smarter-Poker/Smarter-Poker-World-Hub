@@ -67,10 +67,11 @@ export default async function handler(req, res) {
               try {
                   if (tourn.status === 'scheduled') {
                       // Open registration
-                      await getSupabase()
-                          .from('club_tournaments')
-                          .update({ status: 'registering' })
+                      const { error: err_club_tournaments_wbqel } = await getSupabase()
+                        .from('club_tournaments')
+                        .update({ status: 'registering' })
                           .eq('id', tourn.id);
+                      if (err_club_tournaments_wbqel) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_wbqel.message);
                       console.warn(`[TournCron] Opened registration for ${tourn.name} (${tourn.id})`);
                       results.autoStarted++;
                   } else if (tourn.status === 'registering') {
@@ -109,10 +110,14 @@ export default async function handler(req, res) {
                               }
                               await controller.startTournament(tourn.id);
 
-                              await getSupabase()
-                                  .from('club_tournaments')
-                                  .update({ status: 'running', started_at: now.toISOString() })
+                              const { error: err_club_tournaments_oep9z } = await getSupabase()
+
+                                .from('club_tournaments')
+
+                                .update({ status: 'running', started_at: now.toISOString() })
                                   .eq('id', tourn.id);
+
+                              if (err_club_tournaments_oep9z) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_oep9z.message);
 
                               console.warn(`[TournCron] Auto-started ${tourn.name} (${tourn.id}) with ${regs?.length || 0} players`);
                               results.autoStarted++;
@@ -175,10 +180,11 @@ export default async function handler(req, res) {
                           }
 
                           // Mark tournament as cancelled
-                          await getSupabase()
-                              .from('club_tournaments')
-                              .update({ status: 'cancelled' })
+                          const { error: err_club_tournaments_4f2ts } = await getSupabase()
+                            .from('club_tournaments')
+                            .update({ status: 'cancelled' })
                               .eq('id', tourn.id);
+                          if (err_club_tournaments_4f2ts) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_4f2ts.message);
                       }
                   }
               } catch (err) {
@@ -226,10 +232,11 @@ export default async function handler(req, res) {
                   }
 
                   // Mark reminder as sent (deduplication)
-                  await getSupabase()
-                      .from('club_tournaments')
-                      .update({ reminder_sent: true })
+                  const { error: err_club_tournaments_kx68k } = await getSupabase()
+                    .from('club_tournaments')
+                    .update({ reminder_sent: true })
                       .eq('id', tourn.id);
+                  if (err_club_tournaments_kx68k) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_kx68k.message);
 
                   console.warn(`[TournCron] Sent ${regs?.length || 0} reminders for ${tourn.name}`);
               } catch (err) {

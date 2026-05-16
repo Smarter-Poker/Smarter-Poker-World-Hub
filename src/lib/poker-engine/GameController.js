@@ -747,10 +747,11 @@ class GameController {
       }
 
       // Update Club Arena table status
-      await this.supabase
+      const { error: err_tables_uc9b7 } = await this.supabase
         .from('tables')
         .update({ status: 'running' })
         .eq('id', clubTableId);
+      if (err_tables_uc9b7) console.warn('[Supabase] Silent mutation failed in tables:', err_tables_uc9b7.message);
 
       console.debug(`[GameController] Connected to club table: ${clubTableId} (${row.name})`);
       return { success: true, tableId: clubTableId, name: row.name };
@@ -2433,7 +2434,7 @@ class GameController {
 
         // Store snapshot + hand tracking in settings JSONB
         const currentSettings = entry.config?.clubSettings || {};
-        await this.supabase
+        const { error: err_tables_d419d } = await this.supabase
           .from('tables')
           .update({
             status: entry.table.status === 'RUNNING' ? 'running' :
@@ -2447,6 +2448,7 @@ class GameController {
             },
           })
           .eq('id', tableId);
+        if (err_tables_d419d) console.warn('[Supabase] Silent mutation failed in tables:', err_tables_d419d.message);
       } catch (err) {
         console.warn(`[GameController] Snapshot save failed for ${tableId}:`, err.message);
       }
@@ -2490,10 +2492,11 @@ class GameController {
     const count = entry.table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
 
     try {
-      await this.supabase
+      const { error: err_tables_q1knp } = await this.supabase
         .from('tables')
         .update({ current_players: count })
         .eq('id', tableId);
+      if (err_tables_q1knp) console.warn('[Supabase] Silent mutation failed in tables:', err_tables_q1knp.message);
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 

@@ -190,9 +190,9 @@ export default async function handler(req, res) {
           // (was being silently dropped — videos appeared as black squares).
           if (data && data.is_approved && (data.visibility === 'public' || !data.visibility)) {
               try {
-                  await getSupabase()
-                      .from('social_posts')
-                      .insert({
+                  const { error: err_social_posts_00kbv } = await getSupabase()
+                    .from('social_posts')
+                    .insert({
                           author_id: author_id, // Use actual poster, not page owner
                           content: data.content,
                           content_type: data.content_type || 'text',
@@ -216,6 +216,7 @@ export default async function handler(req, res) {
                               page_type: page.page_type
                           }
                       });
+                  if (err_social_posts_00kbv) console.warn('[Supabase] Silent mutation failed in social_posts:', err_social_posts_00kbv.message);
               } catch (mirrorErr) {
                   console.warn('[PagePosts] Failed to mirror post to global feed:', mirrorErr.message);
                   // Non-fatal — page post was still created successfully
@@ -340,10 +341,11 @@ export default async function handler(req, res) {
           // When the page post was created it was mirrored via metadata.source_post_id.
           // Deleting the page post must cascade to the global feed mirror.
           try {
-              await getSupabase()
-                  .from('social_posts')
-                  .delete()
+              const { error: err_social_posts_1krjr } = await getSupabase()
+                .from('social_posts')
+                .delete()
                   .contains('metadata', { source_post_id: id });
+              if (err_social_posts_1krjr) console.warn('[Supabase] Silent mutation failed in social_posts:', err_social_posts_1krjr.message);
           } catch (mirrorDeleteErr) {
               console.warn('[PagePosts DELETE] Failed to remove global feed mirror (non-blocking):', mirrorDeleteErr?.message);
           }

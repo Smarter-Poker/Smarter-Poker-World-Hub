@@ -201,10 +201,14 @@ export default async function handler(req, res) {
 
               const currentSettings = club?.settings || {};
 
-              await getSupabase()
-                  .from('clubs')
-                  .update({ settings: { ...currentSettings, cashier_presets: validAmounts } })
+              const { error: err_clubs_nhuke } = await getSupabase()
+
+                .from('clubs')
+
+                .update({ settings: { ...currentSettings, cashier_presets: validAmounts } })
                   .eq('id', clubId);
+
+              if (err_clubs_nhuke) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_nhuke.message);
 
               return res.status(200).json({ success: true, presets: validAmounts });
           } catch (err) {

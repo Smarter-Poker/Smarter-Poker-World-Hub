@@ -91,9 +91,9 @@ export default async function handler(req, res) {
 
                 // If newly created AND not friends, mark as message request
                 if (rpcResult.created === true && !areFriends) {
-                    await supabase.from('social_conversations')
-                        .update({ is_request: true, request_sender_id: user.id })
+                    const { error: err_social_conversations_lmogj } = await supabase.from('social_conversations').update({ is_request: true, request_sender_id: user.id })
                         .eq('id', convId);
+                    if (err_social_conversations_lmogj) console.warn('[Supabase] Silent mutation failed in social_conversations:', err_social_conversations_lmogj.message);
                 }
 
                 let isRequest = !areFriends && rpcResult.created === true;
@@ -109,15 +109,15 @@ export default async function handler(req, res) {
                     if (convRow?.is_request) {
                         if (areFriends) {
                             // Users became friends — auto-clear request status
-                            await supabase.from('social_conversations')
-                                .update({ is_request: false })
+                            const { error: err_social_conversations_kwdkc } = await supabase.from('social_conversations').update({ is_request: false })
                                 .eq('id', convId);
+                            if (err_social_conversations_kwdkc) console.warn('[Supabase] Silent mutation failed in social_conversations:', err_social_conversations_kwdkc.message);
                         } else if (convRow.request_sender_id && convRow.request_sender_id !== user.id) {
                             // Current user is the RECIPIENT of the request and is actively messaging back
                             // Auto-accept: they're explicitly choosing to engage
-                            await supabase.from('social_conversations')
-                                .update({ is_request: false })
+                            const { error: err_social_conversations_958bi } = await supabase.from('social_conversations').update({ is_request: false })
                                 .eq('id', convId);
+                            if (err_social_conversations_958bi) console.warn('[Supabase] Silent mutation failed in social_conversations:', err_social_conversations_958bi.message);
                         } else {
                             // Current user is the sender — request still pending
                             isRequest = true;
@@ -186,14 +186,14 @@ export default async function handler(req, res) {
             if (convRow?.is_request) {
                 if (areFriends) {
                     // Users became friends — auto-clear request status
-                    await supabase.from('social_conversations')
-                        .update({ is_request: false })
+                    const { error: err_social_conversations_802vo } = await supabase.from('social_conversations').update({ is_request: false })
                         .eq('id', foundId);
+                    if (err_social_conversations_802vo) console.warn('[Supabase] Silent mutation failed in social_conversations:', err_social_conversations_802vo.message);
                 } else if (convRow.request_sender_id && convRow.request_sender_id !== user.id) {
                     // Current user is the RECIPIENT and is actively messaging back — auto-accept
-                    await supabase.from('social_conversations')
-                        .update({ is_request: false })
+                    const { error: err_social_conversations_5d56s } = await supabase.from('social_conversations').update({ is_request: false })
                         .eq('id', foundId);
+                    if (err_social_conversations_5d56s) console.warn('[Supabase] Silent mutation failed in social_conversations:', err_social_conversations_5d56s.message);
                 } else {
                     // Current user is the sender — request still pending
                     isRequest = true;

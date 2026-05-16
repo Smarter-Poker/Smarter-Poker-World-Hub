@@ -256,10 +256,11 @@ export default async function handler(req, res) {
                       return res.status(200).json({ action: 'unreacted', reacted: false });
                   } else {
                       // Different reaction — SWITCH type (no count change)
-                      await getSupabase()
-                          .from('social_interactions')
-                          .update({ interaction_type })
+                      const { error: err_social_interactions_um2a4 } = await getSupabase()
+                        .from('social_interactions')
+                        .update({ interaction_type })
                           .eq('id', existing.id);
+                      if (err_social_interactions_um2a4) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_um2a4.message);
                       return res.status(200).json({ action: 'switched', reacted: true, from: existing.interaction_type, to: interaction_type });
                   }
               } else {

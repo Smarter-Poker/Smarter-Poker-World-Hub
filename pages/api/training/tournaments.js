@@ -255,10 +255,11 @@ export default async function handler(req, res) {
                   }
 
                   // Increment entry count
-                  await supabase
-                      .from('training_tournaments')
-                      .update({ entry_count: tournament.entry_count + 1 })
+                  const { error: err_training_tournaments_bkr8l } = await supabase
+                    .from('training_tournaments')
+                    .update({ entry_count: tournament.entry_count + 1 })
                       .eq('id', tournamentId);
+                  if (err_training_tournaments_bkr8l) console.warn('[Supabase] Silent mutation failed in training_tournaments:', err_training_tournaments_bkr8l.message);
 
                   return res.status(200).json({
                       success: true,
@@ -285,13 +286,14 @@ export default async function handler(req, res) {
                   }
 
                   // Update to playing
-                  await supabase
-                      .from('training_tournament_entries')
-                      .update({
+                  const { error: err_training_tournament_entries_wfig7 } = await supabase
+                    .from('training_tournament_entries')
+                    .update({
                           status: 'playing',
                           started_at: now.toISOString()
                       })
                       .eq('id', entry.id);
+                  if (err_training_tournament_entries_wfig7) console.warn('[Supabase] Silent mutation failed in training_tournament_entries:', err_training_tournament_entries_wfig7.message);
 
                   return res.status(200).json({
                       success: true,
@@ -341,9 +343,9 @@ export default async function handler(req, res) {
               const finalScore = Math.round((accuracy || 0) * 100) + timeBonus;
 
               // Update entry with results
-              await supabase
-                  .from('training_tournament_entries')
-                  .update({
+              const { error: err_training_tournament_entries_eewe9 } = await supabase
+                .from('training_tournament_entries')
+                .update({
                       status: 'completed',
                       score: finalScore,
                       accuracy: accuracy || 0,
@@ -353,6 +355,7 @@ export default async function handler(req, res) {
                       completed_at: new Date().toISOString()
                   })
                   .eq('id', entry.id);
+              if (err_training_tournament_entries_eewe9) console.warn('[Supabase] Silent mutation failed in training_tournament_entries:', err_training_tournament_entries_eewe9.message);
 
               // Get current rank
               const { data: betterScores } = await supabase

@@ -187,10 +187,11 @@ export async function blockUser(blockerId, targetId) {
         if (error) throw error;
 
         // Also remove any existing friendship
-        await supabase
-            .from('friendships')
-            .delete()
+        const { error: err_friendships_dz59x } = await supabase
+          .from('friendships')
+          .delete()
             .or(`and(user_id.eq.${blockerId},friend_id.eq.${targetId}),and(user_id.eq.${targetId},friend_id.eq.${blockerId})`);
+        if (err_friendships_dz59x) console.warn('[Supabase] Silent mutation failed in friendships:', err_friendships_dz59x.message);
 
         console.debug('[Privacy] User blocked successfully');
         return { success: true };

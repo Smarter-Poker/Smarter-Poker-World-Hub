@@ -358,10 +358,11 @@ export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
         }
         setViewingStory(storyGroup);
         if (!storyGroup.is_own) {
-            await supabase.rpc('fn_view_story', {
+            const { error: viewStoryErr } = await supabase.rpc('fn_view_story', {
                 p_story_id: storyGroup.id,
                 p_viewer_id: userId,
             });
+            if (viewStoryErr) console.warn('[Stories] fn_view_story RPC failed (non-fatal):', viewStoryErr.message);
         }
     };
 
@@ -880,12 +881,13 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
 
             // Auto-save videos to Reels
             if (mediaType === 'video' && mediaUrl) {
-                await supabase.from('social_reels').insert({
+                const { error: err_social_reels_j0afb } = await supabase.from('social_reels').insert({
                     author_id: userId,
                     video_url: mediaUrl,
                     caption: text || null,
                     source_story_id: storyId,
                 });
+                if (err_social_reels_j0afb) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_j0afb.message);
             }
 
             // Cleanup local preview
@@ -1287,7 +1289,7 @@ export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onSha
     const handleShare = async () => {
         setSharing(true);
         try {
-            await supabase.rpc('fn_create_story', {
+            const { error: createStoryErr } = await supabase.rpc('fn_create_story', {
                 p_user_id: userId,
                 p_content: null,
                 p_media_url: mediaUrl,
@@ -1296,6 +1298,7 @@ export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onSha
                 p_link_url: null, // BUG FIX: fn_create_story requires all declared params;
                 // omitting p_link_url caused a silent RPC error on some Postgres versions.
             });
+            if (createStoryErr) throw createStoryErr;
             onShared?.();
         } catch (e) {
             console.warn('Share to story error:', e);

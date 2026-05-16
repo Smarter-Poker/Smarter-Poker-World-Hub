@@ -160,10 +160,11 @@ async function handleCheckoutCompleted(session) {
                     // failed webhooks for ~3 days with exponential backoff, so the
                     // credit will eventually succeed instead of being silently lost.
                     try {
-                        await getSupabase()
-                            .from('diamond_purchases')
-                            .update({ status: 'pending', completed_at: null })
+                        const { error: err_diamond_purchases_26t3a } = await getSupabase()
+                          .from('diamond_purchases')
+                          .update({ status: 'pending', completed_at: null })
                             .eq('id', metadata.purchase_id);
+                        if (err_diamond_purchases_26t3a) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_26t3a.message);
                     } catch (rollbackErr) {
                         console.warn('[stripe-webhook] Rollback to pending failed for purchase', metadata.purchase_id, rollbackErr?.message || rollbackErr);
                     }
@@ -173,14 +174,15 @@ async function handleCheckoutCompleted(session) {
             }
         } else if (metadata.type === 'merchandise' && metadata.order_id) {
             // Update merchandise order
-            await getSupabase()
-                .from('merchandise_orders')
-                .update({
+            const { error: err_merchandise_orders_16ujp } = await getSupabase()
+              .from('merchandise_orders')
+              .update({
                     status: 'processing',
                     stripe_checkout_session_id: id,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', metadata.order_id);
+            if (err_merchandise_orders_16ujp) console.warn('[Supabase] Silent mutation failed in merchandise_orders:', err_merchandise_orders_16ujp.message);
 
         }
     } else if (mode === 'subscription') {
@@ -191,15 +193,16 @@ async function handleCheckoutCompleted(session) {
 
             // Set VIP on profile and link Stripe customer
             if (metadata.user_id) {
-                await getSupabase()
-                    .from('profiles')
-                    .update({
+                const { error: err_profiles_yhokl } = await getSupabase()
+                  .from('profiles')
+                  .update({
                         stripe_customer_id: customer,
                         is_vip: true,
                         vip_tier: metadata.vip_tier || 'monthly',
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', metadata.user_id);
+                if (err_profiles_yhokl) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_yhokl.message);
 
             }
 
@@ -232,9 +235,9 @@ async function handleSubscriptionUpdate(subscription) {
     }
 
     // Upsert subscription record
-    await getSupabase()
-        .from('vip_subscriptions')
-        .upsert({
+    const { error: err_vip_subscriptions_1w1zg } = await getSupabase()
+      .from('vip_subscriptions')
+      .upsert({
             stripe_subscription_id: id,
             user_id: profile.id,
             stripe_customer_id: customer,
@@ -248,6 +251,7 @@ async function handleSubscriptionUpdate(subscription) {
         }, {
             onConflict: 'stripe_subscription_id'
         });
+    if (err_vip_subscriptions_1w1zg) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_1w1zg.message);
 
 }
 
@@ -258,26 +262,31 @@ async function handleSubscriptionCanceled(subscription) {
         return handleCommanderSubscriptionCanceled(subscription);
     }
 
-    await getSupabase()
-        .from('vip_subscriptions')
-        .update({
+    const { error: err_vip_subscriptions_s2gv2 } = await getSupabase()
+
+      .from('vip_subscriptions')
+
+      .update({
             status: 'canceled',
             canceled_at: new Date(canceled_at * 1000).toISOString(),
             updated_at: new Date().toISOString()
         })
         .eq('stripe_subscription_id', id);
 
+    if (err_vip_subscriptions_s2gv2) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_s2gv2.message);
+
     // Also clear VIP status on profile
     if (customer) {
-        await getSupabase()
-            .from('profiles')
-            .update({
+        const { error: err_profiles_odw9b } = await getSupabase()
+          .from('profiles')
+          .update({
                 is_vip: false,
                 vip_tier: null,
                 vip_canceled_at: new Date(canceled_at * 1000).toISOString(),
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_customer_id', customer);
+        if (err_profiles_odw9b) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_odw9b.message);
 
     }
 }
@@ -302,23 +311,28 @@ async function handleInvoicePaymentFailed(invoice) {
             .maybeSingle();
 
         if (cmdrSub) {
-            await getSupabase()
-                .from('commander_subscriptions')
-                .update({
+            const { error: err_commander_subscriptions_20wa8 } = await getSupabase()
+              .from('commander_subscriptions')
+              .update({
                     status: 'past_due',
                     updated_at: new Date().toISOString()
                 })
                 .eq('stripe_subscription_id', subscription);
+            if (err_commander_subscriptions_20wa8) console.warn('[Supabase] Silent mutation failed in commander_subscriptions:', err_commander_subscriptions_20wa8.message);
             return;
         }
 
-        await getSupabase()
-            .from('vip_subscriptions')
-            .update({
+        const { error: err_vip_subscriptions_gg0nj } = await getSupabase()
+
+          .from('vip_subscriptions')
+
+          .update({
                 status: 'past_due',
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_subscription_id', subscription);
+
+        if (err_vip_subscriptions_gg0nj) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_gg0nj.message);
     }
 }
 
@@ -339,13 +353,17 @@ async function handleRefund(charge) {
         // diamonds AND gets refunded by Stripe (silent money loss for the company).
         const priorStatus = purchase.status;
 
-        await getSupabase()
-            .from('diamond_purchases')
-            .update({
+        const { error: err_diamond_purchases_7v1b6 } = await getSupabase()
+
+          .from('diamond_purchases')
+
+          .update({
                 status: 'refunded',
                 refunded_at: new Date().toISOString()
             })
             .eq('id', purchase.id);
+
+        if (err_diamond_purchases_7v1b6) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_7v1b6.message);
 
         // Deduct diamonds from user balance
         const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
@@ -361,10 +379,11 @@ async function handleRefund(charge) {
             // Roll back the status='refunded' lock so the next Stripe webhook
             // retry can re-process. Throw to bubble up a 500 — Stripe retries.
             try {
-                await getSupabase()
-                    .from('diamond_purchases')
-                    .update({ status: priorStatus, refunded_at: null })
+                const { error: err_diamond_purchases_7qh4q } = await getSupabase()
+                  .from('diamond_purchases')
+                  .update({ status: priorStatus, refunded_at: null })
                     .eq('id', purchase.id);
+                if (err_diamond_purchases_7qh4q) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_7qh4q.message);
             } catch (rollbackErr) {
                 console.warn('[stripe-webhook] Refund rollback failed for purchase', purchase.id, rollbackErr?.message || rollbackErr);
             }
@@ -380,9 +399,11 @@ async function handleCommanderSubscriptionUpdate(subscription) {
 
     if (!venueId) return;
 
-    await getSupabase()
-        .from('commander_subscriptions')
-        .update({
+    const { error: err_commander_subscriptions_0z48c } = await getSupabase()
+
+      .from('commander_subscriptions')
+
+      .update({
             status: status,
             tier: metadata.tier || 'home_game',
             current_period_start: new Date(current_period_start * 1000).toISOString(),
@@ -392,14 +413,17 @@ async function handleCommanderSubscriptionUpdate(subscription) {
         })
         .eq('stripe_subscription_id', id);
 
+    if (err_commander_subscriptions_0z48c) console.warn('[Supabase] Silent mutation failed in commander_subscriptions:', err_commander_subscriptions_0z48c.message);
+
     if (status === 'active' || status === 'trialing') {
-        await getSupabase()
-            .from('poker_venues')
-            .update({
+        const { error: err_poker_venues_egixx } = await getSupabase()
+          .from('poker_venues')
+          .update({
                 commander_enabled: true,
                 commander_tier: metadata.tier || 'home_game'
             })
             .eq('id', venueId);
+        if (err_poker_venues_egixx) console.warn('[Supabase] Silent mutation failed in poker_venues:', err_poker_venues_egixx.message);
     }
 }
 
@@ -407,20 +431,25 @@ async function handleCommanderSubscriptionCanceled(subscription) {
     const { id, canceled_at, metadata } = subscription;
     const venueId = metadata?.venue_id;
 
-    await getSupabase()
-        .from('commander_subscriptions')
-        .update({
+    const { error: err_commander_subscriptions_d4cvb } = await getSupabase()
+
+      .from('commander_subscriptions')
+
+      .update({
             status: 'canceled',
             canceled_at: new Date(canceled_at * 1000).toISOString(),
             updated_at: new Date().toISOString()
         })
         .eq('stripe_subscription_id', id);
 
+    if (err_commander_subscriptions_d4cvb) console.warn('[Supabase] Silent mutation failed in commander_subscriptions:', err_commander_subscriptions_d4cvb.message);
+
     if (venueId) {
-        await getSupabase()
-            .from('poker_venues')
-            .update({ commander_enabled: false })
+        const { error: err_poker_venues_27pnr } = await getSupabase()
+          .from('poker_venues')
+          .update({ commander_enabled: false })
             .eq('id', venueId);
+        if (err_poker_venues_27pnr) console.warn('[Supabase] Silent mutation failed in poker_venues:', err_poker_venues_27pnr.message);
     }
 }
 

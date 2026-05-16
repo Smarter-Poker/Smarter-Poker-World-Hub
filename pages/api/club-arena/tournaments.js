@@ -343,10 +343,11 @@ export default async function handler(req, res) {
                   await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player', { chipsAlreadyLocked: true });
                 }
                 await controller.startTournament(tournamentId);
-                await getSupabase()
+                const { error: err_club_tournaments_113jc } = await getSupabase()
                   .from('club_tournaments')
                   .update({ status: 'running', started_at: new Date().toISOString() })
                   .eq('id', tournamentId);
+                if (err_club_tournaments_113jc) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_113jc.message);
               } else {
                 console.warn('[Tournament] SNG engine create failed:', sngCreate.error);
               }
@@ -563,7 +564,7 @@ export default async function handler(req, res) {
             }
 
             // Engine started successfully — NOW mark running in DB, and store prize pool/overlay
-            await getSupabase()
+            const { error: err_club_tournaments_kne2f } = await getSupabase()
               .from('club_tournaments')
               .update({ 
                  status: 'running', 
@@ -572,14 +573,16 @@ export default async function handler(req, res) {
                  settings: { ...(tourn.settings || {}), overlay_amount: overlayAmount }
               })
               .eq('id', tournamentId);
+            if (err_club_tournaments_kne2f) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_kne2f.message);
 
           } catch (engineErr) {
             console.warn('[Tournament] Engine init error:', engineErr.message);
             // Engine failed — do NOT mark as running, revert to registering
-            await getSupabase()
+            const { error: err_club_tournaments_yya5r } = await getSupabase()
               .from('club_tournaments')
               .update({ status: 'registering' })
               .eq('id', tournamentId);
+            if (err_club_tournaments_yya5r) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_yya5r.message);
             return res.status(500).json({ success: false, error: 'Engine failed to start tournament. Please try again.' });
           }
 
@@ -685,10 +688,11 @@ export default async function handler(req, res) {
           }
 
           // All refunds verified — NOW safe to update status
-          await getSupabase()
+          const { error: err_club_tournaments_87xz1 } = await getSupabase()
             .from('club_tournaments')
             .update({ status: 'cancelled' })
             .eq('id', tournamentId);
+          if (err_club_tournaments_87xz1) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_87xz1.message);
 
           return res.json({ success: true, refunded: (registrations || []).length });
         }
@@ -807,10 +811,11 @@ export default async function handler(req, res) {
           const spinPrizePool = basePrize * drawnMultiplier;
 
           // Persist the drawn multiplier and prize pool
-          await getSupabase()
+          const { error: err_club_tournaments_euxmn } = await getSupabase()
             .from('club_tournaments')
             .update({ spin_multiplier: drawnMultiplier, prize_pool: spinPrizePool })
             .eq('id', tournamentId);
+          if (err_club_tournaments_euxmn) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_euxmn.message);
 
           console.info(`[Tournament] Spin & Go multiplier drawn: ${drawnMultiplier}x for ${tournamentId}`);
           return res.json({ success: true, multiplier: drawnMultiplier, prizePool: spinPrizePool });

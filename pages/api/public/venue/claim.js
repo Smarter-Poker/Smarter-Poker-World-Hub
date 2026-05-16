@@ -223,9 +223,9 @@ async function handlePost(req, res) {
         }
 
         // Log the claim submission
-        await getSupabase()
-            .from('venue_verification_log')
-            .insert({
+        const { error: err_venue_verification_log_lrup4 } = await getSupabase()
+          .from('venue_verification_log')
+          .insert({
                 claim_id: claim.id,
                 venue_id: parseInt(venue_id),
                 action: 'claim_submitted',
@@ -237,6 +237,7 @@ async function handlePost(req, res) {
                 ip_address: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
                 user_agent: req.headers['user-agent']
             });
+        if (err_venue_verification_log_lrup4) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_lrup4.message);
 
         // TODO: Send verification code via email/phone based on method
         // For now, we'll return success and let admin handle verification

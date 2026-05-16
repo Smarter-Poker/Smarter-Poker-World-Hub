@@ -1190,12 +1190,13 @@ export default function ReelsPage() {
     if (!wasLiked && disliked[postId]) {
       setDisliked((prev) => ({ ...prev, [postId]: false }));
       try {
-        await supabase
+        const { error: err_social_likes_061sa } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id)
           .eq('reaction_type', 'dislike');
+        if (err_social_likes_061sa) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_061sa.message);
       } catch (e) {
         console.warn('[App] Handled exception:', e);
       }
@@ -1204,18 +1205,20 @@ export default function ReelsPage() {
     try {
       if (wasLiked) {
         // DB trigger (trig_sync_like_count) handles like_count decrement atomically - no RPC needed
-        await supabase
+        const { error: err_social_likes_sz3lr } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id)
           .eq('reaction_type', 'like');
+        if (err_social_likes_sz3lr) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_sz3lr.message);
         busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
       } else {
         // DB trigger (trig_sync_like_count) handles like_count increment atomically - no RPC needed
-        await supabase
+        const { error: err_social_likes_3qvxx } = await supabase
           .from('social_likes')
           .insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
+        if (err_social_likes_3qvxx) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_3qvxx.message);
         busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
       }
     } catch (err) {
@@ -1246,24 +1249,26 @@ export default function ReelsPage() {
       setLikeCounts((prev) => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) - 1) }));
       try {
         // DB trigger handles like_count decrement when like is removed - no RPC needed
-        await supabase
+        const { error: err_social_likes_fmb7o } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id)
           .eq('reaction_type', 'like');
+        if (err_social_likes_fmb7o) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_fmb7o.message);
       } catch (e) {
         console.warn('[App] Handled exception:', e);
       }
     }
     try {
       if (wasDisliked) {
-        await supabase
+        const { error: err_social_likes_gsc1r } = await supabase
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id)
           .eq('reaction_type', 'dislike');
+        if (err_social_likes_gsc1r) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_gsc1r.message);
         // #4 Not Interested - remove from filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
@@ -1273,9 +1278,10 @@ export default function ReelsPage() {
           return n;
         });
       } else {
-        await supabase
+        const { error: err_social_likes_xk2a9 } = await supabase
           .from('social_likes')
           .insert({ post_id: postId, user_id: user.id, reaction_type: 'dislike' });
+        if (err_social_likes_xk2a9) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_xk2a9.message);
         // #4 Not Interested - add to filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
@@ -1298,16 +1304,18 @@ export default function ReelsPage() {
     haptic(wasFollowing ? 5 : 15);
     try {
       if (wasFollowing) {
-        await supabase
+        const { error: err_social_follows_gan5p } = await supabase
           .from('social_follows')
           .delete()
           .eq('follower_id', user.id)
           .eq('following_id', authorId);
+        if (err_social_follows_gan5p) console.warn('[Supabase] Silent mutation failed in social_follows:', err_social_follows_gan5p.message);
       } else {
-        await supabase.from('social_follows').insert({
+        const { error: err_social_follows_n962e } = await supabase.from('social_follows').insert({
           follower_id: user.id,
           following_id: authorId,
         });
+        if (err_social_follows_n962e) console.warn('[Supabase] Silent mutation failed in social_follows:', err_social_follows_n962e.message);
       }
       busEmit.socialFollowChanged &&
         busEmit.socialFollowChanged(authorId, user.id, { added: !wasFollowing });
@@ -1567,20 +1575,22 @@ export default function ReelsPage() {
       if (wasLiked) {
         // BUG FIX: .match({ metadata: { comment_id } }) does full-object JSONB equality.
         // Use PostgREST JSON path filter .eq('metadata->>comment_id', id) instead.
-        await supabase
+        const { error: err_social_interactions_av320 } = await supabase
           .from('social_interactions')
           .delete()
           .eq('user_id', user.id)
           .eq('post_id', currentReel.id)
           .eq('interaction_type', 'comment_like')
           .eq('metadata->>comment_id', commentId);
+        if (err_social_interactions_av320) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_av320.message);
       } else {
-        await supabase.from('social_interactions').insert({
+        const { error: err_social_interactions_wvfm0 } = await supabase.from('social_interactions').insert({
           user_id: user.id,
           post_id: currentReel.id,
           interaction_type: 'comment_like',
           metadata: { comment_id: commentId },
         });
+        if (err_social_interactions_wvfm0) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_wvfm0.message);
       }
     } catch {
       setCommentLikes((prev) => ({ ...prev, [commentId]: wasLiked }));

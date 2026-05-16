@@ -132,10 +132,11 @@ export default async function handler(req, res) {
                   customerId = customer.id;
 
                   // Save customer ID to profile
-                  await getSupabase()
-                      .from('profiles')
-                      .update({ stripe_customer_id: customerId })
+                  const { error: err_profiles_epk3c } = await getSupabase()
+                    .from('profiles')
+                    .update({ stripe_customer_id: customerId })
                       .eq('id', user.id);
+                  if (err_profiles_epk3c) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_epk3c.message);
               } catch (customerError) {
                   console.warn('[Checkout] Failed to create Stripe customer:', {
                       type: customerError.type,

@@ -117,11 +117,12 @@ export default async function handler(req, res) {
           // would block retries forever after a transient failure.
           const rollbackRedemption = async (label) => {
               try {
-                  await getSupabase()
-                      .from('promo_code_redemptions')
-                      .delete()
+                  const { error: err_promo_code_redemptions_h7gtb } = await getSupabase()
+                    .from('promo_code_redemptions')
+                    .delete()
                       .eq('promo_code_id', promo.id)
                       .eq('user_id', user.id);
+                  if (err_promo_code_redemptions_h7gtb) console.warn('[Supabase] Silent mutation failed in promo_code_redemptions:', err_promo_code_redemptions_h7gtb.message);
               } catch (rbErr) {
                   console.warn(`[Promo] Rollback delete failed (${label}):`, rbErr?.message || rbErr);
               }
@@ -204,17 +205,19 @@ export default async function handler(req, res) {
 
           // ── Redemption already recorded above (atomic insert) ──
           // Update with reward details
-          await getSupabase()
-              .from('promo_code_redemptions')
-              .update({ reward_applied: reward })
+          const { error: err_promo_code_redemptions_ufo99 } = await getSupabase()
+            .from('promo_code_redemptions')
+            .update({ reward_applied: reward })
               .eq('promo_code_id', promo.id)
               .eq('user_id', user.id);
+          if (err_promo_code_redemptions_ufo99) console.warn('[Supabase] Silent mutation failed in promo_code_redemptions:', err_promo_code_redemptions_ufo99.message);
 
           // ── INCREMENT USAGE COUNT ──
-          await getSupabase()
-              .from('promo_codes')
-              .update({ times_used: promo.times_used + 1 })
+          const { error: err_promo_codes_en9fo } = await getSupabase()
+            .from('promo_codes')
+            .update({ times_used: promo.times_used + 1 })
               .eq('id', promo.id);
+          if (err_promo_codes_en9fo) console.warn('[Supabase] Silent mutation failed in promo_codes:', err_promo_codes_en9fo.message);
 
           return res.status(200).json({
               success: true,

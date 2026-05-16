@@ -60,10 +60,11 @@ export default async function handler(req, res) {
 
             if (!referralCode) {
                 referralCode = generateCode(profile?.username);
-                await supabase
-                    .from('profiles')
-                    .update({ referral_code: referralCode })
+                const { error: err_profiles_z0mv3 } = await supabase
+                  .from('profiles')
+                  .update({ referral_code: referralCode })
                     .eq('id', user.id);
+                if (err_profiles_z0mv3) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_z0mv3.message);
             }
 
             // Count successful referrals
@@ -138,10 +139,11 @@ export default async function handler(req, res) {
                 }
 
                 const newCode = generateCode(profile?.username);
-                await supabase
-                    .from('profiles')
-                    .update({ referral_code: newCode })
+                const { error: err_profiles_sfmz4 } = await supabase
+                  .from('profiles')
+                  .update({ referral_code: newCode })
                     .eq('id', user.id);
+                if (err_profiles_sfmz4) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_sfmz4.message);
 
                 return res.status(200).json({ code: newCode, existing: false });
             } catch (err) {
@@ -196,11 +198,12 @@ export default async function handler(req, res) {
                 // referee_id per row) would block re-application forever.
                 const rollbackReferral = async (label) => {
                     try {
-                        await supabase
-                            .from('referrals')
-                            .delete()
+                        const { error: err_referrals_flf6b } = await supabase
+                          .from('referrals')
+                          .delete()
                             .eq('referee_id', user.id)
                             .eq('referrer_id', referrer.id);
+                        if (err_referrals_flf6b) console.warn('[Supabase] Silent mutation failed in referrals:', err_referrals_flf6b.message);
                     } catch (rbErr) {
                         console.warn(`[Referral] Rollback delete failed (${label}):`, rbErr?.message || rbErr);
                     }

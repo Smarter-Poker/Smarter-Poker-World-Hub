@@ -145,7 +145,7 @@ export default async function handler(req, res) {
 
               // Only insert if we have a valid game UUID
               if (gameUUID) {
-                  await getSupabase().from('god_mode_hand_history').insert({
+                  const { error: err_god_mode_hand_history_1b8b4 } = await getSupabase().from('god_mode_hand_history').insert({
                       user_id: user.id,
                       game_id: gameUUID,
                       source_file_id: effectiveFileId || 'unknown',
@@ -164,6 +164,7 @@ export default async function handler(req, res) {
                       is_indifferent: damageResult.isIndifferent || false,
                       chip_penalty: damageResult.chipPenalty || 0,
                   });
+                  if (err_god_mode_hand_history_1b8b4) console.warn('[Supabase] Silent mutation failed in god_mode_hand_history:', err_god_mode_hand_history_1b8b4.message);
               } else {
               }
           } catch (dbError) {

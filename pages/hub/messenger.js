@@ -5589,7 +5589,8 @@ function MessengerPage() {
                                 }).catch(async () => {
                                     const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
                                     const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                    supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).catch(() => {});
+                                    const { error: prefErr } = await supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id);
+                                    if (prefErr) console.warn('[Messenger] push prompt pref persist failed (Enable):', prefErr.message);
                                 });
                             }
                             setShowPushPrompt(false);
@@ -5621,7 +5622,8 @@ function MessengerPage() {
                                 }).catch(async () => {
                                     const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
                                     const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                    supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).catch(() => {});
+                                    const { error: prefErr } = await supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id);
+                                    if (prefErr) console.warn('[Messenger] push prompt pref persist failed (Dismiss):', prefErr.message);
                                 });
                             }
                             setShowPushPrompt(false);

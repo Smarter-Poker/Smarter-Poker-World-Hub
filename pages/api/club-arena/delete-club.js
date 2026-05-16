@@ -104,7 +104,8 @@ export default async function handler(req, res) {
       }
 
       // 4. Delete members
-      await getSupabase().from('club_members').delete().eq('club_id', clubId);
+      const { error: err_club_members_bo01p } = await getSupabase().from('club_members').delete().eq('club_id', clubId);
+      if (err_club_members_bo01p) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_bo01p.message);
 
       // 5. Delete club
       const { error: deleteErr } = await getSupabase().from('clubs').delete().eq('id', clubId);

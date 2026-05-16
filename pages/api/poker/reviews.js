@@ -174,7 +174,8 @@ try {
 
         // Recalculate venue trust_score from review average
         try {
-          await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: venueIdStr });
+          const { error: trustScoreErr } = await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: venueIdStr });
+          if (trustScoreErr) throw trustScoreErr;
         } catch (rpcErr) {
           console.warn('[Reviews] trust_score recalc failed (non-fatal):', rpcErr.message);
         }

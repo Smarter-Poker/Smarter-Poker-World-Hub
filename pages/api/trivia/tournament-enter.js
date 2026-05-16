@@ -163,13 +163,14 @@ export default async function handler(req, res) {
         if (entryErr) {
             // Rollback: refund the entry fee
             console.error('[tournament-enter] entry insert failed; refunding:', entryErr);
-            await sb().rpc('add_diamonds_to_balance', {
+            const { error: refundErr } = await sb().rpc('add_diamonds_to_balance', {
                 p_user_id: userId,
                 p_amount: entryFee,
                 p_type: 'tournament_entry_refund',
                 p_description: `Refund — entry insert failed for ${tournament.name}`,
                 p_reference_id: `${refId}_refund`
-            }).catch(e => console.error('[tournament-enter] refund also failed:', e));
+            });
+            if (refundErr) console.error('[tournament-enter] refund also failed:', refundErr.message);
             return res.status(500).json({ success: false, error: 'entry_create_failed' });
         }
 

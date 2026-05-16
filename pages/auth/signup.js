@@ -588,9 +588,9 @@ export default function SignUpPage() {
                     }
 
                     // CRITICAL: Also create user_diamond_balance record (header reads from this table)
-                    await supabase
-                        .from('user_diamond_balance')
-                        .upsert({
+                    const { error: err_user_diamond_balance_qf0e1 } = await supabase
+                      .from('user_diamond_balance')
+                      .upsert({
                             user_id: authData.user.id,
                             balance: 500, // Welcome diamond bonus (matches profile)
                             created_at: new Date().toISOString(),
@@ -598,16 +598,18 @@ export default function SignUpPage() {
                         }, {
                             onConflict: 'user_id',
                         });
+                    if (err_user_diamond_balance_qf0e1) console.warn('[Supabase] Silent mutation failed in user_diamond_balance:', err_user_diamond_balance_qf0e1.message);
 
                     // RPC doesn't accept birthday params — persist it separately
                     if (formData.birthYear && formData.birthMonth && formData.birthDay) {
-                        await supabase
-                            .from('profiles')
-                            .update({
+                        const { error: err_profiles_p53n7 } = await supabase
+                          .from('profiles')
+                          .update({
                                 birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
                                 birth_year: parseInt(formData.birthYear),
                             })
                             .eq('id', authData.user.id);
+                        if (err_profiles_p53n7) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_p53n7.message);
                     }
                 } catch (rpcErr) {
                     console.warn('[App] Handled exception:', rpcErr?.message || rpcErr);
@@ -704,10 +706,11 @@ export default function SignUpPage() {
                 // We must do it here to prevent the VIP popup from re-firing.
                 if (phoneVerified) {
                     try {
-                        await supabase
-                            .from('profiles')
-                            .update({ phone_verified: true })
+                        const { error: err_profiles_gh469 } = await supabase
+                          .from('profiles')
+                          .update({ phone_verified: true })
                             .eq('id', authData.user.id);
+                        if (err_profiles_gh469) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_gh469.message);
                         console.log('[Signup] phone_verified persisted to profile');
                     } catch (pvErr) {
                         console.warn('[Signup] phone_verified persist error (non-blocking):', pvErr);

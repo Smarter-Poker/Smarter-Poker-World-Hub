@@ -225,9 +225,11 @@ class HorseMemoryService {
             const total = existing.total_interactions + 1;
             const sentiment = (positive - negative) / total;
 
-            await supabase
-                .from('horse_relationships')
-                .update({
+            const { error: err_horse_relationships_wspkm } = await supabase
+
+              .from('horse_relationships')
+
+              .update({
                     total_interactions: total,
                     positive_interactions: positive,
                     negative_interactions: negative,
@@ -235,9 +237,11 @@ class HorseMemoryService {
                     last_interaction_at: new Date().toISOString()
                 })
                 .eq('id', existing.id);
+
+            if (err_horse_relationships_wspkm) console.warn('[Supabase] Silent mutation failed in horse_relationships:', err_horse_relationships_wspkm.message);
         } else {
             // Create new
-            await supabase.from('horse_relationships').insert({
+            const { error: err_horse_relationships_uf6kv } = await supabase.from('horse_relationships').insert({
                 author_id: authorId,
                 target_author_id: targetAuthorId,
                 relationship_type: 'neutral',
@@ -247,6 +251,7 @@ class HorseMemoryService {
                 sentiment_score: isPositive ? 0.2 : -0.2,
                 last_interaction_at: new Date().toISOString()
             });
+            if (err_horse_relationships_uf6kv) console.warn('[Supabase] Silent mutation failed in horse_relationships:', err_horse_relationships_uf6kv.message);
         }
     }
 

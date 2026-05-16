@@ -223,12 +223,13 @@ export default async function handler(req, res) {
               // this the user gets "already claimed" forever and never sees
               // their diamonds.
               try {
-                  await supabase
-                      .from('diamond_reward_claims')
-                      .delete()
+                  const { error: err_diamond_reward_claims_ehpi1 } = await supabase
+                    .from('diamond_reward_claims')
+                    .delete()
                       .eq('user_id', userId)
                       .eq('reward_type', 'venue_review')
                       .eq('claim_date', today);
+                  if (err_diamond_reward_claims_ehpi1) console.warn('[Supabase] Silent mutation failed in diamond_reward_claims:', err_diamond_reward_claims_ehpi1.message);
               } catch (rollbackErr) {
                   console.warn('[VenueReview] Rollback delete failed:', rollbackErr?.message || rollbackErr);
               }

@@ -6438,9 +6438,9 @@ function LivePokerTable({
     };
     try {
       if (sessionRowIdRef.current) {
-        await supabase.from('poker_session_stats')
-          .update(payload)
+        const { error: err_poker_session_stats_g5p85 } = await supabase.from('poker_session_stats').update(payload)
           .eq('id', sessionRowIdRef.current);
+        if (err_poker_session_stats_g5p85) console.warn('[Supabase] Silent mutation failed in poker_session_stats:', err_poker_session_stats_g5p85.message);
       } else {
         const { data } = await supabase.from('poker_session_stats')
           .insert(payload)

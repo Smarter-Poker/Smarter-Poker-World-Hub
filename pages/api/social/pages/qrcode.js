@@ -78,7 +78,8 @@ export default async function handler(req, res) {
 
           // Save to metadata
           const newMeta = { ...page.metadata, referral_code: referralCode };
-          await getSupabase().from('social_pages').update({ metadata: newMeta }).eq('id', page_id);
+          const { error: err_social_pages_6phrp } = await getSupabase().from('social_pages').update({ metadata: newMeta }).eq('id', page_id);
+          if (err_social_pages_6phrp) console.warn('[Supabase] Silent mutation failed in social_pages:', err_social_pages_6phrp.message);
       }
 
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker';

@@ -242,7 +242,7 @@ export default async function handler(req, res) {
         }
 
         // Update role in club_members
-        await getSupabase()
+        const { error: err_club_members_mru22 } = await getSupabase()
           .from('club_members')
           .update({
             role: agentTier,
@@ -251,6 +251,7 @@ export default async function handler(req, res) {
           })
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
+        if (err_club_members_mru22) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_mru22.message);
 
         // Create agent record
         const { data: agentRecord, error: agentErr } = await getSupabase()
@@ -318,11 +319,12 @@ export default async function handler(req, res) {
 
         // Reassign players
         if (playerCount > 0) {
-          await getSupabase()
+          const { error: err_club_members_k50be } = await getSupabase()
             .from('club_members')
             .update({ agent_id: reassignTo || null })
             .eq('club_id', clubId)
             .eq('agent_id', targetUserId);
+          if (err_club_members_k50be) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_k50be.message);
 
           // Update reassigned-to agent's player counts
           if (reassignTo) {
@@ -349,10 +351,11 @@ export default async function handler(req, res) {
               if (!upd?.length) {
                 const { data: freshA } = await getSupabase().from('agents').select('active_player_count, total_players').eq('id', newAgent.id).maybeSingle();
                 if (freshA) {
-                  await getSupabase().from('agents').update({
+                  const { error: err_agents_3yyvr } = await getSupabase().from('agents').update({
                     active_player_count: (freshA.active_player_count || 0) + playerCount,
                     total_players: (freshA.total_players || 0) + playerCount,
                   }).eq('id', newAgent.id);
+                  if (err_agents_3yyvr) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_3yyvr.message);
                 }
               }
             }
@@ -360,18 +363,20 @@ export default async function handler(req, res) {
         }
 
         // Demote in club_members
-        await getSupabase()
+        const { error: err_club_members_zn75u } = await getSupabase()
           .from('club_members')
           .update({ role: 'player', credit_limit: 0 })
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
+        if (err_club_members_zn75u) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_zn75u.message);
 
         // Deactivate agent record
-        await getSupabase()
+        const { error: err_agents_fnkk7 } = await getSupabase()
           .from('agents')
           .update({ status: 'inactive', active_player_count: 0 })
           .eq('user_id', targetUserId)
           .eq('club_id', clubId);
+        if (err_agents_fnkk7) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_fnkk7.message);
 
         logAudit(supabaseAdmin, { actionType: 'agent_demoted', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { playersReassigned: playerCount, reassignedTo: reassignTo || 'unassigned' } });
 
@@ -454,19 +459,21 @@ export default async function handler(req, res) {
         }
 
         if (Object.keys(updates || {}).length > 0) {
-          await getSupabase()
+          const { error: err_club_members_5pr83 } = await getSupabase()
             .from('club_members')
             .update(updates)
             .eq('club_id', clubId)
             .eq('user_id', targetUserId);
+          if (err_club_members_5pr83) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_5pr83.message);
         }
 
         if (Object.keys(agentUpdates || {}).length > 0) {
-          await getSupabase()
+          const { error: err_agents_sqgtt } = await getSupabase()
             .from('agents')
             .update(agentUpdates)
             .eq('user_id', targetUserId)
             .eq('club_id', clubId);
+          if (err_agents_sqgtt) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_sqgtt.message);
         }
 
         return res.status(200).json({ success: true, action: 'updated', updates: { ...updates, ...agentUpdates } });
@@ -482,11 +489,12 @@ export default async function handler(req, res) {
         }
 
         // toAgentId can be null (un-assign from agent)
-        await getSupabase()
+        const { error: err_club_members_b5fpq } = await getSupabase()
           .from('club_members')
           .update({ agent_id: toAgentId || null })
           .eq('club_id', clubId)
           .eq('user_id', playerId);
+        if (err_club_members_b5fpq) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_b5fpq.message);
 
         // Update agent player counts
         if (fromAgentId) {
@@ -497,10 +505,11 @@ export default async function handler(req, res) {
             .eq('club_id', clubId)
             .maybeSingle();
           if (fromAgent) {
-            await getSupabase()
+            const { error: err_agents_h95h5 } = await getSupabase()
               .from('agents')
               .update({ active_player_count: Math.max(0, (fromAgent.active_player_count || 1) - 1) })
               .eq('id', fromAgent.id);
+            if (err_agents_h95h5) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_h95h5.message);
           }
         }
 
@@ -511,13 +520,14 @@ export default async function handler(req, res) {
           .eq('club_id', clubId)
           .maybeSingle();
         if (toAgent) {
-          await getSupabase()
+          const { error: err_agents_scp5k } = await getSupabase()
             .from('agents')
             .update({
               active_player_count: (toAgent.active_player_count || 0) + 1,
               total_players: (toAgent.total_players || 0) + 1,
             })
             .eq('id', toAgent.id);
+          if (err_agents_scp5k) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_scp5k.message);
         }
 
         return res.status(200).json({
@@ -537,17 +547,25 @@ export default async function handler(req, res) {
 
         const newStatus = action === 'suspend' ? 'suspended' : 'active';
 
-        await getSupabase()
+        const { error: err_agents_55bom } = await getSupabase()
+
           .from('agents')
+
           .update({ status: newStatus })
           .eq('user_id', targetUserId)
           .eq('club_id', clubId);
 
-        await getSupabase()
+        if (err_agents_55bom) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_55bom.message);
+
+        const { error: err_club_members_a2gk5 } = await getSupabase()
+
           .from('club_members')
+
           .update({ status: newStatus })
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
+
+        if (err_club_members_a2gk5) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_a2gk5.message);
 
         logAudit(supabaseAdmin, { actionType: `agent_${action}`, userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { newStatus } });
 
@@ -598,18 +616,20 @@ export default async function handler(req, res) {
 
         // If demoting FROM agent role → clear downline assignments
         if (agentRoles.includes(oldRole) && !agentRoles.includes(newRole)) {
-          await getSupabase()
+          const { error: err_club_members_enfjd } = await getSupabase()
             .from('club_members')
             .update({ agent_id: null })
             .eq('club_id', clubId)
             .eq('agent_id', targetUserId);
+          if (err_club_members_enfjd) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_enfjd.message);
 
           // Deactivate agent record
-          await getSupabase()
+          const { error: err_agents_iu87p } = await getSupabase()
             .from('agents')
             .update({ status: 'inactive', active_player_count: 0 })
             .eq('user_id', targetUserId)
             .eq('club_id', clubId);
+          if (err_agents_iu87p) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_iu87p.message);
         }
 
         // If promoting TO agent → create agent record if needed
@@ -634,12 +654,13 @@ export default async function handler(req, res) {
             .maybeSingle();
 
           if (existingAgent) {
-            await getSupabase()
+            const { error: err_agents_05bir } = await getSupabase()
               .from('agents')
               .update({ status: 'active', role: 'agent', commission_rate: cr })
               .eq('id', existingAgent.id);
+            if (err_agents_05bir) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_05bir.message);
           } else {
-            await getSupabase()
+            const { error: err_agents_kedsv } = await getSupabase()
               .from('agents')
               .insert({
                 user_id: targetUserId,
@@ -652,6 +673,7 @@ export default async function handler(req, res) {
                 active_player_count: 0,
                 total_players: 0,
               });
+            if (err_agents_kedsv) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_kedsv.message);
           }
         }
 
@@ -660,11 +682,15 @@ export default async function handler(req, res) {
           updates.agent_id = null;
         }
 
-        await getSupabase()
+        const { error: err_club_members_j4lsk } = await getSupabase()
+
           .from('club_members')
+
           .update(updates)
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
+
+        if (err_club_members_j4lsk) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_j4lsk.message);
 
         return res.status(200).json({
           success: true,
@@ -762,17 +788,22 @@ export default async function handler(req, res) {
 
         // If removing an agent, clear downline + deactivate agent record
         if (['agent', 'sub_agent', 'super_agent'].includes(targetMember.role)) {
-          await getSupabase()
+          const { error: err_club_members_xuqug } = await getSupabase()
             .from('club_members')
             .update({ agent_id: null })
             .eq('club_id', clubId)
             .eq('agent_id', targetUserId);
+          if (err_club_members_xuqug) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_xuqug.message);
 
-          await getSupabase()
+          const { error: err_agents_1c83s } = await getSupabase()
+
             .from('agents')
+
             .update({ status: 'inactive', active_player_count: 0 })
             .eq('user_id', targetUserId)
             .eq('club_id', clubId);
+
+          if (err_agents_1c83s) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_1c83s.message);
         }
 
         // Delete membership
@@ -790,10 +821,14 @@ export default async function handler(req, res) {
           .select('*', { count: 'exact', head: true })
           .eq('club_id', clubId)
 
-        await getSupabase()
+        const { error: err_clubs_p2is3 } = await getSupabase()
+
           .from('clubs')
+
           .update({ member_count: count || 0 })
           .eq('id', clubId);
+
+        if (err_clubs_p2is3) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_p2is3.message);
 
         return res.status(200).json({
           success: true,
@@ -972,21 +1007,23 @@ export default async function handler(req, res) {
 
         // Update the player's rakeback on the agent record
         // Store per-player rakeback in club_members
-        await getSupabase()
+        const { error: err_club_members_9r6y5 } = await getSupabase()
           .from('club_members')
           .update({ player_rakeback_pct: rakebackPercentage })
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
+        if (err_club_members_9r6y5) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_9r6y5.message);
 
         // Also update the agent-level default if this is their first time setting it
         if (!callerAgent.auto_rakeback_enabled && rakebackPercentage > 0) {
-          await getSupabase()
+          const { error: err_agents_ijqcj } = await getSupabase()
             .from('agents')
             .update({
               auto_rakeback_enabled: true,
               rakeback_percentage: rakebackPercentage, // Sets agent default
             })
             .eq('id', callerAgent.id);
+          if (err_agents_ijqcj) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_ijqcj.message);
         }
 
         return res.status(200).json({
@@ -1083,10 +1120,14 @@ export default async function handler(req, res) {
           }
         }
 
-        await getSupabase()
+        const { error: err_agents_8o785 } = await getSupabase()
+
           .from('agents')
+
           .update({ commission_rate: commissionRate })
           .eq('id', targetAgent.id);
+
+        if (err_agents_8o785) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_8o785.message);
 
         logAudit(supabaseAdmin, { actionType: 'commission_updated', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { oldRate: targetAgent.commission_rate, newRate: commissionRate } });
         return res.status(200).json({
@@ -1316,7 +1357,8 @@ export default async function handler(req, res) {
         });
         if (creditErr) {
           // Rollback: re-credit sender
-          await getSupabase().rpc('fn_credit_chips', { p_club_id: clubId, p_user_id: user.id, p_amount: amount }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+          const { error: rollbackErr } = await getSupabase().rpc('fn_credit_chips', { p_club_id: clubId, p_user_id: user.id, p_amount: amount });
+          if (rollbackErr) console.warn('[App] Handled promise rejection:', rollbackErr.message);
           return res.status(500).json({ success: false, error: 'Credit failed, transfer rolled back' });
         }
 
@@ -1366,18 +1408,20 @@ export default async function handler(req, res) {
         if (ownerErr) throw ownerErr;
 
         // Promote new owner to 'owner' role
-        await getSupabase()
+        const { error: err_club_members_r4gr0 } = await getSupabase()
           .from('club_members')
           .update({ role: 'owner' })
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
+        if (err_club_members_r4gr0) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_r4gr0.message);
 
         // Demote old owner to 'admin'
-        await getSupabase()
+        const { error: err_club_members_khgyo } = await getSupabase()
           .from('club_members')
           .update({ role: 'admin' })
           .eq('club_id', clubId)
           .eq('user_id', user.id);
+        if (err_club_members_khgyo) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_khgyo.message);
 
         logAudit(supabaseAdmin, { actionType: 'ownership_transferred', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { oldOwner: user.id, newOwner: targetUserId } });
         await notifyUser(supabaseAdmin, {
@@ -1423,17 +1467,19 @@ export default async function handler(req, res) {
 
             // Sync club_members status
             if (action === 'batch_suspend') {
-              await getSupabase()
+              const { error: err_club_members_xg5zp } = await getSupabase()
                 .from('club_members')
                 .update({ role: 'suspended' })
                 .eq('club_id', clubId)
                 .eq('user_id', uid);
+              if (err_club_members_xg5zp) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_xg5zp.message);
             } else {
-              await getSupabase()
+              const { error: err_club_members_4r91e } = await getSupabase()
                 .from('club_members')
                 .update({ role: 'agent' })
                 .eq('club_id', clubId)
                 .eq('user_id', uid);
+              if (err_club_members_4r91e) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_4r91e.message);
             }
 
             results.success.push(uid);

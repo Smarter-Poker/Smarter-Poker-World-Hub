@@ -164,9 +164,11 @@ export default function MemoryCampaignView() {
         const passThreshold = Math.min(100, 85 + (activeLevel.levelIndex * 2)) / 100;
         const shouldUnlock = passed && accuracy >= passThreshold;
 
-        await supabase
-            .from('user_level_progress')
-            .upsert({
+        const { error: err_user_level_progress_3aagg } = await supabase
+
+          .from('user_level_progress')
+
+          .upsert({
                 user_id: userId,
                 chart_id: activeLevel.chart.chart_id,
                 best_accuracy: Math.max(activeLevel.bestAccuracy, accuracy),
@@ -174,6 +176,8 @@ export default function MemoryCampaignView() {
                 times_played: activeLevel.timesPlayed + 1,
                 last_played_at: new Date().toISOString(),
             });
+
+        if (err_user_level_progress_3aagg) console.warn('[Supabase] Silent mutation failed in user_level_progress:', err_user_level_progress_3aagg.message);
 
         // Reload campaign data
         loadCampaignData(userId);

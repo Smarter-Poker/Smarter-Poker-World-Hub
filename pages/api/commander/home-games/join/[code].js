@@ -108,7 +108,7 @@ export default async function handler(req, res) {
                 
                 const playerName = profile?.display_name || profile?.username || 'A player';
 
-                await supabase.from('notifications').insert({
+                const { error: err_notifications_z46p6 } = await supabase.from('notifications').insert({
                     user_id: group.owner_id,
                     type: 'home_game_join_request',
                     source: 'home_game',
@@ -126,6 +126,8 @@ export default async function handler(req, res) {
                     is_read: false,
                     read: false,
                 });
+
+                if (err_notifications_z46p6) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_z46p6.message);
             } catch (notifyErr) {
                 console.warn('[join API] Failed to notify host:', notifyErr);
             }

@@ -673,22 +673,23 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                     // BUG-WR03 FIX: match by author+post+timestamp window instead of content string
                     // (content-match was fragile: two horses posting same text to same post → wrong row updated)
                     const nowIso = new Date(Date.now() - 5000).toISOString(); // last 5s
-                    await getSupabase().from('social_comments')
-                        .update({ content: mentionComment })
+                    const { error: err_social_comments_29seb } = await getSupabase().from('social_comments').update({ content: mentionComment })
                         .eq('post_id', post.id)
                         .eq('author_id', horse.profile_id)
                         .gte('created_at', nowIso);
+                    if (err_social_comments_29seb) console.warn('[Supabase] Silent mutation failed in social_comments:', err_social_comments_29seb.message);
                     comment = mentionComment;
                     console.debug(`   ${horse.name} tagged @${friendProfile.username}`);
 
                     // Phase 28 Fix: Insert notification for the mentioned friend
-                    await getSupabase().from('notifications').insert({
+                    const { error: err_notifications_uevyd } = await getSupabase().from('notifications').insert({
                         user_id: friend.profile_id,
                         actor_id: horse.profile_id,
                         type: 'mention',
                         reference_id: post.id,
                         message: `mentioned you in a comment`
                     });
+                    if (err_notifications_uevyd) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_uevyd.message);
 
                     // Trigger push notification to mentioned user
                     await sendSocialPush(friend.profile_id, horseIds, 'New Mention', `${horse.name} mentioned you in a comment.`, `/hub/social-feed?post_id=${post.id}`);
@@ -1072,10 +1073,11 @@ async function runSocialInteractions(options = {}) {
                 // Update alias profiles (content_authors.profile_id)
                 for (let i = 0; i < horseProfileIds.length; i += 50) {
                     const chunk = horseProfileIds.slice(i, i + 50);
-                    await getSupabase()
-                        .from('profiles')
-                        .update({ last_active: now })
+                    const { error: err_profiles_b59b8 } = await getSupabase()
+                      .from('profiles')
+                      .update({ last_active: now })
                         .in('id', chunk);
+                    if (err_profiles_b59b8) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_b59b8.message);
                 }
 
                 // Also update real-name profiles (matched by full_name)
@@ -1084,10 +1086,11 @@ async function runSocialInteractions(options = {}) {
                 if (horseNames.length > 0) {
                     for (let i = 0; i < horseNames.length; i += 50) {
                         const chunk = horseNames.slice(i, i + 50);
-                        await getSupabase()
-                            .from('profiles')
-                            .update({ last_active: now })
+                        const { error: err_profiles_bz9ky } = await getSupabase()
+                          .from('profiles')
+                          .update({ last_active: now })
                             .in('full_name', chunk);
+                        if (err_profiles_bz9ky) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_bz9ky.message);
                     }
                 }
 
@@ -1166,13 +1169,14 @@ async function reactToComments(maxReactions = 15) {
         // (JSON path expressions are not column names). This caused silent INSERT duplicates
         // or a 42703 error. Use atomic delete+insert instead for guaranteed idempotency.
         const postId = comment.post_id || comment.id;
-        await getSupabase()
-            .from('social_interactions')
-            .delete()
+        const { error: err_social_interactions_au40p } = await getSupabase()
+          .from('social_interactions')
+          .delete()
             .eq('user_id', horse.profile_id)
             .eq('post_id', postId)
             .eq('interaction_type', 'comment_like')
             .filter('metadata->>comment_id', 'eq', comment.id);
+        if (err_social_interactions_au40p) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_au40p.message);
 
         const { error } = await getSupabase()
             .from('social_interactions')

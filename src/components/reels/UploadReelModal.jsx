@@ -236,9 +236,9 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
             // Create social_posts entry for feed (non-fatal)
             try {
-                await supabase
-                    .from('social_posts')
-                    .insert({
+                const { error: err_social_posts_cxvf8 } = await supabase
+                  .from('social_posts')
+                  .insert({
                         author_id: user.id,
                         content: caption.trim() || '',
                         content_type: 'video',
@@ -250,6 +250,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                         share_count: 0,
                         link_url: reelRow?.id ? `/hub/reels?id=${reelRow.id}` : null,
                     });
+                if (err_social_posts_cxvf8) console.warn('[Supabase] Silent mutation failed in social_posts:', err_social_posts_cxvf8.message);
             } catch (feedErr) {
                 console.warn('[UploadReel] Feed post creation failed (non-fatal):', feedErr.message);
             }

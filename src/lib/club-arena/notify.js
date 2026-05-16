@@ -36,7 +36,7 @@ export async function notifyUser(supabaseAdmin, {
 
   // 1. In-app notification (Supabase insert)
   try {
-    await supabaseAdmin.from('notifications').insert({
+    const { error: err_notifications_vrqj9 } = await supabaseAdmin.from('notifications').insert({
       user_id: userId,
       type,
       title,
@@ -44,6 +44,7 @@ export async function notifyUser(supabaseAdmin, {
       data: { ...data, source: 'club_arena' },
       read: false,
     });
+    if (err_notifications_vrqj9) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_vrqj9.message);
   } catch (e) {
     console.warn(`[notify] In-app insert failed for ${type}:`, e.message);
   }
@@ -184,9 +185,8 @@ export async function notifyClubMembers(supabaseAdmin, {
       read: false,
     }));
 
-    await supabaseAdmin.from('notifications').insert(inserts).catch(e =>
-      console.warn(`[notify] Batch insert failed:`, e.message)
-    );
+    const { error: batchInsertErr } = await supabaseAdmin.from('notifications').insert(inserts);
+    if (batchInsertErr) console.warn(`[notify] Batch insert failed:`, batchInsertErr.message);
 
     // Push: send to all via OneSignal (single call with multiple external IDs)
     try {

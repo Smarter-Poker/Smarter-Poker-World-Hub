@@ -63,10 +63,11 @@ async function markFeedPostEnded(stream_id, videoUrl = null) {
       }
 
       if (postId) {
-        await supabase
+        const { error: err_social_posts_zhip1 } = await supabase
           .from('social_posts')
           .update({ media_urls: [videoUrl] })
           .eq('id', postId);
+        if (err_social_posts_zhip1) console.warn('[Supabase] Silent mutation failed in social_posts:', err_social_posts_zhip1.message);
       }
     }
   } catch (e) {
@@ -163,11 +164,12 @@ export default async function handler(req, res) {
 
       // Best-effort: only stamp ended_at if force_end hasn't already written it —
       // preserves the original force_end timestamp for accurate stream-duration calc.
-      await supabase
+      const { error: err_live_streams_ekevc } = await supabase
         .from('live_streams')
         .update({ ended_at: new Date().toISOString() })
         .eq('id', stream_id)
         .is('ended_at', null);
+      if (err_live_streams_ekevc) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_ekevc.message);
 
       return res.json({ success: true, action: 'saved' });
     }
@@ -258,11 +260,12 @@ export default async function handler(req, res) {
       }
 
       // Best-effort: stamp ended_at only if force_end hasn't already written it.
-      await supabase
+      const { error: err_live_streams_gt2xn } = await supabase
         .from('live_streams')
         .update({ ended_at: new Date().toISOString() })
         .eq('id', stream_id)
         .is('ended_at', null);
+      if (err_live_streams_gt2xn) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_gt2xn.message);
 
       return res.json({ success: true, action: 'posted', postId });
     }

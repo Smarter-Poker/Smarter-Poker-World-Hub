@@ -102,10 +102,11 @@ export default async function handler(req, res) {
 
           // ── Housekeeping: purge ALL expired OTP rows (any phone) ─────────
           // Keeps the table lean — runs on every send request
-          await supabase
-              .from('sms_otp_codes')
-              .delete()
+          const { error: err_sms_otp_codes_168ck } = await supabase
+            .from('sms_otp_codes')
+            .delete()
               .lt('expires_at', new Date().toISOString());
+          if (err_sms_otp_codes_168ck) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_168ck.message);
 
           // ── Rate limit: count codes sent to this phone in the last hour ──
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -126,10 +127,11 @@ export default async function handler(req, res) {
           }
 
           // ── Delete any existing OTP for this phone ───────────────────────
-          await supabase
-              .from('sms_otp_codes')
-              .delete()
+          const { error: err_sms_otp_codes_trhoz } = await supabase
+            .from('sms_otp_codes')
+            .delete()
               .eq('phone', cleanPhone);
+          if (err_sms_otp_codes_trhoz) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_trhoz.message);
 
           // ── Generate & store new 4-digit OTP ─────────────────────────────
           const otpCode = Math.floor(1000 + Math.random() * 9000).toString();

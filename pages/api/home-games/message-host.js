@@ -156,12 +156,13 @@ export default async function handler(req, res) {
             conversationId = newConvo.id;
 
             // Add both participants
-            await getSupabase()
-                .from('social_conversation_participants')
-                .insert([
+            const { error: err_social_conversation_participants_7zo80 } = await getSupabase()
+              .from('social_conversation_participants')
+              .insert([
                     { conversation_id: conversationId, user_id: userId },
                     { conversation_id: conversationId, user_id: host_id },
                 ]);
+            if (err_social_conversation_participants_7zo80) console.warn('[Supabase] Silent mutation failed in social_conversation_participants:', err_social_conversation_participants_7zo80.message);
         }
 
         // Step 3: Send the message with context tag

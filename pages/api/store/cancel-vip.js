@@ -77,23 +77,25 @@ export default async function handler(req, res) {
           }
 
           // 3. Update local record — core fields (always exist)
-          await getSupabase()
-              .from('vip_subscriptions')
-              .update({
+          const { error: err_vip_subscriptions_werdq } = await getSupabase()
+            .from('vip_subscriptions')
+            .update({
                   cancel_at_period_end: true,
                   updated_at: new Date().toISOString()
               })
               .eq('stripe_subscription_id', sub.stripe_subscription_id);
+          if (err_vip_subscriptions_werdq) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_werdq.message);
 
           // 4. Store cancellation reason (columns may not exist if migration not run)
           try {
-              await getSupabase()
-                  .from('vip_subscriptions')
-                  .update({
+              const { error: err_vip_subscriptions_w3v1u } = await getSupabase()
+                .from('vip_subscriptions')
+                .update({
                       cancel_reason: reason || 'unspecified',
                       cancel_reason_text: reasonText || '',
                   })
                   .eq('stripe_subscription_id', sub.stripe_subscription_id);
+              if (err_vip_subscriptions_w3v1u) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_w3v1u.message);
           } catch (reasonErr) { console.warn('[App] Handled exception:', reasonErr?.message || reasonErr); }
 
           // 5. Log the cancellation event

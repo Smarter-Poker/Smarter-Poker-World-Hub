@@ -355,14 +355,12 @@ export default function BankrollManagerPage() {
     });
   }, [entries, gameTypeFilter]);
 
-  //  INTRO VIDEO STATE - Video plays while page loads in background
-  // Only show once per session (not on every reload)
-  const [showIntro, setShowIntro] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !sessionStorage.getItem('bankroll-manager-intro-seen');
+  const [showIntro, setShowIntro] = useState(false);
+  useEffect(() => {
+    if (!sessionStorage.getItem('bankroll-manager-intro-seen')) {
+      setShowIntro(true);
     }
-    return false;
-  });
+  }, []);
   const introVideoRef = useRef(null);
 
   // Mark intro as seen when it ends
@@ -1942,10 +1940,11 @@ export default function BankrollManagerPage() {
                                 // Append receipt URL to entry's media_urls
                                 const existing = entry.media_urls || [];
                                 const updated = [...existing, scannerImageUrl];
-                                await supabase
+                                const { error: err_bankroll_ledger_chehe } = await supabase
                                   .from('bankroll_ledger')
                                   .update({ media_urls: updated })
                                   .eq('id', entry.id);
+                                if (err_bankroll_ledger_chehe) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_chehe.message);
                                 await loadData();
                                 setShowScanner(false);
                                 setScannerStep('scan');

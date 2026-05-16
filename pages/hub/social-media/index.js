@@ -543,12 +543,13 @@ const PostCard = React.memo(
         if (newBookmarked) {
           // social_interactions has no UNIQUE constraint, so upsert fails.
           // Delete-then-insert pattern: idempotent without needing a DB migration.
-          await supabase
+          const { error: err_social_interactions_1yi55 } = await supabase
             .from('social_interactions')
             .delete()
             .eq('post_id', post.id)
             .eq('user_id', currentUserId)
             .eq('interaction_type', 'bookmark');
+          if (err_social_interactions_1yi55) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_1yi55.message);
           const { error } = await supabase
             .from('social_interactions')
             .insert({ post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' });
@@ -880,12 +881,13 @@ const PostCard = React.memo(
           try {
             // Trigger reply notification
             if (parentInfo && parentInfo.authorId !== currentUserId) {
-              await supabase.from('notifications').insert({
+              const { error: err_notifications_h99dp } = await supabase.from('notifications').insert({
                 user_id: parentInfo.authorId,
                 type: 'reply',
                 message: `replied to your comment`,
                 data: { actor_id: currentUserId, reference_id: post.id },
               });
+              if (err_notifications_h99dp) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_h99dp.message);
             }
 
             // Phase 28 Fix: Trigger mention notifications
@@ -907,7 +909,8 @@ const PostCard = React.memo(
                     data: { actor_id: currentUserId, reference_id: post.id },
                   }));
                 if (notifications.length > 0) {
-                  await supabase.from('notifications').insert(notifications);
+                  const { error: err_notifications_fvbj9 } = await supabase.from('notifications').insert(notifications);
+                  if (err_notifications_fvbj9) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_fvbj9.message);
                 }
               }
             }
@@ -1025,12 +1028,13 @@ const PostCard = React.memo(
                   if (isReporting) return;
                   setIsReporting(true);
                   try {
-                    await supabase
+                    const { error: err_social_interactions_wwcu4 } = await supabase
                       .from('social_interactions')
                       .delete()
                       .eq('post_id', post.id)
                       .eq('user_id', currentUserId)
                       .eq('interaction_type', 'report');
+                    if (err_social_interactions_wwcu4) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_wwcu4.message);
                     const { error } = await supabase.from('social_interactions').insert({
                       post_id: post.id,
                       user_id: currentUserId,
@@ -10273,7 +10277,8 @@ function SocialMediaPage() {
               mentioned_user_id: u.id,
               mentioned_by_id: user.id,
             }));
-            await supabase.from('mentions').insert(mentionInserts);
+            const { error: err_mentions_zgy35 } = await supabase.from('mentions').insert(mentionInserts);
+            if (err_mentions_zgy35) console.warn('[Supabase] Silent mutation failed in mentions:', err_mentions_zgy35.message);
           }
         }
 
@@ -10290,7 +10295,7 @@ function SocialMediaPage() {
                 !url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
             ) || urls[0];
 
-          await supabase.from('social_reels').insert({
+          const { error: err_social_reels_g3lht } = await supabase.from('social_reels').insert({
             author_id: user.id,
             video_url: videoUrl,
             thumbnail_url: thumbnailUrl || null,
@@ -10300,6 +10305,8 @@ function SocialMediaPage() {
             view_count: 0,
             like_count: 0,
           });
+
+          if (err_social_reels_g3lht) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_g3lht.message);
         }
       } catch (secondaryErr) {
         console.warn('[App] Handled exception:', secondaryErr?.message || secondaryErr);
@@ -10366,10 +10373,11 @@ function SocialMediaPage() {
           busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: type || 'like' });
         } else {
           // Change reaction type on existing like (no count change — no INSERT/DELETE, no trigger)
-          await supabase
+          const { error: err_social_likes_x89sm } = await supabase
             .from('social_likes')
             .update({ reaction_type: type || 'like' })
             .eq('id', existing.id);
+          if (err_social_likes_x89sm) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_x89sm.message);
 
           // Notify other views/tabs of reaction swap (added:null = no count change)
           busEmit.socialPostLiked(postId, user.id, { added: null, reactionType: type || 'like' });

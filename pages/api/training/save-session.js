@@ -153,10 +153,11 @@ export default async function handler(req, res) {
                           .maybeSingle();
 
                       if (profile) {
-                          await getSupabase()
-                              .from('profiles')
-                              .update({ diamond_balance: (profile.diamond_balance || 0) + safeSpeedBonus })
+                          const { error: err_profiles_yjrym } = await getSupabase()
+                            .from('profiles')
+                            .update({ diamond_balance: (profile.diamond_balance || 0) + safeSpeedBonus })
                               .eq('id', userId);
+                          if (err_profiles_yjrym) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_yjrym.message);
                       }
                   }
 

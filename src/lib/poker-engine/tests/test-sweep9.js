@@ -278,7 +278,8 @@ function assert(condition, label) {
             assert(data[0].hands_observed === 50, `Hands observed saved: ${data[0].hands_observed}`);
 
             // Clean up
-            await supabase.from('horse_opponent_reads').delete().eq('horse_id', HORSE).eq('opponent_id', 'test-opponent-e2e');
+            const { error: err_horse_opponent_reads_pfixx } = await supabase.from('horse_opponent_reads').delete().eq('horse_id', HORSE).eq('opponent_id', 'test-opponent-e2e');
+            if (err_horse_opponent_reads_pfixx) console.warn('[Supabase] Silent mutation failed in horse_opponent_reads:', err_horse_opponent_reads_pfixx.message);
         } else {
             assert(false, `Read back opponent reads (error: ${error?.message || 'no data'})`);
         }
@@ -318,7 +319,8 @@ function assert(condition, label) {
             assert(data[0].table_id === 'test-table-e2e', `Table ID: ${data[0].table_id}`);
 
             // Clean up
-            await supabase.from('horse_hand_history').delete().eq('table_id', 'test-table-e2e');
+            const { error: err_horse_hand_history_butr7 } = await supabase.from('horse_hand_history').delete().eq('table_id', 'test-table-e2e');
+            if (err_horse_hand_history_butr7) console.warn('[Supabase] Silent mutation failed in horse_hand_history:', err_horse_hand_history_butr7.message);
         } else {
             assert(false, `Read back hand history (error: ${error?.message || 'no data'})`);
         }

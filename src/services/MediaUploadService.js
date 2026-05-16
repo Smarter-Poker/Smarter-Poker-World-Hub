@@ -300,10 +300,11 @@ export class MediaUploadService {
 
             // Link to post if provided
             if (postId) {
-                await this.supabase
-                    .from('social_media')
-                    .update({ post_id: postId })
+                const { error: err_social_media_uc1tq } = await this.supabase
+                  .from('social_media')
+                  .update({ post_id: postId })
                     .eq('id', media_id);
+                if (err_social_media_uc1tq) console.warn('[Supabase] Silent mutation failed in social_media:', err_social_media_uc1tq.message);
             }
 
             onProgress?.(100);
@@ -328,10 +329,11 @@ export class MediaUploadService {
         } catch (error) {
             console.warn('[MediaUpload] Upload failed:', error?.message || error);
             // Mark upload as failed in database
-            await this.supabase
-                .from('social_media')
-                .update({ status: 'failed' })
+            const { error: err_social_media_qjsi0 } = await this.supabase
+              .from('social_media')
+              .update({ status: 'failed' })
                 .eq('id', media_id);
+            if (err_social_media_qjsi0) console.warn('[Supabase] Silent mutation failed in social_media:', err_social_media_qjsi0.message);
 
             throw error;
         }

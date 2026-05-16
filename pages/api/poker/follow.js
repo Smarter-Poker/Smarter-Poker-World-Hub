@@ -161,20 +161,22 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
         if (!socialPage) return;
 
         if (action === 'follow') {
-            await getSupabase()
-                .from('social_page_followers')
-                .upsert({
+            const { error: err_social_page_followers_phxnp } = await getSupabase()
+              .from('social_page_followers')
+              .upsert({
                     page_id: socialPage.id,
                     user_id: userId,
                     role: 'follower',
                     notifications_enabled: true,
                 }, { onConflict: 'page_id,user_id' });
+            if (err_social_page_followers_phxnp) console.warn('[Supabase] Silent mutation failed in social_page_followers:', err_social_page_followers_phxnp.message);
         } else {
-            await getSupabase()
-                .from('social_page_followers')
-                .delete()
+            const { error: err_social_page_followers_toy5p } = await getSupabase()
+              .from('social_page_followers')
+              .delete()
                 .eq('page_id', socialPage.id)
                 .eq('user_id', userId);
+            if (err_social_page_followers_toy5p) console.warn('[Supabase] Silent mutation failed in social_page_followers:', err_social_page_followers_toy5p.message);
         }
     } catch (e) {
         try { reportApiError(e, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }

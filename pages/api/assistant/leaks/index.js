@@ -334,14 +334,18 @@ export default async function handler(req, res) {
           const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
           const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
 
-          await getSupabase()
+          const { error: err_user_assistant_stats_s6z72 } = await getSupabase()
+
             .from('user_assistant_stats')
+
             .upsert({
               user_id: data.user_id,
               active_leaks_count: activeLeaks,
               resolved_leaks_count: resolvedLeaksCount,
               updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
+
+          if (err_user_assistant_stats_s6z72) console.warn('[Supabase] Silent mutation failed in user_assistant_stats:', err_user_assistant_stats_s6z72.message);
         }
 
         return res.status(200).json({

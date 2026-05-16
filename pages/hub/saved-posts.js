@@ -44,12 +44,13 @@ function SavedPostCard({ post, author, onUnsave, currentUserId }) {
     const handleUnsave = async () => {
         setUnsaving(true);
         try {
-            await supabase
-                .from('social_interactions')
-                .delete()
+            const { error: err_social_interactions_sxmtd } = await supabase
+              .from('social_interactions')
+              .delete()
                 .eq('post_id', post.id)
                 .eq('user_id', currentUserId)
                 .eq('interaction_type', 'bookmark');
+            if (err_social_interactions_sxmtd) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_sxmtd.message);
             onUnsave?.(post.id);
         } catch (err) {
             console.warn('Unsave failed:', err);

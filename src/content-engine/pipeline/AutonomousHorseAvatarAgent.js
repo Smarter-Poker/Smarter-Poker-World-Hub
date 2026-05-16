@@ -283,16 +283,18 @@ class AutonomousHorseAvatarAgent {
         const publicUrl = urlData.publicUrl;
 
         // Update content_authors table
-        await this.supabase
-            .from('content_authors')
-            .update({ avatar_url: publicUrl })
+        const { error: err_content_authors_ryiox } = await this.supabase
+          .from('content_authors')
+          .update({ avatar_url: publicUrl })
             .eq('id', horse.id);
+        if (err_content_authors_ryiox) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_ryiox.message);
 
         // Update profiles table  
-        await this.supabase
-            .from('profiles')
-            .update({ avatar_url: publicUrl })
+        const { error: err_profiles_vxcre } = await this.supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrl })
             .eq('id', horse.profile_id);
+        if (err_profiles_vxcre) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_vxcre.message);
 
         console.debug(`✅ ${horse.name} uploaded their avatar: ${publicUrl}`);
         return publicUrl;

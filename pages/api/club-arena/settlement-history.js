@@ -106,10 +106,11 @@ export default async function handler(req, res) {
                       } catch (settleErr) {
                           console.warn(`[auto_close] settle-period call failed for ${club.name}:`, settleErr.message);
                           // Fallback: at minimum close the period so it's not orphaned
-                          await getSupabase()
-                              .from('settlement_periods')
-                              .update({ status: 'closed', settled_at: new Date().toISOString() })  // BUG-05 FIX: was end_date
+                          const { error: err_settlement_periods_vzvc7 } = await getSupabase()
+                            .from('settlement_periods')
+                            .update({ status: 'closed', settled_at: new Date().toISOString() })  // BUG-05 FIX: was end_date
                               .eq('id', openPeriod.id);
+                          if (err_settlement_periods_vzvc7) console.warn('[Supabase] Silent mutation failed in settlement_periods:', err_settlement_periods_vzvc7.message);
                       }
 
                       // Open a new period via settle-period open action
@@ -251,10 +252,14 @@ export default async function handler(req, res) {
               const currentSettings = club?.settings || {};
               const newEnabled = typeof enabled === 'boolean' ? enabled : !currentSettings.auto_settlement_enabled;
 
-              await getSupabase()
-                  .from('clubs')
-                  .update({ settings: { ...currentSettings, auto_settlement_enabled: newEnabled } })
+              const { error: err_clubs_u6olk } = await getSupabase()
+
+                .from('clubs')
+
+                .update({ settings: { ...currentSettings, auto_settlement_enabled: newEnabled } })
                   .eq('id', clubId);
+
+              if (err_clubs_u6olk) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_u6olk.message);
 
               logAudit(supabaseAdmin, {
                   actionType: 'auto_settlement_toggled',

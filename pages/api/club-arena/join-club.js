@@ -247,10 +247,11 @@ export default async function handler(req, res) {
                   .from('club_members')
                   .select('*', { count: 'exact', head: true })
                   .eq('club_id', club.id);
-              await getSupabase()
-                  .from('clubs')
-                  .update({ member_count: count || 0 })
+              const { error: err_clubs_8tsi7 } = await getSupabase()
+                .from('clubs')
+                .update({ member_count: count || 0 })
                   .eq('id', club.id);
+              if (err_clubs_8tsi7) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_8tsi7.message);
           });
 
           // Notify club admins of new member

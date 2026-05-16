@@ -203,7 +203,8 @@ export default async function handler(req, res) {
         if (typeof bbjEnabled !== 'boolean') {
           return res.status(400).json({ error: 'bbjEnabled (boolean) required' });
         }
-        await getSupabase().from('clubs').update({ bbj_enabled: bbjEnabled }).eq('id', clubId);
+        const { error: err_clubs_vktc6 } = await getSupabase().from('clubs').update({ bbj_enabled: bbjEnabled }).eq('id', clubId);
+        if (err_clubs_vktc6) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_vktc6.message);
         return res.json({
           success: true,
           message: `BBJ ${bbjEnabled ? 'enabled' : 'disabled'} for this club`,

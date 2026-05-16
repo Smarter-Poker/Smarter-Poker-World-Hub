@@ -205,13 +205,14 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             if (error) throw error;
 
             // Update conversation last_message
-            await supabase
-                .from('messenger_conversations')
-                .update({
+            const { error: err_messenger_conversations_5ou7a } = await supabase
+              .from('messenger_conversations')
+              .update({
                     last_message_text: (text || msgPayload.message_type).slice(0, 100),
                     last_message_at: new Date().toISOString()
                 })
                 .eq('id', conversationId);
+            if (err_messenger_conversations_5ou7a) console.warn('[Supabase] Silent mutation failed in messenger_conversations:', err_messenger_conversations_5ou7a.message);
 
             // P12-8: Trigger push notification
             triggerPushNotification(conversationId, currentUser, text);
@@ -336,19 +337,21 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         if (!supabase || !messageIds?.length || !currentUser?.id) return;
         try {
             // Only mark messages from OTHER users as read
-            await supabase
-                .from('messenger_messages')
-                .update({ status: 'read', updated_at: new Date().toISOString() })
+            const { error: err_messenger_messages_hrt1r } = await supabase
+              .from('messenger_messages')
+              .update({ status: 'read', updated_at: new Date().toISOString() })
                 .in('id', messageIds)
                 .neq('sender_id', currentUser.id)
                 .eq('conversation_id', conversationId);
+            if (err_messenger_messages_hrt1r) console.warn('[Supabase] Silent mutation failed in messenger_messages:', err_messenger_messages_hrt1r.message);
 
             // Reset unread count for this participant
-            await supabase
-                .from('messenger_participants')
-                .update({ unread_count: 0, last_read_at: new Date().toISOString() })
+            const { error: err_messenger_participants_l4vqc } = await supabase
+              .from('messenger_participants')
+              .update({ unread_count: 0, last_read_at: new Date().toISOString() })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
+            if (err_messenger_participants_l4vqc) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_l4vqc.message);
 
             setUnreadCount(0);
         } catch (e) { console.warn('[ReadReceipt] Update error:', e); }
@@ -358,12 +361,13 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id) return;
         try {
-            await supabase
-                .from('messenger_messages')
-                .update({ status: 'delivered' })
+            const { error: err_messenger_messages_qbokp } = await supabase
+              .from('messenger_messages')
+              .update({ status: 'delivered' })
                 .eq('conversation_id', conversationId)
                 .eq('status', 'sent')
                 .neq('sender_id', currentUser.id);
+            if (err_messenger_messages_qbokp) console.warn('[Supabase] Silent mutation failed in messenger_messages:', err_messenger_messages_qbokp.message);
         } catch (e) { console.warn('[ReadReceipt] Delivery update error:', e); }
     }, [conversationId, currentUser?.id]);
 
@@ -400,7 +404,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             // ICE candidates → Supabase
             pc.onicecandidate = async (event) => {
                 if (event.candidate) {
-                    await supabase.from('messenger_call_signals').insert({
+                    const { error: err_messenger_call_signals_k580m } = await supabase.from('messenger_call_signals').insert({
                         conversation_id: conversationId,
                         caller_id: currentUser.id,
                         callee_id: calleeId,
@@ -409,6 +413,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                         signal_data: { candidate: event.candidate.toJSON() },
                         status: 'active',
                     });
+                    if (err_messenger_call_signals_k580m) console.warn('[Supabase] Silent mutation failed in messenger_call_signals:', err_messenger_call_signals_k580m.message);
                 }
             };
 
@@ -416,7 +421,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
-            await supabase.from('messenger_call_signals').insert({
+            const { error: err_messenger_call_signals_bwfvf } = await supabase.from('messenger_call_signals').insert({
                 conversation_id: conversationId,
                 caller_id: currentUser.id,
                 callee_id: calleeId,
@@ -425,6 +430,8 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 signal_data: { sdp: offer.sdp, type: offer.type },
                 status: 'pending',
             });
+
+            if (err_messenger_call_signals_bwfvf) console.warn('[Supabase] Silent mutation failed in messenger_call_signals:', err_messenger_call_signals_bwfvf.message);
 
             // Listen for answer + ICE candidates from callee
             const signalChannel = supabase
@@ -492,7 +499,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
 
             pc.onicecandidate = async (event) => {
                 if (event.candidate) {
-                    await supabase.from('messenger_call_signals').insert({
+                    const { error: err_messenger_call_signals_t3qk4 } = await supabase.from('messenger_call_signals').insert({
                         conversation_id: conversationId,
                         caller_id: currentUser.id,
                         callee_id: callerId,
@@ -501,6 +508,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                         signal_data: { candidate: event.candidate.toJSON() },
                         status: 'active',
                     });
+                    if (err_messenger_call_signals_t3qk4) console.warn('[Supabase] Silent mutation failed in messenger_call_signals:', err_messenger_call_signals_t3qk4.message);
                 }
             };
 
@@ -511,7 +519,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
-            await supabase.from('messenger_call_signals').insert({
+            const { error: err_messenger_call_signals_messx } = await supabase.from('messenger_call_signals').insert({
                 conversation_id: conversationId,
                 caller_id: currentUser.id,
                 callee_id: callerId,
@@ -520,6 +528,8 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 signal_data: { sdp: answer.sdp, type: answer.type },
                 status: 'active',
             });
+
+            if (err_messenger_call_signals_messx) console.warn('[Supabase] Silent mutation failed in messenger_call_signals:', err_messenger_call_signals_messx.message);
 
             return { localStream: stream, remoteStream: remoteStreamRef.current, pc };
         } catch (e) {
@@ -543,7 +553,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         // Signal hangup
         if (supabase && conversationId && currentUser?.id) {
             try {
-                await supabase.from('messenger_call_signals').insert({
+                const { error: err_messenger_call_signals_rvnv7 } = await supabase.from('messenger_call_signals').insert({
                     conversation_id: conversationId,
                     caller_id: currentUser.id,
                     callee_id: currentUser.id, // Self-hangup signal
@@ -552,6 +562,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                     signal_data: {},
                     status: 'ended',
                 });
+                if (err_messenger_call_signals_rvnv7) console.warn('[Supabase] Silent mutation failed in messenger_call_signals:', err_messenger_call_signals_rvnv7.message);
             } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
@@ -781,13 +792,14 @@ export function useMessengerService({ conversationId, currentUser, messengerType
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id) return;
         try {
-            await supabase
-                .from('messenger_participants')
-                .update({
+            const { error: err_messenger_participants_nn92e } = await supabase
+              .from('messenger_participants')
+              .update({
                     metadata: { public_key: publicKeyJwk }
                 })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
+            if (err_messenger_participants_nn92e) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_nn92e.message);
         } catch (e) { console.warn('[E2E] Key exchange error:', e); }
     }, [conversationId, currentUser?.id]);
 
@@ -817,7 +829,8 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             drainOfflineQueue(async (msg) => {
                 const supabase = getSupabase();
                 if (!supabase) return;
-                await supabase.from('messenger_messages').insert(msg);
+                const { error: err_messenger_messages_hgowl } = await supabase.from('messenger_messages').insert(msg);
+                if (err_messenger_messages_hgowl) console.warn('[Supabase] Silent mutation failed in messenger_messages:', err_messenger_messages_hgowl.message);
             });
         };
         const handleOffline = () => setIsOnline(false);
@@ -994,10 +1007,11 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             if (error) throw error;
 
             // Update target conversation last_message
-            await supabase
-                .from('messenger_conversations')
-                .update({ last_message_text: `Forwarded: ${(original.text || original.message_type).slice(0, 80)}`, last_message_at: new Date().toISOString() })
+            const { error: err_messenger_conversations_qp7ok } = await supabase
+              .from('messenger_conversations')
+              .update({ last_message_text: `Forwarded: ${(original.text || original.message_type).slice(0, 80)}`, last_message_at: new Date().toISOString() })
                 .eq('id', targetConversationId);
+            if (err_messenger_conversations_qp7ok) console.warn('[Supabase] Silent mutation failed in messenger_conversations:', err_messenger_conversations_qp7ok.message);
 
             return data;
         } catch (e) { console.warn('[Forward] Error:', e); return null; }
@@ -1226,7 +1240,8 @@ ${messages.map(m =>
                 user_id: uid,
                 role: 'admin'
             }));
-            await supabase.from('messenger_participants').insert(participantRows);
+            const { error: err_messenger_participants_7chni } = await supabase.from('messenger_participants').insert(participantRows);
+            if (err_messenger_participants_7chni) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_7chni.message);
             return conv;
         } catch (_) { return null; }
     }, [currentUser]);
@@ -1240,7 +1255,8 @@ ${messages.map(m =>
             if (settings.name) update.name = settings.name;
             if (settings.avatar_url) update.avatar_url = settings.avatar_url;
             if (settings.metadata) update.metadata = settings.metadata;
-            await supabase.from('messenger_conversations').update(update).eq('id', conversationId);
+            const { error: err_messenger_conversations_cnoao } = await supabase.from('messenger_conversations').update(update).eq('id', conversationId);
+            if (err_messenger_conversations_cnoao) console.warn('[Supabase] Silent mutation failed in messenger_conversations:', err_messenger_conversations_cnoao.message);
             return true;
         } catch (_) { return false; }
     }, [conversationId]);
@@ -1250,11 +1266,12 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !conversationId || !userId) return false;
         try {
-            await supabase.from('messenger_participants').insert({
+            const { error: err_messenger_participants_0zzw3 } = await supabase.from('messenger_participants').insert({
                 conversation_id: conversationId,
                 user_id: userId,
                 role: 'admin'
             });
+            if (err_messenger_participants_0zzw3) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_0zzw3.message);
             return true;
         } catch (_) { return false; }
     }, [conversationId]);
@@ -1263,10 +1280,10 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !conversationId || !userId) return false;
         try {
-            await supabase.from('messenger_participants')
-                .delete()
+            const { error: err_messenger_participants_42kdw } = await supabase.from('messenger_participants').delete()
                 .eq('conversation_id', conversationId)
                 .eq('user_id', userId);
+            if (err_messenger_participants_42kdw) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_42kdw.message);
             return true;
         } catch (_) { return false; }
     }, [conversationId]);
@@ -1276,10 +1293,10 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id) return false;
         try {
-            await supabase.from('messenger_participants')
-                .delete()
+            const { error: err_messenger_participants_5l4vg } = await supabase.from('messenger_participants').delete()
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
+            if (err_messenger_participants_5l4vg) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_5l4vg.message);
             return true;
         } catch (_) { return false; }
     }, [conversationId, currentUser]);
@@ -1307,10 +1324,11 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id || !userId) return false;
         try {
-            await supabase.from('messenger_blocked').insert({
+            const { error: err_messenger_blocked_5031g } = await supabase.from('messenger_blocked').insert({
                 blocker_id: currentUser.id,
                 blocked_id: userId
             });
+            if (err_messenger_blocked_5031g) console.warn('[Supabase] Silent mutation failed in messenger_blocked:', err_messenger_blocked_5031g.message);
             setBlockedUsers(prev => [...prev, userId]);
             return true;
         } catch (_) { return false; }
@@ -1320,10 +1338,10 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id || !userId) return false;
         try {
-            await supabase.from('messenger_blocked')
-                .delete()
+            const { error: err_messenger_blocked_5bz91 } = await supabase.from('messenger_blocked').delete()
                 .eq('blocker_id', currentUser.id)
                 .eq('blocked_id', userId);
+            if (err_messenger_blocked_5bz91) console.warn('[Supabase] Silent mutation failed in messenger_blocked:', err_messenger_blocked_5bz91.message);
             setBlockedUsers(prev => prev.filter(id => id !== userId));
             return true;
         } catch (_) { return false; }
@@ -1334,13 +1352,14 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id || !messageId) return false;
         try {
-            await supabase.from('messenger_reports').insert({
+            const { error: err_messenger_reports_5ml7d } = await supabase.from('messenger_reports').insert({
                 reporter_id: currentUser.id,
                 message_id: messageId,
                 conversation_id: conversationId,
                 reason,
                 metadata: { reported_at: new Date().toISOString() }
             });
+            if (err_messenger_reports_5ml7d) console.warn('[Supabase] Silent mutation failed in messenger_reports:', err_messenger_reports_5ml7d.message);
             return true;
         } catch (_) { return false; }
     }, [currentUser, conversationId]);
@@ -1350,9 +1369,9 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !conversationId) return false;
         try {
-            await supabase.from('messenger_messages')
-                .update({ text: '[deleted]', message_type: 'deleted', media_metadata: { cleared: true } })
+            const { error: err_messenger_messages_nm8ij } = await supabase.from('messenger_messages').update({ text: '[deleted]', message_type: 'deleted', media_metadata: { cleared: true } })
                 .eq('conversation_id', conversationId);
+            if (err_messenger_messages_nm8ij) console.warn('[Supabase] Silent mutation failed in messenger_messages:', err_messenger_messages_nm8ij.message);
             setMessages([]);
             return true;
         } catch (_) { return false; }
@@ -1388,10 +1407,10 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id) return false;
         try {
-            await supabase.from('messenger_participants')
-                .update({ settings })
+            const { error: err_messenger_participants_4keen } = await supabase.from('messenger_participants').update({ settings })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
+            if (err_messenger_participants_4keen) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_4keen.message);
             return true;
         } catch (_) { return false; }
     }, [conversationId, currentUser]);
@@ -1409,10 +1428,10 @@ ${messages.map(m =>
                 .limit(1)
                 .maybeSingle();
             if (lastMsg) {
-                await supabase.from('messenger_participants')
-                    .update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() })
+                const { error: err_messenger_participants_bw5ut } = await supabase.from('messenger_participants').update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() })
                     .eq('conversation_id', conversationId)
                     .eq('user_id', currentUser.id);
+                if (err_messenger_participants_bw5ut) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_bw5ut.message);
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [conversationId, currentUser]);
@@ -1499,10 +1518,10 @@ ${messages.map(m =>
             if (!current) return false;
             const editHistory = current.media_metadata?.edit_history || [];
             editHistory.push({ text: current.text, edited_at: new Date().toISOString() });
-            await supabase.from('messenger_messages')
-                .update({ text: newText, media_metadata: { ...current.media_metadata, edit_history: editHistory, edited: true } })
+            const { error: err_messenger_messages_g7k6e } = await supabase.from('messenger_messages').update({ text: newText, media_metadata: { ...current.media_metadata, edit_history: editHistory, edited: true } })
                 .eq('id', messageId)
                 .eq('sender_id', currentUser.id);
+            if (err_messenger_messages_g7k6e) console.warn('[Supabase] Silent mutation failed in messenger_messages:', err_messenger_messages_g7k6e.message);
             // Update local state
             setMessages(prev => prev.map(m => m.id === messageId ? { ...m, text: newText, media_metadata: { ...m.media_metadata, edit_history: editHistory, edited: true } } : m));
             // P17-10: EventBus emission for edit
@@ -1541,13 +1560,14 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !conversationId || !currentUser?.id || !text) return false;
         try {
-            await supabase.from('messenger_scheduled').insert({
+            const { error: err_messenger_scheduled_a33s1 } = await supabase.from('messenger_scheduled').insert({
                 conversation_id: conversationId,
                 sender_id: currentUser.id,
                 text,
                 scheduled_at: scheduledAt,
                 status: 'pending'
             });
+            if (err_messenger_scheduled_a33s1) console.warn('[Supabase] Silent mutation failed in messenger_scheduled:', err_messenger_scheduled_a33s1.message);
             await loadScheduledMessages();
             return true;
         } catch (_) { return false; }
@@ -1557,7 +1577,8 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !scheduledId) return false;
         try {
-            await supabase.from('messenger_scheduled').update({ status: 'cancelled' }).eq('id', scheduledId);
+            const { error: err_messenger_scheduled_4nlns } = await supabase.from('messenger_scheduled').update({ status: 'cancelled' }).eq('id', scheduledId);
+            if (err_messenger_scheduled_4nlns) console.warn('[Supabase] Silent mutation failed in messenger_scheduled:', err_messenger_scheduled_4nlns.message);
             setScheduledMessages(prev => prev.filter(m => m.id !== scheduledId));
             return true;
         } catch (_) { return false; }
@@ -1597,9 +1618,9 @@ ${messages.map(m =>
             // Replace optimistic with real
             if (data) setMessages(prev => prev.map(m => m.id === optimisticId ? data : m));
             // Update conversation last_message
-            await supabase.from('messenger_conversations')
-                .update({ last_message_text: `Sticker: ${sticker}`, last_message_at: new Date().toISOString() })
+            const { error: err_messenger_conversations_qlxaz } = await supabase.from('messenger_conversations').update({ last_message_text: `Sticker: ${sticker}`, last_message_at: new Date().toISOString() })
                 .eq('id', conversationId);
+            if (err_messenger_conversations_qlxaz) console.warn('[Supabase] Silent mutation failed in messenger_conversations:', err_messenger_conversations_qlxaz.message);
             // P17-10: EventBus emission
             eventBus.emit(EventType.MESSAGE_RECEIVED, { type: 'sticker', sticker, conversationId });
             return true;
@@ -1649,10 +1670,12 @@ ${messages.map(m =>
         const isFav = favoriteContacts.includes(userId);
         try {
             if (isFav) {
-                await supabase.from('messenger_favorites').delete().eq('user_id', currentUser.id).eq('favorite_user_id', userId);
+                const { error: err_messenger_favorites_g6u6x } = await supabase.from('messenger_favorites').delete().eq('user_id', currentUser.id).eq('favorite_user_id', userId);
+                if (err_messenger_favorites_g6u6x) console.warn('[Supabase] Silent mutation failed in messenger_favorites:', err_messenger_favorites_g6u6x.message);
                 setFavoriteContacts(prev => prev.filter(id => id !== userId));
             } else {
-                await supabase.from('messenger_favorites').insert({ user_id: currentUser.id, favorite_user_id: userId });
+                const { error: err_messenger_favorites_mjzus } = await supabase.from('messenger_favorites').insert({ user_id: currentUser.id, favorite_user_id: userId });
+                if (err_messenger_favorites_mjzus) console.warn('[Supabase] Silent mutation failed in messenger_favorites:', err_messenger_favorites_mjzus.message);
                 setFavoriteContacts(prev => [...prev, userId]);
             }
             // P17-10: EventBus emission for favorites change
@@ -1671,10 +1694,10 @@ ${messages.map(m =>
         try {
             const existingSettings = await getConversationSettings();
             const { wallpaper, ...rest } = existingSettings || {};
-            await supabase.from('messenger_participants')
-                .update({ settings: rest })
+            const { error: err_messenger_participants_jpssl } = await supabase.from('messenger_participants').update({ settings: rest })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
+            if (err_messenger_participants_jpssl) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_jpssl.message);
             setConversationWallpaper(null);
             return true;
         } catch (_) { return false; }
@@ -1709,10 +1732,10 @@ ${messages.map(m =>
                 const existingSettings = await getConversationSettings();
                 const supabase = getSupabase();
                 if (supabase) {
-                    await supabase.from('messenger_participants')
-                        .update({ settings: { ...existingSettings, wallpaper: publicUrl } })
+                    const { error: err_messenger_participants_izcxt } = await supabase.from('messenger_participants').update({ settings: { ...existingSettings, wallpaper: publicUrl } })
                         .eq('conversation_id', conversationId)
                         .eq('user_id', currentUser?.id);
+                    if (err_messenger_participants_izcxt) console.warn('[Supabase] Silent mutation failed in messenger_participants:', err_messenger_participants_izcxt.message);
                 }
                 setConversationWallpaper(publicUrl);
             }
@@ -1864,12 +1887,13 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id || !convId || !label) return false;
         try {
-            await supabase.from('messenger_conversation_labels').upsert({
+            const { error: err_messenger_conversation_labels_v18f2 } = await supabase.from('messenger_conversation_labels').upsert({
                 user_id: currentUser.id,
                 conversation_id: convId,
                 label,
                 color
             });
+            if (err_messenger_conversation_labels_v18f2) console.warn('[Supabase] Silent mutation failed in messenger_conversation_labels:', err_messenger_conversation_labels_v18f2.message);
             await loadConversationLabels();
             eventBus.emit(EventType.MESSAGE_RECEIVED, { type: 'label_added', conversationId: convId, label });
             return true;
@@ -1880,7 +1904,8 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !labelId) return false;
         try {
-            await supabase.from('messenger_conversation_labels').delete().eq('id', labelId);
+            const { error: err_messenger_conversation_labels_3w1c5 } = await supabase.from('messenger_conversation_labels').delete().eq('id', labelId);
+            if (err_messenger_conversation_labels_3w1c5) console.warn('[Supabase] Silent mutation failed in messenger_conversation_labels:', err_messenger_conversation_labels_3w1c5.message);
             await loadConversationLabels();
             return true;
         } catch (_) { return false; }
@@ -1908,13 +1933,14 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !currentUser?.id || !title || !text) return false;
         try {
-            await supabase.from('messenger_templates').insert({
+            const { error: err_messenger_templates_4ro3b } = await supabase.from('messenger_templates').insert({
                 user_id: currentUser.id,
                 title,
                 text,
                 category,
                 shortcut
             });
+            if (err_messenger_templates_4ro3b) console.warn('[Supabase] Silent mutation failed in messenger_templates:', err_messenger_templates_4ro3b.message);
             await loadTemplates();
             return true;
         } catch (_) { return false; }
@@ -1924,7 +1950,8 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !templateId) return false;
         try {
-            await supabase.from('messenger_templates').delete().eq('id', templateId);
+            const { error: err_messenger_templates_wf7tq } = await supabase.from('messenger_templates').delete().eq('id', templateId);
+            if (err_messenger_templates_wf7tq) console.warn('[Supabase] Silent mutation failed in messenger_templates:', err_messenger_templates_wf7tq.message);
             setMessageTemplates(prev => prev.filter(t => t.id !== templateId));
             return true;
         } catch (_) { return false; }
@@ -1937,9 +1964,9 @@ ${messages.map(m =>
         if (!template) return null;
         // Increment usage count
         try {
-            await supabase.from('messenger_templates')
-                .update({ usage_count: (template.usage_count || 0) + 1 })
+            const { error: err_messenger_templates_2f40p } = await supabase.from('messenger_templates').update({ usage_count: (template.usage_count || 0) + 1 })
                 .eq('id', templateId);
+            if (err_messenger_templates_2f40p) console.warn('[Supabase] Silent mutation failed in messenger_templates:', err_messenger_templates_2f40p.message);
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return template.text;
     }, [messageTemplates]);
@@ -2055,9 +2082,9 @@ ${messages.map(m =>
         if (!supabase || !messageId || !expiryMinutes) return false;
         try {
             const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000).toISOString();
-            await supabase.from('messenger_messages')
-                .update({ expires_at: expiresAt })
+            const { error: err_messenger_messages_k8x0k } = await supabase.from('messenger_messages').update({ expires_at: expiresAt })
                 .eq('id', messageId);
+            if (err_messenger_messages_k8x0k) console.warn('[Supabase] Silent mutation failed in messenger_messages:', err_messenger_messages_k8x0k.message);
             setMessages(prev => prev.map(m => m.id === messageId ? { ...m, expires_at: expiresAt } : m));
             return true;
         } catch (_) { return false; }
@@ -2121,7 +2148,8 @@ ${messages.map(m =>
                 ...m,
                 conversation_id: conversationId,
             }));
-            await supabase.from('messenger_messages').insert(toInsert);
+            const { error: err_messenger_messages_ukhjo } = await supabase.from('messenger_messages').insert(toInsert);
+            if (err_messenger_messages_ukhjo) console.warn('[Supabase] Silent mutation failed in messenger_messages:', err_messenger_messages_ukhjo.message);
             await loadMessages();
             return { success: true, restored: newMessages.length, message: `Restored ${newMessages.length} messages` };
         } catch (e) { return { success: false, error: e.message || 'Restore failed' }; }
@@ -2489,9 +2517,9 @@ ${messages.map(m =>
         const supabase = getSupabase();
         if (!supabase || !reminderId) return false;
         try {
-            await supabase.from('messenger_reminders')
-                .update({ status: 'dismissed' })
+            const { error: err_messenger_reminders_m4wlo } = await supabase.from('messenger_reminders').update({ status: 'dismissed' })
                 .eq('id', reminderId);
+            if (err_messenger_reminders_m4wlo) console.warn('[Supabase] Silent mutation failed in messenger_reminders:', err_messenger_reminders_m4wlo.message);
             setMessageReminders(prev => prev.filter(r => r.id !== reminderId));
             return true;
         } catch (_) { return false; }
@@ -2606,7 +2634,7 @@ ${messages.map(m =>
 
         try {
             // Log to admin messages table for the /horses panel
-            await supabase.from('messenger_admin_messages').insert({
+            const { error: err_messenger_admin_messages_xm9fq } = await supabase.from('messenger_admin_messages').insert({
                 message_id: messageId,
                 user_id: currentUser.id,
                 conversation_id: conversationId,
@@ -2616,6 +2644,7 @@ ${messages.map(m =>
                 source: 'messenger_mention',
                 created_at: new Date().toISOString()
             });
+            if (err_messenger_admin_messages_xm9fq) console.warn('[Supabase] Silent mutation failed in messenger_admin_messages:', err_messenger_admin_messages_xm9fq.message);
             return true;
         } catch (_) { return false; }
     }, [conversationId, currentUser]);

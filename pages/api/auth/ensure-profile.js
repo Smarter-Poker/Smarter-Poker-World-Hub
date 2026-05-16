@@ -73,14 +73,15 @@ export default async function handler(req, res) {
 
           if (existingProfile) {
               // Profile exists - optionally update last_login
-              await getSupabase()
-                  .from('profiles')
-                  .update({
+              const { error: err_profiles_rzlwk } = await getSupabase()
+                .from('profiles')
+                .update({
                       last_login: new Date().toISOString(),
                       last_active: new Date().toISOString(),
                       is_online: true
                   })
                   .eq('id', user_id);
+              if (err_profiles_rzlwk) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_rzlwk.message);
 
               // ── ANTIGRAVITY FIX: Detect if profile was JUST created by the DB trigger ──
               const createdTime = new Date(existingProfile.created_at).getTime();
@@ -112,9 +113,9 @@ export default async function handler(req, res) {
                   console.info('[ANTIGRAVITY] Duplicate email found — nullifying email for new profile to prevent constraint violation and orphaning.');
 
                   // Update the existing profile to reflect the latest login just in case
-                  await getSupabase()
-                      .from('profiles')
-                      .update({
+                  const { error: err_profiles_vzk0i } = await getSupabase()
+                    .from('profiles')
+                    .update({
                           last_login: new Date().toISOString(),
                           last_active: new Date().toISOString(),
                           is_online: true,
@@ -122,6 +123,7 @@ export default async function handler(req, res) {
                           ...(metadata?.avatar_url && !emailMatch.avatar_url ? { avatar_url: metadata.avatar_url } : {}),
                       })
                       .eq('id', emailMatch.id);
+                  if (err_profiles_vzk0i) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_vzk0i.message);
 
                   // FIX: DO NOT RETURN 'LINKED'. If we return here, the new auth user (user_id)
                   // NEVER gets a profile, permanently breaking the app for them.
@@ -249,9 +251,9 @@ export default async function handler(req, res) {
           // ── MySpace Tom: Auto-friend + auto-follow Dan Bekavac for every new user ──
           const DAN_BEKAVAC_ID = '47965354-0e56-43ef-931c-ddaab82af765';
           if (user_id !== DAN_BEKAVAC_ID) {
-            (async () => {
+          (async () => {
               try {
-                await Promise.all([
+                const [friendResult, followResult] = await Promise.all([
                   // Bidirectional friendship (accepted immediately)
                   getSupabase().from('friendships').upsert(
                     [{ user_id, friend_id: DAN_BEKAVAC_ID, status: 'accepted' },
@@ -264,6 +266,8 @@ export default async function handler(req, res) {
                     { onConflict: 'follower_id,following_id', ignoreDuplicates: true }
                   ),
                 ]);
+                if (friendResult.error) console.warn('[ANTIGRAVITY] MySpace Tom friendship upsert failed:', friendResult.error.message);
+                if (followResult.error) console.warn('[ANTIGRAVITY] MySpace Tom follow upsert failed:', followResult.error.message);
               } catch (e) {
                 console.warn('[ANTIGRAVITY] MySpace Tom auto-connect failed (non-fatal):', e?.message || e);
               }

@@ -94,10 +94,11 @@ export default async function handler(req, res) {
                 if (existing) {
                     // Update notes if provided
                     if (notes !== undefined) {
-                        await getSupabase()
-                            .from('solution_bookmarks')
-                            .update({ notes })
+                        const { error: err_solution_bookmarks_zjaeg } = await getSupabase()
+                          .from('solution_bookmarks')
+                          .update({ notes })
                             .eq('id', existing.id);
+                        if (err_solution_bookmarks_zjaeg) console.warn('[Supabase] Silent mutation failed in solution_bookmarks:', err_solution_bookmarks_zjaeg.message);
                     }
                     return res.status(200).json({ success: true, action: 'updated', bookmarkId: existing.id });
                 }

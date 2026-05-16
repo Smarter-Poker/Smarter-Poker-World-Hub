@@ -198,12 +198,13 @@ export class BaseScraper {
     async saveTournamentSchedule(venueId, tournaments) {
         try {
             // Delete existing future tournaments from this source
-            await this.supabase
-                .from('venue_tournament_schedules')
-                .delete()
+            const { error: err_venue_tournament_schedules_qmrtn } = await this.supabase
+              .from('venue_tournament_schedules')
+              .delete()
                 .eq('venue_id', venueId)
                 .eq('source', this.sourceName)
                 .gte('start_time', new Date().toISOString());
+            if (err_venue_tournament_schedules_qmrtn) console.warn('[Supabase] Silent mutation failed in venue_tournament_schedules:', err_venue_tournament_schedules_qmrtn.message);
 
             // Insert new tournaments
             if (tournaments && tournaments.length > 0) {
@@ -231,9 +232,9 @@ export class BaseScraper {
      */
     async recordScrapeRun(status, metadata = {}) {
         try {
-            await this.supabase
-                .from('scraper_runs')
-                .insert({
+            const { error: err_scraper_runs_uue4n } = await this.supabase
+              .from('scraper_runs')
+              .insert({
                     source: this.sourceName,
                     status,
                     stats: this.stats,
@@ -241,6 +242,7 @@ export class BaseScraper {
                     started_at: this.runStartTime,
                     completed_at: new Date().toISOString()
                 });
+            if (err_scraper_runs_uue4n) console.warn('[Supabase] Silent mutation failed in scraper_runs:', err_scraper_runs_uue4n.message);
         } catch (error) {
             this.log(`Error recording scrape run: ${error.message}`, 'error');
         }

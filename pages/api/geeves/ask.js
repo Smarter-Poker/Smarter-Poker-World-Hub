@@ -398,12 +398,13 @@ export default async function handler(req, res) {
 
           // Auto-Learning Loop — log missed question to Supabase
           try {
-              await getSupabase().rpc('geeves_upsert_missed_question', {
+              const { error: upsertMissedErr } = await getSupabase().rpc('geeves_upsert_missed_question', {
                   p_question: question,
                   p_hash: questionHash,
                   p_page: currentPage || null,
                   p_grok_answer: answer,
               });
+              if (upsertMissedErr) throw upsertMissedErr;
           } catch (err) {
               console.warn('[Geeves Ask] Failed to log missed question:', err.message);
           }

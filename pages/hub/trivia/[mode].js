@@ -660,11 +660,11 @@ export default function TriviaModePage() {
                         }));
 
                         // Use upsert to handle potential duplicates
-                        await supabase.from('trivia_user_question_history')
-                            .upsert(historyRecords, {
+                        const { error: err_trivia_user_question_history_g7wxv } = await supabase.from('trivia_user_question_history').upsert(historyRecords, {
                                 onConflict: 'user_id,question_id',
                                 ignoreDuplicates: false
                             });
+                        if (err_trivia_user_question_history_g7wxv) console.warn('[Supabase] Silent mutation failed in trivia_user_question_history:', err_trivia_user_question_history_g7wxv.message);
                     }
                     savePhaseRef.current = 3;
                 }
@@ -726,20 +726,22 @@ export default function TriviaModePage() {
                 // Phase 5: Record daily play (only if not already recorded)
                 if (savePhaseRef.current < 5) {
                     if (mode === 'daily') {
-                        await supabase.from('daily_trivia_plays').insert({
+                        const { error: err_daily_trivia_plays_ccqx1 } = await supabase.from('daily_trivia_plays').insert({
                             user_id: userId,
                             played_date: today,
                             was_correct: correctCount > 0,
                             streak_at_time: newStreak
                         });
+                        if (err_daily_trivia_plays_ccqx1) console.warn('[Supabase] Silent mutation failed in daily_trivia_plays:', err_daily_trivia_plays_ccqx1.message);
 
                         // Update streak
-                        await supabase.from('trivia_streaks').upsert({
+                        const { error: err_trivia_streaks_fdz0t } = await supabase.from('trivia_streaks').upsert({
                             user_id: userId,
                             current_streak: newStreak,
                             best_streak: Math.max(newStreak, bestStreak),
                             last_play_date: today
                         });
+                        if (err_trivia_streaks_fdz0t) console.warn('[Supabase] Silent mutation failed in trivia_streaks:', err_trivia_streaks_fdz0t.message);
                         // Keep bestStreak state in sync
                         if (newStreak > bestStreak) setBestStreak(newStreak);
                     }

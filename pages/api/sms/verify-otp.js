@@ -70,10 +70,11 @@ export default async function handler(req, res) {
           }
 
           // ── Housekeeping: purge expired OTP rows (any phone) ─────────────
-          await supabase
-              .from('sms_otp_codes')
-              .delete()
+          const { error: err_sms_otp_codes_3z13v } = await supabase
+            .from('sms_otp_codes')
+            .delete()
               .lt('expires_at', new Date().toISOString());
+          if (err_sms_otp_codes_3z13v) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_3z13v.message);
 
           // ── Look up stored OTP ───────────────────────────────────────────
           const { data: storedOtp, error: fetchError } = await supabase
@@ -98,7 +99,8 @@ export default async function handler(req, res) {
 
           // ── Check if expired (belt-and-suspenders after cleanup) ─────────
           if (new Date() > new Date(storedOtp.expires_at)) {
-              await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
+              const { error: err_sms_otp_codes_swatr } = await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
+              if (err_sms_otp_codes_swatr) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_swatr.message);
               return res.status(400).json({
                   success: false, error: 'Verification code has expired. Please request a new code.',
                   expired: true
@@ -107,7 +109,8 @@ export default async function handler(req, res) {
 
           // ── Check attempt limit ──────────────────────────────────────────
           if (storedOtp.attempts >= MAX_ATTEMPTS) {
-              await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
+              const { error: err_sms_otp_codes_h0fuc } = await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
+              if (err_sms_otp_codes_h0fuc) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_h0fuc.message);
               return res.status(429).json({
                   success: false, error: 'Too many attempts. Please request a new code.',
                   tooManyAttempts: true
@@ -116,10 +119,11 @@ export default async function handler(req, res) {
 
           // ── Increment attempts BEFORE comparing ──────────────────────────
           const newAttempts = storedOtp.attempts + 1;
-          await supabase
-              .from('sms_otp_codes')
-              .update({ attempts: newAttempts })
+          const { error: err_sms_otp_codes_e62kk } = await supabase
+            .from('sms_otp_codes')
+            .update({ attempts: newAttempts })
               .eq('id', storedOtp.id);
+          if (err_sms_otp_codes_e62kk) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_e62kk.message);
 
           // ── Compare code ─────────────────────────────────────────────────
           if (storedOtp.code !== trimmedCode) {
@@ -132,7 +136,8 @@ export default async function handler(req, res) {
           }
 
           // ── ✅ Success — delete the OTP row ──────────────────────────────
-          await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
+          const { error: err_sms_otp_codes_kisnd } = await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
+          if (err_sms_otp_codes_kisnd) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_kisnd.message);
 
 
           // ── Persist verification to profile + grant VIP ──────────────────
@@ -195,9 +200,9 @@ export default async function handler(req, res) {
 
                       // Log the VIP grant as a diamond transaction (only if VIP was actually granted)
                       if (shouldGrantVip) {
-                          await supabase
-                              .from('diamond_transactions')
-                              .insert({
+                          const { error: err_diamond_transactions_tcij9 } = await supabase
+                            .from('diamond_transactions')
+                            .insert({
                                   user_id: userId,
                                   amount: 0,
                                   transaction_type: 'bonus',
@@ -209,6 +214,7 @@ export default async function handler(req, res) {
                                   },
                                   balance_after: 0,
                               });
+                          if (err_diamond_transactions_tcij9) console.warn('[Supabase] Silent mutation failed in diamond_transactions:', err_diamond_transactions_tcij9.message);
                       }
                   }
               } catch (profileErr) {

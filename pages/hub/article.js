@@ -70,17 +70,19 @@ export default function ArticlePage() {
         }
         try {
             if (isBookmarked) {
-                await supabase
-                    .from('article_bookmarks')
-                    .delete()
+                const { error: err_article_bookmarks_dmo5r } = await supabase
+                  .from('article_bookmarks')
+                  .delete()
                     .eq('user_id', userId)
                     .eq('article_id', article.id);
+                if (err_article_bookmarks_dmo5r) console.warn('[Supabase] Silent mutation failed in article_bookmarks:', err_article_bookmarks_dmo5r.message);
                 setIsBookmarked(false);
                 toast.success('Bookmark Removed');
             } else {
-                await supabase
-                    .from('article_bookmarks')
-                    .insert({ user_id: userId, article_id: article.id });
+                const { error: err_article_bookmarks_qtrjq } = await supabase
+                  .from('article_bookmarks')
+                  .insert({ user_id: userId, article_id: article.id });
+                if (err_article_bookmarks_qtrjq) console.warn('[Supabase] Silent mutation failed in article_bookmarks:', err_article_bookmarks_qtrjq.message);
                 setIsBookmarked(true);
                 toast.success('Article Bookmarked');
             }

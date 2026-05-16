@@ -261,7 +261,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
   if (existing) {
     // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
     const totalWithDeposits = segmentTotal + (existing.initial_deposit || 0);
-    await supabase
+    const { error: err_bankroll_segments_03601 } = await supabase
       .from('bankroll_segments')
       .update({
         current_balance: totalWithDeposits,
@@ -269,14 +269,16 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
       })
       .eq('user_id', userId)
       .eq('segment_type', segmentType);
+    if (err_bankroll_segments_03601) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_03601.message);
   } else {
     // Create new segment
-    await supabase.from('bankroll_segments').insert({
+    const { error: err_bankroll_segments_304z4 } = await supabase.from('bankroll_segments').insert({
       user_id: userId,
       segment_type: segmentType,
       current_balance: segmentTotal,
       initial_deposit: 0,
     });
+    if (err_bankroll_segments_304z4) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_304z4.message);
   }
 }
 
@@ -605,11 +607,12 @@ export async function completeTrip(userId: string, tripId: string): Promise<Trip
  */
 export async function deleteTrip(userId: string, tripId: string): Promise<void> {
   // Unlink all entries from this trip
-  await supabase
+  const { error: err_bankroll_ledger_gc1j7 } = await supabase
     .from('bankroll_ledger')
     .update({ trip_id: null })
     .eq('user_id', userId)
     .eq('trip_id', tripId);
+  if (err_bankroll_ledger_gc1j7) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_gc1j7.message);
 
   // Mark trip as deleted
   const { error } = await supabase
@@ -872,11 +875,12 @@ export async function completeSeries(userId: string, seriesId: string): Promise<
 }
 
 export async function deleteSeries(userId: string, seriesId: string): Promise<void> {
-  await supabase
+  const { error: err_bankroll_ledger_loq06 } = await supabase
     .from('bankroll_ledger')
     .update({ trip_id: null })
     .eq('user_id', userId)
     .eq('trip_id', seriesId);
+  if (err_bankroll_ledger_loq06) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_loq06.message);
 
   const { error } = await supabase
     .from('bankroll_trips')
@@ -954,22 +958,24 @@ export async function fetchUnreadAlerts(userId: string): Promise<BankrollAlert[]
  * Mark alert as read
  */
 export async function markAlertRead(userId: string, alertId: string): Promise<void> {
-  await supabase
+  const { error: err_bankroll_alerts_lyies } = await supabase
     .from('bankroll_alerts')
     .update({ is_read: true })
     .eq('user_id', userId)
     .eq('id', alertId);
+  if (err_bankroll_alerts_lyies) console.warn('[Supabase] Silent mutation failed in bankroll_alerts:', err_bankroll_alerts_lyies.message);
 }
 
 /**
  * Dismiss an alert
  */
 export async function dismissAlert(userId: string, alertId: string): Promise<void> {
-  await supabase
+  const { error: err_bankroll_alerts_15ab5 } = await supabase
     .from('bankroll_alerts')
     .update({ is_dismissed: true })
     .eq('user_id', userId)
     .eq('id', alertId);
+  if (err_bankroll_alerts_15ab5) console.warn('[Supabase] Silent mutation failed in bankroll_alerts:', err_bankroll_alerts_15ab5.message);
 }
 
 /**
@@ -984,7 +990,7 @@ export async function createAlert(
   data?: Record<string, unknown>,
   locationId?: string
 ): Promise<void> {
-  await supabase.from('bankroll_alerts').insert({
+  const { error: err_bankroll_alerts_l7trq } = await supabase.from('bankroll_alerts').insert({
     user_id: userId,
     alert_type: alertType,
     severity,
@@ -993,6 +999,7 @@ export async function createAlert(
     data,
     location_id: locationId,
   });
+  if (err_bankroll_alerts_l7trq) console.warn('[Supabase] Silent mutation failed in bankroll_alerts:', err_bankroll_alerts_l7trq.message);
 }
 
 /**
@@ -1002,13 +1009,14 @@ export async function initializeUserBankroll(userId: string): Promise<void> {
   // Create default segments
   const segments = ['poker', 'casino', 'sports', 'life'];
   for (const segment of segments) {
-    await supabase.from('bankroll_segments').upsert({
+    const { error: err_bankroll_segments_gtceu } = await supabase.from('bankroll_segments').upsert({
       user_id: userId,
       segment_type: segment,
       current_balance: 0,
       initial_deposit: 0,
       is_read_only: segment === 'life',
     });
+    if (err_bankroll_segments_gtceu) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_gtceu.message);
   }
 
   // Create default rules
@@ -1018,12 +1026,13 @@ export async function initializeUserBankroll(userId: string): Promise<void> {
   ];
 
   for (const rule of defaultRules) {
-    await supabase.from('bankroll_rules').upsert({
+    const { error: err_bankroll_rules_t1in3 } = await supabase.from('bankroll_rules').upsert({
       user_id: userId,
       rule_type: rule.rule_type,
       value: rule.value,
       is_active: true,
     });
+    if (err_bankroll_rules_t1in3) console.warn('[Supabase] Silent mutation failed in bankroll_rules:', err_bankroll_rules_t1in3.message);
   }
 }
 
@@ -1044,14 +1053,18 @@ export async function updateSegmentBalance(
 
   const newBalance = (current?.current_balance || 0) + amount;
 
-  await supabase
+  const { error: err_bankroll_segments_pl9cn } = await supabase
+
     .from('bankroll_segments')
+
     .update({
       current_balance: newBalance,
       updated_at: new Date().toISOString(),
     })
     .eq('user_id', userId)
     .eq('segment_type', segmentType);
+
+  if (err_bankroll_segments_pl9cn) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_pl9cn.message);
 }
 
 /**
@@ -1064,13 +1077,14 @@ export async function logSegmentTransfer(
   amount: number,
   reason?: string
 ): Promise<void> {
-  await supabase.from('bankroll_transfers').insert({
+  const { error: err_bankroll_transfers_5oti3 } = await supabase.from('bankroll_transfers').insert({
     user_id: userId,
     from_segment: fromSegment,
     to_segment: toSegment,
     amount,
     reason,
   });
+  if (err_bankroll_transfers_5oti3) console.warn('[Supabase] Silent mutation failed in bankroll_transfers:', err_bankroll_transfers_5oti3.message);
 }
 
 /**
@@ -1095,7 +1109,7 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
   await initializeUserBankroll(userId);
 
   // Set the poker segment as the primary starting balance
-  await supabase
+  const { error: err_bankroll_segments_wwjic } = await supabase
     .from('bankroll_segments')
     .update({
       initial_deposit: amount,
@@ -1104,9 +1118,10 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
     })
     .eq('user_id', userId)
     .eq('segment_type', 'poker');
+  if (err_bankroll_segments_wwjic) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_wwjic.message);
 
   // Log as a ledger entry for audit trail
-  await supabase.from('bankroll_ledger').insert({
+  const { error: err_bankroll_ledger_7o3ix } = await supabase.from('bankroll_ledger').insert({
     user_id: userId,
     category: 'deposit',
     entry_date: new Date().toISOString().split('T')[0],
@@ -1116,6 +1131,7 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
     notes: 'Starting bankroll',
     is_adjustment: true,
   });
+  if (err_bankroll_ledger_7o3ix) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_7o3ix.message);
 }
 
 /**
@@ -1176,7 +1192,7 @@ export async function adjustBankroll(
   if (insertErr) {
     console.warn('[adjustBankroll] Failed to insert ledger entry:', insertErr);
     // Try to rollback the segment update
-    await supabase
+    const { error: err_bankroll_segments_m2q4f } = await supabase
       .from('bankroll_segments')
       .update({
         current_balance: current?.current_balance || 0,
@@ -1184,6 +1200,7 @@ export async function adjustBankroll(
       })
       .eq('user_id', userId)
       .eq('segment_type', 'poker');
+    if (err_bankroll_segments_m2q4f) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_m2q4f.message);
     throw new Error('Failed to record adjustment');
   }
 }
@@ -1407,10 +1424,11 @@ export async function createStakingSession(
   if (error || !data) throw error || new Error('Failed to record staking session');
 
   // Update the arrangement's current_makeup
-  await supabase
+  const { error: err_staking_arrangements_fheez } = await supabase
     .from('staking_arrangements')
     .update({ current_makeup: Math.round(makeupAfter * 100) / 100, updated_at: new Date().toISOString() })
     .eq('id', arrangement_id);
+  if (err_staking_arrangements_fheez) console.warn('[Supabase] Silent mutation failed in staking_arrangements:', err_staking_arrangements_fheez.message);
 
   return data as StakingSession;
 }

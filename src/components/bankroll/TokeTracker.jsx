@@ -889,7 +889,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         try {
             // Save notes BEFORE closing (prevents race condition / data loss)
             if (closeDayNotes.trim()) {
-                await supabase.from('toke_gig_days').update({ notes: closeDayNotes.trim() }).eq('id', currentDay.id);
+                const { error: err_toke_gig_days_ynifb } = await supabase.from('toke_gig_days').update({ notes: closeDayNotes.trim() }).eq('id', currentDay.id);
+                if (err_toke_gig_days_ynifb) console.warn('[Supabase] Silent mutation failed in toke_gig_days:', err_toke_gig_days_ynifb.message);
             }
             await closeDay(currentDay.id);
             toast.success(`Day ${currentDay.day_number} closed! 🎉`);

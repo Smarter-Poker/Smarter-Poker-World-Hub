@@ -136,76 +136,88 @@ export default async function handler(req, res) {
           }
 
           // ── 0c. Cancel any pending cashout requests ──
-          await getSupabase()
-              .from('cashout_requests')
-              .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), agent_note: 'Account deleted' })
+          const { error: err_cashout_requests_0c2tx } = await getSupabase()
+            .from('cashout_requests')
+            .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), agent_note: 'Account deleted' })
               .eq('player_id', userId)
               .eq('status', 'pending');
+          if (err_cashout_requests_0c2tx) console.warn('[Supabase] Silent mutation failed in cashout_requests:', err_cashout_requests_0c2tx.message);
 
           // ── 0d. Remove club memberships (zero-balance only at this point) ──
-          await getSupabase()
-              .from('club_members')
-              .delete()
+          const { error: err_club_members_1g5q6 } = await getSupabase()
+            .from('club_members')
+            .delete()
               .eq('user_id', userId);
+          if (err_club_members_1g5q6) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_1g5q6.message);
 
           // ── 1. Delete user profile data ──
           // Remove diamond balance
-          await getSupabase()
-              .from('user_diamond_balance')
-              .delete()
+          const { error: err_user_diamond_balance_ckxzy } = await getSupabase()
+            .from('user_diamond_balance')
+            .delete()
               .eq('user_id', userId);
+          if (err_user_diamond_balance_ckxzy) console.warn('[Supabase] Silent mutation failed in user_diamond_balance:', err_user_diamond_balance_ckxzy.message);
 
           // Remove diamond reward claims
-          await getSupabase()
-              .from('diamond_reward_claims')
-              .delete()
+          const { error: err_diamond_reward_claims_1a4v3 } = await getSupabase()
+            .from('diamond_reward_claims')
+            .delete()
               .eq('user_id', userId);
+          if (err_diamond_reward_claims_1a4v3) console.warn('[Supabase] Silent mutation failed in diamond_reward_claims:', err_diamond_reward_claims_1a4v3.message);
 
           // Remove diamond transactions
-          await getSupabase()
-              .from('diamond_transactions')
-              .delete()
+          const { error: err_diamond_transactions_3zlok } = await getSupabase()
+            .from('diamond_transactions')
+            .delete()
               .eq('user_id', userId);
+          if (err_diamond_transactions_3zlok) console.warn('[Supabase] Silent mutation failed in diamond_transactions:', err_diamond_transactions_3zlok.message);
 
           // Remove promo code redemptions
-          await getSupabase()
-              .from('promo_code_redemptions')
-              .delete()
+          const { error: err_promo_code_redemptions_ugm44 } = await getSupabase()
+            .from('promo_code_redemptions')
+            .delete()
               .eq('user_id', userId);
+          if (err_promo_code_redemptions_ugm44) console.warn('[Supabase] Silent mutation failed in promo_code_redemptions:', err_promo_code_redemptions_ugm44.message);
 
           // Remove MFA factors
-          await getSupabase()
-              .from('user_mfa_factors')
-              .delete()
+          const { error: err_user_mfa_factors_pnfzp } = await getSupabase()
+            .from('user_mfa_factors')
+            .delete()
               .eq('user_id', userId);
+          if (err_user_mfa_factors_pnfzp) console.warn('[Supabase] Silent mutation failed in user_mfa_factors:', err_user_mfa_factors_pnfzp.message);
 
           // Remove active sessions
-          await getSupabase()
-              .from('user_sessions')
-              .delete()
+          const { error: err_user_sessions_7emf7 } = await getSupabase()
+            .from('user_sessions')
+            .delete()
               .eq('user_id', userId);
+          if (err_user_sessions_7emf7) console.warn('[Supabase] Silent mutation failed in user_sessions:', err_user_sessions_7emf7.message);
 
           // Remove notifications
-          await getSupabase()
-              .from('notifications')
-              .delete()
+          const { error: err_notifications_vgtnc } = await getSupabase()
+            .from('notifications')
+            .delete()
               .eq('user_id', userId);
+          if (err_notifications_vgtnc) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_vgtnc.message);
 
           // Remove friendships (both directions)
-          await getSupabase()
-              .from('friendships')
-              .delete()
+          const { error: err_friendships_9qtq5 } = await getSupabase()
+            .from('friendships')
+            .delete()
               .eq('user_id', userId);
-          await getSupabase()
-              .from('friendships')
-              .delete()
+          if (err_friendships_9qtq5) console.warn('[Supabase] Silent mutation failed in friendships:', err_friendships_9qtq5.message);
+          const { error: err_friendships_cxnd7 } = await getSupabase()
+            .from('friendships')
+            .delete()
               .eq('friend_id', userId);
+          if (err_friendships_cxnd7) console.warn('[Supabase] Silent mutation failed in friendships:', err_friendships_cxnd7.message);
 
           // Remove the profile (must be after dependent records)
-          await getSupabase()
-              .from('profiles')
-              .delete()
+          const { error: err_profiles_2sqi2 } = await getSupabase()
+            .from('profiles')
+            .delete()
               .eq('id', userId);
+          if (err_profiles_2sqi2) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_2sqi2.message);
 
           // ── 2. Delete the auth user (hard delete via admin API) ──
           const { error: deleteError } = await getSupabase().auth.admin.deleteUser(userId);

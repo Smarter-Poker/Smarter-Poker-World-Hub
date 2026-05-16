@@ -167,10 +167,11 @@ class HorsePersonalityService {
         const personality = this.generatePersonality();
 
         // Save to database
-        await this.supabase
-            .from('content_authors')
-            .update({ personality })
+        const { error: err_content_authors_k4nnd } = await this.supabase
+          .from('content_authors')
+          .update({ personality })
             .eq('profile_id', horseId);
+        if (err_content_authors_k4nnd) console.warn('[Supabase] Silent mutation failed in content_authors:', err_content_authors_k4nnd.message);
 
         this.cache.set(horseId, personality);
         return personality;

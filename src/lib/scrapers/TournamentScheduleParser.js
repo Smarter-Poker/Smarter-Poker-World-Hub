@@ -314,11 +314,12 @@ export class TournamentScheduleParser {
     async saveTournaments(venueId, tournaments, source = 'parser') {
         try {
             // Clear existing future tournaments from this source
-            await this.supabase
-                .from('venue_tournament_schedules')
-                .delete()
+            const { error: err_venue_tournament_schedules_huu3g } = await this.supabase
+              .from('venue_tournament_schedules')
+              .delete()
                 .eq('venue_id', venueId)
                 .eq('source', source);
+            if (err_venue_tournament_schedules_huu3g) console.warn('[Supabase] Silent mutation failed in venue_tournament_schedules:', err_venue_tournament_schedules_huu3g.message);
 
             if (tournaments.length === 0) {
                 return { saved: 0 };

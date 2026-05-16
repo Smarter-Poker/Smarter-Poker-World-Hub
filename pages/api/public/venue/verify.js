@@ -91,14 +91,15 @@ export default async function handler(req, res) {
           // Check max attempts
           if (claim.verification_attempts >= MAX_VERIFICATION_ATTEMPTS) {
               // Update claim status to rejected
-              await getSupabase()
-                  .from('venue_claims')
-                  .update({
+              const { error: err_venue_claims_fluue } = await getSupabase()
+                .from('venue_claims')
+                .update({
                       status: 'rejected',
                       rejection_reason: 'Maximum verification attempts exceeded',
                       updated_at: new Date().toISOString()
                   })
                   .eq('id', claim_id);
+              if (err_venue_claims_fluue) console.warn('[Supabase] Silent mutation failed in venue_claims:', err_venue_claims_fluue.message);
 
               return res.status(400).json({
                   success: false, error: 'Maximum attempts exceeded',
@@ -107,20 +108,21 @@ export default async function handler(req, res) {
           }
 
           // Increment attempt counter
-          await getSupabase()
-              .from('venue_claims')
-              .update({
+          const { error: err_venue_claims_gil0t } = await getSupabase()
+            .from('venue_claims')
+            .update({
                   verification_attempts: claim.verification_attempts + 1,
                   updated_at: new Date().toISOString()
               })
               .eq('id', claim_id);
+          if (err_venue_claims_gil0t) console.warn('[Supabase] Silent mutation failed in venue_claims:', err_venue_claims_gil0t.message);
 
           // Verify the code
           if (claim.verification_code !== verification_code.trim()) {
               // Log failed attempt
-              await getSupabase()
-                  .from('venue_verification_log')
-                  .insert({
+              const { error: err_venue_verification_log_fgqda } = await getSupabase()
+                .from('venue_verification_log')
+                .insert({
                       claim_id,
                       venue_id: claim.venue_id,
                       action: 'code_failed',
@@ -131,6 +133,7 @@ export default async function handler(req, res) {
                       ip_address: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
                       user_agent: req.headers['user-agent']
                   });
+              if (err_venue_verification_log_fgqda) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_fgqda.message);
 
               return res.status(400).json({
                   success: false, error: 'Invalid code',
@@ -140,19 +143,20 @@ export default async function handler(req, res) {
 
           // Code is correct - approve the claim
           // Update claim status
-          await getSupabase()
-              .from('venue_claims')
-              .update({
+          const { error: err_venue_claims_92l5n } = await getSupabase()
+            .from('venue_claims')
+            .update({
                   status: 'approved',
                   verified_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
               })
               .eq('id', claim_id);
+          if (err_venue_claims_92l5n) console.warn('[Supabase] Silent mutation failed in venue_claims:', err_venue_claims_92l5n.message);
 
           // Add user as venue manager
-          await getSupabase()
-              .from('venue_managers')
-              .upsert({
+          const { error: err_venue_managers_taktp } = await getSupabase()
+            .from('venue_managers')
+            .upsert({
                   venue_id: claim.venue_id,
                   user_id: user.id,
                   role: 'owner',
@@ -169,21 +173,23 @@ export default async function handler(req, res) {
               }, {
                   onConflict: 'venue_id,user_id'
               });
+          if (err_venue_managers_taktp) console.warn('[Supabase] Silent mutation failed in venue_managers:', err_venue_managers_taktp.message);
 
           // Update venue as claimed
-          await getSupabase()
-              .from('poker_venues')
-              .update({
+          const { error: err_poker_venues_4gted } = await getSupabase()
+            .from('poker_venues')
+            .update({
                   is_claimed: true,
                   claimed_by: user.id,
                   claimed_at: new Date().toISOString()
               })
               .eq('id', claim.venue_id);
+          if (err_poker_venues_4gted) console.warn('[Supabase] Silent mutation failed in poker_venues:', err_poker_venues_4gted.message);
 
           // Log successful verification
-          await getSupabase()
-              .from('venue_verification_log')
-              .insert({
+          const { error: err_venue_verification_log_ifam7 } = await getSupabase()
+            .from('venue_verification_log')
+            .insert({
                   claim_id,
                   venue_id: claim.venue_id,
                   action: 'code_verified',
@@ -191,16 +197,21 @@ export default async function handler(req, res) {
                   ip_address: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
                   user_agent: req.headers['user-agent']
               });
+          if (err_venue_verification_log_ifam7) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_ifam7.message);
 
-          await getSupabase()
-              .from('venue_verification_log')
-              .insert({
+          const { error: err_venue_verification_log_mz5zc } = await getSupabase()
+
+            .from('venue_verification_log')
+
+            .insert({
                   claim_id,
                   venue_id: claim.venue_id,
                   action: 'approved',
                   performed_by: user.id,
                   details: { method: 'self_verified' }
               });
+
+          if (err_venue_verification_log_mz5zc) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_mz5zc.message);
 
           return res.status(200).json({
               success: true,

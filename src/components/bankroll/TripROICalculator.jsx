@@ -49,10 +49,11 @@ export default function TripROICalculator({ trip, userId, displayEUR = false }) 
     }
 
     async function saveExpenses() {
-        await supabase
-            .from('trips')
-            .update({ expenses })
+        const { error: err_trips_5ff5w } = await supabase
+          .from('trips')
+          .update({ expenses })
             .eq('id', trip.id);
+        if (err_trips_5ff5w) console.warn('[Supabase] Silent mutation failed in trips:', err_trips_5ff5w.message);
         setIsEditing(false);
     }
 

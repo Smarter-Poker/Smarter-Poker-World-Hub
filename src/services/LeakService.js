@@ -142,10 +142,11 @@ class LeakService {
 
             // Also mark the leak as notified
             if (leakId) {
-                await supabase
-                    .from('user_training_leaks')
-                    .update({ jarvis_notified: true })
+                const { error: err_user_training_leaks_jo1t9 } = await supabase
+                  .from('user_training_leaks')
+                  .update({ jarvis_notified: true })
                     .eq('id', leakId);
+                if (err_user_training_leaks_jo1t9) console.warn('[Supabase] Silent mutation failed in user_training_leaks:', err_user_training_leaks_jo1t9.message);
             }
 
             console.debug(`[LeakService] Pushed Jarvis alert for ${leakType.id}`);

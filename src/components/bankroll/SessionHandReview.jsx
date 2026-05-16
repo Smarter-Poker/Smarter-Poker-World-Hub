@@ -49,10 +49,14 @@ export default function SessionHandReview({ userId }) {
         if (!linkingHand || !selectedSession) return;
         setSaving(true);
 
-        await supabase
-            .from('training_hand_history')
-            .update({ session_id: selectedSession })
+        const { error: err_training_hand_history_vwcfa } = await supabase
+
+          .from('training_hand_history')
+
+          .update({ session_id: selectedSession })
             .eq('id', linkingHand);
+
+        if (err_training_hand_history_vwcfa) console.warn('[Supabase] Silent mutation failed in training_hand_history:', err_training_hand_history_vwcfa.message);
 
         // Update local state
         setRecentHands(prev => prev.map(h =>

@@ -249,13 +249,17 @@ export async function postReply(postId, authorId, content) {
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        await supabase
-            .from('social_post_comments')
-            .insert({
+        const { error: err_social_post_comments_yg0d5 } = await supabase
+
+          .from('social_post_comments')
+
+          .insert({
                 post_id: postId,
                 author_id: authorId,
                 content
             });
+
+        if (err_social_post_comments_yg0d5) console.warn('[Supabase] Silent mutation failed in social_post_comments:', err_social_post_comments_yg0d5.message);
 
         return true;
     } catch (error) {

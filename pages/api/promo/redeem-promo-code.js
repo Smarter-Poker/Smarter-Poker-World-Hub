@@ -108,11 +108,12 @@ export default async function handler(req, res) {
           // retries forever after a transient failure.
           const rollbackRedemption = async (label) => {
               try {
-                  await getSupabase()
-                      .from('promo_code_redemptions')
-                      .delete()
+                  const { error: err_promo_code_redemptions_nvq6g } = await getSupabase()
+                    .from('promo_code_redemptions')
+                    .delete()
                       .eq('promo_code_id', promo.id)
                       .eq('user_id', userId);
+                  if (err_promo_code_redemptions_nvq6g) console.warn('[Supabase] Silent mutation failed in promo_code_redemptions:', err_promo_code_redemptions_nvq6g.message);
               } catch (rbErr) {
                   console.warn(`[redeem-promo] Rollback delete failed (${label}):`, rbErr?.message || rbErr);
               }
@@ -199,10 +200,11 @@ export default async function handler(req, res) {
           // 4. Redemption already recorded above (atomic insert)
 
           // 5. Increment usage count (use atomic increment to prevent race)
-          await getSupabase()
-              .from('promo_codes')
-              .update({ times_used: promo.times_used + 1 })
+          const { error: err_promo_codes_rvlzv } = await getSupabase()
+            .from('promo_codes')
+            .update({ times_used: promo.times_used + 1 })
               .eq('id', promo.id);
+          if (err_promo_codes_rvlzv) console.warn('[Supabase] Silent mutation failed in promo_codes:', err_promo_codes_rvlzv.message);
 
           return res.status(200).json({
               success: true,

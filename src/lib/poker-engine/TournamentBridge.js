@@ -109,13 +109,14 @@ class TournamentBridge {
 
               if (!creditErr) {
                 // Record transaction
-                await this.supabase.from('chip_transactions').insert({
+                const { error: err_chip_transactions_ko6eh } = await this.supabase.from('chip_transactions').insert({
                   club_id: targetClubId,
                   to_user_id: payout.playerId,
                   amount: payout.amount,
                   transaction_type: 'tournament_payout',
                   notes: `Tournament payout: ${payout.place}${payout.place === 1 ? 'st' : payout.place === 2 ? 'nd' : payout.place === 3 ? 'rd' : 'th'} place — ${t.name || t.tournamentId}`,
                 });
+                if (err_chip_transactions_ko6eh) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_ko6eh.message);
 
                 console.debug(`[TournamentBridge] Credited ${payout.amount} chips to ${payout.playerId} (${payout.place} place)`);
               } else {
@@ -288,13 +289,15 @@ class TournamentBridge {
           const title = `🎰 JACKPOT BOUNTY: ${data.amount.toLocaleString()} Chips!`;
           const content = `${data.playerName} just won a massive ${data.reveal.tierLabel} Mystery Bounty by knocking out ${data.eliminatedName} in ${this.tournament.name}!`;
 
-          await this.supabase.from('club_announcements').insert({
+          const { error: err_club_announcements_h67ri } = await this.supabase.from('club_announcements').insert({
             club_id: this.tournament.clubId,
             author_id: data.playerId, // Associate with the winner
             title,
             content,
             pinned: false
           });
+
+          if (err_club_announcements_h67ri) console.warn('[Supabase] Silent mutation failed in club_announcements:', err_club_announcements_h67ri.message);
 
           // Phase 8: Push Notifications for massive wins
           // Dynamically import to handle ESM/CJS interop in the NextJS API environment
@@ -574,10 +577,14 @@ class TournamentBridge {
         };
       }
 
-      await this.supabase
+      const { error: err_club_tournaments_3dvmd } = await this.supabase
+
         .from('club_tournaments')
+
         .update(updatePayload)
         .eq('id', t.tournamentId);
+
+      if (err_club_tournaments_3dvmd) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_3dvmd.message);
     } catch (err) {
       console.warn('[TournamentBridge] Persist state error:', err.message);
     }
@@ -586,7 +593,7 @@ class TournamentBridge {
   async _persistLevelChange(data) {
     if (!this.supabase) return;
     try {
-      await this.supabase
+      const { error: err_club_tournaments_orzyt } = await this.supabase
         .from('club_tournaments')
         .update({
           current_level: data.level,
@@ -597,6 +604,7 @@ class TournamentBridge {
           updated_at: new Date().toISOString(),
         })
         .eq('id', this.tournament.tournamentId);
+      if (err_club_tournaments_orzyt) console.warn('[Supabase] Silent mutation failed in club_tournaments:', err_club_tournaments_orzyt.message);
     } catch (err) {
       console.warn('[TournamentBridge] Level change persist error:', err.message);
     }
@@ -605,7 +613,7 @@ class TournamentBridge {
   async _persistRegistration(data) {
     if (!this.supabase) return;
     try {
-      await this.supabase
+      const { error: err_tournament_entries_66141 } = await this.supabase
         .from('tournament_entries')
         .upsert({
           tournament_id: this.tournament.tournamentId,
@@ -616,6 +624,7 @@ class TournamentBridge {
           buy_in: this.tournament.buyinAmount,
           registered_at: new Date().toISOString(),
         }, { onConflict: 'tournament_id,player_id' });
+      if (err_tournament_entries_66141) console.warn('[Supabase] Silent mutation failed in tournament_entries:', err_tournament_entries_66141.message);
     } catch (err) {
       console.warn('[TournamentBridge] Registration persist error:', err.message);
     }
@@ -624,7 +633,7 @@ class TournamentBridge {
   async _persistElimination(data) {
     if (!this.supabase) return;
     try {
-      await this.supabase
+      const { error: err_tournament_entries_77ujk } = await this.supabase
         .from('tournament_entries')
         .update({
           status: 'eliminated',
@@ -634,11 +643,12 @@ class TournamentBridge {
         })
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('player_id', data.playerId);
+      if (err_tournament_entries_77ujk) console.warn('[Supabase] Silent mutation failed in tournament_entries:', err_tournament_entries_77ujk.message);
 
       // Deep Bug Hunt Parity Fix: 
       // Mirror the elimination payload to `tournament_registrations` so the frontend UI
       // immediately updates finish position, payout, and status for both Humans and AI.
-      await this.supabase
+      const { error: err_tournament_registrations_a6e41 } = await this.supabase
         .from('tournament_registrations')
         .update({
           status: 'eliminated',
@@ -647,6 +657,7 @@ class TournamentBridge {
         })
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('user_id', data.playerId);
+      if (err_tournament_registrations_a6e41) console.warn('[Supabase] Silent mutation failed in tournament_registrations:', err_tournament_registrations_a6e41.message);
 
     } catch (err) {
       console.warn('[TournamentBridge] Elimination persist error:', err.message);
@@ -656,7 +667,7 @@ class TournamentBridge {
   async _persistPayout(data) {
     if (!this.supabase) return;
     try {
-      await this.supabase
+      const { error: err_tournament_entries_bf9yt } = await this.supabase
         .from('tournament_entries')
         .update({
           payout: data.amount,
@@ -664,6 +675,7 @@ class TournamentBridge {
         })
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('player_id', data.playerId);
+      if (err_tournament_entries_bf9yt) console.warn('[Supabase] Silent mutation failed in tournament_entries:', err_tournament_entries_bf9yt.message);
     } catch (err) {
       console.warn('[TournamentBridge] Payout persist error:', err.message);
     }
@@ -674,7 +686,7 @@ class TournamentBridge {
     try {
       const entry = this.tournament.entries.get(data.playerId);
       if (!entry) return;
-      await this.supabase
+      const { error: err_tournament_entries_xmlzk } = await this.supabase
         .from('tournament_entries')
         .update({
           status: 'active',
@@ -683,9 +695,10 @@ class TournamentBridge {
         })
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('player_id', data.playerId);
+      if (err_tournament_entries_xmlzk) console.warn('[Supabase] Silent mutation failed in tournament_entries:', err_tournament_entries_xmlzk.message);
 
       // Mirror to UI Table
-      await this.supabase
+      const { error: err_tournament_registrations_356vz } = await this.supabase
         .from('tournament_registrations')
         .update({
           status: 'registered', // 'registered' is the UI's active state
@@ -693,6 +706,7 @@ class TournamentBridge {
         })
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('user_id', data.playerId);
+      if (err_tournament_registrations_356vz) console.warn('[Supabase] Silent mutation failed in tournament_registrations:', err_tournament_registrations_356vz.message);
 
     } catch (err) {
       console.warn('[TournamentBridge] Rebuy persist error:', err.message);
@@ -704,7 +718,7 @@ class TournamentBridge {
     try {
       const entry = this.tournament.entries.get(data.playerId);
       if (!entry) return;
-      await this.supabase
+      const { error: err_tournament_entries_yuj97 } = await this.supabase
         .from('tournament_entries')
         .update({
           addon_taken: true,
@@ -712,6 +726,7 @@ class TournamentBridge {
         })
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('player_id', data.playerId);
+      if (err_tournament_entries_yuj97) console.warn('[Supabase] Silent mutation failed in tournament_entries:', err_tournament_entries_yuj97.message);
 
       // Mirror to UI Table (No status change, just ensuring hooks match if needed)
     } catch (err) {
@@ -745,13 +760,14 @@ class TournamentBridge {
             .eq('user_id', data.playerId)
             .maybeSingle();
           if (reg) {
-            await this.supabase
+            const { error: err_tournament_registrations_pci5a } = await this.supabase
               .from('tournament_registrations')
               .update({
                 payout_amount: (reg.payout_amount || 0) + data.amount,
               })
               .eq('tournament_id', this.tournament.tournamentId)
               .eq('user_id', data.playerId);
+            if (err_tournament_registrations_pci5a) console.warn('[Supabase] Silent mutation failed in tournament_registrations:', err_tournament_registrations_pci5a.message);
           }
         }
       }
@@ -759,7 +775,7 @@ class TournamentBridge {
       // [HARDENING: PRO PHASE 10] Master Audit Trail for Mystery Bounties
       // If this is a mystery bounty, save the exact envelope draw to the database.
       if (data.type === 'mystery_bounty' && data.reveal && data.eliminatedId) {
-        await this.supabase.from('tournament_mystery_draws').insert({
+        const { error: err_tournament_mystery_draws_fk0av } = await this.supabase.from('tournament_mystery_draws').insert({
           tournament_id: this.tournament.tournamentId,
           eliminator_id: data.playerId,
           eliminated_id: data.eliminatedId,
@@ -768,6 +784,7 @@ class TournamentBridge {
           multiplier: data.reveal.multiplier || 1,
           remaining_envelopes: data.reveal.remainingEnvelopes || []
         });
+        if (err_tournament_mystery_draws_fk0av) console.warn('[Supabase] Silent mutation failed in tournament_mystery_draws:', err_tournament_mystery_draws_fk0av.message);
       }
     } catch (err) {
       console.warn('[TournamentBridge] Bounty award persist error:', err.message);

@@ -118,13 +118,17 @@ export default async function handler(req, res) {
               overallAccuracy: calculateOverallAccuracy(existingProfile, questionsAnswered, questionsCorrect),
           });
 
-          await supabase
-              .from('jarvis_user_training_profile')
-              .upsert({
+          const { error: err_jarvis_user_training_profile_6kgce } = await supabase
+
+            .from('jarvis_user_training_profile')
+
+            .upsert({
                   user_id: userId,
                   ...updatedProfile,
                   updated_at: new Date().toISOString(),
               }, { onConflict: 'user_id' });
+
+          if (err_jarvis_user_training_profile_6kgce) console.warn('[Supabase] Silent mutation failed in jarvis_user_training_profile:', err_jarvis_user_training_profile_6kgce.message);
 
 
           return res.status(200).json({

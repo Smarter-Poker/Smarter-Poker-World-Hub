@@ -171,7 +171,9 @@ export default async function handler(req, res) {
                             updateObj.can_review = false;
                         }
                         
-                        await getSupabase().from('profiles').update(updateObj).eq('id', existing.user_id);
+                        const { error: err_profiles_jetkg } = await getSupabase().from('profiles').update(updateObj).eq('id', existing.user_id);
+                        
+                        if (err_profiles_jetkg) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_jetkg.message);
                         
                         // Push Notification Dispatch via internal API
                         const pushMessage = updateObj.can_review === false 

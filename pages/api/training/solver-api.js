@@ -189,7 +189,8 @@ export default async function handler(req, res) {
 
           // Try to insert into solver_queue (will succeed if table exists)
           try {
-              await supabase.from('solver_queue').insert([queueEntry]);
+              const { error: err_solver_queue_diso4 } = await supabase.from('solver_queue').insert([queueEntry]);
+              if (err_solver_queue_diso4) console.warn('[Supabase] Silent mutation failed in solver_queue:', err_solver_queue_diso4.message);
           } catch {
               // Table may not exist yet — that's OK for foundation phase
           }

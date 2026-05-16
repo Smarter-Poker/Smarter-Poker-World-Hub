@@ -44,11 +44,12 @@ export default async function handler(req, res) {
         if (rpcErr) {
             // Inline fallback: update profiles table directly
             console.warn('[update-presence] RPC error, using inline fallback:', rpcErr.message);
-            await supabase.from('profiles').update({
+            const { error: err_profiles_fsj04 } = await supabase.from('profiles').update({
                 last_seen_at: new Date().toISOString(),
                 is_online: isOnline,
                 updated_at: new Date().toISOString(),
             }).eq('id', user.id);
+            if (err_profiles_fsj04) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_fsj04.message);
         }
 
         return res.status(200).json({ success: true });

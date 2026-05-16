@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     if (!stats || !tableId) return res.status(400).json({ error: 'stats and tableId required' });
 
     try {
-      await getSupabase().from('poker_session_stats').upsert({
+      const { error: err_poker_session_stats_dip45 } = await getSupabase().from('poker_session_stats').upsert({
         user_id: user.id,
         table_id: tableId,
         club_id: clubId || null,
@@ -50,6 +50,7 @@ export default async function handler(req, res) {
         session_start: stats.sessionStart ? new Date(stats.sessionStart).toISOString() : new Date().toISOString(),
         session_end: new Date().toISOString(),
       }, { onConflict: 'user_id,table_id' });
+      if (err_poker_session_stats_dip45) console.warn('[Supabase] Silent mutation failed in poker_session_stats:', err_poker_session_stats_dip45.message);
 
       return res.status(200).json({ ok: true });
     } catch (err) {

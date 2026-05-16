@@ -79,7 +79,8 @@ export default async function handler(req, res) {
 
           if (memErr) {
               // Rollback club creation
-              await getSupabase().from('clubs').delete().eq('id', club.id);
+              const { error: err_clubs_bwjq8 } = await getSupabase().from('clubs').delete().eq('id', club.id);
+              if (err_clubs_bwjq8) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_bwjq8.message);
               throw memErr;
           }
 

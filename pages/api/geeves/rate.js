@@ -77,10 +77,11 @@ export default async function handler(req, res) {
                       .eq('id', cacheId)
                       .maybeSingle();
                   if (cacheRow) {
-                      await getSupabase()
-                          .from('geeves_knowledge_cache')
-                          .update({ rating_sum: (cacheRow.rating_sum || 0) + ratingDiff })
+                      const { error: err_geeves_knowledge_cache_o80gs } = await getSupabase()
+                        .from('geeves_knowledge_cache')
+                        .update({ rating_sum: (cacheRow.rating_sum || 0) + ratingDiff })
                           .eq('id', cacheId);
+                      if (err_geeves_knowledge_cache_o80gs) console.warn('[Supabase] Silent mutation failed in geeves_knowledge_cache:', err_geeves_knowledge_cache_o80gs.message);
                   }
               }
 

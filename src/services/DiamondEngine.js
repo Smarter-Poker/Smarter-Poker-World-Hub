@@ -234,12 +234,13 @@ class DiamondEngineSupabase {
         if (!this.userId) return;
 
         try {
-            await this.supabase
-                .from('memory_game_sessions')
-                .insert({
+            const { error: err_memory_game_sessions_zsaut } = await this.supabase
+              .from('memory_game_sessions')
+              .insert({
                     user_id: this.userId,
                     ...sessionData
                 });
+            if (err_memory_game_sessions_zsaut) console.warn('[Supabase] Silent mutation failed in memory_game_sessions:', err_memory_game_sessions_zsaut.message);
         } catch (err) {
             console.warn('Session log failed:', err);
         }

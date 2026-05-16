@@ -249,9 +249,12 @@ function assert(condition, label) {
     assert(handData && handData.length > 0, 'Key hand persisted in Supabase');
 
     // Cleanup
-    await supabase.from('horse_session_stats').delete().eq('table_id', 'test-table-sweep10');
-    await supabase.from('horse_opponent_reads').delete().eq('horse_id', HORSE).eq('opponent_id', 'test-opp-sweep10');
-    await supabase.from('horse_hand_history').delete().eq('table_id', 'test-table-sweep10');
+    const { error: err_horse_session_stats_kg2e2 } = await supabase.from('horse_session_stats').delete().eq('table_id', 'test-table-sweep10');
+    if (err_horse_session_stats_kg2e2) console.warn('[Supabase] Silent mutation failed in horse_session_stats:', err_horse_session_stats_kg2e2.message);
+    const { error: err_horse_opponent_reads_87z2f } = await supabase.from('horse_opponent_reads').delete().eq('horse_id', HORSE).eq('opponent_id', 'test-opp-sweep10');
+    if (err_horse_opponent_reads_87z2f) console.warn('[Supabase] Silent mutation failed in horse_opponent_reads:', err_horse_opponent_reads_87z2f.message);
+    const { error: err_horse_hand_history_4vucx } = await supabase.from('horse_hand_history').delete().eq('table_id', 'test-table-sweep10');
+    if (err_horse_hand_history_4vucx) console.warn('[Supabase] Silent mutation failed in horse_hand_history:', err_horse_hand_history_4vucx.message);
 
     // ═══════════════════════════════════════════════════
     // TEST 9: processHandResult FULL PIPELINE

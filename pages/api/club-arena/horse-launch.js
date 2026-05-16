@@ -351,10 +351,11 @@ async function registerHorses(tournamentId, horses) {
     if (!error) registered++;
   }
   // Update player count
-  await getSupabase()
+  const { error: err_tournaments_97573 } = await getSupabase()
     .from('tournaments')
     .update({ current_players: registered })
     .eq('id', tournamentId);
+  if (err_tournaments_97573) console.warn('[Supabase] Silent mutation failed in tournaments:', err_tournaments_97573.message);
   return registered;
 }
 
@@ -561,8 +562,13 @@ export default async function handler(req, res) {
       log.push(`✅ Spins created: ${spinsCreated}, horses registered: ${spinRegistered}`);
 
       // 4.5. Pre-fund all horses to 500,000 chips so they don't bounce off atomic wallet deductions
-      await getSupabase().rpc('mass_fund_horses', { p_amount: 500000 });
-      log.push(`✅ Granted core bankroll to all horses for atomic cash game buy-ins`);
+      const { error: massFundErr } = await getSupabase().rpc('mass_fund_horses', { p_amount: 500000 });
+      if (massFundErr) {
+        log.push(`⚠️ mass_fund_horses RPC failed: ${massFundErr.message} — horses may lack chips for buy-ins`);
+        console.warn('[horse-launch] mass_fund_horses failed:', massFundErr.message);
+      } else {
+        log.push(`✅ Granted core bankroll to all horses for atomic cash game buy-ins`);
+      }
 
       // 5. Seat horses at cash tables (2 per horse, split by club)
       let cashSeats = 0;
@@ -598,11 +604,12 @@ export default async function handler(req, res) {
       log.push(`✅ Horses seated at cash tables: ${cashSeats}`);
 
       // Update horse statuses to 'seated'
-      await getSupabase()
+      const { error: err_profiles_z2iy8 } = await getSupabase()
         .from('profiles')
         .update({ horse_status: 'seated' })
         .eq('is_horse', true)
         .in('horse_status', ['active']);
+      if (err_profiles_z2iy8) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_z2iy8.message);
 
       const elapsed = Date.now() - t0;
       const summary = {
@@ -673,25 +680,28 @@ export default async function handler(req, res) {
 
       if (ids.length > 0) {
         // Leave all cash tables
-        await getSupabase()
+        const { error: err_table_seats_lud1v } = await getSupabase()
           .from('table_seats')
           .update({ left_at: new Date().toISOString() })
           .in('user_id', ids)
           .is('left_at', null);
+        if (err_table_seats_lud1v) console.warn('[Supabase] Silent mutation failed in table_seats:', err_table_seats_lud1v.message);
 
         // Unregister from tournaments
-        await getSupabase()
+        const { error: err_tournament_players_87u4a } = await getSupabase()
           .from('tournament_players')
           .update({ status: 'withdrawn' })
           .in('user_id', ids)
           .in('status', ['registered']);
+        if (err_tournament_players_87u4a) console.warn('[Supabase] Silent mutation failed in tournament_players:', err_tournament_players_87u4a.message);
 
         // Reset horse status
-        await getSupabase()
+        const { error: err_profiles_secno } = await getSupabase()
           .from('profiles')
           .update({ horse_status: 'active' })
           .eq('is_horse', true)
           .eq('horse_status', 'seated');
+        if (err_profiles_secno) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_secno.message);
       }
 
       // Recount all tables
@@ -705,7 +715,8 @@ export default async function handler(req, res) {
           .select('*', { count: 'exact', head: true })
           .eq('table_id', t.id)
           .is('left_at', null);
-        await getSupabase().from('tables').update({ current_players: count ?? 0 }).eq('id', t.id);
+        const { error: err_tables_ceuy2 } = await getSupabase().from('tables').update({ current_players: count ?? 0 }).eq('id', t.id);
+        if (err_tables_ceuy2) console.warn('[Supabase] Silent mutation failed in tables:', err_tables_ceuy2.message);
       }
 
       return res.json({ success: true, action: 'shutdown', horsesRemoved: ids.length });

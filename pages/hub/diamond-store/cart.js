@@ -99,11 +99,12 @@ export default function ShoppingCart() {
     const saveCart = async (cartData) => {
         if (user?.id) {
             try {
-                await supabase.from('user_preferences').upsert({
+                const { error: err_user_preferences_lt8v4 } = await supabase.from('user_preferences').upsert({
                     user_id: user.id,
                     preferences: { diamond_cart: cartData },
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id' });
+                if (err_user_preferences_lt8v4) console.warn('[Supabase] Silent mutation failed in user_preferences:', err_user_preferences_lt8v4.message);
             } catch (e) {
                 localStorage.setItem('diamond-store-cart', JSON.stringify(cartData));
             }

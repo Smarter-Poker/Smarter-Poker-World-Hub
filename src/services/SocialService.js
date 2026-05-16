@@ -328,7 +328,8 @@ export class SocialService {
 
             // POST-DELETE CLEANUP: Only execute if we successfully deleted the post
             try {
-                await this.supabase.from('social_reels').delete().eq('source_post_id', postId);
+                const { error: err_social_reels_fasl4 } = await this.supabase.from('social_reels').delete().eq('source_post_id', postId);
+                if (err_social_reels_fasl4) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_fasl4.message);
             } catch (e) {
                 console.warn('[SocialService] Reel cleanup after post delete failed:', e?.message || e);
             }

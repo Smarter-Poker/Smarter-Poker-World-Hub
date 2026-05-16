@@ -257,13 +257,14 @@ export default async function handler(req, res) {
 
         // 3. Audit log — non-fatal if it fails.
         try {
-          await supabase.from('live_ban_audit').insert({
+          const { error: err_live_ban_audit_c0t2i } = await supabase.from('live_ban_audit').insert({
             stream_id,
             banned_user_id: target_user_id,
             banned_by: user.id,
             livekit_kick_status: kickStatus,
             livekit_kick_error: kickError,
           });
+          if (err_live_ban_audit_c0t2i) console.warn('[Supabase] Silent mutation failed in live_ban_audit:', err_live_ban_audit_c0t2i.message);
         } catch (auditErr) {
           console.warn('[live/moderate] ban_audit insert failed:', auditErr?.message || auditErr);
         }

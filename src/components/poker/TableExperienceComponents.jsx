@@ -387,13 +387,14 @@ function setPlayerNote(playerId, note) {
 async function syncNoteToSupabase(supabase, userId, playerId, note) {
   if (!supabase || !userId) return;
   try {
-    await supabase.from('player_notes').upsert({
+    const { error: err_player_notes_qw1pl } = await supabase.from('player_notes').upsert({
       owner_id: userId,
       target_player_id: playerId,
       note_text: note.text || '',
       color_label: note.colorId || 'fish',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'owner_id,target_player_id' });
+    if (err_player_notes_qw1pl) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_qw1pl.message);
   } catch { /* non-fatal — localStorage is the fallback */ }
 }
 
@@ -679,10 +680,11 @@ export function ReportHandButton({ supabase, handId }) {
     if (reported || !supabase || !handId) return;
     setReporting(true);
     try {
-      await supabase
+      const { error: err_hand_history_ps8m4 } = await supabase
         .from('hand_history')
         .update({ reported: true, reported_at: new Date().toISOString() })
         .eq('id', handId);
+      if (err_hand_history_ps8m4) console.warn('[Supabase] Silent mutation failed in hand_history:', err_hand_history_ps8m4.message);
       setReported(true);
     } catch { /* non-fatal */ }
     setReporting(false);

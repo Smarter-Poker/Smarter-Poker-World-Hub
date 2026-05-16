@@ -138,10 +138,11 @@ export default async function handler(req, res) {
             .select('times_used')
             .eq('question_id', questionId)
             .maybeSingle();
-          await getSupabase()
+          const { error: err_training_question_cache_m6nf0 } = await getSupabase()
             .from('training_question_cache')
             .update({ times_used: (currentQ?.times_used || 0) + 1 })
             .eq('question_id', questionId);
+          if (err_training_question_cache_m6nf0) console.warn('[Supabase] Silent mutation failed in training_question_cache:', err_training_question_cache_m6nf0.message);
         }
       }
 

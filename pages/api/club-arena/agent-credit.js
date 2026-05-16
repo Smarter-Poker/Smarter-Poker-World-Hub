@@ -149,19 +149,20 @@ export default async function handler(req, res) {
               .from('club_members').select('credit_limit')
               .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
             newLimit = (fresh?.credit_limit || 0) + amount;
-            await getSupabase().from('club_members')
-              .update({ credit_limit: newLimit })
+            const { error: err_club_members_v35ny } = await getSupabase().from('club_members').update({ credit_limit: newLimit })
               .eq('club_id', clubId).eq('user_id', agentUserId);
+            if (err_club_members_v35ny) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_v35ny.message);
           }
         } else {
           newLimit = atomicResult?.new_value ?? ((agentMember.credit_limit || 0) + amount);
         }
 
         // Mirror to agents table
-        await getSupabase()
+        const { error: err_agents_2pfhe } = await getSupabase()
           .from('agents')
           .update({ credit_limit: newLimit })
           .eq('id', agentRecord.id);
+        if (err_agents_2pfhe) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_2pfhe.message);
 
         const { error: issueTxErr } = await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
@@ -253,16 +254,17 @@ export default async function handler(req, res) {
             .from('club_members').select('credit_limit')
             .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
           finalLimit = Math.max(0, (fresh?.credit_limit || 0) - amount);
-          await getSupabase().from('club_members')
-            .update({ credit_limit: finalLimit })
+          const { error: err_club_members_65bwq } = await getSupabase().from('club_members').update({ credit_limit: finalLimit })
             .eq('club_id', clubId).eq('user_id', agentUserId);
+          if (err_club_members_65bwq) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_65bwq.message);
         }
 
         // Mirror to agents table
-        await getSupabase()
+        const { error: err_agents_q3fjw } = await getSupabase()
           .from('agents')
           .update({ credit_limit: finalLimit })
           .eq('id', agentRecord.id);
+        if (err_agents_q3fjw) console.warn('[Supabase] Silent mutation failed in agents:', err_agents_q3fjw.message);
 
         await notifyUser(supabaseAdmin, {
           userId: agentUserId,

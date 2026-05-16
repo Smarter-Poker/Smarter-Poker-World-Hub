@@ -102,9 +102,9 @@ export default async function handler(req, res) {
                     .eq('id', original_post_id)
                     .maybeSingle();
                 if (p) {
-                    await supabase.from('social_posts')
-                        .update({ share_count: (p.share_count || 0) + 1 })
+                    const { error: err_social_posts_vcutw } = await supabase.from('social_posts').update({ share_count: (p.share_count || 0) + 1 })
                         .eq('id', original_post_id);
+                    if (err_social_posts_vcutw) console.warn('[Supabase] Silent mutation failed in social_posts:', err_social_posts_vcutw.message);
                 }
             }
         } catch (_) { /* non-critical */ }
@@ -112,20 +112,22 @@ export default async function handler(req, res) {
         // 6. Notify the original author (if different from sharer)
         if (original.author_id !== user.id) {
             try {
-                await supabase.from('notifications').insert({
+                const { error: err_notifications_kdynx } = await supabase.from('notifications').insert({
                     user_id: original.author_id,
                     type: 'share',
                     message: 'shared your post',
                     data: { actor_id: user.id, reference_id: original_post_id },
                 });
+                if (err_notifications_kdynx) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_kdynx.message);
             } catch (_) { /* non-critical */ }
         }
 
         // Analytics: log this share
         try {
-            await supabase.from('share_events').insert({
+            const { error: err_share_events_78c11 } = await supabase.from('share_events').insert({
                 post_id: original_post_id, user_id: user.id, destination: 'feed',
             });
+            if (err_share_events_78c11) console.warn('[Supabase] Silent mutation failed in share_events:', err_share_events_78c11.message);
         } catch (_) { /* non-critical */ }
 
         return res.json({ success: true, postId: post?.id });

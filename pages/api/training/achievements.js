@@ -176,13 +176,14 @@ export default async function handler(req, res) {
                   }
 
                   if (shouldUnlock) {
-                      await supabase
-                          .from('training_user_achievements')
-                          .upsert({
+                      const { error: err_training_user_achievements_lpsrq } = await supabase
+                        .from('training_user_achievements')
+                        .upsert({
                               user_id: userId,
                               achievement_id: def.id,
                               progress: def.threshold
                           }, { onConflict: 'user_id,achievement_id', ignoreDuplicates: true });
+                      if (err_training_user_achievements_lpsrq) console.warn('[Supabase] Silent mutation failed in training_user_achievements:', err_training_user_achievements_lpsrq.message);
 
                       // Award diamonds via logging RPC
                       // Note: Supabase RPC returns {data, error} and does NOT throw, so the
@@ -203,11 +204,12 @@ export default async function handler(req, res) {
                           if (rpcErr) {
                               // Roll back the achievement upsert so the user can retry.
                               try {
-                                  await supabase
-                                      .from('training_user_achievements')
-                                      .delete()
+                                  const { error: err_training_user_achievements_2blu4 } = await supabase
+                                    .from('training_user_achievements')
+                                    .delete()
                                       .eq('user_id', userId)
                                       .eq('achievement_id', def.id);
+                                  if (err_training_user_achievements_2blu4) console.warn('[Supabase] Silent mutation failed in training_user_achievements:', err_training_user_achievements_2blu4.message);
                               } catch (rbErr) {
                                   console.warn('[Achievements] Rollback delete failed:', rbErr?.message || rbErr);
                               }

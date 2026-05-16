@@ -165,11 +165,12 @@ class LiveStreamService {
   static async dismissOrphanedBroadcast(streamId) {
     if (!streamId) return;
     try {
-      await supabase
+      const { error: err_live_streams_3zo42 } = await supabase
         .from('live_streams')
         .update({ status: 'ended', ended_at: new Date().toISOString() })
         .eq('id', streamId)
         .eq('status', 'live');
+      if (err_live_streams_3zo42) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_3zo42.message);
     } catch (_) {
       /* non-fatal */
     }
@@ -244,7 +245,8 @@ class LiveStreamService {
         .maybeSingle();
 
       if (existing) {
-        await supabase.from('live_streams').update({ status: 'ended' }).eq('id', existing.id);
+        const { error: err_live_streams_yd7f3 } = await supabase.from('live_streams').update({ status: 'ended' }).eq('id', existing.id);
+        if (err_live_streams_yd7f3) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_yd7f3.message);
       }
     } catch (_) {}
 
@@ -300,7 +302,8 @@ class LiveStreamService {
     }
 
     // 2. Update record with LiveKit room name (= stream id)
-    await supabase.from('live_streams').update({ livekit_room: stream.id }).eq('id', stream.id);
+    const { error: err_live_streams_nf2p4 } = await supabase.from('live_streams').update({ livekit_room: stream.id }).eq('id', stream.id);
+    if (err_live_streams_nf2p4) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_nf2p4.message);
 
     // BUG-FIX-GHOST-STREAM: Steps 3–6 wrapped in try/catch so that if LiveKit
     // connection fails (e.g. invalid API key, network error), we immediately
@@ -884,12 +887,13 @@ class LiveStreamService {
       if (hbErr && (hbErr.code === 'PGRST202' || hbErr.message?.includes('not exist'))) {
         // Pre-migration fallback. Production has the RPC; this
         // branch only fires in older dev DBs.
-        await supabase
+        const { error: err_live_viewers_7smci } = await supabase
           .from('live_viewers')
           .upsert(
             { stream_id: streamId, viewer_id: userId },
             { onConflict: 'stream_id,viewer_id' }
           );
+        if (err_live_viewers_7smci) console.warn('[Supabase] Silent mutation failed in live_viewers:', err_live_viewers_7smci.message);
       }
     }
 

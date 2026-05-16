@@ -222,10 +222,11 @@ export default function TournamentsPage() {
     }
 
     async function dismissNotification(id) {
-        await supabase
-            .from('trivia_tournament_notifications')
-            .update({ read: true })
+        const { error: err_trivia_tournament_notifications_n56za } = await supabase
+          .from('trivia_tournament_notifications')
+          .update({ read: true })
             .eq('id', id);
+        if (err_trivia_tournament_notifications_n56za) console.warn('[Supabase] Silent mutation failed in trivia_tournament_notifications:', err_trivia_tournament_notifications_n56za.message);
         setNotifications(prev => prev.filter(n => n.id !== id));
     }
 
@@ -512,11 +513,11 @@ export default function TournamentsPage() {
                     }));
 
                 if (historyRecords.length > 0) {
-                    await supabase.from('trivia_user_question_history')
-                        .upsert(historyRecords, {
+                    const { error: err_trivia_user_question_history_xzckg } = await supabase.from('trivia_user_question_history').upsert(historyRecords, {
                             onConflict: 'user_id,question_id',
                             ignoreDuplicates: false
                         });
+                    if (err_trivia_user_question_history_xzckg) console.warn('[Supabase] Silent mutation failed in trivia_user_question_history:', err_trivia_user_question_history_xzckg.message);
                 }
             } catch (e) {
                 console.warn('[Tournaments] Error recording history:', e);

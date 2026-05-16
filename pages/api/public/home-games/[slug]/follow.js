@@ -285,7 +285,7 @@ async function dispatchFollowNotification(supabase, { page, follower_user_id }) 
         };
 
         // In-app notification
-        await supabase.from('notifications').insert({
+        const { error: err_notifications_vjuvs } = await supabase.from('notifications').insert({
             user_id: host_user_id,
             type: 'home_game_new_follower',
             title: titleText,
@@ -298,6 +298,7 @@ async function dispatchFollowNotification(supabase, { page, follower_user_id }) 
             is_read: false,
             read: false,
         });
+        if (err_notifications_vjuvs) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_vjuvs.message);
 
         // Push notification
         await sendPushNotification({

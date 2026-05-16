@@ -342,7 +342,8 @@ function DealerVault({ userId, completedGigs = [] }) {
             if (pathMatch) {
                 await supabase.storage.from('images').remove([pathMatch[1]]);
             }
-            await supabase.from('dealer_documents').delete().eq('id', doc.id);
+            const { error: err_dealer_documents_akm0s } = await supabase.from('dealer_documents').delete().eq('id', doc.id);
+            if (err_dealer_documents_akm0s) console.warn('[Supabase] Silent mutation failed in dealer_documents:', err_dealer_documents_akm0s.message);
             toast.success('Document deleted');
             await loadDocs();
             window.dispatchEvent(new CustomEvent('bankroll-updated'));

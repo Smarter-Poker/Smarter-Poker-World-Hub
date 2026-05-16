@@ -279,9 +279,9 @@ export default async function handler(req, res) {
               if (claimCount > 1) {
                   // Concurrent write detected — fix the array and skip diamond award
                   const deduped = [...new Set(verify.milestones_claimed)];
-                  await supabase.from('training_streaks')
-                      .update({ milestones_claimed: deduped })
+                  const { error: err_training_streaks_02xr5 } = await supabase.from('training_streaks').update({ milestones_claimed: deduped })
                       .eq('user_id', userId);
+                  if (err_training_streaks_02xr5) console.warn('[Supabase] Silent mutation failed in training_streaks:', err_training_streaks_02xr5.message);
                   return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
               }
 
@@ -303,10 +303,11 @@ export default async function handler(req, res) {
                   // "already claimed" and the user would never get their diamonds.
                   try {
                       const rolledBack = (newClaimed || []).filter(d => d !== milestoneDays);
-                      await supabase
-                          .from('training_streaks')
-                          .update({ milestones_claimed: rolledBack })
+                      const { error: err_training_streaks_scek3 } = await supabase
+                        .from('training_streaks')
+                        .update({ milestones_claimed: rolledBack })
                           .eq('user_id', userId);
+                      if (err_training_streaks_scek3) console.warn('[Supabase] Silent mutation failed in training_streaks:', err_training_streaks_scek3.message);
                   } catch (rbErr) {
                       console.warn('[Streak] Rollback of milestone claim failed:', rbErr?.message || rbErr);
                   }

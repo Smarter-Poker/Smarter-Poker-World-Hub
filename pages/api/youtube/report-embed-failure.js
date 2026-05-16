@@ -70,7 +70,8 @@ export default async function handler(req, res) {
         }
 
         // Increment the hit_count via RPC (best-effort, handles existing records)
-        await supabase.rpc('increment_yt_failure_hits', { p_video_id: String(videoId) }).catch(() => {});
+        const { error: rpcErr } = await supabase.rpc('increment_yt_failure_hits', { p_video_id: String(videoId) });
+        if (rpcErr) console.warn('[youtube] rpc error:', rpcErr.message);
 
         return res.status(200).json({ ok: true });
     } catch (err) {

@@ -82,13 +82,14 @@ export default async function handler(req, res) {
     // Save current snapshot for next comparison (debounced to 30m interval)
     if (shouldSaveSnapshot) {
       try {
-        await supabase
+        const { error: err_scraper_watchdog_state_c1ues } = await supabase
           .from('scraper_watchdog_state')
           .upsert({
             key: 'game_trends_snapshot',
             value: JSON.stringify({ counts: currentCounts, saved_at: new Date().toISOString() }),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'key' });
+        if (err_scraper_watchdog_state_c1ues) console.warn('[Supabase] Silent mutation failed in scraper_watchdog_state:', err_scraper_watchdog_state_c1ues.message);
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 

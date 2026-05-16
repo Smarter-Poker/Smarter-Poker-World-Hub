@@ -109,7 +109,8 @@ export default async function handler(req, res) {
 
     const CHUNK = 50;
     for (let i = 0; i < notifications.length; i += CHUNK) {
-      await supabaseAdmin.from('notifications').insert(notifications.slice(i, i + CHUNK));
+      const { error: err_notifications_ca7e3 } = await supabaseAdmin.from('notifications').insert(notifications.slice(i, i + CHUNK));
+      if (err_notifications_ca7e3) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_ca7e3.message);
     }
 
     return res.status(200).json({ notified: eligible.length });

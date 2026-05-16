@@ -139,7 +139,7 @@ async function logAdminAction(supabase, opts) {
         if (error) {
             // Fall back to direct insert (service-role bypasses RLS) so logging
             // never silently drops even if the RPC is ever unavailable.
-            await supabase.from('admin_audit_log').insert({
+            const { error: err_admin_audit_log_l4r0i } = await supabase.from('admin_audit_log').insert({
                 admin_user_id: opts.admin_user_id || null,
                 action: opts.action,
                 target_type: opts.target_type || null,
@@ -152,6 +152,7 @@ async function logAdminAction(supabase, opts) {
                 request_id: rid,
                 created_at: new Date().toISOString(),
             });
+            if (err_admin_audit_log_l4r0i) console.warn('[Supabase] Silent mutation failed in admin_audit_log:', err_admin_audit_log_l4r0i.message);
         }
     } catch (err) {
         console.warn('[AUDIT] Failed to log admin action:', err.message);

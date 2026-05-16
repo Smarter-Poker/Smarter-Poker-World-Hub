@@ -239,15 +239,18 @@ export default async function handler(req, res) {
       const rate = parseFloat(commissionRate) || 0.90;
 
       // Fully integrate club into union (same logic as manage-union add_club)
-      await supabaseAdmin
+      const { error: err_union_clubs_dam40 } = await supabaseAdmin
         .from('union_clubs')
         .upsert(
           { union_id: app.union_id, club_id: app.club_id, club_commission_rate: rate },
           { onConflict: 'union_id,club_id' }
         );
+      if (err_union_clubs_dam40) console.warn('[Supabase] Silent mutation failed in union_clubs:', err_union_clubs_dam40.message);
 
-      await supabaseAdmin
+      const { error: err_clubs_akfss } = await supabaseAdmin
+
         .from('clubs')
+
         .update({
           union_id: app.union_id,
           club_commission_rate: rate,
@@ -255,11 +258,14 @@ export default async function handler(req, res) {
         })
         .eq('id', app.club_id);
 
+      if (err_clubs_akfss) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_akfss.message);
+
       // Mark application approved
-      await supabaseAdmin
+      const { error: err_union_applications_0zcko } = await supabaseAdmin
         .from('union_applications')
         .update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: reason || null })
         .eq('id', applicationId);
+      if (err_union_applications_0zcko) console.warn('[Supabase] Silent mutation failed in union_applications:', err_union_applications_0zcko.message);
 
       return res.status(200).json({
         success: true,
@@ -286,10 +292,14 @@ export default async function handler(req, res) {
         return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
-      await supabaseAdmin
+      const { error: err_union_applications_wozws } = await supabaseAdmin
+
         .from('union_applications')
+
         .update({ status: 'rejected', reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: reason || null })
         .eq('id', applicationId);
+
+      if (err_union_applications_wozws) console.warn('[Supabase] Silent mutation failed in union_applications:', err_union_applications_wozws.message);
 
       return res.status(200).json({ success: true, message: `${app.club_name} application rejected` });
     }

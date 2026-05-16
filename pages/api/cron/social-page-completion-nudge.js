@@ -117,10 +117,11 @@ export default async function handler(req, res) {
 
                 // Stamp nudge_sent_at in social_pages.metadata so we don't re-spam
                 const updatedMeta = { ...(page.metadata || {}), nudge_sent_at: new Date().toISOString() };
-                await supabase
-                    .from('social_pages')
-                    .update({ metadata: updatedMeta })
+                const { error: err_social_pages_3jin1 } = await supabase
+                  .from('social_pages')
+                  .update({ metadata: updatedMeta })
                     .eq('id', page.id);
+                if (err_social_pages_3jin1) console.warn('[Supabase] Silent mutation failed in social_pages:', err_social_pages_3jin1.message);
 
                 nudged++;
             } catch (innerErr) {

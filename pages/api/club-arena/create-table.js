@@ -259,7 +259,8 @@ export default async function handler(req, res) {
                   if (!upd?.length) {
                       const { data: fresh } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
                       if (fresh) {
-                          await getSupabase().from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
+                          const { error: err_clubs_sihp9 } = await getSupabase().from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
+                          if (err_clubs_sihp9) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_sihp9.message);
                       }
                   }
               }

@@ -271,20 +271,22 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
         setIsSaving(true);
         try {
             if (player?.id) {
-                await supabase
-                    .from('player_notes')
-                    .update({
+                const { error: err_player_notes_9dlmt } = await supabase
+                  .from('player_notes')
+                  .update({
                         ...formData,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', player.id);
+                if (err_player_notes_9dlmt) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_9dlmt.message);
             } else {
-                await supabase
-                    .from('player_notes')
-                    .insert({
+                const { error: err_player_notes_e0stk } = await supabase
+                  .from('player_notes')
+                  .insert({
                         user_id: userId,
                         ...formData
                     });
+                if (err_player_notes_e0stk) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_e0stk.message);
             }
             onSave();
         } catch (err) {
@@ -298,7 +300,8 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
         if (!confirm('Delete this player?')) return;
 
         try {
-            await supabase.from('player_notes').delete().eq('id', player.id);
+            const { error: err_player_notes_a2dit } = await supabase.from('player_notes').delete().eq('id', player.id);
+            if (err_player_notes_a2dit) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_a2dit.message);
             onDelete();
         } catch (err) {
             console.warn('[PlayerModal] Delete error:', err);

@@ -109,10 +109,14 @@ export async function updateHorseBio(profileId, newBio) {
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        await supabase
-            .from('profiles')
-            .update({ bio: newBio })
+        const { error: err_profiles_g4ghf } = await supabase
+
+          .from('profiles')
+
+          .update({ bio: newBio })
             .eq('id', profileId);
+
+        if (err_profiles_g4ghf) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_g4ghf.message);
 
         console.debug(`   📝 Updated bio for ${profileId.slice(0, 8)}...`);
         return true;
@@ -211,12 +215,13 @@ async function executeFollow(horseProfileId, targetUserId) {
         if (existing) return false;
 
         // Create follow
-        await supabase
-            .from('social_follows')
-            .insert({
+        const { error: err_social_follows_85mjq } = await supabase
+          .from('social_follows')
+          .insert({
                 follower_id: horseProfileId,
                 following_id: targetUserId
             });
+        if (err_social_follows_85mjq) console.warn('[Supabase] Silent mutation failed in social_follows:', err_social_follows_85mjq.message);
 
         console.debug(`   👤 ${horseProfileId.slice(0, 8)} followed ${targetUserId.slice(0, 8)}`);
         return true;

@@ -194,12 +194,13 @@ export default async function handler(req, res) {
               // never receive their diamonds. Production bug observed twice
               // in 7 days (2026-04-22 17:57, 2026-04-29 05:20).
               try {
-                  await supabase
-                      .from('diamond_reward_claims')
-                      .delete()
+                  const { error: err_diamond_reward_claims_hplig } = await supabase
+                    .from('diamond_reward_claims')
+                    .delete()
                       .eq('user_id', userId)
                       .eq('reward_type', 'daily_login')
                       .eq('claim_date', today);
+                  if (err_diamond_reward_claims_hplig) console.warn('[Supabase] Silent mutation failed in diamond_reward_claims:', err_diamond_reward_claims_hplig.message);
               } catch (rollbackErr) {
                   console.warn('[DailyLogin] Rollback delete failed:', rollbackErr?.message || rollbackErr);
               }

@@ -91,7 +91,8 @@ export default function TokeTrackerLanding() {
             const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;
-            await supabase.from('profiles').update({ settings }).eq('id', userId);
+            const { error: err_profiles_i27c1 } = await supabase.from('profiles').update({ settings }).eq('id', userId);
+            if (err_profiles_i27c1) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_i27c1.message);
         } catch (err) {
             console.warn('[TokeTracker] Failed to save preference:', err);
         }

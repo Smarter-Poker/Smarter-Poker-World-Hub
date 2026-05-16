@@ -189,10 +189,11 @@ export default async function handler(req, res) {
 
       if (rpcErr || !rpcResult?.success) {
         // Revert claim note
-        await getSupabase()
+        const { error: err_chip_transactions_kqjxd } = await getSupabase()
           .from('chip_transactions')
           .update({ notes: txn.notes || '' })
           .eq('id', transactionId);
+        if (err_chip_transactions_kqjxd) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_kqjxd.message);
 
         return res.status(200).json({
           success: true,

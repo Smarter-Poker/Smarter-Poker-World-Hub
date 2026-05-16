@@ -81,7 +81,8 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
 
     async function deleteGoal(goalId) {
         try {
-            await supabase.from('bankroll_goals').delete().eq('id', goalId);
+            const { error: err_bankroll_goals_pccjt } = await supabase.from('bankroll_goals').delete().eq('id', goalId);
+            if (err_bankroll_goals_pccjt) console.warn('[Supabase] Silent mutation failed in bankroll_goals:', err_bankroll_goals_pccjt.message);
             setGoals(goals.filter(g => g.id !== goalId));
         } catch (err) {
             console.warn('[BankrollGoals] Delete error:', err);

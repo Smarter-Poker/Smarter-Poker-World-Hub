@@ -140,12 +140,13 @@ export default async function handler(req, res) {
               // "already claimed today" forever and the user never receives
               // their diamonds. Same bug shape as daily-login (commit 8d9ce5c9f1).
               try {
-                  await supabase
-                      .from('diamond_reward_claims')
-                      .delete()
+                  const { error: err_diamond_reward_claims_cejl8 } = await supabase
+                    .from('diamond_reward_claims')
+                    .delete()
                       .eq('user_id', userId)
                       .eq('reward_type', 'daily_trivia')
                       .eq('claim_date', today);
+                  if (err_diamond_reward_claims_cejl8) console.warn('[Supabase] Silent mutation failed in diamond_reward_claims:', err_diamond_reward_claims_cejl8.message);
               } catch (rollbackErr) {
                   console.warn('[DailyTrivia] Rollback delete failed:', rollbackErr?.message || rollbackErr);
               }

@@ -99,9 +99,9 @@ async function handler(req, res) {
                 });
 
                 if (pushResult.success) {
-                    await supabase.from('user_pwa_alerts')
-                        .update({ last_triggered_at: new Date().toISOString(), is_active: false })
+                    const { error: err_user_pwa_alerts_jkpw8 } = await supabase.from('user_pwa_alerts').update({ last_triggered_at: new Date().toISOString(), is_active: false })
                         .in('id', chunkAlertIds);
+                    if (err_user_pwa_alerts_jkpw8) console.warn('[Supabase] Silent mutation failed in user_pwa_alerts:', err_user_pwa_alerts_jkpw8.message);
                     processedCount += chunkPlayerIds.length;
                 } else {
                     errorsCount += chunkPlayerIds.length;

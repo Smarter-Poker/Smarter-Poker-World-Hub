@@ -69,10 +69,11 @@ export default function SavedReceipts({ userId }) {
             if (!entry) return;
 
             const updated = (entry.media_urls || []).filter((_, i) => i !== receipt.imageIndex);
-            await supabase
-                .from('bankroll_ledger')
-                .update({ media_urls: updated.length > 0 ? updated : null })
+            const { error: err_bankroll_ledger_2c2fq } = await supabase
+              .from('bankroll_ledger')
+              .update({ media_urls: updated.length > 0 ? updated : null })
                 .eq('id', receipt.entryId);
+            if (err_bankroll_ledger_2c2fq) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_2c2fq.message);
 
             loadReceipts();
         } catch (err) {

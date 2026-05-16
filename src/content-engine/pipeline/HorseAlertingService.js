@@ -322,15 +322,16 @@ class ClipUsageTracker {
      * Record failed usage attempt
      */
     async recordFailure(clipId, authorId, source, errorMessage) {
-        await this.supabase
-            .from('clip_usage_log')
-            .insert({
+        const { error: err_clip_usage_log_5cz4o } = await this.supabase
+          .from('clip_usage_log')
+          .insert({
                 clip_id: clipId,
                 author_id: authorId,
                 source,
                 success: false,
                 error_message: errorMessage
             });
+        if (err_clip_usage_log_5cz4o) console.warn('[Supabase] Silent mutation failed in clip_usage_log:', err_clip_usage_log_5cz4o.message);
     }
 
     /**

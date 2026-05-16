@@ -81,11 +81,12 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (legacyMatch) {
-            await supabase
-                .from('live_streams')
-                .update({ feed_post_id: legacyMatch.id })
+            const { error: err_live_streams_kbrq0 } = await supabase
+              .from('live_streams')
+              .update({ feed_post_id: legacyMatch.id })
                 .eq('id', stream_id)
                 .is('feed_post_id', null);
+            if (err_live_streams_kbrq0) console.warn('[Supabase] Silent mutation failed in live_streams:', err_live_streams_kbrq0.message);
             return res.json({ success: true, postId: legacyMatch.id, duplicate: true });
         }
 

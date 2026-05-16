@@ -465,12 +465,13 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     // Record the IP cluster action — clientIp was parsed once at top of handler
-    await supabase.from('anti_farming_ips').insert({
+    const { error: err_anti_farming_ips_gr9d2 } = await supabase.from('anti_farming_ips').insert({
       user_id: user.id,
       ip_address: clientIp,
       action_type: 'live_gift_sent',
       amount: parsedAmount,
     });
+    if (err_anti_farming_ips_gr9d2) console.warn('[Supabase] Silent mutation failed in anti_farming_ips:', err_anti_farming_ips_gr9d2.message);
 
     // Broadcast gift event to all viewers via Supabase Realtime
     // FIX: wait for SUBSCRIBED status before sending — otherwise send() silently drops

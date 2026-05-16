@@ -164,11 +164,12 @@ export default async function handler(req, res) {
 
         // ── DELETE: remove vouch (idempotent) ────────────────────────────────
         if (method === 'DELETE') {
-            await supabase
-                .from('home_game_vouches')
-                .delete()
+            const { error: err_home_game_vouches_c800y } = await supabase
+              .from('home_game_vouches')
+              .delete()
                 .eq('group_id', page.linked_entity_id)
                 .eq('user_id', user.id);
+            if (err_home_game_vouches_c800y) console.warn('[Supabase] Silent mutation failed in home_game_vouches:', err_home_game_vouches_c800y.message);
 
             const { data: group } = await supabase
                 .from('commander_home_groups')

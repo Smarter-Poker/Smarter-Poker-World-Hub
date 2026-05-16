@@ -124,11 +124,12 @@ export default async function handler(req, res) {
                       });
                   // If RPC doesn't exist, fall back to manual update
                   if (error) {
-                      await getSupabase()
-                          .from('table_templates')
-                          .update({ use_count: getSupabase().raw('use_count + 1') })
+                      const { error: err_table_templates_nqovg } = await getSupabase()
+                        .from('table_templates')
+                        .update({ use_count: getSupabase().raw('use_count + 1') })
                           .eq('id', templateId)
                           .eq('club_id', clubId);
+                      if (err_table_templates_nqovg) console.warn('[Supabase] Silent mutation failed in table_templates:', err_table_templates_nqovg.message);
                   }
                   return res.status(200).json({ success: true });
               }

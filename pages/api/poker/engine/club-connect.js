@@ -99,10 +99,11 @@ try {
                 const elapsed = (Date.now() - new Date(existingSession.seated_at).getTime()) / 60000;
                 if (elapsed >= OBSERVER_LIMIT_MINUTES) {
                   // Time's up — close session and boot
-                  await getSupabase()
+                  const { error: err_table_sessions_hpesd } = await getSupabase()
                     .from('table_sessions')
                     .update({ is_active: false, left_at: new Date().toISOString(), kick_reason: 'observer_time_limit' })
                     .eq('id', existingSession.id);
+                  if (err_table_sessions_hpesd) console.warn('[Supabase] Silent mutation failed in table_sessions:', err_table_sessions_hpesd.message);
 
                   return res.status(403).json({
                     success: false,

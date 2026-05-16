@@ -369,17 +369,19 @@ export default async function handler(req, res) {
       const refundResults = await Promise.allSettled(
         toRefund.map(async (reg) => {
           if ((reg.buy_in_amount || 0) > 0) {
-            await supabaseAdmin.rpc('unlock_chips_from_table', {
+            const { error: unlockErr } = await supabaseAdmin.rpc('unlock_chips_from_table', {
               p_user_id: reg.user_id,
               p_club_id: tourn.club_id,
               p_table_id: tournamentId,
               p_amount: reg.buy_in_amount,
             });
+            if (unlockErr) console.warn('[union-games] unlock_chips_from_table failed for user', reg.user_id, ':', unlockErr.message);
           }
-          await supabaseAdmin
+          const { error: err_tournament_registrations_a4p6t } = await supabaseAdmin
             .from('tournament_registrations')
             .update({ status: 'refunded' })
             .eq('id', reg.id);
+          if (err_tournament_registrations_a4p6t) console.warn('[Supabase] Silent mutation failed in tournament_registrations:', err_tournament_registrations_a4p6t.message);
         })
       );
 
