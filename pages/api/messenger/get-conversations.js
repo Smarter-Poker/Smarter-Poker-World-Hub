@@ -93,14 +93,30 @@ export default async function handler(req, res) {
             // The RPC doesn't return last_message_preview — fetch it here for all conversations.
             const rpcConvIds = rpcData.map(c => c.conversation_id || c.id).filter(Boolean);
             let convMetaMap = {}; // id → { is_request, request_sender_id, last_message_preview }
+            let latestClubMetaMap = {}; // id → media_metadata
             if (rpcConvIds.length > 0) {
                 try {
-                    const { data: metaRows } = await getSupabase()
-                        .from('social_conversations')
-                        .select('id, is_request, request_sender_id, last_message_preview')
-                        .in('id', rpcConvIds);
-                    if (metaRows) {
-                        metaRows.forEach(r => { convMetaMap[r.id] = r; });
+                    const [metaRowsRes, messagesRes] = await Promise.all([
+                        getSupabase()
+                            .from('social_conversations')
+                            .select('id, is_request, request_sender_id, last_message_preview')
+                            .in('id', rpcConvIds),
+                        getSupabase()
+                            .from('social_messages')
+                            .select('conversation_id, media_metadata')
+                            .in('conversation_id', rpcConvIds)
+                            .neq('sender_id', userId)
+                            .order('created_at', { ascending: false })
+                    ]);
+                    if (metaRowsRes.data) {
+                        metaRowsRes.data.forEach(r => { convMetaMap[r.id] = r; });
+                    }
+                    if (messagesRes.data) {
+                        messagesRes.data.forEach(msg => {
+                            if (!latestClubMetaMap[msg.conversation_id] && msg.media_metadata && msg.media_metadata.is_club_identity) {
+                                latestClubMetaMap[msg.conversation_id] = msg.media_metadata;
+                            }
+                        });
                     }
                 } catch (reqErr) {
                     // Non-fatal: if this fails, all conversations show (no filtering, no preview)
@@ -121,20 +137,32 @@ export default async function handler(req, res) {
                 .map((c) => {
                 const convId = c.conversation_id || c.id;
                 const meta = convMetaMap[convId];
+                const clubMeta = latestClubMetaMap[convId];
                 const otherUserId = c.other_user_id || null;
                 // RPC returns COALESCE(display_name, username, full_name) as
                 // other_user_username — this is the best human-readable name.
                 // Map it to display_name + full_name so the client can prefer
                 // display names over raw usernames (critical for Google OAuth
                 // users who update their profile name after sign-up).
-                const displayName = c.other_user_username || null;
+                let displayName = c.other_user_username || null;
+                let avatarUrl = c.other_user_avatar || null;
+                let isClubIdentity = false;
+
+                if (clubMeta && clubMeta.is_club_identity) {
+                    displayName = clubMeta.club_name || displayName;
+                    avatarUrl = clubMeta.club_avatar || avatarUrl;
+                    isClubIdentity = true;
+                }
+
                 const otherUser = otherUserId
                     ? {
                           id: otherUserId,
                           username: displayName,
                           display_name: displayName,
                           full_name: displayName,
-                          avatar_url: c.other_user_avatar || null,
+                          avatar_url: avatarUrl,
+                          is_club_identity: isClubIdentity,
+                          club_id: clubMeta?.club_id || null
                       }
                     : null;
                 return {
