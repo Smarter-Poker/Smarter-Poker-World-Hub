@@ -2577,6 +2577,15 @@ function MessengerPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
 
+    // Reload conversations and clear active chat when switching identity contexts (Personal <-> Club)
+    useEffect(() => {
+        if (!user?.id) return;
+        setActiveConversation(null);
+        setMessages([]);
+        setConversations([]);
+        loadConversationsRef.current?.(user.id);
+    }, [isClubMode, clubPage?.id, user?.id]);
+
     // Phase 3: Connection status monitor (navigator.onLine + Supabase health)
     // On reconnect, reload conversations and the active conversation to catch missed messages.
     const goOnlineUserRef = useRef(null);
@@ -5974,7 +5983,7 @@ function MessengerPage() {
                                     border: `2px solid ${!isClubMode ? C.blue : 'transparent'}`,
                                     transition: 'border-color 0.2s'
                                 }}>
-                                    <Avatar src={user?.user_metadata?.avatar_url} name={user?.user_metadata?.full_name || 'Personal'} size={52} showOnline={false} />
+                                    <Avatar src={user?.avatar_url || user?.user_metadata?.avatar_url} name={user?.full_name || user?.user_metadata?.full_name || user?.username || 'Personal'} size={52} showOnline={false} />
                                 </div>
                                 <span style={{ fontSize: 12, fontWeight: !isClubMode ? 700 : 500, color: !isClubMode ? C.blue : C.textSec }}>Personal</span>
                             </div>
@@ -5983,11 +5992,26 @@ function MessengerPage() {
                                 <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
                                     <div style={{ 
                                         padding: 3, 
-                                        borderRadius: '50%', 
+                                        borderRadius: 8, 
                                         border: `2px solid ${isClubMode && clubPage?.id === page.id ? C.blue : 'transparent'}`,
                                         transition: 'border-color 0.2s'
                                     }}>
-                                        <Avatar src={page.avatar_url} name={page.name} size={52} showOnline={false} />
+                                        {page.avatar_url ? (
+                                            <img 
+                                                src={page.avatar_url} 
+                                                alt={page.name}
+                                                style={{ width: 52, height: 52, borderRadius: 6, objectFit: 'cover' }}
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div style={{
+                                                width: 52, height: 52, borderRadius: 6, background: '#1877F2',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: 'white', fontWeight: 600, fontSize: 24
+                                            }}>
+                                                {page.name?.[0]?.toUpperCase() || 'C'}
+                                            </div>
+                                        )}
                                     </div>
                                     <span style={{ 
                                         fontSize: 12, 

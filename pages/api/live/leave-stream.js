@@ -23,10 +23,11 @@ export default async function handler(req, res) {
     if (!stream_id) return res.status(400).json({ error: 'stream_id required' });
 
     try {
-        await supabase.from('live_viewers')
+        const { error: delErr } = await supabase.from('live_viewers')
             .delete()
             .eq('stream_id', stream_id)
             .eq('viewer_id', user.id);
+        if (delErr) throw new Error(delErr.message);
             
         return res.json({ success: true });
     } catch (err) {

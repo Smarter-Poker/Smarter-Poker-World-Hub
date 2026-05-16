@@ -222,13 +222,12 @@ function NotificationsPage() {
 
     // ── Clear badge count on mount ──
     useEffect(() => {
-        getAccessToken().then(token => {
-            fetch('/api/notifications/mark-seen', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({})
-            }).catch(() => {});
-        });
+        const token = getAccessToken();
+        fetch('/api/notifications/mark-seen', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({})
+        }).catch(() => {});
     }, []);
 
     useTrainingBus('notifications');
@@ -338,34 +337,32 @@ function NotificationsPage() {
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
         if (!isPoker && user?.id) {
             // Route through server API to invalidate feed + unread-count caches
-            getAccessToken().then(token =>
-                fetch('/api/notifications/mark-read', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                    body: JSON.stringify({ notificationId: id }),
-                }).then(res => {
-                    if (!res.ok) throw new Error('API failed');
-                }).catch(e => {
-                    console.warn('[mark-read] single failed:', e);
-                    fetchNotifications();
-                    broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-                })
-            );
+            const token = getAccessToken();
+            fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ notificationId: id }),
+            }).then(res => {
+                if (!res.ok) throw new Error('API failed');
+            }).catch(e => {
+                console.warn('[mark-read] single failed:', e);
+                fetchNotifications();
+                broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+            });
         } else if (isPoker && user?.id) {
             const realId = id.replace('poker-', '');
-            getAccessToken().then(token => 
-                fetch('/api/poker/notifications', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                    body: JSON.stringify({ notification_id: realId })
-                }).then(res => {
-                    if (!res.ok) throw new Error('API failed');
-                }).catch(e => {
-                    console.warn('[mark-read] single failed:', e);
-                    fetchNotifications();
-                    broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-                })
-            );
+            const token = getAccessToken();
+            fetch('/api/poker/notifications', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ notification_id: realId })
+            }).then(res => {
+                if (!res.ok) throw new Error('API failed');
+            }).catch(e => {
+                console.warn('[mark-read] single failed:', e);
+                fetchNotifications();
+                broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+            });
         }
     };
 

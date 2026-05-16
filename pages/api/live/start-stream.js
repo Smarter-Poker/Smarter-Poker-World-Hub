@@ -102,10 +102,11 @@ export default async function handler(req, res) {
     // Clients with a Realtime subscription on live_streams.feed_post_id see
     // the post appear the moment this update lands — not 60s later.
     if (feedPost?.id) {
-      await supabase
+      const { error: fkErr } = await supabase
         .from('live_streams')
         .update({ feed_post_id: feedPost.id })
         .eq('id', stream.id);
+      if (fkErr) console.warn('[start-stream] update feed_post_id error:', fkErr.message);
     }
 
     return res.json({

@@ -96,7 +96,8 @@ export default async function handler(req, res) {
         if (!comment || comment.stream_id !== stream_id) {
           return res.status(404).json({ error: 'Comment not found in this stream' });
         }
-        await supabase.from('live_comments').delete().eq('id', comment_id);
+        const { error: delErr } = await supabase.from('live_comments').delete().eq('id', comment_id);
+        if (delErr) throw new Error(delErr.message);
         return res.json({ success: true, action: 'delete_comment' });
       }
 
@@ -112,7 +113,7 @@ export default async function handler(req, res) {
         if (!comment || comment.stream_id !== stream_id) {
           return res.status(404).json({ error: 'Comment not found in this stream' });
         }
-        await supabase.from('live_pins').upsert(
+        const { error: pinErr } = await supabase.from('live_pins').upsert(
           {
             stream_id,
             comment_id,
@@ -120,11 +121,13 @@ export default async function handler(req, res) {
           },
           { onConflict: 'stream_id' }
         );
+        if (pinErr) throw new Error(pinErr.message);
         return res.json({ success: true, action: 'pin_comment' });
       }
 
       case 'unpin_comment': {
-        await supabase.from('live_pins').delete().eq('stream_id', stream_id);
+        const { error: unpinErr } = await supabase.from('live_pins').delete().eq('stream_id', stream_id);
+        if (unpinErr) throw new Error(unpinErr.message);
         return res.json({ success: true, action: 'unpin_comment' });
       }
 
@@ -275,11 +278,12 @@ export default async function handler(req, res) {
 
       case 'unban_user': {
         if (!target_user_id) return res.status(400).json({ error: 'target_user_id required' });
-        await supabase
+        const { error: unbanErr } = await supabase
           .from('live_bans')
           .delete()
           .eq('stream_id', stream_id)
           .eq('banned_user_id', target_user_id);
+        if (unbanErr) throw new Error(unbanErr.message);
         return res.json({ success: true, action: 'unban_user' });
       }
 
