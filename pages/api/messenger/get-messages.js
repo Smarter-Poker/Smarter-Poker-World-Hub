@@ -93,15 +93,24 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
-          // Both paths use descending — reverse to ascending for display
-          const sorted = (messages || []).reverse();
-
-          // The DB column is `content` but the entire messenger frontend reads `message.text`.
-          // Normalize here so we don't have to touch hundreds of UI references.
-          const normalized = sorted.map(m => ({
-              ...m,
-              text: m.content ?? null, // alias content → text for frontend compatibility
-          }));
+          const normalized = sorted.map(m => {
+              let prof = m.profiles;
+              if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
+                  prof = {
+                      id: m.profiles?.id || m.sender_id,
+                      username: m.media_metadata.club_name || m.profiles?.username,
+                      avatar_url: m.media_metadata.club_avatar || m.profiles?.avatar_url,
+                      is_club_identity: true,
+                      club_id: m.media_metadata.club_id,
+                      is_vip: m.profiles?.is_vip || false
+                  };
+              }
+              return {
+                  ...m,
+                  profiles: prof,
+                  text: m.content ?? null, // alias content → text for frontend compatibility
+              };
+          });
 
           return res.json({
               success: true,

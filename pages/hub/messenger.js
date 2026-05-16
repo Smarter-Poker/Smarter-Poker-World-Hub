@@ -356,7 +356,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
             setGifError('');
             try {
                 const gifToken = getAccessToken();
-                const resp = await fetch(`/api/messenger/gif-search?q=${encodeURIComponent(query)}&limit=20`, {
+                const resp = await authedFetch(`/api/messenger/gif-search?q=${encodeURIComponent(query)}&limit=20`, {
                     headers: gifToken ? { Authorization: `Bearer ${gifToken}` } : {},
                 });
                 const data = await resp.json();
@@ -2367,6 +2367,18 @@ function MessengerPage() {
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub } = useActiveIdentity();
 
+    const getClubMetadata = () => {
+        if (isClubMode && clubPage) {
+            return {
+                is_club_identity: true,
+                club_id: clubPage.id,
+                club_name: clubPage.name,
+                club_avatar: clubPage.avatar_url
+            };
+        }
+        return null;
+    };
+
     // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
     // Prevents "Sign In" flash while async profile fetch completes
     const [user, setUser] = useState(() => {
@@ -2656,7 +2668,7 @@ function MessengerPage() {
                     // PARALLEL: Fire all 3 independent API calls at once
                     const [profileResult, convoResult, friendsResult] = await Promise.allSettled([
                         // 1. Profile
-                        fetch('/api/user/get-header-stats', {
+                        authedFetch('/api/user/get-header-stats', {
                             method: 'POST',
                             headers: { ...headers, 'Content-Type': 'application/json' },
                             body: JSON.stringify({})
@@ -2664,7 +2676,7 @@ function MessengerPage() {
                         // 2. Conversations
                         loadConversations(authUser.id),
                         // 3. Friends
-                        fetch('/api/friends?action=list', { headers })
+                        authedFetch('/api/friends?action=list', { headers })
                             .then(r => r.json()).catch(() => ({ data: { friends: [] } }))
                     ]);
 
@@ -2952,7 +2964,7 @@ function MessengerPage() {
         async function checkPendingCalls(signal) {
             try {
                 const pendingToken = getAccessToken();
-                const res = await fetch(`/api/calls/pending?userId=${user.id}`, {
+                const res = await authedFetch(`/api/calls/pending?userId=${user.id}`, {
                     headers: pendingToken ? { Authorization: `Bearer ${pendingToken}` } : {},
                     signal,
                 });
@@ -3318,7 +3330,7 @@ function MessengerPage() {
                         });
                         // Route through authenticated API (not anon supabase.rpc) to bypass RLS
                         const receiptToken = getAccessToken();
-                        fetch('/api/messenger/send-message', {
+                        authedFetch('/api/messenger/send-message', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -3327,6 +3339,7 @@ function MessengerPage() {
                             body: JSON.stringify({
                                 conversationId: currentConvo.id,
                                 content: `[CALL_RECEIPT]${receiptPayload}`,
+                                media_metadata: getClubMetadata(),
                             }),
                         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
@@ -3335,7 +3348,7 @@ function MessengerPage() {
                     // Declined = callee pressed Decline (they already know). Missed = timeout (they need to know).
                     if (receiptStatus === 'missed' && currentConvo?.otherUser?.id && user?.id) {
                         const token = getAccessToken();
-                        fetch('/api/messenger/insert-missed-call-notification', {
+                        authedFetch('/api/messenger/insert-missed-call-notification', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -3354,7 +3367,7 @@ function MessengerPage() {
                     if (user?.id && currentConvo?.otherUser?.id) {
                         const cancelToken = getAccessToken();
                         if (cancelToken) {
-                            fetch('/api/calls/cancel', {
+                            authedFetch('/api/calls/cancel', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
                                 body: JSON.stringify({ callerId: user.id, calleeId: currentConvo.otherUser.id }),
@@ -3462,13 +3475,13 @@ function MessengerPage() {
 
         // Cancel pending call in database
         if (incomingCall.pendingCallId) {
-            fetch('/api/calls/cancel', {
+            authedFetch('/api/calls/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callId: incomingCall.pendingCallId }),
             }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } else {
-            fetch('/api/calls/cancel', {
+            authedFetch('/api/calls/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callerId: incomingCall.callerId, calleeId: user.id }),
@@ -3519,13 +3532,13 @@ function MessengerPage() {
             console.warn('[Messenger] Decline call signaling error (non-blocking):', e?.message || e);
         }
         if (incomingCall.pendingCallId) {
-            fetch('/api/calls/cancel', {
+            authedFetch('/api/calls/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callId: incomingCall.pendingCallId }),
             }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } else {
-            fetch('/api/calls/cancel', {
+            authedFetch('/api/calls/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callerId: incomingCall.callerId, calleeId: user.id }),
@@ -3808,7 +3821,7 @@ function MessengerPage() {
     loadMessagesRef.current = loadMessages;
 
     // Send lock — prevents double-send from rapid Enter spam, thumbs-up taps, or retry button mashing.
-    // Without this, two concurrent fetch('/api/messenger/send-message') calls create duplicate DB rows.
+    // Without this, two concurrent authedFetch('/api/messenger/send-message') calls create duplicate DB rows.
     const sendLockRef = useRef(false);
 
     // Load older messages (pagination — triggered when scrolling to top)
@@ -4101,7 +4114,7 @@ function MessengerPage() {
             created_at: new Date().toISOString(),
             sender_id: user.id,
             profiles: isClubMode && clubPage
-                ? { id: user.id, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true }
+                ? { id: user.id, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
                 : { id: user.id, username: user.username, avatar_url: user.avatar_url },
             status: 'sending',
         };
@@ -4133,6 +4146,7 @@ function MessengerPage() {
                 body: JSON.stringify({
                     conversationId: sendConversationId,
                     content: finalContent,
+                    media_metadata: getClubMetadata(),
                 }),
             });
             const sendResult = await sendResp.json();
@@ -4263,7 +4277,7 @@ function MessengerPage() {
                 // Route through authenticated API — anon supabase.rpc may silently fail if
                 // fn_delete_message lacks EXECUTE grant or SECURITY DEFINER.
                 const deleteToken = getAccessToken();
-                fetch('/api/messenger/delete-message', {
+                authedFetch('/api/messenger/delete-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -4449,6 +4463,7 @@ function MessengerPage() {
                 body: JSON.stringify({
                     conversationId: targetConversation.id,
                     content,
+                    media_metadata: getClubMetadata(),
                 }),
             });
             if (!resp.ok) {
@@ -4583,6 +4598,7 @@ function MessengerPage() {
                 body: JSON.stringify({
                     conversationId: uploadConversationId, // use captured id — user may have switched conversations
                     content: content,
+                    media_metadata: getClubMetadata(),
                 }),
             });
             const mediaResult = await mediaResp.json();
@@ -4683,6 +4699,7 @@ function MessengerPage() {
                 body: JSON.stringify({
                     conversationId: voiceConversationId,
                     content: content,
+                    media_metadata: getClubMetadata(),
                 }),
             });
             const result = await resp.json();
@@ -4918,13 +4935,13 @@ function MessengerPage() {
                 const otherUserId = activeConversationRef.current?.otherUser?.id;
                 if (token && user?.id && otherUserId && otherUserId !== user.id) {
                     try {
-                        fetch('/api/calls/cancel', {
+                        authedFetch('/api/calls/cancel', {
                             method: 'POST',
                             keepalive: true,
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                             body: JSON.stringify({ callerId: user.id, calleeId: otherUserId })
                         }).catch(() => {});
-                        fetch('/api/calls/cancel', {
+                        authedFetch('/api/calls/cancel', {
                             method: 'POST',
                             keepalive: true,
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -5259,6 +5276,7 @@ function MessengerPage() {
                     body: JSON.stringify({
                         conversationId: activeConversation.id,
                         content: `[CALL_RECEIPT]${receiptPayload}`,
+                        media_metadata: getClubMetadata(),
                     }),
                 });
             } catch (e) {
@@ -5275,13 +5293,13 @@ function MessengerPage() {
             const otherUserId = activeConversation.otherUser.id;
             if (cancelToken) {
                 // Try as caller (we initiated the call)
-                fetch('/api/calls/cancel', {
+                authedFetch('/api/calls/cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
                     body: JSON.stringify({ callerId: user.id, calleeId: otherUserId }),
                 }).catch(() => {});
                 // Try as callee (they initiated the call) — ensures cleanup regardless of who called whom
-                fetch('/api/calls/cancel', {
+                authedFetch('/api/calls/cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
                     body: JSON.stringify({ callerId: otherUserId, calleeId: user.id }),
@@ -6012,7 +6030,7 @@ function MessengerPage() {
                                 <span style={{ fontSize: 12, fontWeight: !isClubMode ? 700 : 500, color: !isClubMode ? C.blue : C.textSec }}>Personal</span>
                             </div>
                             
-                            {ownedPages.filter(p => p.page_type !== 'home_game').map(page => (
+                            {ownedPages.map(page => (
                                 <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
                                     <div style={{ 
                                         display: 'inline-flex',
