@@ -98,7 +98,7 @@ export default async function handler(req, res) {
 
             await resend.emails.send({
                 from: 'Bug Reports <support@smarter.poker>',
-                to: ['admin@smarter.poker'],
+                to: ['support@smarter.poker'],
                 replyTo: userEmail !== 'unknown' ? userEmail : undefined,
                 subject: `[${priority.toUpperCase()}] Bug Report: ${subject.trim().substring(0, 80)}`,
                 html: `

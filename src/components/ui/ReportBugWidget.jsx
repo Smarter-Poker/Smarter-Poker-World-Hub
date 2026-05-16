@@ -1,253 +1,377 @@
-import React, { useState, useMemo } from 'react';
-import { busEmit } from '../../engine/EventBus';
+import React, { useState, useCallback } from 'react';
+import { getAccessToken } from '../../src/lib/authHelpers';
 
-/**
- * MESSENGER OPTIONS — direct social media messenger links
- * Opens directly into the user's personal messaging app.
- * Pre-fills message with page context, device info, and timestamp.
- */
-const ADMIN_PHONE = '17086775221';
-const MESSENGER_OPTIONS = [
-    {
-        key: 'sms',
-        label: 'iMessage / SMS',
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-        ),
-        color: '#34C759',
-        bg: 'rgba(52,199,89,0.12)',
-        border: 'rgba(52,199,89,0.35)',
-        getUrl: (msg) => `sms:+${ADMIN_PHONE}&body=${encodeURIComponent(msg)}`,
-    },
-    {
-        key: 'whatsapp',
-        label: 'WhatsApp',
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-            </svg>
-        ),
-        color: '#25D366',
-        bg: 'rgba(37,211,102,0.12)',
-        border: 'rgba(37,211,102,0.35)',
-        getUrl: (msg) => `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`,
-    },
-    {
-        key: 'telegram',
-        label: 'Telegram',
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-            </svg>
-        ),
-        color: '#0088CC',
-        bg: 'rgba(0,136,204,0.12)',
-        border: 'rgba(0,136,204,0.35)',
-        getUrl: (msg) => `https://t.me/share/url?url=${encodeURIComponent('smarter.poker')}&text=${encodeURIComponent(msg)}`,
-    },
-    {
-        key: 'email',
-        label: 'Email',
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <polyline points="22,6 12,13 2,6" />
-            </svg>
-        ),
-        color: '#d4a853',
-        bg: 'rgba(212,168,83,0.12)',
-        border: 'rgba(212,168,83,0.35)',
-        getUrl: (msg) => `mailto:support@smarter.poker?subject=${encodeURIComponent('Bug Report — Smarter.Poker')}&body=${encodeURIComponent(msg)}`,
-    },
+// ─── Priority config ───────────────────────────────────────────────────────
+const PRIORITIES = [
+    { key: 'low',    label: 'Low',    color: '#22c55e', bg: 'rgba(34,197,94,0.12)',    border: 'rgba(34,197,94,0.3)',   desc: 'Minor issue, cosmetic' },
+    { key: 'medium', label: 'Medium', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',   border: 'rgba(245,158,11,0.3)',  desc: 'Feature broken but workaround exists' },
+    { key: 'high',   label: 'High',   color: '#ef4444', bg: 'rgba(239,68,68,0.12)',    border: 'rgba(239,68,68,0.3)',   desc: 'Blocking — can\'t use the app' },
 ];
 
-/**
- * Builds a pre-filled bug report message with device/page context.
- */
-function buildBugMessage(contextPath) {
-    const lines = [
-        'Bug Report — Smarter.Poker',
-        '---',
-        `Page: ${contextPath || window?.location?.pathname || 'Unknown'}`,
-        `Device: ${navigator?.userAgent?.slice(0, 120) || 'Unknown'}`,
-        `Time: ${new Date().toLocaleString()}`,
-        '---',
-        '',
-        'Describe the issue below:',
-        '',
-    ];
-    return lines.join('\n');
-}
+// ─── Category quick-picks ──────────────────────────────────────────────────
+const CATEGORIES = [
+    '🔐 Login / Auth',
+    '💬 Messenger',
+    '🎥 Live Streaming',
+    '💎 Diamonds / Payments',
+    '🃏 Poker Training',
+    '📊 Club Commander',
+    '🔔 Notifications',
+    '📱 UI / Display',
+    '🐌 Performance',
+    '🔧 Other',
+];
 
-export default function ReportBugWidget({ contextPath = '/hub/messenger' }) {
-    const [showPicker, setShowPicker] = useState(false);
+export default function ReportBugWidget({ contextPath }) {
+    const [open, setOpen]               = useState(false);
+    const [subject, setSubject]         = useState('');
+    const [category, setCategory]       = useState('');
+    const [priority, setPriority]       = useState('medium');
+    const [description, setDescription] = useState('');
+    const [submitting, setSubmitting]   = useState(false);
+    const [result, setResult]           = useState(null); // { success, ticketId } | null
 
-    const message = useMemo(() => buildBugMessage(contextPath), [contextPath]);
+    const currentPage = contextPath || (typeof window !== 'undefined' ? window.location.pathname : 'unknown');
 
-    const handleMessengerClick = (option) => {
-        const url = option.getUrl(message);
-        window.open(url, '_blank', 'noopener,noreferrer');
-        busEmit.bugReportSubmitted?.('messenger-' + option.key, 'user-directed', contextPath);
-        setShowPicker(false);
+    const reset = useCallback(() => {
+        setSubject('');
+        setCategory('');
+        setPriority('medium');
+        setDescription('');
+        setResult(null);
+    }, []);
+
+    const handleClose = useCallback(() => {
+        setOpen(false);
+        setTimeout(reset, 300);
+    }, [reset]);
+
+    const handleCategoryPick = (cat) => {
+        setCategory(cat);
+        // Pre-fill subject if empty
+        if (!subject) setSubject(cat.replace(/^[^ ]+ /, '') + ' Issue');
     };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!subject.trim() || !description.trim()) return;
+        setSubmitting(true);
+        try {
+            const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+            const resp = await fetch('/api/live-help/report-bug', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    subject:     `${category ? category + ' — ' : ''}${subject.trim()}`,
+                    description: description.trim(),
+                    priority,
+                    currentPage,
+                    userAgent:   typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+                }),
+            });
+            const data = await resp.json();
+            setResult({ success: data.success, ticketId: data.ticketId });
+        } catch (err) {
+            setResult({ success: false });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const selectedPriority = PRIORITIES.find(p => p.key === priority) || PRIORITIES[1];
 
     return (
         <>
+            {/* Trigger Button */}
             <button
-                onClick={() => setShowPicker(true)}
+                id="report-bug-btn"
+                onClick={() => setOpen(true)}
                 style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 8,
-                    background: 'rgba(255, 107, 107, 0.1)',
-                    border: '1px solid rgba(255, 107, 107, 0.3)',
-                    color: '#ff6b6b',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', padding: '11px 16px', borderRadius: 10,
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                    color: '#f87171', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s', fontFamily: 'inherit',
                 }}
-                onMouseEnter={e => {
-                    e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)';
-                }}
-                onMouseLeave={e => {
-                    e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.45)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)'; }}
             >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                Report a Bug to Customer Service
+                Report A Bug
             </button>
 
-            {/* Messenger Picker Overlay */}
-            {showPicker && (
+            {/* Modal Overlay */}
+            {open && (
                 <div
-                    onClick={() => setShowPicker(false)}
+                    onClick={handleClose}
                     style={{
-                        position: 'fixed',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        zIndex: 99999,
-                        background: 'rgba(0,0,0,0.65)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 20,
-                        animation: 'rbw-fadeIn 0.15s ease-out',
+                        position: 'fixed', inset: 0, zIndex: 99999,
+                        background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: 16, animation: 'rbw-fadeIn 0.15s ease-out',
                     }}
                 >
                     <div
                         onClick={e => e.stopPropagation()}
                         style={{
-                            background: 'linear-gradient(145deg, #1a1f2e 0%, #0d1117 100%)',
-                            border: '1px solid rgba(255,107,107,0.25)',
-                            borderRadius: 16,
-                            padding: '24px 20px',
-                            maxWidth: 340,
-                            width: '100%',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                            background: 'linear-gradient(160deg, #181c2a 0%, #0d1117 100%)',
+                            border: '1px solid rgba(239,68,68,0.2)',
+                            borderRadius: 18, padding: 0,
+                            maxWidth: 420, width: '100%',
+                            boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
                             animation: 'rbw-slideUp 0.2s ease-out',
+                            overflow: 'hidden',
                         }}
                     >
-                        {/* Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="12" y1="8" x2="12" y2="12" />
-                                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                                </svg>
-                                <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Report a Bug</span>
+                        {/* ── Header ── */}
+                        <div style={{
+                            padding: '18px 20px 16px',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{
+                                    width: 34, height: 34, borderRadius: 10,
+                                    background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>Report A Bug</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Goes directly to Support</div>
+                                </div>
                             </div>
                             <button
-                                onClick={() => setShowPicker(false)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1 }}
-                            >
-                                &times;
-                            </button>
+                                onClick={handleClose}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', fontSize: 22, lineHeight: 1, padding: '4px 6px', borderRadius: 6, fontFamily: 'inherit' }}
+                                onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+                                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+                            >×</button>
                         </div>
 
-                        {/* Description */}
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                            Choose your preferred messenger. Your page and device info will be included automatically.
-                        </p>
-
-                        {/* Messenger Buttons */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {MESSENGER_OPTIONS.map(opt => (
+                        {/* ── Success State ── */}
+                        {result?.success ? (
+                            <div style={{ padding: '36px 24px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+                                <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 8 }}>Report Sent!</div>
+                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 4 }}>
+                                    Our team has been notified and will look into it.
+                                </div>
+                                {result.ticketId && (
+                                    <div style={{
+                                        display: 'inline-block', marginTop: 12,
+                                        background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)',
+                                        borderRadius: 8, padding: '6px 14px',
+                                        fontSize: 12, color: '#00d4ff', fontFamily: 'monospace',
+                                    }}>
+                                        Ticket #{`BUG-${result.ticketId.substring(0, 8).toUpperCase()}`}
+                                    </div>
+                                )}
                                 <button
-                                    key={opt.key}
-                                    onClick={() => handleMessengerClick(opt)}
+                                    onClick={handleClose}
                                     style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 12,
-                                        width: '100%',
-                                        padding: '12px 16px',
-                                        borderRadius: 12,
-                                        background: opt.bg,
-                                        border: `1px solid ${opt.border}`,
-                                        color: opt.color,
-                                        fontSize: 15,
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        textAlign: 'left',
-                                        fontFamily: 'inherit',
-                                    }}
-                                    onMouseEnter={e => {
-                                        e.currentTarget.style.transform = 'translateY(-1px)';
-                                        e.currentTarget.style.boxShadow = `0 4px 16px ${opt.border}`;
-                                    }}
-                                    onMouseLeave={e => {
-                                        e.currentTarget.style.transform = 'none';
-                                        e.currentTarget.style.boxShadow = 'none';
+                                        marginTop: 24, width: '100%', padding: '11px',
+                                        borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.08)',
+                                        color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                     }}
                                 >
-                                    {opt.icon}
-                                    {opt.label}
+                                    Close
                                 </button>
-                            ))}
-                        </div>
+                            </div>
+                        ) : result?.success === false ? (
+                            /* ── Error State ── */
+                            <div style={{ padding: '36px 24px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+                                <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 8 }}>Submission Failed</div>
+                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+                                    Please email <a href="mailto:support@smarter.poker" style={{ color: '#60a5fa' }}>support@smarter.poker</a> directly.
+                                </div>
+                                <button
+                                    onClick={() => setResult(null)}
+                                    style={{
+                                        marginTop: 20, padding: '10px 24px',
+                                        borderRadius: 10, border: 'none', background: 'rgba(239,68,68,0.15)',
+                                        color: '#f87171', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                    }}
+                                >
+                                    Try Again
+                                </button>
+                            </div>
+                        ) : (
+                            /* ── Form ── */
+                            <form onSubmit={handleSubmit} style={{ padding: '18px 20px 20px' }}>
+
+                                {/* Category Quick-Picks */}
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
+                                        Category
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {CATEGORIES.map(cat => (
+                                            <button
+                                                key={cat}
+                                                type="button"
+                                                onClick={() => handleCategoryPick(cat)}
+                                                style={{
+                                                    padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                                                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                                                    background: category === cat ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                                                    border: category === cat ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                                                    color: category === cat ? '#fca5a5' : 'rgba(255,255,255,0.55)',
+                                                }}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Subject */}
+                                <div style={{ marginBottom: 14 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+                                        Subject <span style={{ color: '#f87171' }}>*</span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={subject}
+                                        onChange={e => setSubject(e.target.value)}
+                                        placeholder="Brief description of the issue…"
+                                        maxLength={120}
+                                        required
+                                        style={{
+                                            width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 14,
+                                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                            color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                                            transition: 'border-color 0.2s',
+                                        }}
+                                        onFocus={e => e.target.style.borderColor = 'rgba(239,68,68,0.5)'}
+                                        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                    />
+                                </div>
+
+                                {/* Priority */}
+                                <div style={{ marginBottom: 14 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
+                                        Priority
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        {PRIORITIES.map(p => (
+                                            <button
+                                                key={p.key}
+                                                type="button"
+                                                onClick={() => setPriority(p.key)}
+                                                style={{
+                                                    flex: 1, padding: '8px 6px', borderRadius: 10, fontSize: 13,
+                                                    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                                    transition: 'all 0.15s', textAlign: 'center',
+                                                    background: priority === p.key ? p.bg : 'rgba(255,255,255,0.04)',
+                                                    border: `1px solid ${priority === p.key ? p.border : 'rgba(255,255,255,0.08)'}`,
+                                                    color: priority === p.key ? p.color : 'rgba(255,255,255,0.4)',
+                                                }}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 5 }}>
+                                        {selectedPriority.desc}
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
+                                        What Happened? <span style={{ color: '#f87171' }}>*</span>
+                                    </div>
+                                    <textarea
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        placeholder="Describe the bug. What were you doing when it happened? What did you expect vs what occurred?"
+                                        required
+                                        rows={4}
+                                        maxLength={2000}
+                                        style={{
+                                            width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 13,
+                                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                            color: '#fff', outline: 'none', fontFamily: 'inherit', resize: 'vertical',
+                                            lineHeight: 1.6, boxSizing: 'border-box', minHeight: 96,
+                                            transition: 'border-color 0.2s',
+                                        }}
+                                        onFocus={e => e.target.style.borderColor = 'rgba(239,68,68,0.5)'}
+                                        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                    />
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'right', marginTop: 3 }}>
+                                        {description.length}/2000
+                                    </div>
+                                </div>
+
+                                {/* Auto-captured context notice */}
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16,
+                                    padding: '8px 12px', borderRadius: 8,
+                                    background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)',
+                                }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                    <span style={{ fontSize: 11, color: 'rgba(0,212,255,0.7)' }}>
+                                        Page URL and device info will be included automatically
+                                    </span>
+                                </div>
+
+                                {/* Submit */}
+                                <button
+                                    type="submit"
+                                    disabled={submitting || !subject.trim() || !description.trim()}
+                                    style={{
+                                        width: '100%', padding: '12px',
+                                        borderRadius: 12, border: 'none',
+                                        background: (submitting || !subject.trim() || !description.trim())
+                                            ? 'rgba(255,255,255,0.08)'
+                                            : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                        color: (submitting || !subject.trim() || !description.trim())
+                                            ? 'rgba(255,255,255,0.3)'
+                                            : '#fff',
+                                        fontSize: 15, fontWeight: 700, cursor: (submitting || !subject.trim() || !description.trim()) ? 'not-allowed' : 'pointer',
+                                        fontFamily: 'inherit', transition: 'all 0.2s',
+                                        boxShadow: (submitting || !subject.trim() || !description.trim()) ? 'none' : '0 4px 20px rgba(239,68,68,0.35)',
+                                    }}
+                                >
+                                    {submitting ? (
+                                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'rbw-spin 0.8s linear infinite' }}>
+                                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                                            </svg>
+                                            Sending…
+                                        </span>
+                                    ) : 'Send Bug Report'}
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* Animations */}
             <style>{`
-                @keyframes rbw-fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes rbw-slideUp {
-                    from { opacity: 0; transform: translateY(16px) scale(0.97); }
-                    to { opacity: 1; transform: translateY(0) scale(1); }
-                }
+                @keyframes rbw-fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+                @keyframes rbw-slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
+                @keyframes rbw-spin    { to { transform: rotate(360deg) } }
+                #report-bug-btn:active { transform: scale(0.98) }
             `}</style>
         </>
     );
 }
 
-/**
- * Exported helper for other components (e.g. GeevesFloatingOrb)
- * to open a messenger link with pre-filled bug context.
- */
-export function openBugMessenger(messengerKey, contextPath) {
-    const message = buildBugMessage(contextPath);
-    const option = MESSENGER_OPTIONS.find(o => o.key === messengerKey);
-    if (!option) {
-        // Default to SMS if unknown key
-        const fallback = MESSENGER_OPTIONS[0];
-        window.open(fallback.getUrl(message), '_blank', 'noopener,noreferrer');
-        return;
-    }
-    window.open(option.getUrl(message), '_blank', 'noopener,noreferrer');
+// Legacy export kept for backward compat with GeevesFloatingOrb references
+export function openBugMessenger() {
+    document.getElementById('report-bug-btn')?.click();
 }
-
-export { MESSENGER_OPTIONS, buildBugMessage };
+export { openBugMessenger as openBugReport };
