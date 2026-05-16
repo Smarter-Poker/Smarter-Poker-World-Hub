@@ -1,1 +1,0 @@
-.messages-page{height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#000;box-sizing:border-box;padding-top:60px}@media(max-width:1024px){.messages-page{padding-top:52px}}@media(max-width:600px){.messages-page{padding-top:48px}}.messages-page iframe{flex:1;width:100%;border:none;background:transparent}
