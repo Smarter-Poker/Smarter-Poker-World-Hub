@@ -233,14 +233,16 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
         return () => {
             clearInterval(recordingTimerRef.current);
             if (recordingMaxTimerRef.current) clearTimeout(recordingMaxTimerRef.current);
-            if (mediaRecorderRef.current?.state === 'recording') {
-                try {
-                    mediaRecorderRef.current.ondataavailable = null;
-                    mediaRecorderRef.current.onstop = null;
-                    mediaRecorderRef.current.stop();
+            try {
+                if (mediaRecorderRef.current) {
+                    if (mediaRecorderRef.current.state !== 'inactive') {
+                        mediaRecorderRef.current.ondataavailable = null;
+                        mediaRecorderRef.current.onstop = null;
+                        mediaRecorderRef.current.stop();
+                    }
                     mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop());
-                } catch (_) { /* ignore — component is unmounting */ }
-            }
+                }
+            } catch (_) { /* ignore — component is unmounting */ }
         };
     }, []);
 
