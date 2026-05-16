@@ -5432,16 +5432,16 @@ function MessengerPage() {
                         margin: 0 auto; 
                         overflow-x: hidden;
                         /* Account for UniversalHeader height */
-                        height: calc(100vh - 54px);
-                        height: calc(100dvh - 54px);
+                        height: ${router.query.hideHeader ? '100vh' : 'calc(100vh - 54px)'};
+                        height: ${router.query.hideHeader ? '100dvh' : 'calc(100dvh - 54px)'};
                     }
                     
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
                             /* Account for UniversalHeader only (54px) — BottomNavBar removed from messenger */
-                            height: calc(100vh - 54px);
-                            height: calc(100dvh - 54px);
+                            height: ${router.query.hideHeader ? '100vh' : 'calc(100vh - 54px)'};
+                            height: ${router.query.hideHeader ? '100dvh' : 'calc(100dvh - 54px)'};
                         }
                         
                         /* Smaller avatars on mobile */
@@ -5485,10 +5485,12 @@ function MessengerPage() {
             </Head>
 
             {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
-            <UniversalHeader
-                pageDepth={2}
-                onMenuClick={() => setMenuOpen(true)}
-            />
+            {!router.query.hideHeader && (
+                <UniversalHeader
+                    pageDepth={2}
+                    onMenuClick={() => setMenuOpen(true)}
+                />
+            )}
 
             {/* Hamburger Menu */}
             <HamburgerMenu

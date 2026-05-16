@@ -148,6 +148,24 @@ export function ActiveIdentityProvider({ children }) {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
+    // ── Force Identity via URL ──
+    // Allows embedding apps (like Club Arena) to force a specific identity
+    useEffect(() => {
+        if (typeof window === 'undefined' || ownedPages.length === 0) return;
+        const params = new URLSearchParams(window.location.search);
+        const forceId = params.get('forceIdentity') || params.get('clubId');
+        
+        if (forceId) {
+            const page = ownedPages.find(p => p.id === forceId);
+            if (page && activeIdentity.clubPage?.id !== page.id) {
+                console.debug('[ActiveIdentity] Force switching to:', page.name);
+                setActiveIdentity({ mode: 'club', clubPage: page });
+            } else if (forceId === 'personal' && activeIdentity.mode !== 'personal') {
+                setActiveIdentity({ mode: 'personal', clubPage: null });
+            }
+        }
+    }, [ownedPages, activeIdentity.mode, activeIdentity.clubPage?.id]);
+
     const switchToPersonal = useCallback(() => {
         console.debug('[ActiveIdentity] Switching to personal');
         setActiveIdentity({ mode: 'personal', clubPage: null });
