@@ -169,7 +169,7 @@ export default async function handler(req, res) {
 
       // Ledger entries (fire-and-forget, transfer already succeeded)
       const txNote = (notes?.trim() || `Union transfer to ${club.name}`).slice(0, 500).replace(/[;'"\\]/g, '');
-      await supabaseAdmin.from('union_wallet_transactions').insert({
+      const { error: unionTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
         union_id: unionId,
         wallet: 'chip_balance',
         direction: 'debit',
@@ -178,15 +178,17 @@ export default async function handler(req, res) {
         club_id: clubId,
         notes: txNote,
         created_by: auth.user.id,
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      });
+      if (unionTxErr) console.warn('[union-wallet] Failed to log union wallet tx:', unionTxErr.message);
 
-      await supabaseAdmin.from('chip_transactions').insert({
+      const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
         club_id: clubId,
         amount: amt,
         transaction_type: 'union_transfer',
         notes: txNote,
         metadata: { union_id: unionId },
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      });
+      if (chipTxErr) console.warn('[union-wallet] Failed to log chip tx:', chipTxErr.message);
 
       return res.json({
         success: true,
@@ -228,10 +230,11 @@ export default async function handler(req, res) {
       }
 
       const txNote = (notes?.trim() || `Moved ${amt.toLocaleString()} from rake wallet to chip balance`).slice(0, 500).replace(/[;'"\\]/g, '');
-      await supabaseAdmin.from('union_wallet_transactions').insert([
+      const { error: moveTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert([
         { union_id: unionId, wallet: 'rake_wallet', direction: 'debit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
         { union_id: unionId, wallet: 'chip_balance', direction: 'credit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
-      ]).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      ]);
+      if (moveTxErr) console.warn('[union-wallet] Failed to log move rake tx:', moveTxErr.message);
 
       return res.json({ success: true, message: txNote });
     }
@@ -307,12 +310,13 @@ export default async function handler(req, res) {
       }
 
       // Ledger entries
-      await supabaseAdmin.from('union_wallet_transactions').insert({
+      const { error: bbjTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
         union_id: unionId, wallet: 'bbj_wallet', direction: 'debit',
         amount: payout, tx_type: 'bbj_payout', club_id: payoutClubId,
         notes: `BBJ payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare})`,
         created_by: auth.user.id,
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      });
+      if (bbjTxErr) console.warn('[union-wallet] Failed to log BBJ payout tx:', bbjTxErr.message);
 
       return res.json({
         success: true,

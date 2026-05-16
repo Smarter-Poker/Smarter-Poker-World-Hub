@@ -236,7 +236,8 @@ export default async function handler(req, res) {
         if (partErr || !partData || partData.length !== 2) {
             // Roll back the conversation row so we don't leave an orphan parent.
             try {
-                await supabase.from('social_conversations').delete().eq('id', newConv.id);
+                const { error: delErr } = await supabase.from('social_conversations').delete().eq('id', newConv.id);
+                if (delErr) throw new Error(delErr.message);
             } catch (rbErr) {
                 console.warn('[start-conversation] Conversation rollback failed:', rbErr?.message || rbErr);
             }

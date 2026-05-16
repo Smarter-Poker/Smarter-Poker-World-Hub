@@ -163,7 +163,7 @@ export default async function handler(req, res) {
           .update({ credit_limit: newLimit })
           .eq('id', agentRecord.id);
 
-        await getSupabase().from('chip_transactions').insert({
+        const { error: issueTxErr } = await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: user.id,
           to_user_id: agentUserId,
@@ -171,6 +171,7 @@ export default async function handler(req, res) {
           transaction_type: 'credit_line_issued',
           notes: notes || `Credit line issued: +${amount.toLocaleString()} (limit now ${newLimit.toLocaleString()})`,
         });
+        if (issueTxErr) console.warn('[agent-credit] Failed to log issue credit tx:', issueTxErr.message);
 
         await notifyUser(supabaseAdmin, {
           userId: agentUserId,
@@ -202,7 +203,7 @@ export default async function handler(req, res) {
           throw rpcErr || new Error(rpcResult?.error || 'Atomic prepaid credit failed');
         }
 
-        await getSupabase().from('chip_transactions').insert({
+        const { error: prepaidTxErr } = await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: user.id,
           to_user_id: agentUserId,
@@ -210,6 +211,7 @@ export default async function handler(req, res) {
           transaction_type: 'prepaid_chips_issued',
           notes: notes || `Prepaid chips issued: ${amount.toLocaleString()}`,
         });
+        if (prepaidTxErr) console.warn('[agent-credit] Failed to log prepaid chips tx:', prepaidTxErr.message);
 
         await notifyUser(supabaseAdmin, {
           userId: agentUserId,

@@ -134,11 +134,12 @@ export default async function handler(req, res) {
       }
 
       // Record transaction (fire-and-forget — transfer already atomic)
-      await getSupabase().from('chip_transactions').insert({
+      const { error: txErr } = await getSupabase().from('chip_transactions').insert({
         club_id: clubId, from_user_id: user.id, to_user_id: toUserId,
         amount, transaction_type: 'transfer',
         notes: note || `Transfer to player`,
       });
+      if (txErr) console.warn('[transfer-chips] Failed to insert transaction record:', txErr.message);
 
       // Notify recipient
       await notifyUser(supabaseAdmin, {

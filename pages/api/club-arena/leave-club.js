@@ -193,7 +193,7 @@ export default async function handler(req, res) {
         chipsReturnedToTreasury = totalChips;
 
         // Audit trail
-        await supabaseAdmin.from('chip_transactions').insert({
+        const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: user.id,
           to_user_id: null,
@@ -201,6 +201,7 @@ export default async function handler(req, res) {
           transaction_type: 'withdrawal',
           notes: `Player left club — ${totalChips.toLocaleString()} chips returned to club treasury`,
         });
+        if (chipTxErr) console.warn('[leave-club] Failed to log chip tx:', chipTxErr.message);
       }
     }
 
@@ -209,7 +210,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     const creditUsed = member.credit_used || 0;
     if (creditUsed > 0) {
-      await supabaseAdmin.from('chip_transactions').insert({
+      const { error: creditTxErr } = await supabaseAdmin.from('chip_transactions').insert({
         club_id: clubId,
         from_user_id: user.id,
         to_user_id: null,
@@ -217,6 +218,7 @@ export default async function handler(req, res) {
         transaction_type: 'credit_forgiven',
         notes: `Player left club with ${creditUsed.toLocaleString()} outstanding credit — written off`,
       });
+      if (creditTxErr) console.warn('[leave-club] Failed to log credit forgiven tx:', creditTxErr.message);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -291,27 +293,25 @@ export default async function handler(req, res) {
       role: member.role,
     };
 
-    // Notify club owner (in-app)
-    await supabaseAdmin.from('notifications').insert({
+    const { error: ownerNotifErr } = await supabaseAdmin.from('notifications').insert({
       user_id: club.owner_id,
       type: 'club_member_left',
       title: notifTitle,
       message: notifMessage,
       data: notifMetadata,
       read: false,
-    }).catch(e => console.warn('[leave-club] Owner notification error:', e.message));
+    });
+    if (ownerNotifErr) console.warn('[leave-club] Owner notification error:', ownerNotifErr.message);
 
-    // Notify assigned agent (in-app) — if different from owner
-    if (member.agent_id && member.agent_id !== club.owner_id) {
-      await supabaseAdmin.from('notifications').insert({
+      const { error: agentNotifErr } = await supabaseAdmin.from('notifications').insert({
         user_id: member.agent_id,
         type: 'club_member_left',
         title: notifTitle,
         message: notifMessage,
         data: notifMetadata,
         read: false,
-      }).catch(e => console.warn('[leave-club] Agent notification error:', e.message));
-    }
+      });
+      if (agentNotifErr) console.warn('[leave-club] Agent notification error:', agentNotifErr.message);
 
     // Push notifications — fire-and-forget
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL

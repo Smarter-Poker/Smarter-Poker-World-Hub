@@ -242,7 +242,8 @@ export default async function handler(req, res) {
           if (createErr) throw createErr;
 
           // ── C-03: Update table count on club (prioritize atomic RPC) ──
-          await getSupabase().rpc('increment_club_table_count', { p_club_id: clubId }).catch(async () => {
+          const { error: rpcErr } = await getSupabase().rpc('increment_club_table_count', { p_club_id: clubId });
+          if (rpcErr) {
               // Fallback: Optimistic lock table count update if RPC doesn't exist
               const { data: club } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
               if (club) {
@@ -262,7 +263,7 @@ export default async function handler(req, res) {
                       }
                   }
               }
-          });
+          }
 
           // Notify club members of new table (fire-and-forget)
           const tableName = table?.name || `${gv.toUpperCase()} ${sb}/${bb}`;

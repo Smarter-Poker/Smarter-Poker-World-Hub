@@ -137,7 +137,8 @@ export default async function handler(req, res) {
         if (!claimed) {
             // Someone else got there first. Clean up our orphan post and
             // return THEIR post id so the client gets a stable answer.
-            await supabase.from('social_posts').delete().eq('id', post.id);
+            const { error: delErr } = await supabase.from('social_posts').delete().eq('id', post.id);
+            if (delErr) console.warn('[create-live-post] Failed to clean up duplicate post:', delErr.message);
             const { data: winner } = await supabase
                 .from('live_streams')
                 .select('feed_post_id')

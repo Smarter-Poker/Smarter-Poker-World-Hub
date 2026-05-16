@@ -363,8 +363,11 @@ export default async function handler(req, res) {
 
       // Insert commission records
       if (commissionRecords.length > 0) {
-        await supabaseAdmin.from('commission_records').insert(commissionRecords);
-        await supabaseAdmin.from('commission_history').insert(commissionHistory);
+        const { error: crErr } = await supabaseAdmin.from('commission_records').insert(commissionRecords);
+        if (crErr) throw new Error('[settle-period] commission_records insert failed: ' + crErr.message);
+
+        const { error: chErr } = await supabaseAdmin.from('commission_history').insert(commissionHistory);
+        if (chErr) throw new Error('[settle-period] commission_history insert failed: ' + chErr.message);
       }
 
       // Calculate union hold
@@ -401,7 +404,7 @@ export default async function handler(req, res) {
           }).catch(e => console.warn('[settle-period] union rake_wallet credit error:', e.message));
 
           // Ledger entry for union wallet
-          await supabaseAdmin.from('union_wallet_transactions').insert({
+          const { error: uWalletErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
             union_id: club.union_id,
             wallet: 'rake_wallet',
             direction: 'credit',
@@ -410,9 +413,10 @@ export default async function handler(req, res) {
             club_id: clubId,
             period_id: pid,
             notes: `Settlement hold from ${club.name} — Period #${period.period_number} (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake)`,
-          }).catch(e => console.warn('[settle-period] union wallet tx insert error:', e.message));
+          });
+          if (uWalletErr) console.warn('[settle-period] union wallet tx insert error:', uWalletErr.message);
 
-          await supabaseAdmin.from('chip_transactions').insert({
+          const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
             club_id: clubId,
             amount: unionHold,
             transaction_type: 'union_hold',
@@ -424,9 +428,10 @@ export default async function handler(req, res) {
               hold_rate: unionRakeHold,
             },
           });
+          if (chipTxErr) console.warn('[settle-period] union hold chip_transactions insert error:', chipTxErr.message);
 
           // Generate union_to_club invoice
-          await supabaseAdmin.from('settlement_invoices').insert({
+          const { error: invoiceErr } = await supabaseAdmin.from('settlement_invoices').insert({
             club_id: clubId,
             period_id: pid,
             invoice_type: 'union_to_club',
@@ -446,7 +451,8 @@ export default async function handler(req, res) {
             status: 'paid',
             chips_transferred: true,
             transferred_at: new Date().toISOString(),
-          }).catch(e => console.warn('[settle-period] Invoice insert error:', e.message));
+          });
+          if (invoiceErr) console.warn('[settle-period] Invoice insert error:', invoiceErr.message);
         } // end else (debit succeeded)
       }
 
@@ -454,7 +460,7 @@ export default async function handler(req, res) {
       for (const cr of commissionRecords) {
         const agentInfo = (agents || []).find(a => a.id === cr.agent_id);
         if (!agentInfo) continue;
-        await supabaseAdmin.from('settlement_invoices').insert({
+        const { error: agInvErr } = await supabaseAdmin.from('settlement_invoices').insert({
           club_id: clubId,
           period_id: pid,
           invoice_type: 'club_to_agent',
@@ -470,7 +476,8 @@ export default async function handler(req, res) {
             commission_amount: cr.commission_amount,
           },
           status: 'generated',
-        }).catch(e => console.warn('[settle-period] Agent invoice error:', e.message));
+        });
+        if (agInvErr) console.warn('[settle-period] Agent invoice error:', agInvErr.message);
       }
 
       // Close the period
@@ -554,7 +561,7 @@ export default async function handler(req, res) {
           p_amount: cr.commission_amount,
         });
 
-        await supabaseAdmin.from('chip_transactions').insert({
+        const { error: manualTxErr } = await supabaseAdmin.from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: null,
           to_user_id: agentData.user_id,
@@ -567,6 +574,7 @@ export default async function handler(req, res) {
             settlement_type: 'manual',
           },
         });
+        if (manualTxErr) throw new Error('[settle-period] Manual settlement chip_transactions insert failed: ' + manualTxErr.message);
       }
 
       // Get the period's start_at to scope the history update correctly
@@ -662,7 +670,7 @@ export default async function handler(req, res) {
             });
 
             // Record chip transaction
-            await supabaseAdmin.from('chip_transactions').insert({
+            const { error: payAllTxErr } = await supabaseAdmin.from('chip_transactions').insert({
               club_id: clubId,
               from_user_id: null,
               to_user_id: agentData.user_id,
@@ -675,6 +683,7 @@ export default async function handler(req, res) {
                 settlement_type: 'manual',
               },
             });
+            if (payAllTxErr) throw new Error('[settle-period] pay_all chip_transactions insert failed: ' + payAllTxErr.message);
 
             // Only track as paid after chips are confirmed delivered
             paidIds.push(cr.id);

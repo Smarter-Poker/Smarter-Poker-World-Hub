@@ -156,7 +156,7 @@ export default async function handler(req, res) {
         // ── C-06: Isolated transaction logging ──
         // If node crashes before this finishes, atomic RPC was still successful.
         try {
-          await getSupabase().from('chip_transactions').insert({
+          const { error: txErr } = await getSupabase().from('chip_transactions').insert({
             club_id: clubId,
             from_user_id: userId,
             to_user_id: userId,
@@ -164,6 +164,7 @@ export default async function handler(req, res) {
             transaction_type: 'table_lock',
             notes: `${action === 'rebuy' ? 'Rebuy' : 'Table buy-in'}: ${amount} chips locked for table ${tableId || 'unknown'}`,
           });
+          if (txErr) console.warn('[table-chips] Failed to log transaction:', txErr.message);
         } catch (logErr) {
           console.warn('[table-chips] Failed to log transaction:', logErr);
         }
@@ -192,7 +193,7 @@ export default async function handler(req, res) {
 
         // ── C-06: Isolated transaction logging ──
         try {
-          await getSupabase().from('chip_transactions').insert({
+          const { error: txErr } = await getSupabase().from('chip_transactions').insert({
             club_id: clubId,
             from_user_id: userId,
             to_user_id: userId,
@@ -200,6 +201,7 @@ export default async function handler(req, res) {
             transaction_type: 'table_unlock',
             notes: `Table cash-out: ${amount} chips unlocked from table ${tableId || 'unknown'}`,
           });
+          if (txErr) console.warn('[table-chips] Failed to log transaction:', txErr.message);
         } catch (logErr) {
           console.warn('[table-chips] Failed to log unlock transaction:', logErr);
         }

@@ -184,13 +184,14 @@ export default async function handler(req, res) {
           } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
           // Decrement club table count (C-02 wrapper — atomic JS fallback if RPC fails)
-          await getSupabase().rpc('decrement_club_table_count', { p_club_id: clubId }).catch(async () => {
+          const { error: rpcErr } = await getSupabase().rpc('decrement_club_table_count', { p_club_id: clubId });
+          if (rpcErr) {
             // Atomic decrement update
             const { data: club } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
             if (club) {
               await getSupabase().from('clubs').update({ table_count: Math.max(0, (club.table_count || 1) - 1) }).eq('id', clubId);
             }
-          });
+          }
 
           emitUnionEvent('union:table-closed', {});
 

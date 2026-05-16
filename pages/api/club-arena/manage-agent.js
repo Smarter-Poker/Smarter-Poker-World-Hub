@@ -1321,7 +1321,7 @@ export default async function handler(req, res) {
         }
 
         // Record transaction
-        await getSupabase().from('chip_transactions').insert({
+        const { error: txErr } = await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: user.id,
           to_user_id: targetUserId,
@@ -1330,6 +1330,7 @@ export default async function handler(req, res) {
           notes: notes || `Agent-to-Agent transfer`,
           metadata: { sender_agent_id: senderAgent.id, receiver_agent_id: receiverAgent.id },
         });
+        if (txErr) console.warn('[manage-agent] Failed to log agent transfer tx:', txErr.message);
 
         logAudit(supabaseAdmin, { actionType: 'agent_transfer', userId: user.id, targetUserId, clubId, amount, ip: extractIP(req), details: { notes } });
         return res.status(200).json({ success: true, action: 'transfer_complete', amount, from: user.id, to: targetUserId });
