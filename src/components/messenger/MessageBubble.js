@@ -317,7 +317,38 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 
                         // Check for call receipt: [CALL_RECEIPT]📹 Video call • 2m 15s
                         if (content.startsWith('[CALL_RECEIPT]')) {
-                            const callInfo = content.replace('[CALL_RECEIPT]', '');
+                            const raw = content.replace('[CALL_RECEIPT]', '');
+                            let receiptData = null;
+                            let callInfoStr = raw;
+                            try {
+                                receiptData = JSON.parse(raw);
+                            } catch (_) { 
+                                // Legacy plain text - apply Title Case correction
+                                callInfoStr = raw.replace(/Video call/i, 'Video Call').replace(/Voice call/i, 'Voice Call');
+                            }
+                            
+                            if (receiptData) {
+                                const st = receiptData.status || 'completed';
+                                const isVideo = receiptData.type === 'video';
+                                const typeStr = isVideo ? 'Video Call' : 'Voice Call';
+                                const dur = receiptData.duration || 0;
+                                let durationStr = '';
+                                if (dur > 0) {
+                                    durationStr = dur >= 60 ? `${Math.floor(dur / 60)}m ${dur % 60}s` : `${dur}s`;
+                                }
+                                
+                                if (st === 'missed') {
+                                    callInfoStr = `Missed ${typeStr}`;
+                                } else if (st === 'declined') {
+                                    callInfoStr = `${typeStr} Declined`;
+                                } else if (st === 'cancelled') {
+                                    callInfoStr = `${typeStr} Cancelled`;
+                                } else {
+                                    callInfoStr = `${typeStr} • ${durationStr}`;
+                                }
+                                callInfoStr = `${isVideo ? '📹' : '📞'} ${callInfoStr}`;
+                            }
+
                             return (
                                 <div style={{
                                     textAlign: 'center',
@@ -326,7 +357,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                     fontSize: 13,
                                     opacity: 0.9,
                                 }}>
-                                    {callInfo}
+                                    {callInfoStr}
                                 </div>
                             );
                         }

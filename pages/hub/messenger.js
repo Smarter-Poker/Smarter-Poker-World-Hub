@@ -1789,9 +1789,12 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             // null (reading status)' → tripped HubErrorBoundary →
                             // 'Messenger Temporarily Unavailable'.
                             let receiptData = null;
+                            let legacyStr = null;
                             try {
                                 receiptData = JSON.parse(raw);
-                            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                            } catch (_) {
+                                legacyStr = raw.replace(/Video call/i, 'Video Call').replace(/Voice call/i, 'Voice Call');
+                            }
                             // Safe-default to {} so the .status / .type / .duration
                             // reads below fall through to their `||` fallbacks.
                             const _receipt = receiptData || {};
@@ -1833,11 +1836,11 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 600, fontSize: 13, color: cfg.color }}>
-                                            {_receipt.legacyText || cfg.label}
+                                            {legacyStr || cfg.label}
                                         </div>
-                                        {(cfg.sublabel || _receipt.legacyText) && (
+                                        {(cfg.sublabel || legacyStr) && (
                                             <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                                                {_receipt.legacyText ? '' : cfg.sublabel}
+                                                {legacyStr ? '' : cfg.sublabel}
                                             </div>
                                         )}
                                     </div>
@@ -6007,7 +6010,7 @@ function MessengerPage() {
                                 <span style={{ fontSize: 12, fontWeight: !isClubMode ? 700 : 500, color: !isClubMode ? C.blue : C.textSec }}>Personal</span>
                             </div>
                             
-                            {ownedPages.map(page => (
+                            {ownedPages.filter(p => p.page_type !== 'home_game').map(page => (
                                 <div key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
                                     <div style={{ 
                                         display: 'inline-flex',
