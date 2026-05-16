@@ -291,6 +291,11 @@ export default function HorsesAdmin() {
   const [grinderData, setGrinderData] = useState(null);
   const [grinderLoading, setGrinderLoading] = useState(false);
 
+  // Bug Reports State
+  const [bugReports, setBugReports] = useState([]);
+  const [bugReportsLoading, setBugReportsLoading] = useState(false);
+  const [bugReportsFilter, setBugReportsFilter] = useState('open'); // 'open', 'resolved', 'all'
+
   useEffect(() => {
     const _c = new AbortController();
 
@@ -674,6 +679,46 @@ export default function HorsesAdmin() {
       setAbuseData(EMPTY_ABUSE_DATA);
     } finally {
       setAbuseLoading(false);
+    }
+  };
+
+  const loadBugReports = async (statusFilter = bugReportsFilter) => {
+    setBugReportsLoading(true);
+    try {
+      let query = supabase
+        .from('live_help_tickets')
+        .select(`
+          id, subject, description, priority, status, created_at, user_id, conversation_id,
+          profiles:user_id (display_name, username, avatar_url)
+        `)
+        .order('created_at', { ascending: false });
+        
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      setBugReports(data || []);
+    } catch (err) {
+      showNotification('Failed to load bug reports', 'error');
+    } finally {
+      setBugReportsLoading(false);
+    }
+  };
+
+  const updateBugReportStatus = async (ticketId, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('live_help_tickets')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', ticketId);
+        
+      if (error) throw error;
+      showNotification(`Ticket marked as ${newStatus}`, 'success');
+      loadBugReports(bugReportsFilter);
+    } catch (err) {
+      showNotification('Failed to update ticket', 'error');
     }
   };
 
@@ -1465,6 +1510,15 @@ export default function HorsesAdmin() {
             Club Arena Admin
           </button>
           <button
+            className={activeTab === 'bugreports' ? styles.active : ''}
+            onClick={() => {
+              setActiveTab('bugreports');
+              loadBugReports('open');
+            }}
+          >
+            {'🚨'} Bug Reports
+          </button>
+          <button
             className={activeTab === 'geeves' ? styles.active : ''}
             onClick={() => {
               setActiveTab('geeves');
@@ -2118,6 +2172,96 @@ export default function HorsesAdmin() {
                     </div>
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* BUG REPORTS TAB */}
+          {activeTab === 'bugreports' && (
+            <div className={styles.statsView}>
+              <h2>{'🚨'} Bug Reports & Support Tickets</h2>
+              <div className={styles.filterBar}>
+                <button
+                  className={`${styles.filterBtn} ${bugReportsFilter === 'open' ? styles.active : ''}`}
+                  onClick={() => { setBugReportsFilter('open'); loadBugReports('open'); }}
+                >
+                  Open
+                </button>
+                <button
+                  className={`${styles.filterBtn} ${bugReportsFilter === 'resolved' ? styles.active : ''}`}
+                  onClick={() => { setBugReportsFilter('resolved'); loadBugReports('resolved'); }}
+                >
+                  Resolved
+                </button>
+                <button
+                  className={`${styles.filterBtn} ${bugReportsFilter === 'all' ? styles.active : ''}`}
+                  onClick={() => { setBugReportsFilter('all'); loadBugReports('all'); }}
+                >
+                  All
+                </button>
+              </div>
+
+              {bugReportsLoading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>Loading tickets...</div>
+              ) : bugReports.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>No tickets found in this view.</div>
+              ) : (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bugReports.map(ticket => (
+                        <tr key={ticket.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <img src={ticket.profiles?.avatar_url || '/default-avatar.png'} alt="" style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{ticket.profiles?.display_name || 'Unknown'}</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>@{ticket.profiles?.username || 'user'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{ticket.subject}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticket.description}</div>
+                          </td>
+                          <td>
+                            <span style={{
+                              padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+                              background: ticket.status === 'open' ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                              color: ticket.status === 'open' ? '#f87171' : '#4ade80'
+                            }}>
+                              {ticket.status}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                            {new Date(ticket.created_at).toLocaleDateString()}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {ticket.status === 'open' ? (
+                                <button onClick={() => updateBugReportStatus(ticket.id, 'resolved')} style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80', padding: '4px 8px', borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Resolve</button>
+                              ) : (
+                                <button onClick={() => updateBugReportStatus(ticket.id, 'open')} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', padding: '4px 8px', borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Reopen</button>
+                              )}
+                              {ticket.conversation_id && (
+                                <a href={`/hub/messenger?cid=${ticket.conversation_id}`} target="_blank" rel="noreferrer" style={{ background: 'rgba(0,180,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', padding: '4px 8px', borderRadius: 4, fontSize: 12, textDecoration: 'none' }}>Chat</a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
