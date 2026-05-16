@@ -376,6 +376,7 @@ export default function PlayerFAQPage() {
     : FAQ_CATEGORIES.find((c) => c.id === activeCategory);
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Commander FAQ"
@@ -416,7 +417,6 @@ export default function PlayerFAQPage() {
               {FAQ_CATEGORIES.map((cat) => {
                 const Icon = cat.icon;
                 return (
-                  <CommanderPageShell>
                   <button
                     key={cat.id}
                     onClick={() => {
@@ -509,6 +509,6 @@ export default function PlayerFAQPage() {
         </div>
       </div>
     </>
-                  </CommanderPageShell>
+    </CommanderPageShell>
   );
 }
