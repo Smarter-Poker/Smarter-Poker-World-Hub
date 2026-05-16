@@ -35,6 +35,7 @@ export default function AchievementsPage() {
   if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={4} /></div>;
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Player Achievements"
@@ -97,7 +98,6 @@ export default function AchievementsPage() {
             {filtered.map(achievement => {
               const isUnlocked = achievement.unlocked;
               return (
-                <CommanderPageShell>
                 <div
                   key={achievement.id}
                   className={`cmd-panel p-4 flex items-center gap-4 ${!isUnlocked ? 'opacity-60' : ''}`}
@@ -153,6 +153,6 @@ export default function AchievementsPage() {
         </main>
       </div>
     </>
-                </CommanderPageShell>
+    </CommanderPageShell>
   );
 }

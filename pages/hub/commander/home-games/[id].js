@@ -523,6 +523,7 @@ export default function HomeGameDetailPage() {
   const isMember = !!userMembership;
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Home Game Details"
@@ -683,7 +684,6 @@ export default function HomeGameDetailPage() {
                 );
               }
               return (
-                <CommanderPageShell>
                 <div className="space-y-3">
                   {cashEvents.map((event) => (
                     <EventCard
@@ -992,6 +992,6 @@ export default function HomeGameDetailPage() {
         </div>
       )}
     </>
-                </CommanderPageShell>
+    </CommanderPageShell>
   );
 }

@@ -7,8 +7,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
 import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+import {
   ArrowLeft, Flame, Smile, Zap, Star, Send, CheckCircle2, Loader2
 } from 'lucide-react';
 

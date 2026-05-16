@@ -185,6 +185,7 @@ export default function PlayerRewardsPage() {
   if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="rows" rows={6} /></div>;
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Rewards"
@@ -248,7 +249,6 @@ export default function PlayerRewardsPage() {
                 const Icon = category.icon;
                 const isActive = showRedeemInput && redeemingId === category.id;
                 return (
-                  <CommanderPageShell>
                   <div
                     key={category.id}
                     className={index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#4A5E78]' : ''}
@@ -337,6 +337,6 @@ export default function PlayerRewardsPage() {
         </main>
       </div>
     </>
-                  </CommanderPageShell>
+    </CommanderPageShell>
   );
 }

@@ -159,6 +159,7 @@ export default function VenueDetail() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Venue Details"
@@ -246,7 +247,6 @@ export default function VenueDetail() {
                   );
 
                   return (
-                    <CommanderPageShell>
                     <div
                       key={game.id}
                       className="cmd-panel p-4 relative"
@@ -358,6 +358,6 @@ export default function VenueDetail() {
         </main>
       </div>
     </>
-                    </CommanderPageShell>
+    </CommanderPageShell>
   );
 }

@@ -760,6 +760,7 @@ export default function ManageHomeGamePage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Manage Home Game"
@@ -1103,7 +1104,6 @@ export default function ManageHomeGamePage() {
                     {saves.map((saveItem) => {
                       const profile = saveItem.profiles || {};
                       return (
-                        <CommanderPageShell>
                         <div key={saveItem.id} className="flex items-center gap-3 p-4">
                           <div className="w-10 h-10 rounded-full bg-[#EF4444]/10 flex items-center justify-center overflow-hidden">
                             {profile.avatar_url ? (
@@ -1634,6 +1634,6 @@ export default function ManageHomeGamePage() {
         }}
       />
     </>
-                        </CommanderPageShell>
+    </CommanderPageShell>
   );
 }

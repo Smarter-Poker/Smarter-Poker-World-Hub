@@ -161,7 +161,7 @@ export default function PlayerWaitlistPage() {
       }
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-    // 2. Session path: supabase.auth.getSession (handles refresh, slower on first call)
+    // 2. Auth token path: session token refresh (handles token refresh, slower on first call)
     const _authToken = getAccessToken();
     if (_authToken) return _authToken;
 
@@ -367,6 +367,7 @@ export default function PlayerWaitlistPage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title={`${venue.name} Waitlist`}
@@ -522,7 +523,6 @@ export default function PlayerWaitlistPage() {
                           const isWeb = player.signup_method === 'web';
                           const isMe = myEntries.find(m => m.id === player.id);
                           return (
-                            <CommanderPageShell>
                             <div
                               key={player.id}
                               style={{
@@ -629,7 +629,7 @@ export default function PlayerWaitlistPage() {
         @keyframes live-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
       `}</style>
     </>
-                            </CommanderPageShell>
+    </CommanderPageShell>
   );
 }
 

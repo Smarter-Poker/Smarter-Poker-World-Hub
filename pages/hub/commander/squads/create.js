@@ -150,6 +150,7 @@ export default function CreateSquadPage() {
   );
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Create Squad"
@@ -396,7 +397,6 @@ export default function CreateSquadPage() {
                   {filteredFriends.map(friend => {
                     const isSelected = formData.members.find(m => m.id === friend.id);
                     return (
-                      <CommanderPageShell>
                       <button
                         key={friend.id}
                         onClick={() => isSelected ? handleRemoveMember(friend.id) : handleAddMember(friend)}
@@ -453,6 +453,6 @@ export default function CreateSquadPage() {
         </main>
       </div>
     </>
-                      </CommanderPageShell>
+    </CommanderPageShell>
   );
 }

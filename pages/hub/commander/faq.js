@@ -7,8 +7,8 @@
 import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import {
 import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+import {
   ChevronLeft,
   ChevronDown,
   HelpCircle,

@@ -8,8 +8,8 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import LocationEnableModal from '../../../../src/components/ui/LocationEnableModal';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
-import {
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import {
   MapPin,
   Search,
   Users,
