@@ -6261,7 +6261,7 @@ function MessengerPage() {
                             flexDirection: 'column',
                             gap: 12,
                         }}>
-                            <ReportBugWidget contextPath="/hub/messenger" />
+                            <ReportBugWidget contextPath="/hub/messenger" theme={isDarkMode ? 'dark' : 'light'} />
                             
                             <Link href="/hub/social-media" style={{
                                 color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
