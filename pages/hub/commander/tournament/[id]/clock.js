@@ -9,6 +9,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Trophy, Clock, DollarSign } from 'lucide-react';
 import { useCommanderSync } from '../../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../../src/lib/supabase';
+import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
 const parseBlinds = (raw) => {
   if (Array.isArray(raw)) return raw;
@@ -230,10 +231,12 @@ export default function TournamentClockDisplay() {
 
 function StatCard({ icon: Icon, label, value }) {
   return (
+    <CommanderPageShell>
     <div className="text-center">
       <Icon className="w-8 h-8 text-[#64748B] mx-auto mb-2" />
       <p className="text-3xl font-bold text-white">{value}</p>
       <p className="text-sm text-[#64748B] uppercase tracking-wide">{label}</p>
     </div>
+    </CommanderPageShell>
   );
 }

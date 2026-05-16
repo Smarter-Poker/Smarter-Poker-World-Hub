@@ -54,6 +54,7 @@ const LeafletLocationPicker = dynamic(
   { ssr: false }
 );
 import { getAccessToken } from '../../../../src/lib/authUtils';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: "No Limit Hold'em" },
@@ -1818,6 +1819,7 @@ export default function CreateHomeGamePage() {
                   const completed = checks.filter((c) => c.done).length;
                   const pct = Math.round((completed / checks.length) * 100);
                   return (
+                    <CommanderPageShell>
                     <div className="cmd-panel p-5 space-y-4">
                       <div className="flex items-center gap-3">
                         <Share2 className="w-5 h-5 text-[#8B5CF6]" />
@@ -2064,5 +2066,6 @@ export default function CreateHomeGamePage() {
         </main>
       </div>
     </>
+                    </CommanderPageShell>
   );
 }

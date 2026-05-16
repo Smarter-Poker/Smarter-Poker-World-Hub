@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import {
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
   CheckCircle,
   MapPin,
   Users,
@@ -181,6 +182,7 @@ export default function PlayerCheckInPage() {
   const activePromos = promotions.filter(p => p.is_active);
 
   return (
+    <CommanderPageShell>
     <>
       <Head>
         <title>Check In | {venue.name}</title>
@@ -306,5 +308,6 @@ export default function PlayerCheckInPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

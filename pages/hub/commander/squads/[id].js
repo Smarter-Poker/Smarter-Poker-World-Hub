@@ -11,6 +11,7 @@ import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
 import {
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
   ChevronLeft,
   Users,
   MapPin,
@@ -305,6 +306,7 @@ export default function SquadDetailPage() {
   };
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Squad Details"
@@ -507,5 +509,6 @@ export default function SquadDetailPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

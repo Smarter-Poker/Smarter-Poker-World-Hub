@@ -13,6 +13,7 @@ import GameCalendar from '../../../../src/components/commander/home-games/GameCa
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 
@@ -239,6 +240,7 @@ export default function PlayerHomeGamesHub() {
   };
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Home Games"
@@ -583,5 +585,6 @@ export default function PlayerHomeGamesHub() {
         )}
       </div>
     </>
+    </CommanderPageShell>
   );
 }

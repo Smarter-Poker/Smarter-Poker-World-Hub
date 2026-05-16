@@ -4,6 +4,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Users, Shield, ShieldAlert, BadgeInfo, MessageSquare, Megaphone, Loader2, UserX, X, Send } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
+import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
 function AnnounceModal({ isOpen, onClose, onSend, sending }) {
   const [message, setMessage] = useState('');
@@ -203,6 +204,7 @@ export default function HomeGameRosterPage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead title="Roster | Commander" noindex={true} />
       <div className="cmd-page">
@@ -306,5 +308,6 @@ export default function HomeGameRosterPage() {
         sending={sending}
       />
     </>
+    </CommanderPageShell>
   );
 }

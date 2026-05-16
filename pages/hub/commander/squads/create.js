@@ -19,6 +19,7 @@ import {
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -395,6 +396,7 @@ export default function CreateSquadPage() {
                   {filteredFriends.map(friend => {
                     const isSelected = formData.members.find(m => m.id === friend.id);
                     return (
+                      <CommanderPageShell>
                       <button
                         key={friend.id}
                         onClick={() => isSelected ? handleRemoveMember(friend.id) : handleAddMember(friend)}
@@ -451,5 +453,6 @@ export default function CreateSquadPage() {
         </main>
       </div>
     </>
+                      </CommanderPageShell>
   );
 }

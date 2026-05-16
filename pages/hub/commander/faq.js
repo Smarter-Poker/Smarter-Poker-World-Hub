@@ -8,6 +8,7 @@ import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
+import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
   ChevronLeft,
   ChevronDown,
   HelpCircle,
@@ -415,6 +416,7 @@ export default function PlayerFAQPage() {
               {FAQ_CATEGORIES.map((cat) => {
                 const Icon = cat.icon;
                 return (
+                  <CommanderPageShell>
                   <button
                     key={cat.id}
                     onClick={() => {
@@ -507,5 +509,6 @@ export default function PlayerFAQPage() {
         </div>
       </div>
     </>
+                  </CommanderPageShell>
   );
 }

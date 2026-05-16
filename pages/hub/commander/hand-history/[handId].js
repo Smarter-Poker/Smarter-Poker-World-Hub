@@ -16,6 +16,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { getAccessToken } from '../../../../src/lib/authUtils';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function CardDisplay({ cards, size = 'md' }) {
   if (!cards || cards.length === 0) return null;
@@ -212,6 +213,7 @@ export default function HandDetailPage() {
   const riverBoard = hand.board?.slice(4, 5) || [];
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Hand History"
@@ -347,5 +349,6 @@ export default function HandDetailPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

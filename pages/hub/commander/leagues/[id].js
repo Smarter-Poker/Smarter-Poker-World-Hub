@@ -13,6 +13,7 @@ import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from
 import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { supabase } from '../../../../src/lib/supabase';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function StandingRow({ entry, rank, isCurrentUser }) {
   return (
@@ -164,6 +165,7 @@ export default function LeagueDetailPage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="League Details"
@@ -331,5 +333,6 @@ export default function LeagueDetailPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

@@ -11,6 +11,7 @@ import { ArrowLeft, Bell, Eye, Shield, Save, Loader2 } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function ToggleSetting({ label, description, value, onChange }) {
   return (
@@ -102,6 +103,7 @@ export default function ProfileSettingsPage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Profile Settings"
@@ -220,5 +222,6 @@ export default function ProfileSettingsPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

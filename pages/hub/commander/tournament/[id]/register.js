@@ -9,6 +9,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../../src/lib/authUtils';
+import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
 const parseBlinds = (raw) => {
   if (Array.isArray(raw)) return raw;
@@ -357,6 +358,7 @@ export default function TournamentRegisterPage() {
 
 function DetailRow({ icon: Icon, label, value }) {
   return (
+    <CommanderPageShell>
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3 text-[#64748B]">
         <Icon className="w-5 h-5" />
@@ -364,5 +366,6 @@ function DetailRow({ icon: Icon, label, value }) {
       </div>
       <span className="font-medium text-white">{value}</span>
     </div>
+    </CommanderPageShell>
   );
 }

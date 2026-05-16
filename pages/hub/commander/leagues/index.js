@@ -13,6 +13,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { supabase } from '../../../../src/lib/supabase';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function LeagueCard({ league, onView }) {
   const statusConfig = {
@@ -150,6 +151,7 @@ export default function LeaguesPage() {
     );
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Poker Leagues"
@@ -257,5 +259,6 @@ export default function LeaguesPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

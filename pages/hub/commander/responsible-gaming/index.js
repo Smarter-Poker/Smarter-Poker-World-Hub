@@ -23,6 +23,7 @@ import {
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (
@@ -194,6 +195,7 @@ export default function ResponsibleGamingPage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Responsible Gaming"
@@ -493,5 +495,6 @@ export default function ResponsibleGamingPage() {
         )}
       </div>
     </>
+    </CommanderPageShell>
   );
 }

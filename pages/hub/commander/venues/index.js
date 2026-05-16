@@ -9,6 +9,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import LocationEnableModal from '../../../../src/components/ui/LocationEnableModal';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import {
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
   MapPin,
   Search,
   Users,
@@ -153,6 +154,7 @@ export default function VenueDiscoveryPage() {
   });
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Venues"
@@ -247,5 +249,6 @@ export default function VenueDiscoveryPage() {
         )}
       </div>
     </>
+    </CommanderPageShell>
   );
 }

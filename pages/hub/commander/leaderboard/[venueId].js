@@ -12,6 +12,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Trophy, Clock, DollarSign, Medal, Star, Calendar } from 'lucide-react';
 import LeaderboardDisplay from '../../../../src/components/commander/leaderboards/LeaderboardDisplay';
 import { supabase } from '../../../../src/lib/supabase';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 /* Inline LeaderboardRow replaced by shared LeaderboardDisplay component */
 
@@ -109,6 +110,7 @@ export default function LeaderboardPage() {
   if (!router.isReady) return null;
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Venue Leaderboard"
@@ -244,5 +246,6 @@ export default function LeaderboardPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

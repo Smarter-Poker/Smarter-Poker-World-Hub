@@ -28,6 +28,7 @@ import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../../src/lib/clipboard';
+import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -1102,6 +1103,7 @@ export default function ManageHomeGamePage() {
                     {saves.map((saveItem) => {
                       const profile = saveItem.profiles || {};
                       return (
+                        <CommanderPageShell>
                         <div key={saveItem.id} className="flex items-center gap-3 p-4">
                           <div className="w-10 h-10 rounded-full bg-[#EF4444]/10 flex items-center justify-center overflow-hidden">
                             {profile.avatar_url ? (
@@ -1632,5 +1634,6 @@ export default function ManageHomeGamePage() {
         }}
       />
     </>
+                        </CommanderPageShell>
   );
 }

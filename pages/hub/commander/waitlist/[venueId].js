@@ -11,6 +11,7 @@ import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle }
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -521,6 +522,7 @@ export default function PlayerWaitlistPage() {
                           const isWeb = player.signup_method === 'web';
                           const isMe = myEntries.find(m => m.id === player.id);
                           return (
+                            <CommanderPageShell>
                             <div
                               key={player.id}
                               style={{
@@ -627,6 +629,7 @@ export default function PlayerWaitlistPage() {
         @keyframes live-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
       `}</style>
     </>
+                            </CommanderPageShell>
   );
 }
 

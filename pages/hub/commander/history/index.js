@@ -12,6 +12,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -118,6 +119,7 @@ export default function PlayerHistoryPage() {
   const stats = swrData?.stats || { totalSessions: 0, totalHours: 0, totalBuyins: 0, avgSession: 0 };
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Commander History"
@@ -201,5 +203,6 @@ export default function PlayerHistoryPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

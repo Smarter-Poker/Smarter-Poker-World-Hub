@@ -14,6 +14,7 @@ import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
 import {
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
   Coffee,
   Coins,
   ArrowRightLeft,
@@ -400,6 +401,7 @@ export default function ServicesPage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <Head>
         <title>Services | Smarter Poker</title>
@@ -469,5 +471,6 @@ export default function ServicesPage() {
         )}
       </div>
     </>
+    </CommanderPageShell>
   );
 }

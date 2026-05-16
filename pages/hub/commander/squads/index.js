@@ -13,6 +13,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
@@ -141,6 +142,7 @@ export default function SquadsPage() {
   const pastSquads = squads.filter(s => ['seated', 'expired'].includes(s.status));
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Squads"
@@ -275,5 +277,6 @@ export default function SquadsPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

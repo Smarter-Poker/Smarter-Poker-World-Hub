@@ -4996,6 +4996,52 @@ function MessengerPage() {
     // (e.g. last_message_preview refresh, sidebar reorder) that doesn't change the unread count.
     }, [totalUnreadSum]);
 
+    // ── PostMessage Bridge: emit unread count to embedding parent (Club Arena) ──
+    // When embedded via iframe with ?hideHeader=true, notify the parent frame so
+    // the CA GlobalHeader badge stays in real-time sync — no polling needed.
+    useEffect(() => {
+        if (router.query.hideHeader !== 'true') return; // Only when embedded
+        if (typeof window === 'undefined' || !window.parent || window.parent === window) return;
+        window.parent.postMessage(
+            { type: 'MESSENGER_UNREAD_COUNT', count: totalUnreadSum, source: 'smarter-poker-messenger' },
+            window.location.origin
+        );
+    }, [totalUnreadSum, router.query.hideHeader]);
+
+    // ── PostMessage Bridge: emit identity switch to parent (Club Arena) ──
+    // Keeps CA header identity indicator in sync when user switches inside the iframe.
+    useEffect(() => {
+        if (router.query.hideHeader !== 'true') return;
+        if (typeof window === 'undefined' || !window.parent || window.parent === window) return;
+        window.parent.postMessage(
+            {
+                type: 'MESSENGER_IDENTITY_CHANGED',
+                mode: isClubMode ? 'club' : 'personal',
+                clubPageId: clubPage?.id || null,
+                source: 'smarter-poker-messenger',
+            },
+            window.location.origin
+        );
+    }, [isClubMode, clubPage?.id, router.query.hideHeader]);
+
+    // ── PostMessage Bridge: listen for deep-link commands from parent ──
+    // Allows CA to open a specific conversation inside the iframe by sending:
+    //   { type: 'OPEN_CONVERSATION', id: '<conversationId>' }
+    useEffect(() => {
+        if (router.query.hideHeader !== 'true') return;
+        const handleParentMessage = (event) => {
+            // Security: only accept messages from same origin
+            if (event.origin !== window.location.origin) return;
+            const { type, id } = event.data || {};
+            if (type === 'OPEN_CONVERSATION' && id && conversations.length > 0) {
+                const found = conversations.find(c => c.id === id);
+                if (found) setActiveConversation(found);
+            }
+        };
+        window.addEventListener('message', handleParentMessage);
+        return () => window.removeEventListener('message', handleParentMessage);
+    }, [conversations, router.query.hideHeader]);
+
     // Sync local conversations state to Zustand/localStorage cache
     // This ensures re-entry renders current data (RT updates, mark-read, sent messages)
     useEffect(() => {
@@ -5431,17 +5477,18 @@ function MessengerPage() {
                         max-width: 100%; 
                         margin: 0 auto; 
                         overflow-x: hidden;
-                        /* Account for UniversalHeader height */
-                        height: ${router.query.hideHeader ? '100vh' : 'calc(100vh - 54px)'};
-                        height: ${router.query.hideHeader ? '100dvh' : 'calc(100dvh - 54px)'};
+                        /* Account for UniversalHeader height + optional bottom nav padding from parent */
+                        height: ${router.query.hideHeader === 'true' ? '100vh' : 'calc(100vh - 54px)'};
+                        height: ${router.query.hideHeader === 'true' ? '100dvh' : 'calc(100dvh - 54px)'};
+                        padding-bottom: ${router.query.bottomPad ? `${parseInt(router.query.bottomPad, 10)}px` : '0px'};
+                        box-sizing: border-box;
                     }
                     
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
-                            /* Account for UniversalHeader only (54px) — BottomNavBar removed from messenger */
-                            height: ${router.query.hideHeader ? '100vh' : 'calc(100vh - 54px)'};
-                            height: ${router.query.hideHeader ? '100dvh' : 'calc(100dvh - 54px)'};
+                            height: ${router.query.hideHeader === 'true' ? '100vh' : 'calc(100vh - 54px)'};
+                            height: ${router.query.hideHeader === 'true' ? '100dvh' : 'calc(100dvh - 54px)'};
                         }
                         
                         /* Smaller avatars on mobile */
@@ -5485,7 +5532,7 @@ function MessengerPage() {
             </Head>
 
             {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
-            {!router.query.hideHeader && (
+            {router.query.hideHeader !== 'true' && (
                 <UniversalHeader
                     pageDepth={2}
                     onMenuClick={() => setMenuOpen(true)}

@@ -17,6 +17,7 @@ import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtim
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
+import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
 const parseBlinds = (raw) => {
   if (Array.isArray(raw)) return raw;
@@ -284,6 +285,7 @@ export default function MyTournamentStatus() {
     const isEliminated = myEntry?.status === 'eliminated';
 
     return (
+        <CommanderPageShell>
         <>
             <SEOHead title={`${t.name} — My Status`} description="Your tournament status" noindex={true} />
             <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] pb-20">
@@ -505,5 +507,6 @@ export default function MyTournamentStatus() {
                 </div>
             </div>
         </>
+        </CommanderPageShell>
     );
 }

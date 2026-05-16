@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 export default function VenueDetail() {
   const router = useRouter();
@@ -245,6 +246,7 @@ export default function VenueDetail() {
                   );
 
                   return (
+                    <CommanderPageShell>
                     <div
                       key={game.id}
                       className="cmd-panel p-4 relative"
@@ -356,5 +358,6 @@ export default function VenueDetail() {
         </main>
       </div>
     </>
+                    </CommanderPageShell>
   );
 }

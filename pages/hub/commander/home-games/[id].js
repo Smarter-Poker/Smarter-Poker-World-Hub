@@ -14,6 +14,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 // Phase 41/bug-hunt-zero: idempotency-token generator. Used on every
 // state-changing POST in this page so a timeout-then-retry doesn't
@@ -682,6 +683,7 @@ export default function HomeGameDetailPage() {
                 );
               }
               return (
+                <CommanderPageShell>
                 <div className="space-y-3">
                   {cashEvents.map((event) => (
                     <EventCard
@@ -990,5 +992,6 @@ export default function HomeGameDetailPage() {
         </div>
       )}
     </>
+                </CommanderPageShell>
   );
 }

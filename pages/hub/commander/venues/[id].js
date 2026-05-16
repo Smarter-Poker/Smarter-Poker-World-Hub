@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 function GameRow({ game, onJoinWaitlist }) {
   const isFull = (game.player_count || 0) >= (game.max_players || 9);
@@ -159,6 +160,7 @@ export default function VenueDetailPage() {
   const activeGames = games.filter(g => g.status !== 'closed');
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Venue Details"
@@ -406,5 +408,6 @@ export default function VenueDetailPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }

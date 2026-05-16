@@ -15,6 +15,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
+import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
@@ -247,6 +248,7 @@ export default function PlayerRewardsPage() {
                 const Icon = category.icon;
                 const isActive = showRedeemInput && redeemingId === category.id;
                 return (
+                  <CommanderPageShell>
                   <div
                     key={category.id}
                     className={index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#4A5E78]' : ''}
@@ -335,5 +337,6 @@ export default function PlayerRewardsPage() {
         </main>
       </div>
     </>
+                  </CommanderPageShell>
   );
 }

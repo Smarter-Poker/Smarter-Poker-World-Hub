@@ -10,6 +10,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { ArrowLeft, QrCode, CreditCard, Users, Clock, Gift, Star, Loader2, RefreshCw, Trophy, Crown } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
 
 const TIER_COLORS = {
   bronze: { bg: 'linear-gradient(135deg, #92400E, #D97706)', text: '#FFFBEB' },
@@ -84,6 +85,7 @@ export default function PlayerCard() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Player Card"
@@ -227,5 +229,6 @@ export default function PlayerCard() {
       </div>
       <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
+    </CommanderPageShell>
   );
 }

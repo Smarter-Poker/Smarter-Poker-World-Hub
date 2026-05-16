@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
+import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
   ArrowLeft, Flame, Smile, Zap, Star, Send, CheckCircle2, Loader2
 } from 'lucide-react';
 
@@ -113,6 +114,7 @@ export default function RateTable() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <Head><title>Rate Table | Smarter.Poker</title></Head>
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -151,5 +153,6 @@ export default function RateTable() {
       <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
     </>
+    </CommanderPageShell>
   );
 }

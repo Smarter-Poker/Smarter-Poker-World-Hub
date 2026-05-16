@@ -149,22 +149,33 @@ export function ActiveIdentityProvider({ children }) {
     }, []);
 
     // ── Force Identity via URL ──
-    // Allows embedding apps (like Club Arena) to force a specific identity
+    // Allows embedding apps (like Club Arena) to force a specific identity.
+    // A ref gate ensures this only fires once per page load — prevents a flip-flop
+    // loop where: parent sets clubId → context updates → storage listener fires →
+    // context updates again → forceIdentity fires again → repeat.
+    const forceAppliedRef = useRef(false);
     useEffect(() => {
         if (typeof window === 'undefined' || ownedPages.length === 0) return;
+        if (forceAppliedRef.current) return; // Already applied — do not re-apply
+
         const params = new URLSearchParams(window.location.search);
         const forceId = params.get('forceIdentity') || params.get('clubId');
-        
+
         if (forceId) {
-            const page = ownedPages.find(p => p.id === forceId);
-            if (page && activeIdentity.clubPage?.id !== page.id) {
-                console.debug('[ActiveIdentity] Force switching to:', page.name);
-                setActiveIdentity({ mode: 'club', clubPage: page });
-            } else if (forceId === 'personal' && activeIdentity.mode !== 'personal') {
+            if (forceId === 'personal') {
                 setActiveIdentity({ mode: 'personal', clubPage: null });
+                forceAppliedRef.current = true;
+            } else {
+                const page = ownedPages.find(p => p.id === forceId);
+                if (page) {
+                    console.debug('[ActiveIdentity] Force switching to:', page.name);
+                    setActiveIdentity({ mode: 'club', clubPage: page });
+                    forceAppliedRef.current = true;
+                }
             }
         }
-    }, [ownedPages, activeIdentity.mode, activeIdentity.clubPage?.id]);
+    // Only re-run when ownedPages loads/changes — NOT on activeIdentity changes (that's the loop)
+    }, [ownedPages]);
 
     const switchToPersonal = useCallback(() => {
         console.debug('[ActiveIdentity] Switching to personal');
