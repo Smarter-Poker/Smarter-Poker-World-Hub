@@ -90,12 +90,13 @@ export default async function handler(req, res) {
         if (createErr) throw createErr;
 
         // Add creator as union admin (owner role)
-        await getSupabase().from('union_admins').insert({
+        const { error: adminErr } = await getSupabase().from('union_admins').insert({
           union_id: union.id,
           user_id: user.id,
           role: 'union_lead',
           permissions: { full_access: true },
         });
+        if (adminErr) throw adminErr;
 
         return res.status(200).json({ success: true, union });
       }
