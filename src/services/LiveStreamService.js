@@ -624,20 +624,21 @@ class LiveStreamService {
     this.cameraMode = this.cameraMode === 'user' ? 'environment' : 'user';
 
     try {
-      // Get new stream with opposite camera
-      const isMobile = window.innerWidth < 768;
+      // BUG-FIX-PERM: request ONLY video so we never trigger a new microphone
+      // permission prompt. Audio stays on the existing track in localStream.
+      // Using ideal constraints — never swap portrait/landscape on flip;
+      // let the device choose the orientation naturally.
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: this.cameraMode,
-          width: { ideal: isMobile ? 720 : 1280 },
-          height: { ideal: isMobile ? 1280 : 720 },
-        },
+        video: { facingMode: this.cameraMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
 
       const newVideoTrack = newStream.getVideoTracks()[0];
 
-      // Replace the published video track in LiveKit
+      // Replace the published video track in LiveKit.
+      // BUG-FIX-RECORDING: stopOnUnpublish=false — we DON'T want to stop
+      // the old track here because MediaRecorder may still be using it.
+      // The old track will be stopped below AFTER we swap it out of localStream.
       const localParticipant = this.room.localParticipant;
       const videoPublications = [...localParticipant.trackPublications.values()].filter(
         (pub) => pub.track?.kind === Track.Kind.Video
@@ -645,7 +646,7 @@ class LiveStreamService {
 
       for (const pub of videoPublications) {
         if (pub.track) {
-          await localParticipant.unpublishTrack(pub.track);
+          await localParticipant.unpublishTrack(pub.track, false);
         }
       }
 
@@ -655,12 +656,17 @@ class LiveStreamService {
         videoResolution: VideoPresets.h720,
       });
 
-      // Update local stream reference for recording
+      // BUG-FIX-PERM: Update localStream reference for recording.
+      // DO NOT stop the old track here — the mediaStreamSingleton owns it.
+      // Stopping it would invalidate the singleton cache and force a new
+      // getUserMedia call (with iOS permission prompt) next time Go Live opens.
+      // Instead just swap the track reference; the singleton will stop it
+      // on full session teardown.
       if (this.localStream) {
         const oldVideo = this.localStream.getVideoTracks()[0];
         if (oldVideo) {
           this.localStream.removeTrack(oldVideo);
-          oldVideo.stop();
+          // DO NOT call oldVideo.stop() — singleton owns lifecycle
         }
         this.localStream.addTrack(newVideoTrack);
       }
@@ -685,7 +691,13 @@ class LiveStreamService {
       (pub) => pub.track?.kind === Track.Kind.Video
     );
     for (const pub of videoPublications) {
-      if (pub.track) await localParticipant.unpublishTrack(pub.track);
+      if (pub.track) {
+        // BUG-FIX-RECORDING: pass stopOnUnpublish=false so LiveKit does NOT stop
+        // the underlying MediaStreamTrack. The camera track is also what
+        // MediaRecorder records from — stopping it kills recording after the
+        // first second (beauty canvas kicks in ~1s after going live).
+        await localParticipant.unpublishTrack(pub.track, false);
+      }
     }
     await localParticipant.publishTrack(newTrack, {
       name: 'camera',

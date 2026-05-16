@@ -3643,14 +3643,20 @@ export function GoLiveModal({
                             step={zStep}
                             value={zoomLevel}
                             onChange={(e) => applyZoom(parseFloat(e.target.value))}
+                            onInput={(e) => applyZoom(parseFloat(e.target.value))}
+                            onTouchStart={(e) => e.stopPropagation()}
+                            onTouchMove={(e) => e.stopPropagation()}
+                            onTouchEnd={(e) => e.stopPropagation()}
                             style={{
-                              // Vertical slider via rotate + sized box
+                              // Vertical slider via writingMode; touchAction must allow vertical
+                              // pan so the drag registers on iOS despite parent touchAction:none
                               writingMode: 'vertical-lr',
                               WebkitAppearance: 'slider-vertical',
                               width: 6,
                               height: 140,
                               cursor: 'pointer',
                               accentColor: '#FA383E',
+                              touchAction: 'pan-y',
                             }}
                           />
                           <div style={{ color: 'white', fontSize: 11, opacity: 0.7 }}>

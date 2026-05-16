@@ -1,14 +1,17 @@
 /**
  * GlobalReportBugButton
  * ═══════════════════════════════════════════════════════════════════════════
- * Floating "Report A Bug" button that appears on every /hub and /commander
- * page. Renders as a fixed pill in the bottom-right corner.
+ * Floating "Report A Bug" button that appears on every /hub page that does
+ * NOT already have the widget accessible via a hamburger menu.
  *
- * Only shows on pages that don't already have a hamburger menu (which has
- * ReportBugWidget built in). On those pages it provides a second entry point
- * — that's fine. The key requirement is zero pages have ZERO access.
+ * SUPPRESSED ON: /hub/commander/* — those pages have CommanderPageShell
+ * which renders the full HamburgerMenu with ReportBugWidget at the bottom.
  *
- * Lives in _app.js global providers so it truly covers 100% of the platform.
+ * POSITION: fixed bottom-left (avoids GeevesFloatingOrb at bottom-right).
+ *
+ * INSTANCE ID: passes instanceId="global" to ReportBugWidget so its button
+ * gets a unique DOM id, preventing the duplicate-id bug on pages where
+ * HamburgerMenu also mounts a ReportBugWidget.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { useState, useEffect } from 'react';
@@ -17,11 +20,6 @@ import dynamic from 'next/dynamic';
 
 // Lazy-load the modal to avoid adding weight to the initial bundle
 const ReportBugWidget = dynamic(() => import('./ReportBugWidget'), { ssr: false });
-
-// Pages where a hamburger menu with Report A Bug is already prominently
-// displayed — we still render the global button but it becomes the second
-// access point (belt-and-suspenders). These pages benefit from having both.
-const HUB_PATH_PREFIXES = ['/hub/', '/commander/'];
 
 export default function GlobalReportBugButton() {
     const router = useRouter();
@@ -35,11 +33,12 @@ export default function GlobalReportBugButton() {
     useEffect(() => {
         if (!mounted) return;
         const path = router.asPath.split('?')[0];
-        // Show on all hub and commander pages
-        const isHubPage = HUB_PATH_PREFIXES.some(prefix => path.startsWith(prefix));
-        // Also show on the landing / auth pages optionally — but keeping it
-        // hub-only per user's requirement ("inside all pages of smarter.poker")
-        setVisible(isHubPage);
+        // Show on /hub/* pages only
+        const isHubPage = path.startsWith('/hub/');
+        // Suppress on Commander subpages — CommanderPageShell already provides
+        // a hamburger menu with ReportBugWidget at the bottom.
+        const isCommanderSub = path.startsWith('/hub/commander/');
+        setVisible(isHubPage && !isCommanderSub);
     }, [router.asPath, mounted]);
 
     if (!visible || !mounted) return null;
@@ -49,20 +48,18 @@ export default function GlobalReportBugButton() {
             style={{
                 position: 'fixed',
                 bottom: 24,
-                right: 16,
-                zIndex: 8000, // Below hamburger drawer (10100) but above most content
-                // Only show when no other element at that position is obvious
-                // (hamburger menus open at 10100 and cover this automatically)
+                // LEFT side — keeps clear of GeevesFloatingOrb (bottom-right z-99998)
+                left: 16,
+                zIndex: 8000,
                 pointerEvents: 'auto',
             }}
             className="global-report-bug-container"
         >
-            {/* Compact pill trigger — expands to full ReportBugWidget modal */}
-            <ReportBugWidget contextPath={router.asPath} theme="dark" compact />
+            {/* instanceId prevents duplicate DOM ids when HamburgerMenu is also mounted */}
+            <ReportBugWidget contextPath={router.asPath} theme="dark" instanceId="global" />
             <style>{`
-                /* Override ReportBugWidget button to be a compact floating pill
-                   when used as the global floating trigger */
-                .global-report-bug-container #report-bug-btn {
+                /* Compact pill style for the global floating trigger */
+                .global-report-bug-container #report-bug-btn-global {
                     width: auto !important;
                     padding: 8px 14px !important;
                     border-radius: 20px !important;
@@ -74,10 +71,13 @@ export default function GlobalReportBugButton() {
                     border: 1px solid rgba(255,255,255,0.2) !important;
                     white-space: nowrap !important;
                 }
-                .global-report-bug-container #report-bug-btn:hover {
+                .global-report-bug-container #report-bug-btn-global:hover {
                     background: rgba(15, 23, 42, 0.98) !important;
                     border-color: rgba(255,255,255,0.4) !important;
                     box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
+                }
+                .global-report-bug-container #report-bug-btn-global:active {
+                    transform: scale(0.98) !important;
                 }
             `}</style>
         </div>

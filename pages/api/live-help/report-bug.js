@@ -10,6 +10,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+// ─── HTML escape — prevents content injection in admin email ─────────────────
+function escapeHtml(str) {
+    if (typeof str !== 'string') return String(str ?? '');
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -130,29 +141,29 @@ export default async function handler(req, res) {
                             
                             <div class="field">
                                 <div class="label">Subject</div>
-                                <div class="value"><strong>${subject.trim()}</strong></div>
+                                <div class="value"><strong>${escapeHtml(subject.trim())}</strong></div>
                             </div>
                             
                             <div class="field">
                                 <div class="label">Reported By</div>
-                                <div class="value">${userName}${userEmail !== 'unknown' ? ` (<a href="mailto:${userEmail}" style="color: #00d4ff;">${userEmail}</a>)` : ''}</div>
+                                <div class="value">${escapeHtml(userName)}${userEmail !== 'unknown' ? ` (<a href="mailto:${escapeHtml(userEmail)}" style="color: #00d4ff;">${escapeHtml(userEmail)}</a>)` : ''}</div>
                             </div>
 
                             ${userId ? `
                             <div class="field">
                                 <div class="label">User ID</div>
-                                <div class="value"><code>${userId}</code></div>
+                                <div class="value"><code>${escapeHtml(userId)}</code></div>
                             </div>
                             ` : ''}
                             
                             <div class="description-box">
                                 <div class="label">Bug Description</div>
-                                <div class="value">${description.trim().replace(/\n/g, '<br>')}</div>
+                                <div class="value">${escapeHtml(description.trim()).replace(/\n/g, '<br>')}</div>
                             </div>
                             
                             <div class="meta">
-                                <div><strong>Page:</strong> ${currentPage || 'N/A'}</div>
-                                <div style="margin-top: 4px;"><strong>Browser:</strong> ${(userAgent || 'N/A').substring(0, 120)}</div>
+                                <div><strong>Page:</strong> ${escapeHtml(currentPage || 'N/A')}</div>
+                                <div style="margin-top: 4px;"><strong>Browser:</strong> ${escapeHtml((userAgent || 'N/A').substring(0, 120))}</div>
                                 <div style="margin-top: 4px;"><strong>Reported At:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CST</div>
                             </div>
                             

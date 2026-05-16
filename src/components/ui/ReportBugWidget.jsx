@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
 
 // ─── Priority config ───────────────────────────────────────────────────────
@@ -22,8 +22,21 @@ const CATEGORIES = [
     'Other',
 ];
 
-export default function ReportBugWidget({ contextPath, theme = 'dark' }) {
+// Global counter for unique per-instance button IDs (SSR-safe — only incremented on client)
+let _widgetCounter = 0;
+
+export default function ReportBugWidget({ contextPath, theme = 'dark', instanceId }) {
     const isLight = theme === 'light';
+    // Unique button ID per instance — eliminates duplicate DOM ID when
+    // both HamburgerMenu and GlobalReportBugButton render on the same page.
+    const idRef = useRef(null);
+    if (!idRef.current) {
+        idRef.current = instanceId
+            ? `report-bug-btn-${instanceId}`
+            : `report-bug-btn-${++_widgetCounter}`;
+    }
+    const btnId = idRef.current;
+
     const [open, setOpen]               = useState(false);
     const [subject, setSubject]         = useState('');
     const [category, setCategory]       = useState('');
@@ -46,6 +59,22 @@ export default function ReportBugWidget({ contextPath, theme = 'dark' }) {
         setOpen(false);
         setTimeout(reset, 300);
     }, [reset]);
+
+    // Listen for openBugReport() dispatch — open ONLY if this instance is visible.
+    // This correctly skips the hidden widget inside a closed HamburgerMenu drawer.
+    useEffect(() => {
+        const handler = () => {
+            const el = document.getElementById(btnId);
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const cs = window.getComputedStyle(el);
+            const visible = rect.width > 0 && rect.height > 0
+                && cs.visibility !== 'hidden' && cs.display !== 'none';
+            if (visible) setOpen(true);
+        };
+        window.addEventListener('smarter:open-bug-report', handler);
+        return () => window.removeEventListener('smarter:open-bug-report', handler);
+    }, [btnId]);
 
     const handleCategoryPick = (cat) => {
         setCategory(cat);
@@ -88,7 +117,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark' }) {
         <>
             {/* Trigger Button */}
             <button
-                id="report-bug-btn"
+                id={btnId}
                 onClick={() => setOpen(true)}
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -381,14 +410,18 @@ export default function ReportBugWidget({ contextPath, theme = 'dark' }) {
                 @keyframes rbw-fadeIn  { from { opacity: 0 } to { opacity: 1 } }
                 @keyframes rbw-slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
                 @keyframes rbw-spin    { to { transform: rotate(360deg) } }
-                #report-bug-btn:active { transform: scale(0.98) }
             `}</style>
         </>
     );
 }
 
-// Legacy export kept for backward compat with GeevesFloatingOrb references
+// ─── Public API — dispatches a custom event so the VISIBLE instance opens ───
+// Safe regardless of how many ReportBugWidget instances are mounted.
+// The visibility check in each useEffect handler ensures only the visible
+// floating button responds (not the hidden one inside a closed HamburgerMenu).
 export function openBugMessenger() {
-    document.getElementById('report-bug-btn')?.click();
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('smarter:open-bug-report'));
+    }
 }
 export { openBugMessenger as openBugReport };

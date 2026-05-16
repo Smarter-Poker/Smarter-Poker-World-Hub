@@ -6,11 +6,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 
 const STAT_ITEMS = [
-    { key: 'peak_viewers', label: 'Peak Viewers', icon: '👁️', color: '#0066FF' },
-    { key: 'duration_seconds', label: 'Duration', icon: '⏱️', color: '#8B5CF6', format: 'duration' },
-    { key: 'comment_count', label: 'Comments', icon: '💬', color: '#10B981' },
-    { key: 'reaction_count', label: 'Total Reactions', icon: '🎉', color: '#FA383E' },
-    { key: 'total_gifts_received', label: 'Diamonds Received', icon: '💎', color: '#F59E0B' },
+    { key: 'peak_viewers', label: 'Peak Viewers', icon: null, color: '#0066FF' },
+    { key: 'duration_seconds', label: 'Duration', icon: null, color: '#8B5CF6', format: 'duration' },
+    { key: 'comment_count', label: 'Comments', icon: null, color: '#10B981' },
+    { key: 'reaction_count', label: 'Total Reactions', icon: null, color: '#FA383E' },
+    { key: 'total_gifts_received', label: 'Diamonds Received', icon: null, color: '#F59E0B' },
 ];
 
 function formatDuration(seconds) {
@@ -95,7 +95,15 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
                 textAlign: 'center',
             }}>
                 {/* Header */}
-                <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
+                {/* Header — no emoji per platform standard */}
+                <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    background: 'rgba(250,56,62,0.15)', border: '1px solid rgba(250,56,62,0.4)',
+                    borderRadius: 8, padding: '4px 12px', marginBottom: 12,
+                }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#FA383E', display: 'inline-block' }} />
+                    <span style={{ color: '#FA383E', fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>LIVE ENDED</span>
+                </div>
                 <h2 style={{ color: 'white', fontSize: 22, fontWeight: 800, margin: '0 0 4px' }}>
                     Stream Ended
                 </h2>
@@ -120,7 +128,10 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
                                     border: `1px solid ${item.color}33`,
                                     gridColumn: item.key === 'total_gifts_received' ? 'span 2' : 'span 1',
                                 }}>
-                                    <div style={{ fontSize: 28, marginBottom: 6 }}>{item.icon}</div>
+                                    <div style={{
+                                        width: 10, height: 10, borderRadius: '50%',
+                                        background: item.color, margin: '0 auto 8px',
+                                    }} />
                                     <div style={{
                                         fontSize: 28, fontWeight: 800,
                                         color: item.color, fontVariantNumeric: 'tabular-nums',
