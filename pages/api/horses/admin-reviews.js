@@ -198,15 +198,14 @@ export default async function handler(req, res) {
             }
 
             // Audit log
-            try {
-                await getSupabase().from('admin_audit_log').insert([{
-                    admin_user_id: user.id,
-                    action: 'delete_venue_review',
-                    target_id: review_id,
-                    details: { reviewer_name: existing?.reviewer_name, venue_id: existing?.venue_id },
-                    created_at: new Date().toISOString(),
-                }]);
-            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            const { error: auditErr } = await getSupabase().from('admin_audit_log').insert([{
+                admin_user_id: user.id,
+                action: 'delete_venue_review',
+                target_id: review_id,
+                details: { reviewer_name: existing?.reviewer_name, venue_id: existing?.venue_id },
+                created_at: new Date().toISOString(),
+            }]);
+            if (auditErr) console.warn('[Admin Reviews DELETE] Failed to log audit:', auditErr.message);
 
             return res.status(200).json({ success: true, deleted_id: review_id });
         }

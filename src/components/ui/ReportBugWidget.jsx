@@ -3,23 +3,23 @@ import { getAccessToken } from '../../lib/authUtils';
 
 // ─── Priority config ───────────────────────────────────────────────────────
 const PRIORITIES = [
-    { key: 'low',    label: 'Low',    color: '#22c55e', bg: 'rgba(34,197,94,0.12)',    border: 'rgba(34,197,94,0.3)',   desc: 'Minor issue, cosmetic' },
-    { key: 'medium', label: 'Medium', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',   border: 'rgba(245,158,11,0.3)',  desc: 'Feature broken but workaround exists' },
-    { key: 'high',   label: 'High',   color: '#ef4444', bg: 'rgba(239,68,68,0.12)',    border: 'rgba(239,68,68,0.3)',   desc: 'Blocking — can\'t use the app' },
+    { key: 'low',    label: 'Low',    color: '#00d4ff', bg: 'rgba(0,212,255,0.12)',    border: 'rgba(0,212,255,0.3)',   desc: 'Minor Issue, Cosmetic' },
+    { key: 'medium', label: 'Medium', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',   border: 'rgba(59,130,246,0.3)',  desc: 'Feature Broken But Workaround Exists' },
+    { key: 'high',   label: 'High',   color: '#e5e7eb', bg: 'rgba(229,231,235,0.12)',    border: 'rgba(229,231,235,0.3)',   desc: 'Blocking — Can\'t Use The App' },
 ];
 
 // ─── Category quick-picks ──────────────────────────────────────────────────
 const CATEGORIES = [
-    '🔐 Login / Auth',
-    '💬 Messenger',
-    '🎥 Live Streaming',
-    '💎 Diamonds / Payments',
-    '🃏 Poker Training',
-    '📊 Club Commander',
-    '🔔 Notifications',
-    '📱 UI / Display',
-    '🐌 Performance',
-    '🔧 Other',
+    'Login / Auth',
+    'Messenger',
+    'Live Streaming',
+    'Diamonds / Payments',
+    'Poker Training',
+    'Club Commander',
+    'Notifications',
+    'UI / Display',
+    'Performance',
+    'Other',
 ];
 
 export default function ReportBugWidget({ contextPath }) {
@@ -92,12 +92,12 @@ export default function ReportBugWidget({ contextPath }) {
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     width: '100%', padding: '11px 16px', borderRadius: 10,
-                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
-                    color: '#f87171', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.25)',
+                    color: '#e5e7eb', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                     transition: 'all 0.2s', fontFamily: 'inherit',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.45)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.45)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
@@ -120,7 +120,7 @@ export default function ReportBugWidget({ contextPath }) {
                         onClick={e => e.stopPropagation()}
                         style={{
                             background: 'linear-gradient(160deg, #181c2a 0%, #0d1117 100%)',
-                            border: '1px solid rgba(239,68,68,0.2)',
+                            border: '1px solid rgba(255,255,255,0.2)',
                             borderRadius: 18, padding: 0,
                             maxWidth: 420, width: '100%',
                             boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
@@ -137,16 +137,16 @@ export default function ReportBugWidget({ contextPath }) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <div style={{
                                     width: 34, height: 34, borderRadius: 10,
-                                    background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                                    background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}>
-                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                                     </svg>
                                 </div>
                                 <div>
                                     <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>Report A Bug</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Goes directly to Support</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Goes Directly To Support</div>
                                 </div>
                             </div>
                             <button
@@ -160,10 +160,9 @@ export default function ReportBugWidget({ contextPath }) {
                         {/* ── Success State ── */}
                         {result?.success ? (
                             <div style={{ padding: '36px 24px', textAlign: 'center' }}>
-                                <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
                                 <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 8 }}>Report Sent!</div>
                                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 4 }}>
-                                    Our team has been notified and will look into it.
+                                    Our Team Has Been Notified And Will Look Into It.
                                 </div>
                                 {result.ticketId && (
                                     <div style={{
@@ -189,17 +188,16 @@ export default function ReportBugWidget({ contextPath }) {
                         ) : result?.success === false ? (
                             /* ── Error State ── */
                             <div style={{ padding: '36px 24px', textAlign: 'center' }}>
-                                <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
                                 <div style={{ fontWeight: 700, fontSize: 17, color: '#fff', marginBottom: 8 }}>Submission Failed</div>
                                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
-                                    Please email <a href="mailto:support@smarter.poker" style={{ color: '#60a5fa' }}>support@smarter.poker</a> directly.
+                                    Please Email <a href="mailto:support@smarter.poker" style={{ color: '#3b82f6' }}>support@smarter.poker</a> Directly.
                                 </div>
                                 <button
                                     onClick={() => setResult(null)}
                                     style={{
                                         marginTop: 20, padding: '10px 24px',
-                                        borderRadius: 10, border: 'none', background: 'rgba(239,68,68,0.15)',
-                                        color: '#f87171', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                        borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)',
+                                        color: '#e5e7eb', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                     }}
                                 >
                                     Try Again
@@ -223,9 +221,9 @@ export default function ReportBugWidget({ contextPath }) {
                                                 style={{
                                                     padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                                                     cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                                                    background: category === cat ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
-                                                    border: category === cat ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                                                    color: category === cat ? '#fca5a5' : 'rgba(255,255,255,0.55)',
+                                                    background: category === cat ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                                    border: category === cat ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                                                    color: category === cat ? '#00d4ff' : 'rgba(255,255,255,0.55)',
                                                 }}
                                             >
                                                 {cat}
@@ -237,13 +235,13 @@ export default function ReportBugWidget({ contextPath }) {
                                 {/* Subject */}
                                 <div style={{ marginBottom: 14 }}>
                                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
-                                        Subject <span style={{ color: '#f87171' }}>*</span>
+                                        Subject <span style={{ color: '#00d4ff' }}>*</span>
                                     </div>
                                     <input
                                         type="text"
                                         value={subject}
                                         onChange={e => setSubject(e.target.value)}
-                                        placeholder="Brief description of the issue…"
+                                        placeholder="Brief Description Of The Issue..."
                                         maxLength={120}
                                         required
                                         style={{
@@ -252,7 +250,7 @@ export default function ReportBugWidget({ contextPath }) {
                                             color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                                             transition: 'border-color 0.2s',
                                         }}
-                                        onFocus={e => e.target.style.borderColor = 'rgba(239,68,68,0.5)'}
+                                        onFocus={e => e.target.style.borderColor = 'rgba(0,212,255,0.5)'}
                                         onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                                     />
                                 </div>
@@ -289,12 +287,12 @@ export default function ReportBugWidget({ contextPath }) {
                                 {/* Description */}
                                 <div style={{ marginBottom: 16 }}>
                                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>
-                                        What Happened? <span style={{ color: '#f87171' }}>*</span>
+                                        What Happened? <span style={{ color: '#00d4ff' }}>*</span>
                                     </div>
                                     <textarea
                                         value={description}
                                         onChange={e => setDescription(e.target.value)}
-                                        placeholder="Describe the bug. What were you doing when it happened? What did you expect vs what occurred?"
+                                        placeholder="Describe The Bug. What Were You Doing When It Happened? What Did You Expect Vs What Occurred?"
                                         required
                                         rows={4}
                                         maxLength={2000}
@@ -305,7 +303,7 @@ export default function ReportBugWidget({ contextPath }) {
                                             lineHeight: 1.6, boxSizing: 'border-box', minHeight: 96,
                                             transition: 'border-color 0.2s',
                                         }}
-                                        onFocus={e => e.target.style.borderColor = 'rgba(239,68,68,0.5)'}
+                                        onFocus={e => e.target.style.borderColor = 'rgba(0,212,255,0.5)'}
                                         onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                                     />
                                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'right', marginTop: 3 }}>
@@ -323,7 +321,7 @@ export default function ReportBugWidget({ contextPath }) {
                                         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                                     </svg>
                                     <span style={{ fontSize: 11, color: 'rgba(0,212,255,0.7)' }}>
-                                        Page URL and device info will be included automatically
+                                        Page URL And Device Info Will Be Included Automatically
                                     </span>
                                 </div>
 
@@ -336,13 +334,13 @@ export default function ReportBugWidget({ contextPath }) {
                                         borderRadius: 12, border: 'none',
                                         background: (submitting || !subject.trim() || !description.trim())
                                             ? 'rgba(255,255,255,0.08)'
-                                            : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                            : 'linear-gradient(135deg, #00d4ff 0%, #3b82f6 100%)',
                                         color: (submitting || !subject.trim() || !description.trim())
                                             ? 'rgba(255,255,255,0.3)'
                                             : '#fff',
                                         fontSize: 15, fontWeight: 700, cursor: (submitting || !subject.trim() || !description.trim()) ? 'not-allowed' : 'pointer',
                                         fontFamily: 'inherit', transition: 'all 0.2s',
-                                        boxShadow: (submitting || !subject.trim() || !description.trim()) ? 'none' : '0 4px 20px rgba(239,68,68,0.35)',
+                                        boxShadow: (submitting || !subject.trim() || !description.trim()) ? 'none' : '0 4px 20px rgba(0,212,255,0.35)',
                                     }}
                                 >
                                     {submitting ? (

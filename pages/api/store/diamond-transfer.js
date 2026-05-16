@@ -574,12 +574,13 @@ export default async function handler(req, res) {
         }
 
         // Record the IP cluster action
-        await getSupabase().from('anti_farming_ips').insert({
+        const { error: ipErr } = await getSupabase().from('anti_farming_ips').insert({
             user_id: userId,
             ip_address: clientIp,
             action_type: 'diamond_gift_sent',
             amount: amount
         });
+        if (ipErr) console.warn('[DiamondTransfer] Failed to log IP action:', ipErr.message);
 
         // ── #13: Admin audit trail ──
         console.info(`[DiamondTransfer] ✓ ${amount}💎 | sender_age=${Math.floor(senderAgeDays)}d | graduated=${isGraduated} | tier=${isVipTier ? 'vip' : 'standard'}`);

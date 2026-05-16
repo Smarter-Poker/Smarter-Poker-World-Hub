@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import InviteFriendsModal from './InviteFriendsModal';
 import GeevesMenuWidget from './GeevesMenuWidget';
+import ReportBugWidget from './ReportBugWidget';
 import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAuthUser } from '../../lib/authUtils';
@@ -789,6 +790,9 @@ export default function HamburgerMenu({
           {menuItems.map((item, index) => renderMenuItem(item, index))}
           {/* Geeves AI Help Widget — Inline in menu */}
           <GeevesMenuWidget />
+          <div style={{ padding: '8px 16px' }}>
+            <ReportBugWidget />
+          </div>
         </div>
 
         {/* Bottom Links */}

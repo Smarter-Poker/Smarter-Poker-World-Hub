@@ -719,7 +719,8 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
           .maybeSingle();
 
         if (!existing) {
-          await getSupabase().from('leak_hand_examples').insert(example);
+          const { error: insErr } = await getSupabase().from('leak_hand_examples').insert(example);
+          if (insErr) console.warn('[LeakDetect] Failed to link hand example:', insErr.message);
         }
       }
     }

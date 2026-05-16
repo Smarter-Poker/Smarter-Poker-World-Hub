@@ -446,20 +446,22 @@ export default async function handler(req, res) {
 
 async function saveConversationMessages(conversationId, question, answer, cacheId, fromCache) {
     // Save user message
-    await getSupabase().from('geeves_messages').insert({
+    const { error: msg1Err } = await getSupabase().from('geeves_messages').insert({
         conversation_id: conversationId,
         content: question,
         is_user: true
     });
+    if (msg1Err) console.warn('[Geeves] saveConversationMessages msg1 error:', msg1Err.message);
 
     // Save Geeves response
-    await getSupabase().from('geeves_messages').insert({
+    const { error: msg2Err } = await getSupabase().from('geeves_messages').insert({
         conversation_id: conversationId,
         content: answer,
         is_user: false,
         cache_id: cacheId,
         from_cache: fromCache
     });
+    if (msg2Err) console.warn('[Geeves] saveConversationMessages msg2 error:', msg2Err.message);
 
     // Auto-generate title from first question (replace default title)
     const { data: conv } = await getSupabase()
@@ -474,21 +476,23 @@ async function saveConversationMessages(conversationId, question, answer, cacheI
         : conv.title;
 
     // Update conversation timestamp (and title if still default)
-    await getSupabase()
+    const { error: convErr } = await getSupabase()
         .from('geeves_conversations')
         .update({
             updated_at: new Date().toISOString(),
             ...(isDefaultTitle ? { title: newTitle } : {})
         })
         .eq('id', conversationId);
+    if (convErr) console.warn('[Geeves] saveConversationMessages update conv error:', convErr.message);
 }
 
 async function trackAnalytics(userId, questionType, question, responseLength, fromCache) {
-    await getSupabase().from('geeves_analytics').insert({
+    const { error: analyticsErr } = await getSupabase().from('geeves_analytics').insert({
         user_id: userId,
         question_type: questionType,
         question: question.substring(0, 500),
         response_length: responseLength,
         metadata: { from_cache: fromCache }
     });
+    if (analyticsErr) console.warn('[Geeves] trackAnalytics error:', analyticsErr.message);
 }

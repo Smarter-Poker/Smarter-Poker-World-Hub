@@ -136,16 +136,15 @@ export default async function handler(req, res) {
             // Roll back the idempotency claim row so the user can retry next year
             // (or today, if it was a transient RPC failure). Same bug shape as
             // daily-login (commit 8d9ce5c9f1).
-            try {
-                await getSupabase()
+            const { error: rollbackErr } = await getSupabase()
                     .from('diamond_reward_claims')
                     .delete()
                     .eq('user_id', userId)
                     .eq('reward_type', claimKey)
                     .eq('claim_date', today);
-            } catch (rollbackErr) {
-                console.warn('[BirthdayReward] Rollback delete failed:', rollbackErr?.message || rollbackErr);
-            }
+              if (rollbackErr) {
+                  console.warn('[BirthdayReward] Rollback delete failed:', rollbackErr.message);
+              }
             console.warn('[BirthdayReward] RPC error (claim rolled back so user can retry):', rpcError);
             return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
         }

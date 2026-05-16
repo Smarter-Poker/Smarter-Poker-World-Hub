@@ -144,15 +144,14 @@ export default async function handler(req, res) {
           if (rpcError) {
               // Roll back the idempotency claim row so the user can retry.
               // Same bug shape as daily-login (commit 8d9ce5c9f1).
-              try {
-                  await getSupabase()
-                      .from('diamond_reward_claims')
-                      .delete()
-                      .eq('user_id', userId)
-                      .eq('reward_type', 'video_watch')
-                      .eq('claim_date', today);
-              } catch (rollbackErr) {
-                  console.warn('[VideoWatch] Rollback delete failed:', rollbackErr?.message || rollbackErr);
+              const { error: rollbackErr } = await getSupabase()
+                  .from('diamond_reward_claims')
+                  .delete()
+                  .eq('user_id', userId)
+                  .eq('reward_type', 'video_watch')
+                  .eq('claim_date', today);
+              if (rollbackErr) {
+                  console.warn('[VideoWatch] Rollback delete failed:', rollbackErr.message);
               }
               console.warn('[VideoWatch] RPC error (claim rolled back so user can retry):', rpcError);
               return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });

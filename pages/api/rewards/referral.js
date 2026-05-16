@@ -116,15 +116,14 @@ export default async function handler(req, res) {
               // Same bug shape as daily-login (commit 8d9ce5c9f1). Note: this
               // claim is keyed by (referrerId, reward_type, claim_date) — the
               // referredUserId lives in metadata, not the unique constraint.
-              try {
-                  await getSupabase()
+              const { error: rollbackErr } = await getSupabase()
                       .from('diamond_reward_claims')
                       .delete()
                       .eq('user_id', referrerId)
                       .eq('reward_type', 'referral')
                       .eq('claim_date', today);
-              } catch (rollbackErr) {
-                  console.warn('[ReferralReward] Rollback delete failed:', rollbackErr?.message || rollbackErr);
+              if (rollbackErr) {
+                  console.warn('[ReferralReward] Rollback delete failed:', rollbackErr.message);
               }
               console.warn('[ReferralReward] RPC error (claim rolled back so user can retry):', rpcError);
               return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });

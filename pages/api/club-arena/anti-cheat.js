@@ -296,7 +296,7 @@ try {
           }
 
           // Log the review event
-          await getSupabase().from('anti_cheat_events').insert({
+          const { error: eventErr } = await getSupabase().from('anti_cheat_events').insert({
             event_type: `flag_${newStatus}`,
             player_id: data.player_id,
             club_id: clubId,
@@ -304,6 +304,7 @@ try {
             details: { flag_id: flagId, new_status: newStatus, notes },
             triggered_by: userId,
           });
+          if (eventErr) console.warn('[AntiCheat] Failed to log review event:', eventErr.message);
 
           const reviewResult = { success: true, flag: data };
           // Cache idempotent response
@@ -389,7 +390,7 @@ try {
           // unified whether the kick happened mid-session (engine path) or
           // when the player was already idle (no engine call).
           try {
-            await getSupabase().from('anti_cheat_events').insert({
+            const { error: kickLogErr } = await getSupabase().from('anti_cheat_events').insert({
               event_type: 'player_kicked',
               player_id: targetPlayerId,
               club_id: clubId,
@@ -402,6 +403,7 @@ try {
               },
               triggered_by: userId,
             });
+            if (kickLogErr) throw kickLogErr;
           } catch (logErr) {
             console.warn('[AntiCheat] kick log failed:', logErr?.message || logErr);
             // Non-fatal — kick already succeeded server-side

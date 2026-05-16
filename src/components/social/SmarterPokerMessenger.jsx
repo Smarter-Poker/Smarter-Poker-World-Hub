@@ -14,6 +14,7 @@ import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 import { useMessengerService } from '../../hooks/useMessengerService';
 import GiphyPicker from '../shared/GiphyPicker';
 import LocationEnableModal from '../ui/LocationEnableModal';
+import { openBugReport } from '../ui/ReportBugWidget';
 
 import { supabase } from '../../lib/supabase';
 
@@ -1715,6 +1716,7 @@ export const ChatWindow = ({
                                     { label: svc.blockedUsers?.includes(otherUser?.id) ? '🚫 Unblock User' : '🚫 Block User', action: () => svc.blockedUsers?.includes(otherUser?.id) ? svc.unblockUser?.(otherUser?.id) : svc.blockUser?.(otherUser?.id), danger: !svc.blockedUsers?.includes(otherUser?.id) },
                                     { label: '💾 Export / Backup', action: () => setShowArchiveExport(v => !v) },
                                     { label: '👥 Create Group', action: () => setShowGroupWizard(v => !v) },
+                                    { label: 'Report A Bug', action: () => openBugReport() },
                                 ].map(item => (
                                     <button key={item.label} onClick={() => { item.action(); setShowHamburgerMenu(false); }}
                                         style={{ display: 'block', width: '100%', padding: '9px 14px', border: 'none', background: 'transparent', cursor: 'pointer', color: item.danger ? '#ff6b6b' : '#e4e6ea', fontSize: 13, textAlign: 'left' }}

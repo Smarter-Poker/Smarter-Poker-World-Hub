@@ -114,13 +114,14 @@ export default async function handler(req, res) {
     const requestCap = MINT_CAPS[callerRole] || MINT_CAPS.club_owner;
     if (amount > requestCap) {
       // Audit log: cap enforcement event
-      await getSupabase().from('chip_transactions').insert({
+      const { error: capTxErr } = await getSupabase().from('chip_transactions').insert({
         club_id: clubId,
         amount: 0,
         transaction_type: 'mint_cap_blocked',
         notes: `Mint blocked: requested ${amount.toLocaleString()}, cap ${requestCap.toLocaleString()} (${callerRole})`,
         metadata: { requested_amount: amount, cap_applied: requestCap, caller_role: callerRole, user_id: user.id },
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      });
+      if (capTxErr) console.warn('[mint-chips] Failed to log cap block:', capTxErr.message);
 
       return res.status(400).json({
         success: false,
@@ -146,13 +147,14 @@ export default async function handler(req, res) {
 
       if (amount > remaining) {
         // Audit log: daily ceiling enforcement
-        await getSupabase().from('chip_transactions').insert({
+        const { error: ceilTxErr } = await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           amount: 0,
           transaction_type: 'mint_cap_blocked',
           notes: `Daily ceiling blocked: requested ${amount.toLocaleString()}, today total ${dailyTotal.toLocaleString()}, ceiling ${DAILY_CLUB_CEILING.toLocaleString()}`,
           metadata: { requested_amount: amount, daily_total: dailyTotal, daily_ceiling: DAILY_CLUB_CEILING, remaining, caller_role: callerRole, user_id: user.id },
-        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        });
+        if (ceilTxErr) console.warn('[mint-chips] Failed to log ceiling block:', ceilTxErr.message);
 
         return res.status(429).json({
           success: false,

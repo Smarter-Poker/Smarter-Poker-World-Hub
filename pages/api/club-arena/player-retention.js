@@ -162,14 +162,15 @@ export default async function handler(req, res) {
 
               if (!playerMember) return res.status(404).json({ error: 'Player not found in club' });
 
-              await getSupabase()
+              const { error: updateErr } = await getSupabase()
                   .from('club_members')
                   .update({ chip_balance: (playerMember.chip_balance || 0) + promoAmount })
                   .eq('club_id', clubId)
                   .eq('user_id', playerId);
+              if (updateErr) throw updateErr;
 
               // Record the transaction
-              await getSupabase().from('chip_transactions').insert({
+              const { error: txErr } = await getSupabase().from('chip_transactions').insert({
                   from_user_id: user.id,
                   to_user_id: playerId,
                   club_id: clubId,
@@ -177,6 +178,7 @@ export default async function handler(req, res) {
                   transaction_type: 'promo',
                   notes: 'Welcome-back bonus',
               });
+              if (txErr) console.warn('[PlayerRetention] Failed to record promo transaction:', txErr.message);
 
               await notifyUser(supabaseAdmin, {
                   userId: playerId,
@@ -212,10 +214,11 @@ export default async function handler(req, res) {
               const currentSettings = club?.settings || {};
               const newRetention = { ...retConfig, ...(config || {}) };
 
-              await getSupabase()
+              const { error: confErr } = await getSupabase()
                   .from('clubs')
                   .update({ settings: { ...currentSettings, retention: newRetention } })
                   .eq('id', clubId);
+              if (confErr) throw confErr;
 
               logAudit(supabaseAdmin, {
                   actionType: 'retention_config_updated',

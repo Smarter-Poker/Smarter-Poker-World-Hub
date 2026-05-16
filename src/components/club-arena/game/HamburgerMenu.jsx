@@ -4,6 +4,7 @@
  * Sounds, Vibrations, Share, VIP, Exit
  */
 import React, { useState } from 'react';
+import ReportBugWidget from '../../ui/ReportBugWidget';
 
 const MENU_ITEMS = [
   { key: 'topup', label: 'Top Up', icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6', hasArrow: true },
@@ -101,6 +102,9 @@ export default function HamburgerMenu({ isOpen, onClose, onAction }) {
               ) : null}
             </button>
           ))}
+          <div className="px-4 py-4 mt-2 border-t border-gray-700">
+            <ReportBugWidget />
+          </div>
         </div>
       </div>
     </>

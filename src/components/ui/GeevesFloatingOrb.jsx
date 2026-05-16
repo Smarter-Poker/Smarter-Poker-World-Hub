@@ -15,7 +15,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { MESSENGER_OPTIONS, buildBugMessage } from './ReportBugWidget';
+import { openBugReport } from './ReportBugWidget';
 import { extractRoleFromToken } from '../../lib/geevesKB/rolePersonalization';
 import { busEmit } from '../../engine/EventBus';
 
@@ -132,7 +132,7 @@ export default function GeevesFloatingOrb() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [showBugForm, setShowBugForm] = useState(false);
+
     const [showTip, setShowTip] = useState(false);
     const [tipText, setTipText] = useState('');
     const [isListening, setIsListening] = useState(false); // Voice input state
@@ -660,58 +660,6 @@ export default function GeevesFloatingOrb() {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* ── Report a Bug — Messenger Picker (slides in above input) ── */}
-                    {showBugForm && (
-                        <div style={{
-                            padding: '16px 14px',
-                            borderTop: '1px solid rgba(255, 80, 80, 0.3)',
-                            background: 'linear-gradient(180deg, rgba(255, 60, 60, 0.06) 0%, rgba(255, 60, 60, 0.02) 100%)',
-                            flexShrink: 0,
-                            animation: 'geevesSlideUp 0.2s ease-out',
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <line x1="12" y1="8" x2="12" y2="12" />
-                                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                                    </svg>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: '#ff6b6b', letterSpacing: '0.5px' }}>Report a Bug</span>
-                                </div>
-                                <button
-                                    onClick={() => setShowBugForm(false)}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 18 }}
-                                >&times;</button>
-                            </div>
-                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: '0 0 12px 0', lineHeight: 1.4 }}>
-                                Message us directly. Your page and device info will be included.
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {MESSENGER_OPTIONS.map(opt => (
-                                    <button
-                                        key={opt.key}
-                                        onClick={() => {
-                                            const msg = buildBugMessage(path);
-                                            const url = opt.getUrl(msg);
-                                            window.open(url, '_blank', 'noopener,noreferrer');
-                                            setShowBugForm(false);
-                                        }}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: 10,
-                                            width: '100%', padding: '10px 14px', borderRadius: 10,
-                                            background: opt.bg, border: `1px solid ${opt.border}`,
-                                            color: opt.color, fontSize: 14, fontWeight: 600,
-                                            cursor: 'pointer', transition: 'all 0.2s',
-                                            textAlign: 'left', fontFamily: 'inherit',
-                                        }}
-                                    >
-                                        {opt.icon}
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Input Bar */}
                     <div style={{
@@ -721,17 +669,13 @@ export default function GeevesFloatingOrb() {
                     }}>
                         {/* Report a Bug button */}
                         <button
-                            onClick={() => setShowBugForm(prev => !prev)}
-                            title="Report a Bug"
+                            onClick={() => openBugReport()}
+                            title="Report A Bug"
                             aria-label="Report a bug"
                             style={{
                                 width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                                background: showBugForm
-                                    ? 'linear-gradient(135deg, #cc3333 0%, #ff4444 100%)'
-                                    : 'rgba(255,255,255,0.07)',
-                                border: showBugForm
-                                    ? '2px solid rgba(255,80,80,0.6)'
-                                    : '1px solid rgba(255,107,107,0.25)',
+                                background: 'rgba(255,255,255,0.07)',
+                                border: '1px solid rgba(255,255,255,0.25)',
                                 cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 transition: 'all 0.2s',
@@ -739,7 +683,7 @@ export default function GeevesFloatingOrb() {
                         >
                             {/* Bug SVG icon */}
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                stroke={showBugForm ? '#fff' : '#ff6b6b'}
+                                stroke="#e5e7eb"
                                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="8" y="6" width="8" height="14" rx="4" />
                                 <path d="M6 10H2" />

@@ -478,12 +478,13 @@ export default async function handler(req, res) {
                       }
                       // #4: Save old slug to history for redirect support
                       if (existing.slug) {
-                          await getSupabase().from('slug_history').insert({
+                          const { error: historyErr } = await getSupabase().from('slug_history').insert({
                               page_id: id,
                               old_slug: existing.slug,
                               new_slug: updates.slug,
                               reason: 'changed',
                           });
+                          if (historyErr) console.warn('[SocialPages] Failed to save slug history:', historyErr.message);
                       }
                   }
               } else {
@@ -600,12 +601,13 @@ export default async function handler(req, res) {
 
           // #4/#10: Save slug to history before deletion (enables cooldown)
           if (existing.slug) {
-              await getSupabase().from('slug_history').insert({
+              const { error: delHistoryErr } = await getSupabase().from('slug_history').insert({
                   page_id: id,
                   old_slug: existing.slug,
                   new_slug: null,
                   reason: 'deleted',
               });
+              if (delHistoryErr) console.warn('[SocialPages] Failed to save slug history on delete:', delHistoryErr.message);
           }
 
           const { error } = await getSupabase()

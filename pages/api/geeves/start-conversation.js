@@ -80,11 +80,12 @@ export default async function handler(req, res) {
   What poker question can I help you with today?`;
 
           // Save greeting message
-          await getSupabase().from('geeves_messages').insert({
+          const { error: msgErr } = await getSupabase().from('geeves_messages').insert({
               conversation_id: conversation.id,
               content: greeting,
               is_user: false
           });
+          if (msgErr) console.warn('[Geeves] Failed to save greeting message:', msgErr.message);
 
           return res.status(200).json({
               conversationId: conversation.id,

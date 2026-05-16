@@ -110,10 +110,11 @@ export default async function handler(req, res) {
                     .eq('id', post_id)
                     .maybeSingle();
                 if (post) {
-                    await getSupabase()
+                    const { error: updError } = await getSupabase()
                         .from('social_posts')
                         .update({ share_count: (post.share_count || 0) + 1 })
                         .eq('id', post_id);
+                    if (updError) console.warn('[share-count] Fallback update failed:', updError.message);
                 }
             }
         }

@@ -144,14 +144,15 @@ export default async function handler(req, res) {
           const newBalance = currentBalance - diamondCost;
 
           // Create order record
-          await getSupabase().from('merchandise_orders').insert({
+          const { error: orderErr } = await getSupabase().from('merchandise_orders').insert({
               user_id: user.id,
               items: resolvedItems,
               total_usd: totalUsd,
               diamonds_spent: diamondCost,
               payment_method: 'diamonds',
               status: 'completed'
-          }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+          });
+          if (orderErr) console.warn('[DiamondPurchase] Failed to record merchandise order:', orderErr.message);
 
 
           return res.status(200).json({

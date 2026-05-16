@@ -872,7 +872,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (session) {
-          await getSupabase().from('sandbox_results').insert({
+          const { error: resultsErr } = await getSupabase().from('sandbox_results').insert({
             session_id: session.id,
             primary_action: analysis.optimalAction?.label,
             primary_frequency: analysis.optimalAction?.frequency,
@@ -888,6 +888,7 @@ export default async function handler(req, res) {
               timestamp: new Date().toISOString(),
             },
           });
+          if (resultsErr) console.warn('[Sandbox] Results insert failed:', resultsErr.message);
 
           // Update user stats
           const { data: existing } = await getSupabase()
@@ -896,7 +897,7 @@ export default async function handler(req, res) {
             .eq('user_id', userId)
             .maybeSingle();
 
-          await getSupabase().from('user_assistant_stats').upsert({
+          const { error: statsErr } = await getSupabase().from('user_assistant_stats').upsert({
             user_id: userId,
             sandbox_sessions_count: (existing?.sandbox_sessions_count || 0) + 1,
             total_sessions_reviewed: (existing?.total_sessions_reviewed || 0) + 1,
@@ -904,6 +905,7 @@ export default async function handler(req, res) {
             last_sandbox_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id' });
+          if (statsErr) console.warn('[Sandbox] Stats upsert failed:', statsErr.message);
         }
       } catch (dbErr) {
         console.warn('[Sandbox] Session save error (non-fatal):', dbErr.message);
