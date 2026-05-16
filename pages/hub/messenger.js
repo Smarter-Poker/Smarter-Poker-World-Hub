@@ -2193,8 +2193,14 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                     textOverflow: 'ellipsis',
                 }}>
                     {(() => {
-                        // Clean up message preview - strip [CALL_RECEIPT] prefix and parse JSON
                         let preview = lastMsg || '';
+
+                        // ── Live Stream Invite — show clean label instead of raw [LIVE_INVITE]room=... ──
+                        if (preview.startsWith('[LIVE_INVITE]')) {
+                            return '🎥 Live Stream Invite';
+                        }
+
+                        // ── Call Receipt — parse JSON and format nicely ──
                         if (preview.startsWith('[CALL_RECEIPT]')) {
                             const rawReceipt = preview.replace('[CALL_RECEIPT]', '');
                             try {
@@ -2203,12 +2209,14 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                                 const st = rd.status || 'completed';
                                 const dur = rd.duration || 0;
                                 const durStr = dur > 0 ? (dur >= 60 ? ` • ${Math.floor(dur / 60)}m ${dur % 60}s` : ` • ${dur}s`) : '';
+                                const callTypeName = rd.type === 'video' ? 'Video Call' : 'Voice Call';
                                 const statusLabel = st === 'completed' ? '' : st === 'missed' ? 'Missed ' : st === 'declined' ? 'Declined ' : 'Cancelled ';
-                                preview = `${tp} ${statusLabel}${rd.type === 'video' ? 'Video' : 'Voice'} call${durStr}`;
+                                preview = `${tp} ${statusLabel}${callTypeName}${durStr}`;
                             } catch (_) {
                                 preview = rawReceipt; // Legacy plain text
                             }
                         }
+
                         const displayText = preview.slice(0, 35) + (preview.length > 35 ? '...' : '');
                         return displayText;
                     })()}
