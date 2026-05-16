@@ -658,6 +658,7 @@ export default function CreateHomeGamePage() {
   }
 
   return (
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Create Home Game"
@@ -1819,7 +1820,6 @@ export default function CreateHomeGamePage() {
                   const completed = checks.filter((c) => c.done).length;
                   const pct = Math.round((completed / checks.length) * 100);
                   return (
-                    <CommanderPageShell>
                     <div className="cmd-panel p-5 space-y-4">
                       <div className="flex items-center gap-3">
                         <Share2 className="w-5 h-5 text-[#8B5CF6]" />
@@ -2066,6 +2066,6 @@ export default function CreateHomeGamePage() {
         </main>
       </div>
     </>
-                    </CommanderPageShell>
+    </CommanderPageShell>
   );
 }
