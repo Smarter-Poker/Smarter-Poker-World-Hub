@@ -210,7 +210,9 @@ const toTitleCase = (str) => {
 const formatDescription = (desc) => {
     if (!desc) return '';
     // 1. Remove trailing square-bracketed ID or UUID
-    const cleaned = desc.replace(/\s*\[[a-f0-9-]+\]\s*$/i, '');
+    let cleaned = desc.replace(/\s*\[[a-f0-9-]+\]\s*$/i, '');
+    // Format large numbers with commas (e.g. 10000 -> 10,000)
+    cleaned = cleaned.replace(/\b(\d{4,})\b/g, (match) => parseInt(match, 10).toLocaleString());
     // 2. Convert to Title Case
     return toTitleCase(cleaned);
 };
