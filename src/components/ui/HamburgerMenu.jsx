@@ -43,6 +43,23 @@ export default function HamburgerMenu({
 
   const activeUser = user || localUser;
 
+  const handleLogout = async () => {
+    try {
+      const { supabase } = await import('../../lib/supabase');
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Signout warning:', e);
+    } finally {
+      try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+      try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
+      try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
+      try { localStorage.removeItem('sp-cached-header-user'); } catch (_) {}
+      try { localStorage.removeItem('sp-cached-settings-profile'); } catch (_) {}
+      try { localStorage.removeItem('sp-notif-count'); } catch (_) {}
+      window.top.location.href = '/';
+    }
+  };
+
   // Close on ESC key
   useEffect(() => {
     const handleEsc = (e) => {
@@ -796,60 +813,81 @@ export default function HamburgerMenu({
         </div>
 
         {/* Bottom Links */}
-        {bottomLinks.length > 0 && (
-          <div
-            style={{ padding: '0 16px', borderTop: `1px solid ${colors.border}`, paddingTop: 12 }}
-          >
-            {bottomLinks.map((link, index) => {
-              const commonStyle = {
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 0',
-                textDecoration: 'none',
-                color: colors.text,
-                borderTop: index > 0 ? `1px solid ${colors.border}` : 'none',
-                width: '100%',
-                fontSize: 15,
-                fontFamily: 'inherit',
-              };
+        {(() => {
+          const finalLinks = [...bottomLinks];
+          const hasSignOut = finalLinks.some(link => 
+            link.label && (link.label.toLowerCase().includes('sign out') || link.label.toLowerCase().includes('log out'))
+          );
+          if (!hasSignOut) {
+            finalLinks.push({
+              label: 'Log Out',
+              action: true,
+              onClick: handleLogout,
+              icon: (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              ),
+            });
+          }
+          if (finalLinks.length === 0) return null;
+          return (
+            <div
+              style={{ padding: '0 16px', borderTop: `1px solid ${colors.border}`, paddingTop: 12, paddingBottom: 16 }}
+            >
+              {finalLinks.map((link, index) => {
+                const commonStyle = {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 0',
+                  textDecoration: 'none',
+                  color: colors.text,
+                  borderTop: index > 0 ? `1px solid ${colors.border}` : 'none',
+                  width: '100%',
+                  fontSize: 15,
+                  fontFamily: 'inherit',
+                };
 
-              if (link.action || link.openInviteModal) {
+                if (link.action || link.openInviteModal) {
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (link.openInviteModal) {
+                          setShowInviteModal(true);
+                          return;
+                        }
+                        if (link.onClick) link.onClick();
+                        onClose();
+                      }}
+                      style={{
+                        ...commonStyle,
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {link.icon && <div style={{ width: 24, height: 24 }}>{link.icon}</div>}
+                      <span style={{ flex: 1, fontSize: 15, textAlign: 'left' }}>{link.label}</span>
+                      <span style={{ color: colors.textSec }}>›</span>
+                    </button>
+                  );
+                }
+
                 return (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      if (link.openInviteModal) {
-                        setShowInviteModal(true);
-                        return;
-                      }
-                      if (link.onClick) link.onClick();
-                      onClose();
-                    }}
-                    style={{
-                      ...commonStyle,
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
+                  <Link key={index} href={link.href} onClick={onClose} style={commonStyle}>
                     {link.icon && <div style={{ width: 24, height: 24 }}>{link.icon}</div>}
-                    <span style={{ flex: 1, fontSize: 15, textAlign: 'left' }}>{link.label}</span>
+                    <span style={{ flex: 1, fontSize: 15 }}>{link.label}</span>
                     <span style={{ color: colors.textSec }}>›</span>
-                  </button>
+                  </Link>
                 );
-              }
-
-              return (
-                <Link key={index} href={link.href} onClick={onClose} style={commonStyle}>
-                  {link.icon && <div style={{ width: 24, height: 24 }}>{link.icon}</div>}
-                  <span style={{ flex: 1, fontSize: 15 }}>{link.label}</span>
-                  <span style={{ color: colors.textSec }}>›</span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Invite Friends Modal */}

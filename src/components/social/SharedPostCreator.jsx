@@ -10,7 +10,6 @@ import toast from '../../../src/stores/toastStore';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import CheckInModal from './CheckInModal';
-import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
 import {
   MAX_MEDIA,
@@ -121,6 +120,27 @@ export function SharedPostCreator({
   // confirmed ZERO thumbnails ever uploaded for ANY user before this fix.
   const thumbnailPromiseRef = useRef({}); // { [blobUrl]: Promise<dataUrl|null> }
   const _pickerOpenRef = useRef(false); // tracks if iOS file picker is open
+
+  // Trigger check-in from external feed components
+  useEffect(() => {
+    const handleTriggerCheckIn = (e) => {
+      const venue = e.detail;
+      if (!venue) return;
+      setCheckInVenue(venue);
+      if (!content.trim()) {
+        setContent(
+          `Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`
+        );
+      }
+      // Scroll to post creator smoothly
+      const el = document.getElementById('shared-post-creator');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+    window.addEventListener('sp-trigger-checkin', handleTriggerCheckIn);
+    return () => window.removeEventListener('sp-trigger-checkin', handleTriggerCheckIn);
+  }, [content]);
 
   // Identity switching
   const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
@@ -1359,6 +1379,7 @@ export function SharedPostCreator({
 
   return (
     <div
+      id="shared-post-creator"
       style={{
         background: C.card,
         borderRadius: 8,
@@ -2778,17 +2799,6 @@ export function SharedPostCreator({
           onClose={() => setShowCheckInModal(false)}
         />
       )}
-      {/* Always available */}
-      <TrendingVenues
-        onCheckIn={(venue) => {
-          setCheckInVenue(venue);
-          if (!content.trim()) {
-            setContent(
-              `Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`
-            );
-          }
-        }}
-      />
     </div>
   );
 }

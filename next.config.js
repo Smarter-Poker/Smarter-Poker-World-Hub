@@ -179,6 +179,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig = {
+  outputFileTracingRoot: require('path').join(__dirname),
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
   // Keep it ON for production builds where it helps catch bugs; OFF for dev stability.
   reactStrictMode: process.env.NODE_ENV === 'production',
@@ -669,5 +670,5 @@ const sentryOptions = {
 // On a 950+ page repo this consumes 1-2GB of build RAM and tips us over the
 // Vercel 8GB container limit. Runtime Sentry.init() in sentry.client.config.js
 // still captures all thrown errors — only build-time auto-instrumentation is skipped.
-const pwaConfig = process.env.NODE_ENV === 'development' ? nextConfig : withPWA(nextConfig);
+const pwaConfig = nextConfig;
 module.exports = pwaConfig;

@@ -25,6 +25,11 @@ const INITIAL_OVERLAYS = [
 ];
 
 export default function WalletAlign() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const containerRef = useRef(null);
   const [overlays, setOverlays] = useState(INITIAL_OVERLAYS);
   const dragging = useRef(null);
@@ -54,6 +59,7 @@ export default function WalletAlign() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     return () => {
@@ -69,10 +75,13 @@ export default function WalletAlign() {
 VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
 
   const handleCopy = () => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
     navigator.clipboard.writeText(coordsText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (!mounted) return null;
 
   return (
     <>

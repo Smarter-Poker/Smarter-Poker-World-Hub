@@ -67,7 +67,7 @@ const signOutAction = () => {
 // signOutAction and the JSX runtime are resolved).
 function getSignOutBottomLink() {
     return {
-        label: 'Sign Out',
+        label: 'Log Out',
         action: true,
         onClick: signOutAction,
         icon: (
@@ -444,7 +444,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Billing & Payments', '/hub/settings?section=billing'),
             createMenuItem.divider(),
             createMenuItem.section('Account Actions'),
-            createMenuItem.action('Sign Out', handlers.onSignOut, null, false, true),
+            createMenuItem.action('Log Out', handlers.onSignOut, null, false, true),
             createMenuItem.navigation('Delete Account', '/hub/settings?section=delete-account')
         ],
         bottomLinks: [
