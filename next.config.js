@@ -79,7 +79,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development', // Only active in production
+  disable: !process.env.VERCEL, // Only active in production Vercel builds
   // NOTE: fallbacks removed — next-pwa@5.6.0 crashes with 'precacheFallback' TypeError
   // when injecting fallback handlers into runtimeCaching entries. All PWA caching remains intact.
   cacheOnFrontEndNav: false, // Don't cache client-side navigations — prevents stale page renders
@@ -179,7 +179,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig = {
-  outputFileTracingRoot: require('path').join(__dirname),
+  // outputFileTracingRoot: require('path').join(__dirname),
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
   // Keep it ON for production builds where it helps catch bugs; OFF for dev stability.
   reactStrictMode: process.env.NODE_ENV === 'production',
@@ -205,7 +205,7 @@ const nextConfig = {
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
   // from ~1.8s to ~1.1s on a 950-page repo. Safe for Pages Router. Don't set
   // this in dev — dev uses the default server.
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: process.env.VERCEL ? 'standalone' : undefined,
 
   // ─── R3F Package Transpilation ──────────────────────────────────────────────
   // ESM-only packages need transpilation for proper Next.js compatibility.
@@ -296,8 +296,7 @@ const nextConfig = {
     //
     // If this deploy OOMs, revert to cpus: 1. The autofix bot is tagged
     // off this commit via [DO NOT AUTOFIX] so it won't race heap bumps.
-    cpus: process.env.NODE_ENV === 'production' ? 2 : undefined,
-    // [OOM FIX] Disable worker threads — with cpus:1 they add spawn overhead for no gain.
+    cpus: 1,
     workerThreads: false,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes

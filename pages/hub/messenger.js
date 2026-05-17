@@ -126,7 +126,7 @@ function formatDateHeader(timestamp) {
 // 📱 smarter-poker-style SVG ICONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Phone, Video, Search, Info } from 'lucide-react';
+import { Phone, Video, Search, Info, Home, Building, Crown } from 'lucide-react';
 
 const PhoneIcon = ({ size = 24, color = '#0084FF' }) => (
     <Phone size={size} color={color} strokeWidth={2.5} />

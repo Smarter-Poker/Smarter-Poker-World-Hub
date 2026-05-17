@@ -311,3 +311,7 @@ export default function HomeGameRosterPage() {
     </CommanderPageShell>
   );
 }
+
+export async function getServerSideProps() {
+  return { props: {} };
+}
