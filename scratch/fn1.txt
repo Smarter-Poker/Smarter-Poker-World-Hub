@@ -1,0 +1,51 @@
+Arguments: p_sender_id uuid, p_amount integer
+
+Definition:
+CREATE OR REPLACE FUNCTION public.fn_check_anti_farming_gift_cap(p_sender_id uuid, p_amount integer)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+    v_created_at timestamptz;
+    v_account_age_days integer;
+    v_is_vip boolean;
+    v_daily_sent integer;
+    v_daily_limit integer := 500;
+BEGIN
+    SELECT created_at, is_vip INTO v_created_at, v_is_vip
+    FROM public.profiles WHERE id = p_sender_id;
+
+    -- Type mismatch fix: cast the EXTRACT numeric to int
+    v_account_age_days := (EXTRACT(DAY FROM now() - v_created_at))::int;
+
+    IF v_account_age_days < 7 AND NOT COALESCE(v_is_vip, false) THEN
+        RETURN json_build_object(
+            'allowed', false,
+            'reason', 'NEW_ACCOUNT_COOLDOWN',
+            'lift_date', (v_created_at + interval '7 days')
+        );
+    END IF;
+
+    IF NOT COALESCE(v_is_vip, false) THEN
+        SELECT COALESCE(SUM(ABS(amount)), 0)::int INTO v_daily_sent
+        FROM public.diamond_transactions
+        WHERE user_id = p_sender_id
+          AND type IN ('diamond_gift_sent', 'live_gift_sent')
+          AND created_at >= now() - interval '24 hours';
+
+        IF (v_daily_sent + p_amount) > v_daily_limit THEN
+            RETURN json_build_object(
+                'allowed', false,
+                'reason', 'DAILY_GIFT_CAP_EXCEEDED',
+                'limit', v_daily_limit,
+                'current', v_daily_sent,
+                'attempted', p_amount
+            );
+        END IF;
+    END IF;
+
+    RETURN json_build_object('allowed', true);
+END;
+$function$

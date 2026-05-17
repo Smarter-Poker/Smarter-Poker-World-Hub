@@ -227,6 +227,11 @@ export default async function handler(req, res) {
       error: `New accounts cannot send live gifts until your 30-Day VIP Card expires. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`,
       daysRemaining,
       gateType: 'new_user_block',
+      title: 'Account Cool Down',
+      popup_message: 'Your Account Is In A 30-Day Cool Down Period',
+      popup_explanation: 'To maintain a secure network economy, new accounts cannot send diamond gifts until the 30-Day VIP Card window expires. Purchase diamonds or wait for the cool down to complete.',
+      next_send_message: 'Unlimited Gifting Unlocks After Purchase',
+      limits_lift_message: `Your VIP Card Window Expires In ${daysRemaining} Day${daysRemaining !== 1 ? 's' : ''}`,
     });
   }
 
@@ -288,6 +293,11 @@ export default async function handler(req, res) {
         cap: activeCap,
         capType: capLabel,
         gateType: 'source_tier_cap',
+        title: 'Outbound Limit Reached',
+        popup_message: 'You Have Reached Your 30-Day Sending Limit',
+        popup_explanation: `Your account is currently in the graduation phase. Unpaid or fresh accounts have a rolling 30-day cap of ${FREE_EARNED_30DAY_LIMIT} diamonds for free/earned and ${PURCHASED_WON_30DAY_LIMIT} diamonds for purchased/won. Limits are fully lifted once your account reaches 120 days old.`,
+        next_send_message: 'Limits Graduate Automatically At 120 Days',
+        limits_lift_message: 'Limits Graduate To Unlimited At 120 Days',
       });
     }
   } else {
@@ -307,6 +317,10 @@ export default async function handler(req, res) {
     return res.status(429).json({
       error: `This broadcaster has reached their 30-day gift receive limit (${RECEIVER_30DAY_RECEIVE_LIMIT} diamonds/30 days)`,
       gateType: 'broadcaster_receive_cap',
+      title: 'Broadcaster Cap Reached',
+      popup_message: 'Broadcaster Receive Limit Reached',
+      popup_explanation: `This broadcaster has reached their 30-day gift receive limit of ${RECEIVER_30DAY_RECEIVE_LIMIT.toLocaleString()} diamonds. Please try again later or select a different broadcaster to gift.`,
+      next_send_message: 'Please Try Again In A Few Days',
     });
   }
 

@@ -96,7 +96,7 @@ export function LiveDiamondGift({
         throw new Error(`Server error: ${resp.status} ${resp.statusText}`);
       }
       if (!resp.ok) {
-        if (resp.status === 429 && data?.gateType) {
+        if (data?.gateType) {
           const err = new Error(data.error || 'Gift failed');
           err.popupData = data;
           throw err;

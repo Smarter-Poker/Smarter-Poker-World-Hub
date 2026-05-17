@@ -1305,33 +1305,6 @@ export default function SettingsPage() {
                                 {userProfile?.player_number && (
                                     <div style={{ marginBottom: 16 }}>
                                         <ReferralCrewCard />
-                                        {/* Invite Friends Button */}
-                                        <button
-                                            onClick={() => setShowInviteModal(true)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '14px 20px',
-                                                background: 'linear-gradient(135deg, #42B72A, #36A420)',
-                                                border: 'none',
-                                                borderRadius: 10,
-                                                color: '#fff',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: 8,
-                                                boxShadow: '0 4px 20px rgba(66, 183, 42, 0.3)',
-                                                transition: 'all 0.3s ease',
-                                                marginTop: 10,
-                                            }}
-                                        >
-                                            Invite Friends — Share Via Social, Email & SMS
-                                        </button>
-                                        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
-                                            Friends Enter Your Code During Signup, You Earn 500 Diamonds Each Time!
-                                        </p>
                                     </div>
                                 )}
 
