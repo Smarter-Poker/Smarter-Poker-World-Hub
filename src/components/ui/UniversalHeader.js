@@ -1011,7 +1011,7 @@ export default function UniversalHeader({
                     )}
                     {!hideLeftIcon && (
                         <button
-                            onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => router.push('/hub'))}
+                            onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => { window.location.href = '/hub'; })}
                             className="header-img-btn header-nav-btn"
                         >
                             <img

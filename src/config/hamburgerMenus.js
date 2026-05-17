@@ -623,6 +623,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Manage Sources', '/hub/news/sources')
         ],
         bottomLinks: [
+            { label: 'Hub', href: '/hub', icon: MenuIcons.home },
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
         ]
     }),

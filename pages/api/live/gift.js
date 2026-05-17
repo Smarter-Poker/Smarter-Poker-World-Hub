@@ -352,19 +352,43 @@ export default async function handler(req, res) {
 
     // deduct_diamonds returns jsonb with success field
     if (deductErr) {
-      // Anti-farming trigger raised? Parse popup payload from error.details
-      if (deductErr.code === 'P0001' && deductErr.details) {
+      console.warn('[live/gift] Deduction failed caught:', deductErr);
+      const errCode = deductErr.code;
+      const errDetails = deductErr.details;
+      const errMessage = deductErr.message || 'Gift failed due to a network error. Please try again.';
+
+      if ((errCode === 'P0001' || errCode === '23514') && errDetails) {
         try {
-          const popup = JSON.parse(deductErr.details);
-          if (popup && popup.code && popup.title) {
+          const popup = JSON.parse(errDetails);
+          if (popup && popup.code) {
             await refundSender?.('cap_blocked');
+
+            // Map database-level codes to beautiful user-friendly alerts
+            let displayTitle = popup.title || 'Gift Restricted';
+            let displayExplanation = popup.popup_explanation || popup.reason || errMessage;
+            let displayMessage = popup.popup_message || popup.reason || 'You cannot complete this gift right now';
+
+            if (popup.code === 'pair_24h_cap') {
+              displayTitle = 'Recipient Limit Reached';
+              displayExplanation = 'To protect against farming and abuse, we limit the amount of diamonds you can send to a single broadcaster to 5,000 💎 every 24 hours.';
+              displayMessage = 'You Have Reached Your 24-Hour Sending Limit For This Recipient';
+            } else if (popup.code === 'user_24h_cap') {
+              displayTitle = 'Daily Sending Limit Reached';
+              displayExplanation = 'To protect the platform economy, accounts have a daily total outbound transfer cap of 50,000 💎 every 24 hours.';
+              displayMessage = 'You Have Reached Your 24-Hour Overall Sending Limit';
+            } else if (popup.code === 'burst_cap') {
+              displayTitle = 'Sending Too Fast';
+              displayExplanation = 'Please slow down. You can send a maximum of 2,000 💎 every 60 seconds.';
+              displayMessage = 'Velocity Check Triggered';
+            }
+
             return res.status(429).json({
-              error: popup.reason,
+              error: popup.reason || errMessage,
               gateType: popup.code,
-              title: popup.title,
-              popup_message: popup.popup_message,
-              popup_explanation: popup.popup_explanation,
-              next_send_message: popup.next_send_message,
+              title: displayTitle,
+              popup_message: displayMessage,
+              popup_explanation: displayExplanation,
+              next_send_message: popup.next_send_message || 'Please try again later',
               limits_lift_at: popup.limits_lift_at,
               limits_lift_message: popup.limits_lift_message,
               amount_sent_24h: popup.amount_sent_24h,
@@ -373,10 +397,14 @@ export default async function handler(req, res) {
           }
         } catch (_) { /* fall through to legacy */ }
       }
-      console.warn('[live/gift] Deduction failed:', deductErr.message);
-      return res
-        .status(500)
-        .json({ error: 'Gift failed due to a network error. Please try again.' });
+
+      // Extract clear error message if the trigger raised an exception without JSON
+      let cleanMessage = errMessage;
+      if (cleanMessage.includes('Anti-farming:')) {
+        cleanMessage = cleanMessage.replace('Anti-farming:', '').trim();
+      }
+
+      return res.status(500).json({ error: cleanMessage });
     }
     if (deductResult && !deductResult.success) {
       return res.status(400).json({
