@@ -111,6 +111,16 @@ export default function PlayerNotificationsPage() {
   useTrainingBus('notifications');
 
   const getToken = () => getAccessToken();
+  const { isLoading: loading, mutate: refreshNotifications } = useSWR(
+    authChecking ? null : '/api/commander/notifications/my',
+    async (url) => {
+      const token = getToken();
+      if (!token) return null;
+      return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => { if (d.success) setNotifications(d.data?.notifications || []); return d; });
+    }
+  );
+
   // Realtime listener — live updates for notifications/index.js
   useEffect(() => {
     if (!user?.id) return;
@@ -122,16 +132,6 @@ export default function PlayerNotificationsPage() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, refreshNotifications]);
-
-  const { isLoading: loading, mutate: refreshNotifications } = useSWR(
-    authChecking ? null : '/api/commander/notifications/my',
-    async (url) => {
-      const token = getToken();
-      if (!token) return null;
-      return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => { if (d.success) setNotifications(d.data?.notifications || []); return d; });
-    }
-  );
 
   async function handleMarkRead(notification) {
     // Optimistic update
