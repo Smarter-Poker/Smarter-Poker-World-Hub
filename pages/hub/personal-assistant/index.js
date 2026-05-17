@@ -14,6 +14,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useRecentSessions } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -32,6 +34,7 @@ export default function PersonalAssistantPage() {
 
   // ═══ ACTION GATE: Users can view the hub, but navigating to tools is gated ═══
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
+  const menuConfig = getMenuConfig('hub-home', user, {}, {});
 
   // Intro video - only show once per session
   const [showIntro, setShowIntro] = useState(() => {
@@ -130,6 +133,14 @@ export default function PersonalAssistantPage() {
 
       <div style={S.page}>
         <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
+        <HamburgerMenu
+          isOpen={showMenu}
+          onClose={() => setShowMenu(false)}
+          direction="left"
+          theme="dark"
+          menuItems={menuConfig.menuItems}
+          bottomLinks={menuConfig.bottomLinks}
+        />
 
         {/* Page Title Header */}
         <div style={{ textAlign: 'center', margin: '16px auto 0' }}>

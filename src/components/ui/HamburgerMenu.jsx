@@ -245,7 +245,8 @@ export default function HamburgerMenu({
           </div>
         );
 
-      case 'action':
+      case 'action': {
+        const isFlat = item.label === 'Log Out' || item.label === 'Invite Friends' || item.label?.includes('Invite') || item.label?.includes('Logout') || item.label?.includes('Sign Out') || item.noBorder;
         return (
           <button
             key={index}
@@ -262,10 +263,10 @@ export default function HamburgerMenu({
               display: 'flex',
               alignItems: 'center',
               gap: 12,
-              padding: '12px 16px',
+              padding: isFlat ? '12px 0' : '12px 16px',
               background: item.primary ? colors.blue : 'transparent',
-              border: item.primary ? 'none' : `1px solid ${colors.border}`,
-              borderRadius: 8,
+              border: item.primary ? 'none' : (isFlat ? 'none' : `1px solid ${colors.border}`),
+              borderRadius: isFlat ? 0 : 8,
               color: item.primary ? 'white' : colors.text,
               fontSize: 15,
               fontWeight: 500,
@@ -291,6 +292,7 @@ export default function HamburgerMenu({
             <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
           </button>
         );
+      }
 
       case 'divider':
         return (

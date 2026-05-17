@@ -86,8 +86,38 @@ if (fs.existsSync(exportIndexPath)) {
   } else {
     console.log('   ✅ export/index.js serverActionsManifest require is already patched or healthy.');
   }
+  
+  if (content.includes("nextFontManifest: require((0, _path.join)(distDir, 'server', `${_constants1.NEXT_FONT_MANIFEST}.json`))") && !content.includes('nextFontManifest: (() => { try { return require')) {
+    console.log('   🩹 Patching: export/index.js nextFontManifest require...');
+    const targetFont = "nextFontManifest: require((0, _path.join)(distDir, 'server', `${_constants1.NEXT_FONT_MANIFEST}.json`))";
+    const replacementFont = "nextFontManifest: (() => { try { return require((0, _path.join)(distDir, 'server', `${_constants1.NEXT_FONT_MANIFEST}.json`)); } catch(e) { return {}; } })()";
+    content = content.replace(targetFont, replacementFont);
+    fs.writeFileSync(exportIndexPath, content, 'utf8');
+    console.log('   ✅ export/index.js nextFontManifest require patched successfully!');
+  } else {
+    console.log('   ✅ export/index.js nextFontManifest require is already patched or healthy.');
+  }
 } else {
   console.log('   ⚠️ export/index.js path not found, skipping patch 3.');
 }
 
+// ── 4. Patch build/index.js to prevent serverBundle unlink errors ──────────
+const buildIndexPathMain = path.resolve(__dirname, '../node_modules/next/dist/build/index.js');
+if (fs.existsSync(buildIndexPathMain)) {
+  let content = fs.readFileSync(buildIndexPathMain, 'utf8');
+  if (content.includes('await _fs.promises.unlink(serverBundle);') && !content.includes('try { await _fs.promises.unlink(serverBundle); }')) {
+    console.log('   🩹 Patching: build/index.js serverBundle unlink...');
+    const target = 'await _fs.promises.unlink(serverBundle);';
+    const replacement = 'try { await _fs.promises.unlink(serverBundle); } catch (e) {}';
+    content = content.replace(target, replacement);
+    fs.writeFileSync(buildIndexPathMain, content, 'utf8');
+    console.log('   ✅ build/index.js serverBundle unlink patched successfully!');
+  } else {
+    console.log('   ✅ build/index.js serverBundle unlink is already patched or healthy.');
+  }
+} else {
+  console.log('   ⚠️ build/index.js path not found, skipping patch 4.');
+}
+
 console.log('🏁 Build-Time Patching Completed.\n');
+
