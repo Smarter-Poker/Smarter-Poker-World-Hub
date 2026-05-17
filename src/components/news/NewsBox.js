@@ -29,12 +29,23 @@ const SOURCE_COLORS_LOCAL = {
     'PokerNews': '#e53935',
     'MSPT': '#1565c0',
     'CardPlayer': '#43a047',
+    'Card Player': '#43a047',
     'WSOP': '#f9a825',
     'Poker.org': '#7b1fa2',
     'Pokerfuse': '#00897b'
 };
 
 export default function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
+    // Calculate dynamic read time: ~200 words per minute or pseudo-random based on title
+    const textToEstimate = article.content || article.summary || article.excerpt || article.title || '';
+    const wordCount = textToEstimate.trim().split(/\s+/).filter(Boolean).length;
+    const dynamicReadTime = wordCount > 50 
+        ? Math.min(12, Math.max(2, Math.ceil(wordCount / 200))) 
+        : Math.min(5, Math.max(2, article.title ? (article.title.length % 4) + 2 : 3));
+    
+    // Override if we have a valid, non-default read_time in database
+    const readTime = (article.read_time && article.read_time !== 3) ? article.read_time : dynamicReadTime;
+
     const categoryColors = {
         tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: 'Trophy' },
         strategy: { bg: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', icon: '📚' },
@@ -81,9 +92,9 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
             )}
 
             {/* Reading Time Badge */}
-            {article.read_time > 0 && (
+            {readTime > 0 && (
                 <div className="read-time-badge">
-                    <Clock size={9} /> {article.read_time} min
+                    <Clock size={9} /> {readTime} min
                 </div>
             )}
 

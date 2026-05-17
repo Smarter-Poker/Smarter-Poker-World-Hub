@@ -1,41 +1,39 @@
 /**
  * 🎨 PAGE TRANSITION WRAPPER
- * Smooth Framer Motion transitions for all pages
+ * Smooth Framer Motion transitions for all pages with accessibility & mobile-first scaling
  */
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
-const pageVariants = {
-    initial: {
-        opacity: 0,
-        y: 20,
-    },
-    enter: {
+const pageVariantsFull = {
+    initial: { opacity: 0, y: 20, scale: 0.98 },
+    animate: {
         opacity: 1,
         y: 0,
-        transition: {
-            duration: 0.4,
-            ease: [0.25, 0.1, 0.25, 1],
-        },
+        scale: 1,
+        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
     },
-    exit: {
-        opacity: 0,
-        y: -20,
-        transition: {
-            duration: 0.3,
-            ease: [0.25, 0.1, 0.25, 1],
-        },
-    },
+    exit: { opacity: 0, y: -20, scale: 0.98, transition: { duration: 0.3 } },
 };
 
-export default function PageTransition({ children }) {
+const pageVariantsReduced = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.15 } },
+    exit:    { opacity: 0, transition: { duration: 0.1  } },
+};
+
+export default function PageTransition({ children, className = '' }) {
+    const reduce = useReducedMotion();
+    const variants = reduce ? pageVariantsReduced : pageVariantsFull;
+
     return (
         <motion.div
             initial="initial"
-            animate="enter"
+            animate="animate"
             exit="exit"
-            variants={pageVariants}
-            style={{ width: '100%', height: '100%' }}
+            variants={variants}
+            className={className}
+            style={{ width: '100%', minHeight: '100dvh' }}
         >
             {children}
         </motion.div>

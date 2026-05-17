@@ -27,14 +27,13 @@ function getSupabase() {
     return _supabase;
 }
 
-// THE 6 SOURCE BOXES - HARDCODED AND IMMUTABLE
+// THE 5 SOURCE BOXES - HARDCODED AND IMMUTABLE
 const SOURCE_BOXES = [
     { box: 1, source_name: 'PokerNews', fallback_image: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=800' },
     { box: 2, source_name: 'MSPT', fallback_image: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 3, source_name: 'CardPlayer', fallback_image: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800' },
+    { box: 3, source_name: 'Card Player', fallback_image: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800' },
     { box: 4, source_name: 'WSOP', fallback_image: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 5, source_name: 'Poker.org', fallback_image: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 6, source_name: 'Pokerfuse', fallback_image: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=800' }
+    { box: 5, source_name: 'Poker.org', fallback_image: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800' }
 ];
 
 export default async function handler(req, res) {
@@ -60,10 +59,11 @@ export default async function handler(req, res) {
 
               // Fallback: try by source_name if source_box didn't match
               if (!article) {
+                  const searchNames = box.source_name === 'Card Player' ? ['Card Player', 'CardPlayer'] : [box.source_name];
                   const { data: byName } = await getSupabase()
                       .from('poker_news')
                       .select('*')
-                      .eq('source_name', box.source_name)
+                      .in('source_name', searchNames)
                       .eq('is_published', true)
                       .order('published_at', { ascending: false })
                       .limit(1)

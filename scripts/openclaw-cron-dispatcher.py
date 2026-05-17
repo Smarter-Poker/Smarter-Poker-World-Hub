@@ -238,6 +238,7 @@ ALL_CRONS = [
     ('/api/cron/venue-tournaments',               dict(hour=4, minute=0)),
     ('/api/cron/refresh-venue-json',              dict(hour=5, minute=0)),   # cache refresh
     ('/api/cron/news-scraper',                    dict(hour='*/2', minute=0)),
+    ('/api/cron/cardplayer-scraper',              dict(hour='*/2', minute=5)),
     ('/api/cron/pokernews-videos',                dict(hour='*/3', minute=30)),
     ('/api/cron/poker-news',                      dict(hour='*/4', minute=15)),
     # Content generation (upserts daily challenge/question rows; safely re-generatable)
@@ -673,6 +674,21 @@ def make_job(path):
                 fn()
             except Exception as e:
                 log.error(f'❌ internal {path}: {type(e).__name__}: {e}')
+    elif path == '/api/cron/cardplayer-scraper':
+        def _job():
+            script_path = str(Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / 'scripts' / 'scrape-cardplayer.py')
+            cmd = [sys.executable, script_path]
+            log.info(f'▶ Script job {path} → {" ".join(cmd)}')
+            t0 = time.time()
+            try:
+                result = subprocess.run(cmd, capture_output=False, timeout=120)
+                elapsed = round(time.time() - t0, 1)
+                if result.returncode == 0:
+                    log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+                else:
+                    log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            except Exception as e:
+                log.error(f'❌ {path} script error: {e}')
     elif _workers_dispatch(path):
         def _job():
             fire_cron(path)   # fire_cron auto-routes to workers via _workers_dispatch
@@ -737,6 +753,8 @@ def should_skip_on_secondary(path: str, role: str) -> bool:
     function becomes a no-op. Retained to catch any future SCRIPT_JOBS
     additions that land before their workers HTTP port.
     """
+    if role == 'secondary' and path == '/api/cron/cardplayer-scraper':
+        return True
     return (
         role == 'secondary'
         and path in SCRIPT_JOBS

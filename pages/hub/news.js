@@ -54,11 +54,11 @@ const SourcePlaceholderBox = dynamic(() => import('../../src/components/news/Sou
 // Fallback data
 const FALLBACK_NEWS = [
     { id: '1', title: "WSOP 2025 Schedule Released", content: "The World Series of Poker announces its biggest schedule yet", image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=400&q=80", category: "tournament", read_time: 4, views: 5200, published_at: new Date().toISOString(), source_name: "PokerNews" },
-    { id: '2', title: "Phil Ivey Returns to Live Poker", content: "Legendary player set for major comeback", image_url: "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400&q=80", category: "news", read_time: 3, views: 8900, published_at: new Date(Date.now() - 3600000).toISOString(), source_name: "CardPlayer" },
+    { id: '2', title: "Phil Ivey Returns to Live Poker", content: "Legendary player set for major comeback", image_url: "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400&q=80", category: "news", read_time: 3, views: 8900, published_at: new Date(Date.now() - 3600000).toISOString(), source_name: "Card Player" },
     { id: '3', title: "GTO Strategy: 3-Betting Ranges Explained", content: "Master the art of 3-betting with optimal frequencies", image_url: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=400&q=80", category: "strategy", read_time: 8, views: 12400, published_at: new Date(Date.now() - 7200000).toISOString(), source_name: "Upswing" },
     { id: '4', title: "Online Poker Traffic Hits New Records", content: "Global player pools see unprecedented growth", image_url: "https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80", category: "industry", read_time: 5, views: 3100, published_at: new Date(Date.now() - 10800000).toISOString(), source_name: "Poker.org" },
     { id: '5', title: "EPT Barcelona Main Event Preview", content: "All you need to know about Europe's biggest poker festival", image_url: "https://images.unsplash.com/photo-1541278107931-e006523892df?w=400&q=80", category: "tournament", read_time: 6, views: 4500, published_at: new Date(Date.now() - 14400000).toISOString(), source_name: "PokerNews" },
-    { id: '6', title: "Bankroll Management Essentials", content: "Protect your poker career with proper money management", image_url: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=80", category: "strategy", read_time: 7, views: 6700, published_at: new Date(Date.now() - 18000000).toISOString(), source_name: "CardPlayer" },
+    { id: '6', title: "Bankroll Management Essentials", content: "Protect your poker career with proper money management", image_url: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=80", category: "strategy", read_time: 7, views: 6700, published_at: new Date(Date.now() - 18000000).toISOString(), source_name: "Card Player" },
     { id: '7', title: "New Poker Room Opens in Las Vegas", content: "State-of-the-art facility debuts on the Strip", image_url: "https://images.unsplash.com/photo-1517232115160-ff93364542dd?w=400&q=80", category: "industry", read_time: 4, views: 2300, published_at: new Date(Date.now() - 21600000).toISOString(), source_name: "Poker.org" },
     { id: '8', title: "WPT Championship Final Table Set", content: "Six players remain for the $10M prize pool", image_url: "https://images.unsplash.com/photo-1609743522653-52354461eb27?w=400&q=80", category: "tournament", read_time: 5, views: 7800, published_at: new Date(Date.now() - 25200000).toISOString(), source_name: "PokerNews" }
 ];
@@ -170,6 +170,7 @@ export default function NewsHub() {
         'PokerNews': '#e53935',
         'MSPT': '#1565c0',
         'CardPlayer': '#43a047',
+        'Card Player': '#43a047',
         'WSOP': '#f9a825',
         'Poker.org': '#7b1fa2',
         'Pokerfuse': '#00897b'
@@ -189,7 +190,13 @@ export default function NewsHub() {
     // SWR-backed static data — cached 60s, survive navigation
     const jsonFetch = (url) => fetch(url).then(r => r.json());
     const { data: sourceBoxesData } = useSWR('/api/news/source-boxes', jsonFetch);
-    const sourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
+    const rawSourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
+    const sourceBoxes = React.useMemo(() => {
+        return rawSourceBoxes.map(a => ({
+            ...a,
+            source_name: a.source_name === 'CardPlayer' ? 'Card Player' : a.source_name
+        }));
+    }, [rawSourceBoxes]);
 
     const { data: videosData } = useSWR('/api/news/videos?limit=20', jsonFetch);
     const videos = (videosData?.success && videosData.data?.length) ? videosData.data : (typeof FALLBACK_VIDEOS !== 'undefined' ? FALLBACK_VIDEOS : []);
@@ -213,7 +220,13 @@ export default function NewsHub() {
     if (activeTab !== 'all') newsParams.set('category', activeTab);
     if (searchQuery) newsParams.set('search', searchQuery);
     const { data: newsData, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
-    const news = (newsData?.success && newsData.data?.length) ? newsData.data : (typeof FALLBACK_NEWS !== 'undefined' ? FALLBACK_NEWS : []);
+    const rawNews = (newsData?.success && newsData.data?.length) ? newsData.data : (typeof FALLBACK_NEWS !== 'undefined' ? FALLBACK_NEWS : []);
+    const news = React.useMemo(() => {
+        return rawNews.map(a => ({
+            ...a,
+            source_name: a.source_name === 'CardPlayer' ? 'Card Player' : a.source_name
+        }));
+    }, [rawNews]);
 
     // Track when data was last refreshed
     React.useEffect(() => {
@@ -590,7 +603,7 @@ export default function NewsHub() {
     const topArticleIds = topArticles.map(a => a.id);
 
     // Filter remaining news for "More Stories" section
-    const VALID_SOURCES = ['PokerNews', 'MSPT', 'CardPlayer', 'WSOP', 'Poker.org', 'Pokerfuse'];
+    const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 'Pokerfuse'];
     const filteredNews = news.filter(article => {
         if (article.source_name === 'Smarter.Poker') return false;
         if (!VALID_SOURCES.includes(article.source_name) && !article.source_box) return false;
@@ -1901,7 +1914,7 @@ export default function NewsHub() {
                     .read-time-badge {
                         position: absolute;
                         bottom: 12px;
-                        left: 12px;
+                        right: 12px;
                         display: flex;
                         align-items: center;
                         gap: 3px;

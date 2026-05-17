@@ -613,6 +613,42 @@ export default async function handler(req, res) {
         });
         if (ipErr) console.warn('[DiamondTransfer] Failed to log IP action:', ipErr.message);
 
+        // ── Requirement 1: Recipient Notification ──
+        try {
+            const toTitleCase = (str) => {
+                if (!str) return '';
+                return str
+                    .toLowerCase()
+                    .split(' ')
+                    .map(word => {
+                        if (!word) return '';
+                        const upper = word.toUpperCase();
+                        if (['VIP', 'GPS', 'WSOP', 'WPT', 'ID', 'UID', 'UTC'].includes(upper)) return upper;
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                    })
+                    .join(' ');
+            };
+            const titleSenderName = toTitleCase(senderName);
+            const { error: notifErr } = await getSupabase().from('notifications').insert({
+                user_id: recipientId,
+                actor_id: userId,
+                type: 'diamond_received',
+                title: 'Diamond Gift Received',
+                message: `${titleSenderName} Sent You ${amount} Diamonds`,
+                link: '/hub/store',
+                read: false,
+                is_read: false,
+                data: { sender_id: userId, sender_name: senderName, amount }
+            });
+            if (notifErr) {
+                console.warn('[DiamondTransfer] Failed to insert recipient notification:', notifErr.message);
+            } else {
+                console.info('[DiamondTransfer] Recipient notification inserted successfully');
+            }
+        } catch (notifErr) {
+            console.warn('[DiamondTransfer] Failed to create notification:', notifErr.message);
+        }
+
         // ── #13: Admin audit trail ──
         console.info(`[DiamondTransfer] ✓ ${amount}💎 | sender_age=${Math.floor(senderAgeDays)}d | graduated=${isGraduated} | tier=${isVipTier ? 'vip' : 'standard'}`);
 
