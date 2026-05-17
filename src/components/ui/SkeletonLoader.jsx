@@ -1,12 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SKELETON LOADER — Shimmer placeholder for loading states
    Matches the platform's dark metal aesthetic.
-
-   Usage:
-     <SkeletonLoader rows={5} />
-     <SkeletonLoader variant="card" count={3} />
-     <SkeletonLoader variant="table" rows={10} />
-     <SkeletonLoader variant="profile" />
+   
+   Unified Version:
+   - Supports default export <SkeletonLoader />
+   - Supports named exports: SkeletonBox, SkeletonCard, SkeletonAvatar
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const shimmerStyle = {
@@ -29,6 +27,56 @@ const CSS = `
   100% { background-position: -200% 0; }
 }
 `;
+
+// ─── Named Exports for Backwards Compatibility ──────────────────────────────
+
+export function SkeletonBox({ width = '100%', height = 20, style = {} }) {
+  return (
+    <>
+      <style>{CSS}</style>
+      <div
+        style={{
+          ...shimmerStyle,
+          width,
+          height,
+          ...style,
+        }}
+      />
+    </>
+  );
+}
+
+export function SkeletonCard({ style = {} }) {
+  return (
+    <div style={{
+      background: 'rgba(255, 255, 255, 0.03)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: 12,
+      padding: 20,
+      ...style,
+    }}>
+      <SkeletonBox height={24} width="60%" style={{ marginBottom: 12 }} />
+      <SkeletonBox height={16} width="100%" style={{ marginBottom: 8 }} />
+      <SkeletonBox height={16} width="90%" style={{ marginBottom: 8 }} />
+      <SkeletonBox height={16} width="70%" />
+    </div>
+  );
+}
+
+export function SkeletonAvatar({ size = 48 }) {
+  return (
+    <div
+      style={{
+        ...shimmerStyle,
+        width: size,
+        height: size,
+        borderRadius: '50%',
+      }}
+    />
+  );
+}
+
+// ─── Default Export component ───────────────────────────────────────────────
 
 export default function SkeletonLoader({ variant = 'rows', rows = 5, count = 3, style = {} }) {
   return (

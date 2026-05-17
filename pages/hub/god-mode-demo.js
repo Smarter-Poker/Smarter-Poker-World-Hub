@@ -12,7 +12,7 @@ import AnimatedButton from '../../src/components/ui/AnimatedButton';
 import AnimatedCard from '../../src/components/ui/AnimatedCard';
 import AnimatedModal from '../../src/components/ui/AnimatedModal';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
-import { SkeletonBox, SkeletonCard, SkeletonAvatar } from '../../src/components/ui/SkeletonLoader.js';
+import { SkeletonBox, SkeletonCard, SkeletonAvatar } from '../../src/components/ui/SkeletonLoader.jsx';
 import toast from '../../src/stores/toastStore';
 import {
     masteryCelebration,

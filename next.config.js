@@ -205,7 +205,7 @@ const nextConfig = {
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
   // from ~1.8s to ~1.1s on a 950-page repo. Safe for Pages Router. Don't set
   // this in dev — dev uses the default server.
-  output: process.env.VERCEL ? 'standalone' : undefined,
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
 
   // ─── R3F Package Transpilation ──────────────────────────────────────────────
   // ESM-only packages need transpilation for proper Next.js compatibility.

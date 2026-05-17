@@ -1637,3 +1637,8 @@ export default function ManageHomeGamePage() {
     </CommanderPageShell>
   );
 }
+
+export async function getServerSideProps() {
+  return { props: {} };
+}
+
