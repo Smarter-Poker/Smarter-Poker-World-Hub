@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import C from './MessengerTheme';
+import React, { useState, useEffect, useRef } from 'react';
+import { defaultTheme } from './MessengerTheme';
+import { Avatar } from './Avatar';
+import { getAccessToken, authedFetch } from '../../lib/authUtils';
 
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
+const linkPreviewCache = {}; // Module-level cache for link previews
 
 function formatMessageTime(timestamp) {
     if (!timestamp) return '';
@@ -9,12 +13,142 @@ function formatMessageTime(timestamp) {
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔗 LINK PREVIEW CARD
+// ═══════════════════════════════════════════════════════════════════════════
+export function LinkPreviewCard({ url, isOwn, theme: C = defaultTheme }) {
+    const [preview, setPreview] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const fetchedRef = useRef(false);
 
-function MessageContent({ content }) {
+    useEffect(() => {
+        if (!url || fetchedRef.current) return;
+        fetchedRef.current = true;
+
+        if (linkPreviewCache[url]) {
+            setPreview(linkPreviewCache[url]);
+            setLoading(false);
+            return;
+        }
+
+        const fetchPreview = async () => {
+            try {
+                const token = getAccessToken();
+                const resp = await authedFetch('/api/messenger/link-preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ url }),
+                });
+                const data = await resp.json();
+                if (data.success && data.preview?.title) {
+                    linkPreviewCache[url] = data.preview;
+                    setPreview(data.preview);
+                }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            setLoading(false);
+        };
+        fetchPreview();
+    }, [url]);
+
+    if (loading || !preview) return null;
+
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+                display: 'block',
+                marginTop: 8,
+                borderRadius: 12,
+                overflow: 'hidden',
+                border: `1px solid ${isOwn ? 'rgba(255,255,255,0.2)' : C.border}`,
+                background: isOwn ? 'rgba(255,255,255,0.1)' : '#FAFAFA',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        >
+            {preview.image && (
+                <img
+                    src={preview.image}
+                    alt={preview.title}
+                    style={{
+                        width: '100%',
+                        height: 140,
+                        objectFit: 'cover',
+                        display: 'block',
+                    }}
+                    loading="lazy"
+                    onError={e => { e.target.style.display = 'none'; }}
+                />
+            )}
+            <div style={{ padding: '10px 12px' }}>
+                <div style={{
+                    fontSize: 11,
+                    color: isOwn ? 'rgba(255,255,255,0.6)' : C.textSec,
+                    marginBottom: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                }}>
+                    {preview.favicon && (
+                        <img
+                            src={preview.favicon}
+                            alt=""
+                            style={{ width: 12, height: 12, borderRadius: 2 }}
+                            onError={e => { e.target.style.display = 'none'; }}
+                        />
+                    )}
+                    {preview.domain}
+                </div>
+                <div style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: isOwn ? 'white' : C.text,
+                    lineHeight: 1.3,
+                    marginBottom: preview.description ? 4 : 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                }}>
+                    {preview.title}
+                </div>
+                {preview.description && (
+                    <div style={{
+                        fontSize: 12,
+                        color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec,
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                    }}>
+                        {preview.description}
+                    </div>
+                )}
+            </div>
+        </a>
+    );
+}
+LinkPreviewCard.displayName = 'LinkPreviewCard';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 💬 MESSAGE CONTENT (MARKDOWN/HTML DETECTOR)
+// ═══════════════════════════════════════════════════════════════════════════
+export function MessageContent({ content }) {
     if (!content || typeof content !== 'string') return <span>{content}</span>;
 
-    // GIF message: [GIF](url)
     const gifMatch = content.match(/^\[GIF\]\((.+?)\)$/);
     if (gifMatch) {
         return (
@@ -27,7 +161,6 @@ function MessageContent({ content }) {
         );
     }
 
-    // Forwarded message prefix
     const isForwarded = content.startsWith('[Forwarded] ');
     const displayContent = isForwarded ? content.slice(12) : content;
     
@@ -38,7 +171,7 @@ function MessageContent({ content }) {
         <span>
             {isForwarded && <span style={{ display: 'block', fontSize: 11, color: '#58a6ff', marginBottom: 4, fontStyle: 'italic' }}>Forwarded</span>}
             {parts.map((part, i) => {
-                URL_REGEX.lastIndex = 0; // Reset BEFORE test to prevent alternate-skip
+                URL_REGEX.lastIndex = 0; 
                 if (URL_REGEX.test(part)) {
                     return (
                         <a
@@ -51,7 +184,10 @@ function MessageContent({ content }) {
                                 textDecoration: 'underline',
                                 wordBreak: 'break-all',
                             }}
-                        >{part}</a>
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {part}
+                        </a>
                     );
                 }
                 return <span key={i}>{part}</span>;
@@ -61,16 +197,198 @@ function MessageContent({ content }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  MESSAGE BUBBLE COMPONENT
+// 🔊 AUDIO MESSAGE (VOICE MESSAGE PLAYER)
 // ═══════════════════════════════════════════════════════════════════════════
+export function AudioMessage({ src, isOwn, duration: durationProp, theme: C = defaultTheme }) {
+    const audioRef = useRef(null);
+    const [playing, setPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [duration, setDuration] = useState(durationProp || 0);
+    const animFrameRef = useRef(null);
 
+    const togglePlay = (e) => {
+        e.stopPropagation();
+        if (!audioRef.current) return;
+        if (playing) {
+            audioRef.current.pause();
+            setPlaying(false);
+            cancelAnimationFrame(animFrameRef.current);
+        } else {
+            audioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            setPlaying(true);
+            const tick = () => {
+                if (audioRef.current) {
+                    setProgress(audioRef.current.currentTime / (audioRef.current.duration || 1));
+                }
+                animFrameRef.current = requestAnimationFrame(tick);
+            };
+            tick();
+        }
+    };
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, onEdit, onForward, currentUserId }) {
+    const handleEnded = () => {
+        setPlaying(false);
+        setProgress(0);
+        cancelAnimationFrame(animFrameRef.current);
+    };
+
+    const handleLoadedMetadata = () => {
+        if (audioRef.current?.duration && isFinite(audioRef.current.duration)) {
+            setDuration(audioRef.current.duration);
+        }
+    };
+
+    const formatDur = (s) => {
+        if (!s || !isFinite(s)) return '0:00';
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    const bars = useRef(
+        Array.from({ length: 28 }, (_, i) => {
+            const seed = (i * 2654435761) >>> 0;
+            return 0.2 + (seed % 100) / 100 * 0.8;
+        })
+    );
+
+    return (
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            minWidth: 200,
+            padding: '4px 0',
+        }}>
+            <audio
+                ref={audioRef}
+                src={src}
+                preload="metadata"
+                onEnded={handleEnded}
+                onLoadedMetadata={handleLoadedMetadata}
+            />
+            <button
+                onClick={togglePlay}
+                style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: isOwn ? 'rgba(255,255,255,0.25)' : C.blue,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'transform 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+                {playing ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <rect x="6" y="4" width="4" height="16" rx="1" />
+                        <rect x="14" y="4" width="4" height="16" rx="1" />
+                    </svg>
+                ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <path d="M8 5v14l11-7z" />
+                    </svg>
+                )}
+            </button>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 1, height: 24 }}>
+                    {bars.current.map((h, i) => {
+                        const filled = i / bars.current.length <= progress;
+                        return (
+                            <div
+                                key={i}
+                                style={{
+                                    width: 3,
+                                    height: `${h * 100}%`,
+                                    borderRadius: 2,
+                                    background: filled
+                                        ? (isOwn ? 'white' : C.blue)
+                                        : (isOwn ? 'rgba(255,255,255,0.3)' : '#D0D0D0'),
+                                    transition: 'background 0.1s',
+                                }}
+                            />
+                        );
+                    })}
+                </div>
+                <span style={{
+                    fontSize: 11,
+                    color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec,
+                }}>
+                    {playing ? formatDur(audioRef.current?.currentTime || 0) : formatDur(duration)}
+                </span>
+            </div>
+        </div>
+    );
+}
+AudioMessage.displayName = 'AudioMessage';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 💬 MESSAGE BUBBLE COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+export function MessageBubble({ 
+    message, 
+    isOwn, 
+    showAvatar, 
+    sender, 
+    showTime, 
+    isLastInGroup, 
+    onRetry, 
+    onReact, 
+    onDelete, 
+    onEdit, 
+    onForward, 
+    onCallBack, 
+    onReply, 
+    onUnsend, 
+    currentUserId,
+    theme: C = defaultTheme 
+}) {
+    if (!message) return null;
     const senderIsVip = sender?.is_vip || false;
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [reactions, setReactions] = useState(message.reactions || []);
     const status = message.status || 'sent';
+    const longPressTimer = useRef(null);
+    const touchMoved = useRef(false);
+
+    const handleTouchStart = (e) => {
+        touchMoved.current = false;
+        longPressTimer.current = setTimeout(() => {
+            if (!touchMoved.current) {
+                setShowReactions(true);
+                if (navigator.vibrate) navigator.vibrate(30);
+            }
+        }, 400);
+    };
+
+    const handleTouchMove = () => {
+        touchMoved.current = true;
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+    };
+
+    useEffect(() => {
+        if (!showReactions && !showMenu) return;
+        const dismiss = () => { setShowReactions(false); setShowMenu(false); };
+        const t = setTimeout(() => document.addEventListener('click', dismiss), 50);
+        return () => { clearTimeout(t); document.removeEventListener('click', dismiss); };
+    }, [showReactions, showMenu]);
 
     const StatusIcon = () => {
         if (!isOwn) return null;
@@ -85,12 +403,13 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
         if (status === 'read' || message.is_read) {
             return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read">{'\u2713\u2713'}</span>;
         }
-        // Delivered/sent
-        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">{'\u2713'}</span>;
+        if (status === 'delivered') {
+            return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">{'\u2713\u2713'}</span>;
+        }
+        return <span style={{ color: '#65676B', fontSize: 10 }} title="Sent">{'\u2713'}</span>;
     };
 
     const handleReaction = async (emoji) => {
-        // Optimistic update
         const hasReaction = reactions.some(r => r.reaction === emoji && r.user_id === currentUserId);
         if (hasReaction) {
             setReactions(prev => prev.filter(r => !(r.reaction === emoji && r.user_id === currentUserId)));
@@ -98,18 +417,13 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             setReactions(prev => [...prev, { reaction: emoji, user_id: currentUserId }]);
         }
         setShowReactions(false);
+        if (navigator.vibrate) navigator.vibrate(15);
 
-        // Call parent handler for DB persistence
         if (onReact) {
             await onReact(message.id, emoji);
         }
     };
 
-
-    // Note: Delete is handled inline via the context menu buttons below,
-    // which call onDelete(message.id, 'for_me'|'for_everyone') directly.
-
-    // Group reactions by emoji
     const groupedReactions = reactions.reduce((acc, r) => {
         acc[r.reaction] = (acc[r.reaction] || 0) + 1;
         return acc;
@@ -128,75 +442,72 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 opacity: status === 'sending' ? 0.7 : 1,
                 position: 'relative',
             }}
-            onMouseEnter={() => setShowReactions(true)}
-            onMouseLeave={() => { setShowReactions(false); setShowMenu(false); }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
         >
-            {/* Avatar */}
             {!isOwn && (
                 showAvatar ? (
-                    <img src={sender?.avatar_url || '/default-avatar.png'} alt={sender?.username || 'User'} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
+                    <Avatar src={sender?.avatar_url} name={sender?.username} size={28} showOnline={false} theme={C} />
                 ) : (
                     <div style={{ width: 28 }} />
                 )
             )}
 
-            {/* Bubble with reactions */}
             <div style={{ position: 'relative', maxWidth: '70%' }}>
-                {/* Reaction picker */}
                 {showReactions && status !== 'sending' && (
                     <div style={{
                         position: 'absolute',
-                        [isOwn ? 'left' : 'right']: '100%',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        marginLeft: isOwn ? 0 : 4,
-                        marginRight: isOwn ? 4 : 0,
+                        bottom: '100%',
+                        left: isOwn ? 'auto' : 0,
+                        right: isOwn ? 0 : 'auto',
+                        marginBottom: 6,
                         display: 'flex',
+                        alignItems: 'center',
                         gap: 2,
                         background: C.card,
-                        borderRadius: 16,
-                        padding: '4px 6px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        zIndex: 10,
-                        flexWrap: 'wrap',
-                        maxWidth: 200,
+                        borderRadius: 24,
+                        padding: '6px 8px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                        zIndex: 50,
+                        animation: 'reactionPopIn 0.18s ease-out',
                     }}>
                         {REACTION_EMOJIS.map(emoji => (
                             <button
                                 key={emoji}
-                                onClick={() => handleReaction(emoji)}
+                                onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }}
                                 style={{
                                     border: 'none',
                                     background: 'transparent',
                                     cursor: 'pointer',
-                                    fontSize: 18,
-                                    padding: '3px 4px',
-                                    borderRadius: 6,
+                                    fontSize: 22,
+                                    padding: '4px 5px',
+                                    borderRadius: 8,
                                     transition: 'transform 0.15s, background 0.15s',
+                                    lineHeight: 1,
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.25)'; e.currentTarget.style.background = C.hoverBg; }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.35)'; e.currentTarget.style.background = C.hoverBg; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent'; }}
                             >{emoji}</button>
                         ))}
-                        {/* Context menu trigger — shows on all messages */}
                         <>
-                            <div style={{ width: 1, background: C.border, margin: '4px 2px' }} />
+                            <div style={{ width: 1, height: 24, background: C.border, margin: '0 2px' }} />
                             <button
-                                onClick={() => setShowMenu(!showMenu)}
+                                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
                                 style={{
                                     border: 'none',
                                     background: 'transparent',
                                     cursor: 'pointer',
-                                    fontSize: 14,
-                                    padding: 4,
+                                    fontSize: 16,
+                                    padding: '4px 6px',
                                     color: C.textSec,
+                                    borderRadius: 8,
                                 }}
                             >⋯</button>
                         </>
                     </div>
                 )}
 
-                {/* Context menu for own messages */}
                 {showMenu && (
                     <div style={{
                         position: 'absolute',
@@ -210,6 +521,30 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         zIndex: 20,
                         minWidth: 180,
                     }}>
+                        {!message.is_deleted && (
+                            <button
+                                onClick={() => {
+                                    const text = message.content || message.text || '';
+                                    navigator.clipboard?.writeText(text).then(() => {
+                                        if (navigator.vibrate) navigator.vibrate(10);
+                                    }).catch(e => console.warn('[App] Handled exception:', e?.message || e));
+                                    setShowMenu(false);
+                                }}
+                                style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '10px 16px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    color: C.text,
+                                    fontSize: 14,
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >Copy Text</button>
+                        )}
                         <button
                             onClick={() => {
                                 onDelete(message.id, 'for_me');
@@ -271,6 +606,48 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >Forward</button>
                         )}
+                        {!message.is_deleted && (
+                        <button
+                            onClick={() => {
+                                onReply?.(message);
+                                setShowMenu(false);
+                            }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                color: C.textSec,
+                                fontSize: 14,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >Reply</button>
+                        )}
+                        {isOwn && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 120000 && (
+                        <button
+                            onClick={() => {
+                                onUnsend?.(message.id);
+                                setShowMenu(false);
+                            }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                color: '#FF6B00',
+                                fontSize: 14,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >Unsend</button>
+                        )}
                         {isOwn && (
                         <button
                             onClick={() => {
@@ -311,208 +688,169 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 0 6px rgba(255,215,0,0.15)',
                     } : {}),
                 }}>
-                    {/* Render media content (images/videos) */}
                     {(() => {
                         const content = message.content || message.text || '';
+                        const replyMatch = content.match(/^\[REPLY:([^\]]+)\]/);
+                        if (replyMatch) {
+                            const replyText = replyMatch[1];
+                            return (
+                                <div style={{
+                                    padding: '6px 10px',
+                                    marginBottom: 6,
+                                    borderLeft: `3px solid ${isOwn ? 'rgba(255,255,255,0.5)' : C.blue}`,
+                                    borderRadius: '0 8px 8px 0',
+                                    background: isOwn ? 'rgba(255,255,255,0.12)' : 'rgba(0,132,255,0.08)',
+                                    fontSize: 12,
+                                    lineHeight: 1.3,
+                                    color: isOwn ? 'rgba(255,255,255,0.8)' : C.textSec,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: 250,
+                                }}>
+                                    {replyText.length > 60 ? replyText.slice(0, 60) + '...' : replyText}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+                    {(() => {
+                        let content = message.content || message.text || '';
+                        content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
 
-                        // Check for call receipt: [CALL_RECEIPT]📹 Video call • 2m 15s
                         if (content.startsWith('[CALL_RECEIPT]')) {
                             const raw = content.replace('[CALL_RECEIPT]', '');
                             let receiptData = null;
-                            let callInfoStr = raw;
+                            let legacyStr = null;
                             try {
                                 receiptData = JSON.parse(raw);
-                            } catch (_) { 
-                                // Legacy plain text - apply Title Case correction
-                                callInfoStr = raw.replace(/Video call/i, 'Video Call').replace(/Voice call/i, 'Voice Call');
+                            } catch (_) {
+                                legacyStr = raw.replace(/Video call/i, 'Video Call').replace(/Voice call/i, 'Voice Call');
                             }
-                            
-                            if (receiptData) {
-                                const st = receiptData.status || 'completed';
-                                const isVideo = receiptData.type === 'video';
-                                const typeStr = isVideo ? 'Video Call' : 'Voice Call';
-                                const dur = receiptData.duration || 0;
-                                let durationStr = '';
-                                if (dur > 0) {
-                                    durationStr = dur >= 60 ? `${Math.floor(dur / 60)}m ${dur % 60}s` : `${dur}s`;
-                                }
-                                
-                                if (st === 'missed') {
-                                    callInfoStr = `Missed ${typeStr}`;
-                                } else if (st === 'declined') {
-                                    callInfoStr = `${typeStr} Declined`;
-                                } else if (st === 'cancelled') {
-                                    callInfoStr = `${typeStr} Cancelled`;
-                                } else {
-                                    callInfoStr = `${typeStr} • ${durationStr}`;
-                                }
-                                callInfoStr = `${isVideo ? '📹' : '📞'} ${callInfoStr}`;
-                            }
+                            const callData = receiptData || {};
+                            const callType = callData.type || 'voice';
+                            const callDuration = callData.duration || 0;
+                            const callStatus = callData.status || 'completed';
+
+                            const durationStr = callDuration > 0
+                                ? (callDuration >= 60
+                                    ? ` • ${Math.floor(callDuration / 60)}m ${callDuration % 60}s`
+                                    : ` • ${callDuration}s`)
+                                : '';
+
+                            const icon = callType === 'video' ? '📹' : '📞';
+                            const title = callType === 'video' ? 'Video Call' : 'Voice Call';
+                            const statusText = callStatus === 'completed'
+                                ? 'Call ended'
+                                : callStatus === 'missed'
+                                    ? 'Missed call'
+                                    : callStatus === 'declined'
+                                        ? 'Declined call'
+                                        : 'Cancelled call';
 
                             return (
-                                <div style={{
-                                    textAlign: 'center',
-                                    padding: '4px 8px',
-                                    color: C.muted,
-                                    fontSize: 13,
-                                    opacity: 0.9,
-                                }}>
-                                    {callInfoStr}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
+                                    <span style={{ fontSize: 24 }}>{icon}</span>
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>{legacyStr || title}</div>
+                                        <div style={{ fontSize: 12, opacity: 0.8 }}>{legacyStr ? '' : statusText}{durationStr}</div>
+                                    </div>
+                                    {callStatus === 'missed' && !isOwn && onCallBack && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onCallBack(callType); }}
+                                            style={{
+                                                marginLeft: 'auto',
+                                                border: 'none',
+                                                background: isOwn ? 'rgba(255,255,255,0.2)' : C.blue,
+                                                color: isOwn ? 'white' : 'white',
+                                                borderRadius: 16,
+                                                padding: '6px 12px',
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                            }}
+                                        >Call Back</button>
+                                    )}
                                 </div>
                             );
                         }
 
-                        // Check for live invite: [LIVE_INVITE]room=...&invite=...
-                        if (content.startsWith('[LIVE_INVITE]')) {
-                            const qs = content.replace('[LIVE_INVITE]', '');
-                            const joinUrl = `/hub/live/guest?${qs}`;
-                            return (
-                                <div style={{
-                                    background: isOwn ? 'rgba(255,255,255,0.1)' : 'rgba(0,132,255,0.1)',
-                                    borderRadius: 12,
-                                    padding: 16,
-                                    textAlign: 'center',
-                                    border: `1px solid ${isOwn ? 'rgba(255,255,255,0.2)' : 'rgba(0,132,255,0.3)'}`,
-                                }}>
-                                    <div style={{ fontSize: 24, marginBottom: 8 }}>🎥</div>
-                                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Live Stream Invite</div>
-                                    <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 12 }}>You have been invited to join as a guest co-host.</div>
-                                    <button 
-                                        onClick={() => window.location.href = joinUrl}
-                                        style={{
-                                            background: '#FA383E',
-                                            color: '#fff',
-                                            border: 'none',
-                                            padding: '8px 16px',
-                                            borderRadius: 8,
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            width: '100%',
-                                        }}
-                                    >
-                                        Join Stream
-                                    </button>
-                                </div>
-                            );
-                        }
+                        if (content.startsWith('[MEDIA]')) {
+                            const rawMedia = content.replace('[MEDIA]', '');
+                            let mediaUrl = rawMedia;
+                            let mediaType = 'image';
+                            try {
+                                const parsed = JSON.parse(rawMedia);
+                                mediaUrl = parsed.url;
+                                mediaType = parsed.type || 'image';
+                            } catch (_) { /* legacy plain URL fallback */ }
 
-
-                        // Check for image markdown: [Image](url) or 📷 [Image](url) - support both
-                        const imageMatch = content.match(/(?:📷\s*)?\[Image\]\(([^)]+)\)/);
-                        const imageUrl = imageMatch?.[1] || message.media_url;
-
-                        // Check for video markdown: [Video](url) or  [Video](url) - support both
-                        const videoMatch = content.match(/(?:\s*)?\[Video\]\(([^)]+)\)/);
-                        const videoUrl = videoMatch?.[1];
-
-                        // Check if content is just a direct image/video URL
-                        const directImageUrl = content.match(/^https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?$/i);
-                        const directVideoUrl = content.match(/^https?:\/\/[^\s]+\.(mp4|webm|mov)(\?[^\s]*)?$/i);
-
-                        if (imageUrl || directImageUrl) {
-                            const url = imageUrl || directImageUrl[0];
-                            return (
-                                <div style={{ margin: '-8px -12px', borderRadius: 18, overflow: 'hidden' }}>
-                                    <img
-                                        src={url}
-                                        alt="Shared Image"
-                                        style={{
-                                            maxWidth: '100%',
-                                            maxHeight: 300,
-                                            display: 'block',
-                                            borderRadius: 12,
-                                            cursor: 'pointer',
-                                        }}
-                                        onClick={() => window.open(url, '_blank')}
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.insertAdjacentHTML('afterend', '<span>Image Failed To Load</span>');
-                                        }}
-                                    />
-                                </div>
-                            );
-                        }
-
-                        if (videoUrl || directVideoUrl) {
-                            const url = videoUrl || directVideoUrl[0];
-                            return (
-                                <div style={{ margin: '-8px -12px', borderRadius: 18, overflow: 'hidden' }}>
+                            if (mediaType === 'video') {
+                                return (
                                     <video
-                                        src={url}
+                                        src={mediaUrl}
                                         controls
-                                        style={{
-                                            maxWidth: '100%',
-                                            maxHeight: 300,
-                                            display: 'block',
-                                            borderRadius: 12,
-                                        }}
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.insertAdjacentHTML('afterend', '<span>Video Failed To Load</span>');
-                                        }}
+                                        style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8, display: 'block' }}
+                                        onClick={e => e.stopPropagation()}
+                                        preload="metadata"
                                     />
-                                </div>
+                                );
+                            }
+                            return (
+                                <img
+                                    src={mediaUrl}
+                                    alt="Uploaded Media"
+                                    style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8, display: 'block', cursor: 'zoom-in' }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(mediaUrl, '_blank');
+                                    }}
+                                    loading="lazy"
+                                />
                             );
                         }
 
-                        // Regular text content - make URLs clickable
-                        // Check if it's a call invite
-                        const isCallInvite = content.includes('[CALL_RECEIPT]') || (content.includes('Call Started!') && content.includes('smarter-poker'));
+                        if (content.startsWith('[AUDIO]')) {
+                            const audioUrl = content.replace('[AUDIO]', '');
+                            return <AudioMessage src={audioUrl} isOwn={isOwn} theme={C} />;
+                        }
 
-                        // Convert URLs to clickable links
-                        const urlRegex = /(https?:\/\/[^\s]+)/g;
-                        const parts = content.split(urlRegex);
+                        if (message.is_deleted) {
+                            return (
+                                <span style={{ fontStyle: 'italic', opacity: 0.7 }}>
+                                    {isOwn ? 'You unsent a message' : 'This message was unsent'}
+                                </span>
+                            );
+                        }
 
-                        return (
-                            <div style={isCallInvite ? {
-                                background: isOwn ? 'rgba(255,255,255,0.15)' : 'rgba(0,132,255,0.1)',
-                                padding: 8,
-                                borderRadius: 12,
-                                margin: '-4px -8px',
-                            } : {}}>
-                                {parts.map((part, i) => {
-                                    urlRegex.lastIndex = 0; // Reset BEFORE test to prevent alternate-skip
-                                    if (urlRegex.test(part)) {
-                                        return (
-                                            <a
-                                                key={i}
-                                                href={part}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{
-                                                    color: isOwn ? '#90CAF9' : C.blue,
-                                                    textDecoration: 'underline',
-                                                    wordBreak: 'break-all',
-                                                }}
-                                            >
-                                                {part.includes('meet.jit.si') ? '🔗 Join Call' : part}
-                                            </a>
-                                        );
-                                    }
-                                    // Preserve newlines
-                                    return part.split('\n').map((line, j) => (
-                                        <span key={`${i}-${j}`}>
-                                            {j > 0 && <br />}
-                                            {line}
-                                        </span>
-                                    ));
-                                })}
-                            </div>
-                        );
+                        return <MessageContent content={content} />;
+                    })()}
+                    {(() => {
+                        let content = message.content || message.text || '';
+                        content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
+                        if (message.is_deleted || content.startsWith('[MEDIA]') || content.startsWith('[AUDIO]') || content.startsWith('[CALL_RECEIPT]')) {
+                            return null;
+                        }
+                        const urls = content.match(URL_REGEX);
+                        if (urls && urls.length > 0) {
+                            return <LinkPreviewCard url={urls[0]} isOwn={isOwn} theme={C} />;
+                        }
+                        return null;
                     })()}
                 </div>
 
-                {/* Display reactions */}
-                {Object.keys(groupedReactions || {}).length > 0 && (
+                {reactions.length > 0 && (
                     <div style={{
                         position: 'absolute',
-                        bottom: -8,
-                        [isOwn ? 'left' : 'right']: 8,
-                        display: 'flex',
-                        gap: 2,
+                        bottom: -10,
+                        [isOwn ? 'left' : 'right']: 10,
                         background: C.card,
-                        borderRadius: 10,
-                        padding: '2px 4px',
+                        borderRadius: 12,
+                        padding: '2px 6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        border: `1px solid ${C.border}`,
                         boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
                         fontSize: 12,
                     }}>
@@ -525,7 +863,6 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 )}
             </div>
 
-            {/* Time & Status */}
             {showTime && (
                 <span style={{
                     fontSize: 11,
@@ -545,5 +882,4 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
     );
 }
 
-export { MessageContent, MessageBubble };
-export default MessageBubble;
+MessageBubble.displayName = 'MessageBubble';
