@@ -297,7 +297,7 @@ const nextConfig = {
     // If this deploy OOMs, revert to cpus: 1. The autofix bot is tagged
     // off this commit via [DO NOT AUTOFIX] so it won't race heap bumps.
     cpus: 1,
-    workerThreads: true,
+    workerThreads: false,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
