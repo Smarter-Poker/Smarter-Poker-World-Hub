@@ -1372,7 +1372,17 @@ export function GoLiveModal({
       liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
       liveStreamService.onParticipantsUpdate = (ps) => setParticipants(ps); // FEATURE 6
       // Bug25: alert broadcaster if stale-cleanup or DB ends the stream externally
-      liveStreamService.onStreamEndedExternally = () => setStreamEndedExternally(true);
+      // BUG-FIX-DURATION-SYNC: stop the elapsed timer immediately when the
+      // stream is externally killed. Previously the timer kept ticking after
+      // the external-end overlay appeared, causing the EndStreamModal to show
+      // a duration 2+ minutes longer than what the live screen displayed.
+      liveStreamService.onStreamEndedExternally = () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setStreamEndedExternally(true);
+      };
 
       // BUG-FIX-LIVE-5 verification: capture the active stream id locally
       // — React's setStreamId is async, so reading `streamId` (state) below
@@ -3612,7 +3622,11 @@ export function GoLiveModal({
                           justifyContent: 'center',
                         }}
                       >
-                        {zoomLevel.toFixed(1)}×
+                        {/* BUG-FIX-ZOOM-ICON: replaced confusing "{zoomLevel}×" label
+                           with a magnifying glass so users immediately recognize this
+                           as a zoom control. The numeric level is shown inside the
+                           slider popover when expanded. */}
+                        🔍
                       </button>
                       {zoomSliderOpen && (
                         <div
@@ -3710,57 +3724,16 @@ export function GoLiveModal({
                 >
                   📤
                 </button>
-                {guestInviteCode && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setGuestInviteModalOpen(true);
-                    }}
-                    title="Invite Guest to Stream"
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: '50%',
-                      border: '1px solid rgba(0, 102, 255, 0.5)',
-                      background: 'rgba(0,102,255,0.2)',
-                      backdropFilter: 'blur(8px)',
-                      color: '#00CFFF',
-                      fontSize: 20,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    👥
-                  </button>
-                )}
-                {/* Bug10: Beauty / Face-Smoothing Toggle */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setBeautyMode((b) => !b);
-                  }}
-                  title={beautyMode ? 'Disable beauty mode' : 'Enable beauty mode'}
-                  aria-label="Toggle beauty mode"
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '50%',
-                    border: beautyMode ? '1.5px solid rgba(255,182,210,0.9)' : 'none',
-                    background: beautyMode ? 'rgba(255,105,180,0.75)' : 'rgba(0,0,0,0.6)',
-                    backdropFilter: 'blur(8px)',
-                    color: 'white',
-                    fontSize: 18,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  💄
-                </button>
+                {/* BUG-FIX-LIVE-DUP-INVITE: removed duplicate "Invite Guest" button.
+                   The 📤 share button above already opens GuestInviteModal when
+                   guestInviteCode is present — this was a second, redundant path
+                   to the exact same modal. Dan flagged as "duplicate invite guests
+                   under the email." */}
+                {/* BUG-FIX-LIVE-FILTER-REMOVED: beauty filter button removed per Dan.
+                   "Filters should just be automatically applied — and they don't even
+                   work." beautyMode defaults to true (line 513) and the canvas-based
+                   filter in the useEffect (line 669) auto-applies brightness/contrast/
+                   saturation/blur to the outgoing LiveKit track. No toggle needed. */}
 
                 {/* Mic mute/unmute */}
                 <button

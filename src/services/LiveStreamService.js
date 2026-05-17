@@ -1311,7 +1311,11 @@ class LiveStreamService {
       });
     };
     ping(); // immediate first ping on stream start
-    this._broadcasterHeartbeatTimer = setInterval(ping, 60_000);
+    // BUG-FIX-STREAM-KILL: increased from 60s to 30s. With the 300s stale
+    // threshold, this gives 10× headroom (10 missed heartbeats before kill)
+    // instead of 5×, making mid-stream kills from transient network issues
+    // much less likely. Dan reported a stream killed at ~8 minutes.
+    this._broadcasterHeartbeatTimer = setInterval(ping, 30_000);
   }
 
   _stopBroadcasterHeartbeat() {

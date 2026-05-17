@@ -25,6 +25,8 @@ import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 // EventBus import removed — Supabase Realtime is the sole badge updater
 import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
+import toast from '../stores/toastStore';
+
 
 const UnreadContext = createContext({
     unreadCount: 0,
@@ -186,8 +188,24 @@ export function UnreadProvider({ children }) {
                         schema: 'public',
                         table: 'notifications',
                         filter: `user_id=eq.${userId}`,
-                    }, () => {
+                    }, (payload) => {
                         setNotificationCount(prev => prev + 1);
+                        if (payload.new && payload.new.type === 'live_invite') {
+                            const data = payload.new.data || {};
+                            const content = data.content || '';
+                            const senderName = data.sender_name || 'Someone';
+                            if (content.startsWith('[LIVE_INVITE]')) {
+                                const qs = content.replace('[LIVE_INVITE]', '');
+                                const joinUrl = `/hub/live/guest?${qs}`;
+                                toast.action(
+                                    `🎥 ${senderName} invited you to join their live stream as a guest co-host!`,
+                                    () => {
+                                        window.location.href = joinUrl;
+                                    },
+                                    'info'
+                                );
+                            }
+                        }
                     })
                     .on('postgres_changes', {
                         event: 'UPDATE',

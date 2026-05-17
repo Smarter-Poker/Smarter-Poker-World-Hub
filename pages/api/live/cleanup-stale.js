@@ -48,10 +48,22 @@ export default async function handler(req, res) {
       .eq('status', 'live')
       .lt('started_at', new Date(Date.now() - 300_000).toISOString());
 
-    // Filter to those that are also stale by preview_updated_at threshold
+    // Filter to those that are also stale by preview_updated_at threshold.
+    // BUG-FIX-STREAM-KILL: previously, NULL preview_updated_at was treated
+    // as "immediately stale" which killed active streams whose first
+    // heartbeat hadn't landed yet (~8 min kill reported by Dan). Now we
+    // fall back to started_at: if neither preview_updated_at NOR started_at
+    // show recent activity, the stream is truly stale. This gives the
+    // broadcaster heartbeat (every 30s) and preview capture (every 25s)
+    // time to land their first ping.
     const trulyStale = (stale || []).filter((s) => {
-      if (!s.preview_updated_at) return true; // never had a preview update
-      return new Date(s.preview_updated_at).getTime() < Date.now() - 300_000;
+      // Use preview_updated_at if available, otherwise fall back to started_at.
+      // A stream is only stale if the MOST RECENT activity timestamp is older
+      // than 300s. This prevents killing streams that just started but haven't
+      // received their first heartbeat yet.
+      const lastActivity = s.preview_updated_at || s.started_at;
+      if (!lastActivity) return true; // no timestamps at all — truly orphaned
+      return new Date(lastActivity).getTime() < Date.now() - 300_000;
     });
 
     if (trulyStale.length === 0) {
