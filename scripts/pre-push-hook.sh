@@ -288,11 +288,11 @@ if command -v node &> /dev/null; then
         # For .tsx — always use Babel (TypeScript JSX)
         if echo "$file" | grep -qE '\.tsx$'; then
             if [ -n "$BABEL_PARSER" ]; then
-                PARSE_OUTPUT=$(node -e "
+                PARSE_OUTPUT=$(PARSE_FILE="$file" node -e "
 const fs=require('fs');
-const {parse}=require('$BABEL_PARSER');
+const {parse}=require('@babel/parser');
 try{
-  parse(fs.readFileSync('$file','utf8'),{
+  parse(fs.readFileSync(process.env.PARSE_FILE,'utf8'),{
     sourceType:'module',
     plugins:['jsx','typescript','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
   });
@@ -315,11 +315,11 @@ try{
         # For .jsx — always use Babel
         if echo "$file" | grep -qE '\.jsx$'; then
             if [ -n "$BABEL_PARSER" ]; then
-                PARSE_OUTPUT=$(node -e "
+                PARSE_OUTPUT=$(PARSE_FILE="$file" node -e "
 const fs=require('fs');
-const {parse}=require('$BABEL_PARSER');
+const {parse}=require('@babel/parser');
 try{
-  parse(fs.readFileSync('$file','utf8'),{
+  parse(fs.readFileSync(process.env.PARSE_FILE,'utf8'),{
     sourceType:'module',
     plugins:['jsx','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
   });
@@ -344,11 +344,11 @@ try{
 
         if [ -n "$BABEL_PARSER" ]; then
             # Use Babel for ALL .js files (node -c is blind to JSX and CJS/ESM mixed syntax errors)
-            PARSE_OUTPUT=$(node -e "
+            PARSE_OUTPUT=$(PARSE_FILE="$file" node -e "
 const fs=require('fs');
-const {parse}=require('$BABEL_PARSER');
+const {parse}=require('@babel/parser');
 try{
-  parse(fs.readFileSync('$file','utf8'),{
+  parse(fs.readFileSync(process.env.PARSE_FILE,'utf8'),{
     sourceType:'module',
     plugins:['jsx','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
   });
