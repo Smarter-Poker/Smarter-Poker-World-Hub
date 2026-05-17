@@ -56,3 +56,8 @@ export default function GuestJoinPage() {
         </>
     );
 }
+
+export async function getServerSideProps() {
+    return { props: {} };
+}
+

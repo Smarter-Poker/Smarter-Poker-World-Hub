@@ -93,6 +93,9 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
+          // Reverse descending order to chronological ascending for display
+          const sorted = [...(messages || [])].reverse();
+
           const normalized = sorted.map(m => {
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {

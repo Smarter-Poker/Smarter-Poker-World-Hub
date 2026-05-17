@@ -64,4 +64,30 @@ if (fs.existsSync(buildIndexPath)) {
   console.log('   ⚠️ Build-time index.js path not found, skipping patch 2.');
 }
 
+// ── 3. Patch export/index.js server-reference-manifest require failures ──────
+const exportIndexPath = path.resolve(__dirname, '../node_modules/next/dist/export/index.js');
+if (fs.existsSync(exportIndexPath)) {
+  let content = fs.readFileSync(exportIndexPath, 'utf8');
+  if (content.includes('serverActionsManifest = require((0, _path.join)(distDir, _constants1.SERVER_DIRECTORY, _constants1.SERVER_REFERENCE_MANIFEST + \'.json\'));') && !content.includes('try { serverActionsManifest = require(')) {
+    console.log('   🩹 Patching: export/index.js serverActionsManifest require...');
+    const target = `    let serverActionsManifest;
+    if (enabledDirectories.app) {
+        serverActionsManifest = require((0, _path.join)(distDir, _constants1.SERVER_DIRECTORY, _constants1.SERVER_REFERENCE_MANIFEST + '.json'));`;
+    const replacement = `    let serverActionsManifest;
+    if (enabledDirectories.app) {
+        try {
+            serverActionsManifest = require((0, _path.join)(distDir, _constants1.SERVER_DIRECTORY, _constants1.SERVER_REFERENCE_MANIFEST + '.json'));
+        } catch (e) {
+            serverActionsManifest = { node: {}, edge: {} };
+        }`;
+    content = content.replace(target, replacement);
+    fs.writeFileSync(exportIndexPath, content, 'utf8');
+    console.log('   ✅ export/index.js serverActionsManifest require patched successfully!');
+  } else {
+    console.log('   ✅ export/index.js serverActionsManifest require is already patched or healthy.');
+  }
+} else {
+  console.log('   ⚠️ export/index.js path not found, skipping patch 3.');
+}
+
 console.log('🏁 Build-Time Patching Completed.\n');
