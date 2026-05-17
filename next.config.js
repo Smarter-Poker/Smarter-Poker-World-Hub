@@ -205,7 +205,7 @@ const nextConfig = {
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
   // from ~1.8s to ~1.1s on a 950-page repo. Safe for Pages Router. Don't set
   // this in dev — dev uses the default server.
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: process.env.VERCEL ? 'standalone' : undefined,
 
   // ─── R3F Package Transpilation ──────────────────────────────────────────────
   // ESM-only packages need transpilation for proper Next.js compatibility.
@@ -297,7 +297,7 @@ const nextConfig = {
     // If this deploy OOMs, revert to cpus: 1. The autofix bot is tagged
     // off this commit via [DO NOT AUTOFIX] so it won't race heap bumps.
     cpus: 1,
-    workerThreads: false,
+    workerThreads: true,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.

@@ -701,6 +701,7 @@ if [ "$BUILD_CHECK" = true ]; then
     # Capture output to check for node_modules corruption
   # MUST use --webpack: Next.js 16+ defaults to Turbopack which breaks on our
   # custom webpack config and 246+ named-export mismatches (May 2026 incident).
+  node scripts/patch-next.js
   BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build --webpack 2>&1)
   BUILD_STATUS=$?
   
@@ -717,6 +718,7 @@ if [ "$BUILD_CHECK" = true ]; then
       rm -rf node_modules && npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>/dev/null
       
       echo "🔨 Retrying build after environment heal..."
+      node scripts/patch-next.js
       BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build --webpack 2>&1)
       BUILD_STATUS=$?
       
