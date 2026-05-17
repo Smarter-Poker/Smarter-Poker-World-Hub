@@ -69,6 +69,7 @@ class LiveStreamService {
     this.onStreamEndedExternally = null; // Bug25: broadcaster notified when stream is externally ended
     this.onConnectionQualityChange = null;
     this.onGiftReceived = null;
+    this.onDataReceived = null; // Broadcast command/message handler
     // BUG-FIX-AUDIT LSS-1: declare onTrackAdded alongside all other callbacks.
     // Previously absent from constructor — started as `undefined` instead of `null`,
     // breaking any `=== null` unregistered-callback check and silently diverging
@@ -416,6 +417,17 @@ class LiveStreamService {
       console.warn('[LiveKit] Disconnected:', reason);
       if (!this.isManualDisconnect) {
         this._handleUnexpectedDisconnect();
+      }
+    });
+
+    this.room.on(RoomEvent.DataReceived, (payload, participant, kind) => {
+      try {
+        const text = new TextDecoder().decode(payload);
+        const data = JSON.parse(text);
+        console.debug('[LiveKit] Data received:', data, 'from:', participant?.identity);
+        this.onDataReceived?.(data, participant);
+      } catch (err) {
+        console.warn('[LiveKit] Error parsing data message:', err);
       }
     });
 

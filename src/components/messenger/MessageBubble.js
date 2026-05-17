@@ -815,6 +815,121 @@ export function MessageBubble({
                             return <AudioMessage src={audioUrl} isOwn={isOwn} theme={C} />;
                         }
 
+                        if (content.startsWith('[LIVE_INVITE]')) {
+                            const raw = content.replace('[LIVE_INVITE]', '');
+                            const params = new URLSearchParams(raw);
+                            const roomId = params.get('room') || '';
+                            const inviteCode = params.get('invite') || '';
+                            const joinUrl = `/hub/live/guest?room=${roomId}&invite=${inviteCode}`;
+
+                            return (
+                                <div style={{
+                                    position: 'relative',
+                                    background: 'linear-gradient(180deg, #0d1117 0%, #0a0a15 100%)',
+                                    border: '2px solid #00D4FF',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    minWidth: '240px',
+                                    boxShadow: '0 0 15px rgba(0, 212, 255, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+                                    fontFamily: "'Orbitron', 'Rajdhani', 'Exo 2', sans-serif",
+                                    color: 'white',
+                                    overflow: 'hidden',
+                                }}>
+                                    {/* Corner bolts */}
+                                    <div style={{ position: 'absolute', top: 6, left: 6, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #64748b 30%, #334155 70%)', border: '1px solid #1e293b' }} />
+                                    <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #64748b 30%, #334155 70%)', border: '1px solid #1e293b' }} />
+                                    <div style={{ position: 'absolute', bottom: 6, left: 6, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #64748b 30%, #334155 70%)', border: '1px solid #1e293b' }} />
+                                    <div style={{ position: 'absolute', bottom: 6, right: 6, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #64748b 30%, #334155 70%)', border: '1px solid #1e293b' }} />
+                                    
+                                    {/* Neon Accent Glow Line */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: '15%',
+                                        right: '15%',
+                                        height: '2px',
+                                        background: '#00D4FF',
+                                        boxShadow: '0 0 10px #00D4FF, 0 0 20px rgba(0, 212, 255, 0.6)',
+                                    }} />
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                                        <div style={{ fontSize: '28px', filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.5))' }}>🎥</div>
+                                        <div style={{ 
+                                            fontSize: '13px', 
+                                            fontWeight: '700', 
+                                            letterSpacing: '1px', 
+                                            textTransform: 'uppercase', 
+                                            color: '#00D4FF',
+                                            textAlign: 'center',
+                                            textShadow: '0 0 8px rgba(0, 212, 255, 0.5)',
+                                        }}>
+                                            LIVE CO-HOST INVITE
+                                        </div>
+                                        <div style={{ 
+                                            fontSize: '12px', 
+                                            textAlign: 'center', 
+                                            color: '#94a3b8', 
+                                            lineHeight: '1.4',
+                                            padding: '0 4px'
+                                        }}>
+                                            {isOwn ? "You invited them to co-host your stream." : "You have been invited to join as a guest co-host!"}
+                                        </div>
+                                        
+                                        {!isOwn && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.location.href = joinUrl;
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px',
+                                                    background: 'linear-gradient(180deg, #00D4FF 0%, #0284c7 100%)',
+                                                    border: '1px solid #00D4FF',
+                                                    borderRadius: '8px',
+                                                    color: 'white',
+                                                    fontWeight: '700',
+                                                    fontSize: '12px',
+                                                    letterSpacing: '0.5px',
+                                                    textTransform: 'uppercase',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    boxShadow: '0 4px 12px rgba(0, 212, 255, 0.3)',
+                                                }}
+                                                onMouseEnter={e => {
+                                                    e.currentTarget.style.transform = 'scale(1.02)';
+                                                    e.currentTarget.style.boxShadow = '0 0 15px #00D4FF, 0 0 25px rgba(0, 212, 255, 0.6)';
+                                                }}
+                                                onMouseLeave={e => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 212, 255, 0.3)';
+                                                }}
+                                            >
+                                                JOIN BROADCAST
+                                            </button>
+                                        )}
+
+                                        {isOwn && (
+                                            <div style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                background: 'rgba(255, 255, 255, 0.05)',
+                                                border: '1px dashed rgba(255, 255, 255, 0.1)',
+                                                borderRadius: '6px',
+                                                fontSize: '11px',
+                                                color: '#64748b',
+                                                textAlign: 'center',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.5px'
+                                            }}>
+                                                Pending Acceptance
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        }
+
                         if (message.is_deleted) {
                             return (
                                 <span style={{ fontStyle: 'italic', opacity: 0.7 }}>
@@ -828,7 +943,7 @@ export function MessageBubble({
                     {(() => {
                         let content = message.content || message.text || '';
                         content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
-                        if (message.is_deleted || content.startsWith('[MEDIA]') || content.startsWith('[AUDIO]') || content.startsWith('[CALL_RECEIPT]')) {
+                        if (message.is_deleted || content.startsWith('[MEDIA]') || content.startsWith('[AUDIO]') || content.startsWith('[CALL_RECEIPT]') || content.startsWith('[LIVE_INVITE]')) {
                             return null;
                         }
                         const urls = content.match(URL_REGEX);
