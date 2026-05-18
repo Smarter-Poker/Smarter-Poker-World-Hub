@@ -18,6 +18,14 @@
  * We don't need a fresh user to verify that resetPasswordForEmail or
  * signInWithOtp accept requests — any confirmed user works.
  *
+ * RATE-LIMIT HANDLING (2026-05-18)
+ * ─────────────────────────────────
+ * Supabase throttles email sends to the same address if called back-to-back.
+ * The second call (signInWithOtp) often returns HTTP 429 immediately after
+ * the first (resetPasswordForEmail) succeeds.  A 429 means the API endpoint
+ * is alive and healthy — it is NOT a real failure.  We now treat 429 as
+ * rate_limited=true / ok=true so the probe returns 200 in that case.
+ *
  * SETUP (one-time)
  * ────────────────
  *   1. You can reuse the same account as login-probe, or create a dedicated one:
@@ -52,6 +60,15 @@ function getAnon() {
     return _anon;
 }
 
+/** True if the Supabase error is just a rate-limit (429) — the API is healthy. */
+function isRateLimit(err) {
+    if (!err) return false;
+    // Supabase AuthError carries .status (HTTP code) and .message
+    if (err.status === 429) return true;
+    const msg = (err.message || '').toLowerCase();
+    return msg.includes('rate limit') || msg.includes('too many requests') || msg.includes('email rate limit');
+}
+
 export const config = { maxDuration: 30 };
 
 export default async function handler(req, res) {
@@ -79,18 +96,24 @@ export default async function handler(req, res) {
         // ── Probe A: password reset ────────────────────────────────────────
         // Tests that the resetPasswordForEmail API endpoint accepts the request.
         // We can't verify actual email delivery (probe.smarter.poker has no MX),
-        // but a 4xx/5xx indicates the flow is broken at the API level.
+        // but a 4xx/5xx (non-429) indicates the flow is broken at the API level.
         const { error: rpe } = await anon.auth.resetPasswordForEmail(probeEmail, {
             redirectTo: 'https://smarter.poker/auth/callback',
         });
+        const rpRateLimit = isRateLimit(rpe);
         flows.password_reset = {
-            ok: !rpe,
-            error: rpe?.message,
-            note: 'API accepted the request — actual delivery requires a real inbox (not measured here)',
+            ok: !rpe || rpRateLimit,
+            rate_limited: rpRateLimit,
+            error: (rpe && !rpRateLimit) ? rpe?.message : null,
+            note: rpRateLimit
+                ? 'Rate-limited (429) — API is alive, throttling duplicate sends'
+                : 'API accepted the request — actual delivery requires a real inbox (not measured here)',
         };
 
         // ── Probe B: magic link ────────────────────────────────────────────
         // Tests that the signInWithOtp (magic link) API endpoint accepts the request.
+        // NOTE: Running immediately after Probe A often triggers a 429 rate-limit
+        // on the same email address. That is expected healthy behaviour.
         const { error: mle } = await anon.auth.signInWithOtp({
             email: probeEmail,
             options: {
@@ -98,14 +121,22 @@ export default async function handler(req, res) {
                 shouldCreateUser: false, // user already exists — never create a new one
             },
         });
+        const mlRateLimit = isRateLimit(mle);
         flows.magic_link = {
-            ok: !mle,
-            error: mle?.message,
-            note: 'API accepted the request — actual delivery requires a real inbox',
+            ok: !mle || mlRateLimit,
+            rate_limited: mlRateLimit,
+            error: (mle && !mlRateLimit) ? mle?.message : null,
+            note: mlRateLimit
+                ? 'Rate-limited (429) — API is alive, throttling duplicate sends'
+                : 'API accepted the request — actual delivery requires a real inbox',
         };
 
+        // Only count real failures (not rate-limits) as probe failures
         const failures = Object.entries(flows).filter(([_, v]) => !v.ok);
-        const status = failures.length === 0 ? 'ok' : 'failed';
+        const rateLimited = Object.entries(flows).filter(([_, v]) => v.rate_limited);
+        const status = failures.length === 0
+            ? (rateLimited.length > 0 ? 'ok_rate_limited' : 'ok')
+            : 'failed';
 
         // Heartbeat
         try {
@@ -113,7 +144,7 @@ export default async function handler(req, res) {
                 probe_name: 'recovery-probe',
                 status,
                 duration_ms: Date.now() - startedAt,
-                details: { flows, failure_count: failures.length },
+                details: { flows, failure_count: failures.length, rate_limited_count: rateLimited.length },
             });
         } catch (_) { /* heartbeat is best-effort */ }
 
