@@ -5,6 +5,7 @@
     "deploymentEnabled": true
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
+  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build --turbopack",
   "headers": [
     {
       "source": "/(.*)",
@@ -371,7 +372,6 @@
     { "path": "/api/cron/recovery-probe", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/auth-integrity-audit", "schedule": "0 4 * * *" }
   ],
-  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
   "rewrites": [
     {
       "source": "/commander/:path*",
