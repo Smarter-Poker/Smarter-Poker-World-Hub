@@ -361,7 +361,7 @@
     }
   ],
   "crons": [
-    { "path": "/api/cron/signup-probe", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/signup-probe", "schedule": "0 2 * * *" },
     { "path": "/api/cron/signup-probe-restricted", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/sentry-signup-bridge", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/trigger-audit", "schedule": "0 6 * * *" },
