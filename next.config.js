@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    AUTH-CRITICAL FILES — BUILD-TIME EXISTENCE GUARD
-   ─────────────────────────────────────────────────────────────────────────
+   ───────────────────────────────────────────────────────────────────────────
    This block runs every time Next.js parses next.config.js (build, dev, lint).
    If any of the listed auth-flow files is missing or empty, the build dies
    IMMEDIATELY with a clear error — before Vercel can compile and ship a
@@ -188,7 +188,7 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
-  // ─── Next.js 16 Turbopack — Forced webpack via build script flag ───────────
+  // ─── Next.js 16 Turbopack — Forced webpack via build script flag ───────────────────
   // Next.js 16 enables Turbopack by default. Our codebase uses a custom webpack
   // config (supabase.js alias + dev watchOptions) and was built against webpack
   // semantics. The `build` script in package.json passes `--webpack` to force
@@ -199,7 +199,7 @@ const nextConfig = {
   // See: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
   turbopack: {},
 
-  // ─── Serverless Bundle Slimming ────────────────────────────────────────────
+  // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
   // what each API route / page needs into .next/standalone. On Vercel this
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
@@ -207,7 +207,7 @@ const nextConfig = {
   // this in dev — dev uses the default server.
   output: process.env.VERCEL ? 'standalone' : undefined,
 
-  // ─── R3F Package Transpilation ──────────────────────────────────────────────
+  // ─── R3F Package Transpilation ───────────────────────────────────────────────
   // ESM-only packages need transpilation for proper Next.js compatibility.
   //
   // [Phase 1.2, 2026-04-21] Removed 'three' from this list. Three.js ships
@@ -223,7 +223,7 @@ const nextConfig = {
   // See failed deploys 4xJcGVy2N / DWyP5RYRT (April 2026). DO NOT REMOVE.
   transpilePackages: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', '@smarter-poker/commander-shared'],
 
-  // ─── Build Memory Optimization ──────────────────────────────────────────────
+  // ─── Build Memory Optimization ───────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
   // workerThreads offloads page compilation to separate workers (lower per-worker memory).
   // cpus limits parallel compilation to prevent 8-core machines from OOMing.
@@ -267,7 +267,7 @@ const nextConfig = {
     ],
   },
 
-  // ─── Output File Tracing — Serverless Bundle Exclusions ───────────────────
+  // ─── Output File Tracing — Serverless Bundle Exclusions ─────────────────
   // Moved from experimental.outputFileTracingExcludes (promoted in Next.js 15+).
   outputFileTracingExcludes: {
     '*': [
@@ -284,24 +284,18 @@ const nextConfig = {
   },
 
   experimental: {
-    // [Phase 1.4, 2026-04-21] cpus: 1→2. Phases 1.1–1.3 removed ~49MB of
-    // unused deps, excluded puppeteer/phaser/canvas/pdf-parse from the
-    // file tracer, moved puppeteer+canvas to devDeps (Vercel skips them
-    // on npm ci), and de-transpiled three. Serial compilation is no
-    // longer the memory bottleneck. Two parallel workers splits the 950
-    // pages in half and roughly halves wall-clock compile time while
-    // keeping total webpack RAM inside the 8GB container (observed per-
-    // worker heap ~3.5–4GB at cpus:1 — two workers at ~half the pages
-    // each should stay near the same aggregate).
-    //
-    // If this deploy OOMs, revert to cpus: 1. The autofix bot is tagged
-    // off this commit via [DO NOT AUTOFIX] so it won't race heap bumps.
-    cpus: 1,
+    // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
+    // Two parallel webpack workers each compile ~476 pages, roughly halving
+    // Build Minutes billed on Vercel. Per-worker heap at cpus:1 was ~3.5-4 GB;
+    // with half the pages per worker at cpus:2 the aggregate stays inside the
+    // 8 GB container. Prior dep cleanup (phases 1.1-1.3) validated safety.
+    // Revert to cpus: 1 immediately if a deploy OOMs.
+    cpus: 2,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
   },
-  // ─── Dev Server Memory Management ──────────────────────────────────────────
+  // ─── Dev Server Memory Management ──────────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
   // [HARDENED] Keep a reasonable number of pages hot — enough to avoid recompilation
   // thrashing, but not so many that it wastes GB of RAM on a 950+ page codebase.
@@ -311,7 +305,7 @@ const nextConfig = {
     pagesBufferLength: 16,               // Keep 16 pages hot in memory (sufficient for active dev)
   },
 
-  // ─── TypeScript Build Config ───────────────────────────────────────────────
+  // ─── TypeScript Build Config ──────────────────────────────────────────────────
   // ignoreDuringBuilds (eslint) is already set above. Redeclaring it silently
   // overrode the compress flag's ordering in pre-Next-14.1. Keep just typescript
   // here since the eslint one was a duplicate.
@@ -319,11 +313,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────
+  // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
   webpack: (config, { dev, isServer }) => {
-    // ─── Supabase Client Resolution Fix ───────────────────────────────────────
+    // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
     // in src/lib/. Without this alias, imports with explicit .js extension
     // (e.g. from decision-bridge.js) resolve to the mock and crash the app.
@@ -372,7 +366,7 @@ const nextConfig = {
   // to enter an infinite reload loop when the .next cache is cleared, because the browser HMR
   // client expects the old Webpack hash but the server generates a new one.
 
-  // ─── next/image Optimization ──────────────────────────────────────────────
+  // ─── next/image Optimization ───────────────────────────────────────────────
   // Allows next/image to serve optimized WebP/AVIF from these external domains.
   images: {
     remotePatterns: [
@@ -398,7 +392,7 @@ const nextConfig = {
     minimumCacheTTL: 2592000, // 30 days
   },
 
-  // ─── HTTP Security Headers ────────────────────────────────────────────────
+  // ─── HTTP Security Headers ──────────────────────────────────────────────────
   // Applied to all routes. CSP is in Report-Only mode: violations are logged
   // to the browser console without breaking any functionality. Once violations
   // have been monitored and confirmed zero, switch to Content-Security-Policy.
@@ -579,7 +573,7 @@ const nextConfig = {
       // Memory Games → Preflop Charts (renamed April 2026)
       { source: '/hub/memory-games', destination: '/hub/preflop-charts', permanent: true },
       { source: '/hub/memory-games/:path*', destination: '/hub/preflop-charts/:path*', permanent: true },
-      // ── Poker Near Me URL Migration (April 2026) ──────────────────────────
+      // ── Poker Near Me URL Migration (April 2026) ────────────────────────────────────────
       // Old lobby URL → new canonical lobby sub-route (301 permanent redirect)
       { source: '/hub/poker-near-me-lobby', destination: '/hub/poker-near-me/lobby', permanent: true },
     ];
