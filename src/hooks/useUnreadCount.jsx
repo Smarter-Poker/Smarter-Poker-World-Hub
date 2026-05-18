@@ -18,6 +18,16 @@
  * the global header notification bell did update. Both surfaces now read from
  * the same `notificationCount` field driven by a shared Realtime subscription
  * to the `notifications` table.
+ *
+ * COST-FIX: The old `unread-messages` postgres_changes channel had no
+ * server-side row filter, causing Supabase to broadcast every social_messages
+ * INSERT to every connected user. Because social_messages has no direct
+ * recipient column (membership is resolved via social_conversation_participants),
+ * a simple eq filter cannot scope delivery to the right user. The channel has
+ * been removed. Message unread counts are now maintained by the 30-second
+ * polling interval (refreshUnread) that was already present as a drift-
+ * correction backstop. Notifications continue to use a server-side
+ * user_id=eq.${userId} filter and are unaffected.
  */
 
 import { useState, useEffect, createContext, useContext } from 'react';
@@ -128,57 +138,18 @@ export function UnreadProvider({ children }) {
             refreshUnread();
             refreshNotifications();
 
-            // ── Realtime subscription: messages ────────────────────────────
-            // Wrapped in try-catch: if supabase.channel().on() chaining fails
-            // (e.g. mock client resolved instead of real client), the page must
-            // NOT crash — periodic refreshUnread() is the fallback.
-            let messagesChannel = null;
-            try {
-                messagesChannel = supabase
-                    .channel(`unread-messages:${userId}`)
-                    .on('postgres_changes', {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'social_messages',
-                    }, async (payload) => {
-                        // Ignore our own messages
-                        if (payload.new.sender_id === userId) return;
-
-                        // Verify this message is in a conversation we participate in
-                        try {
-                            const { data: participation } = await supabase
-                                .from('social_conversation_participants')
-                                .select('conversation_id')
-                                .eq('user_id', userId)
-                                .eq('conversation_id', payload.new.conversation_id)
-                                .maybeSingle();
-
-                            if (participation) {
-                                setMessageCount(prev => prev + 1);
-                            }
-                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    })
-                    .on('postgres_changes', {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'social_messages',
-                    }, (payload) => {
-                        // DEEP SWEEP FIX: Catch delete-for-everyone (Unsend) events
-                        // If a message we haven't read gets deleted, we must decrement the badge.
-                        // The safest real-time response is to just recalculate the badge completely:
-                        if (payload.new.is_deleted === true) {
-                            refreshUnread();
-                        }
-                    })
-                    .subscribe();
-            } catch (realtimeErr) {
-                console.warn('[UnreadProvider] messages realtime subscription failed — falling back to polling:', realtimeErr);
-            }
-
             // ── Realtime subscription: notifications ───────────────────────
             // BUG-FIX-LIVE-6: subscribe to notifications inserts for THIS user
             // so both the global header bell AND the bottom-nav Alerts tab
             // receive the same update event in real time.
+            //
+            // NOTE: There is intentionally NO Realtime channel for social_messages
+            // here. The old `unread-messages` channel had no server-side row filter
+            // (social_messages has no direct recipient column), which caused Supabase
+            // to broadcast every message in the database to every connected user —
+            // a significant cost driver. Message counts are kept accurate by the
+            // 30-second polling interval below, plus explicit refreshUnread() calls
+            // from the BroadcastChannel sync when a tab marks messages as read.
             let notifChannel = null;
             try {
                 notifChannel = supabase
@@ -247,14 +218,15 @@ export function UnreadProvider({ children }) {
                 }
             });
 
-            // Refresh periodically as backup (corrects any drift)
+            // Refresh periodically as backup (corrects any drift).
+            // For messages this is the PRIMARY update mechanism (no Realtime channel —
+            // see cost-fix note above). 30 s is acceptable latency for an unread badge.
             const interval = setInterval(() => {
                 refreshUnread();
                 refreshNotifications();
             }, 30000);
 
             return () => {
-                if (messagesChannel) { try { supabase.removeChannel(messagesChannel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
                 if (notifChannel) { try { supabase.removeChannel(notifChannel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
                 clearInterval(interval);
                 cleanupUnreadSync();
