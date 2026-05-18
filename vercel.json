@@ -3,6 +3,7 @@
   "git": {
     "deploymentEnabled": true
   },
+  "ignoreCommand": "bash scripts/vercel-should-build.sh",
   "headers": [
     {
       "source": "/(.*)",
@@ -269,170 +270,92 @@
     {
       "source": "/hub/:path*/:file.png",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.jpg",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.jpeg",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.webp",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.avif",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.svg",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.ico",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.woff2",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.woff",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.ttf",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.mp4",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.webm",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Pragma", "value": "" }
       ]
     },
     {
       "source": "/hub/:path*/:file.mp3",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        },
-        {
-          "key": "Pragma",
-          "value": ""
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Pragma", "value": "" }
       ]
     }
   ],
