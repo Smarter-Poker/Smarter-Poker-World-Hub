@@ -178,6 +178,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   buildExcludes: [/middleware-manifest\.json$/],
 });
 
+const path = require('path');
+
 const nextConfig = {
   // outputFileTracingRoot: require('path').join(__dirname),
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
@@ -188,16 +190,19 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
-  // ─── Next.js 16 Turbopack — Forced webpack via build script flag ───────────────────
-  // Next.js 16 enables Turbopack by default. Our codebase uses a custom webpack
-  // config (supabase.js alias + dev watchOptions) and was built against webpack
-  // semantics. The `build` script in package.json passes `--webpack` to force
-  // webpack explicitly. This `turbopack: {}` is an additional config-level
-  // declaration kept as belt-and-braces — if anything passes --turbopack, this
-  // empty config ensures the "webpack config without turbopack config" hard error
-  // does not surface. Both guards together guarantee webpack is used.
+  // ─── Next.js 16 Turbopack — Active bundler for dev + build ──────────────────────
+  // Turbopack is now the active bundler (next dev defaults to it; build uses
+  // --turbopack). The webpack() callback below is kept for reference but is
+  // NOT called by Turbopack — it is effectively dead code. The two resolve
+  // aliases from that callback are ported here so Turbopack resolves
+  // supabase.js → supabase.ts and authUtils.js → authUtils.ts correctly.
   // See: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
-  turbopack: {},
+  turbopack: {
+    resolveAlias: {
+      [path.resolve(__dirname, 'src/lib/supabase.js')]: path.resolve(__dirname, 'src/lib/supabase.ts'),
+      [path.resolve(__dirname, 'src/lib/authUtils.js')]: path.resolve(__dirname, 'src/lib/authUtils.ts'),
+    },
+  },
 
   // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
@@ -285,11 +290,8 @@ const nextConfig = {
 
   experimental: {
     // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
-    // Two parallel webpack workers each compile ~476 pages, roughly halving
-    // Build Minutes billed on Vercel. Per-worker heap at cpus:1 was ~3.5-4 GB;
-    // with half the pages per worker at cpus:2 the aggregate stays inside the
-    // 8 GB container. Prior dep cleanup (phases 1.1-1.3) validated safety.
-    // Revert to cpus: 1 immediately if a deploy OOMs.
+    // NOTE: cpus is a webpack-specific option; Turbopack ignores it harmlessly.
+    // Retained so that any webpack fallback invocation still benefits from it.
     cpus: 2,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
@@ -316,12 +318,15 @@ const nextConfig = {
   // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
+  // NOTE: Turbopack does not call this webpack() callback — it is dead code when
+  // running under Turbopack. Retained for reference and webpack fallback use.
   webpack: (config, { dev, isServer }) => {
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
     // in src/lib/. Without this alias, imports with explicit .js extension
     // (e.g. from decision-bridge.js) resolve to the mock and crash the app.
     // This forces ALL imports of supabase.js to use the real .ts client instead.
+    // (Ported to turbopack.resolveAlias above for Turbopack builds.)
     const path = require('path');
     config.resolve.alias = Object.assign(config.resolve.alias || {}, {
       [path.resolve(__dirname, 'src/lib/supabase.js')]:
@@ -336,6 +341,7 @@ const nextConfig = {
       // EndStreamModal, LiveActivityFeed — get an empty namespace and
       // (0,s.getFreshAccessToken) is undefined at runtime. Force resolution
       // to the .ts file where the function actually lives.
+      // (Ported to turbopack.resolveAlias above for Turbopack builds.)
       [path.resolve(__dirname, 'src/lib/authUtils.js')]:
         path.resolve(__dirname, 'src/lib/authUtils.ts'),
     });
