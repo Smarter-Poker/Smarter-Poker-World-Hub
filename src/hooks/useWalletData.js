@@ -14,6 +14,10 @@
  *    when the user's role is 'agent'.
  *  - `wallet-treasury:{clubId}` channel is now ROLE-GATED: only opens when
  *    the user's role is 'owner' or 'admin'.
+ *  - `wallet-member:{clubId}:{userId}` filter now includes user_id=eq.${userId}
+ *    so Supabase delivers only this user's club_members rows instead of all
+ *    club members' rows (cost-fix: was broadcasting all member wallet updates
+ *    to every connected club member).
  *
  * Returns: { diamondBalance, bbjAmount, chipBalance, clubBankBalance,
  *            agentBalance, promoBalance, bbjAnimating, loading, role }
@@ -113,13 +117,18 @@ export default function useWalletData({ supabase, userId, clubId }) {
   useEffect(() => {
     if (!supabase || !userId || !clubId) return;
 
-    // 1. Club member chip/promo balance changes (all roles need this)
+    // 1. Club member chip/promo balance changes (all roles need this).
+    //    COST-FIX: filter now includes user_id=eq.${userId} so Supabase only
+    //    delivers rows for this specific member instead of broadcasting every
+    //    club member's wallet updates to all connected users.
     const memberCh = supabase
       .channel(`wallet-member:${clubId}:${userId}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'club_members',
-        filter: `club_id=eq.${clubId}`,
+        filter: `club_id=eq.${clubId}&user_id=eq.${userId}`,
       }, (payload) => {
+        // Belt-and-suspenders guard kept even though the server-side filter
+        // already scopes delivery to this user's rows.
         if (payload.new?.user_id === userId) {
           if (payload.new.chip_balance !== undefined) setChipBalance(payload.new.chip_balance);
           if (payload.new.promo_balance !== undefined) setPromoBalance(payload.new.promo_balance);
