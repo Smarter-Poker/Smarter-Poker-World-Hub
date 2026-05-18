@@ -1,15 +1,16 @@
 /**
- * 🎨 AVATAR CONTEXT
+ * AVATAR CONTEXT
  * Global context provider for user avatar state
  * Makes avatar available throughout the entire app
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import supabase from '../lib/supabase';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
 import { getAuthUser } from '../lib/authUtils';
 import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
 import { busEmit } from '../engine/EventBus';
+import { useProfileRealtime } from '../hooks/useProfileRealtime';
 
 const AvatarContext = createContext();
 
@@ -68,13 +69,13 @@ export function AvatarProvider({ children }) {
                 // Sync to localStorage for optimistic rendering via useVIP hook
                 try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             } else {
-                // 🛡️ BULLETPROOF: Fallback to localStorage instead of getUser()
+                // BULLETPROOF: Fallback to localStorage instead of getUser()
                 const localUser = getAuthUser();
                 setIsVip(localUser?.user_metadata?.is_vip || false);
             }
         } catch (err) {
             console.warn('Error fetching VIP status:', err);
-            // 🛡️ BULLETPROOF: Fallback to localStorage on any error
+            // BULLETPROOF: Fallback to localStorage on any error
             try {
                 const cachedVip = localStorage.getItem('sp-vip-status') === 'true';
                 if (cachedVip) {
@@ -143,16 +144,14 @@ export function AvatarProvider({ children }) {
                 if (data.created || data.isBrandNew) {
                     console.debug('[ANTIGRAVITY] Profile was missing or brand new - checking welcome modal for:', data.profile?.username);
 
-                    // ═════════════════════════════════════════════════════════════
                     // NEW USER WELCOME PACKAGE: Trigger welcome modal
                     // Only show once per user via localStorage flag
-                    // ═════════════════════════════════════════════════════════════
                     const welcomeKey = `sp-welcome-shown-${user.id}`;
                     if (!localStorage.getItem(welcomeKey)) {
                         setShowWelcomeModal(true);
                         // Dispatch VIP bus event so header updates immediately
                         window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
-                        // 🚌 BUS EVENT: Hydrate diamond balance across the UI immediately
+                        // BUS EVENT: Hydrate diamond balance across the UI immediately
                         busEmit.diamondsEarned(0, 'Welcome Package Hydration');
                     }
                 }
@@ -307,85 +306,59 @@ export function AvatarProvider({ children }) {
 
     // ═══════════════════════════════════════════════════════════════════
     // TIER 1: VIP Status Realtime Sync
-    // Listen to profile updates on is_vip field and sync across all tabs
+    // Uses the shared useProfileRealtime hook instead of a dedicated channel.
+    // Replaces the old `vip:{userId}` supabase.channel() call.
+    // Also listens for cross-tab VIP sync via BroadcastChannel.
     // ═══════════════════════════════════════════════════════════════════
+    useProfileRealtime(user?.id, {
+        onVipUpdate: (vipStatus) => {
+            setIsVip(vipStatus);
+            try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+        },
+    });
+
     useEffect(() => {
         if (!user?.id) return;
-        let vipChannel = null;
-
-        const refreshVipStatus = async () => {
-            await fetchVipStatus(user.id);
-        };
-
-        // Supabase realtime: listen for profile updates on this user
-        vipChannel = supabase
-            .channel(`vip:${user.id}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'profiles',
-                filter: `id=eq.${user.id}`
-            }, (payload) => {
-                if (payload.new.is_vip !== undefined) {
-                    const vipStatus = !!payload.new.is_vip;
-                    setIsVip(vipStatus);
-                    try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                }
-            })
-            .subscribe();
-
-        // BroadcastChannel: cross-tab sync
         const cleanupVipSync = listenBroadcast('smarter_poker_vip_sync', () => {
-            refreshVipStatus();
+            fetchVipStatus(user.id);
         });
-
-        return () => {
-            if (vipChannel) supabase.removeChannel(vipChannel);
-            cleanupVipSync();
-        };
+        return () => cleanupVipSync();
     }, [user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 2 REALTIME: Avatar Changes Cross-Tab Sync
-    // Listen for avatar changes from other tabs via BroadcastChannel
-    // Also subscribe to postgres_changes on user_avatars table
+    // TIER 2: Avatar Changes — event-driven (no Realtime channel)
+    // The old `avatar:{userId}` postgres_changes channel watched for admin-side
+    // avatar changes, which happen <0.1% of the time. Replaced with:
+    //   1. window focus refetch — covers the remote-change case
+    //   2. BroadcastChannel — cross-tab sync when the user changes their own avatar
     // ═══════════════════════════════════════════════════════════════════════════
+    const loadAvatarRef = useRef(null);
+
+    // Keep a stable ref so the focus handler always calls the latest loadAvatar
+    useEffect(() => {
+        loadAvatarRef.current = loadAvatar;
+    });
+
     useEffect(() => {
         if (!user?.id) return;
 
-        let avatarChannel = null;
-
-        try {
-            // Subscribe to user_avatars table changes for this user
-            avatarChannel = supabase
-                .channel(`avatar:${user.id}`)
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'user_avatars',
-                    filter: `user_id=eq.${user.id}`
-                }, (payload) => {
-                    console.debug('[AvatarContext] Avatar updated via realtime:', payload);
-                    loadAvatar();
-                })
-                .subscribe();
-        } catch (e) {
-            console.warn('[AvatarContext] Failed to set up avatar realtime:', e);
-        }
-
-        // Listen for cross-tab avatar sync messages
+        // Cross-tab sync: another tab changed the avatar
         const cleanupAvatarSync = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
             if (msg === 'refresh') {
                 console.debug('[AvatarContext] Avatar refresh via BroadcastChannel');
-                loadAvatar();
+                loadAvatarRef.current?.();
             }
         });
 
+        // Tab focus: pick up any admin/remote avatar change on next focus
+        const handleFocus = () => {
+            loadAvatarRef.current?.();
+        };
+        window.addEventListener('focus', handleFocus);
+
         return () => {
-            if (avatarChannel) {
-                supabase.removeChannel(avatarChannel);
-            }
             cleanupAvatarSync();
+            window.removeEventListener('focus', handleFocus);
         };
     }, [user?.id]);
 
@@ -408,7 +381,7 @@ export function AvatarProvider({ children }) {
             if (avatarData) {
                 setAvatar(avatarData);
             } else {
-                // ── NO ACTIVE CUSTOM/PRESET: Fallback to uploaded profile photo ──
+                // NO ACTIVE CUSTOM/PRESET: Fallback to uploaded profile photo
                 const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle();
                 if (profile?.avatar_url) {
                     setAvatar({ type: 'profile_upload', imageUrl: profile.avatar_url });

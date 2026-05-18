@@ -1,87 +1,68 @@
 /**
- * useVenueRealtime — Hardened Supabase Realtime hook for Global Venues
+ * useVenueRealtime — Poll-based replacement for the global-venues-sync channel
  * ═══════════════════════════════════════════════════════════════════════════════
- * Subscribes to changes on poker_venues and venue_daily_tournaments.
- * Calls onUpdate(payload) for surgical SWR local-cache swapping.
- * Calls onUpdate(null) for hard refreshes upon network reconnect/visibility.
+ * Previously opened a postgres_changes subscription on 5 tables with no row
+ * filter, broadcasting every venue/tournament/series change to every visitor.
+ *
+ * Replacement: 5-minute setInterval that calls the onUpdate callback, which
+ * triggers SWR to revalidate. Keeps identical interface — callers unchanged.
+ *
+ * Also preserves:
+ *  - Immediate onUpdate() call on mount (same as the old first-subscribe skip)
+ *  - Tab visibility recovery (missed updates while hidden)
+ *  - triggerRefresh() for imperative refreshes (e.g. user action)
  */
-import { useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { useEffect, useRef, useCallback } from 'react';
+
+const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 export default function useVenueRealtime(onUpdate) {
     const onUpdateRef = useRef(onUpdate);
     onUpdateRef.current = onUpdate;
 
-    const channelRef = useRef(null);
     const missedUpdateRef = useRef(false);
-    // [RTH1 FIX] Track whether this is the first SUBSCRIBED event.
-    // The null-payload hard-refresh should NOT fire on initial connection (SWR already fetches on mount).
-    // It SHOULD fire on RE-subscriptions (network reconnect) to recover missed events.
-    const firstSubscribeRef = useRef(true);
+    const intervalRef = useRef(null);
+
+    const triggerRefresh = useCallback(() => {
+        onUpdateRef.current?.(null);
+    }, []);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        const client = supabase;
-        if (!client) return;
+        // Fire immediately on mount so callers get fresh data on first render
+        // (mirrors old behaviour: SWR already fetches on mount, so we pass null
+        //  here to mean "no specific payload — just revalidate")
+        onUpdateRef.current?.(null);
 
-        const handlePayload = (payload) => {
+        // Poll every 5 minutes
+        intervalRef.current = setInterval(() => {
             if (typeof document !== 'undefined' && document.hidden) {
-                // Backgrounded — discard payload but flag that our local cache is now stale.
+                // Tab backgrounded — skip this tick but flag stale
                 missedUpdateRef.current = true;
                 return;
             }
-            onUpdateRef.current?.(payload);
-        };
+            onUpdateRef.current?.(null);
+        }, POLL_INTERVAL_MS);
 
-        const channelName = `global-venues-sync-${Math.random().toString(36).substring(2, 10)}`;
-        
-        const channel = client.channel(channelName)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_venues' }, handlePayload)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_daily_tournaments' }, handlePayload)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_series' }, handlePayload)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_series' }, handlePayload)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tour_source_registry' }, handlePayload)
-            .subscribe((status, err) => {
-                if (status === 'SUBSCRIBED') {
-                    console.debug(`[Realtime] ✅ Connected: ${channelName}`);
-                    if (firstSubscribeRef.current) {
-                        // First connection: SWR already fetching — skip double-fetch
-                        firstSubscribeRef.current = false;
-                    } else {
-                        // RE-subscribe (reconnect after drop): hard-refresh to recover missed events
-                        onUpdateRef.current?.(null);
-                    }
-                } else if (status === 'CLOSED') {
-                    console.warn(`[Realtime] ⚠️ Channel Closed: ${channelName}`);
-                } else if (status === 'CHANNEL_ERROR') {
-                    console.warn(`[Realtime] ❌ Channel Error: ${channelName}`, err);
-                }
-            });
-
-        channelRef.current = channel;
-
-        // [HARDENING] Tab visibility sync: fetch lost updates
+        // Tab visibility recovery: catch up if we skipped ticks while hidden
         const handleVisibilityChange = () => {
             if (!document.hidden && missedUpdateRef.current) {
-                console.debug(`[Realtime] 🔄 Recovering missed updates from background state...`);
+                console.debug('[VenueRealtime] Recovering missed poll from background state...');
                 missedUpdateRef.current = false;
-                onUpdateRef.current?.(null); // Hard refresh
+                onUpdateRef.current?.(null);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            if (channelRef.current) {
-                try { 
-                    client.removeChannel(channelRef.current); 
-                } catch (e) { 
-                    console.warn('[Realtime] Cleanup warning:', e);
-                } finally {
-                    channelRef.current = null;
-                }
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
             }
         };
     }, []);
+
+    return triggerRefresh;
 }

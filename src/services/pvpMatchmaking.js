@@ -1,6 +1,6 @@
 /**
  * PvP Matchmaking Service
- * Handles real-time matchmaking using Supabase Realtime
+ * Handles matchmaking using polling for queue status
  */
 
 import { supabase } from '../lib/supabase';
@@ -195,7 +195,7 @@ export async function findMatch(userId, stakeAmount) {
  * Subscribe to match updates for real-time sync
  * @param {string} matchId - The match ID
  * @param {Function} onUpdate - Callback for updates
- * @returns {Object} Subscription object
+ * @returns {Function} Cleanup function
  */
 export function subscribeToMatch(matchId, onUpdate) {
     const channel = supabase
@@ -213,26 +213,77 @@ export function subscribeToMatch(matchId, onUpdate) {
 }
 
 /**
- * Subscribe to queue changes for finding opponents
+ * Subscribe to queue changes for finding opponents — polling implementation
+ * Replaces the old `pvp_queue:{stakeAmount}` postgres_changes channel.
+ *
+ * Polls every 3 seconds for the user's own queue entry. If the entry's
+ * status has changed from 'waiting' to 'matched', fires onNewPlayer with
+ * a synthetic payload matching the original Realtime INSERT shape so callers
+ * need no changes.
+ *
  * @param {number} stakeAmount - The stake level to monitor
- * @param {Function} onNewPlayer - Callback when new player joins
- * @returns {Object} Subscription object
+ * @param {string} userId      - The local user's ID (needed to poll own entry)
+ * @param {Function} onNewPlayer - Callback when a match is found
+ * @returns {Function} Cleanup / unsubscribe function
  */
-export function subscribeToQueue(stakeAmount, onNewPlayer) {
-    const channel = supabase
-        .channel(`pvp_queue:${stakeAmount}`)
-        .on('postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'trivia_pvp_queue', filter: `stake_amount=eq.${stakeAmount}` },
-            (payload) => {
-                if (payload.new.status === 'waiting') {
-                    onNewPlayer(payload.new);
+export function subscribeToQueue(stakeAmount, onNewPlayer, userId) {
+    const POLL_MS = 3000;
+    let lastStatus = 'waiting';
+    let stopped = false;
+
+    const poll = async () => {
+        if (stopped) return;
+        try {
+            // Query the caller's own queue entry — no need to watch all entries
+            // at this stake tier, which was the wasteful pattern before.
+            const query = supabase
+                .from('trivia_pvp_queue')
+                .select('*')
+                .eq('stake_amount', stakeAmount)
+                .eq('status', 'waiting');
+
+            // If we have the userId, scope the poll to the user's own row
+            if (userId) {
+                query.eq('user_id', userId);
+            }
+
+            const { data: rows } = await query.order('created_at', { ascending: false }).limit(1);
+
+            if (stopped) return;
+
+            // Check if a match was made (status flipped from waiting to matched
+            // by the server — we see it disappear from the 'waiting' result set)
+            if ((!rows || rows.length === 0) && lastStatus === 'waiting') {
+                // Entry no longer in 'waiting' — check if it's now 'matched'
+                const { data: matched } = await supabase
+                    .from('trivia_pvp_queue')
+                    .select('*')
+                    .eq('stake_amount', stakeAmount)
+                    .eq('status', 'matched')
+                    .eq('user_id', userId)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (matched && !stopped) {
+                    lastStatus = 'matched';
+                    console.debug('[PvP Queue] Match found via polling:', matched.match_id);
+                    onNewPlayer(matched);
                 }
             }
-        )
-        .subscribe();
+        } catch (err) {
+            console.warn('[PvP Queue] Poll error:', err);
+        }
+    };
 
-    // Return cleanup function for callers to use in useEffect return
-    return () => { supabase.removeChannel(channel); };
+    // Kick off immediately, then on interval
+    poll();
+    const intervalId = setInterval(poll, POLL_MS);
+
+    return () => {
+        stopped = true;
+        clearInterval(intervalId);
+    };
 }
 
 /**

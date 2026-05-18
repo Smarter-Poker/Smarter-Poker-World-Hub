@@ -6,7 +6,8 @@
  * Used by both UniversalHeader and ThreePillHeader to:
  * - Read cached balance from localStorage instantly
  * - Fetch fresh balance from /api/user/get-header-stats
- * - Subscribe to Supabase realtime profile.diamonds changes
+ * - Receive profile.diamonds changes via the shared useProfileRealtime hook
+ *   (replaces the old dedicated `diamonds:{userId}` channel)
  * - Listen for EventBus DIAMONDS_EARNED/SPENT events (primary channel)
  * - Listen for legacy diamond-balance-refresh CustomEvents (backward compat)
  * - Sync across tabs via BroadcastChannel
@@ -16,9 +17,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
 import { listenBroadcast } from '../lib/broadcastSync';
 import { eventBus, EventType } from '../engine/EventBus';
+import { useProfileRealtime } from './useProfileRealtime';
 
 // ── Helper: read access token from localStorage ──
 function getAccessToken() {
@@ -85,11 +86,11 @@ export function useDiamondBalance(userId) {
     // ── Event listener: diamond-balance-refresh custom event ──
     useEffect(() => {
         window.addEventListener('diamond-balance-refresh', refreshBalance);
-        
+
         // Listen to global EventBus for robust real-time synchronization
         const unsubscribeEarned = eventBus.on(EventType.DIAMONDS_EARNED, refreshBalance);
         const unsubscribeSpent = eventBus.on(EventType.DIAMONDS_SPENT, refreshBalance);
-        
+
         return () => {
             window.removeEventListener('diamond-balance-refresh', refreshBalance);
             unsubscribeEarned();
@@ -97,42 +98,35 @@ export function useDiamondBalance(userId) {
         };
     }, [refreshBalance]);
 
-    // ── Supabase realtime: profile.diamonds changes + cross-tab sync ──
+    // ── Shared profile channel: diamonds field updates ──
+    // Replaces the old dedicated `diamonds:{userId}` supabase.channel() call.
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
+
+    useProfileRealtime(userId, {
+        onDiamondsUpdate: (diamonds) => {
+            if (mountedRef.current) {
+                setBalance(diamonds);
+                updateCachedBalance(diamonds);
+            }
+        },
+    });
+
+    // ── Cross-tab sync via BroadcastChannel ──
     useEffect(() => {
         if (!userId) return;
-        mountedRef.current = true;
 
-        // Supabase realtime: listen for profile updates on this user
-        const diamondChannel = supabase
-            .channel(`diamonds:${userId}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'profiles',
-                filter: `id=eq.${userId}`
-            }, (payload) => {
-                if (payload.new?.diamonds !== undefined && mountedRef.current) {
-                    setBalance(payload.new.diamonds);
-                    updateCachedBalance(payload.new.diamonds);
-                }
-            })
-            .subscribe();
-
-        // BroadcastChannel: cross-tab sync
         const cleanupDiamondSync = listenBroadcast('smarter_poker_diamond_sync', () => {
             refreshBalance();
         });
 
-        // Club Arena chip sync → triggers diamond refresh directly
         const cleanupChipSync = listenBroadcast('smarter_poker_chips_sync', (msg) => {
-            if (msg === 'refresh') {
-                refreshBalance();
-            }
+            if (msg === 'refresh') refreshBalance();
         });
 
         return () => {
-            mountedRef.current = false;
-            supabase.removeChannel(diamondChannel);
             cleanupDiamondSync();
             cleanupChipSync();
         };
