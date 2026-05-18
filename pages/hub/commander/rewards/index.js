@@ -84,21 +84,10 @@ export default function PlayerRewardsPage() {
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/rewards');
   useTrainingBus('rewards');
-  // Realtime listener — live updates for rewards/index.js
-  useEffect(() => {
-    if (!user?.id) return;
-    const ch = supabase
-      .channel(`rewards:${user?.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_comp_balances' }, () => {
-        refreshRewards();
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_comp_transactions' }, () => {
-        refreshRewards();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [user?.id, refreshRewards]);
 
+  // useSWR declared BEFORE the useEffect that references refreshRewards.
+  // Turbopack enforces strict TDZ — const bindings cannot be referenced
+  // before their declaration line, unlike webpack which masked this.
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR(authChecking ? null : '/api/commander/comps/balances', async () => {
     const token = getAccessToken();
     if (!token) return null;
@@ -123,6 +112,21 @@ export default function PlayerRewardsPage() {
   const hoursPlayed = swrData?.hoursPlayed || 0;
   const transactions = swrData?.transactions || [];
   const earnRate = swrData?.earnRate || 1;
+
+  // Realtime listener — refreshRewards is now initialized above, safe to use here
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`rewards:${user?.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_comp_balances' }, () => {
+        refreshRewards();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_comp_transactions' }, () => {
+        refreshRewards();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id, refreshRewards]);
 
   function handleRedeemClick(category) {
     if (balance <= 0) {
@@ -168,7 +172,6 @@ export default function PlayerRewardsPage() {
       const data = await res.json();
       if (data.success) {
         busEmit.dataMutated('rewards');
-        setBalance(prev => prev - finalAmount);
         setComingSoonMessage(`Successfully redeemed $${finalAmount} for ${category.label}!`);
         refreshRewards(); // Refresh data
       } else {
