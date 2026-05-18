@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "regions": ["iad1"],
   "git": {
     "deploymentEnabled": true
   },
@@ -360,13 +361,13 @@
     }
   ],
   "crons": [
-    { "path": "/api/cron/signup-probe", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/signup-probe", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/signup-probe-restricted", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/sentry-signup-bridge", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/sentry-signup-bridge", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/trigger-audit", "schedule": "0 6 * * *" },
     { "path": "/api/cron/email-deliverability-check", "schedule": "0 7 * * *" },
     { "path": "/api/cron/archive-signup-errors", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/login-probe", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/login-probe", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/recovery-probe", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/auth-integrity-audit", "schedule": "0 4 * * *" }
   ],
