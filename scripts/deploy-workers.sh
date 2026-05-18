@@ -25,7 +25,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SSH_KEY="$HOME/.ssh/openclaw_ed25519"
+SSH_KEY=""
 YT_SRC="$REPO_ROOT/scripts/yt-transcode-worker/index.js"
 HEVC_SRC="$REPO_ROOT/scripts/transcode-worker/index.js"
 
@@ -44,7 +44,6 @@ warn() { echo "[deploy-workers] WARN: $*" >&2; }
 
 # ─── Prereq checks ────────────────────────────────────────────────────────────
 
-[ -f "$SSH_KEY" ] || die "SSH key missing at $SSH_KEY" 1
 [ -f "$YT_SRC" ]  || die "yt-transcode-worker/index.js missing at $YT_SRC" 1
 
 get_ip() {
@@ -61,8 +60,24 @@ get_ip() {
 REELS_IP=$(get_ip reels-transcode-worker-ip "${REELS_WORKER_IP:-5.161.49.206}")
 OPENCLAW_IP=$(get_ip openclaw-server-ip "${OPENCLAW_IP:-178.104.180.220}")
 
+# Auto-detect working SSH key
+for key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/openclaw_ed25519" "$HOME/.ssh/workers_ed25519"; do
+  if [ -f "$key" ] && ssh -i "$key" -o ConnectTimeout=3 -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o ChallengeResponseAuthentication=no -o BatchMode=yes -o StrictHostKeyChecking=accept-new "openclaw@$REELS_IP" "uname" &>/dev/null; then
+    SSH_KEY="$key"
+    break
+  fi
+done
+
+if [ -z "$SSH_KEY" ]; then
+  # Fallback
+  SSH_KEY="$HOME/.ssh/openclaw_ed25519"
+fi
+
+[ -f "$SSH_KEY" ] || die "SSH key missing at $SSH_KEY" 1
+
 log "reels-transcode-worker : $REELS_IP (ash)"
 log "workers-dispatcher     : $OPENCLAW_IP (fsn1)"
+log "using SSH key          : $SSH_KEY"
 $DRY_RUN && log "DRY RUN — no files will be transferred or services restarted"
 
 ssh_cmd() { ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "openclaw@$1" "${@:2}"; }
