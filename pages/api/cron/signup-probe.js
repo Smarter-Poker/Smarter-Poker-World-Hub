@@ -1,69 +1,48 @@
 /**
  * /api/cron/signup-probe — Synthetic Signup Health Probe
  * ═══════════════════════════════════════════════════════════════════════════
- * Runs every 5 minutes via Vercel cron. Exercises the FULL signup pipeline
- * end-to-end with a throwaway user, then immediately deletes it. If any
- * step fails, alerts via Sentry + (optional) Resend email + (optional) SMS.
+ * Runs once daily at 2am UTC via Vercel cron. Verifies the signup trigger
+ * chain is intact by inspecting a PERMANENT probe account — it NEVER creates
+ * a new user, so it generates exactly 0 MAU events per run.
  *
- * STEPS
- * ═════
- *   1. POST to Supabase /auth/v1/signup (same path the canonical form uses)
- *      with a unique probe@smarter.poker email and a random strong password.
- *   2. Confirm the user appears in auth.users.
- *   3. Confirm public.profiles row was created by the handle_new_user trigger.
- *   4. Confirm public.wallets row was created by handle_new_user_v2_create_wallet.
- *   5. Confirm public.user_diamonds row was created by initialize_user_diamonds.
- *   6. Delete the probe user via admin.deleteUser (cascades through triggers).
+ * ⚠️  MAU FIX (2026-05-18)
+ * ────────────────────────
+ * The previous version called admin.auth.admin.createUser() on every
+ * invocation (originally every 5 min, later every 15 min).  Supabase counts
+ * every INSERT into auth.users as an MAU event regardless of subsequent
+ * deletion.  At 96 runs/day that generated ~2,880 fake MAU/month.
  *
- * If steps 1-5 all pass, the probe returns 200 + reports counters to Sentry
- * as a positive heartbeat. If anything fails, it returns 503 and emits a
- * single, structured alert with the exact step that failed.
+ * This version never touches auth.users writes.  It simply queries whether
+ * the expected downstream rows exist for a known permanent probe account.
+ * If they exist → triggers are confirmed working → 200.
+ * If any are missing → trigger chain is broken → 503.
  *
- * SAFETY
- * ══════
- *   - Probe emails use the +probe-{timestamp}@probe.smarter.local convention
- *     which is filtered out of all user-facing email lists.
- *   - Probe users are deleted immediately, regardless of pass/fail.
- *   - Best-effort cleanup runs on EVERY invocation to sweep leftover probes
- *     from a prior crash where the cleanup step itself was skipped.
- *   - Rate-limited to once per 60s via in-memory guard so a misconfigured
- *     scheduler can't spam signup attempts.
+ * SETUP (one-time, if not already done)
+ * ──────────────────────────────────────
+ *   1. In Supabase → Authentication → Users, create a user manually:
+ *        Email:    probe-signup@probe.smarter.poker
+ *        Confirm the user immediately (set email_confirmed_at)
+ *   2. Note the UUID Supabase assigns to that user.
+ *   3. Add to Vercel env vars (all environments):
+ *        PROBE_SIGNUP_USER_ID = <the UUID from step 2>
+ *   4. Do NOT delete this user.  It should persist indefinitely.
+ *      The rows in profiles / wallets / user_diamonds must also persist.
+ *
+ * What is tested
+ * ──────────────
+ *   • auth.users: probe account exists (getUserById)
+ *   • profiles:   row with id = PROBE_SIGNUP_USER_ID exists
+ *   • wallets:    row with user_id = PROBE_SIGNUP_USER_ID exists
+ *   • user_diamonds: row with user_id = PROBE_SIGNUP_USER_ID exists
+ *
+ * A missing row means the trigger that creates it is broken (or the probe
+ * account was accidentally deleted — which should itself be alerted).
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-
-// [2026-05-03b] Domain is a subdomain we own. NEVER `.local` (RFC 6762
-// reserved for mDNS — Supabase email validator inconsistently rejects it
-// across environments). NEVER `.test` (RFC 2606 reserved for testing —
-// some MX-validating projects refuse it). probe.smarter.poker has no
-// MX record so any actual delivery attempt fails fast, but Supabase
-// accepts it as syntactically valid.
-//
-// IMPORTANT: this exact prefix+domain pair is also referenced in the
-// signup_health_view migration filter. If you change it here, update
-// the view too (otherwise probe users get counted as real signups,
-// reintroducing the green-dashboard failure mode).
-const PROBE_EMAIL_DOMAIN = 'probe.smarter.poker';
-const PROBE_EMAIL_PREFIX = 'probe-';
-
-// In-memory rate limit: at most one probe per 60s on this Lambda instance.
-let lastProbeAt = 0;
-
-// Strong random password for probes. validatePassword's HIBP check
-// prevents using a weak/common one.
-function makeProbePassword() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
-    let p = '';
-    for (let i = 0; i < 24; i++) p += chars[Math.floor(Math.random() * chars.length)];
-    return p;
-}
-
-function makeProbeEmail() {
-    return `${PROBE_EMAIL_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}@${PROBE_EMAIL_DOMAIN}`;
-}
 
 let _admin = null;
 function getAdmin() {
@@ -75,35 +54,6 @@ function getAdmin() {
     return _admin;
 }
 
-let _anon = null;
-function getAnon() {
-    if (_anon) return _anon;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !key) return null;
-    _anon = createClient(url, key, { auth: { persistSession: false } });
-    return _anon;
-}
-
-// ── Sweep stale probes (anything older than 1h that wasn't deleted) ───────
-async function sweepStaleProbes(admin) {
-    try {
-        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 });
-        const cutoff = Date.now() - 60 * 60 * 1000;
-        const stale = (list?.users || []).filter(u =>
-            (u.email || '').endsWith(`@${PROBE_EMAIL_DOMAIN}`) &&
-            new Date(u.created_at).getTime() < cutoff
-        );
-        for (const u of stale) {
-            await admin.auth.admin.deleteUser(u.id).catch(() => null);
-        }
-        return stale.length;
-    } catch (e) {
-        // Sweep is best-effort; never fail the probe because of leftovers.
-        return -1;
-    }
-}
-
 export const config = { maxDuration: 30 };
 
 export default async function handler(req, res) {
@@ -112,168 +62,132 @@ export default async function handler(req, res) {
     }
     res.setHeader('Cache-Control', 'no-store');
 
-    if (Date.now() - lastProbeAt < 60_000) {
-        return res.status(200).json({ status: 'skipped', reason: 'rate_limited' });
-    }
-    lastProbeAt = Date.now();
-
     const admin = getAdmin();
-    const anon = getAnon();
-    if (!admin || !anon) {
+    if (!admin) {
         return res.status(500).json({
             status: 'unconfigured',
-            error: 'Missing SUPABASE env vars — cannot probe',
+            error: 'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY',
         });
     }
 
-    const email = makeProbeEmail();
-    const password = makeProbePassword();
+    const probeUserId = process.env.PROBE_SIGNUP_USER_ID;
+    if (!probeUserId) {
+        return res.status(500).json({
+            status: 'unconfigured',
+            error: 'Missing PROBE_SIGNUP_USER_ID env var. ' +
+                'Create a permanent probe account in Supabase and set this to its UUID. ' +
+                'See the file header comment for setup instructions.',
+        });
+    }
+
     const startedAt = Date.now();
-    let userId = null;
-    const steps = {};
+    const checks = {};
 
     try {
-        // Step 1: create user via admin API.
-        //
-        // [2026-05-03e] Originally used anon.auth.signUp({...}) for full
-        // path parity. Problem: with mailer_autoconfirm=false, Supabase
-        // tries to send a confirmation email per signup. probe.smarter.poker
-        // has no MX so all 288 emails/day bounce, which hurts sender
-        // reputation and burns email-quota that real users need.
-        //
-        // admin.auth.admin.createUser({email_confirm:true}) fires the SAME
-        // INSERT into auth.users → SAME trigger chain (handle_new_user,
-        // wallet trigger, diamonds trigger). The only thing it skips is the
-        // GoTrue email-send step, which is a tiny REST handler unlikely to
-        // silently break. Net: same coverage, zero email burn.
-        steps.signup = { started_at: Date.now() };
-        const { data: signUpData, error: signUpErr } = await admin.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: {
-                full_name: 'Health Probe',
-                first_name: 'Health',
-                last_name: 'Probe',
-                poker_alias: 'probe',
-                _is_probe: true,
-            },
-        });
-        steps.signup.duration_ms = Date.now() - steps.signup.started_at;
-        if (signUpErr || !signUpData?.user?.id) {
-            steps.signup.ok = false;
-            steps.signup.error = signUpErr?.message || 'no user returned';
-            throw new Error(`Step 1 (createUser) failed: ${steps.signup.error}`);
-        }
-        userId = signUpData.user.id;
-        steps.signup.ok = true;
-        steps.signup.user_id = userId;
-
-        // [2026-05-03b] Trigger row visibility — POLL with backoff instead
-        // of a fixed sleep. Triggers fire AFTER INSERT (synchronously inside
-        // the transaction) so the rows ARE visible the moment auth.users
-        // commits, but under DB load a single sleep can be insufficient and
-        // a fixed sleep is wasteful when the rows are visible faster.
-        const checks = [
-            { name: 'auth_users',   query: () => admin.auth.admin.getUserById(userId), shape: (d) => d?.data?.user },
-            { name: 'profiles',     query: () => admin.from('profiles').select('id, username, player_number').eq('id', userId).maybeSingle(), shape: (d) => d?.data },
-            { name: 'wallets',      query: () => admin.from('wallets').select('user_id, wallet_type, balance').eq('user_id', userId).eq('wallet_type', 'PLAYER').maybeSingle(), shape: (d) => d?.data },
-            { name: 'user_diamonds', query: () => admin.from('user_diamonds').select('user_id, balance').eq('user_id', userId).maybeSingle(), shape: (d) => d?.data },
-        ];
-
-        for (const c of checks) {
-            steps[c.name] = { started_at: Date.now(), attempts: 0 };
-            // Poll: 100ms, 200ms, 400ms, 800ms, 1600ms — total ≤3.1s per check
-            const delays = [0, 100, 200, 400, 800, 1600];
-            let lastResult = null;
-            for (const d of delays) {
-                if (d > 0) await new Promise(r => setTimeout(r, d));
-                steps[c.name].attempts++;
-                lastResult = await c.query();
-                const row = c.shape(lastResult);
-                if (row && !lastResult.error) {
-                    steps[c.name].ok = true;
-                    steps[c.name].duration_ms = Date.now() - steps[c.name].started_at;
-                    break;
-                }
-            }
-            if (!steps[c.name].ok) {
-                steps[c.name].ok = false;
-                steps[c.name].duration_ms = Date.now() - steps[c.name].started_at;
-                steps[c.name].error = lastResult?.error?.message || 'row not found after polling';
-                throw new Error(`Step ${c.name} failed after ${steps[c.name].attempts} attempts: ${steps[c.name].error}`);
-            }
+        // Check 1: auth.users — probe account itself exists
+        checks.user_exists = { started_at: Date.now() };
+        const { data: authData, error: authErr } = await admin.auth.admin.getUserById(probeUserId);
+        checks.user_exists.duration_ms = Date.now() - checks.user_exists.started_at;
+        if (authErr || !authData?.user?.id) {
+            checks.user_exists.ok = false;
+            checks.user_exists.error = authErr?.message || 'user not found in auth.users';
+        } else {
+            checks.user_exists.ok = true;
+            checks.user_exists.email = authData.user.email;
         }
 
-        // [2026-05-03d] Heartbeat write BEFORE cleanup so the dashboard
-        // can detect a stalled probe (probe_heartbeats survives delete).
+        // Check 2: profiles row
+        checks.profile_exists = { started_at: Date.now() };
+        const { data: profileData, error: profileErr } = await admin
+            .from('profiles')
+            .select('id')
+            .eq('id', probeUserId)
+            .maybeSingle();
+        checks.profile_exists.duration_ms = Date.now() - checks.profile_exists.started_at;
+        if (profileErr || !profileData) {
+            checks.profile_exists.ok = false;
+            checks.profile_exists.error = profileErr?.message || 'row not found in profiles';
+        } else {
+            checks.profile_exists.ok = true;
+        }
+
+        // Check 3: wallets row
+        checks.wallet_exists = { started_at: Date.now() };
+        const { data: walletData, error: walletErr } = await admin
+            .from('wallets')
+            .select('user_id')
+            .eq('user_id', probeUserId)
+            .maybeSingle();
+        checks.wallet_exists.duration_ms = Date.now() - checks.wallet_exists.started_at;
+        if (walletErr || !walletData) {
+            checks.wallet_exists.ok = false;
+            checks.wallet_exists.error = walletErr?.message || 'row not found in wallets';
+        } else {
+            checks.wallet_exists.ok = true;
+        }
+
+        // Check 4: user_diamonds row
+        checks.diamonds_exists = { started_at: Date.now() };
+        const { data: diamondsData, error: diamondsErr } = await admin
+            .from('user_diamonds')
+            .select('user_id')
+            .eq('user_id', probeUserId)
+            .maybeSingle();
+        checks.diamonds_exists.duration_ms = Date.now() - checks.diamonds_exists.started_at;
+        if (diamondsErr || !diamondsData) {
+            checks.diamonds_exists.ok = false;
+            checks.diamonds_exists.error = diamondsErr?.message || 'row not found in user_diamonds';
+        } else {
+            checks.diamonds_exists.ok = true;
+        }
+
+        const allOk = Object.values(checks).every((c) => c.ok === true);
+        const failedChecks = Object.keys(checks).filter((k) => checks[k].ok === false);
+
+        const duration_ms = Date.now() - startedAt;
+
+        // Heartbeat write (best-effort — never fail a healthy probe because of this)
         await admin.from('probe_heartbeats').insert({
             probe_name: 'signup-probe',
-            status: 'ok',
-            duration_ms: Date.now() - startedAt,
-            details: { steps },
+            status: allOk ? 'ok' : 'failed',
+            duration_ms,
+            details: { checks, failed_checks: failedChecks },
         }).catch((hbErr) => {
-            // Heartbeat is best-effort; never let it fail an otherwise-OK probe.
             console.warn('[signup-probe] heartbeat write failed:', hbErr?.message || hbErr);
         });
 
-        // Step 6: cleanup
-        await admin.auth.admin.deleteUser(userId).catch(() => null);
-
-        // Background sweep — best-effort, don't await
-        sweepStaleProbes(admin).catch(() => null);
+        if (!allOk) {
+            return res.status(503).json({
+                status: 'failed',
+                duration_ms,
+                error: `Trigger chain broken — missing rows: ${failedChecks.join(', ')}`,
+                failed_checks: failedChecks,
+                checks,
+            });
+        }
 
         return res.status(200).json({
             status: 'ok',
-            duration_ms: Date.now() - startedAt,
-            steps,
+            duration_ms,
+            checks,
         });
     } catch (err) {
-        // Always try to clean up the probe user even if we failed mid-way
-        if (userId) {
-            await admin.auth.admin.deleteUser(userId).catch(() => null);
-        }
-
         try { reportApiError(err, req); } catch (_) { /* ignore */ }
 
-        // Single structured failure record so Sentry / log search can group
-        const failure = {
-            status: 'failed',
-            duration_ms: Date.now() - startedAt,
-            error: err?.message || String(err),
-            failed_step: Object.keys(steps).find(k => steps[k]?.ok === false) || 'unknown',
-            steps,
-            probe_email: email,
-        };
+        const duration_ms = Date.now() - startedAt;
 
-        // Heartbeat the failure too — so signup_health_view shows
-        // probe_failed_1h > 0 even if email/Sentry alerts are dropped.
         await admin.from('probe_heartbeats').insert({
             probe_name: 'signup-probe',
             status: 'failed',
-            duration_ms: failure.duration_ms,
-            details: { failed_step: failure.failed_step, error: failure.error, steps },
+            duration_ms,
+            details: { error: err?.message || String(err), checks },
         }).catch(() => null);
 
-        // Optional: Resend email alert
-        if (process.env.RESEND_API_KEY && process.env.OPS_ALERT_EMAIL) {
-            try {
-                await fetch('https://api.resend.com/emails', {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        from: process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker',
-                        to: process.env.OPS_ALERT_EMAIL,
-                        subject: `[smarter.poker] Signup probe FAILED at step: ${failure.failed_step}`,
-                        text: JSON.stringify(failure, null, 2),
-                    }),
-                });
-            } catch (_emailErr) { /* never let alerting itself fail the cron */ }
-        }
-
-        return res.status(503).json(failure);
+        return res.status(503).json({
+            status: 'failed',
+            duration_ms,
+            error: err?.message || String(err),
+            checks,
+        });
     }
 }
