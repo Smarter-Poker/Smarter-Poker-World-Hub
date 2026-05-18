@@ -95,7 +95,23 @@ export default function SquadsPage() {
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/squads');
   useTrainingBus('squads');
-  // Realtime listener — live updates for squads/index.js
+
+  // useSWR declared BEFORE the useEffect that references refreshSquads.
+  // Turbopack enforces strict TDZ — const bindings cannot be referenced
+  // before their declaration line, unlike webpack which masked this.
+  const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR(
+    authChecking ? null : '/api/commander/squads/my',
+    async (url) => {
+      const token = getAccessToken();
+      if (!token) return null;
+      return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => d.success ? d.data : { squads: [], invitations: [] });
+    }
+  );
+  const squads = swrData?.squads || [];
+  const invitations = swrData?.invitations || [];
+
+  // useEffect NOW AFTER useSWR so refreshSquads is initialized first
   useEffect(() => {
     if (!user?.id) return;
     const ch = supabase
@@ -106,15 +122,6 @@ export default function SquadsPage() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, refreshSquads]);
-
-  const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR(authChecking ? null : '/api/commander/squads/my', async (url) => {
-    const token = getAccessToken();
-    if (!token) return null;
-    return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => d.success ? d.data : { squads: [], invitations: [] });
-  });
-  const squads = swrData?.squads || [];
-  const invitations = swrData?.invitations || [];
 
   async function handleInvitation(invitationId, accept) {
     try {
