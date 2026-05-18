@@ -7,7 +7,7 @@
 import 'dotenv/config';
 
 // --- Import Brain ---
-const Brain = await import('../brain/index.js');
+const { default: Brain } = await import('../brain/index.js');
 
 // --- Import Advanced (for fatigue, tilt, rivalry) ---
 const Adv = await import('../../../content-engine/services/HorsePokerAdvanced.js');
@@ -157,7 +157,7 @@ assert(spr2.strategy === 'deep', '#24b High SPR deep (spr=' + spr2.spr.toFixed(1
 
 // #25 Multiway adjustments
 const mw2 = Brain.getMultiwayAdjustment(2);
-const mw5 = Brain.getMultiwayAdjustment(5);
+const mw5 = Brain.getMultiwayAdjustment(5, { position: 'SB' });
 assert(mw2.strengthPenalty === 0, '#25a Heads-up no penalty');
 assert(mw5.strengthPenalty >= 22, '#25b 5+ players heavy penalty (pen=' + mw5.strengthPenalty + ')');
 assert(mw5.bluffReduction < 0.2, '#25c 5+ players bluff reduction (red=' + mw5.bluffReduction + ')');
@@ -204,7 +204,7 @@ assert(ds2.widenRange === true, '#31b 250BB = widen range');
 assert(ds2.impliedOddsBonus > 0, '#31c 250BB implied odds bonus (bonus=' + ds2.impliedOddsBonus + ')');
 
 // #32 Bet sizing trees
-const bs1 = Brain.getOptimalBetSize('quads', 'flop', 100, false);
+const bs1 = Brain.getOptimalBetSize('quads', 'flop', 100, false, { handStrength: 95 });
 assert(bs1 >= 1.0, '#32a Quads = overbet (size=' + bs1 + ')');
 const bs2 = Brain.getOptimalBetSize('top_pair', 'flop', 100, false);
 assert(bs2 >= 0.45 && bs2 <= 0.55, '#32b Top pair = half pot (size=' + bs2 + ')');
