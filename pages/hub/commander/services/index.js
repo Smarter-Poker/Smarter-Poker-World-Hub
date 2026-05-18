@@ -294,18 +294,10 @@ export default function ServicesPage() {
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/services');
   useTrainingBus('services');
-  // Realtime listener — live updates for services/index.js
-  useEffect(() => {
-    if (!user?.id) return;
-    const ch = supabase
-      .channel(`services:${user?.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_service_requests' }, () => {
-        refreshServices();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [user?.id, refreshServices]);
 
+  // useSWR declared BEFORE the useEffect that references refreshServices.
+  // Turbopack enforces strict TDZ — const bindings cannot be referenced
+  // before their declaration line, unlike webpack which masked this.
   const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR(authChecking ? null : '/api/commander/sessions/current', async () => {
     const token = getAccessToken();
     if (!token) return null;
@@ -323,6 +315,18 @@ export default function ServicesPage() {
   });
   const session = swrData?.session || null;
   const requests = swrData?.requests || [];
+
+  // Realtime listener — live updates for services/index.js
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`services:${user?.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_service_requests' }, () => {
+        refreshServices();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id, refreshServices]);
 
   async function handleSubmitRequest(request) {
     try {
@@ -362,7 +366,6 @@ export default function ServicesPage() {
       refreshServices();
     } catch (err) {
       console.warn('Cancel failed:', err);
-      setRequests(prev => prev.filter(r => r.id !== requestId));
     }
   }
 
