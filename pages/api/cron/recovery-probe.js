@@ -7,29 +7,32 @@
  *      whole password-reset flow is dead)
  *   2. signInWithOtp (magic link) — verify the API accepts the request
  *
- * Both probes use a real probe user we just created via admin.createUser
- * so we can verify the FULL request lifecycle including row updates in
- * auth.flow_state. (Calling resetPasswordForEmail for a non-existent
- * user returns 200 silently — Supabase doesn't leak account existence —
- * which makes that response unreliable as a health signal. We need to
- * see the actual flow_state row appear.)
+ * ⚠️  MAU FIX (2026-05-18)
+ * ────────────────────────
+ * The original probe created 2 brand-new unique users on every invocation.
+ * Each auth.createUser call registers as a new auth identity, and signInWithOtp
+ * counted as an MAU event.  Running every 15 min = 2,880 runs/month × 2 users
+ * = ~5,760 additional fake MAU/month.
+ *
+ * This version reuses a single PERMANENT probe account.  1 MAU/month total.
+ * We don't need a fresh user to verify that resetPasswordForEmail or
+ * signInWithOtp accept requests — any confirmed user works.
+ *
+ * SETUP (one-time)
+ * ────────────────
+ *   1. You can reuse the same account as login-probe, or create a dedicated one:
+ *        Email:    probe-recovery@probe.smarter.poker
+ *        (Confirm the user immediately in Supabase dashboard)
+ *   2. Add to Vercel env vars (all environments):
+ *        PROBE_RECOVERY_EMAIL = probe-recovery@probe.smarter.poker
+ *        (No password needed — this probe only tests the API accepts the request,
+ *        not that delivery works, since probe.smarter.poker has no MX record)
+ *   3. Do NOT delete this user.  It should persist indefinitely.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
-
-const PROBE_EMAIL_DOMAIN = 'probe.smarter.poker';
-
-function makePassword() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
-    let p = '';
-    for (let i = 0; i < 24; i++) p += chars[Math.floor(Math.random() * chars.length)];
-    return p;
-}
-function makeEmail(prefix) {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@${PROBE_EMAIL_DOMAIN}`;
-}
 
 let _admin = null, _anon = null;
 function getAdmin() {
@@ -59,59 +62,47 @@ export default async function handler(req, res) {
     const anon = getAnon();
     if (!admin || !anon) return res.status(500).json({ status: 'unconfigured' });
 
+    const probeEmail = process.env.PROBE_RECOVERY_EMAIL;
+    if (!probeEmail) {
+        return res.status(500).json({
+            status: 'unconfigured',
+            error: 'Missing PROBE_RECOVERY_EMAIL env var. ' +
+                'Create a permanent probe account in Supabase and add the email to Vercel env vars. ' +
+                'See the file header comment for setup instructions.',
+        });
+    }
+
     const startedAt = Date.now();
-    const userIds = [];
     const flows = {};
 
     try {
         // ── Probe A: password reset ────────────────────────────────────────
-        const resetEmail = makeEmail('recovery-probe');
-        const { data: resetUser, error: re } = await admin.auth.admin.createUser({
-            email: resetEmail, password: makePassword(), email_confirm: true,
-            user_metadata: { _is_probe: true, _probe_kind: 'recovery' },
+        // Tests that the resetPasswordForEmail API endpoint accepts the request.
+        // We can't verify actual email delivery (probe.smarter.poker has no MX),
+        // but a 4xx/5xx indicates the flow is broken at the API level.
+        const { error: rpe } = await anon.auth.resetPasswordForEmail(probeEmail, {
+            redirectTo: 'https://smarter.poker/auth/callback',
         });
-        if (re || !resetUser?.user?.id) {
-            flows.password_reset = { ok: false, error: 're.createUser failed: ' + re?.message };
-        } else {
-            userIds.push(resetUser.user.id);
-            const { error: rpe } = await anon.auth.resetPasswordForEmail(resetEmail, {
-                redirectTo: 'https://smarter.poker/auth/callback',
-            });
-            flows.password_reset = {
-                ok: !rpe,
-                error: rpe?.message,
-                note: 'API accepted the request — actual delivery requires a real inbox (not measured here)',
-            };
-        }
+        flows.password_reset = {
+            ok: !rpe,
+            error: rpe?.message,
+            note: 'API accepted the request — actual delivery requires a real inbox (not measured here)',
+        };
 
         // ── Probe B: magic link ────────────────────────────────────────────
-        const magicEmail = makeEmail('magic-probe');
-        const { data: magicUser, error: me } = await admin.auth.admin.createUser({
-            email: magicEmail, password: makePassword(), email_confirm: true,
-            user_metadata: { _is_probe: true, _probe_kind: 'magic-link' },
+        // Tests that the signInWithOtp (magic link) API endpoint accepts the request.
+        const { error: mle } = await anon.auth.signInWithOtp({
+            email: probeEmail,
+            options: {
+                emailRedirectTo: 'https://smarter.poker/auth/callback',
+                shouldCreateUser: false, // user already exists — never create a new one
+            },
         });
-        if (me || !magicUser?.user?.id) {
-            flows.magic_link = { ok: false, error: 'me.createUser failed: ' + me?.message };
-        } else {
-            userIds.push(magicUser.user.id);
-            const { error: mle } = await anon.auth.signInWithOtp({
-                email: magicEmail,
-                options: {
-                    emailRedirectTo: 'https://smarter.poker/auth/callback',
-                    shouldCreateUser: false, // user already exists
-                },
-            });
-            flows.magic_link = {
-                ok: !mle,
-                error: mle?.message,
-                note: 'API accepted the request — actual delivery requires a real inbox',
-            };
-        }
-
-        // Cleanup probe users
-        for (const id of userIds) {
-            await admin.auth.admin.deleteUser(id).catch(() => null);
-        }
+        flows.magic_link = {
+            ok: !mle,
+            error: mle?.message,
+            note: 'API accepted the request — actual delivery requires a real inbox',
+        };
 
         const failures = Object.entries(flows).filter(([_, v]) => !v.ok);
         const status = failures.length === 0 ? 'ok' : 'failed';
@@ -132,9 +123,6 @@ export default async function handler(req, res) {
             flows,
         });
     } catch (err) {
-        for (const id of userIds) {
-            await admin.auth.admin.deleteUser(id).catch(() => null);
-        }
         try {
             await admin.from('probe_heartbeats').insert({
                 probe_name: 'recovery-probe',
