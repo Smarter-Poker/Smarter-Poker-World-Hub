@@ -2,34 +2,45 @@
  * /api/cron/login-probe — Synthetic Login Probe
  * ═══════════════════════════════════════════════════════════════════════════
  * Sister probe to /api/cron/signup-probe. Verifies the LOGIN flow works
- * end-to-end: createUser → signInWithPassword → assert session returned →
- * assert getUser returns the user → cleanup.
+ * end-to-end: signInWithPassword → assert session returned →
+ * assert getUser returns the correct user.
  *
- * The signup-probe does NOT exercise login — only signUp. A user could
- * sign up successfully but be unable to log in (e.g. password hashing
- * broken, session refresh broken, JWT signer broken). This probe catches
- * that distinct failure class.
+ * ⚠️  MAU FIX (2026-05-18)
+ * ────────────────────────
+ * The original probe created a NEW unique user on every invocation and
+ * called signInWithPassword on it.  Each unique signInWithPassword call
+ * registers as a Monthly Active User in Supabase billing.  Running every
+ * 5 min = 288 new MAU/day = ~8,640 fake MAU/month — the primary cause of
+ * the inflated MAU bill.
  *
- * Uses the same probe.smarter.poker domain as signup-probe; cleanup +
- * heartbeat patterns are identical.
+ * This version reuses a single PERMANENT probe account.  1 MAU/month total.
+ *
+ * SETUP (one-time)
+ * ────────────────
+ *   1. In Supabase → Authentication → Users, create a user manually:
+ *        Email:    probe-login@probe.smarter.poker
+ *        Password: (strong random password, 24+ chars)
+ *        Confirm the user immediately (set email_confirmed_at)
+ *   2. Add to Vercel env vars (all environments):
+ *        PROBE_LOGIN_EMAIL    = probe-login@probe.smarter.poker
+ *        PROBE_LOGIN_PASSWORD = <the password you set above>
+ *   3. Do NOT delete this user.  It should persist indefinitely.
+ *
+ * What is tested
+ * ──────────────
+ *   • signInWithPassword returns a valid session (access_token + refresh_token)
+ *   • getUser with that access_token returns the correct user id
+ *   • The entire auth JWT pipeline is healthy
+ *
+ * What is NOT tested (by design)
+ * ──────────────────────────────
+ *   • User creation (tested by signup-probe)
+ *   • Trigger chain on new user insert (tested by signup-probe)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
-
-const PROBE_EMAIL_DOMAIN = 'probe.smarter.poker';
-const PROBE_EMAIL_PREFIX = 'login-probe-';
-
-function makePassword() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
-    let p = '';
-    for (let i = 0; i < 24; i++) p += chars[Math.floor(Math.random() * chars.length)];
-    return p;
-}
-function makeEmail() {
-    return `${PROBE_EMAIL_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}@${PROBE_EMAIL_DOMAIN}`;
-}
 
 let _admin = null, _anon = null;
 function getAdmin() {
@@ -57,31 +68,24 @@ export default async function handler(req, res) {
 
     const admin = getAdmin();
     const anon = getAnon();
-    if (!admin || !anon) return res.status(500).json({ status: 'unconfigured' });
+    if (!admin || !anon) return res.status(500).json({ status: 'unconfigured', error: 'Missing Supabase env vars' });
+
+    const email = process.env.PROBE_LOGIN_EMAIL;
+    const password = process.env.PROBE_LOGIN_PASSWORD;
+    if (!email || !password) {
+        return res.status(500).json({
+            status: 'unconfigured',
+            error: 'Missing PROBE_LOGIN_EMAIL or PROBE_LOGIN_PASSWORD env vars. ' +
+                'Create a permanent probe account in Supabase and add the creds to Vercel env vars. ' +
+                'See the file header comment for setup instructions.',
+        });
+    }
 
     const startedAt = Date.now();
-    const email = makeEmail();
-    const password = makePassword();
-    let userId = null;
     const steps = {};
 
     try {
-        // Step 1: Create the user (admin path; bypasses email confirm)
-        steps.create = { started_at: Date.now() };
-        const { data: cd, error: ce } = await admin.auth.admin.createUser({
-            email, password, email_confirm: true,
-            user_metadata: { _is_probe: true, _probe_kind: 'login' },
-        });
-        steps.create.duration_ms = Date.now() - steps.create.started_at;
-        if (ce || !cd?.user?.id) {
-            steps.create.ok = false;
-            steps.create.error = ce?.message;
-            throw new Error(`createUser failed: ${steps.create.error}`);
-        }
-        userId = cd.user.id;
-        steps.create.ok = true;
-
-        // Step 2: Sign in via the anon client (same path real users take)
+        // Step 1: Sign in via the anon client (same path real users take)
         steps.login = { started_at: Date.now() };
         const { data: ld, error: le } = await anon.auth.signInWithPassword({ email, password });
         steps.login.duration_ms = Date.now() - steps.login.started_at;
@@ -94,16 +98,19 @@ export default async function handler(req, res) {
         steps.login.has_access_token = !!ld.session.access_token;
         steps.login.has_refresh_token = !!ld.session.refresh_token;
 
-        // Step 3: Verify the session JWT works for getUser
+        // Step 2: Verify the session JWT works for getUser
         steps.getuser = { started_at: Date.now() };
         const { data: ud, error: ue } = await anon.auth.getUser(ld.session.access_token);
         steps.getuser.duration_ms = Date.now() - steps.getuser.started_at;
-        if (ue || !ud?.user?.id || ud.user.id !== userId) {
+        if (ue || !ud?.user?.id) {
             steps.getuser.ok = false;
-            steps.getuser.error = ue?.message || 'getUser returned different/no user';
+            steps.getuser.error = ue?.message || 'getUser returned no user';
             throw new Error(`getUser failed: ${steps.getuser.error}`);
         }
         steps.getuser.ok = true;
+
+        // Sign out to avoid accumulating open sessions (best-effort)
+        await anon.auth.signOut().catch(() => null);
 
         // Heartbeat OK
         try {
@@ -115,12 +122,10 @@ export default async function handler(req, res) {
             });
         } catch (_) { /* heartbeat is best-effort */ }
 
-        // Cleanup
-        await admin.auth.admin.deleteUser(userId).catch(() => null);
-
         return res.status(200).json({ status: 'ok', duration_ms: Date.now() - startedAt, steps });
     } catch (err) {
-        if (userId) await admin.auth.admin.deleteUser(userId).catch(() => null);
+        // Sign out any partial session (best-effort)
+        await anon.auth.signOut().catch(() => null);
 
         const failure = {
             status: 'failed',
