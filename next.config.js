@@ -190,20 +190,6 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
-  // ─── Next.js 16 Turbopack — Active bundler for dev + build ──────────────────────
-  // Turbopack is now the active bundler (next dev defaults to it; build uses
-  // --turbopack). The webpack() callback below is kept for reference but is
-  // NOT called by Turbopack — it is effectively dead code. The two resolve
-  // aliases from that callback are ported here so Turbopack resolves
-  // supabase.js → supabase.ts and authUtils.js → authUtils.ts correctly.
-  // See: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
-  turbopack: {
-    resolveAlias: {
-      [path.resolve(__dirname, 'src/lib/supabase.js')]: path.resolve(__dirname, 'src/lib/supabase.ts'),
-      [path.resolve(__dirname, 'src/lib/authUtils.js')]: path.resolve(__dirname, 'src/lib/authUtils.ts'),
-    },
-  },
-
   // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
   // what each API route / page needs into .next/standalone. On Vercel this
@@ -308,8 +294,6 @@ const nextConfig = {
 
   experimental: {
     // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
-    // NOTE: cpus is a webpack-specific option; Turbopack ignores it harmlessly.
-    // Retained so that any webpack fallback invocation still benefits from it.
     cpus: 2,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
@@ -348,15 +332,12 @@ const nextConfig = {
   // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
-  // NOTE: Turbopack does not call this webpack() callback — it is dead code when
-  // running under Turbopack. Retained for reference and webpack fallback use.
   webpack: (config, { dev, isServer }) => {
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
     // in src/lib/. Without this alias, imports with explicit .js extension
     // (e.g. from decision-bridge.js) resolve to the mock and crash the app.
     // This forces ALL imports of supabase.js to use the real .ts client instead.
-    // (Ported to turbopack.resolveAlias above for Turbopack builds.)
     const path = require('path');
     config.resolve.alias = Object.assign(config.resolve.alias || {}, {
       [path.resolve(__dirname, 'src/lib/supabase.js')]:
@@ -371,7 +352,6 @@ const nextConfig = {
       // EndStreamModal, LiveActivityFeed — get an empty namespace and
       // (0,s.getFreshAccessToken) is undefined at runtime. Force resolution
       // to the .ts file where the function actually lives.
-      // (Ported to turbopack.resolveAlias above for Turbopack builds.)
       [path.resolve(__dirname, 'src/lib/authUtils.js')]:
         path.resolve(__dirname, 'src/lib/authUtils.ts'),
     });
@@ -395,7 +375,7 @@ const nextConfig = {
   },
 
   // swcMinify removed — deprecated in Next.js 15+ (SWC is the only minifier;
-  // the flag is no longer recognized and causes an "Unrecognized key" build warning).
+  // the flag is no longer recognized and causes an "Unrecognized key" build warning)
 
   // Removed generateBuildId override:
   // Hardcoding the build ID in development (e.g. 'dev-stable-v2') causes Next.js Fast Refresh
