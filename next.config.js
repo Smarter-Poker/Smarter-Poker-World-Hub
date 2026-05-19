@@ -257,32 +257,21 @@ const nextConfig = {
     '@ffprobe-installer/ffprobe',
   ],
 
-  // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ─────
-  // ffmpeg-installer + ffprobe-installer ship platform-specific binaries.
-  // Vercel builds on linux-x64; we need ONLY the linux-x64 subdir + the wrapper
-  // module's index.js + package.json. The previous '/**/*' glob included ALL
-  // platform binaries (macOS arm64, macOS x64, Windows x64, Linux arm64) pushing
-  // the api/cron/transcode-videos function to 670MB — over Vercel's 300MB limit.
-  // Linux x64 only = ~160MB, safely under the limit.
-  // Moved from experimental.outputFileTracingIncludes (promoted in Next.js 15+).
-  outputFileTracingIncludes: {
-    'pages/api/cron/transcode-videos': [
-      // Include ONLY Linux x64 binaries — Vercel builds on linux-x64.
-      // The previous '/**/*' glob included ALL platform binaries (macOS arm64,
-      // macOS x64, Windows x64, Linux arm64) pushing the function to 670MB —
-      // over Vercel's 300MB serverless function size limit.
-      // Linux x64 only = ~160MB, safely under the limit.
-      'node_modules/@ffmpeg-installer/ffmpeg/package.json',
-      'node_modules/@ffmpeg-installer/ffmpeg/index.js',
-      'node_modules/@ffmpeg-installer/linux-x64/**/*',
-      'node_modules/@ffprobe-installer/ffprobe/package.json',
-      'node_modules/@ffprobe-installer/ffprobe/index.js',
-      'node_modules/@ffprobe-installer/linux-x64/**/*',
-    ],
-  },
-
   // ─── Output File Tracing — Serverless Bundle Exclusions ─────────────────
-  // Moved from experimental.outputFileTracingExcludes (promoted in Next.js 15+).
+  // Excludes heavy packages AND all non-linux ffmpeg/ffprobe platform binaries
+  // from every serverless function bundle.
+  //
+  // CRITICAL — ffmpeg/ffprobe size fix (2026-05-19):
+  // @ffmpeg-installer and @ffprobe-installer ship binaries for darwin-arm64,
+  // darwin-x64, win32-ia32, win32-x64, linux-arm, linux-arm64, AND linux-x64.
+  // Vercel ONLY builds on linux-x64 — all other platform directories are dead
+  // weight. Without these exclusions, Next.js file tracing pulls ALL platform
+  // binaries into the api/cron/transcode-videos function → 670MB → exceeds the
+  // 300MB Vercel serverless function limit.
+  // Excluding non-linux platforms brings the function down to ~160MB.
+  //
+  // Works in concert with experimental.outputFileTracingIncludes (below) which
+  // positively selects the linux-x64 binaries for the transcode-videos route.
   outputFileTracingExcludes: {
     '*': [
       'node_modules/puppeteer/**',
@@ -294,6 +283,21 @@ const nextConfig = {
       'node_modules/phaser/**',
       'node_modules/pdf-parse/**',
       'node_modules/three/examples/**',
+      // Exclude ALL non-linux platform ffmpeg/ffprobe binaries.
+      // Vercel builds exclusively on linux-x64 — darwin and win32 binaries
+      // are pure dead weight that inflate every serverless function bundle.
+      'node_modules/@ffmpeg-installer/darwin-arm64/**',
+      'node_modules/@ffmpeg-installer/darwin-x64/**',
+      'node_modules/@ffmpeg-installer/win32-ia32/**',
+      'node_modules/@ffmpeg-installer/win32-x64/**',
+      'node_modules/@ffmpeg-installer/linux-arm/**',
+      'node_modules/@ffmpeg-installer/linux-arm64/**',
+      'node_modules/@ffprobe-installer/darwin-arm64/**',
+      'node_modules/@ffprobe-installer/darwin-x64/**',
+      'node_modules/@ffprobe-installer/win32-ia32/**',
+      'node_modules/@ffprobe-installer/win32-x64/**',
+      'node_modules/@ffprobe-installer/linux-arm/**',
+      'node_modules/@ffprobe-installer/linux-arm64/**',
     ],
   },
 
@@ -305,6 +309,26 @@ const nextConfig = {
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
+
+    // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ────
+    // FIX (2026-05-19): In Next.js 14 (this project uses 14.2.35), this option
+    // MUST live under `experimental`. It was promoted to top-level in Next.js 15+.
+    // Top-level placement in Next.js 14 is silently ignored — that's why commit
+    // 3a86920 (which put it at top-level with comment "promoted in Next.js 15+")
+    // still produced a 670MB function: the config was never applied.
+    //
+    // Vercel builds on linux-x64 only. Including ONLY the linux-x64 binary
+    // drops api/cron/transcode-videos from 670MB → ~160MB (under 300MB limit).
+    outputFileTracingIncludes: {
+      'pages/api/cron/transcode-videos': [
+        'node_modules/@ffmpeg-installer/ffmpeg/package.json',
+        'node_modules/@ffmpeg-installer/ffmpeg/index.js',
+        'node_modules/@ffmpeg-installer/linux-x64/**/*',
+        'node_modules/@ffprobe-installer/ffprobe/package.json',
+        'node_modules/@ffprobe-installer/ffprobe/index.js',
+        'node_modules/@ffprobe-installer/linux-x64/**/*',
+      ],
+    },
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
