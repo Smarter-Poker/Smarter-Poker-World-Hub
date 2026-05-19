@@ -44,8 +44,13 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, rm, readFile, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
-import ffprobePath from '@ffprobe-installer/ffprobe';
+// Import linux-x64 platform packages DIRECTLY rather than the parent wrapper.
+// '@ffmpeg-installer/ffmpeg' causes Turbopack/nft to trace ALL optional platform
+// deps (darwin, win32, linux-arm, linux-arm64 + linux-x64) → ~670 MB Lambda.
+// Importing '@ffmpeg-installer/linux-x64' limits nft to the one binary Vercel
+// actually needs. Vercel builds exclusively on linux-x64, so this is safe.
+import ffmpegPath from '@ffmpeg-installer/linux-x64';
+import ffprobePath from '@ffprobe-installer/linux-x64';
 
 // Vercel Pro: max 300s per function. HEVC re-encode of a 1-min 1080p clip
 // is ~60–90s; we leave headroom for download + upload.

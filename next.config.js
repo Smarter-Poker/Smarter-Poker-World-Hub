@@ -190,6 +190,19 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
+  // ─── Next.js 16 Turbopack — Active bundler for dev + build ──────────────────────
+  // Turbopack is now the active bundler (next dev defaults to it; build uses
+  // --turbopack). The webpack() callback below is kept for reference but is
+  // NOT called by Turbopack — it is effectively dead code. The two resolve
+  // aliases from that callback are ported here so Turbopack resolves
+  // supabase.js → supabase.ts and authUtils.js → authUtils.ts correctly.
+  // See: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+  turbopack: {
+    resolveAlias: {
+      [path.resolve(__dirname, 'src/lib/supabase.js')]: path.resolve(__dirname, 'src/lib/supabase.ts'),
+      [path.resolve(__dirname, 'src/lib/authUtils.js')]: path.resolve(__dirname, 'src/lib/authUtils.ts'),
+    },
+  },
 
   // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
@@ -242,6 +255,11 @@ const nextConfig = {
     // Used by /api/cron/transcode-videos to convert HEVC → H.264 MP4.
     '@ffmpeg-installer/ffmpeg',
     '@ffprobe-installer/ffprobe',
+    // Platform-specific packages imported directly by transcode-videos.js.
+    // Importing linux-x64 directly (instead of the parent wrapper) limits
+    // nft tracing to one binary (~50MB) instead of all 8 platforms (~670MB).
+    '@ffmpeg-installer/linux-x64',
+    '@ffprobe-installer/linux-x64',
   ],
 
   // ─── Output File Tracing — Serverless Bundle Exclusions ─────────────────
@@ -290,28 +308,21 @@ const nextConfig = {
 
   experimental: {
     // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
-    // NOTE: cpus is a webpack-specific option — active for all builds now that Turbopack is disabled.
+    // NOTE: cpus is a webpack-specific option; Turbopack ignores it harmlessly.
+    // Retained so that any webpack fallback invocation still benefits from it.
     cpus: 2,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
 
-    // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ────
-    // FIX (2026-05-19): In Next.js 14 (this project uses 14.2.35), this option
-    // MUST live under `experimental`. It was promoted to top-level in Next.js 15+.
-    // Top-level placement in Next.js 14 is silently ignored — that's why commit
-    // 3a86920 (which put it at top-level with comment "promoted in Next.js 15+")
-    // still produced a 670MB function: the config was never applied.
-    //
-    // Vercel builds on linux-x64 only. Including ONLY the linux-x64 binary
-    // drops api/cron/transcode-videos from 670MB → ~160MB (under 300MB limit).
+    // ─── Output File Tracing — INCLUDE linux-x64 binaries for transcode cron ──
+    // transcode-videos.js imports @ffmpeg-installer/linux-x64 and
+    // @ffprobe-installer/linux-x64 DIRECTLY. nft traces only those packages
+    // (~50 MB each) instead of the parent wrapper that pulls all 8 platform
+    // binaries (~670 MB total).
     outputFileTracingIncludes: {
       'pages/api/cron/transcode-videos': [
-        'node_modules/@ffmpeg-installer/ffmpeg/package.json',
-        'node_modules/@ffmpeg-installer/ffmpeg/index.js',
         'node_modules/@ffmpeg-installer/linux-x64/**/*',
-        'node_modules/@ffprobe-installer/ffprobe/package.json',
-        'node_modules/@ffprobe-installer/ffprobe/index.js',
         'node_modules/@ffprobe-installer/linux-x64/**/*',
       ],
     },
@@ -337,16 +348,15 @@ const nextConfig = {
   // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
-  // NOTE: Turbopack is disabled (turbopack config block removed 2026-05-19 to fix
-  // the 670MB api/cron/transcode-videos function exceeding Vercel's 300MB limit).
-  // This webpack() callback is now the active bundler for all builds.
+  // NOTE: Turbopack does not call this webpack() callback — it is dead code when
+  // running under Turbopack. Retained for reference and webpack fallback use.
   webpack: (config, { dev, isServer }) => {
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
     // in src/lib/. Without this alias, imports with explicit .js extension
     // (e.g. from decision-bridge.js) resolve to the mock and crash the app.
     // This forces ALL imports of supabase.js to use the real .ts client instead.
-    // (Turbopack is disabled — webpack handles this alias for all builds.)
+    // (Ported to turbopack.resolveAlias above for Turbopack builds.)
     const path = require('path');
     config.resolve.alias = Object.assign(config.resolve.alias || {}, {
       [path.resolve(__dirname, 'src/lib/supabase.js')]:
@@ -361,7 +371,7 @@ const nextConfig = {
       // EndStreamModal, LiveActivityFeed — get an empty namespace and
       // (0,s.getFreshAccessToken) is undefined at runtime. Force resolution
       // to the .ts file where the function actually lives.
-      // (Turbopack is disabled — webpack handles this alias for all builds.)
+      // (Ported to turbopack.resolveAlias above for Turbopack builds.)
       [path.resolve(__dirname, 'src/lib/authUtils.js')]:
         path.resolve(__dirname, 'src/lib/authUtils.ts'),
     });
@@ -379,7 +389,7 @@ const nextConfig = {
       // "Cannot find module './chunks/vendor-chunks/next.js'" 500 crashes when
       // _document.js tries to require() them. The default filesystem cache works
       // correctly with the watchOptions.ignored config above (which prevents
-      // stale .pack.gz corruption by excluding .next from the watcher).
+      // stale .next corruption by excluding .next from the watcher).
     }
     return config;
   },
