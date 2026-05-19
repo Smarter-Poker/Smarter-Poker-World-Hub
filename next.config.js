@@ -259,15 +259,24 @@ const nextConfig = {
 
   // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ─────
   // ffmpeg-installer + ffprobe-installer ship platform-specific binaries.
-  // Vercel builds on linux-x64; we need that subdir + the wrapper module's
-  // index.js + the package.json. Explicit globs are safer than `**/*`
-  // because the tracer sometimes silently drops executable bits.
+  // Vercel builds on linux-x64; we need ONLY the linux-x64 subdir + the wrapper
+  // module's index.js + package.json. The previous '/**/*' glob included ALL
+  // platform binaries (macOS arm64, macOS x64, Windows x64, Linux arm64) pushing
+  // the api/cron/transcode-videos function to 670MB — over Vercel's 300MB limit.
+  // Linux x64 only = ~160MB, safely under the limit.
   // Moved from experimental.outputFileTracingIncludes (promoted in Next.js 15+).
   outputFileTracingIncludes: {
     'pages/api/cron/transcode-videos': [
-      'node_modules/@ffmpeg-installer/ffmpeg/**/*',
+      // Include ONLY Linux x64 binaries — Vercel builds on linux-x64.
+      // The previous '/**/*' glob included ALL platform binaries (macOS arm64,
+      // macOS x64, Windows x64, Linux arm64) pushing the function to 670MB —
+      // over Vercel's 300MB serverless function size limit.
+      // Linux x64 only = ~160MB, safely under the limit.
+      'node_modules/@ffmpeg-installer/ffmpeg/package.json',
+      'node_modules/@ffmpeg-installer/ffmpeg/index.js',
       'node_modules/@ffmpeg-installer/linux-x64/**/*',
-      'node_modules/@ffprobe-installer/ffprobe/**/*',
+      'node_modules/@ffprobe-installer/ffprobe/package.json',
+      'node_modules/@ffprobe-installer/ffprobe/index.js',
       'node_modules/@ffprobe-installer/linux-x64/**/*',
     ],
   },
