@@ -178,8 +178,6 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   buildExcludes: [/middleware-manifest\.json$/],
 });
 
-const path = require('path');
-
 const nextConfig = {
   // outputFileTracingRoot: require('path').join(__dirname),
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
@@ -263,6 +261,9 @@ const nextConfig = {
   //
   // Works in concert with experimental.outputFileTracingIncludes (below) which
   // positively selects the linux-x64 binaries for the transcode-videos route.
+  //
+  // NOTE: These options are webpack/nft-specific. The turbopack config block
+  // has been removed so webpack is the active bundler and these settings apply.
   outputFileTracingExcludes: {
     '*': [
       'node_modules/puppeteer/**',
@@ -294,6 +295,8 @@ const nextConfig = {
 
   experimental: {
     // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
+    // NOTE: cpus is a webpack-specific option; Turbopack ignores it harmlessly.
+    // Retained so that any webpack fallback invocation still benefits from it.
     cpus: 2,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
@@ -332,6 +335,9 @@ const nextConfig = {
   // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
+  // NOTE: Turbopack config block has been removed — webpack is the active bundler.
+  // This webpack() callback is the canonical bundler configuration for both
+  // resolve aliases and HMR watchOptions.
   webpack: (config, { dev, isServer }) => {
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
@@ -375,7 +381,7 @@ const nextConfig = {
   },
 
   // swcMinify removed — deprecated in Next.js 15+ (SWC is the only minifier;
-  // the flag is no longer recognized and causes an "Unrecognized key" build warning)
+  // the flag is no longer recognized and causes an "Unrecognized key" build warning).
 
   // Removed generateBuildId override:
   // Hardcoding the build ID in development (e.g. 'dev-stable-v2') causes Next.js Fast Refresh
