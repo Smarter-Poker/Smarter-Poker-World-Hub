@@ -44,13 +44,11 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, rm, readFile, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-// Import linux-x64 platform packages DIRECTLY rather than the parent wrapper.
-// '@ffmpeg-installer/ffmpeg' causes Turbopack/nft to trace ALL optional platform
-// deps (darwin, win32, linux-arm, linux-arm64 + linux-x64) → ~670 MB Lambda.
-// Importing '@ffmpeg-installer/linux-x64' limits nft to the one binary Vercel
-// actually needs. Vercel builds exclusively on linux-x64, so this is safe.
-import ffmpegPath from '@ffmpeg-installer/linux-x64';
-import ffprobePath from '@ffprobe-installer/linux-x64';
+// Use require() for ffmpeg/ffprobe via the parent packages — webpack marks them
+// external via serverExternalPackages so no static module resolution is attempted.
+// At runtime on Vercel (linux-x64) the parent packages return the linux-x64 binary
+// path automatically. The prune-platform-bins.sh script removes non-linux platform
+// directories before build to keep the Lambda bundle small.
 
 // Vercel Pro: max 300s per function. HEVC re-encode of a 1-min 1080p clip
 // is ~60–90s; we leave headroom for download + upload.
@@ -68,8 +66,8 @@ const _binPath = (x) => {
     if (x && typeof x.path === 'string') return x.path;
     return null;
 };
-const FFMPEG_BIN = _binPath(ffmpegPath);
-const FFPROBE_BIN = _binPath(ffprobePath);
+const FFMPEG_BIN = _binPath(require('@ffmpeg-installer/ffmpeg'));
+const FFPROBE_BIN = _binPath(require('@ffprobe-installer/ffprobe'));
 
 // Map source URL (full public URL) to its storage bucket + path.
 // Returns `{ bucket, path }` or null if unparseable.
