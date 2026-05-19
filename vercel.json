@@ -5,7 +5,7 @@
     "deploymentEnabled": true
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
-  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build --turbopack",
+  "buildCommand": "rm -rf node_modules/@ffmpeg-installer/darwin-arm64 node_modules/@ffmpeg-installer/darwin-x64 node_modules/@ffmpeg-installer/win32-ia32 node_modules/@ffmpeg-installer/win32-x64 node_modules/@ffmpeg-installer/linux-arm node_modules/@ffmpeg-installer/linux-arm64 node_modules/@ffprobe-installer/darwin-arm64 node_modules/@ffprobe-installer/darwin-x64 node_modules/@ffprobe-installer/win32-ia32 node_modules/@ffprobe-installer/win32-x64 node_modules/@ffprobe-installer/linux-arm node_modules/@ffprobe-installer/linux-arm64 && NODE_OPTIONS='--max-old-space-size=7168' next build --turbopack",
   "headers": [
     {
       "source": "/(.*)",
