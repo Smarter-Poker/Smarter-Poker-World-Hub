@@ -188,17 +188,6 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
-  // ─── Turbopack Configuration ─────────────────────────────────────────────────
-  // Vercel uses Turbopack for production builds. This block is REQUIRED when a
-  // webpack() callback also exists in next.config.js — without it, Next.js throws:
-  //   "This build is using Turbopack, with a webpack config and no turbopack config"
-  // An empty turbopack:{} satisfies this validation using Turbopack defaults.
-  // The webpack() callback below is retained for local dev (HMR watchOptions +
-  // resolve aliases). The prune script (scripts/prune-platform-bins.sh) physically
-  // removes non-linux ffmpeg/ffprobe binaries before the build, solving the 670MB
-  // function size issue regardless of which bundler is active.
-  turbopack: {},
-
   // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
   // what each API route / page needs into .next/standalone. On Vercel this
@@ -347,8 +336,9 @@ const nextConfig = {
   // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
-  // NOTE: Turbopack is the active bundler on Vercel (turbopack:{} block above).
-  // This webpack() callback applies to local dev builds and any webpack fallback.
+  // NOTE: `--webpack` flag in vercel.json buildCommand forces webpack bundler on
+  // Vercel (bypasses any Turbopack project setting). This webpack() callback
+  // applies to both Vercel production builds AND local dev builds.
   // It sets HMR watchOptions and resolve aliases needed for local development.
   webpack: (config, { dev, isServer }) => {
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────

@@ -5,7 +5,7 @@
     "deploymentEnabled": true
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
-  "buildCommand": "bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && NODE_OPTIONS='--max-old-space-size=7168' next build",
+  "buildCommand": "bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
   "headers": [
     {
       "source": "/(.*)",
