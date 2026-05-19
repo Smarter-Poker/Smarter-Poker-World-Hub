@@ -188,6 +188,17 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
+  // ─── Turbopack Configuration ─────────────────────────────────────────────────
+  // Vercel uses Turbopack for production builds. This block is REQUIRED when a
+  // webpack() callback also exists in next.config.js — without it, Next.js throws:
+  //   "This build is using Turbopack, with a webpack config and no turbopack config"
+  // An empty turbopack:{} satisfies this validation using Turbopack defaults.
+  // The webpack() callback below is retained for local dev (HMR watchOptions +
+  // resolve aliases). The prune script (scripts/prune-platform-bins.sh) physically
+  // removes non-linux ffmpeg/ffprobe binaries before the build, solving the 670MB
+  // function size issue regardless of which bundler is active.
+  turbopack: {},
+
   // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
   // what each API route / page needs into .next/standalone. On Vercel this
@@ -262,8 +273,9 @@ const nextConfig = {
   // Works in concert with experimental.outputFileTracingIncludes (below) which
   // positively selects the linux-x64 binaries for the transcode-videos route.
   //
-  // NOTE: These options are webpack/nft-specific. The turbopack config block
-  // has been removed so webpack is the active bundler and these settings apply.
+  // NOTE: These options are webpack/nft-specific and are ignored by Turbopack.
+  // The prune script (scripts/prune-platform-bins.sh) physically deletes non-linux
+  // binaries before the build runs, ensuring Turbopack also cannot bundle them.
   outputFileTracingExcludes: {
     '*': [
       'node_modules/puppeteer/**',
@@ -335,9 +347,9 @@ const nextConfig = {
   // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
-  // NOTE: Turbopack config block has been removed — webpack is the active bundler.
-  // This webpack() callback is the canonical bundler configuration for both
-  // resolve aliases and HMR watchOptions.
+  // NOTE: Turbopack is the active bundler on Vercel (turbopack:{} block above).
+  // This webpack() callback applies to local dev builds and any webpack fallback.
+  // It sets HMR watchOptions and resolve aliases needed for local development.
   webpack: (config, { dev, isServer }) => {
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
@@ -381,7 +393,7 @@ const nextConfig = {
   },
 
   // swcMinify removed — deprecated in Next.js 15+ (SWC is the only minifier;
-  // the flag is no longer recognized and causes an "Unrecognized key" build warning).
+  // the flag is no longer recognized and causes an "Unrecognized key" build warning)
 
   // Removed generateBuildId override:
   // Hardcoding the build ID in development (e.g. 'dev-stable-v2') causes Next.js Fast Refresh
