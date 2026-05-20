@@ -1,0 +1,174 @@
+name: Restore messenger.js from git history
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore messenger.js from good commit
+        run: |
+          git checkout 72b4adb4 -- pages/hub/messenger.js
+          echo "Lines restored: $(wc -l < pages/hub/messenger.js)"
+
+      - name: Replace global-messenger subscription with 30s polling
+        run: |
+          python3 - << 'PYEOF'
+          import sys
+
+          with open('pages/hub/messenger.js', 'r') as f:
+              lines = f.readlines()
+
+          target_idx = None
+          for i, line in enumerate(lines):
+              if 'global-messenger-' in line:
+                  target_idx = i
+                  break
+
+          if target_idx is None:
+              print('global-messenger- not found, skipping')
+              sys.exit(0)
+
+          print(f'Found global-messenger- at line {target_idx + 1}')
+
+          effect_start = None
+          for i in range(target_idx - 1, max(0, target_idx - 100), -1):
+              if 'useEffect(' in lines[i]:
+                  effect_start = i
+                  break
+
+          if effect_start is None:
+              print('ERROR: useEffect( not found before global-messenger-')
+              sys.exit(1)
+
+          start_idx = effect_start
+          for i in range(effect_start - 1, max(0, effect_start - 20), -1):
+              if lines[i].strip().startswith('//'):
+                  start_idx = i
+              else:
+                  break
+
+          print(f'Block start: line {start_idx + 1}')
+
+          end_idx = None
+          for i in range(target_idx, min(len(lines), target_idx + 200)):
+              stripped = lines[i].strip()
+              if stripped.startswith('}') and '}, [' in stripped:
+                  end_idx = i
+                  break
+
+          if end_idx is None:
+              print('ERROR: closing }, [ not found')
+              sys.exit(1)
+
+          print(f'Block end: line {end_idx + 1}')
+
+          S8  = '        '
+          S12 = '            '
+          S16 = '                '
+          S20 = '                    '
+          S24 = '                        '
+          S28 = '                            '
+          S32 = '                                '
+          S36 = '                                    '
+          S40 = '                                        '
+
+          replacement = [
+              S8  + '// \U0001f4e1 GLOBAL Background Poll: Refresh sidebar unread counts every 30s\n',
+              S8  + '// Replaces the unfiltered global-messenger postgres_changes channel that streamed ALL\n',
+              S8  + '// social_messages rows to every logged-in user — eliminating that Supabase Realtime MAU cost.\n',
+              S8  + '// Polls messenger_participants (filtered by user_id) so only the current user\'s data is read.\n',
+              S8  + 'useEffect(() => {\n',
+              S12 + 'if (!user?.id) return;\n',
+              S12 + 'const pollInbox = async () => {\n',
+              S16 + 'try {\n',
+              S20 + 'const { data, error } = await supabase\n',
+              S24 + '.from(\'messenger_participants\')\n',
+              S24 + '.select(\'conversation_id, unread_count\')\n',
+              S24 + '.eq(\'user_id\', user.id);\n',
+              S20 + 'if (error) throw error;\n',
+              S20 + 'setConnectionStatus(\'connected\');\n',
+              S20 + 'if (!data?.length) return;\n',
+              S20 + 'setConversations(prev => {\n',
+              S24 + 'let anyChanged = false;\n',
+              S24 + 'const updated = prev.map(c => {\n',
+              S28 + 'const p = data.find(d => d.conversation_id === c.id);\n',
+              S28 + 'if (!p) return c;\n',
+              S28 + 'const newUnread = p.unread_count || 0;\n',
+              S28 + 'const oldUnread = c.unreadCount || 0;\n',
+              S28 + 'if (newUnread === oldUnread) return c;\n',
+              S28 + 'anyChanged = true;\n',
+              S28 + 'if (newUnread > oldUnread) {\n',
+              S32 + 'const currentActive = activeConversationRef.current;\n',
+              S32 + 'if (!currentActive || currentActive.id !== c.id) {\n',
+              S36 + 'if (preferencesRef.current?.messageSounds !== false) playMessageSound();\n',
+              S36 + 'if (typeof window !== \'undefined\' && eventBus) {\n',
+              S40 + 'eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId: c.id }, \'FullMessenger\');\n',
+              S36 + '}\n',
+              S32 + '}\n',
+              S28 + '}\n',
+              S28 + 'return { ...c, unreadCount: newUnread };\n',
+              S24 + '});\n',
+              S24 + 'if (!anyChanged) return prev;\n',
+              S24 + 'return updated.sort((a, b) => {\n',
+              S28 + 'const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;\n',
+              S28 + 'const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;\n',
+              S28 + 'return timeB - timeA;\n',
+              S24 + '});\n',
+              S20 + '});\n',
+              S16 + '} catch (e) {\n',
+              S20 + 'setConnectionStatus(\'disconnected\');\n',
+              S16 + '}\n',
+              S12 + '};\n',
+              S12 + 'pollInbox();\n',
+              S12 + 'const intervalId = setInterval(pollInbox, 30000);\n',
+              S12 + 'return () => clearInterval(intervalId);\n',
+              S8  + '}, [user?.id]);\n',
+          ]
+
+          new_lines = lines[:start_idx] + replacement + lines[end_idx + 1:]
+
+          with open('pages/hub/messenger.js', 'w') as f:
+              f.writelines(new_lines)
+
+          print(f'Replaced lines {start_idx+1}-{end_idx+1} with {len(replacement)} new lines')
+          print(f'Total lines: {len(new_lines)}')
+
+          with open('pages/hub/messenger.js', 'r') as f:
+              content = f.read()
+
+          assert 'global-messenger-' not in content, 'FAIL: global-messenger- still present'
+          assert 'pollInbox' in content, 'FAIL: pollInbox missing'
+          assert 'export default' in content, 'FAIL: export default missing'
+          print('All checks passed!')
+          PYEOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pages/hub/messenger.js
+          git diff --cached --stat
+          git commit -m "fix: restore messenger.js and replace global-messenger subscription with 30s polling
+
+          Restores pages/hub/messenger.js from commit 72b4adb4 before it was wiped
+          in b5261c5e (which removed 4811 lines and broke the Vercel build with
+          a webpack Module has no exports error).
+
+          Replaces the unfiltered global-messenger- Supabase Realtime channel with
+          a 30-second polling interval querying messenger_participants filtered by
+          user_id, eliminating the MAU cost from streaming all social_messages rows
+          to every connected user.
+
+          Fixes: Vercel build failure on main branch"
+          git push origin main
