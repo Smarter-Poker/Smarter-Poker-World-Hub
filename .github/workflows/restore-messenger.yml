@@ -18,7 +18,7 @@ jobs:
 
       - name: Restore messenger.js from good commit
         run: |
-          git checkout 72b4adb4 -- pages/hub/messenger.js
+          git checkout 72b4adb82a35ad61865064e2e974640d1859a92d -- pages/hub/messenger.js
           echo "Lines restored: $(wc -l < pages/hub/messenger.js)"
 
       - name: Replace global-messenger subscription with 30s polling
@@ -86,7 +86,7 @@ jobs:
           replacement = [
               S8  + '// \U0001f4e1 GLOBAL Background Poll: Refresh sidebar unread counts every 30s\n',
               S8  + '// Replaces the unfiltered global-messenger postgres_changes channel that streamed ALL\n',
-              S8  + '// social_messages rows to every logged-in user — eliminating that Supabase Realtime MAU cost.\n',
+              S8  + '// social_messages rows to every logged-in user - eliminating that Supabase Realtime MAU cost.\n',
               S8  + '// Polls messenger_participants (filtered by user_id) so only the current user\'s data is read.\n',
               S8  + 'useEffect(() => {\n',
               S12 + 'if (!user?.id) return;\n',
@@ -161,9 +161,9 @@ jobs:
           git diff --cached --stat
           git commit -m "fix: restore messenger.js and replace global-messenger subscription with 30s polling
 
-          Restores pages/hub/messenger.js from commit 72b4adb4 before it was wiped
-          in b5261c5e (which removed 4811 lines and broke the Vercel build with
-          a webpack Module has no exports error).
+          Restores pages/hub/messenger.js from commit 72b4adb82a35ad61865064e2e974640d1859a92d
+          before it was wiped in b5261c5e (which removed 4811 lines and broke the Vercel
+          build with a webpack Module has no exports error).
 
           Replaces the unfiltered global-messenger- Supabase Realtime channel with
           a 30-second polling interval querying messenger_participants filtered by
