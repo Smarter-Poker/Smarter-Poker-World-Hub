@@ -90,6 +90,9 @@ If `DEPLOY_VERIFIED:false` or HTTP error:
 > [!WARNING]
 > **An agent that pushes broken code and walks away is WORSE than an agent that writes no code.** You MUST verify. You MUST fix failures. Vercel auto-deploys from GitHub — if your push has merge conflicts, broken imports, or syntax errors, it blocks ALL other agents from deploying.
 
+> [!WARNING]
+> **Vercel Subfolder Ignore Trap:** If you are working in a repository where the Vercel Root Directory is set to a subfolder (e.g., `web/` for frontend, `engine/` for backend), Vercel will silently **IGNORE** any GitHub pushes that only contain backend files. If you only modify backend code, you **MUST** make a dummy commit to the frontend directory (e.g., `echo "<!-- trigger $(date) -->" >> web/README.md`) to force Vercel to auto-deploy. If you do not do this, your changes will never go live on Vercel!
+
 ---
 
 ## HARD LAW: File Count Limit — 15,000 Maximum
