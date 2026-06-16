@@ -615,11 +615,11 @@ const nextConfig = {
         // MLB Analytics Engine proxy
         {
           source: '/hub/MLB-ANALYTICS',
-          destination: 'https://mlb-analytics-engine.vercel.app',
+          destination: 'https://mlb-analytics-engine.vercel.app/hub/MLB-ANALYTICS',
         },
         {
           source: '/hub/MLB-ANALYTICS/:path*',
-          destination: 'https://mlb-analytics-engine.vercel.app/:path*',
+          destination: 'https://mlb-analytics-engine.vercel.app/hub/MLB-ANALYTICS/:path*',
         },
         // Phase 3-deploy: commander proxy has been removed to restore
         // the native monolithic routes in /pages/commander/* because
