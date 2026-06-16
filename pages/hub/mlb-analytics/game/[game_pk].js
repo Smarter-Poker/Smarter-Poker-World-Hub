@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
@@ -15,7 +14,7 @@ export async function getServerSideProps({ params }) {
             .from('fact_games')
             .select('*')
             .eq('game_pk', params.game_pk)
-            .single();
+            .maybeSingle();
             
         return {
             props: {
