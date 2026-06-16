@@ -5,7 +5,7 @@
   "scripts": {
     "postinstall": "git config --unset core.hooksPath 2>/dev/null; bash scripts/install-hooks.sh 2>/dev/null || true",
     "predev": "bash scripts/heal.sh --quick 2>/dev/null || true",
-    "dev": "npx kill-port 3000 2>/dev/null; NODE_OPTIONS='--max-old-space-size=16384' node node_modules/next/dist/bin/next dev -p 3000",
+    "dev": "npx kill-port 3000 2>/dev/null; NODE_OPTIONS='--max-old-space-size=16384' node node_modules/next/dist/bin/next dev --webpack -p 3000",
     "heal": "bash scripts/heal.sh",
     "heal:quick": "bash scripts/heal.sh --quick",
     "clean:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=16384' node node_modules/next/dist/bin/next dev -p 3000",
