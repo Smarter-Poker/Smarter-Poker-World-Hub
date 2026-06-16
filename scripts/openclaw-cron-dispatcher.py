@@ -219,6 +219,8 @@ ALL_CRONS = [
     # deletes them up to a 200-object cap per run. Dry-run available via
     # ?dry=1 query param.
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
+    # ── MLB Analytics Engine (SCRIPT_JOBS) ────────────────────────────────────
+    ('/api/cron/mlb-analytics-daily',       dict(hour=10, minute=0)),  # Daily 10am UTC — MLB data refresh
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
@@ -682,6 +684,21 @@ def make_job(path):
             t0 = time.time()
             try:
                 result = subprocess.run(cmd, capture_output=False, timeout=120)
+                elapsed = round(time.time() - t0, 1)
+                if result.returncode == 0:
+                    log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+                else:
+                    log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            except Exception as e:
+                log.error(f'❌ {path} script error: {e}')
+    elif path == '/api/cron/mlb-analytics-daily':
+        def _job():
+            script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_daily.sh')
+            cmd = ['bash', script_path]
+            log.info(f'▶ Script job {path} → {" ".join(cmd)}')
+            t0 = time.time()
+            try:
+                result = subprocess.run(cmd, capture_output=False, timeout=600)
                 elapsed = round(time.time() - t0, 1)
                 if result.returncode == 0:
                     log.info(f'✅ {path} script exited 0 [{elapsed}s]')
