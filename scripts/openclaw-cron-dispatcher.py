@@ -220,7 +220,8 @@ ALL_CRONS = [
     # ?dry=1 query param.
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
     # ── MLB Analytics Engine (SCRIPT_JOBS) ────────────────────────────────────
-    ('/api/cron/mlb-analytics-daily',       dict(hour=10, minute=0)),  # Daily 10am UTC — MLB data refresh
+    ('/api/cron/mlb-analytics-daily',       dict(hour=8, minute=0)),   # Daily 8am UTC (4am ET) — Full MLB data refresh & predict
+    ('/api/cron/mlb-analytics-intraday',    dict(hour='21-23,0-3', minute='0,15,30,45')), # Every 15 mins intraday (5pm - 11:59pm ET)
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
@@ -694,6 +695,21 @@ def make_job(path):
     elif path == '/api/cron/mlb-analytics-daily':
         def _job():
             script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_daily.sh')
+            cmd = ['bash', script_path]
+            log.info(f'▶ Script job {path} → {" ".join(cmd)}')
+            t0 = time.time()
+            try:
+                result = subprocess.run(cmd, capture_output=False, timeout=600)
+                elapsed = round(time.time() - t0, 1)
+                if result.returncode == 0:
+                    log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+                else:
+                    log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            except Exception as e:
+                log.error(f'❌ {path} script error: {e}')
+    elif path == '/api/cron/mlb-analytics-intraday':
+        def _job():
+            script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_intraday.sh')
             cmd = ['bash', script_path]
             log.info(f'▶ Script job {path} → {" ".join(cmd)}')
             t0 = time.time()
