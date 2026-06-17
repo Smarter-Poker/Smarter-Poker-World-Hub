@@ -600,6 +600,9 @@ const nextConfig = {
       // ── Poker Near Me URL Migration (April 2026) ────────────────────────────────────────
       // Old lobby URL → new canonical lobby sub-route (301 permanent redirect)
       { source: '/hub/poker-near-me-lobby', destination: '/hub/poker-near-me/lobby', permanent: true },
+      // MLB Analytics lowercase URL -> uppercase canonical proxy path
+      { source: '/hub/mlb-analytics', destination: '/hub/MLB-ANALYTICS', permanent: true },
+      { source: '/hub/mlb-analytics/:path*', destination: '/hub/MLB-ANALYTICS/:path*', permanent: true },
     ];
   },
 
