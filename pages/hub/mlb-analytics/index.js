@@ -10,20 +10,61 @@ export async function getServerSideProps() {
         const mlbDb = getMlbSupabase();
         
         // Fetch today's slate from fact_games
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }); // 'YYYY-MM-DD'
         
-        // Let's try to get upcoming games (or all games for now if we lack a strict date filter)
-        // Note: For now, if fact_games is empty, we handle it gracefully.
         const { data: games, error } = await mlbDb
             .from('fact_games')
-            .select('*')
-            .order('game_date', { ascending: false })
+            .select(`
+                game_pk,
+                official_date,
+                first_pitch_utc,
+                home_team_id,
+                away_team_id
+            `)
+            .eq('official_date', todayStr)
+            .order('first_pitch_utc', { ascending: true })
             .limit(15);
-            
+
+        if (error) throw error;
+        
+        // Fetch all 30 teams to map names
+        const { data: teamsData } = await mlbDb.from('dim_teams').select('team_id, abbr');
+        const teamsMap = {};
+        (teamsData || []).forEach(t => {
+            teamsMap[t.team_id] = t.abbr;
+        });
+        
+        // Fetch edges for these games
+        const gamePks = (games || []).map(g => g.game_pk);
+        let preds = [];
+        if (gamePks.length > 0) {
+            const { data: pData } = await mlbDb
+                .from('pred_market_output')
+                .select('game_pk, market, selection, edge_pts, rec')
+                .in('game_pk', gamePks);
+            preds = pData || [];
+        }
+
+        // Map data to UI format
+        const mappedGames = (games || []).map(g => {
+            // Find max edge among bets recommended
+            const gamePreds = preds.filter(p => p.game_pk === g.game_pk && p.rec === true);
+            const maxEdge = gamePreds.length > 0 ? Math.max(...gamePreds.map(p => p.edge_pts || 0)) : null;
+
+            return {
+                game_pk: g.game_pk,
+                game_date: g.official_date,
+                first_pitch_utc: g.first_pitch_utc,
+                home_team: teamsMap[g.home_team_id] || g.home_team_id || 'UNK',
+                away_team: teamsMap[g.away_team_id] || g.away_team_id || 'UNK',
+                model_edge: maxEdge ? maxEdge / 100 : null
+            };
+        });
+
         return {
             props: {
-                games: games || [],
-                error: error ? error.message : null
+                games: mappedGames,
+                error: null
             }
         };
     } catch (err) {
@@ -120,7 +161,16 @@ export default function MlbDashboard({ games, error }) {
                                         <span style={{ fontWeight: 'bold', color: '#fff' }}>
                                             {game.away_team} @ {game.home_team}
                                         </span>
-                                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{game.game_date}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                                            {game.game_date} • {
+                                                game.first_pitch_utc ? new Date(game.first_pitch_utc).toLocaleTimeString('en-US', {
+                                                    timeZone: 'America/Chicago',
+                                                    hour: 'numeric',
+                                                    minute: '2-digit',
+                                                    timeZoneName: 'short'
+                                                }) : 'TBD'
+                                            }
+                                        </span>
                                     </div>
                                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', display: 'flex', justifyContent: 'space-between' }}>
                                         <span>Game PK: {game.game_pk}</span>
