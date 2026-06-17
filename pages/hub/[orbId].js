@@ -100,14 +100,15 @@ export default function OrbPage() {
     // Redirect to dedicated pages for completed orbs
     useEffect(() => {
         if (!mounted || !orbId) return;
-        const key = Array.isArray(orbId) ? orbId[0] : orbId;
+        const rawKey = Array.isArray(orbId) ? orbId[0] : orbId;
+        const key = String(rawKey).toLowerCase();
 
         // Orbs with dedicated pages - redirect to them
         const dedicatedPages = {
-
             'trivia': '/hub/trivia',
             'poker-near-me': '/hub/poker-near-me/lobby',
             'memory-games': '/hub/preflop-charts',
+            'mlb-analytics': '/hub/mlb-analytics',
         };
 
         if (dedicatedPages[key]) {
@@ -127,7 +128,8 @@ export default function OrbPage() {
         );
     }
 
-    const orbKey = Array.isArray(orbId) ? orbId[0] : orbId;
+    const rawOrbKey = Array.isArray(orbId) ? orbId[0] : orbId;
+    const orbKey = String(rawOrbKey).toLowerCase();
     const orbMeta = ORB_METADATA[orbKey] || {
         title: 'Unknown World',
         description: 'This World is Being Built...',

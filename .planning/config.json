@@ -1,0 +1,24 @@
+{
+  "model_profile": "balanced",
+  "workflow": {
+    "research": true,
+    "plan_check": false,
+    "verifier": true,
+    "auto_advance": true,
+    "nyquist_validation": true,
+    "ui_phase": false,
+    "ui_safety_gate": false,
+    "text_mode": true,
+    "research_before_questions": false,
+    "discuss_mode": "assumptions",
+    "skip_discuss": true
+  },
+  "git": {
+    "branching_strategy": "none",
+    "quick_branch_template": null
+  },
+  "hooks": {
+    "context_warnings": false,
+    "workflow_guard": false
+  }
+}

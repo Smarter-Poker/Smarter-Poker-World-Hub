@@ -49,6 +49,16 @@ export async function getServerSideProps({ params }) {
         const preds = (predsRes.data || []).filter(p => p.as_of_ts === latestTs);
         const market = marketRes.data || {};
 
+        const { data: fileData } = await mlbDb.storage.from('game-reports').download(`${gamePk}.json`);
+        let deepDive = null;
+        if (fileData) {
+            const text = await fileData.text();
+            try {
+                deepDive = JSON.parse(text);
+            } catch(e) {}
+        }
+
+
         const pitchTimeCST = game.first_pitch_utc
             ? new Date(game.first_pitch_utc).toLocaleTimeString('en-US', {
                 timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
@@ -94,7 +104,7 @@ function EdgeBadge({ edge }) {
     );
 }
 
-export default function MlbGameDeepDive({ game, preds, props, error }) {
+export default function MlbGameDeepDive({ game, preds, props, deepDive, error }) {
     if (!game) return (
         <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff', paddingBottom: 80 }}>
             <SEOHead title="Game Not Found | MLB Engine" />
@@ -104,6 +114,134 @@ export default function MlbGameDeepDive({ game, preds, props, error }) {
                 <div style={{ background: 'rgba(255,0,0,0.1)', border: '1px solid red', padding: 20, borderRadius: 12, color: '#ff6b6b' }}>
                     {error || 'Game not found.'}
                 </div>
+            
+                {/* Advanced Data Boards */}
+                {deepDive && (
+                    <div style={{ marginTop: 40 }}>
+                        <h2 style={{ fontFamily: 'Orbitron, sans-serif', color: '#fff', fontSize: 15, margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Advanced Matchup Intelligence
+                        </h2>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+                            {/* Away Lineup vs Home SP */}
+                            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>
+                                        {deepDive.away_team} Lineup vs {deepDive.home_sp?.name || 'TBD'}
+                                    </h3>
+                                </div>
+                                {deepDive.away_lineup && deepDive.away_lineup.length > 0 ? (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Batter</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>wOBA</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>ISO</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {deepDive.away_lineup.map((batter, i) => (
+                                                <tr key={i} style={{ borderBottom: i < deepDive.away_lineup.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                    <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{i+1}. {batter.name}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.woba?.toFixed(3) || '–'}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.iso?.toFixed(3) || '–'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Lineup not yet confirmed</div>
+                                )}
+                            </div>
+                            
+                            {/* Home Lineup vs Away SP */}
+                            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>
+                                        {deepDive.home_team} Lineup vs {deepDive.away_sp?.name || 'TBD'}
+                                    </h3>
+                                </div>
+                                {deepDive.home_lineup && deepDive.home_lineup.length > 0 ? (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Batter</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>wOBA</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>ISO</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {deepDive.home_lineup.map((batter, i) => (
+                                                <tr key={i} style={{ borderBottom: i < deepDive.home_lineup.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                    <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{i+1}. {batter.name}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.woba?.toFixed(3) || '–'}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.iso?.toFixed(3) || '–'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Lineup not yet confirmed</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Bullpen Board */}
+                        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>Bullpen Situations</h3>
+                            </div>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Team</th>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>xFIP</th>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Fatigue</th>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Meltdown Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{deepDive.away_team}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.away_bp?.metrics?.['Bullpen xFIP']?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.away_bp?.fatigue_index?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.away_bp?.metrics?.['Meltdown Rate']?.toFixed(3) || '–'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{deepDive.home_team}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.home_bp?.metrics?.['Bullpen xFIP']?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.home_bp?.fatigue_index?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.home_bp?.metrics?.['Meltdown Rate']?.toFixed(3) || '–'}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Umpire Profile */}
+                        {deepDive.umpire && Object.keys(deepDive.umpire).length > 0 && (
+                            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>Home Plate Umpire: {deepDive.umpire.full_name || deepDive.umpire.umpire_id}</h3>
+                                </div>
+                                <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                                    <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ color: '#9ca3af', fontSize: 12, textTransform: 'uppercase' }}>Run Impact</div>
+                                        <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginTop: 4 }}>{deepDive.umpire.metrics?.run_impact?.toFixed(2) || '0.00'}</div>
+                                    </div>
+                                    <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ color: '#9ca3af', fontSize: 12, textTransform: 'uppercase' }}>Strike Call %</div>
+                                        <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginTop: 4 }}>{deepDive.umpire.metrics?.strike_pct ? (deepDive.umpire.metrics.strike_pct * 100).toFixed(1) + '%' : '–'}</div>
+                                    </div>
+                                    <div style={{ flex: 1, textAlign: 'center' }}>
+                                        <div style={{ color: '#9ca3af', fontSize: 12, textTransform: 'uppercase' }}>Over %</div>
+                                        <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginTop: 4 }}>{deepDive.umpire.metrics?.over_pct ? (deepDive.umpire.metrics.over_pct * 100).toFixed(1) + '%' : '–'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
             </main>
             <BottomNavBar />
         </div>
@@ -294,6 +432,134 @@ export default function MlbGameDeepDive({ game, preds, props, error }) {
                         No predictions found for this game. Run the daily pipeline to generate predictions.
                     </div>
                 )}
+            
+                {/* Advanced Data Boards */}
+                {deepDive && (
+                    <div style={{ marginTop: 40 }}>
+                        <h2 style={{ fontFamily: 'Orbitron, sans-serif', color: '#fff', fontSize: 15, margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Advanced Matchup Intelligence
+                        </h2>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+                            {/* Away Lineup vs Home SP */}
+                            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>
+                                        {deepDive.away_team} Lineup vs {deepDive.home_sp?.name || 'TBD'}
+                                    </h3>
+                                </div>
+                                {deepDive.away_lineup && deepDive.away_lineup.length > 0 ? (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Batter</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>wOBA</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>ISO</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {deepDive.away_lineup.map((batter, i) => (
+                                                <tr key={i} style={{ borderBottom: i < deepDive.away_lineup.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                    <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{i+1}. {batter.name}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.woba?.toFixed(3) || '–'}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.iso?.toFixed(3) || '–'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Lineup not yet confirmed</div>
+                                )}
+                            </div>
+                            
+                            {/* Home Lineup vs Away SP */}
+                            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>
+                                        {deepDive.home_team} Lineup vs {deepDive.away_sp?.name || 'TBD'}
+                                    </h3>
+                                </div>
+                                {deepDive.home_lineup && deepDive.home_lineup.length > 0 ? (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Batter</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>wOBA</th>
+                                                <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>ISO</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {deepDive.home_lineup.map((batter, i) => (
+                                                <tr key={i} style={{ borderBottom: i < deepDive.home_lineup.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                    <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{i+1}. {batter.name}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.woba?.toFixed(3) || '–'}</td>
+                                                    <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{batter.profile?.iso?.toFixed(3) || '–'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Lineup not yet confirmed</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Bullpen Board */}
+                        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>Bullpen Situations</h3>
+                            </div>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Team</th>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>xFIP</th>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Fatigue</th>
+                                        <th style={{ padding: '8px 16px', color: '#9ca3af', fontWeight: 500, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Meltdown Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{deepDive.away_team}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.away_bp?.metrics?.['Bullpen xFIP']?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.away_bp?.fatigue_index?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.away_bp?.metrics?.['Meltdown Rate']?.toFixed(3) || '–'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '8px 16px', color: '#d4d4d4' }}>{deepDive.home_team}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.home_bp?.metrics?.['Bullpen xFIP']?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.home_bp?.fatigue_index?.toFixed(2) || '–'}</td>
+                                        <td style={{ padding: '8px 16px', color: '#fff', textAlign: 'right' }}>{deepDive.home_bp?.metrics?.['Meltdown Rate']?.toFixed(3) || '–'}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Umpire Profile */}
+                        {deepDive.umpire && Object.keys(deepDive.umpire).length > 0 && (
+                            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <h3 style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 13, margin: 0, textTransform: 'uppercase' }}>Home Plate Umpire: {deepDive.umpire.full_name || deepDive.umpire.umpire_id}</h3>
+                                </div>
+                                <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                                    <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ color: '#9ca3af', fontSize: 12, textTransform: 'uppercase' }}>Run Impact</div>
+                                        <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginTop: 4 }}>{deepDive.umpire.metrics?.run_impact?.toFixed(2) || '0.00'}</div>
+                                    </div>
+                                    <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ color: '#9ca3af', fontSize: 12, textTransform: 'uppercase' }}>Strike Call %</div>
+                                        <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginTop: 4 }}>{deepDive.umpire.metrics?.strike_pct ? (deepDive.umpire.metrics.strike_pct * 100).toFixed(1) + '%' : '–'}</div>
+                                    </div>
+                                    <div style={{ flex: 1, textAlign: 'center' }}>
+                                        <div style={{ color: '#9ca3af', fontSize: 12, textTransform: 'uppercase' }}>Over %</div>
+                                        <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginTop: 4 }}>{deepDive.umpire.metrics?.over_pct ? (deepDive.umpire.metrics.over_pct * 100).toFixed(1) + '%' : '–'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
             </main>
             <BottomNavBar />
         </div>
