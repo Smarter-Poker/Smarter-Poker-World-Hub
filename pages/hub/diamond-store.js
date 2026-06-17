@@ -17,8 +17,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 
 // God-Mode Stack
-import PageTransition from '../../src/components/transitions/PageTransition';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
@@ -26,7 +24,10 @@ import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { showStoreToast } from '../../src/components/store/StoreToast';
 import { busEmit } from '../../src/engine/EventBus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+
+const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
+const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
+const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 import {
     Gem, Crown, ShoppingBag, Trophy, Gamepad2,
     Coins, Home, Package, Wrench, Search,

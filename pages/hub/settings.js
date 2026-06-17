@@ -13,6 +13,9 @@ import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../src/lib/supabase';
 // CustomAvatarBuilder statically imported is a heavy bundle hit. Lazy load it.
+const TwoFactorAuthModal = dynamic(() => import('../../src/components/settings/modals/TwoFactorAuthModal'), { ssr: false });
+const DevicesModal = dynamic(() => import('../../src/components/settings/modals/DevicesModal'), { ssr: false });
+const DeleteAccountModal = dynamic(() => import('../../src/components/settings/modals/DeleteAccountModal'), { ssr: false });
 const CustomAvatarBuilder = dynamic(() => import('../../src/components/avatars/CustomAvatarBuilder'), { ssr: false });
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
@@ -102,6 +105,7 @@ function Select({ value, onChange, options, label }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN SETTINGS PAGE
+const CancelVipModal = dynamic(() => import('../../src/components/settings/modals/CancelVipModal'), { ssr: false });
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
     const router = useRouter();
@@ -2514,341 +2518,21 @@ export default function SettingsPage() {
 
             {/* VIP Cancellation Modal */}
             {showCancelModal && (
-                <div
-                    onClick={(e) => { if (e.target === e.currentTarget) { setShowCancelModal(false); setCancelFeedback(null); } }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowCancelModal(false); setCancelFeedback(null); } }}
-                    tabIndex={-1}
-                    style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.85)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 20,
-                }}>
-                    <div style={{
-                        background: '#1c2333',
-                        borderRadius: 16,
-                        width: '100%',
-                        maxWidth: 480,
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-                        overflow: 'hidden',
-                    }}>
-                        {/* Modal Header */}
-                        <div style={{
-                            padding: '20px 24px',
-                            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                        }}>
-                            <h3 style={{ color: '#fff', fontSize: 18, fontWeight: 600, margin: 0 }}>
-                                {cancelStep === 'reason' && 'Cancel VIP Membership'}
-                                {cancelStep === 'offer' && 'Wait — Special Offer!'}
-                                {cancelStep === 'confirmed' && 'Membership Cancelled'}
-                                {cancelStep === 'retained' && 'Welcome Back!'}
-                            </h3>
-                            <button
-                                onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'rgba(255,255,255,0.5)',
-                                    fontSize: 24,
-                                    cursor: 'pointer',
-                                    padding: 0,
-                                    lineHeight: 1,
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        {/* Modal Content */}
-                        <div style={{ padding: '24px' }}>
-                            {/* Step 1: Reason Survey */}
-                            {cancelStep === 'reason' && (
-                                <>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 20 }}>
-                                        We Are Sorry To See You Go. Please Let Us Know Why You Are Cancelling So We Can Improve.
-                                    </p>
-                                    {[
-                                        { id: 'too_expensive', label: 'Too Expensive' },
-                                        { id: 'not_using', label: 'Not Using Enough' },
-                                        { id: 'found_alternative', label: 'Found An Alternative' },
-                                        { id: 'missing_features', label: 'Missing Features I Need' },
-                                        { id: 'technical_issues', label: 'Technical Issues' },
-                                        { id: 'other', label: 'Other' },
-                                    ].map(reason => (
-                                        <button
-                                            key={reason.id}
-                                            onClick={() => setCancelReason(reason.id)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '14px 16px',
-                                                marginBottom: 8,
-                                                background: cancelReason === reason.id
-                                                    ? 'rgba(24, 119, 242, 0.15)'
-                                                    : 'rgba(255, 255, 255, 0.05)',
-                                                border: cancelReason === reason.id
-                                                    ? '1px solid rgba(24, 119, 242, 0.4)'
-                                                    : '1px solid rgba(255, 255, 255, 0.1)',
-                                                borderRadius: 10,
-                                                color: cancelReason === reason.id ? '#1877F2' : '#fff',
-                                                fontSize: 14,
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                textAlign: 'left',
-                                                transition: 'all 0.2s ease',
-                                            }}
-                                        >
-                                            {reason.label}
-                                        </button>
-                                    ))}
-
-                                    {cancelReason === 'other' && (
-                                        <textarea
-                                            value={cancelOtherText}
-                                            onChange={(e) => setCancelOtherText(e.target.value)}
-                                            placeholder="Tell Us More..."
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px 16px',
-                                                marginTop: 4,
-                                                marginBottom: 8,
-                                                background: 'rgba(0, 0, 0, 0.3)',
-                                                border: '1px solid rgba(255, 255, 255, 0.15)',
-                                                borderRadius: 10,
-                                                color: '#fff',
-                                                fontSize: 14,
-                                                minHeight: 80,
-                                                resize: 'vertical',
-                                                outline: 'none',
-                                                fontFamily: 'Inter, sans-serif',
-                                            }}
-                                        />
-                                    )}
-
-                                    <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                                        <button
-                                            onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
-                                            style={{
-                                                flex: 1,
-                                                padding: '14px 20px',
-                                                background: 'rgba(255, 255, 255, 0.08)',
-                                                border: '1px solid rgba(255, 255, 255, 0.15)',
-                                                borderRadius: 20,
-                                                color: '#fff',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                cursor: 'pointer',
-                                            }}
-                                        >
-                                            Keep Membership
-                                        </button>
-                                        <button
-                                            onClick={() => cancelReason && setCancelStep('offer')}
-                                            disabled={!cancelReason}
-                                            style={{
-                                                flex: 1,
-                                                padding: '14px 20px',
-                                                background: cancelReason ? '#1877F2' : 'rgba(24, 119, 242, 0.3)',
-                                                border: 'none',
-                                                borderRadius: 20,
-                                                color: '#fff',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                cursor: cancelReason ? 'pointer' : 'not-allowed',
-                                                opacity: cancelReason ? 1 : 0.5,
-                                            }}
-                                        >
-                                            Continue
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* Step 2: Retention Offer */}
-                            {cancelStep === 'offer' && (
-                                <>
-                                    <div style={{
-                                        textAlign: 'center',
-                                        padding: '20px 0',
-                                    }}>
-                                        <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                        <h4 style={{ color: '#1877F2', fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
-                                            50% Off For 3 Months!
-                                        </h4>
-                                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
-                                            Before You Go, We Would Love To Offer You <strong style={{ color: '#1877F2' }}>50% Off Your VIP Membership</strong> For The Next 3 Months. Keep All Your Premium Benefits At Half The Price.
-                                        </p>
-
-                                        <div style={{
-                                            background: 'rgba(24, 119, 242, 0.08)',
-                                            border: '1px solid rgba(24, 119, 242, 0.25)',
-                                            borderRadius: 12,
-                                            padding: '16px 20px',
-                                            marginBottom: 24,
-                                        }}>
-                                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>Your New Price</div>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontSize: 18 }}>$19.99/mo</span>
-                                                <span style={{ color: '#1877F2', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$9.99/mo</span>
-                                            </div>
-                                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>For 3 Months, Then Regular Price Resumes</div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: 12 }}>
-                                        <button
-                                            onClick={() => {
-                                                // Accept the retention offer
-                                                // Note: actual Stripe coupon application would be done here
-                                                setCancelStep('retained');
-                                            }}
-                                            disabled={cancelLoading}
-                                            style={{
-                                                flex: 1,
-                                                padding: '14px 20px',
-                                                background: 'linear-gradient(135deg, #1877F2, #166FE5)',
-                                                border: 'none',
-                                                borderRadius: 20,
-                                                color: '#fff',
-                                                fontSize: 14,
-                                                fontWeight: 700,
-                                                cursor: 'pointer',
-                                                boxShadow: '0 4px 20px rgba(24, 119, 242, 0.3)',
-                                            }}
-                                        >
-                                            Claim 50% Off
-                                        </button>
-                                        <button
-                                            onClick={async () => {
-                                                setCancelLoading(true);
-                                                try {
-                                                    const cancelRes = await fetch('/api/store/cancel-vip', {
-                                                        method: 'POST',
-                                                        headers: {
-                                                            'Content-Type': 'application/json',
-                                                            'Authorization': `Bearer ${getAccessToken()}`
-                                                        },
-                                                        body: JSON.stringify({
-                                                            userId: user?.id,
-                                                            reason: cancelReason,
-                                                            reasonText: cancelReason === 'other' ? cancelOtherText : '',
-                                                        }),
-                                                    });
-                                                    if (cancelRes.ok) {
-                                                        setCancelStep('confirmed');
-                                                    } else {
-                                                        const errData = await cancelRes.json().catch(() => ({}));
-                                                        setCancelFeedback({ type: 'error', message: errData.error || 'Failed To Cancel Membership. Please Try Again.' });
-                                                    }
-                                                } catch (err) {
-                                                    console.warn('Cancel VIP error:', err);
-                                                    setCancelFeedback({ type: 'error', message: 'Something Went Wrong. Please Try Again.' });
-                                                } finally {
-                                                    setCancelLoading(false);
-                                                }
-                                            }}
-                                            disabled={cancelLoading}
-                                            style={{
-                                                flex: 1,
-                                                padding: '14px 20px',
-                                                background: 'rgba(24, 119, 242, 0.1)',
-                                                border: '1px solid rgba(24, 119, 242, 0.25)',
-                                                borderRadius: 20,
-                                                color: '#1877F2',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                cursor: cancelLoading ? 'wait' : 'pointer',
-                                                opacity: cancelLoading ? 0.6 : 1,
-                                            }}
-                                        >
-                                            {cancelLoading ? 'Cancelling...' : 'Cancel Anyway'}
-                                        </button>
-                                    </div>
-
-                                    {/* Phase 2: VIP cancel inline feedback */}
-                                    {cancelFeedback && (
-                                        <div style={{ padding: '8px 12px', marginTop: 12, background: cancelFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.15)' : 'rgba(255, 71, 87, 0.15)', border: `1px solid ${cancelFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.3)' : 'rgba(255, 71, 87, 0.3)'}`, borderRadius: 8, color: cancelFeedback.type === 'success' ? '#31A24C' : '#ff4757', fontSize: 13 }}>
-                                            {cancelFeedback.message}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-
-                            {/* Step 3a: Cancellation Confirmed */}
-                            {cancelStep === 'confirmed' && (
-                                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                    <h4 style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-                                        Your Membership Has Been Cancelled
-                                    </h4>
-                                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
-                                        Your VIP Benefits Will Remain Active Until The End Of Your Current Billing Period.
-                                    </p>
-                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
-                                        You Can Re-Subscribe Anytime From The Diamond Store.
-                                    </p>
-                                    <button
-                                        onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
-                                        style={{
-                                            padding: '14px 40px',
-                                            background: 'linear-gradient(135deg, #1877F2, #166FE5)',
-                                            border: 'none',
-                                            borderRadius: 20,
-                                            color: '#fff',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        Done
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Step 3b: Retention Success */}
-                            {cancelStep === 'retained' && (
-                                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                    <h4 style={{ color: '#1877F2', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-                                        Discount Applied!
-                                    </h4>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
-                                        Your VIP Membership Is Now <strong style={{ color: '#1877F2' }}>$9.99/Month</strong> For The Next 3 Months.
-                                    </p>
-                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
-                                        Thank You For Staying With Us! Enjoy Your Premium Benefits.
-                                    </p>
-                                    <button
-                                        onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
-                                        style={{
-                                            padding: '14px 40px',
-                                            background: 'linear-gradient(135deg, #1877F2, #166FE5)',
-                                            border: 'none',
-                                            borderRadius: 20,
-                                            color: '#fff',
-                                            fontSize: 14,
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                            boxShadow: '0 4px 20px rgba(24, 119, 242, 0.3)',
-                                        }}
-                                    >
-                                        Awesome!
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                <CancelVipModal
+                    showCancelModal={showCancelModal}
+                    setShowCancelModal={setShowCancelModal}
+                    cancelStep={cancelStep}
+                    setCancelStep={setCancelStep}
+                    cancelReason={cancelReason}
+                    setCancelReason={setCancelReason}
+                    cancelOtherText={cancelOtherText}
+                    setCancelOtherText={setCancelOtherText}
+                    cancelLoading={cancelLoading}
+                    setCancelLoading={setCancelLoading}
+                    cancelFeedback={cancelFeedback}
+                    setCancelFeedback={setCancelFeedback}
+                    user={user}
+                />
             )}
 
             {/* Custom Avatar Builder Modal */}
@@ -2892,404 +2576,47 @@ export default function SettingsPage() {
             )}
 
             {/* 2FA Setup Modal */}
-            {show2FAModal && (
-                <div
-                    onClick={(e) => { if (e.target === e.currentTarget) { setShow2FAModal(false); setVerificationCode(''); setMfaFeedback(null); } }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') { setShow2FAModal(false); setVerificationCode(''); setMfaFeedback(null); } }}
-                    tabIndex={-1}
-                    style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.9)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 20
-                }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        borderRadius: 16,
-                        padding: 32,
-                        maxWidth: 500,
-                        width: '100%',
-                        border: '1px solid rgba(0, 212, 255, 0.2)'
-                    }}>
-                        <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>Enable Two-Factor Authentication</h2>
-                        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
-                            Add An Extra Layer Of Security To Your Account With 2FA.
-                        </p>
-
-                        {!twoFactorEnabled ? (
-                            <>
-                                <div style={{
-                                    background: 'rgba(0, 212, 255, 0.1)',
-                                    border: '1px solid rgba(0, 212, 255, 0.3)',
-                                    borderRadius: 12,
-                                    padding: 20,
-                                    marginBottom: 20
-                                }}>
-                                    <h3 style={{ color: '#00D4FF', fontSize: 16, marginBottom: 12 }}>Setup Instructions:</h3>
-                                    <ol style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, paddingLeft: 20, margin: 0 }}>
-                                        <li style={{ marginBottom: 8 }}>Download An Authenticator App (Google Authenticator, Authy, Etc.)</li>
-                                        <li style={{ marginBottom: 8 }}>Scan The QR Code Below With Your App</li>
-                                        <li>Enter The 6-digit Code To Verify</li>
-                                    </ol>
-                                </div>
-
-                                <div style={{
-                                    background: '#fff',
-                                    padding: 20,
-                                    borderRadius: 12,
-                                    marginBottom: 20,
-                                    textAlign: 'center'
-                                }}>
-                                    {loadingMFA ? (
-                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Loading QR Code...</div>
-                                    ) : qrCode ? (
-                                        <>
-                                            <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Scan With Your Authenticator App</div>
-                                            <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
-                                            <p style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
-                                                Manual Entry Key: {manualEntryKey || 'Loading...'}
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Failed To Generate QR Code</div>
-                                    )}
-                                </div>
-
-                                <input
-                                    type="text"
-                                    placeholder="Enter 6-digit Code"
-                                    value={verificationCode}
-                                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    onKeyDown={(e) => { if (e.key === 'Enter' && verificationCode.length === 6) verify2FA(); }}
-                                    autoFocus
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px 16px',
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                                        borderRadius: 8,
-                                        color: '#fff',
-                                        fontSize: 16,
-                                        marginBottom: 20,
-                                        textAlign: 'center',
-                                        letterSpacing: 4
-                                    }}
-                                />
-
-                                <div style={{ display: 'flex', gap: 12 }}>
-                                    <button
-                                        onClick={verify2FA}
-                                        disabled={loadingMFA || verificationCode.length !== 6}
-                                        style={{
-                                            flex: 1,
-                                            padding: '12px 24px',
-                                            background: loadingMFA || verificationCode.length !== 6 ? '#666' : '#00D4FF',
-                                            border: 'none',
-                                            borderRadius: 20,
-                                            color: loadingMFA || verificationCode.length !== 6 ? '#999' : '#000',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            cursor: loadingMFA || verificationCode.length !== 6 ? 'not-allowed' : 'pointer'
-                                        }}
-                                    >
-                                        {loadingMFA ? 'Verifying...' : 'Verify & Enable'}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShow2FAModal(false);
-                                            setVerificationCode('');
-                                            setMfaFeedback(null);
-                                        }}
-                                        style={{
-                                            flex: 1,
-                                            padding: '12px 24px',
-                                            background: 'rgba(255, 255, 255, 0.1)',
-                                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                                            borderRadius: 20,
-                                            color: '#fff',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-
-                                {/* Phase 2: MFA inline feedback banner */}
-                                {mfaFeedback && (
-                                    <div style={{ padding: '8px 12px', marginTop: 12, background: mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.15)' : 'rgba(255, 71, 87, 0.15)', border: `1px solid ${mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.3)' : 'rgba(255, 71, 87, 0.3)'}`, borderRadius: 8, color: mfaFeedback.type === 'success' ? '#31A24C' : '#ff4757', fontSize: 13 }}>
-                                        {mfaFeedback.message}
-                                    </div>
-                                )}
-
-                                {/* Backup Codes Display — shown after successful 2FA verify */}
-                                {backupCodes.length > 0 && (
-                                    <div style={{
-                                        background: 'rgba(0, 212, 255, 0.08)',
-                                        border: '1px solid rgba(0, 212, 255, 0.25)',
-                                        borderRadius: 12,
-                                        padding: 20,
-                                        marginTop: 16,
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                            <h4 style={{ color: '#00D4FF', fontSize: 14, fontWeight: 700, margin: 0 }}>Backup Codes</h4>
-                                            <button
-                                                onClick={() => {
-                                                    try { navigator.clipboard.writeText(backupCodes.join('\n')); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                                                    setBackupCodesCopied(true);
-                                                    setTimeout(() => setBackupCodesCopied(false), 2000);
-                                                }}
-                                                style={{ padding: '4px 12px', background: backupCodesCopied ? 'rgba(49, 162, 76, 0.2)' : 'rgba(0, 212, 255, 0.15)', border: `1px solid ${backupCodesCopied ? 'rgba(49, 162, 76, 0.4)' : 'rgba(0, 212, 255, 0.3)'}`, borderRadius: 20, color: backupCodesCopied ? '#31A24C' : '#00D4FF', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
-                                            >
-                                                {backupCodesCopied ? 'Copied!' : 'Copy All'}
-                                            </button>
-                                        </div>
-                                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 12 }}>Save these codes in a safe place. Each can be used once if you lose access to your authenticator app.</p>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                                            {backupCodes.map((code, i) => (
-                                                <div key={i} style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, color: '#fff', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>{code}</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                <div style={{
-                                    background: 'rgba(0, 255, 0, 0.1)',
-                                    border: '1px solid rgba(0, 255, 0, 0.3)',
-                                    borderRadius: 12,
-                                    padding: 20,
-                                    marginBottom: 20,
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 12 }}></div>
-                                    <h3 style={{ color: '#0f0', fontSize: 18, marginBottom: 8 }}>2FA Is Active</h3>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
-                                        Your Account Is Protected With Two-Factor Authentication
-                                    </p>
-                                </div>
-
-                                {!showDisable2FAConfirm ? (
-                                    <button
-                                        onClick={() => setShowDisable2FAConfirm(true)}
-                                        disabled={loadingMFA}
-                                        style={{
-                                            width: '100%',
-                                            padding: '12px 24px',
-                                            background: loadingMFA ? '#999' : '#ff4757',
-                                            border: 'none',
-                                            borderRadius: 20,
-                                            color: '#fff',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            cursor: loadingMFA ? 'not-allowed' : 'pointer',
-                                            marginBottom: 12
-                                        }}
-                                    >
-                                        {loadingMFA ? 'Disabling...' : 'Disable 2FA'}
-                                    </button>
-                                ) : (
-                                    <div style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 12 }}>Are you sure? This will make your account less secure.</p>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <button onClick={disable2FA} disabled={loadingMFA} style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                                                {loadingMFA ? 'Disabling...' : 'Yes, Disable'}
-                                            </button>
-                                            <button onClick={() => setShowDisable2FAConfirm(false)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                                                Keep Enabled
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <button
-                                    onClick={() => { setShow2FAModal(false); setMfaFeedback(null); }}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px 24px',
-                                        background: 'rgba(255, 255, 255, 0.1)',
-                                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                                        borderRadius: 8,
-                                        color: '#fff',
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Close
-                                </button>
-
-                                {/* Phase 2: MFA inline feedback (enabled state) */}
-                                {mfaFeedback && (
-                                    <div style={{ padding: '8px 12px', marginTop: 12, background: mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.15)' : 'rgba(255, 71, 87, 0.15)', border: `1px solid ${mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.3)' : 'rgba(255, 71, 87, 0.3)'}`, borderRadius: 8, color: mfaFeedback.type === 'success' ? '#31A24C' : '#ff4757', fontSize: 13 }}>
-                                        {mfaFeedback.message}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
+                        {show2FAModal && (
+                <TwoFactorAuthModal
+                    show2FAModal={show2FAModal}
+                    setShow2FAModal={setShow2FAModal}
+                    twoFactorEnabled={twoFactorEnabled}
+                    setTwoFactorEnabled={setTwoFactorEnabled}
+                    qrCode={qrCode}
+                    setQrCode={setQrCode}
+                    manualEntryKey={manualEntryKey}
+                    setManualEntryKey={setManualEntryKey}
+                    verificationCode={verificationCode}
+                    setVerificationCode={setVerificationCode}
+                    backupCodes={backupCodes}
+                    setBackupCodes={setBackupCodes}
+                    loadingMFA={loadingMFA}
+                    setLoadingMFA={setLoadingMFA}
+                    mfaFeedback={mfaFeedback}
+                    setMfaFeedback={setMfaFeedback}
+                    user={user}
+                    showDisable2FAConfirm={showDisable2FAConfirm}
+                    setShowDisable2FAConfirm={setShowDisable2FAConfirm}
+                    backupCodesCopied={backupCodesCopied}
+                    setBackupCodesCopied={setBackupCodesCopied}
+                />
             )}
 
             {/* Connected Devices Modal */}
-            {showDevicesModal && (
-                <div
-                    onClick={(e) => { if (e.target === e.currentTarget) { setShowDevicesModal(false); setRevokeDeviceTarget(null); } }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowDevicesModal(false); setRevokeDeviceTarget(null); } }}
-                    tabIndex={-1}
-                    style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.9)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 20
-                }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        borderRadius: 16,
-                        padding: 32,
-                        maxWidth: 600,
-                        width: '100%',
-                        maxHeight: '80vh',
-                        overflow: 'auto',
-                        border: '1px solid rgba(0, 212, 255, 0.2)'
-                    }}>
-                        <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>Connected Devices</h2>
-                        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
-                            Manage Devices That Have Access To Your Account
-                        </p>
-
-                        {devicesLoading ? (
-                            <div style={{ textAlign: 'center', padding: 40 }}>
-                                <div style={{ width: 40, height: 40, border: '3px solid rgba(0, 212, 255, 0.2)', borderTop: '3px solid #00D4FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>Loading Devices...</p>
-                            </div>
-                        ) : connectedDevices.length === 0 ? (
-                            <div style={{
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                borderRadius: 12,
-                                padding: 40,
-                                textAlign: 'center'
-                            }}>
-                                <div style={{ fontSize: 48, marginBottom: 12 }}></div>
-                                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-                                    No Session Data Available. This Feature Tracks Active Login Sessions.
-                                </p>
-                            </div>
-                        ) : (
-                            <div style={{ marginBottom: 20 }}>
-                                {connectedDevices.map((device, index) => (
-                                    <div key={index} style={{
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                                        borderRadius: 12,
-                                        padding: 16,
-                                        marginBottom: 12
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
-                                                    {device.device_name || 'Unknown Device'}
-                                                </div>
-                                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 4 }}>
-                                                    {device.ip_address || 'IP not recorded'}
-                                                </div>
-                                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                                                    Last Active: {device.last_active ? new Date(device.last_active).toLocaleString() : 'Unknown'}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => setRevokeDeviceTarget(device)}
-                                                style={{
-                                                    padding: '8px 16px',
-                                                    background: '#ff4757',
-                                                    border: 'none',
-                                                    borderRadius: 20,
-                                                    color: '#fff',
-                                                    fontSize: 12,
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                Revoke
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Device Revoke Confirmation */}
-                        {revokeDeviceTarget && (
-                            <div style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 12 }}>
-                                    Revoke access for <strong style={{ color: '#fff' }}>{revokeDeviceTarget.device_name || 'this device'}</strong>?
-                                </p>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                if (!user?.id) return;
-                                                const response = await fetch('/api/auth/sessions/revoke', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getAccessToken()}` },
-                                                    body: JSON.stringify({ sessionId: revokeDeviceTarget.id })
-                                                });
-                                                if (response.ok) {
-                                                    setConnectedDevices(prev => prev.filter(d => d.id !== revokeDeviceTarget.id));
-                                                } else {
-                                                    console.warn('Failed to revoke session');
-                                                }
-                                            } catch (err) {
-                                                console.warn('Error revoking session:', err);
-                                            } finally {
-                                                setRevokeDeviceTarget(null);
-                                            }
-                                        }}
-                                        style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                                    >
-                                        Yes, Revoke
-                                    </button>
-                                    <button
-                                        onClick={() => setRevokeDeviceTarget(null)}
-                                        style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        <button
-                            onClick={() => { setShowDevicesModal(false); setRevokeDeviceTarget(null); }}
-                            style={{
-                                width: '100%',
-                                padding: '12px 24px',
-                                background: 'rgba(255, 255, 255, 0.1)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                borderRadius: 20,
-                                color: '#fff',
-                                fontSize: 14,
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
+                        {showDevicesModal && (
+                <DevicesModal
+                    showDevicesModal={showDevicesModal}
+                    setShowDevicesModal={setShowDevicesModal}
+                    connectedDevices={connectedDevices}
+                    setConnectedDevices={setConnectedDevices}
+                    devicesLoading={devicesLoading}
+                    setDevicesLoading={setDevicesLoading}
+                    revokeDeviceTarget={revokeDeviceTarget}
+                    setRevokeDeviceTarget={setRevokeDeviceTarget}
+                    user={user}
+                    setMfaFeedback={setMfaFeedback}
+                    mfaFeedback={mfaFeedback}
+                />
             )}
 
             {/* Invite Friends Modal */}
@@ -3300,146 +2627,19 @@ export default function SettingsPage() {
             />
 
             {/* Delete Account Confirmation Modal */}
-            {showDeleteModal && (
-                <div
-                    onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteFeedback(null); } }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteFeedback(null); } }}
-                    tabIndex={-1}
-                    style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.9)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 20,
-                }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        borderRadius: 16,
-                        padding: 32,
-                        maxWidth: 480,
-                        width: '100%',
-                        border: '1px solid rgba(255, 71, 87, 0.3)',
-                        boxShadow: '0 20px 60px rgba(255, 71, 87, 0.15)',
-                    }}>
-                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                            <div style={{
-                                width: 64, height: 64, borderRadius: '50%',
-                                background: 'rgba(255, 71, 87, 0.15)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                margin: '0 auto 16px',
-                                border: '2px solid rgba(255, 71, 87, 0.3)',
-                            }}>
-                                <span style={{ fontSize: 28, color: '#ff4757' }}>X</span>
-                            </div>
-                            <h2 style={{ color: '#ff4757', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
-                                Delete Your Account?
-                            </h2>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6 }}>
-                                This action is permanent and cannot be undone. All your data, posts, training progress, diamonds, and VIP status will be permanently erased.
-                            </p>
-                        </div>
-
-                        <div style={{
-                            background: 'rgba(255, 71, 87, 0.08)',
-                            border: '1px solid rgba(255, 71, 87, 0.2)',
-                            borderRadius: 10,
-                            padding: 16,
-                            marginBottom: 20,
-                        }}>
-                            <label style={{ display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
-                                Type <strong style={{ color: '#ff4757' }}>DELETE</strong> to confirm:
-                            </label>
-                            <input
-                                type="text"
-                                value={deleteConfirmText}
-                                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
-                                placeholder="Type DELETE here"
-                                autoFocus
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    background: 'rgba(0, 0, 0, 0.3)',
-                                    border: deleteConfirmText === 'DELETE'
-                                        ? '2px solid #ff4757'
-                                        : '1px solid rgba(255, 255, 255, 0.1)',
-                                    borderRadius: 8,
-                                    color: '#fff',
-                                    fontSize: 16,
-                                    fontFamily: 'Orbitron, monospace',
-                                    letterSpacing: 4,
-                                    textAlign: 'center',
-                                    outline: 'none',
-                                    boxSizing: 'border-box',
-                                }}
-                            />
-                        </div>
-
-                        {deleteFeedback && (
-                            <div style={{ padding: '8px 12px', marginBottom: 12, background: 'rgba(255, 71, 87, 0.15)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 8, color: '#ff4757', fontSize: 13 }}>
-                                {deleteFeedback.message}
-                            </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <button
-                                onClick={async () => {
-                                    if (deleteConfirmText !== 'DELETE') return;
-                                    setDeleteLoading(true);
-                                    try {
-                                        await handleDeleteAccount();
-                                    } finally {
-                                        // Only reached on error — success navigates away
-                                        setDeleteLoading(false);
-                                    }
-                                }}
-                                disabled={deleteConfirmText !== 'DELETE' || deleteLoading}
-                                style={{
-                                    flex: 1,
-                                    padding: '14px 24px',
-                                    background: deleteConfirmText === 'DELETE' && !deleteLoading
-                                        ? '#ff4757'
-                                        : 'rgba(255, 71, 87, 0.2)',
-                                    border: 'none',
-                                    borderRadius: 20,
-                                    color: deleteConfirmText === 'DELETE' && !deleteLoading
-                                        ? '#fff'
-                                        : 'rgba(255,255,255,0.4)',
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    cursor: deleteConfirmText === 'DELETE' && !deleteLoading
-                                        ? 'pointer'
-                                        : 'not-allowed',
-                                    transition: 'all 0.2s ease',
-                                }}
-                            >
-                                {deleteLoading ? 'Deleting...' : 'Delete Permanently'}
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowDeleteModal(false);
-                                    setDeleteConfirmText('');
-                                    setDeleteFeedback(null);
-                                }}
-                                style={{
-                                    flex: 1,
-                                    padding: '14px 24px',
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                                    borderRadius: 20,
-                                    color: '#fff',
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                        {showDeleteModal && (
+                <DeleteAccountModal
+                    showDeleteModal={showDeleteModal}
+                    setShowDeleteModal={setShowDeleteModal}
+                    deleteConfirmText={deleteConfirmText}
+                    setDeleteConfirmText={setDeleteConfirmText}
+                    deleteLoading={deleteLoading}
+                    setDeleteLoading={setDeleteLoading}
+                    deleteFeedback={deleteFeedback}
+                    setDeleteFeedback={setDeleteFeedback}
+                    user={user}
+                    setLocalUser={setLocalUser}
+                />
             )}
               <BottomNavBar />
     </PageTransition>

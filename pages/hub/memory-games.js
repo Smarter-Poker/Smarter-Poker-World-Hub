@@ -22,11 +22,12 @@ import { getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandN
 
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';
-import PageTransition from '../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+
+const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
+const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../src/services/memoryGamesPreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -37,7 +38,7 @@ import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../s
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
-import GameCostPopup from '../../src/components/gates/GameCostPopup';
+const GameCostPopup = dynamic(() => import('../../src/components/gates/GameCostPopup'), { ssr: false });
 import dailyChallengeService from '../../src/services/DailyChallengeService';
 import { processGameResult } from '../../src/games/ELOService';
 import gameSessionService from '../../src/services/GameSessionService';
@@ -63,7 +64,7 @@ import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFi
 import { getAccessToken } from '../../src/lib/authUtils';
 // 2026-05-07 — Lucide icons replace emoji in the menu surface (UI-UX-Pro-Max no-emoji-icons rule)
 import { Target, Zap, Bomb, Puzzle, Dices, Crosshair, Swords, Calendar, Trophy, Lock, Filter, ShieldCheck } from 'lucide-react';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 
 // ACTION_COLORS moved to src/games/MixedStrategyGame.js
 
@@ -128,6 +129,8 @@ function gradeUserGrid(userGrid, solution) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
+const MemoryGamesFilters = dynamic(() => import('../../src/components/memory-games/modals/MemoryGamesFilters'), { ssr: false });
+const ComboPopup = dynamic(() => import('../../src/components/memory-games/modals/ComboPopup'), { ssr: false });
 export default function MemoryGamesPage() {
     const router = useRouter();
     const { user } = useAvatar();
@@ -1235,12 +1238,12 @@ export default function MemoryGamesPage() {
                 />
 
                 {/* Combo Popup */}
-                {showComboPopup && comboName && (
-                    <div style={styles.comboOverlay}>
-                        <div style={styles.comboText}>{comboName}</div>
-                        <div style={styles.multiplierText}>{multiplier}x MULTIPLIER</div>
-                    </div>
-                )}
+                            {showComboPopup && comboName && (
+                <ComboPopup
+                    comboName={comboName}
+                    C={C}
+                />
+            )}
 
                 {/* Main Content */}
                 <div style={styles.content}>
@@ -2143,45 +2146,16 @@ export default function MemoryGamesPage() {
                                     </div>
 
                                     {/* Filter Panel */}
-                                    {showFilters && (
-                                        <ScenarioFilterPanel
-                                            onFilterChange={(filters) => {
-                                                setScenarioFilters(filters);
-                                            }}
-                                            onClose={() => setShowFilters(false)}
-                                            currentFilters={scenarioFilters}
-                                            availableScenarios={(() => {
-                                                const allScenarios = [
-                                                    ...LEVEL_1_SCENARIOS,
-                                                    ...LEVEL_2_SCENARIOS,
-                                                    ...LEVEL_3_SCENARIOS,
-                                                    ...LEVEL_4_SCENARIOS,
-                                                    ...LEVEL_5_SCENARIOS,
-                                                    ...LEVEL_6_SCENARIOS,
-                                                    ...LEVEL_7_SCENARIOS,
-                                                    ...LEVEL_8_SCENARIOS,
-                                                    ...LEVEL_9_SCENARIOS,
-                                                    ...LEVEL_10_SCENARIOS,
-                                                ];
-                                                return allScenarios.length;
-                                            })()}
-                                            filteredCount={(() => {
-                                                const allScenarios = [
-                                                    ...LEVEL_1_SCENARIOS,
-                                                    ...LEVEL_2_SCENARIOS,
-                                                    ...LEVEL_3_SCENARIOS,
-                                                    ...LEVEL_4_SCENARIOS,
-                                                    ...LEVEL_5_SCENARIOS,
-                                                    ...LEVEL_6_SCENARIOS,
-                                                    ...LEVEL_7_SCENARIOS,
-                                                    ...LEVEL_8_SCENARIOS,
-                                                    ...LEVEL_9_SCENARIOS,
-                                                    ...LEVEL_10_SCENARIOS,
-                                                ];
-                                                return filterScenarios(allScenarios, scenarioFilters).length;
-                                            })()}
-                                        />
-                                    )}
+                                                {showFilters && (
+                <MemoryGamesFilters
+                    filterPos={filterPos}
+                    setFilterPos={setFilterPos}
+                    filterAction={filterAction}
+                    setFilterAction={setFilterAction}
+                    filterStack={filterStack}
+                    setFilterStack={setFilterStack}
+                />
+            )}
 
                                     <div style={styles.levelGrid}>
                                         {LEVELS.map((level, idx) => {

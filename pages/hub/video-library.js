@@ -8,12 +8,14 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
 import { supabase } from '../../src/lib/supabase';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+
+const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
 import { getVideoFavorites, addVideoFavorite, removeVideoFavorite } from '../../src/services/videoFavorites';
 import { getWatchLater, addToWatchLater, removeFromWatchLater } from '../../src/services/videoWatchLater';
@@ -21,10 +23,11 @@ import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWat
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
-import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { DiamondEngine } from '../../src/services/DiamondEngine';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+
+const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
+const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 import { ReelsViewer } from '../../src/components/social/Reels';
 import { findBestGames, buildSandboxUrl, extractCardsFromContext } from '../../src/utils/videoToTrainingMapper';
 

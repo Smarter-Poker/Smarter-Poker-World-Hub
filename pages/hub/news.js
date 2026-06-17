@@ -36,14 +36,15 @@ async function fireConfetti(opts) {
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock } from 'lucide-react';
 
-import PageTransition from '../../src/components/transitions/PageTransition';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+
+const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
+const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
+const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'), { ssr: false });
 const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), { ssr: false });

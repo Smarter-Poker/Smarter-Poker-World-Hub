@@ -52,6 +52,9 @@ const LobbyOverlay = dynamic(
 );
 
 // Feature modules — loaded into the panel when a pod is clicked
+const ManualLocationModal = dynamic(() => import('../../../src/components/poker-near-me/modals/ManualLocationModal'), { ssr: false });
+const LocationEnablePopup = dynamic(() => import('../../../src/components/poker-near-me/modals/LocationEnablePopup'), { ssr: false });
+const LoginPromptModal = dynamic(() => import('../../../src/components/poker-near-me/modals/LoginPromptModal'), { ssr: false });
 const VenueCard = dynamic(() => import('../../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../../src/components/poker-near-me/NewSeriesVenueCard'), { ssr: false });
@@ -2444,43 +2447,12 @@ export default function PokerNearMeLobby() {
           </div>
         )}
         {/* Login Prompt Modal — auth gate for Check In / Review */}
-        {showLoginPrompt && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            background: 'rgba(3,4,8,0.85)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }} onClick={() => setShowLoginPrompt(false)}>
-            <div onClick={e => e.stopPropagation()} style={{
-              width: 'min(380px, 85vw)', padding: '32px 28px', textAlign: 'center',
-              background: 'rgba(18,24,40,0.97)', borderRadius: 20,
-              border: '1px solid rgba(148,163,184,0.12)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-            }}>
-              <div style={{ marginBottom: 12, opacity: 0.6 }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0110 0v4" />
-                </svg>
-              </div>
-              <h3 style={{ color: '#e2e8f0', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Sign In Required</h3>
-              <p style={{ color: 'rgba(200,214,229,0.5)', fontSize: 13, lineHeight: 1.5, marginBottom: 24 }}>
-                You need to be signed in to check in at venues and leave reviews. Create a free account to unlock all features.
-              </p>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                <button onClick={() => setShowLoginPrompt(false)} style={{
-                  padding: '10px 24px', borderRadius: 10, border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'transparent', color: 'rgba(200,214,229,0.6)', fontSize: 14, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}>Cancel</button>
-                <button onClick={() => { setShowLoginPrompt(false); router.push('/auth/login?redirect=' + encodeURIComponent('/hub/poker-near-me/lobby')); }} style={{
-                  padding: '10px 28px', borderRadius: 10, border: 'none',
-                  background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#0a1628', fontSize: 14, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(0,212,255,0.25)',
-                }}>Sign In</button>
-              </div>
-            </div>
-          </div>
-        )}
+                    {showLoginPrompt && (
+                <LoginPromptModal
+                    showLoginPrompt={showLoginPrompt}
+                    setShowLoginPrompt={setShowLoginPrompt}
+                />
+            )}
 
         {/* Venue Reviews Modal */}
         {selectedVenueForReview && (
@@ -2542,329 +2514,25 @@ export default function PokerNearMeLobby() {
         )}
 
         {/* ═══ SMART ENABLE LOCATION POPUP ═══ */}
-        {showEnablePopup && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 155,
-            background: 'rgba(3,4,8,0.88)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-            animation: 'lobby-fadeIn 0.25s ease-out',
-            padding: '16px 8px env(safe-area-inset-bottom, 8px)',
-          }}>
-            <div style={{
-              width: 'min(420px, 96vw)',
-              maxHeight: '70vh',
-              overflowY: 'auto',
-              WebkitOverflowScrolling: 'touch',
-              background: 'linear-gradient(160deg, rgba(18,24,40,0.98), rgba(10,16,28,0.98))',
-              borderRadius: 18,
-              border: '1.5px solid rgba(148,163,184,0.18)',
-              boxShadow: '0 -8px 40px rgba(0,0,0,0.65), 0 0 30px rgba(212,168,83,0.08)',
-              overflow: 'hidden',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-            }}>
-              {/* Header */}
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '14px 16px', borderBottom: '1px solid rgba(148,163,184,0.1)',
-                background: 'linear-gradient(180deg, rgba(212,168,83,0.06), transparent)',
-                position: 'sticky', top: 0, zIndex: 1,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
-                    border: '1px solid rgba(34,197,94,0.35)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    animation: 'lobby-gpsPulse 2s ease-in-out infinite',
-                  }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: '#e6edf5', letterSpacing: '-0.3px' }}>Enable Location</div>
-                    <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.5)', marginTop: 1 }}>Find poker rooms near you</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => { setShowEnablePopup(false); dismissLocationPrompt(); }}
-                  style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.45)', cursor: 'pointer', fontSize: 22, padding: 4, lineHeight: 1 }}
-                >&times;</button>
-              </div>
-
-              {/* Body */}
-              <div style={{ padding: '14px 16px' }}>
-                {/* Primary CTA — triggers browser permission prompt */}
-                <button
-                  onClick={() => {
-                    // Close popup and attempt GPS — this triggers the native browser prompt
-                    // On iOS Safari, permissionState may report 'prompt' even when denied,
-                    // so always attempt GPS and handleGpsClick handles the error cases
-                    setShowEnablePopup(false);
-                    handleGpsClick({ fromModal: true });
-                  }}
-                  style={{
-                    width: '100%', padding: '12px 0', borderRadius: 12,
-                    border: '1px solid rgba(34,197,94,0.45)',
-                    background: 'linear-gradient(135deg, #238636, #196c2e)',
-                    color: '#ffffff', fontSize: 14, fontWeight: 800,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: '0 4px 16px rgba(34,197,94,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'all 0.2s',
-                    marginBottom: 14,
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
-                  </svg>
-                  Try Enabling Location
-                </button>
-
-                {/* Device-specific instructions — ALWAYS show (Safari doesn't support Permissions API for geolocation, so permissionState may never read 'denied') */}
-                <div style={{
-                  background: 'rgba(212,168,83,0.05)',
-                  border: '1.5px solid rgba(148,163,184,0.12)',
-                  borderRadius: 12, padding: '12px 14px',
-                  marginBottom: 14,
-                }}>
-                  <div style={{
-                    fontSize: 11, fontWeight: 700, color: '#d4a853', textTransform: 'uppercase',
-                    letterSpacing: '0.8px', marginBottom: 10,
-                  }}>
-                    {deviceType === 'ios' ? 'iPhone / iPad' : deviceType === 'android' ? 'Android' : 'Browser'} — How To Enable
-                  </div>
-
-                  {deviceType === 'ios' && (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {[
-                        { step: '1', text: 'Open Settings on your iPhone' },
-                        { step: '2', text: 'Tap Privacy & Security → Location Services' },
-                        { step: '3', text: 'Make sure Location Services is ON' },
-                        { step: '4', text: 'Scroll down, tap Safari (or your browser)' },
-                        { step: '5', text: 'Select "While Using The App" or "Ask"' },
-                        { step: '6', text: 'Return here and tap the button above' },
-                      ].map(s => (
-                        <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          <div style={{
-                            minWidth: 22, height: 22, borderRadius: '50%',
-                            background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
-                            border: '1.5px solid rgba(212,168,83,0.3)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 11, fontWeight: 800, color: '#d4a853',
-                            flexShrink: 0,
-                          }}>{s.step}</div>
-                          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.75)', lineHeight: 1.45, paddingTop: 2 }}>
-                            {s.text}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {deviceType === 'android' && (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {[
-                        { step: '1', text: 'Open Settings on your phone' },
-                        { step: '2', text: 'Tap Location and make sure it\'s ON' },
-                        { step: '3', text: 'Tap App Permissions → your browser' },
-                        { step: '4', text: 'Select "Allow" and return here' },
-                      ].map(s => (
-                        <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          <div style={{
-                            minWidth: 22, height: 22, borderRadius: '50%',
-                            background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
-                            border: '1.5px solid rgba(212,168,83,0.3)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 11, fontWeight: 800, color: '#d4a853',
-                            flexShrink: 0,
-                          }}>{s.step}</div>
-                          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.75)', lineHeight: 1.45, paddingTop: 2 }}>
-                            {s.text}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {deviceType === 'desktop' && (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {[
-                        { step: '1', text: 'Click the lock icon in your address bar' },
-                        { step: '2', text: 'Find "Location" → change to "Allow"' },
-                        { step: '3', text: 'Reload the page' },
-                      ].map(s => (
-                        <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          <div style={{
-                            minWidth: 22, height: 22, borderRadius: '50%',
-                            background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
-                            border: '1.5px solid rgba(212,168,83,0.3)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 11, fontWeight: 800, color: '#d4a853',
-                            flexShrink: 0,
-                          }}>{s.step}</div>
-                          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.75)', lineHeight: 1.45, paddingTop: 2 }}>
-                            {s.text}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Divider */}
-                <div style={{
-                  textAlign: 'center', fontSize: 10, color: 'rgba(200,214,229,0.3)',
-                  marginBottom: 10, textTransform: 'uppercase', letterSpacing: '1.5px',
-                  display: 'flex', alignItems: 'center', gap: 10,
-                }}>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(200,214,229,0.1)' }} />
-                  or
-                  <div style={{ flex: 1, height: 1, background: 'rgba(200,214,229,0.1)' }} />
-                </div>
-
-                {/* Manual Entry CTA */}
-                <button
-                  onClick={() => {
-                    setShowEnablePopup(false);
-                    setShowManualLocation(true);
-                  }}
-                  style={{
-                    width: '100%', padding: '10px 0', borderRadius: 10,
-                    border: '1.5px solid rgba(148,163,184,0.15)',
-                    background: 'rgba(212,168,83,0.06)',
-                    color: 'rgba(200,214,229,0.7)', fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    transition: 'all 0.2s',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                  </svg>
-                  Enter Location Manually Instead
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                    {showEnablePopup && (
+                <LocationEnablePopup
+                    showEnablePopup={showEnablePopup}
+                    setShowEnablePopup={setShowEnablePopup}
+                    handleRefreshLocation={handleRefreshLocation}
+                />
+            )}
 
         {/* ═══ MANUAL LOCATION SETTER MODAL ═══ */}
-        {showManualLocation && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 150,
-            background: 'rgba(3,4,8,0.85)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <div style={{
-              width: 'min(440px, 92vw)',
-              background: 'linear-gradient(160deg, rgba(18,24,40,0.98), rgba(10,16,28,0.98))',
-              borderRadius: 20,
-              border: '1.5px solid rgba(148,163,184,0.15)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-              overflow: 'hidden',
-            }}>
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
-                <div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#e0e8f0' }}>Set Your Location</div>
-                  <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>Enter your city to find poker near you</div>
-                </div>
-                <button onClick={() => { setShowManualLocation(false); dismissLocationPrompt(); }} style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 22, padding: 4 }}>&times;</button>
-              </div>
-              {/* Body */}
-              <div style={{ padding: '20px 24px' }}>
-                {/* Try GPS Again button */}
-                <button onClick={() => handleGpsClick({ fromModal: true })}
-                  disabled={gpsLoading}
-                  style={{
-                    width: '100%', padding: '12px 0', borderRadius: 12,
-                    border: gpsLoading ? '1.5px solid rgba(212,168,83,0.4)' : '1px solid rgba(63,185,80,0.4)',
-                    background: gpsLoading ? 'rgba(212,168,83,0.12)' : 'linear-gradient(135deg, #238636, #196c2e)',
-                    color: '#ffffff', fontSize: 14, fontWeight: 700,
-                    cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit',
-                    boxShadow: gpsLoading ? 'none' : '0 4px 16px rgba(35,134,54,0.3)', marginBottom: 16,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'all 0.2s',
-                  }}>
-                  {gpsLoading ? (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" />
-                      </svg>
-                      Locating...
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                      </svg>
-                      Try GPS Again
-                    </>
-                  )}
-                </button>
-                {gpsError && (
-                  <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 8, background: 'rgba(248,81,73,0.1)', border: '1px solid rgba(248,81,73,0.3)', color: '#f85149', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
-                    {gpsError}
-                  </div>
-                )}
-
-                <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(200,214,229,0.35)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>or enter manually</div>
-
-                {/* City Input */}
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 4 }}>City</label>
-                  <input
-                    type="text" placeholder="e.g. Chicago" value={manualCity} maxLength={100}
-                    onChange={(e) => setManualCity(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleManualLocationSet(); }}
-                    autoFocus
-                    autoComplete="off"
-                    style={{
-                      width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid rgba(48,54,61,0.6)', background: '#0d1117',
-                      color: '#e0e8f0', fontSize: 15, fontFamily: 'inherit', outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                {/* State Select */}
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 4 }}>State</label>
-                  <select value={manualState} onChange={(e) => setManualState(e.target.value)}
-                    style={{
-                      width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid rgba(48,54,61,0.6)', background: '#0d1117',
-                      color: '#c9d1d9', fontSize: 14, fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
-                      boxSizing: 'border-box',
-                    }}>
-                    <option value="">Select State (optional)</option>
-                    {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                      <option key={st} value={st}>{st}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Set Location Button */}
-                <button onClick={handleManualLocationSet}
-                  disabled={!manualCity.trim()}
-                  style={{
-                    width: '100%', padding: '13px 0', borderRadius: 12,
-                    border: '1.5px solid rgba(212,168,83,0.4)',
-                    background: manualCity.trim() ? 'linear-gradient(135deg, #1f6feb, #1a5cc7)' : 'rgba(212,168,83,0.08)',
-                    color: manualCity.trim() ? '#ffffff' : 'rgba(200,214,229,0.4)',
-                    fontSize: 15, fontWeight: 800, cursor: manualCity.trim() ? 'pointer' : 'not-allowed',
-                    fontFamily: 'inherit', boxShadow: manualCity.trim() ? '0 4px 16px rgba(31,111,235,0.3)' : 'none',
-                    transition: 'all 0.2s',
-                  }}>
-                  Set Location
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                    {showManualLocation && (
+                <ManualLocationModal
+                    showManualLocation={showManualLocation}
+                    setShowManualLocation={setShowManualLocation}
+                    manualAddress={manualAddress}
+                    setManualAddress={setManualAddress}
+                    handleGeocodeAddress={handleGeocodeAddress}
+                    isSearching={isSearching}
+                />
+            )}
 
       {/* ═══ GLOBAL SEARCH OVERLAY ═══
            Full-screen Google-style search: city, state, venue, tour, series, tournament.

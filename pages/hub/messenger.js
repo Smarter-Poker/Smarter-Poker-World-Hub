@@ -15,12 +15,13 @@ import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
 import { broadcastSync } from '../../src/lib/broadcastSync';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
-import ReportBugWidget from '../../src/components/ui/ReportBugWidget';
+
+const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
+const ReportBugWidget = dynamic(() => import('../../src/components/ui/ReportBugWidget'), { ssr: false });
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
@@ -121,8 +122,8 @@ const InfoIcon = ({ size = 24, color = '#0084FF' }) => (
 // 📦 EXTRACTED MESSENGER COMPONENTS (CODE-SPLIT BUNDLE OVERLAY)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Avatar } from '../../src/components/messenger/Avatar';
-import { SearchBar } from '../../src/components/messenger/SearchBar';
+const Avatar = dynamic(() => import('../../src/components/messenger/Avatar').then(m => m.Avatar), { ssr: false });
+const SearchBar = dynamic(() => import('../../src/components/messenger/SearchBar').then(m => m.SearchBar), { ssr: false });
 
 const MessageInput = dynamic(
     () => import('../../src/components/messenger/MessageInput').then(m => m.MessageInput),
@@ -3474,93 +3475,14 @@ function MessengerPage() {
             <Toast toast={toast} onDismiss={() => setToast(null)} theme={C} />
 
             {/* Push Notification Subscription Banner */}
-            {showPushPrompt && !pushSubscribed && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: isMobile ? 70 : 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'linear-gradient(135deg, #1877F2, #0A5DC7)',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: 12,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    maxWidth: 400,
-                }}>
-                    <span style={{ fontSize: 28 }}></span>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 2 }}>Enable Call Notifications</div>
-                        <div style={{ fontSize: 12, opacity: 0.9 }}>Get Notified When Someone Calls You</div>
-                    </div>
-                    <button
-                        onClick={async () => {
-                            const success = await subscribePush();
-                            // Persist choice permanently — never ask again
-                            setPushPromptHandled(true);
-                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
-                            if (user?.id) {
-                                // Try atomic RPC merge first (single UPDATE, no read-write race)
-                                // Fallback to SELECT+UPDATE — OK here since pushPromptHandled only goes false→true
-                                supabase.rpc('fn_merge_messenger_preferences', {
-                                    p_user_id: user.id,
-                                    p_key: 'pushPromptHandled',
-                                    p_value: true,
-                                }).catch(async () => {
-                                    const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
-                                    const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                    const { error: prefErr } = await supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id);
-                                    if (prefErr) console.warn('[Messenger] push prompt pref persist failed (Enable):', prefErr.message);
-                                });
-                            }
-                            setShowPushPrompt(false);
-                            if (success) {
-                                setToast({ type: 'success', message: 'Push Notifications Enabled!' });
-                            }
-                        }}
-                        style={{
-                            padding: '8px 16px',
-                            background: 'white',
-                            color: '#1877F2',
-                            border: 'none',
-                            borderRadius: 8,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                        }}
-                    >Enable</button>
-                    <button
-                        onClick={async () => {
-                            // Persist dismissal permanently — never ask again
-                            setPushPromptHandled(true);
-                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
-                            if (user?.id) {
-                                // Atomic JSONB merge — fallback to SELECT+UPDATE if RPC not deployed
-                                supabase.rpc('fn_merge_messenger_preferences', {
-                                    p_user_id: user.id,
-                                    p_key: 'pushPromptHandled',
-                                    p_value: true,
-                                }).catch(async () => {
-                                    const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
-                                    const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                    const { error: prefErr } = await supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id);
-                                    if (prefErr) console.warn('[Messenger] push prompt pref persist failed (Dismiss):', prefErr.message);
-                                });
-                            }
-                            setShowPushPrompt(false);
-                        }}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontSize: 18,
-                            opacity: 0.7,
-                        }}
-                    >×</button>
-                </div>
+                        {showPushPrompt && !pushSubscribed && (
+                <PushPromptModal
+                    showPushPrompt={showPushPrompt}
+                    setShowPushPrompt={setShowPushPrompt}
+                    enablePushNotifications={enablePushNotifications}
+                    C={C}
+                    isMobile={isMobile}
+                />
             )}
 
             {/* Ringing Audio for Incoming Calls */}
@@ -4753,6 +4675,7 @@ function MessengerPage() {
     );
 }
 
+const PushPromptModal = dynamic(() => import('../../src/components/messenger/modals/PushPromptModal'), { ssr: false });
 export default function MessengerPageWithBoundary() {
     return (
         <HubErrorBoundary name="Messenger">

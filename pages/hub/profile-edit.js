@@ -16,9 +16,10 @@ const MediaLibrary = dynamic(() => import('../../src/components/social/MediaLibr
 const ProfilePictureHistory = dynamic(() => import('../../src/components/social/ProfilePictureHistory').then(mod => mod.ProfilePictureHistory), { ssr: false });
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+
+const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
@@ -26,7 +27,8 @@ import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastSync } from '../../src/lib/broadcastSync';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+
+const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 
 // Light Theme Colors
 const C = {

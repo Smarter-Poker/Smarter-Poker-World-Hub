@@ -104,3 +104,4 @@ yarn-error.log*
 # Agent scratch summaries (Anthropic Claude / Antigravity sessions) — never commit
 summary_pt*.md
 summary*.md
+user_messages.txt
