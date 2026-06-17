@@ -103,16 +103,22 @@ export default function OrbPage() {
         const rawKey = Array.isArray(orbId) ? orbId[0] : orbId;
         const key = String(rawKey).toLowerCase();
 
-        // Orbs with dedicated pages - redirect to them
+        // Orbs with dedicated pages - redirect to them (client-side)
         const dedicatedPages = {
             'trivia': '/hub/trivia',
             'poker-near-me': '/hub/poker-near-me/lobby',
             'memory-games': '/hub/preflop-charts',
-            'mlb-analytics': '/hub/mlb-analytics',
+        };
+
+        // Orbs that are proxied via next.config.js - must hard reload to hit the server proxy
+        const externalProxies = {
+            'mlb-analytics': '/hub/MLB-ANALYTICS',
         };
 
         if (dedicatedPages[key]) {
             router.replace(dedicatedPages[key]);
+        } else if (externalProxies[key]) {
+            window.location.replace(externalProxies[key]);
         }
     }, [mounted, orbId, router]);
 
