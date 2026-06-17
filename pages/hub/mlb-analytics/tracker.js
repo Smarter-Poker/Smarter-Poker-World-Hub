@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -9,49 +9,67 @@ export async function getServerSideProps() {
     try {
         const mlbDb = getMlbSupabase();
 
-        // Fetch all graded BET-recommended predictions with results
+        // Fetch all graded and pending BET-recommended predictions
         const { data: bets, error: betErr } = await mlbDb
             .from('pred_market_output')
-            .select('game_pk, official_date, market, selection, blended_prob, market_novig_prob, best_price, stake_units, result, as_of_ts')
-            .eq('rec', true)
-            .not('result', 'is', null)
+            .select('game_pk, official_date, market, selection, blended_prob, market_novig_prob, best_price, stake_units, result, as_of_ts, kelly_pct')
+            .eq('rec', 'BET')
             .order('official_date', { ascending: false })
             .limit(500);
 
         if (betErr) throw betErr;
 
-        // Fetch graded prop bets
+        // Fetch graded and pending prop bets
         const { data: propBets, error: propErr } = await mlbDb
             .from('pred_props')
-            .select('game_pk, player_id, prop, line, prob_over, best_price, pnl, result, as_of_ts')
-            .eq('rec', true)
-            .not('result', 'is', null)
+            .select('game_pk, player_id, prop, line, prob_over, best_price, pnl, result, as_of_ts, kelly_pct')
+            .eq('rec', 'BET')
             .order('as_of_ts', { ascending: false })
             .limit(200);
 
+        // Deduplicate bets by game + market + selection (take earliest rec for bet logic)
+        const uniqueBets = {};
+        for (const b of (bets || []).sort((x, y) => new Date(x.as_of_ts) - new Date(y.as_of_ts))) {
+            const k = `${b.game_pk}_${b.market}_${b.selection}`;
+            if (!uniqueBets[k]) uniqueBets[k] = { ...b, earliest_price: b.best_price, earliest_prob: b.market_novig_prob };
+            // always update the closing market probability
+            uniqueBets[k].closing_prob = b.market_novig_prob;
+        }
+
+        const uniqueProps = {};
+        for (const p of (propBets || []).sort((x, y) => new Date(x.as_of_ts) - new Date(y.as_of_ts))) {
+            const k = `${p.game_pk}_${p.player_id}_${p.prop}`;
+            if (!uniqueProps[k]) uniqueProps[k] = { ...p, earliest_price: p.best_price };
+            // prop closing prob is harder, we don't track market_novig_prob for props yet
+        }
+
         // Combine for CLV tracking
         const allBets = [
-            ...(bets || []).map(b => ({
+            ...Object.values(uniqueBets).map(b => ({
                 date: b.official_date || b.as_of_ts?.slice(0, 10),
                 label: `${b.market?.toUpperCase()} – ${b.selection}`,
                 model_prob: b.blended_prob,
-                market_prob: b.market_novig_prob,
-                price: b.best_price,
+                market_prob: b.earliest_prob,
+                closing_prob: b.closing_prob,
+                price: b.earliest_price,
                 stake: b.stake_units || 1,
                 result: b.result,
                 type: 'market',
-                pnl: b.result === 'WIN' ? (b.best_price > 0 ? (b.best_price / 100) : (-100 / b.best_price)) * (b.stake_units || 1) : b.result === 'LOSS' ? -(b.stake_units || 1) : 0,
+                pnl: b.result === 'WIN' ? (b.earliest_price > 0 ? (b.earliest_price / 100) : (-100 / b.earliest_price)) * (b.stake_units || 1) : b.result === 'LOSS' ? -(b.stake_units || 1) : 0,
+                kelly_pct: b.kelly_pct,
             })),
-            ...(propBets || []).map(p => ({
+            ...Object.values(uniqueProps).map(p => ({
                 date: p.as_of_ts?.slice(0, 10),
                 label: `${p.prop} O ${p.line}`,
                 model_prob: p.prob_over,
                 market_prob: null,
-                price: p.best_price,
+                closing_prob: null,
+                price: p.earliest_price,
                 stake: 1,
                 result: p.result,
                 type: 'prop',
                 pnl: p.pnl || 0,
+                kelly_pct: p.kelly_pct,
             }))
         ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
@@ -65,10 +83,10 @@ export async function getServerSideProps() {
         const totalStake = allBets.reduce((s, b) => s + (b.result !== 'VOID' ? (b.stake || 1) : 0), 0);
         const roi = totalStake > 0 ? (totalPnl / totalStake * 100) : 0;
 
-        // CLV: avg (model_prob - market_prob) for entries where both exist
-        const clvSamples = allBets.filter(b => b.model_prob != null && b.market_prob != null);
+        // CLV: avg (closing_prob - market_prob) for entries where both exist
+        const clvSamples = allBets.filter(b => b.closing_prob != null && b.market_prob != null && b.closing_prob !== b.market_prob);
         const avgClv = clvSamples.length > 0
-            ? clvSamples.reduce((s, b) => s + (b.model_prob - b.market_prob), 0) / clvSamples.length * 100
+            ? clvSamples.reduce((s, b) => s + (b.closing_prob - b.market_prob), 0) / clvSamples.length * 100
             : null;
 
         // Daily PnL series for chart
@@ -158,6 +176,27 @@ const RESULT_STYLE = {
 
 export default function MlbTracker({ bets, summary, cumSeries, error }) {
     const [filterType, setFilterType] = useState('all');
+    const [bankroll, setBankroll] = useState(1000);
+    const [kellyMultiplier, setKellyMultiplier] = useState(0.25);
+
+    useEffect(() => {
+        const storedBr = localStorage.getItem('mlb_bankroll');
+        if (storedBr) setBankroll(Number(storedBr));
+        const storedKm = localStorage.getItem('mlb_kelly_multiplier');
+        if (storedKm) setKellyMultiplier(Number(storedKm));
+    }, []);
+
+    const updateBankroll = (e) => {
+        const val = e.target.value;
+        setBankroll(val);
+        localStorage.setItem('mlb_bankroll', val);
+    };
+
+    const updateKellyMultiplier = (e) => {
+        const val = e.target.value;
+        setKellyMultiplier(val);
+        localStorage.setItem('mlb_kelly_multiplier', val);
+    };
 
     const displayed = filterType === 'all' ? bets : bets.filter(b => b.type === filterType);
 
@@ -183,6 +222,35 @@ export default function MlbTracker({ bets, summary, cumSeries, error }) {
                         DB Error: {error}
                     </div>
                 )}
+
+                {/* Bankroll Settings */}
+                <div style={{ background: 'rgba(0,212,255,0.05)', borderRadius: 14, padding: '16px 20px', border: '1px solid rgba(0,212,255,0.15)', marginBottom: 24, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 11, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Bankroll ($)</label>
+                        <input
+                            type="number"
+                            value={bankroll}
+                            onChange={updateBankroll}
+                            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 12px', borderRadius: 8, width: 120, fontFamily: 'monospace' }}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 11, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Kelly Multiplier</label>
+                        <select
+                            value={kellyMultiplier}
+                            onChange={updateKellyMultiplier}
+                            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 12px', borderRadius: 8, width: 140, cursor: 'pointer' }}
+                        >
+                            <option value={0.125}>Eighth (0.125x)</option>
+                            <option value={0.25}>Quarter (0.25x)</option>
+                            <option value={0.5}>Half (0.50x)</option>
+                            <option value={1.0}>Full (1.00x)</option>
+                        </select>
+                    </div>
+                    <div style={{ flex: 1, color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.4, minWidth: 200 }}>
+                        Set your total bankroll and fractional Kelly to see recommended wager amounts for pending bets dynamically below.
+                    </div>
+                </div>
 
                 {/* KPI Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: 14, marginBottom: 24 }}>
@@ -247,16 +315,16 @@ export default function MlbTracker({ bets, summary, cumSeries, error }) {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
                                 <tr style={{ background: 'rgba(0,0,0,0.3)' }}>
-                                    {['Date', 'Bet', 'Model%', 'Mkt%', 'CLV', 'Price', 'Result', 'P/L'].map(h => (
+                                    {['Date', 'Bet', 'Model%', 'Mkt%', 'CLV', 'Price', 'Result', 'Wager / P/L'].map(h => (
                                         <th key={h} style={{ padding: '10px 14px', color: '#6b7280', fontWeight: 500, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap', fontSize: 12 }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {displayed.map((bet, i) => {
-                                    const clv = (bet.model_prob != null && bet.market_prob != null)
-                                        ? (bet.model_prob - bet.market_prob) * 100 : null;
-                                    const rs = RESULT_STYLE[bet.result] || { color: '#9ca3af', label: bet.result };
+                                    const clv = (bet.closing_prob != null && bet.market_prob != null)
+                                        ? (bet.closing_prob - bet.market_prob) * 100 : null;
+                                    const rs = bet.result == null ? { color: '#00d4ff', label: 'PENDING' } : (RESULT_STYLE[bet.result] || { color: '#9ca3af', label: bet.result });
                                     return (
                                         <tr key={i} style={{
                                             borderTop: '1px solid rgba(255,255,255,0.05)',
@@ -277,8 +345,8 @@ export default function MlbTracker({ bets, summary, cumSeries, error }) {
                                                 {bet.price != null ? (bet.price > 0 ? `+${bet.price}` : bet.price) : '—'}
                                             </td>
                                             <td style={{ padding: '9px 14px', fontWeight: 700, color: rs.color, whiteSpace: 'nowrap' }}>{rs.label}</td>
-                                            <td style={{ padding: '9px 14px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: bet.pnl >= 0 ? '#00ff88' : '#ef4444', whiteSpace: 'nowrap' }}>
-                                                {bet.pnl != null ? `${bet.pnl >= 0 ? '+' : ''}${bet.pnl.toFixed(2)}u` : '—'}
+                                            <td style={{ padding: '9px 14px', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: bet.result == null ? '#00d4ff' : (bet.pnl >= 0 ? '#00ff88' : '#ef4444'), whiteSpace: 'nowrap' }}>
+                                                {bet.result == null ? (bet.kelly_pct != null ? `$${(bet.kelly_pct * bankroll * kellyMultiplier).toFixed(2)}` : '—') : (bet.pnl != null ? `${bet.pnl >= 0 ? '+' : ''}${bet.pnl.toFixed(2)}u` : '—')}
                                             </td>
                                         </tr>
                                     );
