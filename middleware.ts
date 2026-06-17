@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import geoBlocks from './config/geo-blocks.json';
+import { createMiddlewareClient } from './src/lib/supabaseServer';
 
 /**
  * Smarter.Poker Edge Middleware
@@ -71,6 +72,37 @@ export function middleware(request: NextRequest) {
         const cleanHost = hostname.replace('www.', '');
         const newUrl = `https://${cleanHost}${pathname}${search}`;
         return NextResponse.redirect(newUrl, 301);
+    }
+
+    // ── VIP Gate for MLB Analytics ─────────────────────────────────────────
+    if (pathname.startsWith('/hub/MLB-ANALYTICS')) {
+        let response = NextResponse.next();
+        const supabase = createMiddlewareClient(request, response);
+        
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                const loginUrl = request.nextUrl.clone();
+                loginUrl.pathname = '/auth/login';
+                loginUrl.search = `?next=${encodeURIComponent(pathname)}`;
+                return NextResponse.redirect(loginUrl);
+            }
+            
+            // All logged in users have access to MLB Analytics right now (No VIP required)
+        } catch (err) {
+            console.warn('[Middleware] MLB Gate Auth Error:', err);
+            // On error, let them pass or redirect to login? Let's redirect to login for safety.
+            const loginUrl = request.nextUrl.clone();
+            loginUrl.pathname = '/auth/login';
+            loginUrl.search = `?next=${encodeURIComponent(pathname)}`;
+            return NextResponse.redirect(loginUrl);
+        }
+        
+        // If we reach here, user is VIP and session is valid.
+        // We must return the response object created by createMiddlewareClient
+        // so any refreshed cookies are passed along.
+        return response;
     }
 
     // ── 2. Jurisdiction gate (geo-block) ───────────────────────────────────
