@@ -340,6 +340,7 @@ const nextConfig = {
   // Vercel (bypasses any Turbopack project setting). This webpack() callback
   // applies to both Vercel production builds AND local dev builds.
   // It sets HMR watchOptions and resolve aliases needed for local development.
+  turbopack: {},
   webpack: (config, { dev, isServer }) => {
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
