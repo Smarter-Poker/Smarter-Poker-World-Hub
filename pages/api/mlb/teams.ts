@@ -1,9 +1,13 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export const config = { runtime: 'edge' };
+
+export default async function handler(req: Request) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     try {
@@ -19,7 +23,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (teamsRes.error) {
             console.warn('[API/MLB/Teams] Error fetching teams (table may be missing):', teamsRes.error.message);
-            return res.status(200).json({ teams: [], globalEdgeActive: false });
+            return new Response(JSON.stringify({ teams: [], globalEdgeActive: false }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+            });
         }
 
         const teams = teamsRes.data || [];
@@ -52,13 +59,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             };
         });
 
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        return res.status(200).json({ 
+        return new Response(JSON.stringify({ 
             teams: mergedTeams,
             globalEdgeActive
+        }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+            }
         });
     } catch (err) {
         console.error('[API/MLB/Teams] Unhandled error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        return new Response(JSON.stringify({ error: 'Internal server error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }

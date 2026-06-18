@@ -1,15 +1,22 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export const config = { runtime: 'edge' };
+
+export default async function handler(req: Request) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
     
     // Auth check
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.MLB_CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     try {
@@ -26,11 +33,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (fetchErr) {
             console.warn('[MLB CLV] Error fetching pending bets:', fetchErr.message);
-            return res.status(200).json({ message: 'Table missing or error', updated: 0 });
+            return new Response(JSON.stringify({ message: 'Table missing or error', updated: 0 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
         if (!pendingBets || pendingBets.length === 0) {
-            return res.status(200).json({ message: 'No pending bets to update', updated: 0 });
+            return new Response(JSON.stringify({ message: 'No pending bets to update', updated: 0 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
         // 2. Fetch latest raw_odds for these games
@@ -42,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (oddsErr) {
             console.warn('[MLB CLV] Error fetching raw odds:', oddsErr.message);
-            return res.status(200).json({ message: 'raw_odds table missing or error', updated: 0 });
+            return new Response(JSON.stringify({ message: 'raw_odds table missing or error', updated: 0 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
         // Group latest odds
@@ -67,10 +74,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         await Promise.all(updatePromises);
 
-        return res.status(200).json({ message: 'Success (No-op in Hub)', updated: updateCount });
+        return new Response(JSON.stringify({ message: 'Success (No-op in Hub)', updated: updateCount }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
 
     } catch (error: any) {
         console.error('CLV Update Error:', error);
-        return res.status(500).json({ error: error.message });
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }

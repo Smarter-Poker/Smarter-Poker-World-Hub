@@ -69,8 +69,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         return (
             <div className="bg-[#0d1117] border border-[#3d4f5f] p-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 <p className="text-slate-400 text-[10px] font-extrabold tracking-[1px] mb-1 uppercase">{label} EDGE</p>
-                <p className={`text-lg font-extrabold ${roi > 0 ? 'text-[#00D4FF]' : roi < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`} style={{ textShadow: roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : roi < 0 ? '0 0 5px rgba(255,0,85,0.5)' : 'none' }}>
-                    {roi > 0 ? '+' : ''}{roi.toFixed(2)}% ROI
+                <p className={`text-lg font-extrabold ${Number(roi) > 0 ? 'text-[#00D4FF]' : Number(roi) < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`} style={{ textShadow: Number(roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : Number(roi) < 0 ? '0 0 5px rgba(255,0,85,0.5)' : 'none' }}>
+                    {Number(roi) > 0 ? '+' : ''}{Number(roi).toFixed(2)}% ROI
                 </p>
                 <p className="text-slate-500 text-xs mt-1">
                     {payload[0].payload.n} bets graded
@@ -196,22 +196,22 @@ export default function ValidationPage() {
                            <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">WIN RATE</div>
                                <div className="text-2xl font-extrabold text-[#00D4FF]" style={{ textShadow: '0 0 10px rgba(0,212,255,0.5)' }}>
-                                   {stats.flagged.winRate.toFixed(1)}%
+                                   {Number(stats.flagged.winRate).toFixed(1)}%
                                </div>
                            </div>
                            <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">FLAT-STAKE ROI</div>
-                               <div className={`text-2xl font-extrabold ${stats.flagged.roi > 0 ? 'text-[#00D4FF]' : stats.flagged.roi < 0 ? 'text-[#FF0055]' : 'text-white'}`} style={{ textShadow: stats.flagged.roi > 0 ? '0 0 10px rgba(0,212,255,0.5)' : stats.flagged.roi < 0 ? '0 0 10px rgba(255,0,85,0.5)' : 'none' }}>
-                                   {stats.flagged.roi > 0 ? '+' : ''}{stats.flagged.roi.toFixed(2)}%
+                               <div className={`text-2xl font-extrabold ${Number(stats.flagged.roi) > 0 ? 'text-[#00D4FF]' : Number(stats.flagged.roi) < 0 ? 'text-[#FF0055]' : 'text-white'}`} style={{ textShadow: Number(stats.flagged.roi) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : Number(stats.flagged.roi) < 0 ? '0 0 10px rgba(255,0,85,0.5)' : 'none' }}>
+                                   {Number(stats.flagged.roi) > 0 ? '+' : ''}{Number(stats.flagged.roi).toFixed(2)}%
                                </div>
                            </div>
                            <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">MODEL VS MKT BRIER</div>
                                <div className="text-2xl font-extrabold text-white">
-                                   {stats.flagged.modelBrier.toFixed(3)}
+                                   {Number(stats.flagged.modelBrier).toFixed(3)}
                                </div>
                                <div className="text-[10px] text-slate-500 mt-1 font-medium">
-                                   mkt {stats.flagged.mktBrier !== null ? stats.flagged.mktBrier.toFixed(3) : 'N/A'} · lower = sharper
+                                   mkt {stats.flagged.mktBrier !== null ? Number(stats.flagged.mktBrier).toFixed(3) : 'N/A'} · lower = sharper
                                </div>
                            </div>
                        </div>
@@ -225,7 +225,7 @@ export default function ValidationPage() {
                            <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">MODEL BRIER</div>
                                <div className="text-2xl font-extrabold text-white">
-                                   {stats.all.modelBrier.toFixed(4)}
+                                   {Number(stats.all.modelBrier).toFixed(4)}
                                </div>
                                <div className="text-[11px] text-slate-500 mt-1 font-medium">
                                    prediction accuracy (0.25 = coinflip)
@@ -234,7 +234,7 @@ export default function ValidationPage() {
                            <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">MARKET BRIER</div>
                                <div className="text-2xl font-extrabold text-white opacity-80">
-                                   {stats.all.mktBrier !== null ? stats.all.mktBrier.toFixed(4) : 'N/A'}
+                                   {stats.all.mktBrier !== null ? Number(stats.all.mktBrier).toFixed(4) : 'N/A'}
                                </div>
                                <div className="text-[11px] text-slate-500 mt-1 font-medium">
                                    the no-vig closing line
@@ -304,13 +304,13 @@ export default function ValidationPage() {
                                    {stats.edgeData.map((row, idx) => (
                                        <div key={row.edge} className={`grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 text-[12px] hover:bg-[#1a2332] transition-colors ${idx < stats.edgeData.length - 1 ? 'border-b border-[#1a2332]' : ''}`}>
                                            <div className="font-bold text-white flex items-center gap-2">
-                                               <div className={`w-2 h-2 rounded-full ${row.roi > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : row.roi < 0 ? 'bg-[#FF00FF] shadow-[0_0_5px_rgba(255,0,255,0.8)]' : 'bg-slate-500'}`}></div>
+                                               <div className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.roi) < 0 ? 'bg-[#FF00FF] shadow-[0_0_5px_rgba(255,0,255,0.8)]' : 'bg-slate-500'}`}></div>
                                                {row.edge}
                                            </div>
                                            <div className="text-right text-slate-300 font-medium">{row.n}</div>
                                            <div className="text-right text-slate-300 font-medium">{row.winPct}%</div>
-                                           <div className={`text-right font-extrabold ${row.roi > 0 ? 'text-[#00D4FF]' : row.roi < 0 ? 'text-[#FF00FF]' : 'text-white'}`} style={{ textShadow: row.roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : row.roi < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none' }}>
-                                               {row.roi > 0 ? '+' : ''}{row.roi.toFixed(2)}%
+                                           <div className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#FF00FF]' : 'text-white'}`} style={{ textShadow: Number(row.roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : Number(row.roi) < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none' }}>
+                                               {Number(row.roi) > 0 ? '+' : ''}{Number(row.roi).toFixed(2)}%
                                            </div>
                                        </div>
                                    ))}

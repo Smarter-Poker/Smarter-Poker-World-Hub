@@ -1,15 +1,18 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export const config = { runtime: 'edge' };
+
+export default async function handler(req: Request) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     try {
-        res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
-
-        const { days: queryDays } = req.query;
+        const url = new URL(req.url);
+        const queryDays = url.searchParams.get('days');
         const days = queryDays ? parseInt(queryDays as string, 10) : null;
         const mlbDb = getMlbSupabase();
         
@@ -25,11 +28,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (error) {
             console.error("RPC get_mlb_validation_stats failed:", error.message);
             // Fallback for when RPC is not deployed yet or fails
-            return res.status(200).json({ stats: null });
+            return new Response(JSON.stringify({ stats: null }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' }
+            });
         }
         
         if (!stats || !stats.all || stats.all.count === 0) {
-            return res.status(200).json({ stats: null });
+            return new Response(JSON.stringify({ stats: null }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' }
+            });
         }
 
         if (days && !isNaN(days)) {
@@ -38,9 +47,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             stats.activeDays = null;
         }
         
-        return res.status(200).json({ stats });
+        return new Response(JSON.stringify({ stats }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400'
+            }
+        });
     } catch (err: any) {
         console.error('Error fetching validation stats:', err);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }

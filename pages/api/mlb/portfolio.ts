@@ -1,25 +1,39 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 import { fetchPortfolioStats } from '../../../utils/mlbStats';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export const config = { runtime: 'edge' };
+
+export default async function handler(req: Request) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     try {
-        const { days, market } = req.query;
+        const url = new URL(req.url);
+        const days = url.searchParams.get('days');
+        const market = url.searchParams.get('market');
         const parsedDays = days ? parseInt(days as string, 10) : undefined;
         const parsedMarket = market ? market as string : undefined;
 
         const mlbDb = getMlbSupabase();
         const stats = await fetchPortfolioStats(mlbDb, parsedDays, parsedMarket);
 
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        return res.status(200).json(stats);
+        return new Response(JSON.stringify(stats), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+            }
+        });
 
     } catch (err: any) {
         console.error('[MLB Portfolio API] Exception:', err);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }

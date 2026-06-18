@@ -44,15 +44,16 @@ export default function MlbSlateDashboard() {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Slate - Error" description="Daily MLB Slate" />
+                <SEOHead title="MLB Error" description="Data fetch failed" />
                 <UniversalHeader pageDepth={2} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
                     <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <ShieldAlert className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        {/* Use an appropriate icon below, e.g., Target, Activity, Shield */}
+                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load dashboard data. Please try again later.</p>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -125,10 +126,10 @@ export default function MlbSlateDashboard() {
                                 </Link>
                             </div>
                             
-                            {isLoading ? (
+                            {isLoading && !data ? (
                                 <div className="text-center py-10 bg-[#1a2332] rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
                                     <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
-                                    <p className="text-slate-400 font-bold uppercase tracking-wider text-[11px]">Loading Top Bets...</p>
+                                    <p className="text-[#00D4FF] font-extrabold tracking-widest uppercase text-[11px] animate-pulse">SCANNING DATABASE...</p>
                                 </div>
                             ) : topBets.length > 0 ? (
                                 <div className="space-y-3">
@@ -144,8 +145,8 @@ export default function MlbSlateDashboard() {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="font-extrabold text-[#00D4FF]" style={{ textShadow: '0 0 5px rgba(0,212,255,0.5)' }}>{bet.edge ? `+${bet.edge.toFixed(1)}% Edge` : 'High Value'}</div>
-                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EV: {bet.ev ? bet.ev.toFixed(2) : '--'}</div>
+                                                <div className="font-extrabold text-[#00D4FF]" style={{ textShadow: '0 0 5px rgba(0,212,255,0.5)' }}>{bet.edge ? `+${Number(bet.edge).toFixed(1)}% Edge` : 'High Value'}</div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EV: {bet.ev ? Number(bet.ev).toFixed(2) : '--'}</div>
                                             </div>
                                         </div>
                                     ))}
@@ -164,10 +165,10 @@ export default function MlbSlateDashboard() {
                                 <Activity className="w-5 h-5 text-[#FF00FF]" style={{ filter: 'drop-shadow(0 0 5px rgba(255,0,255,0.5))' }} />
                                 Full Slate
                             </h2>
-                            {isLoading ? (
+                            {isLoading && !data ? (
                                 <div className="text-center py-12 bg-[#1a2332] rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-                                    <Loader2 className="w-8 h-8 animate-spin text-[#FF00FF] mx-auto mb-2" />
-                                    <p className="text-slate-400 font-bold uppercase tracking-wider text-[11px]">Loading Slate...</p>
+                                    <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
+                                    <p className="text-[#00D4FF] font-extrabold tracking-widest uppercase text-[11px] animate-pulse">SCANNING DATABASE...</p>
                                 </div>
                             ) : slateGames && slateGames.length > 0 ? (
                                 <div className="flex md:grid md:grid-cols-2 gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
@@ -176,10 +177,10 @@ export default function MlbSlateDashboard() {
                                     `}</style>
                                     {slateGames.map((game: any, idx: number) => {
                                         const gameTime = new Date(game.event_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-                                        const homeProb = parseFloat(game.home_win_prob || '0');
-                                        const awayProb = parseFloat(game.away_win_prob || '0');
-                                        const homeEdge = parseFloat(game.home_edge || '0');
-                                        const awayEdge = parseFloat(game.away_edge || '0');
+                                        const homeProb = Number(game.home_win_prob || '0');
+                                        const awayProb = Number(game.away_win_prob || '0');
+                                        const homeEdge = game.home_edge ? Number(game.home_edge) : 0;
+                                        const awayEdge = game.away_edge ? Number(game.away_edge) : 0;
 
                                         return (
                                             <div key={game.game_id || idx} className="flex-none w-[85vw] md:w-auto snap-center bg-[#1a2332] border border-[#3d4f5f] rounded-sm p-4 hover:border-[#FF00FF] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
@@ -201,7 +202,7 @@ export default function MlbSlateDashboard() {
                                                             {game.away_win_prob ? (
                                                                 <>
                                                                     <div className="font-extrabold text-slate-300">{(awayProb * 100).toFixed(1)}%</div>
-                                                                    {awayEdge > 0 && <div className="text-[9px] font-extrabold text-[#00D4FF] uppercase tracking-widest" style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>+{awayEdge.toFixed(1)}% Edge</div>}
+                                                                    {awayEdge > 0 && <div className="text-[9px] font-extrabold text-[#00D4FF] uppercase tracking-widest" style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>+{Number(awayEdge).toFixed(1)}% Edge</div>}
                                                                 </>
                                                             ) : (
                                                                 <span className="text-[10px] text-slate-500 font-bold">N/A</span>
@@ -219,7 +220,7 @@ export default function MlbSlateDashboard() {
                                                             {game.home_win_prob ? (
                                                                 <>
                                                                     <div className="font-extrabold text-slate-300">{(homeProb * 100).toFixed(1)}%</div>
-                                                                    {homeEdge > 0 && <div className="text-[9px] font-extrabold text-[#00D4FF] uppercase tracking-widest" style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>+{homeEdge.toFixed(1)}% Edge</div>}
+                                                                    {homeEdge > 0 && <div className="text-[9px] font-extrabold text-[#00D4FF] uppercase tracking-widest" style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>+{Number(homeEdge).toFixed(1)}% Edge</div>}
                                                                 </>
                                                             ) : (
                                                                 <span className="text-[10px] text-slate-500 font-bold">N/A</span>

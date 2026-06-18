@@ -1,33 +1,29 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
-import Cors from 'cors';
 
-const cors = Cors({
-  methods: ['GET', 'HEAD'],
-});
+export const config = { runtime: 'edge' };
 
-function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: Function) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+export default async function handler(req: Request) {
+    if (req.method !== 'GET' && req.method !== 'OPTIONS' && req.method !== 'HEAD') {
+        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    return handleRequest(req, res);
+    if (req.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+            }
+        });
+    }
+
+    return handleRequest(req);
 }
 
-async function handleRequest(req: NextApiRequest, res: NextApiResponse) {
-    await runMiddleware(req, res, cors);
+async function handleRequest(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
@@ -99,7 +95,7 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse) {
         // Determine System Freshness
         const isSystemFresh = !hasError && !isDateStale;
         
-        return res.status(200).json({
+        return new Response(JSON.stringify({
             todayStr,
             aggMarketAsOf: marketDateStr,
             isSystemFresh,
@@ -113,9 +109,24 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse) {
                 games: sizeFactGames || 0,
                 odds: sizeOdds || 0
             }
+        }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
+            }
         });
     } catch (err) {
         console.error('Error fetching status data:', err);
-        return res.status(500).json({ error: true });
+        return new Response(JSON.stringify({ error: true }), {
+            status: 500,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
+            }
+        });
     }
 }
