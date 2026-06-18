@@ -19,14 +19,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
-function getWeekStart(d: string) {
-    const date = new Date(d);
-    const day = date.getUTCDay();
-    const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
-    return monday.toISOString().split('T')[0];
-}
-
 const formatCurrency = (val: number, showSign = false) => {
     if (val === undefined || val === null) return '$0.00';
     const isNegative = val < 0;
@@ -104,6 +96,17 @@ export default function PortfolioPage() {
     const {
         totalBets = 0, wins = 0, losses = 0, pushes = 0, totalPnl = 0, currentBankroll = 1000, roi = 0, peakBankroll = 1000, maxDrawdown = 0, winRate = 0, weeklyCurve = [], recentBets = []
     } = data || {};
+
+    if (error) {
+        return (
+            <div style={{ background: '#0a0a15', minHeight: '100vh', color: '#e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ textAlign: 'center', color: '#FF0055' }}>
+                    <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Error Loading Portfolio</h2>
+                    <p>Failed to fetch data from the server. Please try again later.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ background: '#0a0a15', minHeight: '100vh', fontFamily: 'var(--font-inter), sans-serif', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
