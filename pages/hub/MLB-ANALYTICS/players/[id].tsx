@@ -3,10 +3,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { ArrowLeft, Loader2, User, Activity, Target, Shield } from 'lucide-react';
-import BottomNavBar from '../../../../../src/components/ui/BottomNavBar';
-import UniversalHeader from '../../../../../src/components/ui/UniversalHeader';
-import MlbSubNav from '../../../../../src/components/ui/MlbSubNav';
-import SEOHead from '../../../../../src/components/seo/SEOHead';
+import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
