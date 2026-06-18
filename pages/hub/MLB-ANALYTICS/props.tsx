@@ -48,7 +48,7 @@ const PropCard = ({ prop }: any) => {
                             {prop.player_name}
                         </div>
                         <div className="text-[12px] font-bold text-[#FF00FF] mt-0.5 tracking-wider uppercase">
-                            {prop.market} {prop.line !== null ? (Number(prop.line) > 0 && prop.market.includes('Total') ? `O/U ${prop.line}` : prop.line) : ''}
+                            {prop.prop_type} {prop.line !== null ? (Number(prop.line) > 0 && prop.prop_type.includes('Total') ? `O/U ${prop.line}` : prop.line) : ''}
                         </div>
                     </div>
                     <div className="text-right flex-shrink-0 bg-[#1a2332] border border-[#3d4f5f] px-3 py-1.5 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">

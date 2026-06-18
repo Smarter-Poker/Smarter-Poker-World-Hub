@@ -13,15 +13,15 @@ export default async function handler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch from pred_props table
+        // Fetch from v_pred_props view to get player names and team abbreviations
         // Sorting by edge_pts descending to show highest value props first
         const { data, error } = await mlbDb
-            .from('pred_props')
+            .from('v_pred_props')
             .select('*')
             .order('edge_pts', { ascending: false, nullsFirst: false });
 
         if (error) {
-            console.warn('[API/MLB/Props] Error fetching props (table may be missing or empty):', error.message);
+            console.warn('[API/MLB/Props] Error fetching props (view may be missing or empty):', error.message);
             return new Response(JSON.stringify({ props: [] }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }

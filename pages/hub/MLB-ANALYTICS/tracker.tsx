@@ -99,8 +99,8 @@ export default function TrackerPage() {
         if (!supabaseUrl || !supabaseAnonKey) return;
         
         const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const channel = supabase.channel('realtime:fct_games')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'fct_games' }, () => {
+        const channel = supabase.channel('realtime:raw_games')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'raw_games' }, () => {
                 mutate();
             })
             .subscribe();
