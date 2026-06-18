@@ -1,76 +1,20 @@
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import useSWR from 'swr';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export async function getServerSideProps({ res }: any) {
-    try {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        const mlbDb = getMlbSupabase();
-        
-        const { data: summaryData, error: sumErr } = await mlbDb
-            .from('v_backtest_summary')
-            .select('*')
-            .order('date', { ascending: false });
-            
-        if (sumErr) throw sumErr;
-        
-        let totalN = 0;
-        let sumBrier = 0;
-        let brierCount = 0;
-        let sumClv = 0;
-        let clvCount = 0;
-        
-        // For accurate ROI, we sum the total profit and divide by total bets placed
-        let totalProfit = 0;
-        let totalBets = 0;
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-        const tableData: any[] = [];
+export default function AccuracyPage() {
+    const { data, error, isLoading } = useSWR('/api/mlb/accuracy', fetcher, {
+        refreshInterval: 15000,
+    });
 
-        (summaryData || []).forEach(row => {
-            if (!row.n) return;
-            totalN += row.n;
-            
-            if (row.brier !== null) {
-                sumBrier += row.brier;
-                brierCount++;
-            }
-            if (row.avg_clv !== null) {
-                sumClv += row.avg_clv;
-                clvCount++;
-            }
-            if (row.sum_unit_profit !== null && row.bet_count !== null) {
-                totalProfit += row.sum_unit_profit;
-                totalBets += row.bet_count;
-            }
-            tableData.push(row);
-        });
-
-        const avgClv = clvCount > 0 ? (sumClv / clvCount).toFixed(2) : '0.00';
-        const avgRoi = totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0';
-        const avgBrier = brierCount > 0 ? (sumBrier / brierCount).toFixed(3) : '0.000';
-
-        return {
-            props: {
-                tableData,
-                kpi: {
-                    n: totalN,
-                    clv: avgClv,
-                    roi: avgRoi,
-                    brier: avgBrier
-                }
-            }
-        };
-    } catch (err) {
-        console.error('Error fetching backtest summary:', err);
-        return { props: { tableData: [], kpi: { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' } } };
-    }
-}
-
-export default function AccuracyPage({ tableData = [], kpi }: { tableData?: any[], kpi?: any }) {
+    const tableData = data?.tableData || [];
+    const kpi = data?.kpi || { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
     const [filter, setFilter] = useState('All');
 
     // Filter table
