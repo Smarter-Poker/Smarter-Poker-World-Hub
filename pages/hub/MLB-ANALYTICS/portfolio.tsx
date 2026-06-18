@@ -75,10 +75,12 @@ interface MetricBoxProps {
 }
 
 const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
-    <div className="bg-[#131420] border border-white/5 rounded-xl p-4 flex flex-col shadow-md">
-        <div className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">{title}</div>
-        <div className="text-2xl font-extrabold" style={{ color: isLoading ? '#00D4FF' : valueColor }}>{isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : value}</div>
-        {sub && <div className="text-xs text-slate-500 mt-1 font-medium">{isLoading ? '--' : sub}</div>}
+    <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,0,0,0.5)] transition-all hover:border-[#00D4FF] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_15px_rgba(0,212,255,0.2)]">
+        <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-2 uppercase">{title}</div>
+        <div className="text-2xl font-extrabold" style={{ color: isLoading ? '#00D4FF' : valueColor, textShadow: isLoading || valueColor !== '#FFFFFF' ? `0 0 10px ${isLoading ? '#00D4FF' : valueColor}80` : 'none', fontFamily: '"Rajdhani", sans-serif' }}>
+            {isLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#00D4FF]" /> : value}
+        </div>
+        {sub && <div className="text-[11px] text-slate-500 mt-1 font-bold tracking-widest uppercase">{isLoading ? '--' : sub}</div>}
     </div>
 );
 
@@ -141,13 +143,17 @@ export default function PortfolioPage() {
             <UniversalHeader pageDepth={2} />
             <MlbSubNav />
             
-            <div className="edge-to-edge-container max-w-[1000px] mx-auto px-4 py-6">
-                <div className="flex flex-wrap gap-4 justify-between items-start mb-6">
+            <div className="edge-to-edge-container max-w-[1000px] mx-auto px-4 py-6 relative">
+                {/* Background Glows */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
+                <div className="absolute bottom-40 left-0 w-96 h-96 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.02] pointer-events-none"></div>
+
+                <div className="flex flex-wrap gap-4 justify-between items-start mb-6 relative z-10">
                     <div>
-                        <h1 className="m-0 text-[28px] font-extrabold text-slate-50 tracking-tight">
-                            Portfolio <span className="text-[#00D4FF]">Simulator</span>
+                        <h1 className="m-0 text-3xl font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
+                            PORTFOLIO <span className="text-[#00D4FF]" style={{ textShadow: '0 0 15px rgba(0,212,255,0.4)' }}>SIMULATOR</span>
                         </h1>
-                        <p className="m-0 mt-1 text-slate-400 text-[15px]">
+                        <p className="m-0 mt-1 text-[#00D4FF] font-bold uppercase tracking-wider text-[11px]">
                             Virtual bankroll — $1,000 starting · Kelly-sized from {totalBets.toLocaleString()} backtested markets
                         </p>
                     </div>
@@ -173,7 +179,7 @@ export default function PortfolioPage() {
                 ) : (
                     <>
                         {/* Filter Bar */}
-                        <div className="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[#131420] p-4 rounded-xl border border-[#2a3a4a]">
+                        <div className="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[#0d1117] p-4 rounded-xl border-[2px] border-[#3d4f5f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative z-10">
                             <div className="flex gap-2 items-center">
                                 <span className="text-slate-400 text-xs font-semibold mr-2 uppercase tracking-wide">Timeframe:</span>
                                 {[7, 14, 30].map(d => (
@@ -207,16 +213,17 @@ export default function PortfolioPage() {
                             </div>
                         </div>
 
-                        <div className="flex flex-col lg:flex-row gap-4 mb-8">
-                            <div className="w-full lg:w-1/3 bg-[#131420] border border-[#00D4FF]/20 rounded-xl p-6 flex flex-col justify-center items-center shadow-[inset_0_0_20px_rgba(0,212,255,0.05)]">
-                                <div className="text-xs font-extrabold text-[#00D4FF] tracking-widest mb-2">CURRENT BANKROLL</div>
-                                <div className="text-5xl font-extrabold text-white leading-none">
+                        <div className="flex flex-col lg:flex-row gap-4 mb-8 relative z-10">
+                            <div className="relative w-full lg:w-1/3 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 flex flex-col justify-center items-center shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[40px] opacity-20 animate-pulse"></div>
+                                <div className="relative z-10 text-[11px] font-extrabold text-[#00D4FF] tracking-widest mb-2 uppercase">CURRENT BANKROLL</div>
+                                <div className="relative z-10 text-5xl font-extrabold text-white leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
                                     {isLoading ? <Loader2 className="w-10 h-10 animate-spin mx-auto text-[#00D4FF]" /> : formatCurrency(currentBankroll)}
                                 </div>
-                                <div className={`text-sm font-bold mt-2 ${!isLoading && totalPnl < 0 ? 'text-[#FF0055]' : 'text-[#00D4FF]'}`}>
-                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin inline text-[#00D4FF]" /> : formatCurrency(totalPnl, true)} from start
+                                <div className={`relative z-10 text-[13px] font-extrabold tracking-widest mt-2 uppercase ${!isLoading && totalPnl < 0 ? 'text-[#FF00FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: `0 0 10px ${!isLoading && totalPnl < 0 ? 'rgba(255,0,255,0.5)' : 'rgba(0,212,255,0.5)'}` }}>
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : formatCurrency(totalPnl, true)} from start
                                 </div>
-                                <div className="text-xs text-slate-500 mt-1 font-medium">
+                                <div className="relative z-10 text-[10px] text-slate-500 mt-1 font-bold tracking-widest uppercase">
                                     Started at $1,000.00
                                 </div>
                             </div>
@@ -231,11 +238,11 @@ export default function PortfolioPage() {
                             </div>
                         </div>
 
-                        <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
+                        <h2 className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 uppercase tracking-widest relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
                             Equity Curve
                         </h2>
-                        <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 mb-8 h-[350px] shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+                        <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-8 h-[350px] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden z-10">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={weeklyCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                     <defs>
@@ -278,9 +285,9 @@ export default function PortfolioPage() {
                             </ResponsiveContainer>
                         </div>
 
-                        <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
+                        <h2 className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 uppercase tracking-widest relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             <div className="w-1 h-[18px] bg-[#FF00FF] rounded-sm shadow-[0_0_8px_rgba(255,0,255,0.6)]" />
-                            Recent Simulated Bets <span className="text-slate-400 font-normal text-sm">(last 20)</span>
+                            Recent Simulated Bets <span className="text-slate-400 font-bold tracking-widest text-[11px]">(LAST 20)</span>
                         </h2>
                         
                         <div className="w-full">
