@@ -1,12 +1,14 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export const config = { runtime: 'edge' };
+
+export default async function handler(req: Request) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
-    
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
     try {
         const mlbDb = getMlbSupabase();
@@ -30,17 +32,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.warn('[MLB Players] Fallback error on v_pitcher_profile:', pitchersResult.error.message);
         }
 
-        return res.status(200).json({
+        return new Response(JSON.stringify({
             hitters: hittersResult.data || [],
             pitchers: pitchersResult.data || [],
             fetchError: false
+        }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+            }
         });
     } catch (err) {
         console.error('Error fetching players:', err);
-        return res.status(500).json({ 
+        return new Response(JSON.stringify({ 
             hitters: [], 
             pitchers: [], 
             fetchError: true 
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
         });
     }
 }

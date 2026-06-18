@@ -1,13 +1,16 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export const config = { runtime: 'edge' };
+
+export default async function handler(req: Request) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     try {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
         const mlbDb = getMlbSupabase();
 
@@ -26,11 +29,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 
             if (dateErr) {
                 console.warn('[MLB Best Bets] Fallback error on pred_best_bets (table might be missing):', dateErr.message);
-                return res.status(200).json({ bets: [], stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 }, officialDate: null });
+                return new Response(JSON.stringify({ bets: [], stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 }, officialDate: null }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+                });
             }
             
             if (!latestDateData || latestDateData.length === 0) {
-                return res.status(200).json({ bets: [], stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 }, officialDate: null });
+                return new Response(JSON.stringify({ bets: [], stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 }, officialDate: null }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+                });
             }
             
             const officialDate = latestDateData[0].official_date;
@@ -59,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const topScore = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.bet_score || 0)) : 0;
             const topLock = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.win_confidence || 0)) : 0;
             
-            return res.status(200).json({
+            return new Response(JSON.stringify({
                 bets: betsArr,
                 stats: {
                     totalBets,
@@ -68,6 +77,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     topLock
                 },
                 officialDate
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
             });
         }
         
@@ -77,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             topLock = topLock * 100;
         }
 
-        return res.status(200).json({
+        return new Response(JSON.stringify({
             bets: data?.bets || [],
             stats: {
                 totalBets: data?.stats?.totalBets || 0,
@@ -86,9 +98,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 topLock: topLock
             },
             officialDate: data?.officialDate || null
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
         });
     } catch (err: any) {
         console.error('Error fetching best bets API:', err);
-        return res.status(500).json({ error: err.message || 'Internal Server Error' });
+        return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }

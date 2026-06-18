@@ -5,8 +5,20 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { RefreshCw, Activity, Database, Clock, ServerCrash, CheckCircle2 } from 'lucide-react';
+import { logError } from '@/utils/logger';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 export default function StatusPage() {
     const { data, error, mutate, isValidating } = useSWR('/api/mlb/status', fetcher, {
@@ -124,13 +136,8 @@ export default function StatusPage() {
 
                 {isLoading ? (
                     <div style={{ textAlign: 'center', padding: '40px 0', color: '#00D4FF' }}>
-                        <RefreshCw size={32} className="animate-spin mx-auto mb-4" />
-                        <div style={{ fontWeight: 700, letterSpacing: '0.1em' }}>INITIALIZING SCAN...</div>
-                    </div>
-                ) : (error || data?.error) ? (
-                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#FF00FF' }}>
-                        <ServerCrash size={32} className="mx-auto mb-4" />
-                        <div style={{ fontWeight: 700, letterSpacing: '0.1em' }}>SYSTEM ERROR DETECTED</div>
+                        <Loader2 size={32} className="animate-spin mx-auto mb-4" />
+                        <div style={{ fontWeight: 700, letterSpacing: '0.1em' }} className="animate-pulse">SCANNING DATABASE...</div>
                     </div>
                 ) : (
                     <>

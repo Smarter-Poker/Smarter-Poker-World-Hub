@@ -2,13 +2,25 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, SearchX, CalendarX, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, SearchX, CalendarX, Loader2, Activity } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { logError } from '@/utils/logger';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 const BetCard = ({ bet, isExpanded, onToggle }: any) => {
     // Correct odds formatting for all types (+125, -110, "+125")
@@ -64,7 +76,7 @@ const BetCard = ({ bet, isExpanded, onToggle }: any) => {
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Win Prob</span>
                             <span className="text-[13px] font-extrabold text-slate-300 tracking-wider">
-                                {bet.win_confidence != null ? (bet.win_confidence > 0 && bet.win_confidence <= 1 ? (bet.win_confidence * 100).toFixed(1) : bet.win_confidence.toFixed(1)) + '%' : 'N/A'}
+                                {bet.win_confidence != null ? (Number(bet.win_confidence) > 0 && Number(bet.win_confidence) <= 1 ? (Number(bet.win_confidence) * 100).toFixed(1) : Number(bet.win_confidence).toFixed(1)) + '%' : 'N/A'}
                             </span>
                         </div>
                         {bet.ev_pct !== null && bet.ev_pct !== undefined && (
@@ -127,17 +139,19 @@ export default function BestBetsPage() {
     });
 
     if (error || data?.error) {
+        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Best Bets - Error" description="Data fetch failed" />
+                <SEOHead title="MLB Error" description="Data fetch failed" />
                 <UniversalHeader pageDepth={2} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
                     <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <SearchX className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        {/* Use an appropriate icon below, e.g., Target, Activity, Shield */}
+                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load Best Bets. Please try again later.</p>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -205,19 +219,19 @@ export default function BestBetsPage() {
                <div className="grid grid-cols-4 gap-3 mb-5 metric-grid">
                   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                      <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">BETS</div>
-                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-slate-400" /> : <div className="text-xl font-extrabold text-white mt-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.totalBets}</div>}
+                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-white mt-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.totalBets}</div>}
                   </div>
                   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                      <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">ELITE</div>
-                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#FF00FF]" /> : <div className="text-xl font-extrabold text-[#FF00FF] mt-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.eliteBets}</div>}
+                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-[#FF00FF] mt-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.eliteBets}</div>}
                   </div>
                   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                      <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">TOP SCORE</div>
-                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-[#00D4FF] mt-1 drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.topScore ? (stats.topScore % 1 !== 0 ? stats.topScore.toFixed(1) : stats.topScore) : 0}</div>}
+                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-[#00D4FF] mt-1 drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.topScore ? (Number(stats.topScore) % 1 !== 0 ? Number(stats.topScore).toFixed(1) : stats.topScore) : 0}</div>}
                   </div>
                   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                      <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">TOP LOCK</div>
-                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-slate-300" /> : <div className="text-xl font-extrabold text-slate-300 mt-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{(stats.topLock || 0).toFixed(0)}%</div>}
+                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-slate-300 mt-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{(Number(stats.topLock) || 0).toFixed(0)}%</div>}
                   </div>
                </div>
 
@@ -241,10 +255,10 @@ export default function BestBetsPage() {
                    ))}
                </div>
 
-               {isLoading ? (
+               {isLoading && !data ? (
                    <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
                        <Loader2 className="w-10 h-10 animate-spin text-[#00D4FF] mx-auto mb-4" />
-                       <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">Running Analytics Models...</div>
+                       <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">SCANNING DATABASE...</div>
                    </div>
                ) : isStale || filteredBets.length === 0 ? (
                    <div className="text-center py-16 px-5 bg-[#0d1117] border-[3px] border-dashed border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">

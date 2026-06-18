@@ -7,6 +7,7 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { logError } from '@/utils/logger';
 
 export interface PlayerProfile {
     player_id: number;
@@ -20,7 +21,18 @@ export interface PlayerProfile {
     bf?: number;
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' | 'pitchers' }) => {
     // Premium dynamic headshot using official MLB CDN
@@ -180,7 +192,7 @@ export default function PlayersPage() {
                    )}
                </div>
 
-               <div className="flex gap-2 mb-6 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+               <div className="flex flex-col md:flex-row gap-2 mb-6 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                    <style jsx>{`
                        div::-webkit-scrollbar { display: none; }
                    `}</style>
@@ -188,7 +200,7 @@ export default function PlayersPage() {
                        <button 
                            key={tab}
                            onClick={() => { setActiveTab(tab); setSearchQuery(''); }}
-                           className={`px-4 py-2 rounded-md font-extrabold text-[11px] uppercase tracking-widest whitespace-nowrap transition-all ${
+                           className={`w-full md:w-auto px-4 py-3 md:py-2 rounded-md font-extrabold text-[13px] md:text-[11px] uppercase tracking-widest whitespace-nowrap transition-all ${
                                activeTab === tab 
                                    ? 'bg-gradient-to-b from-[#00D4FF]/20 to-[#1a2332] border-[2px] border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)]' 
                                    : 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-500 shadow-[inset_0_2px_4px_rgba(255,255,255,0.05)] hover:border-[#4b637a]'

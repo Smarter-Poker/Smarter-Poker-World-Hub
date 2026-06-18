@@ -7,6 +7,7 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { logError } from '@/utils/logger';
 
 export interface Streaks {
     record?: string;
@@ -66,7 +67,38 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) =>
     );
 };
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const TeamCardComponent = ({ team }: { team: any }) => {
+    return (
+        <Link href={`/hub/MLB-ANALYTICS/teams/${team.team_id}`} passHref>
+            <div style={{ padding: 16, background: 'linear-gradient(180deg, #1a2332 0%, #0d1117 100%)', border: '1px solid #3d4f5f', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <TeamLogo teamId={team.team_id} teamName={team.name} />
+                    <div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>{team.name}</div>
+                        <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>{team.league} • {team.division}</div>
+                    </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#00D4FF' }}>{team.streaks?.record || '0-0'}</div>
+                    <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>L10: {team.streaks?.last10_record || '0-0'}</div>
+                </div>
+            </div>
+        </Link>
+    );
+};
+
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToday, globalEdgeActive: fallbackGlobalEdgeActive }: any = {}) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -94,6 +126,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
     });
 
     if (error) {
+        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Teams - Error" description="Data fetch failed" />

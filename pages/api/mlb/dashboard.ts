@@ -1,13 +1,16 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export const config = { runtime: 'edge' };
+
+export default async function handler(req: Request) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     try {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
         const mlbDb = getMlbSupabase();
         
@@ -33,15 +36,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].run_at : null;
 
-        return res.status(200).json({
+        return new Response(JSON.stringify({
             todayStr,
             topBets: topBets || [],
             lastUpdate,
             slateGames: slateGames || []
+        }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+            }
         });
 
     } catch (error) {
         console.error('[API/MLB/Dashboard] Error fetching dashboard data:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }

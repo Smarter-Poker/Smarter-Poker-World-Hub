@@ -7,8 +7,20 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { logError } from '@/utils/logger';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 export default function MlbSlateDashboard() {
     const { data, error, isLoading } = useSWR('/api/mlb/dashboard', fetcher, {
@@ -29,6 +41,7 @@ export default function MlbSlateDashboard() {
     const isStale = lastUpdate ? new Date().getTime() - new Date(lastUpdate).getTime() > 1000 * 60 * 60 * 12 : true;
 
     if (error || data?.error) {
+        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Slate - Error" description="Daily MLB Slate" />
@@ -157,7 +170,10 @@ export default function MlbSlateDashboard() {
                                     <p className="text-slate-400 font-bold uppercase tracking-wider text-[11px]">Loading Slate...</p>
                                 </div>
                             ) : slateGames && slateGames.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex md:grid md:grid-cols-2 gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+                                    <style jsx>{`
+                                        div::-webkit-scrollbar { display: none; }
+                                    `}</style>
                                     {slateGames.map((game: any, idx: number) => {
                                         const gameTime = new Date(game.event_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
                                         const homeProb = parseFloat(game.home_win_prob || '0');
@@ -166,7 +182,7 @@ export default function MlbSlateDashboard() {
                                         const awayEdge = parseFloat(game.away_edge || '0');
 
                                         return (
-                                            <div key={game.game_id || idx} className="bg-[#1a2332] border border-[#3d4f5f] rounded-sm p-4 hover:border-[#FF00FF] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                                            <div key={game.game_id || idx} className="flex-none w-[85vw] md:w-auto snap-center bg-[#1a2332] border border-[#3d4f5f] rounded-sm p-4 hover:border-[#FF00FF] transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                                                 <div className="flex justify-between items-center mb-3">
                                                     <span className="text-[10px] font-bold text-[#00D4FF] uppercase tracking-widest">{gameTime}</span>
                                                     <span className={`text-[9px] px-2 py-0.5 rounded-sm font-extrabold uppercase tracking-widest border ${game.status === 'Scheduled' || game.status === 'Pre-Game' ? 'bg-[#00D4FF]/10 text-[#00D4FF] border-[#00D4FF]/30' : 'bg-[#FF00FF]/10 text-[#FF00FF] border-[#FF00FF]/30'}`}>

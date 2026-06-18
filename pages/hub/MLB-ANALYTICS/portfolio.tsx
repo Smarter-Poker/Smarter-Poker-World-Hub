@@ -18,6 +18,7 @@ import { ArrowRight, Activity, Loader2 } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { logError } from '@/utils/logger';
 
 const formatCurrency = (val: number, showSign = false) => {
     if (val === undefined || val === null) return '$0.00';
@@ -81,7 +82,18 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
     </div>
 );
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 export default function PortfolioPage() {
     const [daysFilter, setDaysFilter] = useState<number | null>(null);

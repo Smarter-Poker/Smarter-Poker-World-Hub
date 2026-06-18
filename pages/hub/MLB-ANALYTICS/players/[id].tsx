@@ -8,8 +8,20 @@ import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
+import { logError } from '@/utils/logger';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 export default function PlayerProfilePage() {
     const router = useRouter();
@@ -42,6 +54,7 @@ export default function PlayerProfilePage() {
     };
 
     if (error || data?.error) {
+        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] text-slate-200">
                 <UniversalHeader pageDepth={3} />
