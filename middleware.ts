@@ -74,36 +74,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(newUrl, 301);
     }
 
-    // ── VIP Gate for MLB Analytics ─────────────────────────────────────────
+    // ── MLB Analytics is public ─────────────────────────────────────────
     if (pathname.startsWith('/hub/MLB-ANALYTICS')) {
-        let response = NextResponse.next();
-        const supabase = createMiddlewareClient(request, response);
-        
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            
-            if (!user) {
-                const loginUrl = request.nextUrl.clone();
-                loginUrl.pathname = '/auth/login';
-                loginUrl.search = `?next=${encodeURIComponent(pathname)}`;
-                return NextResponse.redirect(loginUrl);
-            }
-            
-            // All logged in users have access to MLB Analytics right now (No VIP required)
-        } catch (err) {
-            console.warn('[Middleware] MLB Gate Auth Error:', err);
-            // On error, let them pass or redirect to login? Let's redirect to login for safety.
-            const loginUrl = request.nextUrl.clone();
-            loginUrl.pathname = '/auth/login';
-            loginUrl.search = `?next=${encodeURIComponent(pathname)}`;
-            return NextResponse.redirect(loginUrl);
-        }
-        
-        // If we reach here, user is VIP and session is valid.
-        // We must return the response object created by createMiddlewareClient
-        // so any refreshed cookies are passed along.
-        return response;
+        return NextResponse.next();
     }
+
 
     // ── 2. Jurisdiction gate (geo-block) ───────────────────────────────────
     // Vercel injects { country, region, city } onto request.geo at the edge.

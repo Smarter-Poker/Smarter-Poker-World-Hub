@@ -3,6 +3,7 @@ import Head from 'next/head';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
 export async function getServerSideProps() {
@@ -135,10 +136,12 @@ export default function StatusPage({
     const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
 
     return (
-        <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#0F172A', paddingBottom: 80, fontFamily: "var(--font-inter), sans-serif" }}>
-            <Head>
-                <title>Data Status | MLB Analytics</title>
-            </Head>
+        <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#0F172A', paddingBottom: 70, fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif", width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+            <SEOHead 
+                title="Data Status | MLB Analytics" 
+                description="Check the current status and freshness of the MLB Analytics system."
+                noIndex={true}
+            />
 
             <UniversalHeader pageDepth={2} />
             <MlbSubNav />
