@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Search, SearchX } from 'lucide-react';
+import useSWR from 'swr';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -90,10 +91,20 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) =>
     );
 };
 
-export default function TeamsPage({ teams, todayStr }: TeamsPageProps) {
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageProps) {
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredTeams = (teams || []).filter(team => 
+    const { data, error } = useSWR('/api/mlb/teams', fetcher, {
+        fallbackData: { teams: fallbackTeams },
+        refreshInterval: 15000,
+        revalidateOnFocus: true,
+    });
+
+    const activeTeams = data?.teams || fallbackTeams || [];
+
+    const filteredTeams = activeTeams.filter((team: TeamProfile) => 
         team.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -135,8 +146,14 @@ export default function TeamsPage({ teams, todayStr }: TeamsPageProps) {
                             <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Standings & Streaks • {todayStr}</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <div style={{ color: '#2563EB', fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>MLB EDGE</div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', marginTop: 4 }}>{teams?.length || 0} CLUBS</div>
+                            <div style={{ color: '#2563EB', fontSize: 11, fontWeight: 800, letterSpacing: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                                MLB EDGE
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', position: 'absolute', animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }} className="animate-ping" />
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', position: 'relative' }} />
+                                </div>
+                            </div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', marginTop: 4 }}>{activeTeams.length} CLUBS</div>
                         </div>
                     </div>
 
@@ -172,7 +189,7 @@ export default function TeamsPage({ teams, todayStr }: TeamsPageProps) {
                                     No teams found.
                                 </div>
                                 <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
-                                    {teams.length === 0 ? "The database returned no teams." : "Try adjusting your search query."}
+                                    {activeTeams.length === 0 ? "The database returned no teams." : "Try adjusting your search query."}
                                 </div>
                             </div>
                         ) : (
