@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -38,6 +38,10 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
     // Premium dynamic headshot using official MLB CDN
     const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
     const [imgSrc, setImgSrc] = useState(headshotUrl);
+
+    useEffect(() => {
+        setImgSrc(headshotUrl);
+    }, [headshotUrl]);
 
     return (
         <Link href={`/hub/MLB-ANALYTICS/players/${player.player_id}`} className="block mb-3 group" style={{ textDecoration: 'none' }}>
@@ -117,8 +121,9 @@ export default function PlayersPage() {
         refreshInterval: 60000 // Poll every minute
     });
 
-    const hitters = data?.hitters || [];
-    const pitchers = data?.pitchers || [];
+    const EMPTY_ARRAY: any[] = [];
+    const hitters = data?.hitters || EMPTY_ARRAY;
+    const pitchers = data?.pitchers || EMPTY_ARRAY;
     const fetchError = error || data?.fetchError || data?.error;
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -233,14 +238,14 @@ export default function PlayersPage() {
                    ))}
                </div>
 
-               {fetchError && (
-                   <div className="bg-gradient-to-b from-red-500/10 to-[#0d1117] border-[2px] border-red-500/50 rounded-xl p-4 mb-6 flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-full bg-[#0d1117] border-[2px] border-red-500 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                           <AlertTriangle className="text-red-500 w-5 h-5" />
-                       </div>
-                       <div>
-                           <div className="text-red-500 font-extrabold text-sm uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</div>
-                           <div className="text-red-300/70 text-xs font-bold tracking-wide mt-1">Data transmission failed. Attempting to reconnect...</div>
+                {fetchError && (
+                    <div className="bg-gradient-to-b from-[#FF00FF]/10 to-[#0d1117] border-[2px] border-[#FF00FF]/50 rounded-xl p-4 mb-6 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-[#0d1117] border-[2px] border-[#FF00FF] flex items-center justify-center shadow-[0_0_10px_rgba(255,0,255,0.5)]">
+                            <AlertTriangle className="text-[#FF00FF] w-5 h-5" />
+                        </div>
+                        <div>
+                            <div className="text-[#FF00FF] font-extrabold text-sm uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</div>
+                            <div className="text-[#FF00FF]/70 text-xs font-bold tracking-wide mt-1">Data transmission failed. Attempting to reconnect...</div>
                        </div>
                    </div>
                )}
@@ -276,7 +281,7 @@ export default function PlayersPage() {
                                    <Search size={28} className="text-[#3d4f5f]" />
                                </div>
                                <div className="text-slate-400 font-extrabold text-sm tracking-widest uppercase mb-4" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                   NO PLAYERS FOUND MATCHING "{searchQuery}"
+                                   {searchQuery ? `NO PLAYERS FOUND MATCHING "${searchQuery}"` : "NO PLAYERS FOUND"}
                                </div>
                                {searchQuery && (
                                    <button 

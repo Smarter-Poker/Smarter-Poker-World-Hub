@@ -53,9 +53,11 @@ export default function BacktestPage() {
     const dailyTrend = data?.dailyTrend || [];
     const marketBreakdown = data?.marketBreakdown || [];
     const stats = data?.stats || {
-        totalPredictions: 0, wonBets: 0, lostBets: 0, winRate: 0, avgBrier: 0,
-        brierVsBaseline: 0, cumulativeRoi: 0, unitsWon: 0, avgClv: 0
+        totalPredictions: 0, wonBets: 0, lostBets: 0, winRate: null, avgBrier: null,
+        brierVsBaseline: null, cumulativeRoi: null, unitsWon: null, avgClv: null
     };
+    
+    const hasData = !!data?.stats && Number(stats.totalPredictions) > 0;
 
     // Lock-in Gate evaluation
     const sampleSizePassed = Number(stats.totalPredictions) >= 500;
@@ -137,16 +139,16 @@ export default function BacktestPage() {
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-[#FF00FF]"><BarChart3 size={40} /></div>
                                <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">AVG BRIER (0.25)</div>
-                               <div className="text-2xl font-extrabold text-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(255,0,255,0.3)' }}>{stats.avgBrier != null ? Number(stats.avgBrier).toFixed(4) : '0.0000'}</div>
-                               <div className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${Number(stats.brierVsBaseline) < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
-                                   {Number(stats.brierVsBaseline) >= 0 ? '+' : ''}{stats.brierVsBaseline != null ? Number(stats.brierVsBaseline).toFixed(4) : '0.0000'} vs base
+                               <div className="text-2xl font-extrabold text-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(255,0,255,0.3)' }}>{hasData && stats.avgBrier != null ? Number(stats.avgBrier).toFixed(4) : '—'}</div>
+                               <div className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${hasData && Number(stats.brierVsBaseline) < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
+                                   {hasData ? `${Number(stats.brierVsBaseline) >= 0 ? '+' : ''}${stats.brierVsBaseline != null ? Number(stats.brierVsBaseline).toFixed(4) : '0.0000'} vs base` : '—'}
                                </div>
                            </div>
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                               <div className="absolute top-0 right-0 p-2 opacity-10 text-emerald-400"><DollarSign size={40} /></div>
+                               <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]"><DollarSign size={40} /></div>
                                <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">CUMULATIVE ML ROI</div>
-                               <div className={`text-2xl font-extrabold ${Number(stats.cumulativeRoi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(stats.cumulativeRoi)}</div>
-                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{Number(stats.unitsWon) > 0 ? '+' : ''}{stats.unitsWon != null ? Number(stats.unitsWon).toFixed(2) : '0.00'}u profit</div>
+                               <div className={`text-2xl font-extrabold ${hasData && Number(stats.cumulativeRoi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{hasData ? formatPct(stats.cumulativeRoi) : '—'}</div>
+                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{hasData ? `${Number(stats.unitsWon) > 0 ? '+' : ''}${stats.unitsWon != null ? Number(stats.unitsWon).toFixed(2) : '0.00'}u profit` : '—'}</div>
                            </div>
                        </div>
 

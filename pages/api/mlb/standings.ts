@@ -13,34 +13,25 @@ export default async function handler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch teams from dim_teams
-        const { data: dimData, error: dimError } = await mlbDb
-            .from('dim_teams')
-            .select('team_id, name, abbr, league, division');
+        const { data, error } = await mlbDb
+            .from('v_mlb_standings')
+            .select('*');
 
-        if (dimError) {
-            console.warn('[API/MLB/Standings] Error fetching dim_teams:', dimError.message);
+        if (error) {
+            console.warn('[API/MLB/Standings] Error fetching standings:', error.message);
             return new Response(JSON.stringify({ teams: [] }), {
                 status: 200,
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' }
             });
         }
 
-        // Return the teams with 0/0/0 data mapped so the UI doesn't crash or show undefined
-        const teams = (dimData || []).map(team => ({
-            ...team,
-            w: 0,
-            l: 0,
-            pct: 0.000,
-            gb: '-'
-        }));
-
-        // Sort by division or league if needed, but for now we'll just return them
-        return new Response(JSON.stringify({ teams }), {
+        return new Response(JSON.stringify({ 
+            teams: data || []
+        }), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200'
             }
         });
     } catch (err) {
