@@ -2,15 +2,17 @@ import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, ArrowRight, RefreshCw, ShieldAlert, CheckCircle, Database } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Target, BarChart3, TrendingUp, DollarSign } from 'lucide-react';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function BacktestPage() {
-    const { data, error, isLoading, mutate } = useSWR('/api/mlb/backtest', fetcher, {
-        refreshInterval: 15000,
-        revalidateOnFocus: true,
+    const { data, error, isLoading } = useSWR('/api/mlb/backtest', fetcher, {
+        refreshInterval: 60000,
     });
 
     const formatPct = (val: any) => val === null || val === undefined || isNaN(val) ? '—' : `${val > 0 ? '+' : ''}${val.toFixed(1)}%`;
@@ -25,253 +27,192 @@ export default function BacktestPage() {
 
     // Lock-in Gate evaluation
     const sampleSizePassed = stats.totalPredictions >= 500;
-    const brierPassed = stats.avgBrier > 0 && stats.avgBrier < 0.23;
-    const roiPassed = stats.cumulativeRoi > -3.0 && stats.totalPredictions > 0;
-    const clvPassed = stats.avgClv > 0 && stats.totalPredictions > 0;
+    const brierPassed = stats.avgBrier < 0.23 && stats.avgBrier > 0;
+    const roiPassed = stats.cumulativeRoi > -3.0;
+    const clvPassed = stats.avgClv > 0;
     const gatesPassed = [sampleSizePassed, brierPassed, roiPassed, clvPassed].filter(Boolean).length;
     
     const GateCard = ({ label, target, value, passed, isPct = false, isBrier = false }: any) => (
-        <div style={{ 
-            background: 'rgba(15, 23, 42, 0.6)', 
-            border: `1px solid ${passed ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`, 
-            boxShadow: passed ? 'inset 0 0 10px rgba(16, 185, 129, 0.1)' : 'inset 0 0 10px rgba(239, 68, 68, 0.1)',
-            borderRadius: 8, 
-            padding: 12,
-            position: 'relative',
-            overflow: 'hidden',
-            flex: '1 1 120px'
-        }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: passed ? '#10B981' : '#EF4444' }} />
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', marginBottom: 4, paddingLeft: 8, letterSpacing: 1, textTransform: 'uppercase' }}>{label} ({target})</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: passed ? '#10B981' : '#EF4444', paddingLeft: 8, textShadow: passed ? '0 0 8px rgba(16,185,129,0.4)' : '0 0 8px rgba(239,68,68,0.4)' }}>
-                {isPct ? formatPct(value) : (isBrier ? (value ? value.toFixed(3) : '—') : formatNum(value))}
-            </div>
-            <div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', opacity: 0.2 }}>
-                {passed ? <CheckCircle size={24} color="#10B981" /> : <ShieldAlert size={24} color="#EF4444" />}
+        <div className={`relative bg-[#0d1117] border-[2px] ${passed ? 'border-[#00D4FF]' : 'border-[#FF00FF]/50'} rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] transition-all`}>
+            {passed && <div className="absolute top-0 right-0 w-8 h-8 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[15px] opacity-20"></div>}
+            <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase mb-1">{label} ({target})</div>
+            <div className={`text-xl font-extrabold ${passed ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={passed ? { textShadow: '0 0 5px rgba(0,212,255,0.4)', fontFamily: '"Rajdhani", sans-serif' } : { fontFamily: '"Rajdhani", sans-serif' }}>
+                {isPct ? formatPct(value) : (isBrier ? (value ? value.toFixed(4) : '0.0000') : formatNum(value))}
             </div>
         </div>
     );
 
-    const navLinks = [
-        { name: 'Slate', href: '/hub/MLB-ANALYTICS/slate' },
-        { name: 'Best Bets', href: '/hub/MLB-ANALYTICS/best-bets' },
-        { name: 'Model Intel', href: '/hub/MLB-ANALYTICS/intel' },
-        { name: 'Props', href: '/hub/MLB-ANALYTICS/props' },
-        { name: 'Tracker', href: '/hub/MLB-ANALYTICS/tracker' },
-        { name: 'Players', href: '/hub/MLB-ANALYTICS/players' },
-        { name: 'Teams', href: '/hub/MLB-ANALYTICS/teams' },
-        { name: 'Accuracy', href: '/hub/MLB-ANALYTICS/accuracy' },
-        { name: 'Backtest', href: '/hub/MLB-ANALYTICS/backtest', active: true },
-        { name: 'Status', href: '/hub/MLB-ANALYTICS/status' },
-        { name: 'Portfolio', href: '/hub/MLB-ANALYTICS/portfolio' },
-        { name: 'Validation', href: '/hub/MLB-ANALYTICS/validation' }
-    ];
-
     return (
-        <div style={{ minHeight: '100vh', background: '#020617', color: '#F8FAFC', paddingBottom: 80, fontFamily: "var(--font-inter), sans-serif", backgroundImage: 'radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%)' }}>
-           <Head>
-               <title>Backtest Results | MLB Analytics</title>
-           </Head>
+        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
+           <SEOHead 
+               title="Backtest Results | MLB Analytics" 
+               description="Live market evaluation and backtest results for MLB models."
+               noIndex={true}
+           />
 
-           {/* Secondary Nav Menu */}
-           <div style={{ background: 'rgba(15, 23, 42, 0.8)', borderBottom: '1px solid rgba(51, 65, 85, 0.5)', padding: '0 16px', overflowX: 'auto', whiteSpace: 'nowrap', display: 'flex', gap: 24, msOverflowStyle: 'none', scrollbarWidth: 'none', backdropFilter: 'blur(10px)' }}>
-               {navLinks.map(link => (
-                   <Link key={link.name} href={link.href} style={{ padding: '16px 0', fontSize: 13, fontWeight: link.active ? 800 : 700, color: link.active ? '#38BDF8' : '#64748B', borderBottom: link.active ? '2px solid #38BDF8' : '2px solid transparent', textDecoration: 'none', textShadow: link.active ? '0 0 10px rgba(56, 189, 248, 0.5)' : 'none' }}>
-                       {link.name}
-                   </Link>
-               ))}
-           </div>
+           <UniversalHeader pageDepth={2} />
+           <MlbSubNav />
 
-           <div style={{ padding: '24px 16px', maxWidth: 800, margin: '0 auto' }}>
+           <div className="p-4 w-full max-w-4xl mx-auto box-border relative">
+               {/* Background Glows */}
+               <div className="absolute top-20 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
+               <div className="absolute bottom-40 left-0 w-96 h-96 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.02] pointer-events-none"></div>
+
                {/* Header Section */}
-               <div style={{ marginBottom: 24 }}>
-                   <Link href="/hub/MLB-ANALYTICS/accuracy" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#38BDF8', fontSize: 13, fontWeight: 700, textDecoration: 'none', marginBottom: 12, textShadow: '0 0 8px rgba(56,189,248,0.4)' }}>
-                       <ArrowLeft size={16} /> Live Accuracy
+               <div className="mb-6">
+                   <Link href="/hub/MLB-ANALYTICS/accuracy" className="inline-flex items-center gap-1 text-[#00D4FF] text-[10px] font-extrabold tracking-widest uppercase hover:text-white transition-colors mb-2">
+                       <ArrowLeft size={14} /> Accuracy
                    </Link>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div className="flex justify-between items-center bg-[#0d1117] border border-[#3d4f5f] p-5 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                        <div>
-                           <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.5px', textShadow: '0 0 20px rgba(248,250,252,0.2)' }}>
-                               BACKTEST<span style={{ color: '#38BDF8' }}>_</span>RESULTS
-                           </h1>
-                           <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 4, letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                               <Database size={14} color="#38BDF8" /> HISTORICAL MARKET EVALUATION
-                           </div>
+                           <h1 className="m-0 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>Backtest Results</h1>
+                           <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Live Market Evaluation</div>
                        </div>
-                       <button 
-                           onClick={() => mutate()} 
-                           style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38BDF8', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 0 15px rgba(56, 189, 248, 0.1)', textTransform: 'uppercase', letterSpacing: 1 }}
-                       >
-                           <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} /> Sync
-                       </button>
+                       <Link href="/hub/MLB-ANALYTICS/accuracy" className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF]/30 hover:border-[#00D4FF] px-4 py-2 rounded-sm text-[11px] font-extrabold uppercase tracking-widest flex items-center gap-2 transition-all hover:shadow-[0_0_10px_rgba(0,212,255,0.3)]">
+                           Live Accuracy <ArrowRight size={14} />
+                       </Link>
                    </div>
                </div>
 
-               {error && (
-                   <div style={{ background: 'rgba(220, 38, 38, 0.1)', border: '1px solid rgba(220, 38, 38, 0.3)', borderRadius: 8, padding: 16, marginBottom: 24, color: '#FCA5A5', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                       <ShieldAlert size={16} /> Error loading backtest data.
+               {isLoading ? (
+                   <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                       <Loader2 className="w-10 h-10 animate-spin text-[#00D4FF] mx-auto mb-4" />
+                       <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">Loading Backtest Data...</div>
                    </div>
+               ) : (
+                   <>
+                       {/* Top Metric Cards */}
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                               <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><Target size={40} /></div>
+                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">TOTAL PREDICTIONS</div>
+                               <div className="text-2xl font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatNum(stats.totalPredictions)}</div>
+                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">resolved bets</div>
+                           </div>
+                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                               <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><TrendingUp size={40} /></div>
+                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">OVERALL WIN RATE</div>
+                               <div className="text-2xl font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.winRate.toFixed(1)}%</div>
+                               <div className="text-[10px] font-bold text-[#00D4FF] mt-1 uppercase tracking-widest">{stats.wonBets} W / {stats.lostBets} L</div>
+                           </div>
+                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                               <div className="absolute top-0 right-0 p-2 opacity-10 text-[#FF00FF]"><BarChart3 size={40} /></div>
+                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">AVG BRIER (0.25)</div>
+                               <div className="text-2xl font-extrabold text-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(255,0,255,0.3)' }}>{stats.avgBrier.toFixed(4)}</div>
+                               <div className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${stats.brierVsBaseline < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
+                                   {stats.brierVsBaseline >= 0 ? '+' : ''}{stats.brierVsBaseline.toFixed(4)} vs base
+                               </div>
+                           </div>
+                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                               <div className="absolute top-0 right-0 p-2 opacity-10 text-emerald-400"><DollarSign size={40} /></div>
+                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">CUMULATIVE ML ROI</div>
+                               <div className={`text-2xl font-extrabold ${stats.cumulativeRoi >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(stats.cumulativeRoi)}</div>
+                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{stats.unitsWon > 0 ? '+' : ''}{stats.unitsWon.toFixed(2)}u profit</div>
+                           </div>
+                       </div>
+
+                       {/* Lock-In Gate */}
+                       <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-5 mb-8 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                           <div className="flex justify-between items-center mb-4 pb-3 border-b border-[#3d4f5f]">
+                               <div className="flex items-center gap-3">
+                                   <h2 className="m-0 text-base md:text-lg font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Lock-In Gate</h2>
+                                   <span className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 text-[9px] font-extrabold px-2 py-0.5 rounded-sm tracking-widest uppercase shadow-[0_0_5px_rgba(255,215,0,0.2)]">EVALUATING</span>
+                               </div>
+                               <div className="text-[9px] font-bold text-slate-500 tracking-widest uppercase hidden md:block">
+                                   REQUIRED BEFORE REAL-MONEY PLAY
+                               </div>
+                           </div>
+                           
+                           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                               <GateCard label="Sample Size" target="n≥500" value={stats.totalPredictions} passed={sampleSizePassed} />
+                               <GateCard label="Brier Score" target="<0.23" value={stats.avgBrier} passed={brierPassed} isBrier={true} />
+                               <GateCard label="ML ROI" target=">-3%" value={stats.cumulativeRoi} passed={roiPassed} isPct={true} />
+                               <GateCard label="Avg CLV" target=">0 pts" value={stats.avgClv} passed={clvPassed} />
+                               
+                               <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] flex flex-col justify-center items-center text-center">
+                                   <div className="text-[10px] font-extrabold text-slate-400 tracking-widest uppercase mb-1">All Gates</div>
+                                   <div className={`text-xl font-extrabold ${gatesPassed === 4 ? 'text-[#00D4FF]' : 'text-[#FFD700]'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                       {gatesPassed === 4 ? 'PASSED' : 'PENDING'}
+                                   </div>
+                                   <div className="text-[10px] font-bold text-slate-500 mt-1 tracking-widest uppercase">{gatesPassed}/4 passed</div>
+                               </div>
+                           </div>
+                       </div>
+
+                       {/* Market Breakdown */}
+                       <div className="mb-8">
+                           <h2 className="text-base font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Market Breakdown</h2>
+                           <div className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+                               <table className="w-full min-w-[600px] text-left border-collapse">
+                                   <thead>
+                                       <tr className="bg-[#1a2332] border-b border-[#3d4f5f]">
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Market</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">n</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Win Rate</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Avg Brier</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right">ROI%</th>
+                                       </tr>
+                                   </thead>
+                                   <tbody>
+                                       {marketBreakdown.map((row: any, idx: number) => (
+                                           <tr key={idx} className="border-b border-[#3d4f5f] hover:bg-[#1a2332]/50 transition-colors">
+                                               <td className="p-4">
+                                                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[11px] font-extrabold text-slate-300 uppercase tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">{row.market}</span>
+                                               </td>
+                                               <td className="p-4 text-center font-bold text-slate-400 text-sm">{row.n}</td>
+                                               <td className="p-4 text-center font-bold text-white text-sm">{row.winRate.toFixed(1)}%</td>
+                                               <td className="p-4 text-center font-extrabold text-[#FF00FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.avgBrier ? row.avgBrier.toFixed(4) : '—'}</td>
+                                               <td className={`p-4 text-right font-extrabold text-sm ${row.roi >= 0 ? 'text-[#00D4FF]' : 'text-slate-400'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi)}</td>
+                                           </tr>
+                                       ))}
+                                       {marketBreakdown.length === 0 && (
+                                           <tr>
+                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-xs uppercase tracking-widest">No market data available</td>
+                                           </tr>
+                                       )}
+                                   </tbody>
+                               </table>
+                           </div>
+                       </div>
+
+                       {/* Daily Trend */}
+                       <div className="mb-4">
+                           <h2 className="text-base font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Daily Trend — Last 14 Days</h2>
+                           <div className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+                               <table className="w-full min-w-[600px] text-left border-collapse">
+                                   <thead>
+                                       <tr className="bg-[#1a2332] border-b border-[#3d4f5f]">
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Date</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Games</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Brier (ML)</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">ML ROI%</th>
+                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right">Props ROI%</th>
+                                       </tr>
+                                   </thead>
+                                   <tbody>
+                                       {dailyTrend.map((row: any, idx: number) => (
+                                           <tr key={idx} className="border-b border-[#3d4f5f] hover:bg-[#1a2332]/50 transition-colors">
+                                               <td className="p-4 font-bold text-slate-300 text-sm tracking-widest">{row.backtest_date}</td>
+                                               <td className="p-4 text-center font-bold text-slate-400 text-sm">{row.games_evaluated}</td>
+                                               <td className="p-4 text-center font-extrabold text-[#FF00FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.brier_score_ml ? row.brier_score_ml.toFixed(4) : '—'}</td>
+                                               <td className={`p-4 text-center font-extrabold text-sm ${row.roi_ml >= 0 ? 'text-[#00D4FF]' : (row.roi_ml < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_ml)}</td>
+                                               <td className={`p-4 text-right font-extrabold text-sm ${row.roi_props >= 0 ? 'text-[#00D4FF]' : (row.roi_props < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_props)}</td>
+                                           </tr>
+                                       ))}
+                                       {dailyTrend.length === 0 && (
+                                           <tr>
+                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-xs uppercase tracking-widest">No daily trend data available</td>
+                                           </tr>
+                                       )}
+                                   </tbody>
+                               </table>
+                           </div>
+                       </div>
+                   </>
                )}
-
-               {/* Top Metric Cards */}
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                   <div style={{ background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: 12, padding: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#38BDF8', boxShadow: '0 0 5px #38BDF8' }} />
-                           TOTAL PREDICTIONS
-                       </div>
-                       <div style={{ fontSize: 28, fontWeight: 900, color: '#F8FAFC', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>{isLoading && !data ? '—' : formatNum(stats.totalPredictions)}</div>
-                       <div style={{ fontSize: 11, color: '#64748B', marginTop: 4, fontWeight: 600 }}>RESOLVED BETS</div>
-                   </div>
-                   <div style={{ background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: 12, padding: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#818CF8', boxShadow: '0 0 5px #818CF8' }} />
-                           OVERALL WIN RATE
-                       </div>
-                       <div style={{ fontSize: 28, fontWeight: 900, color: '#F8FAFC', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>{isLoading && !data ? '—' : `${stats.winRate.toFixed(1)}%`}</div>
-                       <div style={{ fontSize: 11, color: '#64748B', marginTop: 4, fontWeight: 600 }}>{stats.wonBets} W / {stats.lostBets} L</div>
-                   </div>
-                   <div style={{ background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: 12, padding: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 5px #10B981' }} />
-                           AVG BRIER VS 0.25
-                       </div>
-                       <div style={{ fontSize: 28, fontWeight: 900, color: '#10B981', textShadow: '0 0 15px rgba(16,185,129,0.3)' }}>{isLoading && !data ? '—' : (stats.avgBrier ? stats.avgBrier.toFixed(4) : '0.0000')}</div>
-                       <div style={{ fontSize: 11, color: '#10B981', marginTop: 4, fontWeight: 600, opacity: 0.8 }}>{stats.brierVsBaseline >= 0 ? '+' : ''}{stats.brierVsBaseline.toFixed(4)} vs baseline</div>
-                   </div>
-                   <div style={{ background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: 12, padding: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: stats.cumulativeRoi >= 0 ? '#10B981' : '#EF4444', boxShadow: `0 0 5px ${stats.cumulativeRoi >= 0 ? '#10B981' : '#EF4444'}` }} />
-                           CUMULATIVE ML ROI%
-                       </div>
-                       <div style={{ fontSize: 28, fontWeight: 900, color: stats.cumulativeRoi >= 0 ? '#10B981' : '#EF4444', textShadow: `0 0 15px ${stats.cumulativeRoi >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>{isLoading && !data ? '—' : formatPct(stats.cumulativeRoi)}</div>
-                       <div style={{ fontSize: 11, color: '#64748B', marginTop: 4, fontWeight: 600 }}>{stats.totalPredictions} bets · {stats.unitsWon > 0 ? '+' : ''}{stats.unitsWon.toFixed(2)}u</div>
-                   </div>
-               </div>
-
-               {/* Lock-In Gate */}
-               <div style={{ background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(2, 6, 23, 0.9) 100%)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: 12, padding: 20, marginBottom: 32, boxShadow: '0 10px 30px rgba(0,0,0,0.5)', position: 'relative', overflow: 'hidden' }}>
-                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.5), transparent)' }} />
-                   
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#F8FAFC', letterSpacing: 1 }}>LOCK-IN GATE</h2>
-                           <span style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#FCD34D', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 4, letterSpacing: 2, boxShadow: '0 0 10px rgba(245,158,11,0.1)' }}>EVALUATING</span>
-                       </div>
-                       <div style={{ fontSize: 10, fontWeight: 800, color: '#64748B', letterSpacing: 1 }}>
-                           REQUIRED BEFORE REAL-MONEY PLAY
-                       </div>
-                   </div>
-                   
-                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                       <GateCard label="Sample Size" target="n≥500" value={stats.totalPredictions} passed={sampleSizePassed} />
-                       <GateCard label="Brier Score" target="<0.23" value={stats.avgBrier} passed={brierPassed} isBrier={true} />
-                       <GateCard label="ML ROI" target=">-3%" value={stats.cumulativeRoi} passed={roiPassed} isPct={true} />
-                       <GateCard label="Avg CLV" target=">0 pts" value={stats.avgClv} passed={clvPassed} />
-                       
-                       <div style={{ background: 'rgba(30, 41, 59, 0.5)', border: '1px solid rgba(51, 65, 85, 0.8)', borderRadius: 8, padding: 12, flex: '1 1 120px', minWidth: 120 }}>
-                           <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' }}>All Gates</div>
-                           <div style={{ fontSize: 18, fontWeight: 800, color: gatesPassed === 4 ? '#10B981' : '#F59E0B', textShadow: gatesPassed === 4 ? '0 0 10px rgba(16,185,129,0.4)' : '0 0 10px rgba(245,158,11,0.4)' }}>
-                               {gatesPassed === 4 ? 'PASSED' : 'PENDING'}
-                           </div>
-                           <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, fontWeight: 600 }}>{gatesPassed}/4 passed</div>
-                       </div>
-                   </div>
-               </div>
-
-               {/* Market Breakdown */}
-               <div style={{ marginBottom: 32 }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                       <div style={{ width: 4, height: 16, background: '#38BDF8', borderRadius: 2 }} />
-                       <h2 style={{ fontSize: 16, fontWeight: 800, color: '#F8FAFC', margin: 0, letterSpacing: 1 }}>MARKET BREAKDOWN</h2>
-                   </div>
-                   <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: 12, overflowX: 'auto', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-                       <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', textAlign: 'left' }}>
-                           <thead>
-                               <tr style={{ background: 'rgba(30, 41, 59, 0.8)', color: '#94A3B8', fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
-                                   <th style={{ padding: '16px', fontWeight: 800, borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>Market</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'center', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>n</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'center', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>Win Rate</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'center', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>Avg Brier</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'right', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>ROI%</th>
-                               </tr>
-                           </thead>
-                           <tbody>
-                               {isLoading && marketBreakdown.length === 0 ? (
-                                   <tr>
-                                       <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748B', fontWeight: 600, fontSize: 13, letterSpacing: 1 }}>
-                                           <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto', marginBottom: 12, color: '#38BDF8' }} />
-                                           ANALYZING MARKETS...
-                                       </td>
-                                   </tr>
-                               ) : marketBreakdown.map((row: any, idx: number) => (
-                                   <tr key={idx} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.3)', fontSize: 13, transition: 'background 0.2s' } as any}>
-                                       <td style={{ padding: '16px', fontWeight: 700 }}>
-                                            <span style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '4px 8px', borderRadius: 4, color: '#38BDF8', letterSpacing: 0.5 }}>{row.market}</span>
-                                       </td>
-                                       <td style={{ padding: '16px', textAlign: 'center', color: '#94A3B8', fontWeight: 600 }}>{row.n}</td>
-                                       <td style={{ padding: '16px', textAlign: 'center', color: '#E2E8F0', fontWeight: 700 }}>{row.winRate.toFixed(1)}%</td>
-                                       <td style={{ padding: '16px', textAlign: 'center', color: '#10B981', fontWeight: 800 }}>{row.avgBrier ? row.avgBrier.toFixed(4) : '—'}</td>
-                                       <td style={{ padding: '16px', textAlign: 'right', color: row.roi >= 0 ? '#10B981' : '#EF4444', fontWeight: 800, textShadow: row.roi >= 0 ? '0 0 10px rgba(16,185,129,0.2)' : '0 0 10px rgba(239,68,68,0.2)' }}>{formatPct(row.roi)}</td>
-                                   </tr>
-                               ))}
-                               {!isLoading && marketBreakdown.length === 0 && (
-                                   <tr>
-                                       <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748B', fontWeight: 600, fontSize: 13 }}>NO MARKET DATA AVAILABLE</td>
-                                   </tr>
-                               )}
-                           </tbody>
-                       </table>
-                   </div>
-               </div>
-
-               {/* Daily Trend */}
-               <div>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                       <div style={{ width: 4, height: 16, background: '#818CF8', borderRadius: 2 }} />
-                       <h2 style={{ fontSize: 16, fontWeight: 800, color: '#F8FAFC', margin: 0, letterSpacing: 1 }}>DAILY TREND (14D)</h2>
-                   </div>
-                   <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: 12, overflowX: 'auto', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-                       <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', textAlign: 'left' }}>
-                           <thead>
-                               <tr style={{ background: 'rgba(30, 41, 59, 0.8)', color: '#94A3B8', fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
-                                   <th style={{ padding: '16px', fontWeight: 800, borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>Date</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'center', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>Games</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'center', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>Brier (ML)</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'center', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>ML ROI%</th>
-                                   <th style={{ padding: '16px', fontWeight: 800, textAlign: 'right', borderBottom: '1px solid rgba(51, 65, 85, 0.5)' }}>Props ROI%</th>
-                               </tr>
-                           </thead>
-                           <tbody>
-                               {isLoading && dailyTrend.length === 0 ? (
-                                   <tr>
-                                       <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748B', fontWeight: 600, fontSize: 13, letterSpacing: 1 }}>
-                                           <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto', marginBottom: 12, color: '#818CF8' }} />
-                                           FETCHING TRENDS...
-                                       </td>
-                                   </tr>
-                               ) : dailyTrend.map((row: any, idx: number) => (
-                                   <tr key={idx} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.3)', fontSize: 13, transition: 'background 0.2s' } as any}>
-                                       <td style={{ padding: '16px', color: '#94A3B8', fontWeight: 700, letterSpacing: 0.5 }}>{row.backtest_date}</td>
-                                       <td style={{ padding: '16px', textAlign: 'center', color: '#E2E8F0', fontWeight: 600 }}>{row.games_evaluated}</td>
-                                       <td style={{ padding: '16px', textAlign: 'center', color: '#10B981', fontWeight: 800 }}>{row.brier_score_ml ? row.brier_score_ml.toFixed(4) : '—'}</td>
-                                       <td style={{ padding: '16px', textAlign: 'center', color: row.roi_ml >= 0 ? '#10B981' : (row.roi_ml < 0 ? '#EF4444' : '#64748B'), fontWeight: 800, textShadow: row.roi_ml >= 0 ? '0 0 10px rgba(16,185,129,0.2)' : 'none' }}>{formatPct(row.roi_ml)}</td>
-                                       <td style={{ padding: '16px', textAlign: 'right', color: row.roi_props >= 0 ? '#10B981' : (row.roi_props < 0 ? '#EF4444' : '#64748B'), fontWeight: 800, textShadow: row.roi_props >= 0 ? '0 0 10px rgba(16,185,129,0.2)' : 'none' }}>{formatPct(row.roi_props)}</td>
-                                   </tr>
-                               ))}
-                               {!isLoading && dailyTrend.length === 0 && (
-                                   <tr>
-                                       <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748B', fontWeight: 600, fontSize: 13 }}>NO TREND DATA AVAILABLE</td>
-                                   </tr>
-                               )}
-                           </tbody>
-                       </table>
-                   </div>
-               </div>
-
            </div>
            
            <BottomNavBar />
         </div>
     );
 }
-
