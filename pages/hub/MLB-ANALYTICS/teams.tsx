@@ -22,11 +22,22 @@ export interface Splits {
     [key: string]: any;
 }
 
+export interface AdvancedStats {
+    fip?: number;
+    siera?: number;
+    hitting_war?: number;
+    pitching_war?: number;
+    ops?: number;
+    oaa?: number;
+    [key: string]: any;
+}
+
 export interface TeamProfile {
     team_id: number;
     name: string;
     streaks: Streaks | null;
     splits: Splits | null;
+    adv_stats?: AdvancedStats | null;
     [key: string]: any;
 }
 
@@ -52,7 +63,7 @@ export async function getServerSideProps({ res }: any) {
         const todayStr = formatter.format(new Date());
         
         const { data: teams, error } = await mlbDb
-            .from('v_team_profile')
+            .from('v_team_terminal_stats')
             .select('*')
             .order('name', { ascending: true });
             
@@ -479,6 +490,30 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {/* Advanced Stats Panel */}
+                                                {team.adv_stats && (
+                                                    <div className="stats-panel" style={{ marginTop: 8, background: '#0a0a15' }}>
+                                                        <div className="stat-segment">
+                                                            <div className="stat-label" style={{ color: '#F472B6' }}>WAR</div>
+                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>
+                                                                {((team.adv_stats.hitting_war || 0) + (team.adv_stats.pitching_war || 0)).toFixed(1)}
+                                                            </div>
+                                                        </div>
+                                                        <div className="stat-segment">
+                                                            <div className="stat-label" style={{ color: '#60A5FA' }}>FIP</div>
+                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.fip?.toFixed(2) || '-'}</div>
+                                                        </div>
+                                                        <div className="stat-segment">
+                                                            <div className="stat-label" style={{ color: '#34D399' }}>OPS</div>
+                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.ops?.toFixed(3) || '-'}</div>
+                                                        </div>
+                                                        <div className="stat-segment">
+                                                            <div className="stat-label" style={{ color: '#A78BFA' }}>OAA</div>
+                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.oaa || '-'}</div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </Link>
                                         </div>
                                     );

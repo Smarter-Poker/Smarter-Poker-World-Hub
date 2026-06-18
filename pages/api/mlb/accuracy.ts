@@ -7,6 +7,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
         const mlbDb = getMlbSupabase();
         
         const { data: summaryData, error: sumErr } = await mlbDb
@@ -26,9 +28,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let totalProfit = 0;
         let totalBets = 0;
 
-        const tableData: any[] = [];
+        interface BacktestRow {
+            n: number | null;
+            brier: number | null;
+            avg_clv: number | null;
+            sum_unit_profit: number | null;
+            bet_count: number | null;
+            [key: string]: any;
+        }
 
-        (summaryData || []).forEach(row => {
+        const tableData: BacktestRow[] = [];
+
+        (summaryData || []).forEach((row: BacktestRow) => {
             if (!row.n) return;
             totalN += row.n;
             

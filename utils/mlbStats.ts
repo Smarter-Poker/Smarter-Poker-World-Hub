@@ -66,7 +66,7 @@ export async function fetchPortfolioStats(mlbDb: any) {
         const b_after = bet.bankroll_after || 0;
         if (b_after > peakBankroll) peakBankroll = b_after;
         
-        const currentDd = (peakBankroll - b_after) / peakBankroll;
+        const currentDd = peakBankroll > 0 ? (peakBankroll - b_after) / peakBankroll : 0;
         if (currentDd > maxDrawdown) maxDrawdown = currentDd;
 
         if (bet.as_of_ts) {

@@ -1,6 +1,7 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
         if (oddsErr) throw oddsErr;
 
         // Group latest odds
-        const latestOdds = {};
+        const latestOdds: Record<string, any> = {};
         for (const r of (rawOdds || [])) {
             // we map moneyline/spread to market
             const m = r.market.toLowerCase();
@@ -52,14 +53,17 @@ export default async function handler(req, res) {
         let updateCount = 0;
         
         // 3. Update closing_prob and clv_pts
-        for (const bet of pendingBets) {
+        // Promise.all for updates
+        const updatePromises = pendingBets.map(async (bet) => {
             // Note: bet.selection (e.g. 'NYY') might not exactly match outcome_name (e.g. 'New York Yankees').
             // We need a mapping, or we just rely on the predictor engine to do the CLV since it has the team mappings.
-        }
+        });
+
+        await Promise.all(updatePromises);
 
         return res.status(200).json({ message: 'Success (No-op in Hub)', updated: updateCount });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('CLV Update Error:', error);
         return res.status(500).json({ error: error.message });
     }

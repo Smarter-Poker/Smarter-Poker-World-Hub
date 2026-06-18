@@ -7,6 +7,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
         const mlbDb = getMlbSupabase();
         
         // Formatter for 'today' in US Central Time (America/Chicago)

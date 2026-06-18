@@ -7,6 +7,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
         const mlbDb = getMlbSupabase();
 
         // Call our RPC
@@ -40,10 +42,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             
             const betsArr = bets || [];
             
+            interface BetRow {
+                edge_pts?: number;
+                bet_score?: number;
+                implied_prob?: number;
+                [key: string]: any;
+            }
+
             const totalBets = betsArr.length;
-            const eliteBets = betsArr.filter((b: any) => b.edge_pts >= 5).length;
-            const topScore = betsArr.length > 0 ? Math.max(...betsArr.map((b: any) => b.bet_score || 0)) : 0;
-            const maxImpliedProb = betsArr.length > 0 ? Math.max(...betsArr.map((b: any) => b.implied_prob || 0)) : 0;
+            const eliteBets = betsArr.filter((b: BetRow) => (b.edge_pts || 0) >= 5).length;
+            const topScore = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.bet_score || 0)) : 0;
+            const maxImpliedProb = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.implied_prob || 0)) : 0;
             
             // If implied_prob is typically 0-1, multiply by 100 for the frontend, 
             // but we'll just pass maxImpliedProb as requested.
