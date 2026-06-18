@@ -97,14 +97,6 @@ const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'
 
 
 export default function ProfilePage() {
-    const { fetchUser, handleAvatarUpload, handleCoverPhotoUpload, handleCoverPhotoRemove, handleSave } = useProfileHandlers({
-        user, profile, setProfile, originalProfile, setOriginalProfile,
-        setMessage, setAvatarUploadPhase, setCoverUploadPhase,
-        setSaving, setSavePhase, undoTimerRef, setUndoSnapshot,
-        setUserPhotos, setUserReels, setUserLives, setLoading, supabase,
-        isDirty, coverEditorOpen, setCoverEditorOpen
-    });
-
     const router = useRouter();
     useTrainingBus('profile-edit');
     const { avatar } = useAvatar();
@@ -271,6 +263,14 @@ export default function ProfilePage() {
             'home_casino','birth_year','birthday','card_back_preference'];
         return fields.some(f => String(profile[f] || '') !== String(originalProfile[f] || ''));
     })();
+
+    const { fetchUser, handleAvatarUpload, handleCoverPhotoUpload, handleCoverPhotoRemove, handleSave } = useProfileHandlers({
+        user, profile, setProfile, originalProfile, setOriginalProfile,
+        setMessage, setAvatarUploadPhase, setCoverUploadPhase,
+        setSaving, setSavePhase, undoTimerRef, setUndoSnapshot,
+        setUserPhotos, setUserReels, setUserLives, setLoading, supabase,
+        isDirty, coverEditorOpen, setCoverEditorOpen
+    });
 
     const updateField = (field) => (value) => {
         // Social link auto-formatting: strip URLs and @ prefixes
