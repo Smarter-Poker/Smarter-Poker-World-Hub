@@ -43,38 +43,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const numPages = Math.ceil((count || 0) / limit);
             
             if (numPages > 0) {
-                const promises: any[] = [];
-                for (let i = 0; i < numPages; i++) {
-                    const offset = i * limit;
-                    promises.push(
-                        mlbDb
-                            .from('backtest_market_output')
-                            .select('market, brier_score, unit_profit, clv_pts, rec, actual_result')
-                            .range(offset, offset + limit - 1)
-                    );
-                }
-                const results = await Promise.all(promises) as any[];
-                for (const r of results) {
-                    if (r.error) throw r.error;
-                    if (r.data) allMarketRows = allMarketRows.concat(r.data);
+                // Chunk the requests to prevent Vercel 504 timeouts on large datasets
+                for (let i = 0; i < numPages; i += 5) {
+                    const promises: any[] = [];
+                    for (let j = 0; j < 5 && (i + j) < numPages; j++) {
+                        const offset = (i + j) * limit;
+                        promises.push(
+                            mlbDb
+                                .from('backtest_market_output')
+                                .select('market, brier_score, unit_profit, rec, actual_result')
+                                .range(offset, offset + limit - 1)
+                        );
+                    }
+                    const results = await Promise.all(promises) as any[];
+                    for (const r of results) {
+                        if (r.error) throw r.error;
+                        if (r.data) allMarketRows = allMarketRows.concat(r.data);
+                    }
                 }
             }
 
             const allBets = allMarketRows.filter(r => r.rec && r.rec.includes('BET') && !r.rec.includes('NO BET'));
             const totalPredictions = allBets.length;
             
-            const wonBets = allBets.filter(r => r.unit_profit > 0);
-            const lostBets = allBets.filter(r => r.unit_profit <= 0 && r.actual_result !== null);
+            const wonBets = allBets.filter(r => Number(r.unit_profit || 0) > 0);
+            const lostBets = allBets.filter(r => Number(r.unit_profit || 0) <= 0 && r.actual_result != null);
             const winRate = totalPredictions > 0 ? (wonBets.length / totalPredictions) * 100 : 0;
             
             const brierScores = allMarketRows.filter(r => r.brier_score !== null).map(r => r.brier_score);
-            const avgBrier = brierScores.length > 0 ? brierScores.reduce((a: number, b: number) => a + b, 0) / brierScores.length : 0;
+            const avgBrier = brierScores.length > 0 ? brierScores.reduce((a: number, b: number) => Number(a) + Number(b), 0) / brierScores.length : 0;
             const brierVsBaseline = brierScores.length > 0 ? avgBrier - 0.2500 : 0;
             
-            const unitsWon = allBets.reduce((sum, r) => sum + (r.unit_profit || 0), 0);
+            const unitsWon = allBets.reduce((sum, r) => sum + Number(r.unit_profit || 0), 0);
             const cumulativeRoi = totalPredictions > 0 ? (unitsWon / totalPredictions) * 100 : 0;
 
-            const avgClv = totalPredictions > 0 ? allBets.reduce((sum, r) => sum + (r.clv_pts || 0), 0) / totalPredictions : 0;
+            const avgClv = 0; // clv_pts column does not exist on this table
 
             statsData = {
                 totalPredictions,
@@ -94,15 +97,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const m = row.market || 'Unknown';
                 if (!marketGroups[m]) marketGroups[m] = { n: 0, wins: 0, brierSum: 0, brierCount: 0, profitSum: 0 };
                 
-                if (row.brier_score !== null) {
-                    marketGroups[m].brierSum += row.brier_score;
+                if (row.brier_score != null) {
+                    marketGroups[m].brierSum += Number(row.brier_score);
                     marketGroups[m].brierCount += 1;
                 }
                 
                 if (row.rec && row.rec.includes('BET') && !row.rec.includes('NO BET')) {
                     marketGroups[m].n += 1;
-                    if (row.unit_profit > 0) marketGroups[m].wins += 1;
-                    marketGroups[m].profitSum += (row.unit_profit || 0);
+                    if (Number(row.unit_profit || 0) > 0) marketGroups[m].wins += 1;
+                    marketGroups[m].profitSum += Number(row.unit_profit || 0);
                 }
             }
             
@@ -125,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=30');
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         return res.status(200).json({
             dailyTrend: accuracyData || [],
             marketBreakdown: marketBreakdown || [],

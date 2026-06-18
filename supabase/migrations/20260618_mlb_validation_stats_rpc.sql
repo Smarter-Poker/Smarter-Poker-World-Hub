@@ -85,16 +85,10 @@ BEGIN
         ),
         'edgeData', json_build_array(
             json_build_object(
-                'edge', '10+ pts',
-                'n', COALESCE(edge_10_plus_n, 0),
-                'winPct', CASE WHEN edge_10_plus_n > 0 THEN ROUND((edge_10_plus_wins::numeric / edge_10_plus_n) * 100) ELSE 0 END,
-                'roi', CASE WHEN edge_10_plus_n > 0 THEN (edge_10_plus_profit / edge_10_plus_n) * 100 ELSE 0 END
-            ),
-            json_build_object(
-                'edge', '7-10 pts',
-                'n', COALESCE(edge_7_10_n, 0),
-                'winPct', CASE WHEN edge_7_10_n > 0 THEN ROUND((edge_7_10_wins::numeric / edge_7_10_n) * 100) ELSE 0 END,
-                'roi', CASE WHEN edge_7_10_n > 0 THEN (edge_7_10_profit / edge_7_10_n) * 100 ELSE 0 END
+                'edge', '3-5 pts',
+                'n', COALESCE(edge_3_5_n, 0),
+                'winPct', CASE WHEN edge_3_5_n > 0 THEN ROUND((edge_3_5_wins::numeric / edge_3_5_n) * 100) ELSE 0 END,
+                'roi', CASE WHEN edge_3_5_n > 0 THEN (edge_3_5_profit / edge_3_5_n) * 100 ELSE 0 END
             ),
             json_build_object(
                 'edge', '5-7 pts',
@@ -103,10 +97,16 @@ BEGIN
                 'roi', CASE WHEN edge_5_7_n > 0 THEN (edge_5_7_profit / edge_5_7_n) * 100 ELSE 0 END
             ),
             json_build_object(
-                'edge', '3-5 pts',
-                'n', COALESCE(edge_3_5_n, 0),
-                'winPct', CASE WHEN edge_3_5_n > 0 THEN ROUND((edge_3_5_wins::numeric / edge_3_5_n) * 100) ELSE 0 END,
-                'roi', CASE WHEN edge_3_5_n > 0 THEN (edge_3_5_profit / edge_3_5_n) * 100 ELSE 0 END
+                'edge', '7-10 pts',
+                'n', COALESCE(edge_7_10_n, 0),
+                'winPct', CASE WHEN edge_7_10_n > 0 THEN ROUND((edge_7_10_wins::numeric / edge_7_10_n) * 100) ELSE 0 END,
+                'roi', CASE WHEN edge_7_10_n > 0 THEN (edge_7_10_profit / edge_7_10_n) * 100 ELSE 0 END
+            ),
+            json_build_object(
+                'edge', '10+ pts',
+                'n', COALESCE(edge_10_plus_n, 0),
+                'winPct', CASE WHEN edge_10_plus_n > 0 THEN ROUND((edge_10_plus_wins::numeric / edge_10_plus_n) * 100) ELSE 0 END,
+                'roi', CASE WHEN edge_10_plus_n > 0 THEN (edge_10_plus_profit / edge_10_plus_n) * 100 ELSE 0 END
             )
         )
     );
