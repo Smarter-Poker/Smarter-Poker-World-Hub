@@ -39,15 +39,23 @@ const GameCard = ({ game }: any) => {
                     <div className="flex flex-col gap-2 w-full">
                         <div className="flex justify-between items-center w-full">
                             <span className="text-[14px] font-extrabold text-white tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                {game.away_team || game.away_team_name || 'Away'}
+                                {game.away_team_abbr || 'Away'}
                             </span>
                             <span className="text-[16px] font-extrabold text-white">{game.away_score != null ? game.away_score : '-'}</span>
                         </div>
                         <div className="flex justify-between items-center w-full">
                             <span className="text-[14px] font-extrabold text-white tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                {game.home_team || game.home_team_name || 'Home'}
+                                {game.home_team_abbr || 'Home'}
                             </span>
                             <span className="text-[16px] font-extrabold text-white">{game.home_score != null ? game.home_score : '-'}</span>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-end justify-center w-[25%] bg-[#0f1520] border-l border-[#2a3a4a] px-3">
+                        <div className={`text-[11px] font-bold tracking-widest uppercase mb-1 ${isLive ? 'text-[#FF00FF]' : isFinal ? 'text-slate-400' : 'text-[#00D4FF]'}`}>
+                            {game.status || 'Scheduled'}
+                        </div>
+                        <div className="text-[14px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                            {isLive ? `${game.is_top_inning ? 'Top' : 'Bot'} ${game.inning || ''}` : (isFinal ? 'F' : (game.start_time ? new Date(game.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD'))}
                         </div>
                     </div>
                 </div>

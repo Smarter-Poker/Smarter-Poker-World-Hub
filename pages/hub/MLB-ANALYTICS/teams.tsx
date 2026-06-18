@@ -72,13 +72,6 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 const TeamCardComponent = ({ team }: { team: any }) => {
     const [expanded, setExpanded] = useState(false);
     
-    const record = team.streaks?.record || '0-0';
-    const last10 = team.streaks?.last10_record || '0-0';
-    let isHot = false;
-    if (last10) {
-        const [w] = last10.split('-').map(Number);
-        if (w >= 7) isHot = true; 
-    }
     const leagueStr = team.league || '??';
     const divStr = team.division || '??';
     
@@ -89,8 +82,6 @@ const TeamCardComponent = ({ team }: { team: any }) => {
             <div className="frame-bolt" style={{ top: 8, right: 8 }} />
             <div className="frame-bolt" style={{ bottom: 8, left: 8 }} />
             <div className="frame-bolt" style={{ bottom: 8, right: 8 }} />
-            
-            {isHot && <div className="neon-strip left" />}
 
             <div style={{ display: 'block', padding: '20px', textDecoration: 'none', color: 'inherit' }}>
                 <Link href={`/hub/MLB-ANALYTICS/teams/${team.team_id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
@@ -109,27 +100,6 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                                         </span>
                                     )}
                                 </div>
-                            </div>
-                        </div>
-                        <div style={{ color: 'var(--metal-highlight)' }}>
-                            <Activity size={24} color={isHot ? '#EF4444' : '#475569'} style={{ filter: isHot ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))' : 'none' }} />
-                        </div>
-                    </div>
-
-                    {/* Stats Panel */}
-                    <div className="stats-panel">
-                        <div className="stat-segment">
-                            <div className="stat-label">RECORD</div>
-                            <div className="stat-value" style={{ color: 'white', textShadow: 'none' }}>{record}</div>
-                        </div>
-                        <div className="stat-segment">
-                            <div className="stat-label">L10</div>
-                            <div className="stat-value">{last10}</div>
-                        </div>
-                        <div className="stat-segment">
-                            <div className="stat-label">HOME</div>
-                            <div className="stat-value" style={{ color: '#FCD34D', textShadow: '0 0 8px rgba(252, 211, 77, 0.4)' }}>
-                                {team.splits?.home || '0-0'}
                             </div>
                         </div>
                     </div>
