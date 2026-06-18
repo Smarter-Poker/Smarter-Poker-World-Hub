@@ -1,31 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Head from 'next/head';
+import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
+import { logError } from '@/utils/logger';
+
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 export default function StandingsPage() {
-    const [standings, setStandings] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        async function fetchStandings() {
-            try {
-                // For demonstration, we simply query dim_teams and order by team_id
-                // (Replace this with real standings from fact_games or dim_teams if available)
-                const res = await fetch('/api/mlb/standings');
-                if (res.ok) {
-                    const data = await res.json();
-                    setStandings(data.teams || []);
-                }
-            } catch (err) {
-                console.error('Error fetching standings:', err);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchStandings();
-    }, []);
+    const { data, error, isLoading } = useSWR('/api/mlb/standings', fetcher, {
+        refreshInterval: 60000,
+    });
+    
+    const standings = data?.teams || [];
+    const loading = isLoading && !data;
 
     return (
         <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { ArrowLeft, Loader2, Activity } from 'lucide-react';
@@ -31,15 +31,17 @@ export default function AccuracyPage() {
     const [filter, setFilter] = useState('All');
 
     // Filter table
-    const filteredTable = tableData.filter((row: any) => {
-        if (filter === 'All') return true;
-        const type = row.market?.toLowerCase() || '';
-        if (filter === 'Moneyline' && (type === 'h2h' || type === 'f5_moneyline')) return true;
-        if (filter === 'Totals' && (type === 'total' || type === 'team_total')) return true;
-        if (filter === 'Run Line' && type === 'run_line') return true;
-        if (filter === 'Props' && !['h2h', 'f5_moneyline', 'total', 'team_total', 'run_line'].includes(type)) return true;
-        return false;
-    });
+    const filteredTable = useMemo(() => {
+        return tableData.filter((row: any) => {
+            if (filter === 'All') return true;
+            const type = row.market?.toLowerCase() || '';
+            if (filter === 'Moneyline' && (type === 'h2h' || type === 'f5_moneyline')) return true;
+            if (filter === 'Totals' && (type === 'total' || type === 'team_total')) return true;
+            if (filter === 'Run Line' && type === 'run_line') return true;
+            if (filter === 'Props' && !['h2h', 'f5_moneyline', 'total', 'team_total', 'run_line'].includes(type)) return true;
+            return false;
+        });
+    }, [tableData, filter]);
 
     const isGatePassed = kpi.n >= 300 && Number(kpi.roi) > -3.0 && Number(kpi.brier) < 0.23;
 

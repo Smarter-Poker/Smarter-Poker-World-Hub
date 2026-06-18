@@ -97,6 +97,8 @@ const fetcher = async (url: string) => {
     }
 };
 
+const EMPTY_ARRAY: any[] = [];
+
 export default function PortfolioPage() {
     const [daysFilter, setDaysFilter] = useState<number | null>(null);
     const [marketFilter, setMarketFilter] = useState<string>('ALL');
@@ -108,8 +110,11 @@ export default function PortfolioPage() {
     });
 
     const {
-        totalBets = 0, wins = 0, losses = 0, pushes = 0, totalPnl = 0, currentBankroll = 1000, roi = 0, peakBankroll = 1000, maxDrawdown = 0, winRate = 0, weeklyCurve = [], recentBets = []
+        totalBets = 0, wins = 0, losses = 0, pushes = 0, totalPnl = 0, currentBankroll = 1000, roi = 0, peakBankroll = 1000, maxDrawdown = 0, winRate = 0
     } = data || {};
+    
+    const weeklyCurve = data?.weeklyCurve || EMPTY_ARRAY;
+    const recentBets = data?.recentBets || EMPTY_ARRAY;
 
     const hasError = !!error || !!data?.error;
 
@@ -154,7 +159,7 @@ export default function PortfolioPage() {
                             PORTFOLIO <span className="text-[#00D4FF]" style={{ textShadow: '0 0 15px rgba(0,212,255,0.4)' }}>SIMULATOR</span>
                         </h1>
                         <p className="m-0 mt-1 text-[#00D4FF] font-bold uppercase tracking-wider text-[11px]">
-                            Virtual bankroll — $1,000 starting · Kelly-sized from {totalBets.toLocaleString()} backtested markets
+                            Virtual bankroll · Kelly-sized from {totalBets.toLocaleString()} backtested markets
                         </p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -164,7 +169,7 @@ export default function PortfolioPage() {
                             </button>
                         </Link>
                         <Link href="/hub/MLB-ANALYTICS/model-intel" passHref>
-                            <button className="flex items-center gap-1 py-2 px-4 bg-white/5 border border-white/10 rounded-md text-slate-200 text-[13px] font-bold cursor-pointer transition-all duration-200 hover:bg-white/10">
+                            <button className="flex items-center gap-1 py-2 px-4 bg-[#1a2332] border border-[#3d4f5f] rounded-md text-slate-200 text-[13px] font-bold cursor-pointer transition-all duration-200 hover:bg-[#3d4f5f]">
                                 Model <ArrowRight size={16} />
                             </button>
                         </Link>
@@ -224,7 +229,7 @@ export default function PortfolioPage() {
                                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : formatCurrency(totalPnl, true)} from start
                                 </div>
                                 <div className="relative z-10 text-[10px] text-slate-500 mt-1 font-bold tracking-widest uppercase">
-                                    Started at $1,000.00
+                                    Simulated Base Bankroll
                                 </div>
                             </div>
 
@@ -243,8 +248,13 @@ export default function PortfolioPage() {
                             Equity Curve
                         </h2>
                         <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-8 h-[350px] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden z-10">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={weeklyCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            {weeklyCurve.length === 0 ? (
+                                <div className="flex items-center justify-center h-full text-slate-500 font-bold tracking-widest text-[11px] uppercase">
+                                    NO EQUITY CURVE DATA AVAILABLE
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={weeklyCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="colorBankroll" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.4}/>
@@ -282,7 +292,8 @@ export default function PortfolioPage() {
                                     />
                                     <Area type="monotone" dataKey="bankroll" stroke="#00D4FF" strokeWidth={3} fillOpacity={1} fill="url(#colorBankroll)" activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }} />
                                 </AreaChart>
-                            </ResponsiveContainer>
+                                </ResponsiveContainer>
+                            )}
                         </div>
 
                         <h2 className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 uppercase tracking-widest relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
