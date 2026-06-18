@@ -55,9 +55,10 @@ export async function getServerSideProps({ res }: any) {
             return { props: { stats: null } };
         }
         
-        const brier = (prob: number | null, result: boolean) => {
+        const brier = (prob: number | null, result: any) => {
             if (typeof prob !== 'number') return 0;
-            return Math.pow(prob - (result ? 1 : 0), 2);
+            const isWin = result === true || String(result).toLowerCase() === 'true' || result === 1;
+            return Math.pow(prob - (isWin ? 1 : 0), 2);
         };
         
         // 1. ALL GRADED OUTCOMES
@@ -91,8 +92,9 @@ export async function getServerSideProps({ res }: any) {
         let flagMktCount = 0;
         
         flagged.forEach(r => {
-            if (r.actual_result) flagWins++;
-            flagUnitProfit += (r.unit_profit || 0);
+            const isWin = r.actual_result === true || String(r.actual_result).toLowerCase() === 'true' || r.actual_result === 1;
+            if (isWin) flagWins++;
+            flagUnitProfit += Number(r.unit_profit || 0);
             if (r.model_prob !== null) {
                 flagModelBrierSum += brier(r.model_prob, r.actual_result);
                 flagModelCount++;
@@ -117,7 +119,7 @@ export async function getServerSideProps({ res }: any) {
         };
         
         flagged.forEach((r) => {
-            const e = r.edge_pts || 0;
+            const e = Number(r.edge_pts || 0);
             let b: string | null = null;
             if (e >= 10) b = '10+ pts';
             else if (e >= 7 && e < 10) b = '7-10 pts';
@@ -126,8 +128,9 @@ export async function getServerSideProps({ res }: any) {
             
             if (b) {
                 buckets[b].n++;
-                if (r.actual_result) buckets[b].wins++;
-                buckets[b].profit += (r.unit_profit || 0);
+                const isWin = r.actual_result === true || String(r.actual_result).toLowerCase() === 'true' || r.actual_result === 1;
+                if (isWin) buckets[b].wins++;
+                buckets[b].profit += Number(r.unit_profit || 0);
             }
         });
         
