@@ -67,11 +67,29 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) =>
     );
 };
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
 
 const TeamCardComponent = ({ team }: { team: any }) => {
     const [expanded, setExpanded] = useState(false);
     
+    const record = team.streaks?.record || '0-0';
+    const last10 = team.streaks?.last10_record || '0-0';
+    let isHot = false;
+    if (last10) {
+        const [w] = last10.split('-').map(Number);
+        if (w >= 7) isHot = true; 
+    }
     const leagueStr = team.league || '??';
     const divStr = team.division || '??';
     

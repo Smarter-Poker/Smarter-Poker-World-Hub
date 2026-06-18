@@ -4,6 +4,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, BrainCircuit, Activity, Shield, Loader2, Database, Network } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -61,9 +62,27 @@ const fetcher = async (url: string) => {
 };
 
 export default function ModelIntelPage() {
-    const { data, error, isLoading } = useSWR('/api/mlb/model-intel', fetcher, {
+    const { data, error, isLoading, mutate } = useSWR('/api/mlb/model-intel', fetcher, {
         refreshInterval: 60000,
     });
+
+    React.useEffect(() => {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+        
+        if (!supabaseUrl || !supabaseAnonKey) return;
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const channel = supabase.channel('realtime:agg_model')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'agg_model' }, () => {
+                mutate();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [mutate]);
 
     if (error || data?.error) {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));

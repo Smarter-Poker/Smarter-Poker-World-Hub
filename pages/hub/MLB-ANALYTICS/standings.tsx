@@ -3,7 +3,6 @@ import Head from 'next/head';
 import { UniversalHeader } from '@/components/UniversalHeader';
 import { BottomNavBar } from '@/components/BottomNavBar';
 import { MlbSubNav } from '@/components/mlb/MlbSubNav';
-import { getMlbSupabase } from '../../../../utils/supabase/mlb';
 
 export default function StandingsPage() {
     const [standings, setStandings] = useState<any[]>([]);
