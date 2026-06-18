@@ -22,6 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return handleRequest(req, res);
 }
 

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Search, SearchX, Activity, Shield, Crosshair } from 'lucide-react';
+import { ArrowLeft, Search, SearchX, Activity, Shield, Crosshair, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import useSWR from 'swr';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
