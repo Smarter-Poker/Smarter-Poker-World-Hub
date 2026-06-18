@@ -2,8 +2,17 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
+import dynamic from 'next/dynamic';
+
+const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false });
+const Area = dynamic(() => import('recharts').then(m => m.Area), { ssr: false });
+const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 import { ArrowRight } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 import { fetchPortfolioStats } from '../../../utils/mlbStats';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';

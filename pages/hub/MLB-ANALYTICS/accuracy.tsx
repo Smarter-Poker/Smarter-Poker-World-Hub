@@ -31,7 +31,7 @@ export default function AccuracyPage() {
     const isGatePassed = kpi.n >= 300 && parseFloat(kpi.roi) > -3.0 && parseFloat(kpi.brier) < 0.23;
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
+        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
                title="Model Performance | MLB Analytics" 
                description="MLB Analytics Model Performance and backtest results. Track CLV, Brier Scores, and ROI for predictive models." 
@@ -41,24 +41,24 @@ export default function AccuracyPage() {
 
            <div className="p-4 max-w-4xl mx-auto w-full box-border">
                 <div className="mb-6">
-                    <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-blue-600 text-[13px] font-bold tracking-wide mb-3 hover:text-blue-700 transition-colors uppercase">
+                    <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-bold tracking-wide mb-3 hover:text-white transition-colors uppercase" style={{ textShadow: '0 0 10px rgba(0,212,255,0.4)' }}>
                         <ArrowLeft size={16} /> Dashboard
                     </Link>
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                         <div>
-                            <h1 className="m-0 mb-1 text-2xl md:text-[28px] font-extrabold text-slate-900">Model Performance</h1>
-                            <p className="m-0 text-[13px] text-slate-500">CLV-first scoring. Populated nightly once games settle.</p>
+                            <h1 className="m-0 mb-1 text-2xl md:text-[28px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif', letterSpacing: '0.05em' }}>MODEL PERFORMANCE</h1>
+                            <p className="m-0 text-[13px] text-slate-400">CLV-first scoring. Populated nightly once games settle.</p>
                         </div>
-                        <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                        <div className="flex flex-wrap gap-1 bg-[#0d1117] p-1 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
                             {['All', 'Moneyline', 'Totals', 'Run Line', 'Props'].map(f => (
                                 <button 
                                     key={f}
                                     onClick={() => setFilter(f)}
                                     aria-label={`Filter by ${f}`}
-                                    className={`px-3 py-1.5 rounded-md text-[13px] font-semibold transition-all ${
+                                    className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-all uppercase tracking-wider ${
                                         filter === f 
-                                            ? 'bg-white text-blue-600 shadow-sm' 
-                                            : 'bg-transparent text-slate-500 hover:text-slate-700'
+                                            ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' 
+                                            : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
                                     }`}
                                 >
                                     {f}
@@ -68,93 +68,122 @@ export default function AccuracyPage() {
                     </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-4 md:p-5 mb-6 shadow-sm">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-2">
-                            <h2 className="m-0 text-base font-extrabold">Lock-In Gate</h2>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider ${
-                                isGatePassed ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                                {isGatePassed ? 'PASSED' : 'EVALUATING'}
-                            </span>
-                        </div>
-                        <div className="text-[11px] font-bold text-slate-400 tracking-wide hidden sm:block">
-                            REQUIRED BEFORE REAL-MONEY PLAY
-                        </div>
-                    </div>
+                <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
+                    {/* Metal Frame Details */}
+                    <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
+                    <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
+                    <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
+                    <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {/* Sample Size */}
-                        <div className={`bg-slate-50 rounded-lg p-3 md:p-4 border ${kpi.n >= 300 ? 'border-emerald-200' : 'border-slate-200'}`}>
-                            <div className="text-[11px] text-slate-500 mb-2 font-semibold">Sample Size (n≥300)</div>
-                            <div className={`text-2xl font-extrabold ${kpi.n >= 300 ? 'text-emerald-500' : 'text-slate-900'}`}>{kpi.n}</div>
-                        </div>
-                        {/* Avg CLV */}
-                        <div className={`bg-slate-50 rounded-lg p-3 md:p-4 border ${parseFloat(kpi.clv) > 0 ? 'border-emerald-200' : 'border-slate-200'}`}>
-                            <div className="text-[11px] text-slate-500 mb-2 font-semibold">Avg CLV (&gt;0 pts)</div>
-                            <div className={`text-2xl font-extrabold ${parseFloat(kpi.clv) > 0 ? 'text-emerald-500' : 'text-slate-900'}`}>{kpi.clv}</div>
-                        </div>
-                        {/* Expected ROI */}
-                        <div className={`bg-slate-50 rounded-lg p-3 md:p-4 border ${parseFloat(kpi.roi) > -3 ? 'border-emerald-200' : 'border-slate-200'}`}>
-                            <div className="text-[11px] text-slate-500 mb-2 font-semibold">Expected ROI (&gt;-3%)</div>
-                            <div className={`text-2xl font-extrabold ${parseFloat(kpi.roi) > -3 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                {parseFloat(kpi.roi) > 0 ? '+' : ''}{kpi.roi}%
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
+                            <div className="flex items-center gap-3">
+                                <h2 className="m-0 text-base font-bold text-white uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Lock-In Gate</h2>
+                                {isLoading ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
+                                        <Loader2 size={10} className="animate-spin" /> LOADING
+                                    </span>
+                                ) : (
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
+                                        isGatePassed ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]'
+                                    }`}>
+                                        {isGatePassed ? 'PASSED' : 'EVALUATING'}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="text-[10px] font-bold text-[#00D4FF] tracking-widest hidden sm:block">
+                                REQUIRED FOR REAL-MONEY PLAY
                             </div>
                         </div>
-                        {/* Brier Score */}
-                        <div className={`bg-slate-50 rounded-lg p-3 md:p-4 border ${parseFloat(kpi.brier) < 0.23 ? 'border-emerald-200' : 'border-slate-200'}`}>
-                            <div className="text-[11px] text-slate-500 mb-2 font-semibold">Brier Score (&lt;0.23)</div>
-                            <div className={`text-2xl font-extrabold ${parseFloat(kpi.brier) < 0.23 ? 'text-emerald-500' : 'text-red-500'}`}>{kpi.brier}</div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {/* Sample Size */}
+                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${kpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
+                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Sample Size (n≥300)</div>
+                                <div className={`text-2xl font-extrabold ${kpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: kpi.n >= 300 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
+                                    {isLoading ? '--' : kpi.n}
+                                </div>
+                            </div>
+                            {/* Avg CLV */}
+                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
+                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Avg CLV (&gt;0 pts)</div>
+                                <div className={`text-2xl font-extrabold ${parseFloat(kpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: parseFloat(kpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
+                                    {isLoading ? '--' : kpi.clv}
+                                </div>
+                            </div>
+                            {/* Expected ROI */}
+                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
+                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Expected ROI (&gt;-3%)</div>
+                                <div className={`text-2xl font-extrabold ${parseFloat(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: parseFloat(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
+                                    {isLoading ? '--' : `${parseFloat(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
+                                </div>
+                            </div>
+                            {/* Brier Score */}
+                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
+                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Brier Score (&lt;0.23)</div>
+                                <div className={`text-2xl font-extrabold ${parseFloat(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: parseFloat(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
+                                    {isLoading ? '--' : kpi.brier}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-[13px] whitespace-nowrap">
                             <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
-                                    <th className="px-4 py-3 font-semibold">Date</th>
-                                    <th className="px-4 py-3 font-semibold">Market</th>
-                                    <th className="px-4 py-3 font-semibold">n</th>
-                                    <th className="px-4 py-3 font-semibold">Brier</th>
-                                    <th className="px-4 py-3 font-semibold">Avg CLV</th>
-                                    <th className="px-4 py-3 font-semibold">ROI</th>
+                                <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                                    <th className="px-4 py-4">Date</th>
+                                    <th className="px-4 py-4">Market</th>
+                                    <th className="px-4 py-4 text-right">n</th>
+                                    <th className="px-4 py-4 text-right">Brier</th>
+                                    <th className="px-4 py-4 text-right">Avg CLV</th>
+                                    <th className="px-4 py-4 text-right">ROI</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {filteredTable.map((row, i) => (
-                                    <tr key={`${row.date}-${row.market}-${i}`} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 font-semibold text-slate-700">{row.date}</td>
-                                        <td className="px-4 py-3">
-                                            <span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[11px] text-slate-600 font-medium">
-                                                {row.market}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-slate-600">{row.n}</td>
-                                        <td className="px-4 py-3 text-slate-600">
-                                            {row.brier !== null ? row.brier.toFixed(3) : '—'}
-                                        </td>
-                                        <td className="px-4 py-3 text-slate-600">
-                                            {row.avg_clv !== null ? row.avg_clv.toFixed(2) : '—'}
-                                        </td>
-                                        <td className={`px-4 py-3 font-semibold ${row.roi > 0 ? 'text-emerald-500' : (row.roi < 0 ? 'text-red-500' : 'text-slate-900')}`}>
-                                            {row.roi !== null ? `${row.roi > 0 ? '+' : ''}${row.roi.toFixed(1)}%` : '—'}
+                            <tbody className="bg-[#0a0a15]">
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium">
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <Loader2 className="w-6 h-6 animate-spin text-[#3d4f5f]" />
+                                                Loading backtest logs...
+                                            </div>
                                         </td>
                                     </tr>
-                                ))}
-                                {filteredTable.length === 0 && (
+                                ) : filteredTable.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                                        <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium border-t border-[#1a2332]">
                                             No data available for the selected filter.
                                         </td>
                                     </tr>
+                                ) : (
+                                    filteredTable.map((row: any, i: number) => (
+                                        <tr key={`${row.date}-${row.market}-${i}`} className="border-b border-[#1a2332] last:border-b-0 hover:bg-[#1a2332] transition-colors">
+                                            <td className="px-4 py-3.5 font-bold text-slate-300">{row.date}</td>
+                                            <td className="px-4 py-3.5">
+                                                <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[10px] text-slate-300 font-bold uppercase tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                                                    {row.market}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3.5 text-slate-400 text-right font-medium">{row.n}</td>
+                                            <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
+                                                {row.brier !== null ? row.brier.toFixed(3) : '—'}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
+                                                {row.avg_clv !== null ? row.avg_clv.toFixed(2) : '—'}
+                                            </td>
+                                            <td className={`px-4 py-3.5 text-right font-extrabold ${row.roi > 0 ? 'text-[#00D4FF]' : (row.roi < 0 ? 'text-[#FF00FF]' : 'text-white')}`} style={{ textShadow: row.roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (row.roi < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none') }}>
+                                                {row.roi !== null ? `${row.roi > 0 ? '+' : ''}${row.roi.toFixed(1)}%` : '—'}
+                                            </td>
+                                        </tr>
+                                    ))
                                 )}
                             </tbody>
                         </table>
                     </div>
                 </div>
-
            </div>
            <BottomNavBar />
         </div>
