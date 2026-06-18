@@ -207,19 +207,7 @@ export default function StatusPage() {
                             </div>
                         </div>
 
-                        {/* DB TABLE SIZES */}
-                        <div style={{ marginBottom: 32 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <Database size={16} color="#00D4FF" />
-                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>DB TABLE SIZES</h2>
-                            </div>
-                            <div className="metal-frame" style={{ overflow: 'hidden' }}>
-                                <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
-                                <div className="frame-bolt" style={{ top: '8px', right: '8px' }} />
-                                <div className="frame-bolt" style={{ bottom: '8px', left: '8px' }} />
-                                <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
-                                <div className="neon-strip left" />
-                                <div className="neon-strip right" />
+
 
                         <div className="mb-8">
                             <div className="flex items-center gap-2 mb-3">
