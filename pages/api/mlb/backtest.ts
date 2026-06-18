@@ -16,7 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .order('backtest_date', { ascending: false })
             .limit(14);
 
-        if (accErr) throw accErr;
+        if (accErr) {
+            console.error("Failed to fetch backtest_accuracy:", accErr);
+        }
 
         let statsData;
         let marketBreakdown;
