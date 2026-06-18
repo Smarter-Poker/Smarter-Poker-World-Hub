@@ -1,179 +1,214 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import Head from 'next/head';
 import Link from 'next/link';
-import { ArrowLeft, Activity, TrendingUp } from 'lucide-react';
+import useSWR from 'swr';
+import { ArrowLeft, Activity, SearchX, CalendarX, Loader2, Radio } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { logError } from '@/utils/logger';
 
-const Sparkline = ({ data }: { data: number[] }) => {
-    const max = Math.max(...data, 1);
-    const min = Math.min(...data, 0);
-    const range = max - min;
-    
+const fetcher = async (url: string) => {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return await res.json();
+    } catch (err) {
+        logError('SWR Fetch', err);
+        throw err;
+    }
+};
+
+const GameCard = ({ game }: any) => {
+    const isLive = game.status === 'Live' || game.status === 'In Progress';
+    const isFinal = game.status === 'Final' || game.status === 'Completed';
+    const isScheduled = game.status === 'Scheduled' || game.status === 'Preview';
+
+    const statusColor = isLive 
+        ? 'text-[#22C55E] drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]' 
+        : (isFinal ? 'text-slate-400' : 'text-[#00D4FF]');
+
     return (
-        <div className="flex items-end h-16 w-full gap-1 pt-4">
-            {data.map((value, i) => {
-                const heightPct = range === 0 ? 50 : ((value - min) / range) * 100;
-                return (
-                    <div 
-                        key={i} 
-                        className="flex-1 bg-[#00D4FF] opacity-80 rounded-t-sm"
-                        style={{ height: `${Math.max(5, heightPct)}%`, boxShadow: '0 0 8px rgba(0,212,255,0.4)', transition: 'height 0.3s ease' }}
-                    />
-                );
-            })}
+        <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all hover:border-[#00D4FF] group">
+            <div className="p-4 relative z-10">
+                <div className="flex justify-between items-start mb-3 border-b border-[#3d4f5f] pb-3">
+                    <div className="flex flex-col gap-2 w-full">
+                        <div className="flex justify-between items-center w-full">
+                            <span className="text-[14px] font-extrabold text-white tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                {game.away_team || game.away_team_name || 'Away'}
+                            </span>
+                            <span className="text-[16px] font-extrabold text-white">{game.away_score != null ? game.away_score : '-'}</span>
+                        </div>
+                        <div className="flex justify-between items-center w-full">
+                            <span className="text-[14px] font-extrabold text-white tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                {game.home_team || game.home_team_name || 'Home'}
+                            </span>
+                            <span className="text-[16px] font-extrabold text-white">{game.home_score != null ? game.home_score : '-'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="flex justify-between items-center bg-[#1a2332] p-2 rounded-sm border border-[#3d4f5f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                    <div className="flex gap-4 flex-wrap w-full items-center justify-between">
+                        <div className="flex flex-col">
+                            <span className={`text-[11px] font-extrabold uppercase tracking-widest flex items-center gap-1 ${statusColor}`}>
+                                {isLive && <Radio size={10} className="animate-pulse" />}
+                                {game.status || 'Scheduled'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Inning / Time</span>
+                            <span className="text-[11px] font-extrabold text-slate-300 tracking-wider">
+                                {isLive ? `${game.inning_state || ''} ${game.inning || ''}` : (isFinal ? 'F' : (game.start_time || 'TBD'))}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
 
 export default function TrackerPage() {
-    const [prob, setProb] = useState(55.2);
-    const [history, setHistory] = useState<number[]>(Array(20).fill(50));
-    
+    const [filter, setFilter] = useState('ALL');
+    const [todayStr, setTodayStr] = useState<string>('');
+
     useEffect(() => {
-        const interval = setInterval(() => {
-            setProb(prev => {
-                const change = (Math.random() - 0.5) * 4;
-                const next = Math.max(1, Math.min(99, prev + change));
-                setHistory(h => [...h.slice(1), next]);
-                return next;
-            });
-        }, 1500);
-        return () => clearInterval(interval);
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Chicago',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+        setTodayStr(formatter.format(new Date()));
     }, []);
+
+    // Fetch every 15 seconds for live updates
+    const { data, error, isLoading } = useSWR('/api/mlb/tracker', fetcher, {
+        refreshInterval: 15000,
+    });
+
+    if (error || data?.error) {
+        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
+        return (
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Error" description="Data fetch failed" />
+                <UniversalHeader pageDepth={2} />
+                <MlbSubNav />
+                <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load live data. Please try again later.</p>
+                    </div>
+                </main>
+                <BottomNavBar />
+            </div>
+        );
+    }
+
+    const games = data?.games || [];
+
+    const filteredGames = games.filter((g: any) => {
+        if (filter === 'ALL') return true;
+        const status = g.status?.toLowerCase() || '';
+        if (filter === 'LIVE' && (status === 'live' || status === 'in progress')) return true;
+        if (filter === 'UPCOMING' && (status === 'scheduled' || status === 'preview')) return true;
+        if (filter === 'FINAL' && (status === 'final' || status === 'completed')) return true;
+        return false;
+    });
+
+    const liveCount = games.filter((g: any) => g.status === 'Live' || g.status === 'In Progress').length;
+    const totalCount = games.length;
 
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
-            <SEOHead 
-                title="Live Tracker | MLB Analytics" 
-                description="Live Game Tracker and Probability updates." 
-                noIndex={true}
-            />
+           <SEOHead 
+               title="Live Tracker | MLB Analytics" 
+               description="Real-time MLB Game Tracking & Edge Updates."
+               noIndex={true}
+           />
 
-            <UniversalHeader pageDepth={2} />
-            <MlbSubNav />
+           <UniversalHeader pageDepth={2} />
+           <MlbSubNav />
 
-            <div className="p-4 w-full max-w-4xl mx-auto box-border pt-8">
-                <div className="flex items-center gap-3 mb-8">
-                    <Activity className="w-8 h-8 text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
-                    <h1 className="text-2xl font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                        Live <span className="text-[#FFD700]">Tracker</span>
-                    </h1>
-                </div>
+           <div className="bg-gradient-to-b from-[#0d1117] to-[#1a2332] border-b-[3px] border-[#3d4f5f] p-4 flex justify-between items-center shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+               <div>
+                  <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#22C55E] text-[10px] font-extrabold no-underline tracking-widest uppercase hover:text-white transition-colors">
+                     <ArrowLeft size={14} /> DASHBOARD
+                  </Link>
+                  <h1 className="m-0 mt-2 mb-0.5 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>Live <span className="text-[#22C55E]" style={{ textShadow: '0 0 10px rgba(34,197,94,0.4)' }}>Tracker</span></h1>
+                  <p className="m-0 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Real-Time Scoreboard • {todayStr || 'Loading...'}</p>
+               </div>
+               <div className="text-right bg-[#0a0a15] p-2 rounded-sm border border-[#3d4f5f] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] flex flex-col justify-center items-center">
+                  <Activity className={`w-6 h-6 mb-1 ${liveCount > 0 ? 'text-[#22C55E] drop-shadow-[0_0_5px_rgba(34,197,94,0.5)] animate-pulse' : 'text-slate-500'}`} />
+                  <div className={`text-[10px] font-extrabold tracking-widest uppercase ${liveCount > 0 ? 'text-[#22C55E]' : 'text-slate-500'}`}>
+                      {liveCount > 0 ? 'GAMES LIVE' : 'NO GAMES LIVE'}
+                  </div>
+               </div>
+           </div>
 
-                <style dangerouslySetInnerHTML={{__html: `
-                    .metal-frame {
-                        position: relative;
-                        background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
-                        border: 2px solid #3d4f5f;
-                        border-radius: 12px;
-                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.5);
-                        padding: 24px;
-                    }
-                    .frame-bolt {
-                        position: absolute;
-                        width: 12px;
-                        height: 12px;
-                        background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
-                        border-radius: 50%;
-                        border: 1px solid #2a3a4a;
-                        box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
-                    }
-                    .frame-bolt::after {
-                        content: '+';
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        font-size: 8px;
-                        color: #1a2a3a;
-                    }
-                    .neon-strip {
-                        position: absolute;
-                        width: 4px;
-                        top: 20%;
-                        bottom: 20%;
-                        background: #00D4FF;
-                        box-shadow: 0 0 10px #00D4FF, 0 0 20px rgba(0, 212, 255, 0.6);
-                        border-radius: 2px;
-                    }
-                    .neon-strip.left { left: 4px; }
-                    .neon-strip.right { right: 4px; }
-                `}} />
+           <div className="p-4 w-full max-w-2xl mx-auto box-border relative">
+               {/* Background Glows */}
+               <div className="absolute top-10 right-10 w-64 h-64 bg-[#22C55E] rounded-full mix-blend-screen filter blur-[100px] opacity-[0.03] pointer-events-none"></div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="metal-frame">
-                        <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
-                        <div className="frame-bolt" style={{ top: '8px', right: '8px' }} />
-                        <div className="frame-bolt" style={{ bottom: '8px', left: '8px' }} />
-                        <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
-                        <div className="neon-strip left" />
-                        
-                        <div className="flex justify-between items-center border-b border-[#3d4f5f] pb-4 mb-4">
-                            <div className="text-center">
-                                <div className="text-xs text-slate-400 font-bold tracking-widest uppercase mb-1">Away</div>
-                                <div className="text-3xl font-extrabold text-white" style={{ fontFamily: '"Orbitron", sans-serif' }}>NYY</div>
-                                <div className="text-sm text-[#FFD700] font-bold mt-1">4</div>
-                            </div>
-                            <div className="text-center px-4">
-                                <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-2">Top 7th</div>
-                                <div className="flex gap-1 justify-center mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#FFD700] shadow-[0_0_8px_rgba(255,215,0,0.8)]"></div>
-                                    <div className="w-3 h-3 rounded-full border border-[#FFD700]"></div>
-                                    <div className="w-3 h-3 rounded-full border border-[#FFD700]"></div>
-                                </div>
-                                <div className="text-xs text-slate-300 font-mono tracking-widest">2 OUTS</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xs text-slate-400 font-bold tracking-widest uppercase mb-1">Home</div>
-                                <div className="text-3xl font-extrabold text-white" style={{ fontFamily: '"Orbitron", sans-serif' }}>BOS</div>
-                                <div className="text-sm text-slate-300 font-bold mt-1">3</div>
-                            </div>
-                        </div>
+               <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                   <style dangerouslySetInnerHTML={{__html: `div::-webkit-scrollbar { display: none; }`}} />
+                   {['ALL', 'LIVE', 'UPCOMING', 'FINAL'].map(f => (
+                       <button 
+                           key={f}
+                           onClick={() => {
+                               setFilter(f);
+                               if(navigator.vibrate) try { navigator.vibrate(15); } catch(e){}
+                           }}
+                           className={`px-5 py-2 rounded-sm border-[2px] text-[10px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase ${
+                               filter === f 
+                               ? 'bg-[#1a2332] text-[#22C55E] border-[#22C55E] shadow-[0_0_10px_rgba(34,197,94,0.3)]' 
+                               : 'bg-[#0d1117] text-slate-400 border-[#3d4f5f] hover:border-[#5a6a7a] hover:text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
+                           }`}
+                       >
+                           {f}
+                       </button>
+                   ))}
+               </div>
 
-                        <div className="bg-[#0a0a15] rounded-lg p-4 border border-[#1a2332] shadow-inner">
-                            <div className="flex justify-between items-end mb-2">
-                                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">NYY Win Probability</div>
-                                <div className="text-2xl font-bold text-[#00D4FF] drop-shadow-[0_0_8px_rgba(0,212,255,0.6)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                    {prob.toFixed(1)}%
-                                </div>
-                            </div>
-                            <Sparkline data={history} />
-                        </div>
-                    </div>
+               {isLoading && !data ? (
+                   <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                       <Loader2 className="w-10 h-10 animate-spin text-[#22C55E] mx-auto mb-4" />
+                       <div className="text-[13px] font-extrabold text-[#22C55E] tracking-widest uppercase animate-pulse">CONNECTING TO FEED...</div>
+                   </div>
+               ) : filteredGames.length === 0 ? (
+                   <div className="text-center py-16 px-5 bg-[#0d1117] border-[3px] border-dashed border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                       <div className="mb-4 text-[#3d4f5f] flex justify-center drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                           <SearchX size={48} />
+                       </div>
+                       <div className="text-[15px] font-extrabold text-white mb-2 uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                           {filter === 'ALL' ? "No Games Scheduled Today." : `No ${filter} Games Found.`}
+                       </div>
+                   </div>
+               ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       {filteredGames.map((game: any, idx: number) => (
+                           <GameCard 
+                               key={`game-${idx}`} 
+                               game={game} 
+                           />
+                       ))}
+                   </div>
+               )}
 
-                    <div className="flex flex-col gap-6">
-                        <div className="metal-frame" style={{ padding: '16px' }}>
-                            <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
-                            <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
-                            <div className="text-xs text-slate-400 font-bold tracking-widest uppercase mb-2">Live Edge Calc</div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-lg font-bold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>NYY -1.5</span>
-                                <div className="flex items-center gap-2 text-[#00FF00] drop-shadow-[0_0_8px_rgba(0,255,0,0.4)]">
-                                    <TrendingUp size={20} />
-                                    <span className="font-bold text-xl" style={{ fontFamily: '"Orbitron", sans-serif' }}>+4.2% EV</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="metal-frame" style={{ padding: '16px' }}>
-                            <div className="frame-bolt" style={{ top: '8px', right: '8px' }} />
-                            <div className="frame-bolt" style={{ bottom: '8px', left: '8px' }} />
-                            <div className="text-xs text-slate-400 font-bold tracking-widest uppercase mb-2">Pitcher Fatigue</div>
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-bold text-slate-300">G. Cole (NYY)</span>
-                                <span className="text-sm font-bold text-[#FF00FF]">94 Pitches</span>
-                            </div>
-                            <div className="w-full h-2 bg-[#0a0a15] rounded-full overflow-hidden">
-                                <div className="h-full bg-[#FF00FF] shadow-[0_0_8px_#FF00FF] w-[85%]"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <BottomNavBar />
+               <div className="mt-8 mb-4 p-4 bg-[#1a2332] border border-[#3d4f5f] rounded-sm text-[10px] font-bold tracking-wide text-slate-400 text-center leading-relaxed shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                   <strong className="text-[#22C55E]">Live Updates Every 15 Seconds.</strong> 
+                   <br/>
+                   <span className="uppercase text-slate-300">Data Feed</span> provided by MLB Stats API via Supabase `fct_games`.
+               </div>
+           </div>
+           
+           <BottomNavBar />
         </div>
     );
 }

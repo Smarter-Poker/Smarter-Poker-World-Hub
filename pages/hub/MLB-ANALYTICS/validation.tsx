@@ -294,7 +294,7 @@ export default function ValidationPage() {
                        {/* Data Table Fallback */}
                        <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden mb-4 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                            <div className="overflow-x-auto">
-                               <div className="min-w-[400px]">
+                               <div className="w-full min-w-[320px]">
                                    <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 border-b-2 border-[#3d4f5f] bg-[#1a2332] text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                        <div>EDGE THRESHOLD</div>
                                        <div className="text-right">BETS</div>
