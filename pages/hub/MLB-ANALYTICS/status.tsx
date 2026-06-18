@@ -6,8 +6,9 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export async function getServerSideProps() {
+export async function getServerSideProps({ res }) {
     try {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         const mlbDb = getMlbSupabase();
         
         // Compute 'today' in America/Chicago
@@ -23,13 +24,30 @@ export async function getServerSideProps() {
         const yesterdayDate = new Date();
         yesterdayDate.setHours(yesterdayDate.getHours() - 24);
         const last24hIso = yesterdayDate.toISOString();
-        
-        // 1. Pipeline Runs
-        const { data: pipelineData } = await mlbDb.from('pipeline_runs')
-            .select('*')
-            .order('run_at', { ascending: false })
-            .limit(100);
-            
+
+        // Parallelize all DB queries
+        const [
+            { data: pipelineData },
+            { data: latestPred },
+            { count: marketBetsCount },
+            { count: propsCount },
+            { count: bestBetsCount },
+            { count: sizeMarket },
+            { count: sizeProps },
+            { count: sizeFactGames },
+            { count: sizeOdds }
+        ] = await Promise.all([
+            mlbDb.from('pipeline_runs').select('*').order('run_at', { ascending: false }).limit(100),
+            mlbDb.from('pred_market_output').select('as_of_ts').order('as_of_ts', { ascending: false }).limit(1),
+            mlbDb.from('pred_market_output').select('*', { count: 'exact', head: true }).gte('as_of_ts', last24hIso),
+            mlbDb.from('pred_props').select('*', { count: 'exact', head: true }).gte('as_of_ts', last24hIso),
+            mlbDb.from('pred_best_bets').select('*', { count: 'exact', head: true }).eq('official_date', todayStr),
+            mlbDb.from('pred_market_output').select('*', { count: 'exact', head: true }),
+            mlbDb.from('pred_props').select('*', { count: 'estimated', head: true }),
+            mlbDb.from('fact_games').select('*', { count: 'estimated', head: true }),
+            mlbDb.from('raw_odds').select('*', { count: 'estimated', head: true })
+        ]);
+
         const latestRuns: any = {};
         const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
         let hasError = false;
@@ -46,10 +64,6 @@ export async function getServerSideProps() {
         }
         
         // 2. Freshness
-        const { data: latestPred } = await mlbDb.from('pred_market_output')
-            .select('as_of_ts')
-            .order('as_of_ts', { ascending: false })
-            .limit(1);
         let aggMarketAsOf = latestPred?.[0]?.as_of_ts || null;
         let marketDateStr: string | null = null;
         if (aggMarketAsOf && aggMarketAsOf.includes('T')) {
@@ -57,21 +71,9 @@ export async function getServerSideProps() {
         }
 
         // Determine System Freshness
-        // System is STALE if market data is older than today or yesterday, OR if there's a recent pipeline error.
         const yesterdayStr = formatter.format(yesterdayDate);
         const isDateStale = marketDateStr && marketDateStr < yesterdayStr;
         const isSystemFresh = !hasError && !isDateStale;
-        
-        // 3. Predictions
-        const { count: marketBetsCount } = await mlbDb.from('pred_market_output').select('*', { count: 'exact', head: true }).gte('as_of_ts', last24hIso);
-        const { count: propsCount } = await mlbDb.from('pred_props').select('*', { count: 'exact', head: true }).gte('as_of_ts', last24hIso);
-        const { count: bestBetsCount } = await mlbDb.from('pred_best_bets').select('*', { count: 'exact', head: true }).eq('official_date', todayStr);
-        
-        // 4. Table Sizes - Use ESTIMATED to prevent SSR timeout on large tables
-        const { count: sizeMarket } = await mlbDb.from('pred_market_output').select('*', { count: 'exact', head: true });
-        const { count: sizeProps } = await mlbDb.from('pred_props').select('*', { count: 'estimated', head: true });
-        const { count: sizeFactGames } = await mlbDb.from('fact_games').select('*', { count: 'estimated', head: true });
-        const { count: sizeOdds } = await mlbDb.from('raw_odds').select('*', { count: 'estimated', head: true });
         
         return {
             props: {
@@ -112,8 +114,9 @@ export default function StatusPage({
         if (!dateString) return '';
         const now = new Date();
         const past = new Date(dateString);
+        if (isNaN(past.getTime())) return '';
         const diffMs = now.getTime() - past.getTime();
-        const diffMins = Math.round(diffMs / 60000);
+        const diffMins = Math.max(0, Math.round(diffMs / 60000));
         if (diffMins < 60) return `${diffMins}M AGO`;
         const diffHrs = Math.round(diffMins / 60);
         if (diffHrs < 24) return `${diffHrs}H AGO`;
@@ -184,7 +187,7 @@ export default function StatusPage({
                 {/* TODAY'S PREDICTIONS */}
                 <div style={{ marginBottom: 24 }}>
                     <h2 style={{ fontSize: 11, fontWeight: 800, color: '#64748B', letterSpacing: 1, marginBottom: 12 }}>TODAY'S PREDICTIONS (LAST 24H)</h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8 }}>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px' }}>
                             <div style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', letterSpacing: 1 }}>MARKET BETS</div>
                             <div style={{ fontSize: 20, fontWeight: 800, color: '#2563EB', marginTop: 4 }}>{marketBetsCount?.toLocaleString() || 0}</div>

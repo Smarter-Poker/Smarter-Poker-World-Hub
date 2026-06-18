@@ -7,8 +7,9 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export async function getServerSideProps() {
+export async function getServerSideProps({ res }: any) {
     try {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         const mlbDb = getMlbSupabase();
         
         // Compute 'today' in America/Chicago
@@ -68,16 +69,16 @@ export async function getServerSideProps() {
     }
 }
 
-const BetCard = ({ bet, isExpanded, onToggle }) => {
+const BetCard = ({ bet, isExpanded, onToggle }: any) => {
     // Correct odds formatting for all types (+125, -110, "+125")
-    const formatOdds = (o) => {
+    const formatOdds = (o: any) => {
         if (!o) return '';
         const num = Number(o);
         if (isNaN(num)) return o; // already formatted string
         return num > 0 ? `+${num}` : `${num}`;
     };
     
-    const tierColor = bet.bet_tier === 'ELITE' ? '#10B981' : (bet.bet_tier === 'STRONG' ? '#3B82F6' : '#F59E0B');
+    const tierColorClass = bet.bet_tier === 'ELITE' ? 'text-emerald-500' : (bet.bet_tier === 'STRONG' ? 'text-blue-500' : 'text-amber-500');
     
     // Formatting line safely - only add '+' for run lines/spreads
     let lineStr = '';
@@ -94,61 +95,61 @@ const BetCard = ({ bet, isExpanded, onToggle }) => {
     }
 
     return (
-        <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '12px', cursor: 'pointer', touchAction: 'manipulation' }} onClick={onToggle}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <div style={{ flex: 1, paddingRight: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginBottom: 2 }}>{bet.matchup}</div>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+            <div className="p-3 cursor-pointer touch-manipulation" onClick={onToggle}>
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1 pr-2">
+                        <div className="text-[11px] font-bold text-slate-500 mb-0.5">{bet.matchup}</div>
+                        <div className="text-[15px] font-extrabold text-slate-900 leading-tight">
                             {bet.selection} {lineStr}
                         </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: tierColor }}>{bet.bet_score}</div>
-                        <div style={{ fontSize: 10, fontWeight: 800, color: tierColor, letterSpacing: 1 }}>{bet.bet_tier}</div>
+                    <div className="text-right flex-shrink-0">
+                        <div className={`text-base font-extrabold ${tierColorClass}`}>{bet.bet_score}</div>
+                        <div className={`text-[10px] font-extrabold tracking-widest ${tierColorClass}`}>{bet.bet_tier}</div>
                     </div>
                 </div>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div className="flex justify-between items-center">
+                    <div className="flex gap-3 flex-wrap">
                         <div>
-                            <span style={{ fontSize: 10, color: '#64748B' }}>Odds: </span>
-                            <span style={{ fontSize: 12, fontWeight: 700 }}>{formatOdds(bet.best_price)}</span>
-                            <span style={{ fontSize: 10, color: '#94A3B8', marginLeft: 4 }}>({bet.best_book})</span>
+                            <span className="text-[10px] text-slate-500">Odds: </span>
+                            <span className="text-xs font-bold">{formatOdds(bet.best_price)}</span>
+                            <span className="text-[10px] text-slate-400 ml-1">({bet.best_book})</span>
                         </div>
                         <div>
-                            <span style={{ fontSize: 10, color: '#64748B' }}>Win: </span>
-                            <span style={{ fontSize: 12, fontWeight: 700 }}>{bet.win_confidence?.toFixed(1)}%</span>
+                            <span className="text-[10px] text-slate-500">Win: </span>
+                            <span className="text-xs font-bold">{bet.win_confidence?.toFixed(1)}%</span>
                         </div>
                         {bet.ev_pct !== null && bet.ev_pct !== undefined && (
                             <div>
-                                <span style={{ fontSize: 10, color: '#64748B' }}>EV: </span>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: Number(bet.ev_pct) > 0 ? '#10B981' : '#0F172A' }}>
+                                <span className="text-[10px] text-slate-500">EV: </span>
+                                <span className={`text-xs font-bold ${Number(bet.ev_pct) > 0 ? 'text-emerald-500' : 'text-slate-900'}`}>
                                     {Number(bet.ev_pct) > 0 ? '+' : ''}{Number(bet.ev_pct).toFixed(1)}%
                                 </span>
                             </div>
                         )}
                     </div>
-                    <div style={{ color: '#94A3B8', paddingLeft: 8 }}>
+                    <div className="text-slate-400 pl-2">
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                 </div>
             </div>
 
             {isExpanded && bet.score_factors && (
-                <div style={{ padding: '12px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>
+                <div className="p-3 bg-slate-50 border-t border-slate-200">
+                    <div className="text-xs font-bold text-slate-900 mb-2">
                         {bet.score_verdict || "Analysis"}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {bet.score_factors.map((factor, i) => (
-                            <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                                <div style={{ marginTop: 2, flexShrink: 0 }}>
-                                    {factor.dir === 'up' && <TrendingUp size={12} color="#10B981" />}
-                                    {factor.dir === 'down' && <TrendingDown size={12} color="#EF4444" />}
-                                    {factor.dir === 'info' && <Info size={12} color="#3B82F6" />}
+                    <div className="flex flex-col gap-1.5">
+                        {bet.score_factors.map((factor: any, i: number) => (
+                            <div key={i} className="flex gap-1.5 items-start">
+                                <div className="mt-0.5 flex-shrink-0">
+                                    {factor.dir === 'up' && <TrendingUp size={12} className="text-emerald-500" />}
+                                    {factor.dir === 'down' && <TrendingDown size={12} className="text-red-500" />}
+                                    {factor.dir === 'info' && <Info size={12} className="text-blue-500" />}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.4 }}>
+                                <div className="text-[11px] text-slate-600 leading-snug">
                                     {factor.text}
                                 </div>
                             </div>
@@ -180,77 +181,58 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
     });
 
     return (
-        <div style={{ 
-            minHeight: '100vh', 
-            background: '#F8FAFC', 
-            color: '#0F172A', 
-            paddingBottom: 70, // Required clearance for BottomNavBar 
-            fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
-            width: '100%',
-            maxWidth: '100vw',
-            overflowX: 'hidden',
-            boxSizing: 'border-box'
-        }}>
+        <div className="min-h-screen bg-slate-50 text-slate-900 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
                title="Best Bets | MLB Analytics" 
                description="Daily MLB betting edges surfaced by AI models."
-               noIndex={true} // Hidden from public search to protect proprietary edges
+               noIndex={true}
            />
 
            <UniversalHeader pageDepth={2} />
 
-           <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+           <div className="bg-white border-b border-slate-200 p-4 flex justify-between items-center">
                <div>
-                  <Link href="/hub/MLB-ANALYTICS" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#2563EB', fontSize: 12, fontWeight: 700, textDecoration: 'none', letterSpacing: 1 }}>
+                  <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-blue-600 text-xs font-bold no-underline tracking-widest">
                      <ArrowLeft size={14} /> DASHBOARD
                   </Link>
-                  <h1 style={{ margin: '8px 0 2px', fontSize: 24, fontWeight: 800 }}>Best <span style={{ color: '#2563EB' }}>Bets</span></h1>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Ranked By Bet Score • {officialDate || todayStr}</p>
+                  <h1 className="m-0 mt-2 mb-0.5 text-2xl font-extrabold">Best <span className="text-blue-600">Bets</span></h1>
+                  <p className="m-0 text-xs text-slate-500">Ranked By Bet Score • {officialDate || todayStr}</p>
                </div>
-               <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#2563EB', fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>MLB EDGE</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', marginTop: 4 }}>SCORE 0–100</div>
-                  <div style={{ fontSize: 9, color: '#94A3B8' }}>value + confidence</div>
+               <div className="text-right">
+                  <div className="text-blue-600 text-[11px] font-extrabold tracking-widest">MLB EDGE</div>
+                  <div className="text-[10px] font-bold text-slate-500 mt-1">SCORE 0–100</div>
+                  <div className="text-[9px] text-slate-400">value + confidence</div>
                </div>
            </div>
 
-           <div style={{ padding: '16px', width: '100%', maxWidth: 680, margin: '0 auto', boxSizing: 'border-box' }}>
+           <div className="p-4 w-full max-w-2xl mx-auto box-border">
                {isStale && (
-                   <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-                       <div style={{ color: '#D97706', fontSize: 13, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>STALE SLATE — NOT ACTIONABLE</div>
-                       <div style={{ color: '#D97706', fontSize: 12, lineHeight: 1.4 }}>These picks are from {officialDate || "a previous date"}, not today ({todayStr}). Bets are hidden until today's lines post.</div>
+                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                       <div className="text-amber-600 text-[13px] font-extrabold tracking-widest mb-1">STALE SLATE — NOT ACTIONABLE</div>
+                       <div className="text-amber-600 text-xs leading-snug">These picks are from {officialDate || "a previous date"}, not today ({todayStr}). Bets are hidden until today's lines post.</div>
                    </div>
                )}
 
-               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
-                  <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 4px', textAlign: 'center' }}>
-                     <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', letterSpacing: 1 }}>BETS</div>
-                     <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>{totalBets}</div>
+               <div className="grid grid-cols-4 gap-2 mb-4 metric-grid">
+                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
+                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">BETS</div>
+                     <div className="text-xl font-extrabold text-slate-900 mt-1">{totalBets}</div>
                   </div>
-                  <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 4px', textAlign: 'center' }}>
-                     <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', letterSpacing: 1 }}>ELITE</div>
-                     <div style={{ fontSize: 20, fontWeight: 800, color: '#10B981', marginTop: 4 }}>{eliteBets}</div>
+                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
+                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">ELITE</div>
+                     <div className="text-xl font-extrabold text-emerald-500 mt-1">{eliteBets}</div>
                   </div>
-                  <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 4px', textAlign: 'center' }}>
-                     <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', letterSpacing: 1 }}>TOP SCORE</div>
-                     <div style={{ fontSize: 20, fontWeight: 800, color: '#10B981', marginTop: 4 }}>{topScore}</div>
+                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
+                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">TOP SCORE</div>
+                     <div className="text-xl font-extrabold text-emerald-500 mt-1">{topScore}</div>
                   </div>
-                  <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 4px', textAlign: 'center' }}>
-                     <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', letterSpacing: 1 }}>TOP LOCK</div>
-                     <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>{topLock.toFixed(0)}%</div>
+                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
+                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">TOP LOCK</div>
+                     <div className="text-xl font-extrabold text-slate-900 mt-1">{topLock.toFixed(0)}%</div>
                   </div>
                </div>
 
-               <div style={{ 
-                   display: 'flex', 
-                   gap: 8, 
-                   overflowX: 'auto', 
-                   paddingBottom: 8, 
-                   marginBottom: 16, 
-                   WebkitOverflowScrolling: 'touch',
-                   msOverflowStyle: 'none', 
-                   scrollbarWidth: 'none' 
-               }}>
+               <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                    <style dangerouslySetInnerHTML={{__html: `div::-webkit-scrollbar { display: none; }`}} />
                    {['ALL', 'ML', 'TOTAL', 'RUN LINE', 'PROPS'].map(f => (
                        <button 
@@ -259,19 +241,11 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
                                setFilter(f);
                                if(navigator.vibrate) try { navigator.vibrate(15); } catch(e){}
                            }}
-                           style={{
-                               padding: '8px 16px', 
-                               borderRadius: 20, 
-                               border: '1px solid #E2E8F0', 
-                               fontSize: 12, 
-                               fontWeight: 700, 
-                               whiteSpace: 'nowrap', 
-                               cursor: 'pointer',
-                               touchAction: 'manipulation',
-                               background: filter === f ? '#DBEAFE' : '#fff',
-                               color: filter === f ? '#2563EB' : '#64748B',
-                               borderColor: filter === f ? '#BFDBFE' : '#E2E8F0'
-                           }}
+                           className={`px-4 py-2 rounded-full border text-xs font-bold whitespace-nowrap cursor-pointer touch-manipulation transition-colors ${
+                               filter === f 
+                               ? 'bg-blue-100 text-blue-600 border-blue-200' 
+                               : 'bg-white text-slate-500 border-slate-200'
+                           }`}
                        >
                            {f}
                        </button>
@@ -279,20 +253,20 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
                </div>
 
                {isStale || filteredBets.length === 0 ? (
-                   <div style={{ textAlign: 'center', padding: '48px 20px', background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8 }}>
-                       <div style={{ marginBottom: 12, color: '#94A3B8', display: 'flex', justifyContent: 'center' }}>
+                   <div className="text-center py-12 px-5 bg-white border border-slate-200 rounded-lg">
+                       <div className="mb-3 text-slate-400 flex justify-center">
                            {isStale || (filteredBets.length === 0 && filter === 'ALL') ? <CalendarX size={32} /> : <SearchX size={32} />}
                        </div>
-                       <div style={{ fontSize: 15, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
+                       <div className="text-[15px] font-bold text-slate-700 mb-2">
                            {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "No qualifying bets for today." : "No bets found for this filter."}
                        </div>
-                       <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
+                       <div className="text-[13px] text-slate-500 leading-relaxed">
                            {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "Model is respecting the market." : "Try selecting a different bet type."}
                            <br />Edges surface when the model sees meaningful divergence from the closing line.
                        </div>
                    </div>
                ) : (
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                   <div className="flex flex-col gap-3">
                        {filteredBets.map((bet: any, idx: number) => (
                            <BetCard 
                                key={`${bet.game_pk}-${bet.selection}-${idx}`} 
@@ -307,7 +281,7 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
                    </div>
                )}
 
-               <div style={{ marginTop: 32, fontSize: 11, color: '#94A3B8', textAlign: 'center', lineHeight: 1.6, padding: '0 16px' }}>
+               <div className="mt-8 text-[11px] text-slate-400 text-center leading-relaxed px-4">
                    Analysis only — not betting advice. <strong>Bet Score</strong> (0–100) ranks VALUE (expected return + confidence). <strong>Top Lock</strong> = most likely to win regardless of price. <strong>EV%</strong> = expected return per $1. Stake = ¼-Kelly. An edge is no guarantee.
                </div>
            </div>

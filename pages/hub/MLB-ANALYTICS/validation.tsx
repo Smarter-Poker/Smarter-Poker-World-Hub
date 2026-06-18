@@ -7,8 +7,12 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
-export async function getServerSideProps() {
+export async function getServerSideProps({ res }: any) {
     try {
+        if (res) {
+            res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        }
+
         const mlbDb = getMlbSupabase();
         
         // Fetch all graded outcomes
@@ -173,7 +177,7 @@ export default function ValidationPage({ stats }: any) {
                        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748B', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>
                            ENGINE'S FLAGGED BETS (BET-RATED) · {stats.flagged.count} GRADED
                        </div>
-                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 24 }}>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
                            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '16px' }}>
                                <div style={{ fontSize: 10, fontWeight: 800, color: '#64748B', letterSpacing: 1, marginBottom: 4 }}>WIN RATE</div>
                                <div style={{ fontSize: 24, fontWeight: 800, color: '#10B981' }}>
@@ -201,7 +205,7 @@ export default function ValidationPage({ stats }: any) {
                        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748B', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>
                            ALL GRADED OUTCOMES · {stats.all.count}
                        </div>
-                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
                            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '16px' }}>
                                <div style={{ fontSize: 10, fontWeight: 800, color: '#64748B', letterSpacing: 1, marginBottom: 4 }}>MODEL BRIER</div>
                                <div style={{ fontSize: 24, fontWeight: 800, color: '#10B981' }}>

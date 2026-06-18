@@ -8,8 +8,9 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export async function getServerSideProps() {
+export async function getServerSideProps({ res }: any) {
     try {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         const mlbDb = getMlbSupabase();
         
         // Formatter for 'today' in US Central Time (America/Chicago)
@@ -21,20 +22,13 @@ export async function getServerSideProps() {
         });
         const todayStr = formatter.format(new Date());
 
-        // Fetch top bets for today
-        const { data: topBets, error: betsErr } = await mlbDb
-            .from('pred_best_bets')
-            .select('*')
-            .eq('official_date', todayStr)
-            .order('rank', { ascending: true })
-            .limit(3);
-
-        // Fetch pipeline run status to show data freshness
-        const { data: pipelineData } = await mlbDb
-            .from('pipeline_runs')
-            .select('*')
-            .order('run_at', { ascending: false })
-            .limit(1);
+        const [
+            { data: topBets, error: betsErr },
+            { data: pipelineData, error: pipelineErr }
+        ] = await Promise.all([
+            mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
+            mlbDb.from('pipeline_runs').select('*').order('run_at', { ascending: false }).limit(1)
+        ]);
 
         const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].run_at : null;
 

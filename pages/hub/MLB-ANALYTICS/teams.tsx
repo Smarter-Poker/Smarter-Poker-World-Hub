@@ -26,8 +26,12 @@ interface TeamsPageProps {
     todayStr: string;
 }
 
-export async function getServerSideProps() {
+export async function getServerSideProps({ res }: any) {
     try {
+        if (res) {
+            res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        }
+        
         const mlbDb = getMlbSupabase();
         
         // Compute 'today' in America/Chicago

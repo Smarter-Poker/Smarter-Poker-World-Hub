@@ -7,28 +7,28 @@ import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
 export async function getServerSideProps({ res }: any) {
     try {
-        // Cache the page for 5 minutes, allowing stale serving up to 10 mins while revalidating
-        res.setHeader(
-            'Cache-Control',
-            'public, s-maxage=300, stale-while-revalidate=600'
-        );
+        if (res) {
+            res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        }
 
         const mlbDb = getMlbSupabase();
 
-        // 1. Fetch Daily Accuracy (Last 14 days)
-        const { data: accuracyData, error: accErr } = await mlbDb
-            .from('backtest_accuracy')
-            .select('*')
-            .order('backtest_date', { ascending: false })
-            .limit(14);
+        // 1. Fetch Daily Accuracy and Market Output Count in parallel
+        const [
+            { data: accuracyData, error: accErr },
+            { count, error: countErr }
+        ] = await Promise.all([
+            mlbDb
+                .from('backtest_accuracy')
+                .select('*')
+                .order('backtest_date', { ascending: false })
+                .limit(14),
+            mlbDb
+                .from('backtest_market_output')
+                .select('*', { count: 'exact', head: true })
+        ]);
             
         if (accErr) throw accErr;
-
-        // 2. Fetch all Market Output (parallel pagination for performance)
-        const { count, error: countErr } = await mlbDb
-            .from('backtest_market_output')
-            .select('*', { count: 'exact', head: true });
-            
         if (countErr) throw countErr;
 
         let allMarketRows: any[] = [];
@@ -207,7 +207,7 @@ export default function BacktestPage({ dailyTrend, marketBreakdown, stats }: any
                </div>
 
                {/* Top Metric Cards */}
-               <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                    <div style={{ background: '#1E293B', borderRadius: 8, padding: 16 }}>
                        <div style={{ fontSize: 10, fontWeight: 800, color: '#64748B', letterSpacing: 1, marginBottom: 8 }}>TOTAL PREDICTIONS</div>
                        <div style={{ fontSize: 24, fontWeight: 800, color: '#F8FAFC' }}>{formatNum(stats.totalPredictions)}</div>
@@ -325,17 +325,7 @@ export default function BacktestPage({ dailyTrend, marketBreakdown, stats }: any
 
            </div>
            
-           <style>{`
-             .title-placeholder {
-                 /* Deprecated, logic handled inline */
-             }
-             
-             @media (max-width: 768px) {
-                .metric-grid {
-                    grid-template-columns: repeat(2, 1fr) !important;
-                }
-             }
-           `}</style>
+           {/* Styles cleaned up */}
            
            <BottomNavBar />
         </div>
