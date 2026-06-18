@@ -101,7 +101,7 @@ const PlayerCard = ({ player, type }) => {
     );
 };
 
-export default function PlayersPage({ hitters = [], pitchers = [] }) {
+export default function PlayersPage({ hitters = [], pitchers = [] }: any) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('Regular Hitters');
 

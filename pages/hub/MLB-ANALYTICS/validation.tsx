@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -84,9 +84,9 @@ export async function getServerSideProps() {
             '7-10 pts': { n: 0, wins: 0, profit: 0 },
         };
         
-        flagged.forEach(r => {
+        flagged.forEach((r: any) => {
             const e = r.edge_pts || 0;
-            let b = null;
+            let b: string | null = null;
             if (e >= 10) b = '10+ pts';
             else if (e >= 7 && e < 10) b = '7-10 pts';
             else if (e >= 5 && e < 7) b = '5-7 pts';
@@ -131,7 +131,7 @@ export async function getServerSideProps() {
     }
 }
 
-export default function ValidationPage({ stats }) {
+export default function ValidationPage({ stats }: any) {
     return (
         <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#0F172A', paddingBottom: 70, fontFamily: "var(--font-inter), sans-serif", width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
            <SEOHead 

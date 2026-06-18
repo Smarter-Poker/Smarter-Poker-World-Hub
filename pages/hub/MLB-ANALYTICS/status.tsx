@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React from 'react';
 import Head from 'next/head';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
