@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -105,7 +105,7 @@ export default function StatusPage({
     bestBetsCount, 
     latestRuns, 
     sizes 
-}: StatusPageProps) {
+}: any) {
     const [refreshing, setRefreshing] = useState(false);
 
     const timeAgo = (dateString: string) => {

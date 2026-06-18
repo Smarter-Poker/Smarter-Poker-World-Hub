@@ -294,6 +294,17 @@ const nextConfig = {
     ],
   },
 
+  // ─── Output File Tracing — INCLUDE linux-x64 binaries for transcode cron ──
+  // transcode-videos.js imports @ffmpeg-installer/linux-x64 and
+  // @ffprobe-installer/linux-x64 DIRECTLY. nft traces only those packages
+  // (~50 MB each) instead of the parent wrapper that pulls all 8 platform
+  // binaries (~670 MB total).
+  outputFileTracingIncludes: {
+    'pages/api/cron/transcode-videos': [
+      'node_modules/@ffmpeg-installer/linux-x64/**/*',
+      'node_modules/@ffprobe-installer/linux-x64/**/*',
+    ],
+  },
   experimental: {
     // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
     // NOTE: cpus is a webpack-specific option; Turbopack ignores it harmlessly.
@@ -302,18 +313,6 @@ const nextConfig = {
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
-
-    // ─── Output File Tracing — INCLUDE linux-x64 binaries for transcode cron ──
-    // transcode-videos.js imports @ffmpeg-installer/linux-x64 and
-    // @ffprobe-installer/linux-x64 DIRECTLY. nft traces only those packages
-    // (~50 MB each) instead of the parent wrapper that pulls all 8 platform
-    // binaries (~670 MB total).
-    outputFileTracingIncludes: {
-      'pages/api/cron/transcode-videos': [
-        'node_modules/@ffmpeg-installer/linux-x64/**/*',
-        'node_modules/@ffprobe-installer/linux-x64/**/*',
-      ],
-    },
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
