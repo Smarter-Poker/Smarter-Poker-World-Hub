@@ -8,8 +8,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        const { days, market } = req.query;
+        const parsedDays = days ? parseInt(days as string, 10) : undefined;
+        const parsedMarket = market ? market as string : undefined;
+
         const mlbDb = getMlbSupabase();
-        const stats = await fetchPortfolioStats(mlbDb);
+        const stats = await fetchPortfolioStats(mlbDb, parsedDays, parsedMarket);
 
         res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         return res.status(200).json(stats);

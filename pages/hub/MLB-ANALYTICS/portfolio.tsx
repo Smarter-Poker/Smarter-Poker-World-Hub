@@ -72,56 +72,33 @@ interface PortfolioPageProps {
     recentBets: SimBet[];
 }
 
-export async function getServerSideProps({ res }) {
-    try {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        const mlbDb = getMlbSupabase();
-        const stats = await fetchPortfolioStats(mlbDb);
-
-        return {
-            props: {
-                fallbackData: stats
-            }
-        };
-    } catch (err) {
-        console.error('Error fetching sim_bets:', err);
-        return { 
-            props: { 
-                fallbackData: {
-                    totalBets: 0, wins: 0, losses: 0, pushes: 0, totalPnl: 0, currentBankroll: 1000, 
-                    roi: 0, peakBankroll: 1000, maxDrawdown: 0, winRate: 0, weeklyCurve: [], recentBets: [] 
-                }
-            } 
-        };
-    }
-}
 
 interface MetricBoxProps {
     title: string;
     value: string | number;
     sub?: string;
     valueColor?: string;
+    isLoading?: boolean;
 }
 
-const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF' }: MetricBoxProps) => (
+const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
     <div style={{ background: '#131420', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }}>
         <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' }}>{title}</div>
-        <div style={{ fontSize: '24px', fontWeight: 800, color: valueColor }}>{value}</div>
-        {sub && <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', fontWeight: 500 }}>{sub}</div>}
+        <div style={{ fontSize: '24px', fontWeight: 800, color: valueColor }}>{isLoading ? '--' : value}</div>
+        {sub && <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', fontWeight: 500 }}>{isLoading ? '--' : sub}</div>}
     </div>
 );
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function PortfolioPage({ fallbackData }: { fallbackData: PortfolioPageProps }) {
-    const { data } = useSWR('/api/mlb/portfolio', fetcher, {
-        fallbackData,
+export default function PortfolioPage() {
+    const { data, error, isLoading } = useSWR('/api/mlb/portfolio', fetcher, {
         refreshInterval: 15000 // Poll every 15 seconds
     });
 
     const {
-        totalBets, wins, losses, pushes, totalPnl, currentBankroll, roi, peakBankroll, maxDrawdown, winRate, weeklyCurve, recentBets
-    } = data || fallbackData;
+        totalBets = 0, wins = 0, losses = 0, pushes = 0, totalPnl = 0, currentBankroll = 1000, roi = 0, peakBankroll = 1000, maxDrawdown = 0, winRate = 0, weeklyCurve = [], recentBets = []
+    } = data || {};
 
     return (
         <div style={{ background: '#0a0a15', minHeight: '100vh', fontFamily: 'var(--font-inter), sans-serif', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
@@ -162,10 +139,10 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
                     <div style={{ flex: '1 1 300px', background: '#131420', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', boxShadow: 'inset 0 0 20px rgba(0,212,255,0.05)' }}>
                         <div style={{ fontSize: '12px', fontWeight: 800, color: '#00D4FF', letterSpacing: '1px', marginBottom: '8px' }}>CURRENT BANKROLL</div>
                         <div style={{ fontSize: '48px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
-                            {formatCurrency(currentBankroll)}
+                            {isLoading ? '--' : formatCurrency(currentBankroll)}
                         </div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#00D4FF', marginTop: '8px' }}>
-                            {formatCurrency(totalPnl, true)} from start
+                            {isLoading ? '--' : formatCurrency(totalPnl, true)} from start
                         </div>
                         <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', fontWeight: 500 }}>
                             Started at $1,000.00
@@ -173,12 +150,12 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
                     </div>
 
                     <div style={{ flex: '2 1 400px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
-                        <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} />
-                        <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} />
-                        <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#00D4FF' : (roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} />
-                        <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'} />
-                        <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#00D4FF" />
-                        <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} valueColor="#FFFFFF" />
+                        <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} isLoading={isLoading} />
+                        <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                        <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#00D4FF' : (roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                        <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                        <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#00D4FF" isLoading={isLoading} />
+                        <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} valueColor="#FFFFFF" isLoading={isLoading} />
                     </div>
                 </div>
 
@@ -247,7 +224,9 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
                             </tr>
                         </thead>
                         <tbody>
-                            {recentBets.length > 0 ? recentBets.map((bet, i) => {
+                            {isLoading ? (
+                                <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>Loading simulator data...</td></tr>
+                            ) : recentBets.length > 0 ? recentBets.map((bet, i) => {
                                 const dateObj = bet.as_of_ts ? new Date(bet.as_of_ts) : new Date();
                                 const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
                                 

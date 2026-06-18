@@ -62,19 +62,27 @@ export async function getServerSideProps({ res }: any) {
         });
         const todayStr = formatter.format(new Date());
         
-        const { data: teams, error } = await mlbDb
-            .from('v_team_terminal_stats')
-            .select('*')
-            .order('name', { ascending: true });
+        const [teamsRes, aggRes] = await Promise.all([
+            mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
+            mlbDb.from('agg_team').select('team_id, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa').eq('window_kind', 'season')
+        ]);
             
-        if (error) {
-            console.error('[TeamsPage] Error fetching teams:', error);
-            return { props: { teams: [], todayStr } };
-        }
-        
+        let teams = teamsRes.data || [];
+        const aggData = aggRes.data || [];
+
+        // Merge advanced stats into teams
+        teams = teams.map(team => {
+            const teamStats = aggData.filter(a => a.team_id === team.team_id);
+            const latestStats = teamStats.length > 0 ? teamStats[0] : null;
+            return {
+                ...team,
+                adv_stats: latestStats
+            };
+        });
+
         return {
             props: {
-                teams: teams || [],
+                teams,
                 todayStr
             }
         };

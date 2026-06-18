@@ -6,9 +6,13 @@ function getWeekStart(d: string) {
     return monday.toISOString().split('T')[0];
 }
 
-export async function fetchPortfolioStats(mlbDb: any) {
+export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: string) {
     // 1. Try to use the highly optimized Postgres RPC
-    const { data: stats, error } = await mlbDb.rpc('get_portfolio_stats');
+    const args: any = {};
+    if (days !== undefined) args.p_days = days;
+    if (market !== undefined && market !== 'ALL') args.p_market = market;
+
+    const { data: stats, error } = await mlbDb.rpc('get_portfolio_stats', args);
 
     if (!error && stats) {
         return stats;
@@ -23,9 +27,20 @@ export async function fetchPortfolioStats(mlbDb: any) {
     const PAGE_SIZE = 1000;
 
     while (hasMore) {
-        const { data, error: fetchErr } = await mlbDb
+        let query = mlbDb
             .from('sim_bets')
-            .select('id, as_of_ts, pnl, result, stake, bankroll_after, market, selection, edge_pts')
+            .select('id, as_of_ts, pnl, result, stake, bankroll_after, market, selection, edge_pts');
+            
+        if (days !== undefined) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            query = query.gte('as_of_ts', cutoff.toISOString());
+        }
+        if (market !== undefined && market !== 'ALL') {
+            query = query.eq('market', market);
+        }
+
+        const { data, error: fetchErr } = await query
             .order('as_of_ts', { ascending: true })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
             

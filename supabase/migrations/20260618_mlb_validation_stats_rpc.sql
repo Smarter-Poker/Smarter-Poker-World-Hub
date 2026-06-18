@@ -1,5 +1,5 @@
 -- Create RPC function to calculate MLB Validation Stats
-CREATE OR REPLACE FUNCTION get_mlb_validation_stats()
+CREATE OR REPLACE FUNCTION get_mlb_validation_stats(cutoff timestamp with time zone DEFAULT NULL)
 RETURNS json
 LANGUAGE plpgsql
 AS $$
@@ -27,7 +27,8 @@ BEGIN
     INTO 
         all_count, all_model_brier, all_mkt_brier
     FROM backtest_market_output
-    WHERE actual_result IS NOT NULL;
+    WHERE actual_result IS NOT NULL
+      AND (cutoff IS NULL OR created_at >= cutoff);
 
     -- 2. ENGINE'S FLAGGED BETS (rec contains 'BET')
     SELECT 
@@ -39,7 +40,8 @@ BEGIN
     INTO 
         flagged_count, flagged_win_rate, flagged_roi, flagged_model_brier, flagged_mkt_brier
     FROM backtest_market_output
-    WHERE actual_result IS NOT NULL AND (rec ILIKE '%BET%');
+    WHERE actual_result IS NOT NULL AND (rec ILIKE '%BET%')
+      AND (cutoff IS NULL OR created_at >= cutoff);
 
     -- 3. ROI BY EDGE SIZE (from flagged)
     SELECT 
@@ -64,7 +66,8 @@ BEGIN
         edge_5_7_n, edge_5_7_wins, edge_5_7_profit,
         edge_7_10_n, edge_7_10_wins, edge_7_10_profit
     FROM backtest_market_output
-    WHERE actual_result IS NOT NULL AND (rec ILIKE '%BET%');
+    WHERE actual_result IS NOT NULL AND (rec ILIKE '%BET%')
+      AND (cutoff IS NULL OR created_at >= cutoff);
 
     -- Build and return JSON object matching the frontend expectations exactly
     RETURN json_build_object(

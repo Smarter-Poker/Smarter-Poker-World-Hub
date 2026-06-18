@@ -50,6 +50,7 @@
     "autoprefixer": "^10.5.0",
     "canvas-confetti": "^1.9.4",
     "cheerio": "^1.1.2",
+    "cors": "^2.8.6",
     "daisyui": "^5.5.19",
     "formidable": "^3.5.4",
     "framer-motion": "^12.26.2",
@@ -99,6 +100,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@supabase/supabase-js": "^2.105.1",
+    "@types/cors": "^2.8.19",
     "@types/react": "18.3.28",
     "caniuse-lite": "^1.0.30001790",
     "canvas": "^3.2.1",
