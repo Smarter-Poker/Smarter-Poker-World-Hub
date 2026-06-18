@@ -343,7 +343,7 @@ export default function TeamDetailPage() {
                                             <div key={idx} className="p-4 border border-[#3d4f5f] rounded bg-[rgba(0,0,0,0.3)] flex justify-between items-center hover:bg-[rgba(255,255,255,0.05)] transition-colors">
                                                 <div className="flex flex-col gap-1">
                                                     <div className="text-[14px] font-bold text-white tracking-wider">
-                                                        {game.away_team || game.away_team_name || 'Away'} @ {game.home_team || game.home_team_name || 'Home'}
+                                                        {game.away_team || 'Away'} @ {game.home_team || 'Home'}
                                                     </div>
                                                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                                         {game.status || 'Scheduled'} | {game.start_time || 'TBD'}

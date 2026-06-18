@@ -56,9 +56,9 @@ export default async function handler(req: Request) {
             kpi.brier = brierCount > 0 ? (sumBrier / brierCount).toFixed(3) : '0.000';
 
         } else {
-            // Fallback: manually aggregate pred_market_output
+            // Fallback: manually aggregate sim_bets
             const { count, error: countErr } = await mlbDb
-                .from('pred_market_output')
+                .from('sim_bets')
                 .select('*', { count: 'exact', head: true });
                 
             if (!countErr && count !== null) {
@@ -73,8 +73,8 @@ export default async function handler(req: Request) {
                             const offset = (i + j) * limit;
                             promises.push(
                                 mlbDb
-                                    .from('pred_market_output')
-                                    .select('as_of_ts, market, edge, team, selection')
+                                    .from('sim_bets')
+                                    .select('as_of_ts, market, pnl, result')
                                     .range(offset, offset + limit - 1)
                             );
                         }
@@ -89,40 +89,31 @@ export default async function handler(req: Request) {
                 // Aggregate by date and market
                 const groups: Record<string, any> = {};
                 let totalN = 0;
-                let sumBrier = 0;
-                let brierCount = 0;
                 let totalProfit = 0;
 
                 for (const row of allMarketRows) {
-                    if (!row.rec || !row.rec.includes('BET') || row.rec.includes('NO BET')) continue;
+                    if (row.pnl === null) continue;
                     
                     const date = row.as_of_ts ? row.as_of_ts.split('T')[0] : 'Unknown';
                     const market = row.market || 'Unknown';
                     const key = `${date}_${market}`;
                     
                     if (!groups[key]) {
-                        groups[key] = { date, market, n: 0, brierSum: 0, brierCount: 0, profitSum: 0 };
+                        groups[key] = { date, market, n: 0, profitSum: 0 };
                     }
                     
                     groups[key].n++;
                     totalN++;
                     
-                    if (row.brier_score != null) {
-                        groups[key].brierSum += Number(row.brier_score);
-                        groups[key].brierCount++;
-                        sumBrier += Number(row.brier_score);
-                        brierCount++;
-                    }
-                    
-                    groups[key].profitSum += Number(row.unit_profit || 0);
-                    totalProfit += Number(row.unit_profit || 0);
+                    groups[key].profitSum += Number(row.pnl || 0);
+                    totalProfit += Number(row.pnl || 0);
                 }
 
                 tableData = Object.values(groups).map(g => ({
                     date: g.date,
                     market: g.market,
                     n: g.n,
-                    brier: g.brierCount > 0 ? g.brierSum / g.brierCount : null,
+                    brier: null,
                     avg_clv: null,
                     roi: g.n > 0 ? (g.profitSum / g.n) * 100 : null
                 })).sort((a, b) => b.date.localeCompare(a.date));
@@ -130,7 +121,7 @@ export default async function handler(req: Request) {
                 kpi.n = totalN;
                 kpi.clv = '0.00';
                 kpi.roi = totalN > 0 ? ((totalProfit / totalN) * 100).toFixed(1) : '0.0';
-                kpi.brier = brierCount > 0 ? (sumBrier / brierCount).toFixed(3) : '0.000';
+                kpi.brier = '0.000';
             }
         }
 

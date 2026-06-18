@@ -34,10 +34,10 @@ export default async function handler(req: Request) {
             statsData = rpcData.stats;
             marketBreakdown = rpcData.marketBreakdown;
         } else {
-            // Fallback logic
-            console.warn('RPC failed or not found, falling back to manual aggregation', rpcErr);
+            // Fallback logic using sim_bets
+            console.warn('RPC failed or not found, falling back to manual aggregation on sim_bets', rpcErr);
             const { count, error: countErr } = await mlbDb
-                .from('pred_market_output')
+                .from('sim_bets')
                 .select('*', { count: 'exact', head: true });
                 
             if (countErr) throw countErr;
@@ -54,8 +54,8 @@ export default async function handler(req: Request) {
                         const offset = (i + j) * limit;
                         promises.push(
                             mlbDb
-                                .from('pred_market_output')
-                                .select('market, unit_profit, actual_result, brier_score, rec')
+                                .from('sim_bets')
+                                .select('market, pnl, result')
                                 .range(offset, offset + limit - 1)
                         );
                     }
@@ -67,21 +67,19 @@ export default async function handler(req: Request) {
                 }
             }
 
-            const allBets = allMarketRows.filter(r => r.rec && r.rec.includes('BET') && !r.rec.includes('NO BET'));
-            const totalPredictions = allBets.length;
+            const totalPredictions = allMarketRows.length;
             
-            const wonBets = allBets.filter(r => Number(r.unit_profit || 0) > 0);
-            const lostBets = allBets.filter(r => Number(r.unit_profit || 0) <= 0 && r.actual_result != null);
+            const wonBets = allMarketRows.filter(r => Number(r.pnl || 0) > 0);
+            const lostBets = allMarketRows.filter(r => Number(r.pnl || 0) <= 0 && r.result != null);
             const winRate = totalPredictions > 0 ? (wonBets.length / totalPredictions) * 100 : 0;
             
-            const brierScores = allMarketRows.filter(r => r.brier_score !== null).map(r => r.brier_score);
-            const avgBrier = brierScores.length > 0 ? brierScores.reduce((a: number, b: number) => Number(a) + Number(b), 0) / brierScores.length : 0;
-            const brierVsBaseline = brierScores.length > 0 ? avgBrier - 0.2500 : 0;
+            const avgBrier = 0;
+            const brierVsBaseline = 0;
             
-            const unitsWon = allBets.reduce((sum, r) => sum + Number(r.unit_profit || 0), 0);
+            const unitsWon = allMarketRows.reduce((sum, r) => sum + Number(r.pnl || 0), 0);
             const cumulativeRoi = totalPredictions > 0 ? (unitsWon / totalPredictions) * 100 : 0;
 
-            const avgClv = 0; // clv_pts column does not exist on this table
+            const avgClv = 0;
 
             statsData = {
                 totalPredictions,
@@ -101,16 +99,9 @@ export default async function handler(req: Request) {
                 const m = row.market || 'Unknown';
                 if (!marketGroups[m]) marketGroups[m] = { n: 0, wins: 0, brierSum: 0, brierCount: 0, profitSum: 0 };
                 
-                if (row.brier_score != null) {
-                    marketGroups[m].brierSum += Number(row.brier_score);
-                    marketGroups[m].brierCount += 1;
-                }
-                
-                if (row.rec && row.rec.includes('BET') && !row.rec.includes('NO BET')) {
-                    marketGroups[m].n += 1;
-                    if (Number(row.unit_profit || 0) > 0) marketGroups[m].wins += 1;
-                    marketGroups[m].profitSum += Number(row.unit_profit || 0);
-                }
+                marketGroups[m].n += 1;
+                if (Number(row.pnl || 0) > 0) marketGroups[m].wins += 1;
+                marketGroups[m].profitSum += Number(row.pnl || 0);
             }
             
             marketBreakdown = Object.keys(marketGroups).map(m => {
@@ -126,7 +117,7 @@ export default async function handler(req: Request) {
                     market: displayMarket,
                     n: mg.n,
                     winRate: mg.n > 0 ? (mg.wins / mg.n) * 100 : 0,
-                    avgBrier: mg.brierCount > 0 ? mg.brierSum / mg.brierCount : null,
+                    avgBrier: null,
                     roi: mg.n > 0 ? (mg.profitSum / mg.n) * 100 : null
                 };
             });

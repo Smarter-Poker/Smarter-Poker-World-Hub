@@ -30,7 +30,7 @@ export default async function handler(req: Request) {
         ] = await Promise.all([
             mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
             mlbDb.from('agg_model').select('*').order('last_training_date', { ascending: false }).limit(1),
-            // fact_games or raw_games for game slate
+            // raw_games for game slate
             mlbDb.from('raw_games').select('*').eq('official_date', todayStr).order('start_time', { ascending: true })
         ]);
 
