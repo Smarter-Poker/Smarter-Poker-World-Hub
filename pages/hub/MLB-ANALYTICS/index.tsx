@@ -8,9 +8,8 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export async function getServerSideProps({ res }: any) {
+export async function getServerSideProps() {
     try {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         const mlbDb = getMlbSupabase();
         
         // Formatter for 'today' in US Central Time (America/Chicago)
@@ -22,21 +21,55 @@ export async function getServerSideProps({ res }: any) {
         });
         const todayStr = formatter.format(new Date());
 
+        // Fetch top bets for today
+        const { data: topBets } = await mlbDb
         const [
             { data: topBets, error: betsErr },
-            { data: pipelineData, error: pipelineErr }
+            { data: pipelineData, error: pipelineErr },
+            { data: slateGames, error: slateErr }
         ] = await Promise.all([
             mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
-            mlbDb.from('pipeline_runs').select('*').order('run_at', { ascending: false }).limit(1)
+            mlbDb.from('pipeline_runs').select('*').order('run_at', { ascending: false }).limit(1),
+            mlbDb.from('v_daily_slate').select('*').eq('official_date', todayStr).order('event_time', { ascending: true })
         ]);
 
         const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].run_at : null;
+
+        if (games && games.length > 0) {
+            const gamePks = games.map((g: any) => g.game_pk);
+            
+            const { data: teamsData } = await mlbDb.from('dim_teams').select('team_id, abbr, name');
+            const teamsMap: Record<number, any> = {};
+            (teamsData || []).forEach((t: any) => { teamsMap[t.team_id] = t; });
+
+            const { data: preds } = await mlbDb.from('pred_market_output')
+                .select('game_pk, market, selection, edge_pts, rec, win_confidence, market_novig_prob')
+                .in('game_pk', gamePks);
+            
+            slateData = games.map((g: any) => {
+                const homeTeam = teamsMap[g.home_team_id] || { abbr: 'TBD', name: 'Unknown' };
+                const awayTeam = teamsMap[g.away_team_id] || { abbr: 'TBD', name: 'Unknown' };
+                const gamePreds = (preds || []).filter((p: any) => p.game_pk === g.game_pk);
+                
+                const recommended = gamePreds.filter((p: any) => p.rec === true || p.rec === 'BET');
+                
+                return {
+                    gamePk: g.game_pk,
+                    firstPitch: g.first_pitch_utc,
+                    homeTeam,
+                    awayTeam,
+                    recommendedCount: recommended.length,
+                    preds: gamePreds
+                };
+            });
+        }
 
         return {
             props: {
                 todayStr,
                 topBets: topBets || [],
-                lastUpdate
+                lastUpdate,
+                slateData
             }
         };
     } catch (error) {
@@ -45,13 +78,14 @@ export async function getServerSideProps({ res }: any) {
             props: {
                 todayStr: new Date().toISOString().split('T')[0],
                 topBets: [],
-                lastUpdate: null
+                lastUpdate: null,
+                slateData: []
             }
         };
     }
 }
 
-export default function MlbSlateDashboard({ todayStr, topBets, lastUpdate }: { todayStr: string, topBets: any[], lastUpdate: string | null }) {
+export default function MlbSlateDashboard({ todayStr, topBets, lastUpdate, slateData }: { todayStr: string, topBets: any[], lastUpdate: string | null, slateData: any[] }) {
     const formattedDate = new Date(todayStr + 'T12:00:00Z').toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'short',
@@ -147,16 +181,45 @@ export default function MlbSlateDashboard({ todayStr, topBets, lastUpdate }: { t
                             )}
                         </div>
 
-                        {/* Future expansion: Game Slate Grid */}
+                        {/* Game Slate Grid */}
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
                             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
                                 <Activity className="w-5 h-5 text-blue-500" />
                                 Full Slate
                             </h2>
-                            <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                                <p className="text-slate-500 font-medium">Slate view is currently loading...</p>
-                                <p className="text-sm text-slate-400 mt-1">Check back once today's games are initialized.</p>
-                            </div>
+                            {slateData && slateData.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {slateData.map((game: any) => {
+                                        const pitchTime = game.firstPitch ? new Date(game.firstPitch).toLocaleTimeString('en-US', {
+                                            hour: 'numeric',
+                                            minute: '2-digit'
+                                        }) : 'TBD';
+
+                                        return (
+                                            <div key={game.gamePk} className="flex flex-col p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-blue-300 transition-colors">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="text-xs font-bold text-slate-500">{pitchTime}</span>
+                                                    {game.recommendedCount > 0 && (
+                                                        <span className="bg-emerald-100 text-emerald-700 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
+                                                            {game.recommendedCount} Edges
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <div className="font-bold text-slate-700">{game.awayTeam?.abbr}</div>
+                                                    <div className="text-xs font-bold text-slate-400">@</div>
+                                                    <div className="font-bold text-slate-700">{game.homeTeam?.abbr}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                    <p className="text-slate-500 font-medium">No games scheduled for today.</p>
+                                    <p className="text-sm text-slate-400 mt-1">Check back later for updates.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
