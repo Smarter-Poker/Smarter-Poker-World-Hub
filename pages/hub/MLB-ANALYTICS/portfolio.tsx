@@ -74,10 +74,10 @@ interface MetricBoxProps {
 }
 
 const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
-    <div style={{ background: '#131420', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }}>
-        <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' }}>{title}</div>
-        <div style={{ fontSize: '24px', fontWeight: 800, color: valueColor }}>{isLoading ? '--' : value}</div>
-        {sub && <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', fontWeight: 500 }}>{isLoading ? '--' : sub}</div>}
+    <div className="bg-[#131420] border border-white/5 rounded-xl p-4 flex flex-col shadow-md">
+        <div className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">{title}</div>
+        <div className="text-2xl font-extrabold" style={{ color: valueColor }}>{isLoading ? '--' : value}</div>
+        {sub && <div className="text-xs text-slate-500 mt-1 font-medium">{isLoading ? '--' : sub}</div>}
     </div>
 );
 
@@ -99,9 +99,9 @@ export default function PortfolioPage() {
 
     if (error) {
         return (
-            <div style={{ background: '#0a0a15', minHeight: '100vh', color: '#e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{ textAlign: 'center', color: '#FF0055' }}>
-                    <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Error Loading Portfolio</h2>
+            <div className="bg-[#0a0a15] min-h-screen text-slate-200 flex justify-center items-center">
+                <div className="text-center text-[#FF0055]">
+                    <h2 className="text-2xl font-extrabold">Error Loading Portfolio</h2>
                     <p>Failed to fetch data from the server. Please try again later.</p>
                 </div>
             </div>
@@ -109,7 +109,7 @@ export default function PortfolioPage() {
     }
 
     return (
-        <div style={{ background: '#0a0a15', minHeight: '100vh', fontFamily: 'var(--font-inter), sans-serif', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+        <div className="bg-[#0a0a15] min-h-screen font-inter pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead 
                 title="Portfolio Simulator | MLB Analytics" 
                 description="MLB Analytics Portfolio Simulator and virtual bankroll tracking."
@@ -119,24 +119,24 @@ export default function PortfolioPage() {
             <UniversalHeader pageDepth={2} />
             <MlbSubNav />
             
-            <div className="edge-to-edge-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px 16px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+            <div className="edge-to-edge-container max-w-[1000px] mx-auto px-4 py-6">
+                <div className="flex flex-wrap gap-4 justify-between items-start mb-6">
                     <div>
-                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.02em' }}>
-                            Portfolio <span style={{ color: '#00D4FF' }}>Simulator</span>
+                        <h1 className="m-0 text-[28px] font-extrabold text-slate-50 tracking-tight">
+                            Portfolio <span className="text-[#00D4FF]">Simulator</span>
                         </h1>
-                        <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '15px' }}>
+                        <p className="m-0 mt-1 text-slate-400 text-[15px]">
                             Virtual bankroll — $1,000 starting · Kelly-sized from {totalBets.toLocaleString()} backtested markets
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div className="flex gap-2 flex-wrap">
                         <Link href="/hub/MLB-ANALYTICS/backtest" passHref>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', borderRadius: '6px', color: '#00D4FF', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
+                            <button className="flex items-center gap-1 py-2 px-4 bg-[#00D4FF]/10 border border-[#00D4FF]/30 rounded-md text-[#00D4FF] text-[13px] font-bold cursor-pointer transition-all duration-200 hover:bg-[#00D4FF]/20">
                                 Backtest <ArrowRight size={16} />
                             </button>
                         </Link>
                         <Link href="/hub/MLB-ANALYTICS/model-intel" passHref>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', color: '#E2E8F0', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
+                            <button className="flex items-center gap-1 py-2 px-4 bg-white/5 border border-white/10 rounded-md text-slate-200 text-[13px] font-bold cursor-pointer transition-all duration-200 hover:bg-white/10">
                                 Model <ArrowRight size={16} />
                             </button>
                         </Link>
@@ -144,63 +144,33 @@ export default function PortfolioPage() {
                 </div>
 
                 {/* Filter Bar */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '24px', alignItems: 'center', justifyContent: 'space-between', background: '#131420', padding: '16px', borderRadius: '12px', border: '1px solid #2a3a4a' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginRight: '8px' }}>TIMEFRAME:</span>
+                <div className="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[#131420] p-4 rounded-xl border border-[#2a3a4a]">
+                    <div className="flex gap-2 items-center">
+                        <span className="text-slate-400 text-xs font-semibold mr-2 uppercase tracking-wide">Timeframe:</span>
                         {[7, 14, 30].map(d => (
                             <button
                                 key={d}
                                 onClick={() => setDaysFilter(d)}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    background: daysFilter === d ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
-                                    color: daysFilter === d ? '#00D4FF' : '#64748B',
-                                    border: daysFilter === d ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent',
-                                    transition: 'all 0.2s'
-                                }}
+                                className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${daysFilter === d ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
                             >
                                 {d} DAYS
                             </button>
                         ))}
                         <button
                             onClick={() => setDaysFilter(null)}
-                            style={{
-                                padding: '6px 12px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                background: daysFilter === null ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
-                                color: daysFilter === null ? '#00D4FF' : '#64748B',
-                                border: daysFilter === null ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent',
-                                transition: 'all 0.2s'
-                            }}
+                            className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${daysFilter === null ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
                         >
                             YTD
                         </button>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginRight: '8px' }}>MARKET:</span>
+                    <div className="flex gap-2 items-center flex-wrap">
+                        <span className="text-slate-400 text-xs font-semibold mr-2 uppercase tracking-wide">Market:</span>
                         {['ALL', 'Moneyline', 'Run Line', 'Totals'].map(m => (
                             <button
                                 key={m}
                                 onClick={() => setMarketFilter(m)}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    background: marketFilter === m ? 'rgba(255, 0, 255, 0.1)' : 'transparent',
-                                    color: marketFilter === m ? '#FF00FF' : '#64748B',
-                                    border: marketFilter === m ? '1px solid rgba(255, 0, 255, 0.3)' : '1px solid transparent',
-                                    transition: 'all 0.2s'
-                                }}
+                                className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${marketFilter === m ? 'bg-[#FF00FF]/10 text-[#FF00FF] border border-[#FF00FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
                             >
                                 {m === 'ALL' ? 'ALL' : m === 'Moneyline' ? 'ML' : m === 'Run Line' ? 'RL' : 'TOT'}
                             </button>
@@ -208,21 +178,21 @@ export default function PortfolioPage() {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '32px' }}>
-                    <div style={{ flex: '1 1 300px', background: '#131420', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', boxShadow: 'inset 0 0 20px rgba(0,212,255,0.05)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#00D4FF', letterSpacing: '1px', marginBottom: '8px' }}>CURRENT BANKROLL</div>
-                        <div style={{ fontSize: '48px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
+                <div className="flex flex-col lg:flex-row gap-4 mb-8">
+                    <div className="w-full lg:w-1/3 bg-[#131420] border border-[#00D4FF]/20 rounded-xl p-6 flex flex-col justify-center items-center shadow-[inset_0_0_20px_rgba(0,212,255,0.05)]">
+                        <div className="text-xs font-extrabold text-[#00D4FF] tracking-widest mb-2">CURRENT BANKROLL</div>
+                        <div className="text-5xl font-extrabold text-white leading-none">
                             {isLoading ? '--' : formatCurrency(currentBankroll)}
                         </div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#00D4FF', marginTop: '8px' }}>
+                        <div className="text-sm font-bold text-[#00D4FF] mt-2">
                             {isLoading ? '--' : formatCurrency(totalPnl, true)} from start
                         </div>
-                        <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', fontWeight: 500 }}>
+                        <div className="text-xs text-slate-500 mt-1 font-medium">
                             Started at $1,000.00
                         </div>
                     </div>
 
-                    <div style={{ flex: '2 1 400px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
+                    <div className="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-4">
                         <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} isLoading={isLoading} />
                         <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
                         <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#00D4FF' : (roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
@@ -232,11 +202,11 @@ export default function PortfolioPage() {
                     </div>
                 </div>
 
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#F8FAFC', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '4px', height: '18px', background: '#00D4FF', borderRadius: '2px', boxShadow: '0 0 8px rgba(0, 212, 255, 0.6)' }} />
+                <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
+                    <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
                     Equity Curve
                 </h2>
-                <div style={{ background: '#0d1117', border: '1px solid #2a3a4a', borderRadius: '12px', padding: '24px', marginBottom: '32px', height: '350px', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)' }}>
+                <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 mb-8 h-[350px] shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={weeklyCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
@@ -277,14 +247,14 @@ export default function PortfolioPage() {
                     </ResponsiveContainer>
                 </div>
 
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#F8FAFC', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '4px', height: '18px', background: '#FF00FF', borderRadius: '2px', boxShadow: '0 0 8px rgba(255, 0, 255, 0.6)' }} />
-                    Recent Simulated Bets <span style={{ color: '#94A3B8', fontWeight: 400 }}>(last 20)</span>
+                <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
+                    <div className="w-1 h-[18px] bg-[#FF00FF] rounded-sm shadow-[0_0_8px_rgba(255,0,255,0.6)]" />
+                    Recent Simulated Bets <span className="text-slate-400 font-normal text-sm">(last 20)</span>
                 </h2>
                 
-                <div style={{ width: '100%' }}>
+                <div className="w-full">
                     {isLoading ? (
-                        <div style={{ background: '#0d1117', border: '1px solid #2a3a4a', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#94A3B8', width: '100%' }}>Loading simulator data...</div>
+                        <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 text-center text-slate-400 w-full">Loading simulator data...</div>
                     ) : (
                         <RecentBetsTable bets={recentBets} />
                     )}

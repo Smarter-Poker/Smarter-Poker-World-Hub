@@ -102,34 +102,27 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
     const paginatedBets = sortedBets.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
     const SortIcon = ({ field }: { field: SortField }) => {
-        if (sortField !== field) return <span style={{ opacity: 0.3, marginLeft: '4px' }}>↕</span>;
-        return <span style={{ marginLeft: '4px', color: '#00D4FF' }}>{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+        if (sortField !== field) return <span className="opacity-30 ml-1">↕</span>;
+        return <span className="ml-1 text-[#00D4FF]">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
     };
 
     const Th = ({ field, label, align = 'left' }: { field: SortField, label: string, align?: 'left' | 'right' | 'center' }) => (
         <th 
             onClick={() => handleSort(field)}
-            style={{ 
-                padding: '12px 16px', 
-                fontWeight: 600, 
-                whiteSpace: 'nowrap', 
-                cursor: 'pointer',
-                textAlign: align,
-                userSelect: 'none'
-            }}
+            className={`py-3 px-4 font-semibold whitespace-nowrap cursor-pointer select-none text-${align}`}
         >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: align === 'right' ? 'flex-end' : (align === 'center' ? 'center' : 'flex-start') }}>
+            <div className={`flex items-center ${align === 'right' ? 'justify-end' : (align === 'center' ? 'justify-center' : 'justify-start')}`}>
                 {label} <SortIcon field={field} />
             </div>
         </th>
     );
 
     return (
-        <div style={{ width: '100%' }}>
-            <div style={{ background: '#0d1117', border: '1px solid #2a3a4a', borderRadius: '12px', overflowX: 'auto', paddingBottom: '0px', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', width: '100%' }}>
-                <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+        <div className="w-full">
+            <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl overflow-x-auto pb-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] w-full">
+                <table className="w-full min-w-[700px] border-collapse text-left text-[13px]">
                     <thead>
-                        <tr style={{ borderBottom: '1px solid #2a3a4a', color: '#8b9bb4', backgroundColor: '#1a2332' }}>
+                        <tr className="border-b border-[#2a3a4a] text-[#8b9bb4] bg-[#1a2332]">
                             <Th field="date" label="Date" />
                             <Th field="market" label="Market" />
                             <Th field="selection" label="Selection" />
@@ -150,37 +143,33 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
                             const isLoss = pnl < 0 || bet.result === 'LOSS';
                             
                             return (
-                                <tr key={bet.id || i} style={{ borderBottom: i < paginatedBets.length - 1 ? '1px solid #2a3a4a' : 'none' }}>
-                                    <td style={{ padding: '12px 16px', color: '#64748B', whiteSpace: 'nowrap' }}>
+                                <tr key={bet.id || i} className={i < paginatedBets.length - 1 ? 'border-b border-[#2a3a4a]' : ''}>
+                                    <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
                                         {dateStr}
                                     </td>
-                                    <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                                        <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 8px', borderRadius: '4px', color: '#94A3B8', fontSize: '11px', fontWeight: 700, letterSpacing: '0.02em' }}>
+                                    <td className="py-3 px-4 whitespace-nowrap">
+                                        <span className="bg-white/5 py-1 px-2 rounded text-slate-400 text-[11px] font-bold tracking-[0.02em]">
                                             {bet.market || 'Moneyline'}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '12px 16px', color: '#F8FAFC', whiteSpace: 'nowrap' }}>{bet.selection || '-'}</td>
-                                    <td style={{ padding: '12px 16px', color: '#00D4FF', fontWeight: 600, whiteSpace: 'nowrap' }}>+{(bet.edge_pts || 0).toFixed(2)}</td>
-                                    <td style={{ padding: '12px 16px', color: '#94A3B8', whiteSpace: 'nowrap' }}>${(bet.stake || 0).toFixed(2)}</td>
-                                    <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                                        <span style={{ 
-                                            background: isWin ? 'rgba(0, 212, 255, 0.1)' : (isLoss ? 'rgba(255, 0, 85, 0.1)' : 'rgba(255, 255, 255, 0.05)'), 
-                                            color: isWin ? '#00D4FF' : (isLoss ? '#FF0055' : '#8b9bb4'),
-                                            padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px'
-                                        }}>
+                                    <td className="py-3 px-4 text-slate-50 whitespace-nowrap">{bet.selection || '-'}</td>
+                                    <td className="py-3 px-4 text-[#00D4FF] font-semibold whitespace-nowrap">+{(bet.edge_pts || 0).toFixed(2)}</td>
+                                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">${(bet.stake || 0).toFixed(2)}</td>
+                                    <td className="py-3 px-4 whitespace-nowrap">
+                                        <span className={`py-1 px-2 rounded text-[10px] font-extrabold tracking-wide ${isWin ? 'bg-[#00D4FF]/10 text-[#00D4FF]' : isLoss ? 'bg-[#FF0055]/10 text-[#FF0055]' : 'bg-white/5 text-[#8b9bb4]'}`}>
                                             {bet.result || (isWin ? 'WIN' : (isLoss ? 'LOSS' : 'PUSH'))}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '12px 16px', fontWeight: 600, color: pnl > 0 ? '#00D4FF' : (pnl < 0 ? '#FF0055' : '#8b9bb4'), whiteSpace: 'nowrap' }}>
+                                    <td className={`py-3 px-4 font-semibold whitespace-nowrap ${pnl > 0 ? 'text-[#00D4FF]' : (pnl < 0 ? 'text-[#FF0055]' : 'text-[#8b9bb4]')}`}>
                                         {formatCurrency(pnl, true)}
                                     </td>
-                                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#94A3B8', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                    <td className="py-3 px-4 font-semibold text-slate-400 text-right whitespace-nowrap">
                                         {formatCurrency(bet.bankroll_after || 0)}
                                     </td>
                                 </tr>
                             );
                         }) : (
-                            <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>No data available</td></tr>
+                            <tr><td colSpan={8} className="p-6 text-center text-slate-400">No data available</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -188,40 +177,22 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', padding: '0 4px' }}>
-                    <div style={{ fontSize: '12px', color: '#64748B' }}>
+                <div className="flex justify-between items-center mt-4 px-1">
+                    <div className="text-xs text-slate-500">
                         Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, sortedBets.length)} of {sortedBets.length}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="flex gap-2">
                         <button 
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            style={{ 
-                                padding: '6px 12px', 
-                                background: currentPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)', 
-                                border: '1px solid rgba(255,255,255,0.1)', 
-                                borderRadius: '6px', 
-                                color: currentPage === 1 ? '#475569' : '#E2E8F0', 
-                                fontSize: '12px', 
-                                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.2s'
-                            }}
+                            className={`py-1.5 px-3 rounded-md text-xs transition-all duration-200 border ${currentPage === 1 ? 'bg-white/2 border-white/10 text-slate-600 cursor-not-allowed' : 'bg-white/5 border-white/10 text-slate-200 cursor-pointer hover:bg-white/10'}`}
                         >
                             Previous
                         </button>
                         <button 
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            style={{ 
-                                padding: '6px 12px', 
-                                background: currentPage === totalPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)', 
-                                border: '1px solid rgba(255,255,255,0.1)', 
-                                borderRadius: '6px', 
-                                color: currentPage === totalPages ? '#475569' : '#E2E8F0', 
-                                fontSize: '12px', 
-                                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.2s'
-                            }}
+                            className={`py-1.5 px-3 rounded-md text-xs transition-all duration-200 border ${currentPage === totalPages ? 'bg-white/2 border-white/10 text-slate-600 cursor-not-allowed' : 'bg-white/5 border-white/10 text-slate-200 cursor-pointer hover:bg-white/10'}`}
                         >
                             Next
                         </button>

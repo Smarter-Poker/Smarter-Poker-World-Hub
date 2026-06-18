@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const [teamsRes, aggRes, dimRes, predRes] = await Promise.all([
             mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
             mlbDb.from('agg_team').select('team_id, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa').eq('window_kind', 'season'),
-            mlbDb.from('dim_teams').select('team_id, league, division'),
+            mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'),
             mlbDb.from('pred_market_output').select('team, market, edge').gt('edge', 0)
         ]);
 
@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // Check if this specific team has an active predictive edge today
             // Note: team name matching because pred_market_output uses 'team' name (e.g. 'NYY') or we match loosely
-            const hasEdge = predData.some(p => p.team === team.abbr || p.team === team.team_id || p.team === team.name);
+            const hasEdge = predData.some(p => p.team === dimInfo?.abbr || p.team === team.team_id || p.team === team.name || p.team === dimInfo?.name);
 
             return {
                 ...team,

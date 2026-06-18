@@ -143,12 +143,20 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
     const globalEdgeActive = data?.globalEdgeActive || false;
 
     const filteredTeams = activeTeams.filter((team: any) => {
-        // Exclude All-Star teams which won't be in our dict
-        if (team.name.includes("All-Stars")) return false;
+        const teamName = team.name || '';
+        const teamLeague = team.league || '';
+        const teamDivision = team.division || '';
 
-        const matchSearch = team.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchLeague = filterLeague === 'ALL' || team.league === filterLeague;
-        const matchDivision = filterDivision === 'ALL' || team.division === filterDivision;
+        // Exclude All-Star teams which won't be in our dict
+        if (teamName.includes("All-Stars")) return false;
+
+        const matchSearch = teamName.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchLeague = filterLeague === 'ALL' || 
+            teamLeague === filterLeague || 
+            (filterLeague === 'AL' && teamLeague.includes('American')) ||
+            (filterLeague === 'NL' && teamLeague.includes('National'));
+        
+        const matchDivision = filterDivision === 'ALL' || teamDivision.includes(filterDivision);
 
         return matchSearch && matchLeague && matchDivision;
     });
