@@ -63,7 +63,7 @@ const BetCard = ({ bet, isExpanded, onToggle }: any) => {
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Win Prob</span>
                             <span className="text-[13px] font-extrabold text-slate-300 tracking-wider">
-                                {bet.win_confidence != null ? bet.win_confidence.toFixed(1) + '%' : 'N/A'}
+                                {bet.win_confidence != null ? (bet.win_confidence > 0 && bet.win_confidence <= 1 ? (bet.win_confidence * 100).toFixed(1) : bet.win_confidence.toFixed(1)) + '%' : 'N/A'}
                             </span>
                         </div>
                         {bet.ev_pct !== null && bet.ev_pct !== undefined && (
@@ -136,7 +136,7 @@ export default function BestBetsPage() {
         const type = b.bet_type?.toLowerCase() || '';
         if (filter === 'ML' && (type === 'moneyline' || type === 'ml')) return true;
         if (filter === 'TOTAL' && type === 'total') return true;
-        if (filter === 'RUN LINE' && (type === 'run_line' || type === 'runline')) return true;
+        if (filter === 'RUN LINE' && (type === 'run_line' || type === 'runline' || type === 'spread')) return true;
         if (filter === 'PROPS' && type.includes('prop')) return true;
         return false;
     });
@@ -192,7 +192,7 @@ export default function BestBetsPage() {
                   </div>
                   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                      <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">TOP SCORE</div>
-                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-[#00D4FF] mt-1 drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.topScore}</div>}
+                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-[#00D4FF] mt-1 drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.topScore ? (stats.topScore % 1 !== 0 ? stats.topScore.toFixed(1) : stats.topScore) : 0}</div>}
                   </div>
                   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                      <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">TOP LOCK</div>
