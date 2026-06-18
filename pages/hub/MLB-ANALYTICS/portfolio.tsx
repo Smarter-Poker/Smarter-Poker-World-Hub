@@ -94,11 +94,11 @@ interface MetricBoxProps {
     valueColor?: string;
 }
 
-const MetricBox = ({ title, value, sub, valueColor = '#0F172A' }: MetricBoxProps) => (
-    <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', letterSpacing: '1px', marginBottom: '8px' }}>{title}</div>
+const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF' }: MetricBoxProps) => (
+    <div style={{ background: '#131420', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' }}>{title}</div>
         <div style={{ fontSize: '24px', fontWeight: 800, color: valueColor }}>{value}</div>
-        {sub && <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>{sub}</div>}
+        {sub && <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', fontWeight: 500 }}>{sub}</div>}
     </div>
 );
 
@@ -125,51 +125,51 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
             <UniversalHeader pageDepth={2} />
             <MlbSubNav />
             
-            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+            <div className="edge-to-edge-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px 16px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                     <div>
-                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#F8FAFC' }}>
+                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.02em' }}>
                             Portfolio <span style={{ color: '#00D4FF' }}>Simulator</span>
                         </h1>
-                        <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: '14px' }}>
+                        <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '15px' }}>
                             Virtual bankroll — $1,000 starting · Kelly-sized from {totalBets.toLocaleString()} backtested markets
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <Link href="/hub/MLB-ANALYTICS/backtest" passHref>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', borderRadius: '6px', color: '#00D4FF', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', borderRadius: '6px', color: '#00D4FF', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
                                 Backtest <ArrowRight size={16} />
                             </button>
                         </Link>
                         <Link href="/hub/MLB-ANALYTICS/model-intel" passHref>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', borderRadius: '6px', color: '#00D4FF', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', color: '#E2E8F0', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
                                 Model <ArrowRight size={16} />
                             </button>
                         </Link>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div style={{ background: '#fff', border: '1px solid #10B981', borderRadius: '8px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', letterSpacing: '1px', marginBottom: '8px' }}>CURRENT BANKROLL</div>
-                        <div style={{ fontSize: '48px', fontWeight: 800, color: '#00D4FF', lineHeight: 1 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '32px' }}>
+                    <div style={{ flex: '1 1 300px', background: '#131420', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', boxShadow: 'inset 0 0 20px rgba(0,212,255,0.05)' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#00D4FF', letterSpacing: '1px', marginBottom: '8px' }}>CURRENT BANKROLL</div>
+                        <div style={{ fontSize: '48px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
                             {formatCurrency(currentBankroll)}
                         </div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#00D4FF', marginTop: '8px' }}>
                             {formatCurrency(totalPnl, true)} from start
                         </div>
-                        <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
+                        <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', fontWeight: 500 }}>
                             Started at $1,000.00
                         </div>
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div style={{ flex: '2 1 400px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
                         <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} />
-                        <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#F8FAFC'} />
-                        <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#10B981' : (roi || 0) < 0 ? '#EF4444' : '#0F172A'} />
-                        <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#EF4444' : '#0F172A'} />
+                        <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} />
+                        <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#00D4FF' : (roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} />
+                        <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'} />
                         <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#00D4FF" />
-                        <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} />
+                        <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} valueColor="#FFFFFF" />
                     </div>
                 </div>
 
@@ -220,19 +220,21 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
 
                 <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#F8FAFC', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '4px', height: '18px', background: '#FF00FF', borderRadius: '2px', boxShadow: '0 0 8px rgba(255, 0, 255, 0.6)' }} />
-                    Recent Simulated Bets <span style={{ color: '#94A3B8', fontWeight: 400 }}>(last 20)</span></h2>
-                <div style={{ background: '#0d1117', border: '1px solid #2a3a4a', borderRadius: '12px', overflow: 'hidden', paddingBottom: '20px', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    Recent Simulated Bets <span style={{ color: '#94A3B8', fontWeight: 400 }}>(last 20)</span>
+                </h2>
+                
+                <div style={{ background: '#0d1117', border: '1px solid #2a3a4a', borderRadius: '12px', overflowX: 'auto', paddingBottom: '20px', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', width: '100%' }}>
+                    <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid #2a3a4a', color: '#8b9bb4', backgroundColor: '#1a2332' }}>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Date</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Market</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Selection</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Edge</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Stake</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Result</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>P&L</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Bankroll</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Date</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Market</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Selection</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Edge</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Stake</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Result</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>P&L</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>Bankroll</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -246,18 +248,18 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
                                 
                                 return (
                                     <tr key={bet.id || i} style={{ borderBottom: i < recentBets.length - 1 ? '1px solid #2a3a4a' : 'none' }}>
-                                        <td style={{ padding: '12px 16px', color: '#64748B' }}>
+                                        <td style={{ padding: '12px 16px', color: '#64748B', whiteSpace: 'nowrap' }}>
                                             {dateStr}
                                         </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 8px', borderRadius: '4px', color: '#475569', fontSize: '11px', fontWeight: 600 }}>
+                                        <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                                            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 8px', borderRadius: '4px', color: '#94A3B8', fontSize: '11px', fontWeight: 700, letterSpacing: '0.02em' }}>
                                                 {bet.market || 'Moneyline'}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '12px 16px', color: '#F8FAFC' }}>{bet.selection || '-'}</td>
-                                        <td style={{ padding: '12px 16px', color: '#3B82F6' }}>+{(bet.edge_pts || 0).toFixed(2)}</td>
-                                        <td style={{ padding: '12px 16px', color: '#475569' }}>${(bet.stake || 0).toFixed(2)}</td>
-                                        <td style={{ padding: '12px 16px' }}>
+                                        <td style={{ padding: '12px 16px', color: '#F8FAFC', whiteSpace: 'nowrap' }}>{bet.selection || '-'}</td>
+                                        <td style={{ padding: '12px 16px', color: '#00D4FF', fontWeight: 600, whiteSpace: 'nowrap' }}>+{(bet.edge_pts || 0).toFixed(2)}</td>
+                                        <td style={{ padding: '12px 16px', color: '#94A3B8', whiteSpace: 'nowrap' }}>${(bet.stake || 0).toFixed(2)}</td>
+                                        <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                                             <span style={{ 
                                                 background: isWin ? 'rgba(0, 212, 255, 0.1)' : (isLoss ? 'rgba(255, 0, 85, 0.1)' : 'rgba(255, 255, 255, 0.05)'), 
                                                 color: isWin ? '#00D4FF' : (isLoss ? '#FF0055' : '#8b9bb4'),
@@ -266,16 +268,16 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
                                                 {bet.result || (isWin ? 'WIN' : (isLoss ? 'LOSS' : 'PUSH'))}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600, color: pnl > 0 ? '#00D4FF' : (pnl < 0 ? '#FF0055' : '#8b9bb4') }}>
+                                        <td style={{ padding: '12px 16px', fontWeight: 600, color: pnl > 0 ? '#00D4FF' : (pnl < 0 ? '#FF0055' : '#8b9bb4'), whiteSpace: 'nowrap' }}>
                                             {formatCurrency(pnl, true)}
                                         </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600, color: '#64748B', textAlign: 'right' }}>
+                                        <td style={{ padding: '12px 16px', fontWeight: 600, color: '#94A3B8', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                             {formatCurrency(bet.bankroll_after || 0)}
                                         </td>
                                     </tr>
                                 );
                             }) : (
-                                <tr><td colSpan={8} style={{ padding: '16px', textAlign: 'center', color: '#94A3B8' }}>No data available</td></tr>
+                                <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>No data available</td></tr>
                             )}
                         </tbody>
                     </table>

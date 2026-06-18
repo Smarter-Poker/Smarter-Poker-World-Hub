@@ -36,25 +36,126 @@ export interface ValidationPageProps {
 
 export async function getServerSideProps({ res }: any) {
     try {
-        // Cache historical backtest data for 1 hour, stale-while-revalidate for 24 hours
-        res.setHeader(
-            'Cache-Control',
-            'public, s-maxage=3600, stale-while-revalidate=86400'
-        );
+        if (res) {
+            // Aggressive caching since historical backtest data rarely changes
+            res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+        }
 
         const mlbDb = getMlbSupabase();
         
-        // Fetch the aggregated validation stats via the optimized RPC function
-        const { data: stats, error } = await mlbDb.rpc('get_mlb_validation_stats');
+        // Fetch all graded outcomes
+        const { data: rows, error } = await mlbDb
+            .from('backtest_market_output')
+            .select('model_prob, market_novig_prob, actual_result, edge_pts, unit_profit, rec')
+            .not('actual_result', 'is', null);
             
         if (error) throw error;
         
-        if (!stats || !stats.all || stats.all.count === 0) {
+        if (!rows || rows.length === 0) {
             return { props: { stats: null } };
         }
         
+        const brier = (prob: number | null, result: boolean) => {
+            if (typeof prob !== 'number') return 0;
+            return Math.pow(prob - (result ? 1 : 0), 2);
+        };
+        
+        // 1. ALL GRADED OUTCOMES
+        let allModelBrierSum = 0;
+        let allMktBrierSum = 0;
+        let allModelCount = 0;
+        let allMktCount = 0;
+        
+        rows.forEach(r => {
+            if (r.model_prob !== null) {
+                allModelBrierSum += brier(r.model_prob, r.actual_result);
+                allModelCount++;
+            }
+            if (r.market_novig_prob !== null) {
+                allMktBrierSum += brier(r.market_novig_prob, r.actual_result);
+                allMktCount++;
+            }
+        });
+        
+        const allModelBrier = allModelCount > 0 ? allModelBrierSum / allModelCount : 0;
+        const allMktBrier = allMktCount > 0 ? allMktBrierSum / allMktCount : null;
+        
+        // 2. ENGINE'S FLAGGED BETS
+        const flagged = rows.filter(r => (r.rec || '').includes('BET'));
+        
+        let flagWins = 0;
+        let flagUnitProfit = 0;
+        let flagModelBrierSum = 0;
+        let flagModelCount = 0;
+        let flagMktBrierSum = 0;
+        let flagMktCount = 0;
+        
+        flagged.forEach(r => {
+            if (r.actual_result) flagWins++;
+            flagUnitProfit += (r.unit_profit || 0);
+            if (r.model_prob !== null) {
+                flagModelBrierSum += brier(r.model_prob, r.actual_result);
+                flagModelCount++;
+            }
+            if (r.market_novig_prob !== null) {
+                flagMktBrierSum += brier(r.market_novig_prob, r.actual_result);
+                flagMktCount++;
+            }
+        });
+        
+        const flagWinRate = flagged.length > 0 ? (flagWins / flagged.length) * 100 : 0;
+        const flagRoi = flagged.length > 0 ? (flagUnitProfit / flagged.length) * 100 : 0;
+        const flagModelBrier = flagModelCount > 0 ? flagModelBrierSum / flagModelCount : 0;
+        const flagMktBrier = flagMktCount > 0 ? flagMktBrierSum / flagMktCount : null;
+        
+        // 3. ROI BY EDGE SIZE
+        const buckets: Record<string, { n: number; wins: number; profit: number }> = {
+            '10+ pts': { n: 0, wins: 0, profit: 0 },
+            '3-5 pts': { n: 0, wins: 0, profit: 0 },
+            '5-7 pts': { n: 0, wins: 0, profit: 0 },
+            '7-10 pts': { n: 0, wins: 0, profit: 0 },
+        };
+        
+        flagged.forEach((r: any) => {
+            const e = r.edge_pts || 0;
+            let b: string | null = null;
+            if (e >= 10) b = '10+ pts';
+            else if (e >= 7 && e < 10) b = '7-10 pts';
+            else if (e >= 5 && e < 7) b = '5-7 pts';
+            else if (e >= 3 && e < 5) b = '3-5 pts';
+            
+            if (b) {
+                buckets[b].n++;
+                if (r.actual_result) buckets[b].wins++;
+                buckets[b].profit += (r.unit_profit || 0);
+            }
+        });
+        
+        const edgeData: EdgeData[] = ['10+ pts', '3-5 pts', '5-7 pts', '7-10 pts'].map(k => {
+            const b = buckets[k];
+            const winPct = b.n > 0 ? Math.round((b.wins / b.n) * 100) : 0;
+            const roi = b.n > 0 ? (b.profit / b.n) * 100 : 0;
+            return { edge: k, n: b.n, winPct, roi };
+        });
+
         return {
-            props: { stats }
+            props: {
+                stats: {
+                    all: {
+                        count: rows.length,
+                        modelBrier: allModelBrier,
+                        mktBrier: allMktBrier
+                    },
+                    flagged: {
+                        count: flagged.length,
+                        winRate: flagWinRate,
+                        roi: flagRoi,
+                        modelBrier: flagModelBrier,
+                        mktBrier: flagMktBrier
+                    },
+                    edgeData
+                }
+            }
         };
     } catch (err) {
         console.error('Error fetching validation stats:', err);
