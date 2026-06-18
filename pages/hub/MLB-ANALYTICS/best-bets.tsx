@@ -150,6 +150,7 @@ export default function BestBetsPage() {
            />
 
            <UniversalHeader pageDepth={2} />
+           <MlbSubNav />
 
            <div className="bg-gradient-to-b from-[#0d1117] to-[#1a2332] border-b-[3px] border-[#3d4f5f] p-4 flex justify-between items-center shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                <div>
