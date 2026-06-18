@@ -97,16 +97,7 @@ export default function PortfolioPage() {
         totalBets = 0, wins = 0, losses = 0, pushes = 0, totalPnl = 0, currentBankroll = 1000, roi = 0, peakBankroll = 1000, maxDrawdown = 0, winRate = 0, weeklyCurve = [], recentBets = []
     } = data || {};
 
-    if (error) {
-        return (
-            <div className="bg-[#0a0a15] min-h-screen text-slate-200 flex justify-center items-center">
-                <div className="text-center text-[#FF0055]">
-                    <h2 className="text-2xl font-extrabold">Error Loading Portfolio</h2>
-                    <p>Failed to fetch data from the server. Please try again later.</p>
-                </div>
-            </div>
-        );
-    }
+    const hasError = !!error;
 
     return (
         <div className="bg-[#0a0a15] min-h-screen font-inter pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
@@ -143,122 +134,135 @@ export default function PortfolioPage() {
                     </div>
                 </div>
 
-                {/* Filter Bar */}
-                <div className="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[#131420] p-4 rounded-xl border border-[#2a3a4a]">
-                    <div className="flex gap-2 items-center">
-                        <span className="text-slate-400 text-xs font-semibold mr-2 uppercase tracking-wide">Timeframe:</span>
-                        {[7, 14, 30].map(d => (
-                            <button
-                                key={d}
-                                onClick={() => setDaysFilter(d)}
-                                className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${daysFilter === d ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
-                            >
-                                {d} DAYS
-                            </button>
-                        ))}
-                        <button
-                            onClick={() => setDaysFilter(null)}
-                            className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${daysFilter === null ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
-                        >
-                            YTD
-                        </button>
-                    </div>
-                    
-                    <div className="flex gap-2 items-center flex-wrap">
-                        <span className="text-slate-400 text-xs font-semibold mr-2 uppercase tracking-wide">Market:</span>
-                        {['ALL', 'Moneyline', 'Run Line', 'Totals'].map(m => (
-                            <button
-                                key={m}
-                                onClick={() => setMarketFilter(m)}
-                                className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${marketFilter === m ? 'bg-[#FF00FF]/10 text-[#FF00FF] border border-[#FF00FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
-                            >
-                                {m === 'ALL' ? 'ALL' : m === 'Moneyline' ? 'ML' : m === 'Run Line' ? 'RL' : 'TOT'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex flex-col lg:flex-row gap-4 mb-8">
-                    <div className="w-full lg:w-1/3 bg-[#131420] border border-[#00D4FF]/20 rounded-xl p-6 flex flex-col justify-center items-center shadow-[inset_0_0_20px_rgba(0,212,255,0.05)]">
-                        <div className="text-xs font-extrabold text-[#00D4FF] tracking-widest mb-2">CURRENT BANKROLL</div>
-                        <div className="text-5xl font-extrabold text-white leading-none">
-                            {isLoading ? '--' : formatCurrency(currentBankroll)}
-                        </div>
-                        <div className="text-sm font-bold text-[#00D4FF] mt-2">
-                            {isLoading ? '--' : formatCurrency(totalPnl, true)} from start
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1 font-medium">
-                            Started at $1,000.00
+                {hasError ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-[#131420] border border-[#ef4444]/50 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] mb-8">
+                        <div className="text-[13px] font-extrabold text-[#ef4444] tracking-[1px] mb-2">SYSTEM ERROR DETECTED</div>
+                        <div className="text-sm text-slate-400 max-w-[300px] text-center">
+                            Failed to load portfolio simulation data. The database might be unreachable.
                         </div>
                     </div>
+                ) : (
+                    <>
+                        {/* Filter Bar */}
+                        <div className="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[#131420] p-4 rounded-xl border border-[#2a3a4a]">
+                            <div className="flex gap-2 items-center">
+                                <span className="text-slate-400 text-xs font-semibold mr-2 uppercase tracking-wide">Timeframe:</span>
+                                {[7, 14, 30].map(d => (
+                                    <button
+                                        key={d}
+                                        onClick={() => setDaysFilter(d)}
+                                        className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${daysFilter === d ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
+                                    >
+                                        {d} DAYS
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setDaysFilter(null)}
+                                    className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${daysFilter === null ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
+                                >
+                                    YTD
+                                </button>
+                            </div>
+                            
+                            <div className="flex gap-2 items-center flex-wrap">
+                                <span className="text-slate-400 text-xs font-semibold mr-2 uppercase tracking-wide">Market:</span>
+                                {['ALL', 'Moneyline', 'Run Line', 'Totals'].map(m => (
+                                    <button
+                                        key={m}
+                                        onClick={() => setMarketFilter(m)}
+                                        className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${marketFilter === m ? 'bg-[#FF00FF]/10 text-[#FF00FF] border border-[#FF00FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
+                                    >
+                                        {m === 'ALL' ? 'ALL' : m === 'Moneyline' ? 'ML' : m === 'Run Line' ? 'RL' : 'TOT'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                    <div className="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} isLoading={isLoading} />
-                        <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
-                        <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#00D4FF' : (roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
-                        <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
-                        <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#00D4FF" isLoading={isLoading} />
-                        <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} valueColor="#FFFFFF" isLoading={isLoading} />
-                    </div>
-                </div>
+                        <div className="flex flex-col lg:flex-row gap-4 mb-8">
+                            <div className="w-full lg:w-1/3 bg-[#131420] border border-[#00D4FF]/20 rounded-xl p-6 flex flex-col justify-center items-center shadow-[inset_0_0_20px_rgba(0,212,255,0.05)]">
+                                <div className="text-xs font-extrabold text-[#00D4FF] tracking-widest mb-2">CURRENT BANKROLL</div>
+                                <div className="text-5xl font-extrabold text-white leading-none">
+                                    {isLoading ? '--' : formatCurrency(currentBankroll)}
+                                </div>
+                                <div className={`text-sm font-bold mt-2 ${!isLoading && totalPnl < 0 ? 'text-[#FF0055]' : 'text-[#00D4FF]'}`}>
+                                    {isLoading ? '--' : formatCurrency(totalPnl, true)} from start
+                                </div>
+                                <div className="text-xs text-slate-500 mt-1 font-medium">
+                                    Started at $1,000.00
+                                </div>
+                            </div>
 
-                <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
-                    <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
-                    Equity Curve
-                </h2>
-                <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 mb-8 h-[350px] shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={weeklyCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorBankroll" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.4}/>
-                                    <stop offset="95%" stopColor="#00D4FF" stopOpacity={0.0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#2a3a4a" vertical={false} />
-                            <XAxis 
-                                dataKey="weekOf" 
-                                stroke="#64748B" 
-                                fontSize={12} 
-                                tickLine={false} 
-                                axisLine={false}
-                                tickFormatter={(val) => {
-                                    const d = new Date(val);
-                                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-                                }}
-                            />
-                            <YAxis 
-                                stroke="#64748B" 
-                                fontSize={12} 
-                                tickLine={false} 
-                                axisLine={false} 
-                                domain={['auto', 'auto']}
-                                tickFormatter={(val) => `${val}`}
-                            />
-                            <Tooltip 
-                                contentStyle={{ background: '#0a0a15', border: '1px solid #00D4FF', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)' }}
-                                itemStyle={{ color: '#00D4FF', fontWeight: 700 }}
-                                labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
-                                formatter={(value: number) => [formatCurrency(value), 'Bankroll']}
-                                labelFormatter={(label) => `Week of ${label}`}
-                            />
-                            <Area type="monotone" dataKey="bankroll" stroke="#00D4FF" strokeWidth={3} fillOpacity={1} fill="url(#colorBankroll)" activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }} />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
+                            <div className="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} isLoading={isLoading} />
+                                <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                                <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#00D4FF' : (roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                                <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                                <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#00D4FF" isLoading={isLoading} />
+                                <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} valueColor="#FFFFFF" isLoading={isLoading} />
+                            </div>
+                        </div>
 
-                <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
-                    <div className="w-1 h-[18px] bg-[#FF00FF] rounded-sm shadow-[0_0_8px_rgba(255,0,255,0.6)]" />
-                    Recent Simulated Bets <span className="text-slate-400 font-normal text-sm">(last 20)</span>
-                </h2>
-                
-                <div className="w-full">
-                    {isLoading ? (
-                        <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 text-center text-slate-400 w-full">Loading simulator data...</div>
-                    ) : (
-                        <RecentBetsTable bets={recentBets} />
-                    )}
-                </div>
+                        <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
+                            <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
+                            Equity Curve
+                        </h2>
+                        <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 mb-8 h-[350px] shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={weeklyCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorBankroll" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#00D4FF" stopOpacity={0.0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#2a3a4a" vertical={false} />
+                                    <XAxis 
+                                        dataKey="weekOf" 
+                                        stroke="#64748B" 
+                                        fontSize={12} 
+                                        tickLine={false} 
+                                        axisLine={false}
+                                        tickFormatter={(val) => {
+                                            if (!val) return '';
+                                            const d = new Date(val);
+                                            if (isNaN(d.getTime())) return '';
+                                            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+                                        }}
+                                    />
+                                    <YAxis 
+                                        stroke="#64748B" 
+                                        fontSize={12} 
+                                        tickLine={false} 
+                                        axisLine={false} 
+                                        domain={['auto', 'auto']}
+                                        tickFormatter={(val) => `${val}`}
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ background: '#0a0a15', border: '1px solid #00D4FF', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)' }}
+                                        itemStyle={{ color: '#00D4FF', fontWeight: 700 }}
+                                        labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
+                                        formatter={(value: number) => [formatCurrency(value), 'Bankroll']}
+                                        labelFormatter={(label) => `Week of ${label}`}
+                                    />
+                                    <Area type="monotone" dataKey="bankroll" stroke="#00D4FF" strokeWidth={3} fillOpacity={1} fill="url(#colorBankroll)" activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <h2 className="text-lg font-extrabold text-slate-50 mb-4 flex items-center gap-2">
+                            <div className="w-1 h-[18px] bg-[#FF00FF] rounded-sm shadow-[0_0_8px_rgba(255,0,255,0.6)]" />
+                            Recent Simulated Bets <span className="text-slate-400 font-normal text-sm">(last 20)</span>
+                        </h2>
+                        
+                        <div className="w-full">
+                            {isLoading ? (
+                                <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 text-center text-slate-400 w-full">Loading simulator data...</div>
+                            ) : (
+                                <RecentBetsTable bets={recentBets} />
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
             <BottomNavBar />
         </div>

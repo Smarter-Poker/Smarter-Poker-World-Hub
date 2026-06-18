@@ -60,12 +60,12 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
                     bValue = new Date(b.as_of_ts || 0).getTime();
                     break;
                 case 'market':
-                    aValue = a.market || '';
-                    bValue = b.market || '';
+                    aValue = (a.market || '').toLowerCase();
+                    bValue = (b.market || '').toLowerCase();
                     break;
                 case 'selection':
-                    aValue = a.selection || '';
-                    bValue = b.selection || '';
+                    aValue = (a.selection || '').toLowerCase();
+                    bValue = (b.selection || '').toLowerCase();
                     break;
                 case 'edge':
                     aValue = a.edge_pts || 0;
@@ -76,8 +76,8 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
                     bValue = b.stake || 0;
                     break;
                 case 'result':
-                    aValue = a.result || '';
-                    bValue = b.result || '';
+                    aValue = (a.result || '').toLowerCase();
+                    bValue = (b.result || '').toLowerCase();
                     break;
                 case 'pnl':
                     aValue = a.pnl || 0;
