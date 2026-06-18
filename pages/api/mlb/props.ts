@@ -43,7 +43,7 @@ export default async function handler(req: Request) {
         const mappedProps = (data || []).map(p => {
             const isOver = Number(p.model_proj) > Number(p.line);
             const odds = isOver ? Number(p.over_odds) : Number(p.under_odds);
-            let ev_pct = null;
+            let ev_pct: number | null = null;
             if (p.implied_prob != null && !isNaN(odds)) {
                 const decimalOdds = odds > 0 ? (1 + odds/100) : (1 - 100/odds);
                 const ev = (Number(p.implied_prob) * decimalOdds) - 1;
