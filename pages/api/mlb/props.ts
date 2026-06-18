@@ -13,23 +13,54 @@ export default async function handler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch from pred_props table
-        // Sorting by edge_pts descending to show highest value props first
+        // Fetch from pred_props table directly using its schema
         const { data, error } = await mlbDb
             .from('pred_props')
-            .select('*')
+            .select(`
+                id,
+                player_id,
+                player_name,
+                team_abbr,
+                prop_type,
+                line,
+                over_odds,
+                under_odds,
+                model_proj,
+                edge_pts,
+                implied_prob,
+                game_pk
+            `)
             .order('edge_pts', { ascending: false, nullsFirst: false });
 
         if (error) {
-            console.warn('[API/MLB/Props] Error fetching props (view may be missing or empty):', error.message);
+            console.warn('[API/MLB/Props] Error fetching props from pred_props:', error.message);
             return new Response(JSON.stringify({ props: [] }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
             });
         }
 
+        const mappedProps = (data || []).map(p => {
+            const isOver = Number(p.model_proj) > Number(p.line);
+            const odds = isOver ? Number(p.over_odds) : Number(p.under_odds);
+            let ev_pct = null;
+            if (p.implied_prob != null && !isNaN(odds)) {
+                const decimalOdds = odds > 0 ? (1 + odds/100) : (1 - 100/odds);
+                const ev = (Number(p.implied_prob) * decimalOdds) - 1;
+                ev_pct = ev * 100;
+            }
+
+            return {
+                ...p,
+                ev_pct,
+                prob_over: p.implied_prob, // Map to what frontend expects
+                proj_mean: p.model_proj, // Fallback mapping
+                prop: p.prop_type // Fallback mapping
+            };
+        });
+
         return new Response(JSON.stringify({ 
-            props: data || [] 
+            props: mappedProps 
         }), {
             status: 200,
             headers: {

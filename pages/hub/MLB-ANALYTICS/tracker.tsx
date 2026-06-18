@@ -23,6 +23,21 @@ const fetcher = async (url: string) => {
     }
 };
 
+const getTeamAbbr = (teamName: string) => {
+    if (!teamName) return '';
+    const map: Record<string, string> = {
+        'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL', 'Baltimore Orioles': 'BAL', 'Boston Red Sox': 'BOS',
+        'Chicago Cubs': 'CHC', 'Chicago White Sox': 'CWS', 'Cincinnati Reds': 'CIN', 'Cleveland Guardians': 'CLE',
+        'Colorado Rockies': 'COL', 'Detroit Tigers': 'DET', 'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',
+        'Los Angeles Angels': 'LAA', 'Los Angeles Dodgers': 'LAD', 'Miami Marlins': 'MIA', 'Milwaukee Brewers': 'MIL',
+        'Minnesota Twins': 'MIN', 'New York Mets': 'NYM', 'New York Yankees': 'NYY', 'Oakland Athletics': 'OAK',
+        'Philadelphia Phillies': 'PHI', 'Pittsburgh Pirates': 'PIT', 'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
+        'Seattle Mariners': 'SEA', 'St. Louis Cardinals': 'STL', 'Tampa Bay Rays': 'TB', 'Texas Rangers': 'TEX',
+        'Toronto Blue Jays': 'TOR', 'Washington Nationals': 'WSH'
+    };
+    return map[teamName] || teamName.substring(0, 3).toUpperCase();
+};
+
 const GameCard = ({ game }: any) => {
     const isLive = game.status === 'Live' || game.status === 'In Progress';
     const isFinal = game.status === 'Final' || game.status === 'Completed';
@@ -39,13 +54,13 @@ const GameCard = ({ game }: any) => {
                     <div className="flex flex-col gap-2 w-full">
                         <div className="flex justify-between items-center w-full">
                             <span className="text-[14px] font-extrabold text-white tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                {game.away_team_abbr || 'Away'}
+                                {game.away_team_abbr || getTeamAbbr(game.away_team) || 'Away'}
                             </span>
                             <span className="text-[16px] font-extrabold text-white">{game.away_score != null ? game.away_score : '-'}</span>
                         </div>
                         <div className="flex justify-between items-center w-full">
                             <span className="text-[14px] font-extrabold text-white tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                {game.home_team_abbr || 'Home'}
+                                {game.home_team_abbr || getTeamAbbr(game.home_team) || 'Home'}
                             </span>
                             <span className="text-[16px] font-extrabold text-white">{game.home_score != null ? game.home_score : '-'}</span>
                         </div>
@@ -55,7 +70,7 @@ const GameCard = ({ game }: any) => {
                             {game.status || 'Scheduled'}
                         </div>
                         <div className="text-[14px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                            {isLive ? `${game.is_top_inning ? 'Top' : 'Bot'} ${game.inning || ''}` : (isFinal ? 'F' : (game.start_time ? new Date(game.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD'))}
+                            {isLive ? `${(game.inning_state === 'Top' || game.is_top_inning) ? 'Top' : 'Bot'} ${game.inning || ''}` : (isFinal ? 'F' : (game.start_time ? new Date(game.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD'))}
                         </div>
                     </div>
                 </div>
@@ -99,6 +114,24 @@ export default function TrackerPage() {
     const { data, error, isLoading, mutate } = useSWR('/api/mlb/tracker', fetcher, {
         refreshInterval: 15000,
     });
+
+    useEffect(() => {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+        
+        if (!supabaseUrl || !supabaseAnonKey) return;
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const channel = supabase.channel('realtime:fct_games')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'fct_games' }, () => {
+                mutate();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [mutate]);
 
 
     if (error || data?.error) {

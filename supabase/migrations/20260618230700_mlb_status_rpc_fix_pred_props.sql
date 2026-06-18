@@ -43,7 +43,7 @@ BEGIN
     IF to_regclass('public.pred_props') IS NOT NULL THEN
         SELECT count(*) INTO props_count
         FROM pred_props
-        WHERE as_of_ts >= last_24h_iso;
+        WHERE created_at >= last_24h_iso;
 
         SELECT reltuples::bigint INTO size_props FROM pg_class WHERE relname = 'pred_props';
     END IF;
@@ -56,8 +56,8 @@ BEGIN
     END IF;
 
     -- 7. other sizes
-    IF to_regclass('public.fct_games') IS NOT NULL THEN
-        SELECT reltuples::bigint INTO size_fact_games FROM pg_class WHERE relname = 'fct_games';
+    IF to_regclass('public.fact_games') IS NOT NULL THEN
+        SELECT reltuples::bigint INTO size_fact_games FROM pg_class WHERE relname = 'fact_games';
     END IF;
     IF to_regclass('public.raw_odds') IS NOT NULL THEN
         SELECT reltuples::bigint INTO size_odds FROM pg_class WHERE relname = 'raw_odds';

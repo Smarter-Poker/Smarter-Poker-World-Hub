@@ -23,8 +23,6 @@ CREATE POLICY "Allow public read on raw_games" ON public.raw_games FOR SELECT US
 
 -- Enable Realtime
 BEGIN;
-  -- remove the table if it is already in the publication
-  ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS public.raw_games;
-  -- add it back to ensure it is there
+  -- add it to the publication
   ALTER PUBLICATION supabase_realtime ADD TABLE public.raw_games;
 COMMIT;
