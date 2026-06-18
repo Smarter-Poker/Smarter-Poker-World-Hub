@@ -1,73 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { ArrowLeft, ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, SearchX, CalendarX } from 'lucide-react';
+import useSWR from 'swr';
+import { ArrowLeft, ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, SearchX, CalendarX, Loader2 } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export async function getServerSideProps({ res }: any) {
-    try {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        const mlbDb = getMlbSupabase();
-        
-        // Compute 'today' in America/Chicago
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Chicago',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        const todayStr = formatter.format(new Date());
-
-        // Find the latest official_date
-        const { data: latestDateData, error: dateErr } = await mlbDb
-            .from('pred_best_bets')
-            .select('official_date')
-            .order('official_date', { ascending: false })
-            .limit(1);
-            
-        if (dateErr) throw dateErr;
-        
-        if (!latestDateData || latestDateData.length === 0) {
-            return { props: { bets: [], officialDate: null, isStale: true, todayStr } };
-        }
-        
-        const officialDate = latestDateData[0].official_date;
-        
-        // Fetch all bets for that date
-        const { data: bets, error: betsErr } = await mlbDb
-            .from('pred_best_bets')
-            .select('*')
-            .eq('official_date', officialDate)
-            .order('rank', { ascending: true });
-            
-        if (betsErr) throw betsErr;
-        
-        const isStale = officialDate < todayStr;
-        
-        return {
-            props: {
-                bets: bets || [],
-                officialDate,
-                isStale,
-                todayStr
-            }
-        };
-    } catch (err) {
-        console.error('Error fetching best bets:', err);
-        // Fallback needs todayStr computed as well so UI doesn't crash on null
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Chicago',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        const todayStr = formatter.format(new Date());
-        return { props: { bets: [], officialDate: null, isStale: true, todayStr } };
-    }
-}
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const BetCard = ({ bet, isExpanded, onToggle }: any) => {
     // Correct odds formatting for all types (+125, -110, "+125")
@@ -78,7 +18,11 @@ const BetCard = ({ bet, isExpanded, onToggle }: any) => {
         return num > 0 ? `+${num}` : `${num}`;
     };
     
-    const tierColorClass = bet.bet_tier === 'ELITE' ? 'text-emerald-500' : (bet.bet_tier === 'STRONG' ? 'text-blue-500' : 'text-amber-500');
+    // Tier Colors - Metallic Future UI
+    const isElite = bet.bet_tier === 'ELITE';
+    const tierColorClass = isElite 
+        ? 'text-[#FF00FF] drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]' 
+        : (bet.bet_tier === 'STRONG' ? 'text-[#00D4FF] drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]' : 'text-[#FFD700] drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]');
     
     // Formatting line safely - only add '+' for run lines/spreads
     let lineStr = '';
@@ -95,61 +39,60 @@ const BetCard = ({ bet, isExpanded, onToggle }: any) => {
     }
 
     return (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-            <div className="p-3 cursor-pointer touch-manipulation" onClick={onToggle}>
-                <div className="flex justify-between items-start mb-2">
+        <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all hover:border-[#00D4FF] group">
+            <div className="p-4 cursor-pointer touch-manipulation relative z-10" onClick={onToggle}>
+                <div className="flex justify-between items-start mb-3">
                     <div className="flex-1 pr-2">
-                        <div className="text-[11px] font-bold text-slate-500 mb-0.5">{bet.matchup}</div>
-                        <div className="text-[15px] font-extrabold text-slate-900 leading-tight">
+                        <div className="text-[10px] font-bold text-slate-400 mb-1 tracking-widest uppercase">{bet.matchup}</div>
+                        <div className="text-lg font-extrabold text-white leading-tight uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             {bet.selection} {lineStr}
                         </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                        <div className={`text-base font-extrabold ${tierColorClass}`}>{bet.bet_score}</div>
-                        <div className={`text-[10px] font-extrabold tracking-widest ${tierColorClass}`}>{bet.bet_tier}</div>
+                    <div className="text-right flex-shrink-0 bg-[#1a2332] border border-[#3d4f5f] px-3 py-1.5 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
+                        <div className={`text-xl font-extrabold ${tierColorClass}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{bet.bet_score}</div>
+                        <div className={`text-[9px] font-extrabold tracking-widest uppercase ${tierColorClass}`}>{bet.bet_tier}</div>
                     </div>
                 </div>
                 
-                <div className="flex justify-between items-center">
-                    <div className="flex gap-3 flex-wrap">
-                        <div>
-                            <span className="text-[10px] text-slate-500">Odds: </span>
-                            <span className="text-xs font-bold">{formatOdds(bet.best_price)}</span>
-                            <span className="text-[10px] text-slate-400 ml-1">({bet.best_book})</span>
+                <div className="flex justify-between items-center bg-[#1a2332] p-2 rounded-sm border border-[#3d4f5f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                    <div className="flex gap-4 flex-wrap">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Odds</span>
+                            <span className="text-[13px] font-extrabold text-white tracking-wider">{formatOdds(bet.best_price)} <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">({bet.best_book})</span></span>
                         </div>
-                        <div>
-                            <span className="text-[10px] text-slate-500">Win: </span>
-                            <span className="text-xs font-bold">{bet.win_confidence?.toFixed(1)}%</span>
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Win Prob</span>
+                            <span className="text-[13px] font-extrabold text-slate-300 tracking-wider">{bet.win_confidence?.toFixed(1)}%</span>
                         </div>
                         {bet.ev_pct !== null && bet.ev_pct !== undefined && (
-                            <div>
-                                <span className="text-[10px] text-slate-500">EV: </span>
-                                <span className={`text-xs font-bold ${Number(bet.ev_pct) > 0 ? 'text-emerald-500' : 'text-slate-900'}`}>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">EV</span>
+                                <span className={`text-[13px] font-extrabold tracking-wider ${Number(bet.ev_pct) > 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={Number(bet.ev_pct) > 0 ? { textShadow: '0 0 5px rgba(0,212,255,0.4)' } : {}}>
                                     {Number(bet.ev_pct) > 0 ? '+' : ''}{Number(bet.ev_pct).toFixed(1)}%
                                 </span>
                             </div>
                         )}
                     </div>
-                    <div className="text-slate-400 pl-2">
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    <div className="text-[#00D4FF] pl-2 group-hover:scale-110 transition-transform">
+                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </div>
                 </div>
             </div>
 
             {isExpanded && bet.score_factors && (
-                <div className="p-3 bg-slate-50 border-t border-slate-200">
-                    <div className="text-xs font-bold text-slate-900 mb-2">
+                <div className="p-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-t border-[#3d4f5f] relative z-0 shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)]">
+                    <div className="text-[11px] font-extrabold text-[#00D4FF] mb-3 uppercase tracking-widest border-b border-[#3d4f5f] pb-1">
                         {bet.score_verdict || "Analysis"}
                     </div>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-2">
                         {bet.score_factors.map((factor: any, i: number) => (
-                            <div key={i} className="flex gap-1.5 items-start">
-                                <div className="mt-0.5 flex-shrink-0">
-                                    {factor.dir === 'up' && <TrendingUp size={12} className="text-emerald-500" />}
-                                    {factor.dir === 'down' && <TrendingDown size={12} className="text-red-500" />}
-                                    {factor.dir === 'info' && <Info size={12} className="text-blue-500" />}
+                            <div key={i} className="flex gap-2 items-start bg-[#1a2332] p-2 rounded-sm border border-[#2a3a4a]">
+                                <div className="mt-0.5 flex-shrink-0 bg-[#0d1117] p-1 rounded-sm border border-[#3d4f5f]">
+                                    {factor.dir === 'up' && <TrendingUp size={12} className="text-[#00D4FF]" />}
+                                    {factor.dir === 'down' && <TrendingDown size={12} className="text-[#FF00FF]" />}
+                                    {factor.dir === 'info' && <Info size={12} className="text-slate-400" />}
                                 </div>
-                                <div className="text-[11px] text-slate-600 leading-snug">
+                                <div className="text-[11px] text-slate-300 leading-relaxed font-bold tracking-wide">
                                     {factor.text}
                                 </div>
                             </div>
@@ -161,14 +104,30 @@ const BetCard = ({ bet, isExpanded, onToggle }: any) => {
     );
 };
 
-export default function BestBetsPage({ bets = [], officialDate, isStale, todayStr }: any) {
+export default function BestBetsPage() {
     const [filter, setFilter] = useState('ALL');
     const [expandedBetId, setExpandedBetId] = useState<number | null>(null);
+    const [todayStr, setTodayStr] = useState<string>('');
 
-    const totalBets = bets.length;
-    const eliteBets = bets.filter((b: any) => b.bet_tier?.toUpperCase() === 'ELITE' || b.bet_score >= 80).length;
-    const topScore = bets.length > 0 ? Math.max(...bets.map((b: any) => b.bet_score || 0)) : 0;
-    const topLock = bets.length > 0 ? Math.max(...bets.map((b: any) => b.win_confidence || 0)) : 0;
+    useEffect(() => {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Chicago',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+        setTodayStr(formatter.format(new Date()));
+    }, []);
+
+    const { data, error, isLoading } = useSWR('/api/mlb/best-bets', fetcher, {
+        refreshInterval: 60000,
+    });
+
+    const bets = data?.bets || [];
+    const officialDate = data?.officialDate || null;
+    const stats = data?.stats || { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 };
+    
+    const isStale = !!(todayStr && officialDate && officialDate < todayStr);
 
     const filteredBets = bets.filter((b: any) => {
         if (filter === 'ALL') return true;
@@ -181,7 +140,7 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
     });
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
+        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
                title="Best Bets | MLB Analytics" 
                description="Daily MLB betting edges surfaced by AI models."
@@ -190,49 +149,56 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
 
            <UniversalHeader pageDepth={2} />
 
-           <div className="bg-white border-b border-slate-200 p-4 flex justify-between items-center">
+           <div className="bg-gradient-to-b from-[#0d1117] to-[#1a2332] border-b-[3px] border-[#3d4f5f] p-4 flex justify-between items-center shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                <div>
-                  <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-blue-600 text-xs font-bold no-underline tracking-widest">
+                  <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[10px] font-extrabold no-underline tracking-widest uppercase hover:text-white transition-colors">
                      <ArrowLeft size={14} /> DASHBOARD
                   </Link>
-                  <h1 className="m-0 mt-2 mb-0.5 text-2xl font-extrabold">Best <span className="text-blue-600">Bets</span></h1>
-                  <p className="m-0 text-xs text-slate-500">Ranked By Bet Score • {officialDate || todayStr}</p>
+                  <h1 className="m-0 mt-2 mb-0.5 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>Best <span className="text-[#00D4FF]" style={{ textShadow: '0 0 10px rgba(0,212,255,0.4)' }}>Bets</span></h1>
+                  <p className="m-0 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Ranked By Bet Score • {officialDate || todayStr || 'Loading...'}</p>
                </div>
-               <div className="text-right">
-                  <div className="text-blue-600 text-[11px] font-extrabold tracking-widest">MLB EDGE</div>
-                  <div className="text-[10px] font-bold text-slate-500 mt-1">SCORE 0–100</div>
-                  <div className="text-[9px] text-slate-400">value + confidence</div>
+               <div className="text-right bg-[#0a0a15] p-2 rounded-sm border border-[#3d4f5f] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
+                  <div className="text-[#00D4FF] text-[11px] font-extrabold tracking-widest uppercase" style={{ textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>MLB EDGE</div>
+                  <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest border-t border-[#3d4f5f] pt-1 mt-1">SCORE 0–100</div>
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">value + confidence</div>
                </div>
            </div>
 
-           <div className="p-4 w-full max-w-2xl mx-auto box-border">
-               {isStale && (
-                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                       <div className="text-amber-600 text-[13px] font-extrabold tracking-widest mb-1">STALE SLATE — NOT ACTIONABLE</div>
-                       <div className="text-amber-600 text-xs leading-snug">These picks are from {officialDate || "a previous date"}, not today ({todayStr}). Bets are hidden until today's lines post.</div>
+           <div className="p-4 w-full max-w-2xl mx-auto box-border relative">
+               {/* Background Glows */}
+               <div className="absolute top-10 left-10 w-64 h-64 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[100px] opacity-[0.03] pointer-events-none"></div>
+               <div className="absolute bottom-10 right-10 w-64 h-64 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[100px] opacity-[0.02] pointer-events-none"></div>
+
+               {isStale && !isLoading && (
+                   <div className="bg-[#1a2332] border-[3px] border-[#FFD700]/50 rounded-xl p-4 mb-5 shadow-[0_0_15px_rgba(255,215,0,0.1),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                       <div className="absolute top-0 left-0 w-1 h-full bg-[#FFD700]"></div>
+                       <div className="text-[#FFD700] text-[13px] font-extrabold tracking-widest mb-1 flex items-center gap-2 uppercase">
+                           <CalendarX size={16} /> STALE SLATE — NOT ACTIONABLE
+                       </div>
+                       <div className="text-slate-300 text-xs font-bold leading-snug tracking-wide">These picks are from {officialDate || "a previous date"}, not today ({todayStr}). Bets are hidden until today's lines post.</div>
                    </div>
                )}
 
-               <div className="grid grid-cols-4 gap-2 mb-4 metric-grid">
-                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
-                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">BETS</div>
-                     <div className="text-xl font-extrabold text-slate-900 mt-1">{totalBets}</div>
+               <div className="grid grid-cols-4 gap-3 mb-5 metric-grid">
+                  <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                     <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">BETS</div>
+                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-slate-400" /> : <div className="text-xl font-extrabold text-white mt-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.totalBets}</div>}
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
-                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">ELITE</div>
-                     <div className="text-xl font-extrabold text-emerald-500 mt-1">{eliteBets}</div>
+                  <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                     <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">ELITE</div>
+                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#FF00FF]" /> : <div className="text-xl font-extrabold text-[#FF00FF] mt-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.eliteBets}</div>}
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
-                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">TOP SCORE</div>
-                     <div className="text-xl font-extrabold text-emerald-500 mt-1">{topScore}</div>
+                  <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                     <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">TOP SCORE</div>
+                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-[#00D4FF]" /> : <div className="text-xl font-extrabold text-[#00D4FF] mt-1 drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.topScore}</div>}
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-lg py-3 px-1 text-center">
-                     <div className="text-[10px] font-bold text-slate-500 tracking-widest">TOP LOCK</div>
-                     <div className="text-xl font-extrabold text-slate-900 mt-1">{topLock.toFixed(0)}%</div>
+                  <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                     <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">TOP LOCK</div>
+                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto mt-2 text-slate-300" /> : <div className="text-xl font-extrabold text-slate-300 mt-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{(stats.topLock || 0).toFixed(0)}%</div>}
                   </div>
                </div>
 
-               <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+               <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                    <style dangerouslySetInnerHTML={{__html: `div::-webkit-scrollbar { display: none; }`}} />
                    {['ALL', 'ML', 'TOTAL', 'RUN LINE', 'PROPS'].map(f => (
                        <button 
@@ -241,10 +207,10 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
                                setFilter(f);
                                if(navigator.vibrate) try { navigator.vibrate(15); } catch(e){}
                            }}
-                           className={`px-4 py-2 rounded-full border text-xs font-bold whitespace-nowrap cursor-pointer touch-manipulation transition-colors ${
+                           className={`px-5 py-2 rounded-sm border-[2px] text-[10px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase ${
                                filter === f 
-                               ? 'bg-blue-100 text-blue-600 border-blue-200' 
-                               : 'bg-white text-slate-500 border-slate-200'
+                               ? 'bg-[#1a2332] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' 
+                               : 'bg-[#0d1117] text-slate-400 border-[#3d4f5f] hover:border-[#5a6a7a] hover:text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
                            }`}
                        >
                            {f}
@@ -252,21 +218,26 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
                    ))}
                </div>
 
-               {isStale || filteredBets.length === 0 ? (
-                   <div className="text-center py-12 px-5 bg-white border border-slate-200 rounded-lg">
-                       <div className="mb-3 text-slate-400 flex justify-center">
-                           {isStale || (filteredBets.length === 0 && filter === 'ALL') ? <CalendarX size={32} /> : <SearchX size={32} />}
+               {isLoading ? (
+                   <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                       <Loader2 className="w-10 h-10 animate-spin text-[#00D4FF] mx-auto mb-4" />
+                       <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">Running Analytics Models...</div>
+                   </div>
+               ) : isStale || filteredBets.length === 0 ? (
+                   <div className="text-center py-16 px-5 bg-[#0d1117] border-[3px] border-dashed border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                       <div className="mb-4 text-[#3d4f5f] flex justify-center drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                           {isStale || (filteredBets.length === 0 && filter === 'ALL') ? <CalendarX size={48} /> : <SearchX size={48} />}
                        </div>
-                       <div className="text-[15px] font-bold text-slate-700 mb-2">
+                       <div className="text-[15px] font-extrabold text-white mb-2 uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                            {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "No qualifying bets for today." : "No bets found for this filter."}
                        </div>
-                       <div className="text-[13px] text-slate-500 leading-relaxed">
+                       <div className="text-[11px] font-bold tracking-wide text-slate-400 leading-relaxed uppercase">
                            {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "Model is respecting the market." : "Try selecting a different bet type."}
                            <br />Edges surface when the model sees meaningful divergence from the closing line.
                        </div>
                    </div>
                ) : (
-                   <div className="flex flex-col gap-3">
+                   <div className="flex flex-col gap-4">
                        {filteredBets.map((bet: any, idx: number) => (
                            <BetCard 
                                key={`${bet.game_pk}-${bet.selection}-${idx}`} 
@@ -281,8 +252,14 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
                    </div>
                )}
 
-               <div className="mt-8 text-[11px] text-slate-400 text-center leading-relaxed px-4">
-                   Analysis only — not betting advice. <strong>Bet Score</strong> (0–100) ranks VALUE (expected return + confidence). <strong>Top Lock</strong> = most likely to win regardless of price. <strong>EV%</strong> = expected return per $1. Stake = ¼-Kelly. An edge is no guarantee.
+               <div className="mt-8 mb-4 p-4 bg-[#1a2332] border border-[#3d4f5f] rounded-sm text-[10px] font-bold tracking-wide text-slate-400 text-center leading-relaxed shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                   <strong className="text-[#00D4FF]">Analysis only — not betting advice.</strong> 
+                   <br/>
+                   <span className="uppercase text-slate-300">Bet Score (0–100)</span> ranks VALUE (expected return + confidence). 
+                   <br/>
+                   <span className="uppercase text-slate-300">Top Lock</span> = most likely to win regardless of price. 
+                   <br/>
+                   <span className="uppercase text-slate-300">EV%</span> = expected return per $1. Stake = ¼-Kelly. An edge is no guarantee.
                </div>
            </div>
            

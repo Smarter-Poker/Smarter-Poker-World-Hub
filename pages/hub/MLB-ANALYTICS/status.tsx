@@ -1,27 +1,20 @@
 import React from 'react';
-import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Loader2 } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { RefreshCw, Activity, Database, Clock, ServerCrash, CheckCircle2 } from 'lucide-react';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function StatusPage() {
-    const { data, error, isLoading } = useSWR('/api/mlb/status', fetcher, {
-        refreshInterval: 15000,
+    const { data, error, mutate, isValidating } = useSWR('/api/mlb/status', fetcher, {
+        refreshInterval: 60000,
+        revalidateOnFocus: true,
     });
 
-    const todayStr = data?.todayStr;
-    const aggMarketAsOf = data?.aggMarketAsOf;
-    const isSystemFresh = data?.isSystemFresh ?? true;
-    const marketBetsCount = data?.marketBetsCount || 0;
-    const propsCount = data?.propsCount || 0;
-    const bestBetsCount = data?.bestBetsCount || 0;
-    const latestRuns = data?.latestRuns || {};
-    const sizes = data?.sizes || {};
+    const isLoading = !data && !error;
 
     const timeAgo = (dateString: string) => {
         if (!dateString) return '';
@@ -53,8 +46,10 @@ export default function StatusPage() {
 
     const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
 
+    const isSystemFresh = data?.isSystemFresh ?? true;
+
     return (
-        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
+        <div style={{ minHeight: '100vh', background: '#0a0a15', color: '#e2e8f0', paddingBottom: 70, fontFamily: "var(--font-orbitron), 'Orbitron', 'Rajdhani', sans-serif", width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
             <SEOHead 
                 title="Data Status | MLB Analytics" 
                 description="Check the current status and freshness of the MLB Analytics system."
@@ -64,156 +59,244 @@ export default function StatusPage() {
             <UniversalHeader pageDepth={2} />
             <MlbSubNav />
 
-            <div className="p-4 max-w-4xl mx-auto w-full box-border">
-                <div className="mb-6">
-                    <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-bold tracking-wide mb-3 hover:text-white transition-colors uppercase" style={{ textShadow: '0 0 10px rgba(0,212,255,0.4)' }}>
-                        <ArrowLeft size={16} /> Dashboard
-                    </Link>
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                        <div>
-                            <h1 className="m-0 mb-1 text-2xl md:text-[28px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif', letterSpacing: '0.05em' }}>DATA <span className="text-[#00D4FF]">STATUS</span></h1>
-                            <p className="m-0 text-[13px] text-slate-400">System health, freshness, and database sizes.</p>
-                        </div>
-                        
-                        <div className="flex flex-col items-end mt-2 md:mt-0">
-                            <div className="text-[11px] font-bold tracking-[1px] text-[#00D4FF] mb-1">SYSTEM</div>
-                            {isLoading ? (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
-                                    <Loader2 size={10} className="animate-spin" /> EVALUATING
-                                </span>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)] ${isSystemFresh ? 'bg-[#10B981] shadow-[0_0_8px_#10B981]' : 'bg-[#FF00FF] shadow-[0_0_8px_#FF00FF]'}`}></div>
-                                    <div className={`text-[12px] font-extrabold tracking-widest ${isSystemFresh ? 'text-[#10B981]' : 'text-[#FF00FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 10px rgba(16,185,129,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
-                                        {isSystemFresh ? 'FRESH' : 'STALE'}
-                                    </div>
-                                </div>
-                            )}
+            {/* Sub-header for Data Status Page */}
+            <div style={{ 
+                background: 'linear-gradient(180deg, #1a2332 0%, #0d1117 100%)', 
+                borderBottom: '2px solid #3d4f5f', 
+                padding: '16px', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+            }}>
+                <div>
+                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        Data <span style={{ color: '#00D4FF', textShadow: '0 0 10px rgba(0, 212, 255, 0.6)' }}>Status</span>
+                    </h1>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <div style={{ color: '#00D4FF', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>SYSTEM</div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        <div style={{ 
+                            width: 8, height: 8, borderRadius: '50%', 
+                            background: isSystemFresh ? '#00D4FF' : '#FF00FF',
+                            boxShadow: isSystemFresh ? '0 0 10px #00D4FF' : '0 0 10px #FF00FF'
+                        }}></div>
+                        <div style={{ 
+                            fontSize: 12, fontWeight: 700, letterSpacing: 1,
+                            color: isSystemFresh ? '#00D4FF' : '#FF00FF',
+                            textShadow: isSystemFresh ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(255,0,255,0.5)'
+                        }}>
+                            {isSystemFresh ? 'FRESH' : 'STALE'}
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* DATA FRESHNESS */}
-                <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                    {/* Metal Frame Details */}
-                    <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-                    <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-                    <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-                    <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-
-                    <div className="relative z-10">
-                        <h2 className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-3 uppercase">Data Freshness</h2>
-                        <div className="bg-[#1a2332] rounded-lg border border-[#3d4f5f] overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-                            <div className="flex justify-between items-center p-3 md:p-4 border-b border-[#3d4f5f]">
-                                <span className="text-[12px] md:text-[13px] font-bold text-slate-400 uppercase tracking-wider">AGG Market as_of</span>
-                                <span className={`text-[13px] md:text-[14px] font-extrabold ${isSystemFresh ? 'text-[#10B981]' : 'text-[#FF00FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 10px rgba(16,185,129,0.3)' : '0 0 10px rgba(255,0,255,0.3)' }}>{isLoading ? '--' : (aggMarketAsOf || '-')}</span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 md:p-4">
-                                <span className="text-[12px] md:text-[13px] font-bold text-slate-400 uppercase tracking-wider">Today</span>
-                                <span className="text-[13px] md:text-[14px] font-extrabold text-[#00D4FF]" style={{ textShadow: '0 0 10px rgba(0,212,255,0.3)' }}>{isLoading ? '--' : (todayStr || '-')}</span>
-                            </div>
-                        </div>
-                    </div>
+            <div style={{ padding: '24px 16px', maxWidth: 800, margin: '0 auto' }}>
+                
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                    <button 
+                        onClick={() => mutate()}
+                        disabled={isValidating}
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid #3d4f5f',
+                            color: '#00D4FF',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            textTransform: 'uppercase',
+                            fontFamily: 'inherit',
+                            opacity: isValidating ? 0.5 : 1
+                        }}
+                    >
+                        <RefreshCw size={14} className={isValidating ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
                 </div>
 
-                {/* TODAY'S PREDICTIONS */}
-                <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                    <div className="relative z-10">
-                        <h2 className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-3 uppercase">Today's Predictions (Last 24H)</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            <div className="bg-[#1a2332] rounded-lg p-3 md:p-4 border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] hover:border-[#00D4FF] transition-colors group">
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">MARKET BETS</div>
-                                <div className="text-2xl font-extrabold text-[#00D4FF] group-hover:text-white transition-colors" style={{ textShadow: '0 0 10px rgba(0,212,255,0.5)' }}>
-                                    {isLoading ? '--' : marketBetsCount.toLocaleString()}
-                                </div>
-                            </div>
-                            <div className="bg-[#1a2332] rounded-lg p-3 md:p-4 border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] hover:border-[#00D4FF] transition-colors group">
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">PROPS</div>
-                                <div className="text-2xl font-extrabold text-[#00D4FF] group-hover:text-white transition-colors" style={{ textShadow: '0 0 10px rgba(0,212,255,0.5)' }}>
-                                    {isLoading ? '--' : propsCount.toLocaleString()}
-                                </div>
-                            </div>
-                            <div className="bg-[#1a2332] rounded-lg p-3 md:p-4 border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] hover:border-[#00D4FF] transition-colors group col-span-2 md:col-span-1">
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">BEST BETS</div>
-                                <div className="text-2xl font-extrabold text-[#00D4FF] group-hover:text-white transition-colors" style={{ textShadow: '0 0 10px rgba(0,212,255,0.5)' }}>
-                                    {isLoading ? '--' : bestBetsCount.toLocaleString()}
-                                </div>
-                            </div>
-                        </div>
+                {isLoading ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#00D4FF' }}>
+                        <RefreshCw size={32} className="animate-spin mx-auto mb-4" />
+                        <div style={{ fontWeight: 700, letterSpacing: '0.1em' }}>INITIALIZING SCAN...</div>
                     </div>
-                </div>
+                ) : error ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#FF00FF' }}>
+                        <ServerCrash size={32} className="mx-auto mb-4" />
+                        <div style={{ fontWeight: 700, letterSpacing: '0.1em' }}>SYSTEM ERROR DETECTED</div>
+                    </div>
+                ) : (
+                    <>
+                        <style dangerouslySetInnerHTML={{__html: `
+                            .metal-frame {
+                                position: relative;
+                                background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+                                border: 2px solid #3d4f5f;
+                                border-radius: 12px;
+                                box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.5);
+                            }
+                            .frame-bolt {
+                                position: absolute;
+                                width: 10px;
+                                height: 10px;
+                                background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
+                                border-radius: 50%;
+                                border: 1px solid #2a3a4a;
+                                box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
+                            }
+                            .neon-strip {
+                                position: absolute;
+                                width: 2px;
+                                top: 20%;
+                                bottom: 20%;
+                                background: #00D4FF;
+                                box-shadow: 0 0 5px #00D4FF, 0 0 10px rgba(0,212,255,0.6);
+                                border-radius: 2px;
+                            }
+                            .neon-strip.left { left: 4px; }
+                            .neon-strip.right { right: 4px; }
+                        `}} />
 
-                {/* RECENT PIPELINE RUNS */}
-                <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                    <div className="relative z-10">
-                        <h2 className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-3 uppercase">Recent Pipeline Runs</h2>
-                        <div className="flex flex-col gap-2">
-                            {stages.map((stage) => {
-                                const run = latestRuns?.[stage];
-                                const isError = run?.status === 'error';
+                        {/* DATA FRESHNESS */}
+                        <div style={{ marginBottom: 32 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <Clock size={16} color="#00D4FF" />
+                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>DATA FRESHNESS</h2>
+                            </div>
+                            <div className="metal-frame" style={{ overflow: 'hidden' }}>
+                                <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
+                                <div className="frame-bolt" style={{ top: '8px', right: '8px' }} />
+                                <div className="frame-bolt" style={{ bottom: '8px', left: '8px' }} />
+                                <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
+                                <div className="neon-strip left" />
+                                <div className="neon-strip right" />
                                 
-                                return (
-                                    <div key={stage} className={`bg-[#1a2332] border ${isError ? 'border-[#FF00FF]' : 'border-[#3d4f5f]'} rounded-lg p-3 flex flex-col md:flex-row md:justify-between md:items-center gap-2 hover:bg-[#1f2a3a] transition-colors`}>
-                                        <div>
-                                            <div className="text-[14px] font-bold text-white uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stage}</div>
-                                            <div className="text-[11px] text-slate-400 mt-0.5">{run ? formatDate(run.run_at) : 'No data'}</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #2a3a4a', background: 'rgba(0,0,0,0.2)' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#94A3B8', letterSpacing: 1 }}>AGG MARKET AS_OF</span>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: isSystemFresh ? '#00D4FF' : '#FF00FF', textShadow: isSystemFresh ? '0 0 8px rgba(0,212,255,0.5)' : '0 0 8px rgba(255,0,255,0.5)' }}>{data?.aggMarketAsOf || '-'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 24px', background: 'rgba(0,0,0,0.2)' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#94A3B8', letterSpacing: 1 }}>TODAY</span>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: '#00D4FF', textShadow: '0 0 8px rgba(0,212,255,0.5)' }}>{data?.todayStr || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* TODAY'S PREDICTIONS */}
+                        <div style={{ marginBottom: 32 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <Activity size={16} color="#00D4FF" />
+                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>TODAY'S PREDICTIONS (LAST 24H)</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {[
+                                    { label: 'MARKET BETS', val: data?.marketBetsCount },
+                                    { label: 'PROPS', val: data?.propsCount },
+                                    { label: 'BEST BETS', val: data?.bestBetsCount }
+                                ].map((item, idx) => (
+                                    <div key={idx} className="metal-frame" style={{ padding: '20px', textAlign: 'center' }}>
+                                        <div className="frame-bolt" style={{ top: '6px', left: '6px', width: 6, height: 6 }} />
+                                        <div className="frame-bolt" style={{ top: '6px', right: '6px', width: 6, height: 6 }} />
+                                        <div className="frame-bolt" style={{ bottom: '6px', left: '6px', width: 6, height: 6 }} />
+                                        <div className="frame-bolt" style={{ bottom: '6px', right: '6px', width: 6, height: 6 }} />
+                                        
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: 1.5, marginBottom: 8 }}>{item.label}</div>
+                                        <div style={{ fontSize: 28, fontWeight: 700, color: '#00D4FF', textShadow: '0 0 15px rgba(0,212,255,0.6)' }}>
+                                            {item.val?.toLocaleString() || 0}
                                         </div>
-                                        {run && (
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <div className="bg-[#0d1117] border border-[#3d4f5f] text-[#00D4FF] px-2 py-1 rounded text-[10px] font-extrabold tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-                                                    {timeAgo(run.run_at)}
-                                                </div>
-                                                <div className={`px-2 py-1 rounded text-[10px] font-extrabold tracking-widest border ${
-                                                    isError 
-                                                        ? 'bg-[#FF00FF]/20 text-[#FF00FF] border-[#FF00FF] shadow-[0_0_8px_rgba(255,0,255,0.3)]' 
-                                                        : 'bg-[#10B981]/20 text-[#10B981] border-[#10B981]'
-                                                }`}>
-                                                    {run.status.toUpperCase()}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
-                                );
-                            })}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* DB TABLE SIZES */}
-                <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                    <div className="relative z-10">
-                        <h2 className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-3 uppercase">DB Table Sizes</h2>
-                        <div className="bg-[#1a2332] rounded-lg border border-[#3d4f5f] overflow-x-auto shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-                            <table className="w-full text-left text-[13px] whitespace-nowrap">
-                                <thead>
-                                    <tr className="border-b border-[#3d4f5f]">
-                                        <th className="px-4 py-3 text-slate-400 font-bold uppercase tracking-wider text-[11px]">Table</th>
-                                        <th className="px-4 py-3 text-slate-400 font-bold uppercase tracking-wider text-[11px] text-right">Rows</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr className="border-b border-[#3d4f5f] hover:bg-[#1f2a3a] transition-colors">
-                                        <td className="px-4 py-3 text-[13px] font-bold text-slate-300">Market Output</td>
-                                        <td className="px-4 py-3 text-[13px] font-extrabold text-[#00D4FF] text-right" style={{ textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>{isLoading ? '--' : (sizes?.market?.toLocaleString() || '-')}</td>
-                                    </tr>
-                                    <tr className="border-b border-[#3d4f5f] hover:bg-[#1f2a3a] transition-colors">
-                                        <td className="px-4 py-3 text-[13px] font-bold text-slate-300">Props Output</td>
-                                        <td className="px-4 py-3 text-[13px] font-extrabold text-[#00D4FF] text-right" style={{ textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>{isLoading ? '--' : (sizes?.props?.toLocaleString() || '-')}</td>
-                                    </tr>
-                                    <tr className="border-b border-[#3d4f5f] hover:bg-[#1f2a3a] transition-colors">
-                                        <td className="px-4 py-3 text-[13px] font-bold text-slate-300">Fact Games</td>
-                                        <td className="px-4 py-3 text-[13px] font-extrabold text-[#00D4FF] text-right" style={{ textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>{isLoading ? '--' : (sizes?.games?.toLocaleString() || '-')}</td>
-                                    </tr>
-                                    <tr className="hover:bg-[#1f2a3a] transition-colors">
-                                        <td className="px-4 py-3 text-[13px] font-bold text-slate-300">Raw Odds</td>
-                                        <td className="px-4 py-3 text-[13px] font-extrabold text-[#00D4FF] text-right" style={{ textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>{isLoading ? '--' : (sizes?.odds?.toLocaleString() || '-')}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        {/* RECENT PIPELINE RUNS */}
+                        <div style={{ marginBottom: 32 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <CheckCircle2 size={16} color="#00D4FF" />
+                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>RECENT PIPELINE RUNS</h2>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {stages.map((stage) => {
+                                    const run = data?.latestRuns?.[stage];
+                                    const isError = run?.status === 'error';
+                                    const glowColor = isError ? '#FF00FF' : '#00D4FF';
+                                    
+                                    return (
+                                        <div key={stage} className="metal-frame" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)' }}>
+                                            <div className="neon-strip left" style={{ background: glowColor, boxShadow: `0 0 5px ${glowColor}` }} />
+                                            <div>
+                                                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>{stage}</div>
+                                                <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4, letterSpacing: 0.5, fontFamily: 'monospace' }}>{run ? formatDate(run.run_at) : 'NO DATA FOUND'}</div>
+                                            </div>
+                                            {run && (
+                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                    <div style={{ 
+                                                        color: '#94A3B8', fontSize: 11, fontWeight: 700, letterSpacing: 1, fontFamily: 'monospace' 
+                                                    }}>
+                                                        {timeAgo(run.run_at)}
+                                                    </div>
+                                                    <div style={{ 
+                                                        background: 'rgba(0,0,0,0.5)', 
+                                                        color: glowColor, 
+                                                        border: `1px solid ${glowColor}`,
+                                                        padding: '4px 10px', 
+                                                        borderRadius: 4, 
+                                                        fontSize: 10, 
+                                                        fontWeight: 700, 
+                                                        letterSpacing: 2,
+                                                        boxShadow: `0 0 10px rgba(${isError ? '255,0,255' : '0,212,255'},0.3)`
+                                                    }}>
+                                                        {run.status.toUpperCase()}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                </div>
 
+                        {/* DB TABLE SIZES */}
+                        <div style={{ marginBottom: 32 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <Database size={16} color="#00D4FF" />
+                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>DB TABLE SIZES</h2>
+                            </div>
+                            <div className="metal-frame" style={{ overflow: 'hidden' }}>
+                                <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
+                                <div className="frame-bolt" style={{ top: '8px', right: '8px' }} />
+                                <div className="frame-bolt" style={{ bottom: '8px', left: '8px' }} />
+                                <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
+                                <div className="neon-strip left" />
+                                <div className="neon-strip right" />
+
+                                {[
+                                    { label: 'MARKET OUTPUT', val: data?.sizes?.market },
+                                    { label: 'PROPS OUTPUT', val: data?.sizes?.props },
+                                    { label: 'FACT GAMES', val: data?.sizes?.games },
+                                    { label: 'RAW ODDS', val: data?.sizes?.odds }
+                                ].map((item, idx, arr) => (
+                                    <div key={idx} style={{ 
+                                        display: 'flex', justifyContent: 'space-between', padding: '16px 24px', 
+                                        borderBottom: idx < arr.length - 1 ? '1px solid #2a3a4a' : 'none',
+                                        background: 'rgba(0,0,0,0.2)' 
+                                    }}>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#94A3B8', letterSpacing: 1.5 }}>{item.label}</span>
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{item.val?.toLocaleString() || '-'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </>
+                )}
             </div>
             <BottomNavBar />
         </div>

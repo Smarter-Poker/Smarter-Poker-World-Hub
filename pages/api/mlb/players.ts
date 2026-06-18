@@ -9,25 +9,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         const mlbDb = getMlbSupabase();
 
-        // Fetch Hitters (Selecting ONLY necessary columns)
-        const { data: hittersData, error: hittersErr } = await mlbDb
-            .from('v_hitter_profile')
-            .select('player_id, full_name, team_id, wrc_plus, woba, pa')
-            .order('wrc_plus', { ascending: false });
+        // Fetch Hitters and Pitchers concurrently
+        const [hittersResult, pitchersResult] = await Promise.all([
+            mlbDb
+                .from('v_hitter_profile')
+                .select('player_id, full_name, team_id, wrc_plus, woba, pa')
+                .order('wrc_plus', { ascending: false }),
+            mlbDb
+                .from('v_pitcher_profile')
+                .select('player_id, full_name, team_id, fip, siera, bf')
+                .order('fip', { ascending: true }) // Lower FIP is better
+        ]);
 
-        if (hittersErr) throw hittersErr;
-
-        // Fetch Pitchers (Selecting ONLY necessary columns)
-        const { data: pitchersData, error: pitchersErr } = await mlbDb
-            .from('v_pitcher_profile')
-            .select('player_id, full_name, team_id, fip, siera, bf')
-            .order('fip', { ascending: true }); // Lower FIP is better
-
-        if (pitchersErr) throw pitchersErr;
+        if (hittersResult.error) throw hittersResult.error;
+        if (pitchersResult.error) throw pitchersResult.error;
 
         return res.status(200).json({
-            hitters: hittersData || [],
-            pitchers: pitchersData || [],
+            hitters: hittersResult.data || [],
+            pitchers: pitchersResult.data || [],
             fetchError: false
         });
     } catch (err) {
