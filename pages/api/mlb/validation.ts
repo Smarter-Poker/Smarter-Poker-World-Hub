@@ -23,8 +23,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
             
         if (error) {
-            console.error("RPC failed:", error.message);
-            throw error;
+            console.error("RPC get_mlb_validation_stats failed:", error.message);
+            // Fallback for when RPC is not deployed yet or fails
+            return res.status(200).json({ stats: null });
         }
         
         if (!stats || !stats.all || stats.all.count === 0) {

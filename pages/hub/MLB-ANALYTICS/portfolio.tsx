@@ -94,7 +94,7 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function PortfolioPage() {
-    const [daysFilter, setDaysFilter] = useState<number | null>(7);
+    const [daysFilter, setDaysFilter] = useState<number | null>(null);
     const [marketFilter, setMarketFilter] = useState<string>('ALL');
 
     const apiUrl = `/api/mlb/portfolio?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
@@ -142,6 +142,7 @@ export default function PortfolioPage() {
                     </div>
                 </div>
 
+                {/* Filter Bar */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '24px', alignItems: 'center', justifyContent: 'space-between', background: '#131420', padding: '16px', borderRadius: '12px', border: '1px solid #2a3a4a' }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginRight: '8px' }}>TIMEFRAME:</span>
@@ -178,7 +179,7 @@ export default function PortfolioPage() {
                                 transition: 'all 0.2s'
                             }}
                         >
-                            SEASON
+                            YTD
                         </button>
                     </div>
                     
