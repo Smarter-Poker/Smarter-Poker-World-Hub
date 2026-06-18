@@ -23,7 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (parsedDays && !isNaN(parsedDays)) {
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - parsedDays);
-                pageQuery = pageQuery.gte('as_of_ts', cutoffDate.toISOString());
+                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' });
+                pageQuery = pageQuery.gte('as_of_ts', formatter.format(cutoffDate) + 'T00:00:00Z');
             }
             if (parsedMarket) {
                 pageQuery = pageQuery.eq('market', parsedMarket);
@@ -64,8 +65,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         const csvContent = [headers.join(','), ...rows].join('\n');
         
+        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' });
+        const todayStr = formatter.format(new Date());
+        
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename=mlb_portfolio_export_${new Date().toISOString().split('T')[0]}.csv`);
+        res.setHeader('Content-Disposition', `attachment; filename=mlb_portfolio_export_${todayStr}.csv`);
         res.status(200).send(csvContent);
         
     } catch (err: any) {

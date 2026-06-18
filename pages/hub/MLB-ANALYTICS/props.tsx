@@ -43,7 +43,7 @@ const PropCard = ({ prop }: any) => {
             <div className="p-4 relative z-10">
                 <div className="flex justify-between items-start mb-3">
                     <div className="flex-1 pr-2">
-                        <div className="text-[10px] font-bold text-slate-400 mb-1 tracking-widest uppercase">{prop.team} vs {prop.opp}</div>
+                        <div className="text-[10px] font-bold text-slate-400 mb-1 tracking-widest uppercase">{prop.team_abbr}</div>
                         <div className="text-lg font-extrabold text-white leading-tight uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             {prop.player_name}
                         </div>
@@ -61,12 +61,14 @@ const PropCard = ({ prop }: any) => {
                     <div className="flex gap-4 flex-wrap">
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Odds</span>
-                            <span className="text-[13px] font-extrabold text-white tracking-wider">{formatOdds(prop.best_price)}</span>
+                            <span className="text-[13px] font-extrabold text-white tracking-wider">
+                                {formatOdds(Number(prop.model_proj) > Number(prop.line) ? prop.over_odds : prop.under_odds)}
+                            </span>
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Projection</span>
                             <span className="text-[13px] font-extrabold text-[#00D4FF] tracking-wider" style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>
-                                {prop.projection != null ? Number(prop.projection).toFixed(2) : 'N/A'}
+                                {prop.model_proj != null ? Number(prop.model_proj).toFixed(2) : 'N/A'}
                             </span>
                         </div>
                         {prop.ev_pct !== null && prop.ev_pct !== undefined && (
@@ -80,7 +82,7 @@ const PropCard = ({ prop }: any) => {
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Win Prob</span>
                             <span className="text-[13px] font-extrabold text-slate-300 tracking-wider">
-                                {prop.win_confidence != null ? (Number(prop.win_confidence) > 0 && Number(prop.win_confidence) <= 1 ? (Number(prop.win_confidence) * 100).toFixed(1) : Number(prop.win_confidence).toFixed(1)) + '%' : 'N/A'}
+                                {prop.implied_prob != null ? (Number(prop.implied_prob) > 0 && Number(prop.implied_prob) <= 1 ? (Number(prop.implied_prob) * 100).toFixed(1) : Number(prop.implied_prob).toFixed(1)) + '%' : 'N/A'}
                             </span>
                         </div>
                     </div>
