@@ -69,7 +69,7 @@ export async function getServerSideProps() {
     }
 }
 
-export default function AccuracyPage({ tableData = [], kpi }) {
+export default function AccuracyPage({ tableData = [], kpi }: { tableData?: any[], kpi?: any }) {
     const [filter, setFilter] = useState('All');
 
     // Filter table
