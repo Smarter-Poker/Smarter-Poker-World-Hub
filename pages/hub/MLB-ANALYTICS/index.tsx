@@ -8,8 +8,9 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export async function getServerSideProps() {
+export async function getServerSideProps({ res }: any) {
     try {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         const mlbDb = getMlbSupabase();
         
         // Formatter for 'today' in US Central Time (America/Chicago)
@@ -21,8 +22,6 @@ export async function getServerSideProps() {
         });
         const todayStr = formatter.format(new Date());
 
-        // Fetch top bets for today
-        const { data: topBets } = await mlbDb
         const [
             { data: topBets, error: betsErr },
             { data: pipelineData, error: pipelineErr },
@@ -35,41 +34,12 @@ export async function getServerSideProps() {
 
         const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].run_at : null;
 
-        if (games && games.length > 0) {
-            const gamePks = games.map((g: any) => g.game_pk);
-            
-            const { data: teamsData } = await mlbDb.from('dim_teams').select('team_id, abbr, name');
-            const teamsMap: Record<number, any> = {};
-            (teamsData || []).forEach((t: any) => { teamsMap[t.team_id] = t; });
-
-            const { data: preds } = await mlbDb.from('pred_market_output')
-                .select('game_pk, market, selection, edge_pts, rec, win_confidence, market_novig_prob')
-                .in('game_pk', gamePks);
-            
-            slateData = games.map((g: any) => {
-                const homeTeam = teamsMap[g.home_team_id] || { abbr: 'TBD', name: 'Unknown' };
-                const awayTeam = teamsMap[g.away_team_id] || { abbr: 'TBD', name: 'Unknown' };
-                const gamePreds = (preds || []).filter((p: any) => p.game_pk === g.game_pk);
-                
-                const recommended = gamePreds.filter((p: any) => p.rec === true || p.rec === 'BET');
-                
-                return {
-                    gamePk: g.game_pk,
-                    firstPitch: g.first_pitch_utc,
-                    homeTeam,
-                    awayTeam,
-                    recommendedCount: recommended.length,
-                    preds: gamePreds
-                };
-            });
-        }
-
         return {
             props: {
                 todayStr,
                 topBets: topBets || [],
                 lastUpdate,
-                slateData
+                slateGames: slateGames || []
             }
         };
     } catch (error) {
@@ -79,13 +49,13 @@ export async function getServerSideProps() {
                 todayStr: new Date().toISOString().split('T')[0],
                 topBets: [],
                 lastUpdate: null,
-                slateData: []
+                slateGames: []
             }
         };
     }
 }
 
-export default function MlbSlateDashboard({ todayStr, topBets, lastUpdate, slateData }: { todayStr: string, topBets: any[], lastUpdate: string | null, slateData: any[] }) {
+export default function MlbSlateDashboard({ todayStr, topBets, lastUpdate, slateGames }: { todayStr: string, topBets: any[], lastUpdate: string | null, slateGames: any[] }) {
     const formattedDate = new Date(todayStr + 'T12:00:00Z').toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'short',
