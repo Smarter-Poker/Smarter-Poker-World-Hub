@@ -7,7 +7,6 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
 export interface Streaks {
     record?: string;
@@ -42,65 +41,6 @@ export interface TeamProfile {
     [key: string]: any;
 }
 
-interface TeamsPageProps {
-    teams: TeamProfile[];
-    todayStr: string;
-    globalEdgeActive?: boolean;
-}
-
-export async function getServerSideProps({ res }: any) {
-    try {
-        if (res) {
-            res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        }
-        
-        const mlbDb = getMlbSupabase();
-        
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Chicago',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        const todayStr = formatter.format(new Date());
-        
-        const [teamsRes, aggRes] = await Promise.all([
-            mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
-            mlbDb.from('agg_team').select('team_id, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa').eq('window_kind', 'season')
-        ]);
-            
-        let teams = teamsRes.data || [];
-        const aggData = aggRes.data || [];
-
-        // Merge advanced stats into teams
-        teams = teams.map(team => {
-            const teamStats = aggData.filter(a => a.team_id === team.team_id);
-            const latestStats = teamStats.length > 0 ? teamStats[0] : null;
-            return {
-                ...team,
-                adv_stats: latestStats
-            };
-        });
-
-        return {
-            props: {
-                teams,
-                todayStr
-            }
-        };
-    } catch (err) {
-        console.error('[TeamsPage] Error in getServerSideProps:', err);
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Chicago',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        const todayStr = formatter.format(new Date());
-        return { props: { teams: [], todayStr } };
-    }
-}
-
 const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) => {
     const [imgError, setImgError] = useState(false);
     if (imgError) {
@@ -128,19 +68,47 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) =>
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-
-export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageProps) {
+export default function TeamsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLeague, setFilterLeague] = useState<'ALL' | 'AL' | 'NL'>('ALL');
     const [filterDivision, setFilterDivision] = useState<'ALL' | 'East' | 'Central' | 'West'>('ALL');
+    const [todayStr, setTodayStr] = useState<string>('');
 
-    const { data, error } = useSWR('/api/mlb/teams', fetcher, {
-        fallbackData: { teams: fallbackTeams },
+    React.useEffect(() => {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Chicago',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+        setTodayStr(formatter.format(new Date()));
+    }, []);
+
+    const { data, error, isLoading } = useSWR('/api/mlb/teams', fetcher, {
         refreshInterval: 15000,
         revalidateOnFocus: true,
     });
 
-    const activeTeams = data?.teams || fallbackTeams || [];
+    if (error || data?.error) {
+        return (
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Teams - Error" description="Data fetch failed" />
+                <UniversalHeader pageDepth={2} />
+                <MlbSubNav />
+                <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Shield className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load Teams Database. Please try again later.</p>
+                    </div>
+                </main>
+                <BottomNavBar />
+            </div>
+        );
+    }
+
+    const activeTeams = data?.teams || [];
     const globalEdgeActive = data?.globalEdgeActive || false;
 
     const filteredTeams = activeTeams.filter((team: any) => {
