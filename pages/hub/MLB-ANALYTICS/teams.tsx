@@ -5,6 +5,7 @@ import { ArrowLeft, Search, SearchX, Activity, Shield, Crosshair } from 'lucide-
 import useSWR from 'swr';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
@@ -345,6 +346,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
             />
 
             <UniversalHeader pageDepth={2} />
+            <MlbSubNav />
 
             <main className="feed-layout" style={{
                 display: 'flex',

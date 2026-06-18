@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -38,6 +39,7 @@ export default function AccuracyPage() {
                noIndex={true}
            />
            <UniversalHeader pageDepth={2} />
+           <MlbSubNav />
 
            <div className="p-4 max-w-4xl mx-auto w-full box-border">
                 <div className="mb-6">
