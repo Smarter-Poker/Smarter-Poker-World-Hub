@@ -24,7 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .is('result', null)
             .eq('official_date', todayStr);
 
-        if (fetchErr) throw fetchErr;
+        if (fetchErr) {
+            console.warn('[MLB CLV] Error fetching pending bets:', fetchErr.message);
+            return res.status(200).json({ message: 'Table missing or error', updated: 0 });
+        }
 
         if (!pendingBets || pendingBets.length === 0) {
             return res.status(200).json({ message: 'No pending bets to update', updated: 0 });
@@ -37,7 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select('game_pk, market, outcome_name, implied_prob_novig, as_of_ts')
             .in('game_pk', gamePks);
 
-        if (oddsErr) throw oddsErr;
+        if (oddsErr) {
+            console.warn('[MLB CLV] Error fetching raw odds:', oddsErr.message);
+            return res.status(200).json({ message: 'raw_odds table missing or error', updated: 0 });
+        }
 
         // Group latest odds
         const latestOdds: Record<string, any> = {};
