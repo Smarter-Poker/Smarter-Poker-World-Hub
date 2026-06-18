@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ChevronRight, Search, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { ChevronRight, Search, X, AlertTriangle, Loader2, Activity } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -145,6 +145,27 @@ export default function PlayersPage() {
 
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
 
+    const hasError = !!error || !!fetchError;
+
+    if (hasError) {
+        return (
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Error" description="Data fetch failed" />
+                <UniversalHeader pageDepth={2} />
+                <MlbSubNav />
+                <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                    </div>
+                </main>
+                <BottomNavBar />
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
@@ -225,10 +246,20 @@ export default function PlayersPage() {
                )}
 
                <div className="flex flex-col">
-                   {isLoading ? (
-                        <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-                            <Loader2 className="w-10 h-10 animate-spin text-[#00D4FF] mx-auto mb-4" />
-                            <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse" style={{ fontFamily: '"Rajdhani", sans-serif' }}>LOADING DATA...</div>
+                    {isLoading ? (
+                        <div className="space-y-3">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex items-center justify-between animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                                    <div className="flex items-center gap-4 pl-2">
+                                        <div className="w-14 h-14 rounded-full bg-[#3d4f5f]"></div>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="h-5 w-32 bg-[#3d4f5f] rounded"></div>
+                                            <div className="h-3 w-48 bg-[#3d4f5f] rounded"></div>
+                                        </div>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-[#3d4f5f]"></div>
+                                </div>
+                            ))}
                         </div>
                    ) : filteredPlayers.length > 0 ? (
                        filteredPlayers.map((player: PlayerProfile) => (
