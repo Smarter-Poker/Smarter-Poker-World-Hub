@@ -45,6 +45,7 @@ export interface TeamProfile {
 interface TeamsPageProps {
     teams: TeamProfile[];
     todayStr: string;
+    globalEdgeActive?: boolean;
 }
 
 export async function getServerSideProps({ res }: any) {
