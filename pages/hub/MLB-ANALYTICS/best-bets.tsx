@@ -62,7 +62,9 @@ const BetCard = ({ bet, isExpanded, onToggle }: any) => {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Win Prob</span>
-                            <span className="text-[13px] font-extrabold text-slate-300 tracking-wider">{bet.win_confidence?.toFixed(1)}%</span>
+                            <span className="text-[13px] font-extrabold text-slate-300 tracking-wider">
+                                {bet.win_confidence != null ? bet.win_confidence.toFixed(1) + '%' : 'N/A'}
+                            </span>
                         </div>
                         {bet.ev_pct !== null && bet.ev_pct !== undefined && (
                             <div className="flex flex-col">
@@ -135,7 +137,7 @@ export default function BestBetsPage() {
         if (filter === 'ML' && (type === 'moneyline' || type === 'ml')) return true;
         if (filter === 'TOTAL' && type === 'total') return true;
         if (filter === 'RUN LINE' && (type === 'run_line' || type === 'runline')) return true;
-        if (filter === 'PROPS' && type.startsWith('prop')) return true;
+        if (filter === 'PROPS' && type.includes('prop')) return true;
         return false;
     });
 
@@ -143,7 +145,7 @@ export default function BestBetsPage() {
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
                title="Best Bets | MLB Analytics" 
-               description="Daily MLB betting edges surfaced by AI models."
+               description="Daily MLB Betting Edges Surfaced By AI Models."
                noIndex={true}
            />
 
@@ -160,7 +162,7 @@ export default function BestBetsPage() {
                <div className="text-right bg-[#0a0a15] p-2 rounded-sm border border-[#3d4f5f] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
                   <div className="text-[#00D4FF] text-[11px] font-extrabold tracking-widest uppercase" style={{ textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>MLB EDGE</div>
                   <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest border-t border-[#3d4f5f] pt-1 mt-1">SCORE 0–100</div>
-                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">value + confidence</div>
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Value + Confidence</div>
                </div>
            </div>
 
@@ -175,7 +177,7 @@ export default function BestBetsPage() {
                        <div className="text-[#FFD700] text-[13px] font-extrabold tracking-widest mb-1 flex items-center gap-2 uppercase">
                            <CalendarX size={16} /> STALE SLATE — NOT ACTIONABLE
                        </div>
-                       <div className="text-slate-300 text-xs font-bold leading-snug tracking-wide">These picks are from {officialDate || "a previous date"}, not today ({todayStr}). Bets are hidden until today's lines post.</div>
+                       <div className="text-slate-300 text-xs font-bold leading-snug tracking-wide">These Picks Are From {officialDate || "A Previous Date"}, Not Today ({todayStr}). Bets Are Hidden Until Today's Lines Post.</div>
                    </div>
                )}
 
@@ -229,11 +231,11 @@ export default function BestBetsPage() {
                            {isStale || (filteredBets.length === 0 && filter === 'ALL') ? <CalendarX size={48} /> : <SearchX size={48} />}
                        </div>
                        <div className="text-[15px] font-extrabold text-white mb-2 uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                           {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "No qualifying bets for today." : "No bets found for this filter."}
+                           {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "No Qualifying Bets For Today." : "No Bets Found For This Filter."}
                        </div>
                        <div className="text-[11px] font-bold tracking-wide text-slate-400 leading-relaxed uppercase">
-                           {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "Model is respecting the market." : "Try selecting a different bet type."}
-                           <br />Edges surface when the model sees meaningful divergence from the closing line.
+                           {isStale || (filteredBets.length === 0 && filter === 'ALL') ? "Model Is Respecting The Market." : "Try Selecting A Different Bet Type."}
+                           <br />Edges Surface When The Model Sees Meaningful Divergence From The Closing Line.
                        </div>
                    </div>
                ) : (
@@ -253,13 +255,13 @@ export default function BestBetsPage() {
                )}
 
                <div className="mt-8 mb-4 p-4 bg-[#1a2332] border border-[#3d4f5f] rounded-sm text-[10px] font-bold tracking-wide text-slate-400 text-center leading-relaxed shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-                   <strong className="text-[#00D4FF]">Analysis only — not betting advice.</strong> 
+                   <strong className="text-[#00D4FF]">Analysis Only — Not Betting Advice.</strong> 
                    <br/>
-                   <span className="uppercase text-slate-300">Bet Score (0–100)</span> ranks VALUE (expected return + confidence). 
+                   <span className="uppercase text-slate-300">Bet Score (0–100)</span> Ranks VALUE (Expected Return + Confidence). 
                    <br/>
-                   <span className="uppercase text-slate-300">Top Lock</span> = most likely to win regardless of price. 
+                   <span className="uppercase text-slate-300">Top Lock</span> = Most Likely To Win Regardless Of Price. 
                    <br/>
-                   <span className="uppercase text-slate-300">EV%</span> = expected return per $1. Stake = ¼-Kelly. An edge is no guarantee.
+                   <span className="uppercase text-slate-300">EV%</span> = Expected Return Per $1. Stake = ¼-Kelly. An Edge Is No Guarantee.
                </div>
            </div>
            

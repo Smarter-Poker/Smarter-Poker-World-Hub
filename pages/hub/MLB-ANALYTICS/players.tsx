@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { ChevronRight, Search, X, AlertTriangle, Loader2 } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
 export interface PlayerProfile {
@@ -27,55 +28,21 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
     const [imgSrc, setImgSrc] = useState(headshotUrl);
 
     return (
-        <Link href={`/hub/MLB-ANALYTICS/players/${player.player_id}`} style={{ textDecoration: 'none' }}>
-            <div 
-                className="metal-frame"
-                style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    padding: '16px 20px',
-                    marginBottom: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    position: 'relative'
-                }}
-                onMouseEnter={(e) => { 
-                    e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 212, 255, 0.4), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3)';
-                    e.currentTarget.style.borderColor = '#00D4FF';
-                }}
-                onMouseLeave={(e) => { 
-                    e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.5)';
-                    e.currentTarget.style.borderColor = '#3d4f5f';
-                }}
-            >
-                <div className="frame-corner top-left" />
-                <div className="frame-corner top-right" />
-                <div className="frame-corner bottom-left" />
-                <div className="frame-corner bottom-right" />
-                <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
-                <div className="frame-bolt" style={{ top: '8px', right: '8px' }} />
-                <div className="frame-bolt" style={{ bottom: '8px', left: '8px' }} />
-                <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
-                <div className="neon-strip left" />
+        <Link href={`/hub/MLB-ANALYTICS/players/${player.player_id}`} className="block mb-3 group" style={{ textDecoration: 'none' }}>
+            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex items-center justify-between transition-all group-hover:border-[#00D4FF] group-hover:shadow-[0_0_15px_rgba(0,212,255,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] relative overflow-hidden">
+                
+                {/* Neon strip effect */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#3d4f5f] transition-all group-hover:bg-[#00D4FF] group-hover:shadow-[0_0_10px_rgba(0,212,255,0.8)]" />
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, zIndex: 1 }}>
-                    <div style={{ position: 'relative', width: 56, height: 56 }}>
+                <div className="flex items-center gap-4 z-10 pl-2">
+                    <div className="relative w-14 h-14">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                             src={imgSrc} 
                             onError={() => setImgSrc('/avatars/default-avatar.png')}
                             alt={player.full_name}
                             loading="lazy"
-                            style={{ 
-                                width: 56, 
-                                height: 56, 
-                                borderRadius: '50%', 
-                                objectFit: 'cover', 
-                                background: '#0d1117', 
-                                border: '2px solid #3d4f5f',
-                                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5), 0 0 10px rgba(0,212,255,0.2)'
-                            }} 
+                            className="w-14 h-14 rounded-full object-cover bg-[#0d1117] border-[2px] border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,212,255,0.2)]"
                         />
                         {player.team_id && (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -83,59 +50,40 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                                 src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`} 
                                 alt="Team Logo"
                                 loading="lazy"
-                                style={{ 
-                                    position: 'absolute', 
-                                    bottom: -4, 
-                                    right: -4, 
-                                    width: 24, 
-                                    height: 24, 
-                                    background: '#0d1117', 
-                                    borderRadius: '50%', 
-                                    padding: 2, 
-                                    border: '1px solid #3d4f5f', 
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.8)' 
-                                }}
+                                className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0d1117] rounded-full p-0.5 border border-[#3d4f5f] shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                             />
                         )}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ 
-                            fontFamily: "'Rajdhani', sans-serif",
-                            fontSize: 18, 
-                            fontWeight: 700, 
-                            color: '#FFFFFF', 
-                            letterSpacing: '0.05em',
-                            textTransform: 'uppercase',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.8)'
-                        }}>
+                    <div className="flex flex-col">
+                        <span className="font-extrabold text-white text-lg tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
                             {player.full_name}
                         </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <div className="flex items-center gap-2 mt-1">
                             {type === 'pitchers' ? (
                                 <>
-                                    <span style={{ color: '#00D4FF', fontWeight: 700, fontSize: 14, fontFamily: "'Orbitron', sans-serif", textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>
+                                    <span className="text-[#00D4FF] font-extrabold text-sm tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>
                                         FIP {player.fip != null ? Number(player.fip).toFixed(2) : 'N/A'}
                                     </span>
-                                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>|</span>
-                                    <span style={{ color: '#94A3B8', fontSize: 13, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                    <span className="text-slate-600 text-xs">|</span>
+                                    <span className="text-slate-400 text-[11px] font-bold tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                         SIERA {player.siera != null ? Number(player.siera).toFixed(2) : 'N/A'}
                                     </span>
-                                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>|</span>
-                                    <span style={{ color: '#94A3B8', fontSize: 13, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                    <span className="text-slate-600 text-xs">|</span>
+                                    <span className="text-slate-400 text-[11px] font-bold tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                         {player.bf || 0} BF
                                     </span>
                                 </>
                             ) : (
                                 <>
-                                    <span style={{ color: '#00D4FF', fontWeight: 700, fontSize: 14, fontFamily: "'Orbitron', sans-serif", textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>
+                                    <span className="text-[#00D4FF] font-extrabold text-sm tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(0,212,255,0.4)' }}>
                                         wRC+ {player.wrc_plus != null ? Number(player.wrc_plus).toFixed(0) : 'N/A'}
                                     </span>
-                                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>|</span>
-                                    <span style={{ color: '#94A3B8', fontSize: 13, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                    <span className="text-slate-600 text-xs">|</span>
+                                    <span className="text-slate-400 text-[11px] font-bold tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                         wOBA {player.woba != null ? Number(player.woba).toFixed(3) : 'N/A'}
                                     </span>
-                                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>|</span>
-                                    <span style={{ color: '#94A3B8', fontSize: 13, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                    <span className="text-slate-600 text-xs">|</span>
+                                    <span className="text-slate-400 text-[11px] font-bold tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                         {player.pa || 0} PA
                                     </span>
                                 </>
@@ -144,19 +92,8 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                     </div>
                 </div>
                 
-                <div style={{ 
-                    width: 32, 
-                    height: 32, 
-                    borderRadius: '50%', 
-                    background: '#0d1117', 
-                    border: '2px solid #3d4f5f', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.8)',
-                    zIndex: 1
-                }}>
-                    <ChevronRight size={18} color="#00D4FF" style={{ filter: 'drop-shadow(0 0 2px rgba(0,212,255,0.5))' }} />
+                <div className="w-8 h-8 rounded-full bg-[#1a2332] border border-[#3d4f5f] flex items-center justify-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)] z-10 group-hover:border-[#00D4FF] group-hover:bg-[#0d1117] transition-all">
+                    <ChevronRight size={16} className="text-[#00D4FF]" style={{ filter: 'drop-shadow(0 0 2px rgba(0,212,255,0.5))' }} />
                 </div>
             </div>
         </Link>
@@ -197,44 +134,32 @@ export default function PlayersPage() {
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
 
     return (
-        <div style={{ 
-            minHeight: '100vh', 
-            background: '#0a0a15', 
-            color: '#FFFFFF', 
-            paddingBottom: 70, 
-            fontFamily: "'Rajdhani', sans-serif", 
-            width: '100%', 
-            maxWidth: '100vw', 
-            overflowX: 'hidden' 
-        }}>
+        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
-               title="Players | MLB Analytics" 
-               description="Complete profiles for every 2026 MLB hitter and pitcher."
+               title="Players Database | MLB Analytics" 
+               description="Complete profiles for every MLB hitter and pitcher."
                noIndex={true}
            />
 
            <UniversalHeader pageDepth={2} />
+           <MlbSubNav />
 
-           <div className="edge-to-edge-container" style={{ padding: '24px 16px', maxWidth: 800, margin: '0 auto' }}>
+           <div className="p-4 w-full max-w-4xl mx-auto box-border relative">
                
-               <div style={{ marginBottom: 24 }}>
-                   <h1 style={{ 
-                       margin: '0 0 8px', 
-                       fontSize: 32, 
-                       fontWeight: 700, 
-                       letterSpacing: '0.1em', 
-                       color: '#FFFFFF',
-                       fontFamily: "'Orbitron', sans-serif",
-                       textTransform: 'uppercase',
-                       textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-                   }}>Player Database</h1>
-                   <p style={{ margin: 0, fontSize: 16, color: '#94A3B8', fontWeight: 500, letterSpacing: '0.02em' }}>
-                       Complete profiles for every 2026 MLB hitter and pitcher. Access situational splits, recent form, and advanced metrics.
+               {/* Background Glows */}
+               <div className="absolute top-20 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
+
+               <div className="mb-6">
+                   <h1 className="m-0 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>
+                       Player Database
+                   </h1>
+                   <p className="mt-2 text-sm text-slate-400 font-bold tracking-wide">
+                       Complete profiles for every MLB hitter and pitcher. Access situational splits, recent form, and advanced metrics.
                    </p>
                </div>
 
-               <div style={{ position: 'relative', marginBottom: 20 }}>
-                   <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#00D4FF', display: 'flex', pointerEvents: 'none' }}>
+               <div className="relative mb-6">
+                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00D4FF] flex pointer-events-none">
                        <Search size={18} style={{ filter: 'drop-shadow(0 0 2px rgba(0,212,255,0.5))' }} />
                    </div>
                    <input 
@@ -243,47 +168,32 @@ export default function PlayersPage() {
                        placeholder="SEARCH PLAYERS BY NAME..." 
                        value={searchQuery}
                        onChange={e => setSearchQuery(e.target.value)}
-                       className="metal-input"
-                       style={{ 
-                           width: '100%', 
-                           padding: '14px 40px 14px 44px',
-                           boxSizing: 'border-box',
-                           letterSpacing: '0.05em',
-                           textTransform: 'uppercase'
-                       }}
+                       className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 pl-12 pr-12 text-white font-extrabold text-sm tracking-widest uppercase focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600"
                    />
                    {searchQuery && (
-                       <div 
+                       <button 
                            onClick={() => setSearchQuery('')}
-                           style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', display: 'flex', cursor: 'pointer', padding: 4 }}
+                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                        >
                            <X size={18} />
-                       </div>
+                       </button>
                    )}
                </div>
 
-               <div style={{ display: 'flex', gap: 12, marginBottom: 24, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+               <div className="flex gap-2 mb-6 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+                   <style jsx>{`
+                       div::-webkit-scrollbar { display: none; }
+                   `}</style>
                    {tabs.map(tab => (
                        <button 
                            key={tab}
                            onClick={() => { setActiveTab(tab); setSearchQuery(''); }}
-                           style={{
-                               padding: '12px 24px',
-                               background: activeTab === tab ? 'linear-gradient(180deg, rgba(0,212,255,0.2) 0%, #1a2332 100%)' : 'linear-gradient(180deg, #1a2332 0%, #0d1117 100%)',
-                               border: `2px solid ${activeTab === tab ? '#00D4FF' : '#3d4f5f'}`,
-                               borderRadius: '4px',
-                               clipPath: 'polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%)',
-                               color: activeTab === tab ? '#00D4FF' : '#94A3B8',
-                               fontFamily: "'Orbitron', sans-serif",
-                               fontWeight: 700,
-                               fontSize: 12,
-                               letterSpacing: '0.1em',
-                               textTransform: 'uppercase',
-                               cursor: 'pointer',
-                               whiteSpace: 'nowrap',
-                               transition: 'all 0.3s ease',
-                               boxShadow: activeTab === tab ? '0 0 10px rgba(0,212,255,0.3), inset 0 2px 4px rgba(255,255,255,0.1)' : 'inset 0 2px 4px rgba(255,255,255,0.05)'
-                           }}
+                           className={`px-4 py-2 rounded-md font-extrabold text-[11px] uppercase tracking-widest whitespace-nowrap transition-all ${
+                               activeTab === tab 
+                                   ? 'bg-gradient-to-b from-[#00D4FF]/20 to-[#1a2332] border-[2px] border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)]' 
+                                   : 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-500 shadow-[inset_0_2px_4px_rgba(255,255,255,0.05)] hover:border-[#4b637a]'
+                           }`}
+                           style={{ fontFamily: '"Rajdhani", sans-serif' }}
                        >
                            {tab}
                        </button>
@@ -291,29 +201,22 @@ export default function PlayersPage() {
                </div>
 
                {fetchError && (
-                   <div className="metal-frame" style={{ padding: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 16, borderColor: '#ef4444', background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.1) 0%, #0d1117 100%)' }}>
-                       <div className="frame-corner top-left" />
-                       <div className="frame-corner top-right" />
-                       <div className="frame-corner bottom-left" />
-                       <div className="frame-corner bottom-right" />
-                       <div style={{ 
-                           width: 40, height: 40, borderRadius: '50%', background: '#0d1117', border: '2px solid #ef4444', 
-                           display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 10px rgba(239,68,68,0.5)' 
-                       }}>
-                           <AlertTriangle color="#ef4444" size={20} />
+                   <div className="bg-gradient-to-b from-red-500/10 to-[#0d1117] border-[2px] border-red-500/50 rounded-xl p-4 mb-6 flex items-center gap-4">
+                       <div className="w-10 h-10 rounded-full bg-[#0d1117] border-[2px] border-red-500 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                           <AlertTriangle className="text-red-500 w-5 h-5" />
                        </div>
                        <div>
-                           <div style={{ color: '#ef4444', fontWeight: 700, fontSize: 16, fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.05em', textTransform: 'uppercase' }}>System Error</div>
-                           <div style={{ color: '#fca5a5', fontSize: 14, marginTop: 4, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>Data transmission failed. Attempting to reconnect...</div>
+                           <div className="text-red-500 font-extrabold text-sm uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</div>
+                           <div className="text-red-300/70 text-xs font-bold tracking-wide mt-1">Data transmission failed. Attempting to reconnect...</div>
                        </div>
                    </div>
                )}
 
-               <div style={{ display: 'flex', flexDirection: 'column' }}>
+               <div className="flex flex-col">
                    {isLoading ? (
-                        <div style={{ textAlign: 'center', padding: '80px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                            <Loader2 size={40} className="neon-animated" style={{ color: '#00D4FF', animation: 'spin 2s linear infinite' }} />
-                            <div style={{ color: '#00D4FF', fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.2em', fontSize: 14, fontWeight: 700 }}>LOADING DATA...</div>
+                        <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                            <Loader2 className="w-10 h-10 animate-spin text-[#00D4FF] mx-auto mb-4" />
+                            <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse" style={{ fontFamily: '"Rajdhani", sans-serif' }}>LOADING DATA...</div>
                         </div>
                    ) : filteredPlayers.length > 0 ? (
                        filteredPlayers.map((player: PlayerProfile) => (
@@ -325,24 +228,17 @@ export default function PlayersPage() {
                        ))
                    ) : (
                        !fetchError && (
-                           <div className="metal-frame" style={{ textAlign: 'center', padding: '80px 20px', color: '#94A3B8' }}>
-                               <div className="frame-corner top-left" />
-                               <div className="frame-corner top-right" />
-                               <div className="frame-corner bottom-left" />
-                               <div className="frame-corner bottom-right" />
-                               <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
-                                   <div style={{ 
-                                       width: 80, height: 80, borderRadius: '50%', background: '#0d1117', border: '2px solid #3d4f5f', 
-                                       display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)' 
-                                   }}>
-                                       <Search size={32} style={{ color: '#3d4f5f' }} />
-                                   </div>
+                           <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center">
+                               <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+                                   <Search size={28} className="text-[#3d4f5f]" />
                                </div>
-                               <div style={{ marginBottom: 16, fontFamily: "'Rajdhani', sans-serif", fontSize: 18, fontWeight: 600, letterSpacing: '0.05em' }}>NO PLAYERS FOUND MATCHING "{searchQuery}"</div>
+                               <div className="text-slate-400 font-extrabold text-sm tracking-widest uppercase mb-4" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                   NO PLAYERS FOUND MATCHING "{searchQuery}"
+                               </div>
                                {searchQuery && (
                                    <button 
                                        onClick={() => setSearchQuery('')}
-                                       className="hex-button"
+                                       className="bg-[#1a2332] text-white border border-[#3d4f5f] px-4 py-2 rounded-sm text-[10px] font-extrabold tracking-widest uppercase hover:bg-[#3d4f5f] transition-colors"
                                    >
                                        CLEAR QUERY
                                    </button>
@@ -355,12 +251,6 @@ export default function PlayersPage() {
            </div>
            
            <BottomNavBar />
-           <style dangerouslySetInnerHTML={{__html: `
-               @keyframes spin {
-                   from { transform: rotate(0deg); }
-                   to { transform: rotate(360deg); }
-               }
-           `}} />
         </div>
     );
 }

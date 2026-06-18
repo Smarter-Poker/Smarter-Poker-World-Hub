@@ -2,6 +2,8 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
+import { useState } from 'react';
+import RecentBetsTable from '../../../components/mlb/RecentBetsTable';
 import dynamic from 'next/dynamic';
 
 const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false });
@@ -91,10 +93,14 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function PortfolioPage({ fallbackData, initialDays, initialMarket }: { fallbackData: PortfolioPageProps, initialDays: string | null, initialMarket: string }) {
-    const { data, error, isLoading } = useSWR('/api/mlb/portfolio', fetcher, {
-        refreshInterval: 15000,
-        fallbackData
+export default function PortfolioPage() {
+    const [daysFilter, setDaysFilter] = useState<number | null>(7);
+    const [marketFilter, setMarketFilter] = useState<string>('ALL');
+
+    const apiUrl = `/api/mlb/portfolio?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
+
+    const { data, error, isLoading } = useSWR(apiUrl, fetcher, {
+        refreshInterval: 15000
     });
 
     const {
@@ -133,6 +139,70 @@ export default function PortfolioPage({ fallbackData, initialDays, initialMarket
                                 Model <ArrowRight size={16} />
                             </button>
                         </Link>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '24px', alignItems: 'center', justifyContent: 'space-between', background: '#131420', padding: '16px', borderRadius: '12px', border: '1px solid #2a3a4a' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginRight: '8px' }}>TIMEFRAME:</span>
+                        {[7, 14, 30].map(d => (
+                            <button
+                                key={d}
+                                onClick={() => setDaysFilter(d)}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    background: daysFilter === d ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
+                                    color: daysFilter === d ? '#00D4FF' : '#64748B',
+                                    border: daysFilter === d ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {d} DAYS
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setDaysFilter(null)}
+                            style={{
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                background: daysFilter === null ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
+                                color: daysFilter === null ? '#00D4FF' : '#64748B',
+                                border: daysFilter === null ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            SEASON
+                        </button>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginRight: '8px' }}>MARKET:</span>
+                        {['ALL', 'Moneyline', 'Run Line', 'Totals'].map(m => (
+                            <button
+                                key={m}
+                                onClick={() => setMarketFilter(m)}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    background: marketFilter === m ? 'rgba(255, 0, 255, 0.1)' : 'transparent',
+                                    color: marketFilter === m ? '#FF00FF' : '#64748B',
+                                    border: marketFilter === m ? '1px solid rgba(255, 0, 255, 0.3)' : '1px solid transparent',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {m === 'ALL' ? 'ALL' : m === 'Moneyline' ? 'ML' : m === 'Run Line' ? 'RL' : 'TOT'}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -210,66 +280,12 @@ export default function PortfolioPage({ fallbackData, initialDays, initialMarket
                     Recent Simulated Bets <span style={{ color: '#94A3B8', fontWeight: 400 }}>(last 20)</span>
                 </h2>
                 
-                <div style={{ background: '#0d1117', border: '1px solid #2a3a4a', borderRadius: '12px', overflowX: 'auto', paddingBottom: '20px', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', width: '100%' }}>
-                    <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid #2a3a4a', color: '#8b9bb4', backgroundColor: '#1a2332' }}>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Date</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Market</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Selection</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Edge</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Stake</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>Result</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, whiteSpace: 'nowrap' }}>P&L</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>Bankroll</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>Loading simulator data...</td></tr>
-                            ) : recentBets.length > 0 ? recentBets.map((bet, i) => {
-                                const dateObj = bet.as_of_ts ? new Date(bet.as_of_ts) : new Date();
-                                const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-                                
-                                const pnl = bet.pnl || 0;
-                                const isWin = pnl > 0 || bet.result === 'WIN';
-                                const isLoss = pnl < 0 || bet.result === 'LOSS';
-                                
-                                return (
-                                    <tr key={bet.id || i} style={{ borderBottom: i < recentBets.length - 1 ? '1px solid #2a3a4a' : 'none' }}>
-                                        <td style={{ padding: '12px 16px', color: '#64748B', whiteSpace: 'nowrap' }}>
-                                            {dateStr}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                                            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 8px', borderRadius: '4px', color: '#94A3B8', fontSize: '11px', fontWeight: 700, letterSpacing: '0.02em' }}>
-                                                {bet.market || 'Moneyline'}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', color: '#F8FAFC', whiteSpace: 'nowrap' }}>{bet.selection || '-'}</td>
-                                        <td style={{ padding: '12px 16px', color: '#00D4FF', fontWeight: 600, whiteSpace: 'nowrap' }}>+{(bet.edge_pts || 0).toFixed(2)}</td>
-                                        <td style={{ padding: '12px 16px', color: '#94A3B8', whiteSpace: 'nowrap' }}>${(bet.stake || 0).toFixed(2)}</td>
-                                        <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                                            <span style={{ 
-                                                background: isWin ? 'rgba(0, 212, 255, 0.1)' : (isLoss ? 'rgba(255, 0, 85, 0.1)' : 'rgba(255, 255, 255, 0.05)'), 
-                                                color: isWin ? '#00D4FF' : (isLoss ? '#FF0055' : '#8b9bb4'),
-                                                padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px'
-                                            }}>
-                                                {bet.result || (isWin ? 'WIN' : (isLoss ? 'LOSS' : 'PUSH'))}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600, color: pnl > 0 ? '#00D4FF' : (pnl < 0 ? '#FF0055' : '#8b9bb4'), whiteSpace: 'nowrap' }}>
-                                            {formatCurrency(pnl, true)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600, color: '#94A3B8', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                            {formatCurrency(bet.bankroll_after || 0)}
-                                        </td>
-                                    </tr>
-                                );
-                            }) : (
-                                <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>No data available</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                <div style={{ width: '100%' }}>
+                    {isLoading ? (
+                        <div style={{ background: '#0d1117', border: '1px solid #2a3a4a', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#94A3B8', width: '100%' }}>Loading simulator data...</div>
+                    ) : (
+                        <RecentBetsTable bets={recentBets} />
+                    )}
                 </div>
             </div>
             <BottomNavBar />

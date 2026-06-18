@@ -46,7 +46,7 @@ BEGIN
         'totalBets', count(*),
         'eliteBets', count(*) FILTER (WHERE edge_pts >= 5),
         'topScore', COALESCE(max(bet_score), 0),
-        'topLock', COALESCE(max(implied_prob), 0)
+        'topLock', COALESCE(max(win_confidence), 0)
     ) INTO stats_data
     FROM pred_best_bets
     WHERE official_date = actual_date;

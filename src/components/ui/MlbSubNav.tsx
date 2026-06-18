@@ -19,22 +19,18 @@ export default function MlbSubNav() {
     ];
 
     return (
-        <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '12px 16px', display: 'flex', gap: '24px', overflowX: 'auto', whiteSpace: 'nowrap', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+        <div className="bg-[#0a0a15] border-b border-[#3d4f5f] px-4 py-3 flex gap-6 overflow-x-auto whitespace-nowrap shadow-[0_4px_20px_rgba(0,0,0,0.5)]" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
             <style jsx>{`
                 div::-webkit-scrollbar { display: none; }
             `}</style>
             {links.map(l => {
                 const isActive = router.pathname === l.href || (router.pathname === '/hub/MLB-ANALYTICS' && l.label === 'Slate');
                 return (
-                    <Link key={l.label} href={l.href} style={{
-                        textDecoration: 'none',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: isActive ? '#2563EB' : '#64748B',
-                        paddingBottom: '2px',
-                        borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
-                        transition: 'color 0.2s, border-color 0.2s'
-                    }}>
+                    <Link key={l.label} href={l.href} className={`pb-1 text-[11px] font-extrabold uppercase tracking-widest transition-all ${
+                        isActive 
+                            ? 'text-[#00D4FF] border-b-[2px] border-[#00D4FF] shadow-[0_4px_10px_-2px_rgba(0,212,255,0.4)]' 
+                            : 'text-slate-500 border-b-[2px] border-transparent hover:text-slate-300 hover:border-slate-600'
+                    }`} style={{ textDecoration: 'none' }}>
                         {l.label}
                     </Link>
                 );

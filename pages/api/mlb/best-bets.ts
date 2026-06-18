@@ -52,11 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const totalBets = betsArr.length;
             const eliteBets = betsArr.filter((b: BetRow) => (b.edge_pts || 0) >= 5).length;
             const topScore = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.bet_score || 0)) : 0;
-            const maxImpliedProb = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.implied_prob || 0)) : 0;
-            
-            // If implied_prob is typically 0-1, multiply by 100 for the frontend, 
-            // but we'll just pass maxImpliedProb as requested.
-            const topLock = maxImpliedProb > 1 ? maxImpliedProb : maxImpliedProb * 100;
+            const topLock = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.win_confidence || 0)) : 0;
             
             return res.status(200).json({
                 bets: betsArr,
