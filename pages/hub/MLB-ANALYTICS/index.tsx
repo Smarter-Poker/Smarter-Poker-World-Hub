@@ -127,9 +127,13 @@ export default function MlbSlateDashboard() {
                             </div>
                             
                             {isLoading && !data ? (
-                                <div className="text-center py-10 bg-[#1a2332] rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-                                    <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
-                                    <p className="text-[#00D4FF] font-extrabold tracking-widest uppercase text-[11px] animate-pulse">SCANNING DATABASE...</p>
+                                <div className="space-y-3">
+                                    {[1, 2, 3].map((i) => (
+                                        <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                                            <div className="h-3 w-1/3 bg-[#3d4f5f] rounded mb-3"></div>
+                                            <div className="h-6 w-1/4 bg-[#3d4f5f] rounded"></div>
+                                        </div>
+                                    ))}
                                 </div>
                             ) : topBets.length > 0 ? (
                                 <div className="space-y-3">
@@ -166,9 +170,14 @@ export default function MlbSlateDashboard() {
                                 Full Slate
                             </h2>
                             {isLoading && !data ? (
-                                <div className="text-center py-12 bg-[#1a2332] rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-                                    <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
-                                    <p className="text-[#00D4FF] font-extrabold tracking-widest uppercase text-[11px] animate-pulse">SCANNING DATABASE...</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-6 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                                            <div className="h-3 w-1/4 bg-[#3d4f5f] rounded mb-4"></div>
+                                            <div className="h-6 w-2/3 bg-[#3d4f5f] rounded mb-2"></div>
+                                            <div className="h-6 w-1/2 bg-[#3d4f5f] rounded"></div>
+                                        </div>
+                                    ))}
                                 </div>
                             ) : slateGames && slateGames.length > 0 ? (
                                 <div className="flex md:grid md:grid-cols-2 gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>

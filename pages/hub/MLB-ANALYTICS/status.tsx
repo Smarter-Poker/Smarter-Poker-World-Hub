@@ -154,9 +154,13 @@ export default function StatusPage() {
                 </div>
 
                 {isLoading ? (
-                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#00D4FF' }}>
-                        <RefreshCw size={32} className="animate-spin mx-auto mb-4 text-[#00D4FF]" />
-                        <div style={{ fontWeight: 700, letterSpacing: '0.1em' }} className="animate-pulse">SCANNING DATABASE...</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                                <div className="h-3 w-1/2 bg-[#3d4f5f] rounded mb-3"></div>
+                                <div className="h-8 w-3/4 bg-[#3d4f5f] rounded"></div>
+                            </div>
+                        ))}
                     </div>
                 ) : (
                     <>
