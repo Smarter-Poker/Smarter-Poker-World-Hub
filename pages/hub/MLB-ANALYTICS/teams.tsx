@@ -68,28 +68,32 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) =>
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-export default function TeamsPage() {
+export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToday, globalEdgeActive: fallbackGlobalEdgeActive }: any = {}) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLeague, setFilterLeague] = useState<'ALL' | 'AL' | 'NL'>('ALL');
     const [filterDivision, setFilterDivision] = useState<'ALL' | 'East' | 'Central' | 'West'>('ALL');
-    const [todayStr, setTodayStr] = useState<string>('');
+    const [sortBy, setSortBy] = useState<'NAME' | 'WAR' | 'OPS' | 'FIP' | 'EDGE'>('NAME');
+    const [todayStr, setTodayStr] = useState<string>(fallbackToday || '');
 
     React.useEffect(() => {
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Chicago',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        setTodayStr(formatter.format(new Date()));
-    }, []);
+        if (!todayStr) {
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Chicago',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            setTodayStr(formatter.format(new Date()));
+        }
+    }, [todayStr]);
 
-    const { data, error, isLoading } = useSWR('/api/mlb/teams', fetcher, {
+    const { data, error, isValidating } = useSWR('/api/mlb/teams', fetcher, {
+        fallbackData: fallbackTeams ? { teams: fallbackTeams, globalEdgeActive: fallbackGlobalEdgeActive } : undefined,
         refreshInterval: 15000,
         revalidateOnFocus: true,
     });
 
-    if (error || data?.error) {
+    if (error) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Teams - Error" description="Data fetch failed" />
@@ -108,27 +112,36 @@ export default function TeamsPage() {
         );
     }
 
-    const activeTeams = data?.teams || [];
-    const globalEdgeActive = data?.globalEdgeActive || false;
+    const activeTeams = data?.teams || fallbackTeams || [];
+    const globalEdgeActive = data?.globalEdgeActive || fallbackGlobalEdgeActive || false;
 
-    const filteredTeams = activeTeams.filter((team: any) => {
-        const teamName = team.name || '';
-        const teamLeague = team.league || '';
-        const teamDivision = team.division || '';
+    const filteredTeams = useMemo(() => {
+        let result = activeTeams.filter((team: any) => {
+            const teamName = team.name || '';
+            const teamLeague = team.league || '';
+            const teamDivision = team.division || '';
 
-        // Exclude All-Star teams which won't be in our dict
-        if (teamName.includes("All-Stars")) return false;
+            if (teamName.includes("All-Stars")) return false;
 
-        const matchSearch = teamName.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchLeague = filterLeague === 'ALL' || 
-            teamLeague === filterLeague || 
-            (filterLeague === 'AL' && teamLeague.includes('American')) ||
-            (filterLeague === 'NL' && teamLeague.includes('National'));
-        
-        const matchDivision = filterDivision === 'ALL' || teamDivision.includes(filterDivision);
+            const matchSearch = teamName.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchLeague = filterLeague === 'ALL' || 
+                teamLeague === filterLeague || 
+                (filterLeague === 'AL' && teamLeague.includes('American')) ||
+                (filterLeague === 'NL' && teamLeague.includes('National'));
+            
+            const matchDivision = filterDivision === 'ALL' || teamDivision.includes(filterDivision);
 
-        return matchSearch && matchLeague && matchDivision;
-    });
+            return matchSearch && matchLeague && matchDivision;
+        });
+
+        return result.sort((a: any, b: any) => {
+            if (sortBy === 'WAR') return ((b.adv_stats?.hitting_war || 0) + (b.adv_stats?.pitching_war || 0)) - ((a.adv_stats?.hitting_war || 0) + (a.adv_stats?.pitching_war || 0));
+            if (sortBy === 'OPS') return (b.adv_stats?.ops || 0) - (a.adv_stats?.ops || 0);
+            if (sortBy === 'FIP') return (a.adv_stats?.fip || 99) - (b.adv_stats?.fip || 99);
+            if (sortBy === 'EDGE') return (b.has_active_edge ? 1 : 0) - (a.has_active_edge ? 1 : 0);
+            return (a.name || '').localeCompare(b.name || '');
+        });
+    }, [activeTeams, searchQuery, filterLeague, filterDivision, sortBy]);
 
     return (
         <>

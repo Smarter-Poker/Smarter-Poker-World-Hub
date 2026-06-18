@@ -47,7 +47,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         return (
             <div className="bg-[#0d1117] border border-[#3d4f5f] p-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 <p className="text-slate-400 text-[10px] font-extrabold tracking-[1px] mb-1 uppercase">{label} EDGE</p>
-                <p className={`text-lg font-extrabold ${roi > 0 ? 'text-[#00D4FF]' : roi < 0 ? 'text-[#FF00FF]' : 'text-slate-300'}`} style={{ textShadow: roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : roi < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none' }}>
+                <p className={`text-lg font-extrabold ${roi > 0 ? 'text-[#00D4FF]' : roi < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`} style={{ textShadow: roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : roi < 0 ? '0 0 5px rgba(255,0,85,0.5)' : 'none' }}>
                     {roi > 0 ? '+' : ''}{roi.toFixed(2)}% ROI
                 </p>
                 <p className="text-slate-500 text-xs mt-1">
@@ -168,7 +168,7 @@ export default function ValidationPage() {
                            </div>
                            <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">FLAT-STAKE ROI</div>
-                               <div className={`text-2xl font-extrabold ${stats.flagged.roi > 0 ? 'text-[#00D4FF]' : stats.flagged.roi < 0 ? 'text-[#FF00FF]' : 'text-white'}`} style={{ textShadow: stats.flagged.roi > 0 ? '0 0 10px rgba(0,212,255,0.5)' : stats.flagged.roi < 0 ? '0 0 10px rgba(255,0,255,0.5)' : 'none' }}>
+                               <div className={`text-2xl font-extrabold ${stats.flagged.roi > 0 ? 'text-[#00D4FF]' : stats.flagged.roi < 0 ? 'text-[#FF0055]' : 'text-white'}`} style={{ textShadow: stats.flagged.roi > 0 ? '0 0 10px rgba(0,212,255,0.5)' : stats.flagged.roi < 0 ? '0 0 10px rgba(255,0,85,0.5)' : 'none' }}>
                                    {stats.flagged.roi > 0 ? '+' : ''}{stats.flagged.roi.toFixed(2)}%
                                </div>
                            </div>
@@ -250,7 +250,7 @@ export default function ValidationPage() {
                                        <ReferenceLine y={0} stroke="#3d4f5f" strokeWidth={2} />
                                        <Bar dataKey="roi" radius={[4, 4, 4, 4]} barSize={40}>
                                            {stats.edgeData.map((entry, index) => (
-                                               <Cell key={`cell-${index}`} fill={entry.roi > 0 ? '#00D4FF' : entry.roi < 0 ? '#FF00FF' : '#94a3b8'} />
+                                               <Cell key={`cell-${index}`} fill={entry.roi > 0 ? '#00D4FF' : entry.roi < 0 ? '#FF0055' : '#94a3b8'} />
                                            ))}
                                        </Bar>
                                    </BarChart>
@@ -287,7 +287,7 @@ export default function ValidationPage() {
                        
                        <div className="text-[11px] text-slate-400 leading-relaxed mb-8 bg-[#1a2332] p-3 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
                            <strong className="text-[#00D4FF] uppercase tracking-[1px] text-[10px] block mb-1">Analytical Note</strong>
-                           Note the <strong>non-monotonic</strong> pattern — the 7–10 bucket lost money while 5–7 and 10+ won big. The 10+ bucket is the old moneyline quantization artifact (now fixed). This is exactly why ranking by raw edge points was unreliable and the <strong>Bet Score</strong> (EV + confidence) replaced it.
+                           The edge size represents the difference between the model's projected win probability and the market's implied probability. A higher edge theoretically correlates with a higher ROI, but variance in smaller sample sizes can cause non-monotonic returns across different edge buckets.
                        </div>
 
                        <div className="text-[10px] text-slate-500 text-center leading-relaxed max-w-[400px] mx-auto border-t border-[#3d4f5f] pt-6 pb-2">
