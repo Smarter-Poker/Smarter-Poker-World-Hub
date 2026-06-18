@@ -29,7 +29,7 @@ export default async function handler(req: Request) {
             .from('v_team_profile')
             .select('*')
             .eq('team_id', id)
-            .single();
+            .maybeSingle();
 
         // Fetch team advanced stats
         const { data: statsData } = await mlbDb
@@ -37,14 +37,14 @@ export default async function handler(req: Request) {
             .select('*')
             .eq('team_id', id)
             .eq('window_kind', 'season')
-            .single();
+            .maybeSingle();
             
         // Fetch team dimension info for names
         const { data: dimData } = await mlbDb
             .from('dim_teams')
             .select('*')
             .eq('team_id', id)
-            .single();
+            .maybeSingle();
 
         const teamName = teamData?.name || dimData?.name || id;
         const teamAbbr = teamData?.abbr || dimData?.abbr || id;
