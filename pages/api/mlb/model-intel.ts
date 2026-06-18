@@ -13,38 +13,27 @@ export default async function handler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch global stats from pred_props for freshness
-        const { data: latestPred, error: predError } = await mlbDb
-            .from('pred_props')
-            .select('as_of_ts')
-            .order('as_of_ts', { ascending: false })
-            .limit(1);
-
-        if (predError) {
-            console.warn('[API/MLB/ModelIntel] Error fetching pred_props:', predError.message);
-        }
-
-        // Fetch recent portfolio for history
-        const { data: portfolio, error: portfolioError } = await mlbDb
-            .from('fct_portfolio')
+        // Fetch recent backtest summary for history and global stats
+        const { data: summary, error: summaryError } = await mlbDb
+            .from('v_backtest_summary')
             .select('*')
-            .order('official_date', { ascending: false })
+            .order('date', { ascending: false })
             .limit(10);
 
-        if (portfolioError) {
-            console.warn('[API/MLB/ModelIntel] Error fetching portfolio summary:', portfolioError.message);
+        if (summaryError) {
+            console.warn('[API/MLB/ModelIntel] Error fetching backtest summary:', summaryError.message);
         }
 
-        const asOfTs = latestPred && latestPred.length > 0 ? latestPred[0].as_of_ts : new Date().toISOString();
+        const asOfTs = summary && summary.length > 0 ? summary[0].date : new Date().toISOString().split('T')[0];
 
         return new Response(JSON.stringify({ 
             intel: {
-                total_bets_tracked: portfolio ? portfolio.reduce((sum, day) => sum + (day.bets_won || 0) + (day.bets_lost || 0), 0) : 0,
-                recent_roi: portfolio && portfolio.length > 0 ? portfolio[0].roi : 0,
+                total_bets_tracked: summary ? summary.reduce((sum, day) => sum + (day.bets_won || 0) + (day.bets_lost || 0), 0) : 0,
+                recent_roi: summary && summary.length > 0 ? summary[0].roi : 0,
                 model_version: 'v4.2.1-Edge',
                 last_training_date: asOfTs
             },
-            history: portfolio || []
+            history: summary || []
         }), {
             status: 200,
             headers: {

@@ -17,7 +17,7 @@ export default async function handler(req: Request) {
         const { data: accuracyData, error: accErr } = await mlbDb
             .from('v_backtest_summary')
             .select('*')
-            .order('backtest_date', { ascending: false })
+            .order('date', { ascending: false })
             .limit(14);
 
         if (accErr) {

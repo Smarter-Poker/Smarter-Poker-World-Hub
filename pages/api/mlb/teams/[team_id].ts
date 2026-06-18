@@ -54,7 +54,7 @@ export default async function handler(req: Request) {
         const { data: gamesData } = await mlbDb
             .from('raw_games')
             .select('*')
-            .or(`home_team.eq.${teamName},away_team.eq.${teamName},home_team_name.eq.${teamName},away_team_name.eq.${teamName},home_team.eq.${teamAbbr},away_team.eq.${teamAbbr}`)
+            .or(`home_team.eq.${teamName},away_team.eq.${teamName},home_team.eq.${teamAbbr},away_team.eq.${teamAbbr}`)
             .order('start_time', { ascending: false })
             .limit(10);
             

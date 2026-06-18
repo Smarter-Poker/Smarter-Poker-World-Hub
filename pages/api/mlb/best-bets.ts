@@ -57,14 +57,14 @@ export default async function handler(req: Request) {
             const betsArr = bets || [];
             
             interface BetRow {
-                edge_pts?: number;
+                edge?: number;
                 bet_score?: number;
                 implied_prob?: number;
                 [key: string]: any;
             }
 
             const totalBets = betsArr.length;
-            const eliteBets = betsArr.filter((b: BetRow) => (b.edge_pts || 0) >= 5).length;
+            const eliteBets = betsArr.filter((b: BetRow) => (b.edge || 0) >= 5).length;
             const topScore = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.bet_score || 0)) : 0;
             const topLock = betsArr.length > 0 ? Math.max(...betsArr.map((b: BetRow) => b.win_confidence || 0)) : 0;
             

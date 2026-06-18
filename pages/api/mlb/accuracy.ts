@@ -24,36 +24,42 @@ export default async function handler(req: Request) {
             
         if (!sumErr && summaryData && summaryData.length > 0) {
             let totalN = 0;
-            let sumBrier = 0;
-            let brierCount = 0;
-            let sumClv = 0;
-            let clvCount = 0;
-            let totalProfit = 0;
-            let totalBets = 0;
+            let sumAccuracy = 0;
+            let accuracyCount = 0;
+            let sumRoi = 0;
+            let roiCount = 0;
 
             summaryData.forEach((row: any) => {
-                if (!row.n) return;
-                totalN += row.n;
+                const n = (row.bets_won || 0) + (row.bets_lost || 0);
+                if (n === 0) return;
                 
-                if (row.brier !== null) {
-                    sumBrier += row.brier;
-                    brierCount++;
+                totalN += n;
+                
+                if (row.accuracy !== null && row.accuracy !== undefined) {
+                    sumAccuracy += Number(row.accuracy);
+                    accuracyCount++;
                 }
-                if (row.avg_clv !== null) {
-                    sumClv += row.avg_clv;
-                    clvCount++;
+                
+                if (row.roi !== null && row.roi !== undefined) {
+                    sumRoi += Number(row.roi);
+                    roiCount++;
                 }
-                if (row.sum_unit_profit !== null && row.bet_count !== null) {
-                    totalProfit += row.sum_unit_profit;
-                    totalBets += row.bet_count;
-                }
-                tableData.push(row);
+
+                tableData.push({
+                    date: row.date,
+                    market: 'All', // The table aggregates all markets
+                    n,
+                    brier: null,
+                    avg_clv: null,
+                    roi: row.roi,
+                    accuracy: row.accuracy
+                });
             });
 
             kpi.n = totalN;
-            kpi.clv = clvCount > 0 ? (sumClv / clvCount).toFixed(2) : '0.00';
-            kpi.roi = totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0';
-            kpi.brier = brierCount > 0 ? (sumBrier / brierCount).toFixed(3) : '0.000';
+            kpi.clv = '0.00';
+            kpi.brier = '0.000';
+            kpi.roi = roiCount > 0 ? (sumRoi / roiCount).toFixed(1) : '0.0';
 
         } else {
             // Fallback: manually aggregate sim_bets
