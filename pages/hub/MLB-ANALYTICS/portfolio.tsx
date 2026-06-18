@@ -137,12 +137,12 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <Link href="/hub/MLB-ANALYTICS/backtest" passHref>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: '#3B82F6', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', borderRadius: '6px', color: '#00D4FF', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                                 Backtest <ArrowRight size={16} />
                             </button>
                         </Link>
                         <Link href="/hub/MLB-ANALYTICS/model-intel" passHref>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: '#3B82F6', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', borderRadius: '6px', color: '#00D4FF', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                                 Model <ArrowRight size={16} />
                             </button>
                         </Link>
@@ -152,10 +152,10 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     <div style={{ background: '#fff', border: '1px solid #10B981', borderRadius: '8px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)' }}>
                         <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', letterSpacing: '1px', marginBottom: '8px' }}>CURRENT BANKROLL</div>
-                        <div style={{ fontSize: '48px', fontWeight: 800, color: '#10B981', lineHeight: 1 }}>
+                        <div style={{ fontSize: '48px', fontWeight: 800, color: '#00D4FF', lineHeight: 1 }}>
                             {formatCurrency(currentBankroll)}
                         </div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#10B981', marginTop: '8px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#00D4FF', marginTop: '8px' }}>
                             {formatCurrency(totalPnl, true)} from start
                         </div>
                         <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
@@ -165,10 +165,10 @@ export default function PortfolioPage({ fallbackData }: { fallbackData: Portfoli
 
                     <div className="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} />
-                        <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#10B981' : totalPnl < 0 ? '#EF4444' : '#0F172A'} />
+                        <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#F8FAFC'} />
                         <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#10B981' : (roi || 0) < 0 ? '#EF4444' : '#0F172A'} />
                         <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#EF4444' : '#0F172A'} />
-                        <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#10B981" />
+                        <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#00D4FF" />
                         <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} />
                     </div>
                 </div>

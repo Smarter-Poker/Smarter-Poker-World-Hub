@@ -151,22 +151,23 @@ export default function MlbSlateDashboard({ todayStr, topBets, lastUpdate, slate
                             )}
                         </div>
 
-                        {/* Game Slate Grid */}
+                        {/* Full Slate Grid */}
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
                             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
                                 <Activity className="w-5 h-5 text-blue-500" />
                                 Full Slate
                             </h2>
-                            {slateData && slateData.length > 0 ? (
+                            {slateGames.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {slateData.map((game: any) => {
-                                        const pitchTime = game.firstPitch ? new Date(game.firstPitch).toLocaleTimeString('en-US', {
-                                            hour: 'numeric',
-                                            minute: '2-digit'
-                                        }) : 'TBD';
+                                    {slateGames.map((game, idx) => {
+                                        const gameTime = new Date(game.event_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+                                        const homeProb = parseFloat(game.home_win_prob || '0');
+                                        const awayProb = parseFloat(game.away_win_prob || '0');
+                                        const homeEdge = parseFloat(game.home_edge || '0');
+                                        const awayEdge = parseFloat(game.away_edge || '0');
 
                                         return (
-                                            <div key={game.gamePk} className="flex flex-col p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-blue-300 transition-colors">
+                                            <div key={idx} className="bg-slate-50 border border-slate-200 rounded-lg p-4 hover:shadow-md hover:border-slate-300 transition-all">
                                                 <div className="flex justify-between items-center mb-3">
                                                     <span className="text-xs font-bold text-slate-500">{pitchTime}</span>
                                                     {game.recommendedCount > 0 && (
