@@ -103,11 +103,12 @@ async function handleRequest(req: Request) {
             propsCount: propsCount || 0,
             bestBetsCount: bestBetsCount || 0,
             latestRuns,
-            sizes: {
-                market: sizeMarket || 0,
-                props: sizeProps || 0,
-                games: sizeFactGames || 0,
-                odds: sizeOdds || 0
+            stages,
+            tables: {
+                "pred_market_output": sizeMarket || 0,
+                "pred_props": sizeProps || 0,
+                "fact_games": sizeFactGames || 0,
+                "raw_odds": sizeOdds || 0
             }
         }), {
             status: 200,

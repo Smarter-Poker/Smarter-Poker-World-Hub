@@ -29,12 +29,12 @@ export default async function handler(req: Request) {
             { data: slateGames, error: slateErr }
         ] = await Promise.all([
             mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
-            mlbDb.from('agg_model').select('*').order('last_training_date', { ascending: false }).limit(1),
+            mlbDb.from('pred_props').select('as_of_ts').order('as_of_ts', { ascending: false }).limit(1),
             // raw_games for game slate
             mlbDb.from('raw_games').select('*').eq('official_date', todayStr).order('start_time', { ascending: true })
         ]);
 
-        const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].last_training_date : null;
+        const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].as_of_ts : null;
 
         return new Response(JSON.stringify({
             todayStr,

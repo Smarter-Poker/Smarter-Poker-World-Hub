@@ -79,7 +79,7 @@ export default function StandingsPage() {
                                     </div>
                                     <div className="text-center font-mono text-sm text-[var(--neon-cyan)]">{team.w ?? 0}</div>
                                     <div className="text-center font-mono text-sm text-slate-300">{team.l ?? 0}</div>
-                                    <div className="text-center font-mono text-sm text-slate-400 hidden md:block">{team.pct != null ? team.pct.toFixed(3).replace(/^0+/, '') : '.000'}</div>
+                                    <div className="text-center font-mono text-sm text-slate-400 hidden md:block">{team.pct != null ? Number(team.pct).toFixed(3).replace(/^0+/, '') : '.000'}</div>
                                     <div className="text-right font-mono text-sm text-slate-500">{team.gb ?? '-'}</div>
                                 </div>
                             ))

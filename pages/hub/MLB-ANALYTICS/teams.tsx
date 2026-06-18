@@ -128,16 +128,16 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                             <div className="stat-segment">
                                 <div className="stat-label" style={{ color: '#F472B6' }}>WAR</div>
                                 <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>
-                                    {((team.adv_stats.hitting_war || 0) + (team.adv_stats.pitching_war || 0)).toFixed(1)}
+                                    {team.adv_stats ? ((Number(team.adv_stats.hitting_war) || 0) + (Number(team.adv_stats.pitching_war) || 0)).toFixed(1) : '-'}
                                 </div>
                             </div>
                             <div className="stat-segment">
                                 <div className="stat-label" style={{ color: '#60A5FA' }}>FIP</div>
-                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.fip?.toFixed(2) || '-'}</div>
+                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.fip != null ? Number(team.adv_stats.fip).toFixed(2) : '-'}</div>
                             </div>
                             <div className="stat-segment">
                                 <div className="stat-label" style={{ color: '#34D399' }}>OPS</div>
-                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.ops?.toFixed(3) || '-'}</div>
+                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.ops != null ? Number(team.adv_stats.ops).toFixed(3) : '-'}</div>
                             </div>
                             <div className="stat-segment">
                                 <div className="stat-label" style={{ color: '#A78BFA' }}>OAA</div>
@@ -165,22 +165,22 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                                         <div style={{ color: '#64748B', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', marginBottom: 8, borderBottom: '1px solid #1a2332', paddingBottom: 4 }}>PITCHING</div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>ERA</span>
-                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.era?.toFixed(2) || '-'}</span>
+                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.era != null ? Number(team.adv_stats.era).toFixed(2) : '-'}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>xFIP</span>
-                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.xfip?.toFixed(2) || '-'}</span>
+                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.xfip != null ? Number(team.adv_stats.xfip).toFixed(2) : '-'}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>SIERA</span>
-                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.siera?.toFixed(2) || '-'}</span>
+                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.siera != null ? Number(team.adv_stats.siera).toFixed(2) : '-'}</span>
                                         </div>
                                     </div>
                                     <div>
                                         <div style={{ color: '#64748B', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', marginBottom: 8, borderBottom: '1px solid #1a2332', paddingBottom: 4 }}>OFFENSE / DEF</div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>AVG</span>
-                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.avg?.toFixed(3).replace(/^0/, '') || '-'}</span>
+                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.avg != null ? Number(team.adv_stats.avg).toFixed(3).replace(/^0/, '') : '-'}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>HR / SB</span>
@@ -188,7 +188,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>DRS / UZR</span>
-                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.drs || 0} / {team.adv_stats.uzr?.toFixed(1) || 0}</span>
+                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.drs || 0} / {team.adv_stats.uzr != null ? Number(team.adv_stats.uzr).toFixed(1) : 0}</span>
                                         </div>
                                     </div>
                                 </div>

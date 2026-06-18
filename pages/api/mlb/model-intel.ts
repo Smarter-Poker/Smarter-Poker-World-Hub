@@ -13,15 +13,15 @@ export default async function handler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch global stats from agg_model
-        const { data: aggModelData, error: aggModelError } = await mlbDb
-            .from('agg_model')
-            .select('*')
-            .order('created_at', { ascending: false })
+        // Fetch global stats from pred_props for freshness
+        const { data: latestPred, error: predError } = await mlbDb
+            .from('pred_props')
+            .select('as_of_ts')
+            .order('as_of_ts', { ascending: false })
             .limit(1);
 
-        if (aggModelError) {
-            console.warn('[API/MLB/ModelIntel] Error fetching agg_model:', aggModelError.message);
+        if (predError) {
+            console.warn('[API/MLB/ModelIntel] Error fetching pred_props:', predError.message);
         }
 
         // Fetch recent portfolio for history
@@ -35,14 +35,14 @@ export default async function handler(req: Request) {
             console.warn('[API/MLB/ModelIntel] Error fetching portfolio summary:', portfolioError.message);
         }
 
-        const currentIntel = aggModelData && aggModelData.length > 0 ? aggModelData[0] : null;
+        const asOfTs = latestPred && latestPred.length > 0 ? latestPred[0].as_of_ts : new Date().toISOString();
 
         return new Response(JSON.stringify({ 
             intel: {
-                total_bets_tracked: currentIntel ? currentIntel.total_bets_tracked : (portfolio ? portfolio.reduce((sum, day) => sum + (day.bets_won || 0) + (day.bets_lost || 0), 0) : 0),
-                recent_roi: currentIntel ? currentIntel.recent_roi : (portfolio && portfolio.length > 0 ? portfolio[0].roi : 0),
-                model_version: currentIntel ? currentIntel.model_version : 'v4.2.1-Edge',
-                last_training_date: currentIntel ? currentIntel.last_training_date : new Date().toISOString()
+                total_bets_tracked: portfolio ? portfolio.reduce((sum, day) => sum + (day.bets_won || 0) + (day.bets_lost || 0), 0) : 0,
+                recent_roi: portfolio && portfolio.length > 0 ? portfolio[0].roi : 0,
+                model_version: 'v4.2.1-Edge',
+                last_training_date: asOfTs
             },
             history: portfolio || []
         }), {
