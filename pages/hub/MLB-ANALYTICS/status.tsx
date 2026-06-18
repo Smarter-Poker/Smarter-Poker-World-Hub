@@ -46,7 +46,7 @@ export default function StatusPage() {
 
     const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
 
-    const isSystemFresh = data?.isSystemFresh ?? true;
+    const isSystemFresh = data && !data.error ? !!data.isSystemFresh : false;
 
     return (
         <div style={{ minHeight: '100vh', background: '#0a0a15', color: '#e2e8f0', paddingBottom: 70, fontFamily: "var(--font-orbitron), 'Orbitron', 'Rajdhani', sans-serif", width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
@@ -127,7 +127,7 @@ export default function StatusPage() {
                         <RefreshCw size={32} className="animate-spin mx-auto mb-4" />
                         <div style={{ fontWeight: 700, letterSpacing: '0.1em' }}>INITIALIZING SCAN...</div>
                     </div>
-                ) : error ? (
+                ) : (error || data?.error) ? (
                     <div style={{ textAlign: 'center', padding: '40px 0', color: '#FF00FF' }}>
                         <ServerCrash size={32} className="mx-auto mb-4" />
                         <div style={{ fontWeight: 700, letterSpacing: '0.1em' }}>SYSTEM ERROR DETECTED</div>

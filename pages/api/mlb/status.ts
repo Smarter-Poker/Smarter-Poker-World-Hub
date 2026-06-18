@@ -80,13 +80,22 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse) {
         // 2. Freshness
         let aggMarketAsOf = latestPred?.[0]?.as_of_ts || null;
         let marketDateStr: string | null = null;
-        if (aggMarketAsOf && aggMarketAsOf.includes('T')) {
-            marketDateStr = aggMarketAsOf.split('T')[0]; // Simplify to YYYY-MM-DD
+        let isDateStale = true; // Default to stale if no data exists
+        
+        if (aggMarketAsOf) {
+            const marketDate = new Date(aggMarketAsOf);
+            // If the latest prediction is newer than 24 hours ago, it's fresh
+            if (marketDate >= yesterdayDate) {
+                isDateStale = false;
+            }
+            
+            // Format for UI display (simplifying the ISO string for visual display)
+            if (aggMarketAsOf.includes('T')) {
+                marketDateStr = aggMarketAsOf.split('T')[0];
+            }
         }
 
         // Determine System Freshness
-        const yesterdayStr = formatter.format(yesterdayDate);
-        const isDateStale = marketDateStr && marketDateStr < yesterdayStr;
         const isSystemFresh = !hasError && !isDateStale;
         
         return res.status(200).json({

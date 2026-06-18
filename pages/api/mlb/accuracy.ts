@@ -65,19 +65,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const numPages = Math.ceil((count || 0) / limit);
                 
                 if (numPages > 0) {
-                    const promises: any[] = [];
-                    for (let i = 0; i < numPages; i++) {
-                        const offset = i * limit;
-                        promises.push(
-                            mlbDb
-                                .from('backtest_market_output')
-                                .select('as_of_ts, market, brier_score, unit_profit, rec, actual_result')
-                                .range(offset, offset + limit - 1)
-                        );
-                    }
-                    const results = await Promise.all(promises) as any[];
-                    for (const r of results) {
-                        if (r.data) allMarketRows = allMarketRows.concat(r.data);
+                    for (let i = 0; i < numPages; i += 5) {
+                        const promises: any[] = [];
+                        for (let j = 0; j < 5 && (i + j) < numPages; j++) {
+                            const offset = (i + j) * limit;
+                            promises.push(
+                                mlbDb
+                                    .from('backtest_market_output')
+                                    .select('as_of_ts, market, brier_score, unit_profit, rec, actual_result')
+                                    .range(offset, offset + limit - 1)
+                            );
+                        }
+                        const results = await Promise.all(promises) as any[];
+                        for (const r of results) {
+                            if (r.error) throw r.error;
+                            if (r.data) allMarketRows = allMarketRows.concat(r.data);
+                        }
                     }
                 }
 
@@ -102,15 +105,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     groups[key].n++;
                     totalN++;
                     
-                    if (row.brier_score !== null) {
-                        groups[key].brierSum += row.brier_score;
+                    if (row.brier_score != null) {
+                        groups[key].brierSum += Number(row.brier_score);
                         groups[key].brierCount++;
-                        sumBrier += row.brier_score;
+                        sumBrier += Number(row.brier_score);
                         brierCount++;
                     }
                     
-                    groups[key].profitSum += (row.unit_profit || 0);
-                    totalProfit += (row.unit_profit || 0);
+                    groups[key].profitSum += Number(row.unit_profit || 0);
+                    totalProfit += Number(row.unit_profit || 0);
                 }
 
                 tableData = Object.values(groups).map(g => ({

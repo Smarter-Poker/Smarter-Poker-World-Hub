@@ -15,8 +15,6 @@ const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: fa
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 import { ArrowRight } from 'lucide-react';
 
-import { getMlbSupabase } from '../../../utils/supabase/mlb';
-import { fetchPortfolioStats } from '../../../utils/mlbStats';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';

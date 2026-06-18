@@ -127,38 +127,6 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) =>
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-const TEAM_DIVISIONS: Record<string, { league: 'AL' | 'NL', division: 'East' | 'Central' | 'West' }> = {
-    'Arizona Diamondbacks': { league: 'NL', division: 'West' },
-    'Atlanta Braves': { league: 'NL', division: 'East' },
-    'Baltimore Orioles': { league: 'AL', division: 'East' },
-    'Boston Red Sox': { league: 'AL', division: 'East' },
-    'Chicago White Sox': { league: 'AL', division: 'Central' },
-    'Chicago Cubs': { league: 'NL', division: 'Central' },
-    'Cincinnati Reds': { league: 'NL', division: 'Central' },
-    'Cleveland Guardians': { league: 'AL', division: 'Central' },
-    'Colorado Rockies': { league: 'NL', division: 'West' },
-    'Detroit Tigers': { league: 'AL', division: 'Central' },
-    'Houston Astros': { league: 'AL', division: 'West' },
-    'Kansas City Royals': { league: 'AL', division: 'Central' },
-    'Los Angeles Angels': { league: 'AL', division: 'West' },
-    'Los Angeles Dodgers': { league: 'NL', division: 'West' },
-    'Miami Marlins': { league: 'NL', division: 'East' },
-    'Milwaukee Brewers': { league: 'NL', division: 'Central' },
-    'Minnesota Twins': { league: 'AL', division: 'Central' },
-    'New York Yankees': { league: 'AL', division: 'East' },
-    'New York Mets': { league: 'NL', division: 'East' },
-    'Oakland Athletics': { league: 'AL', division: 'West' },
-    'Philadelphia Phillies': { league: 'NL', division: 'East' },
-    'Pittsburgh Pirates': { league: 'NL', division: 'Central' },
-    'San Diego Padres': { league: 'NL', division: 'West' },
-    'San Francisco Giants': { league: 'NL', division: 'West' },
-    'Seattle Mariners': { league: 'AL', division: 'West' },
-    'St. Louis Cardinals': { league: 'NL', division: 'Central' },
-    'Tampa Bay Rays': { league: 'AL', division: 'East' },
-    'Texas Rangers': { league: 'AL', division: 'West' },
-    'Toronto Blue Jays': { league: 'AL', division: 'East' },
-    'Washington Nationals': { league: 'NL', division: 'East' },
-};
 
 export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageProps) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -172,17 +140,15 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
     });
 
     const activeTeams = data?.teams || fallbackTeams || [];
+    const globalEdgeActive = data?.globalEdgeActive || false;
 
-    const filteredTeams = activeTeams.filter((team: TeamProfile) => {
+    const filteredTeams = activeTeams.filter((team: any) => {
         // Exclude All-Star teams which won't be in our dict
         if (team.name.includes("All-Stars")) return false;
 
-        const info = TEAM_DIVISIONS[team.name];
-        if (!info) return true; // Show unmapped teams just in case
-
         const matchSearch = team.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchLeague = filterLeague === 'ALL' || info.league === filterLeague;
-        const matchDivision = filterDivision === 'ALL' || info.division === filterDivision;
+        const matchLeague = filterLeague === 'ALL' || team.league === filterLeague;
+        const matchDivision = filterDivision === 'ALL' || team.division === filterDivision;
 
         return matchSearch && matchLeague && matchDivision;
     });
@@ -370,11 +336,11 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
                                 <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.1em' }}>T_SYNC: {todayStr}</p>
                             </div>
                             <div style={{ textAlign: 'right' }}>
-                                <div style={{ color: 'var(--neon-cyan)', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '4px 8px', background: 'var(--neon-cyan-dim)', borderRadius: 4, border: '1px solid var(--neon-cyan)' }}>
+                                <div style={{ color: globalEdgeActive ? 'var(--neon-cyan)' : '#475569', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '4px 8px', background: globalEdgeActive ? 'var(--neon-cyan-dim)' : '#1a2332', borderRadius: 4, border: `1px solid ${globalEdgeActive ? 'var(--neon-cyan)' : '#3d4f5f'}` }}>
                                     MLB EDGE
                                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', position: 'absolute', animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }} className="animate-ping" />
-                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', position: 'relative', boxShadow: '0 0 8px #22C55E' }} />
+                                        {globalEdgeActive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', position: 'absolute', animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }} className="animate-ping" />}
+                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: globalEdgeActive ? '#22C55E' : '#475569', position: 'relative', boxShadow: globalEdgeActive ? '0 0 8px #22C55E' : 'none' }} />
                                     </div>
                                 </div>
                                 <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', marginTop: 8, letterSpacing: '0.05em' }}>{activeTeams.length} DATA NODES</div>
@@ -449,8 +415,13 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
                                 {filteredTeams.map((team, idx) => {
                                     const record = team.streaks?.record || '0-0';
                                     const last10 = team.streaks?.last10_record || '0-0';
-                                    const isHot = team.streaks?.longest_win_streak && team.streaks.longest_win_streak >= 3;
-                                    const dictInfo = TEAM_DIVISIONS[team.name] || { league: '??', division: '??' };
+                                    let isHot = false;
+                                    if (last10) {
+                                        const [w] = last10.split('-').map(Number);
+                                        if (w >= 7) isHot = true; // 7-3 or better in last 10
+                                    }
+                                    const leagueStr = team.league || '??';
+                                    const divStr = team.division || '??';
                                     
                                     return (
                                         <div key={team.team_id} className="metal-frame" style={{ display: 'block', textDecoration: 'none' }}>
@@ -462,10 +433,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
                                             
                                             {isHot && <div className="neon-strip left" />}
 
-                                            <Link 
-                                                href={`/hub/MLB-ANALYTICS/team/${team.team_id}`}
-                                                style={{ display: 'block', padding: '20px', textDecoration: 'none', color: 'inherit' }}
-                                            >
+                                            <div style={{ display: 'block', padding: '20px', textDecoration: 'none', color: 'inherit' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                                         <TeamLogo teamId={team.team_id} teamName={team.name} />
@@ -473,13 +441,18 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
                                                             <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: 'white', letterSpacing: '-0.02em' }}>{team.name}</h3>
                                                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                                                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--neon-cyan)', background: 'var(--neon-cyan-dim)', padding: '2px 6px', borderRadius: 4, letterSpacing: '0.05em' }}>
-                                                                    {dictInfo.league} {dictInfo.division}
+                                                                    {leagueStr} {divStr}
                                                                 </span>
+                                                                {team.has_active_edge && (
+                                                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#22C55E', border: '1px solid #22C55E', padding: '1px 4px', borderRadius: 2, letterSpacing: '0.05em', background: 'rgba(34, 197, 94, 0.1)', textShadow: '0 0 5px rgba(34, 197, 94, 0.5)' }}>
+                                                                        EDGE
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div style={{ color: 'var(--metal-highlight)' }}>
-                                                        <Activity size={24} color={isHot ? 'var(--neon-cyan)' : '#475569'} />
+                                                        <Activity size={24} color={isHot ? '#EF4444' : '#475569'} style={{ filter: isHot ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))' : 'none' }} />
                                                     </div>
                                                 </div>
 
@@ -524,7 +497,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr }: TeamsPageP
                                                         </div>
                                                     </div>
                                                 )}
-                                            </Link>
+                                            </div>
                                         </div>
                                     );
                                 })}
