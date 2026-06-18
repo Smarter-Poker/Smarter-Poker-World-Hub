@@ -171,7 +171,7 @@ echo "✅ No GitHub PAT patterns found in trackable files"
 # (GitHub rejects pushes with admin@smarter.poker due to email privacy — GH007).
 # admin@smarter.poker is the Vercel/billing identity, NOT the commit author.
 REQUIRED_ACCOUNT="Smarter-Poker"
-CURRENT_ACCOUNT=$(gh auth status 2>/dev/null && gh api /user --jq '.login' 2>/dev/null || echo "UNKNOWN")
+CURRENT_ACCOUNT=$(gh auth status >/dev/null 2>&1 && gh api /user --jq '.login' 2>/dev/null || echo "UNKNOWN")
 # Fallback: if gh CLI isn't available, check if the remote URL contains the correct account
 if [ "$CURRENT_ACCOUNT" = "UNKNOWN" ]; then
     REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
