@@ -19,7 +19,7 @@ export default function PlayerProfilePage() {
         refreshInterval: 60000
     });
 
-    const headshotUrl = id ? `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${id}/headshot/67/current` : '/avatars/default-avatar.png';
+    const headshotUrl = id ? `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${id}/headshot/67/current` : '/default-avatar.png';
     const [imgSrc, setImgSrc] = useState(headshotUrl);
 
     useEffect(() => {
@@ -41,7 +41,7 @@ export default function PlayerProfilePage() {
         return primary.includes(key);
     };
 
-    if (error) {
+    if (error || data?.error) {
         return (
             <div className="min-h-screen bg-[#0a0a15] text-slate-200">
                 <UniversalHeader pageDepth={3} />
@@ -50,6 +50,7 @@ export default function PlayerProfilePage() {
                     <div className="text-red-500 font-extrabold text-2xl uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Error Loading Player</div>
                     <Link href="/hub/MLB-ANALYTICS/players" className="text-[#00D4FF] underline mt-4 inline-block font-bold">Return to Database</Link>
                 </div>
+                <BottomNavBar />
             </div>
         );
     }
@@ -94,7 +95,7 @@ export default function PlayerProfilePage() {
                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                <img 
                                    src={imgSrc} 
-                                   onError={() => setImgSrc('/avatars/default-avatar.png')}
+                                   onError={() => setImgSrc('/default-avatar.png')}
                                    alt={profile.full_name}
                                    className="w-32 h-32 rounded-full object-cover bg-[#1a2332] border-[3px] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.4),inset_0_4px_8px_rgba(0,0,0,0.8)]"
                                />

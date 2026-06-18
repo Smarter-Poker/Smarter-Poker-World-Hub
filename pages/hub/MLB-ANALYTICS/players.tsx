@@ -39,7 +39,7 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                             src={imgSrc} 
-                            onError={() => setImgSrc('/avatars/default-avatar.png')}
+                            onError={() => setImgSrc('/default-avatar.png')}
                             alt={player.full_name}
                             loading="lazy"
                             className="w-14 h-14 rounded-full object-cover bg-[#0d1117] border-[2px] border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,212,255,0.2)]"
@@ -107,7 +107,7 @@ export default function PlayersPage() {
 
     const hitters = data?.hitters || [];
     const pitchers = data?.pitchers || [];
-    const fetchError = error || data?.fetchError;
+    const fetchError = error || data?.fetchError || data?.error;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('Regular Hitters');
@@ -128,7 +128,7 @@ export default function PlayersPage() {
         }
         
         // Optimization: limit the initial render list to prevent DOM bloat on search
-        return list.slice(0, 150); 
+        return list.slice(0, 500); 
     }, [hitters, pitchers, activeTab, searchQuery]);
 
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
