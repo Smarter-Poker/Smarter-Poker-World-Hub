@@ -27,7 +27,7 @@ export default function MlbSlateDashboard() {
         refreshInterval: 15000,
     });
 
-    const todayStr = data?.todayStr || new Date().toISOString().split('T')[0];
+    const todayStr = data?.todayStr || new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date());
     const topBets = data?.topBets || [];
     const lastUpdate = data?.lastUpdate || null;
     const slateGames = data?.slateGames || [];
