@@ -116,7 +116,7 @@ export async function getServerSideProps({ res }: any) {
             '7-10 pts': { n: 0, wins: 0, profit: 0 },
         };
         
-        flagged.forEach((r: any) => {
+        flagged.forEach((r) => {
             const e = r.edge_pts || 0;
             let b: string | null = null;
             if (e >= 10) b = '10+ pts';
