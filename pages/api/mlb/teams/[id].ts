@@ -62,7 +62,7 @@ export default async function handler(req: Request) {
         const { data: propsData } = await mlbDb
             .from('pred_props')
             .select('*')
-            .eq('team', teamAbbr)
+            .eq('team_abbr', teamAbbr)
             .order('edge_pts', { ascending: false, nullsFirst: false })
             .limit(10);
 
