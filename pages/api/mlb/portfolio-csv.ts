@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getMlbSupabase } from '../../../utils/mlbSupabase';
+import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
