@@ -260,34 +260,40 @@ export default function ValidationPage() {
                            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#1a2332] border border-[#3d4f5f] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"></div>
                            
                            <div className="h-[220px] w-full relative z-10">
-                               <ResponsiveContainer width="100%" height="100%">
-                                   <BarChart
-                                       data={stats.edgeData}
-                                       margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                                   >
-                                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3d4f5f" opacity={0.5} />
-                                       <XAxis 
-                                           dataKey="edge" 
-                                           axisLine={false} 
-                                           tickLine={false} 
-                                           tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 800 }} 
-                                           dy={10}
-                                       />
-                                       <YAxis 
-                                           axisLine={false} 
-                                           tickLine={false} 
-                                           tick={{ fontSize: 10, fill: '#64748b' }} 
-                                           tickFormatter={(val) => `${val}%`}
-                                       />
-                                       <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                                       <ReferenceLine y={0} stroke="#3d4f5f" strokeWidth={2} />
-                                       <Bar dataKey="roi" radius={[4, 4, 4, 4]} barSize={40}>
-                                           {stats.edgeData.map((entry, index) => (
-                                               <Cell key={`cell-${index}`} fill={entry.roi > 0 ? '#00D4FF' : entry.roi < 0 ? '#FF0055' : '#94a3b8'} />
-                                           ))}
-                                       </Bar>
-                                   </BarChart>
-                               </ResponsiveContainer>
+                               {(!stats.edgeData || stats.edgeData.length === 0) ? (
+                                   <div className="flex items-center justify-center h-full text-slate-500 font-bold tracking-widest text-[11px] uppercase">
+                                       NO EDGE DATA AVAILABLE
+                                   </div>
+                               ) : (
+                                   <ResponsiveContainer width="100%" height="100%">
+                                       <BarChart
+                                           data={stats.edgeData}
+                                           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                       >
+                                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3d4f5f" opacity={0.5} />
+                                           <XAxis 
+                                               dataKey="edge" 
+                                               axisLine={false} 
+                                               tickLine={false} 
+                                               tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 800 }} 
+                                               dy={10}
+                                           />
+                                           <YAxis 
+                                               axisLine={false} 
+                                               tickLine={false} 
+                                               tick={{ fontSize: 10, fill: '#64748b' }} 
+                                               tickFormatter={(val) => `${val}%`}
+                                           />
+                                           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                                           <ReferenceLine y={0} stroke="#3d4f5f" strokeWidth={2} />
+                                           <Bar dataKey="roi" radius={[4, 4, 4, 4]} barSize={40}>
+                                               {stats.edgeData.map((entry, index) => (
+                                                   <Cell key={`cell-${index}`} fill={entry.roi > 0 ? '#00D4FF' : entry.roi < 0 ? '#FF0055' : '#94a3b8'} />
+                                               ))}
+                                           </Bar>
+                                       </BarChart>
+                                   </ResponsiveContainer>
+                               )}
                            </div>
                        </div>
                        

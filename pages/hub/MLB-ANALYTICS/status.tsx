@@ -56,9 +56,8 @@ export default function StatusPage() {
         });
     };
 
-    const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
-
     const isSystemFresh = data && !data.error ? !!data.isSystemFresh : false;
+    const stages = data?.stages || ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
 
     if (error || data?.error) {
         return (
@@ -80,7 +79,7 @@ export default function StatusPage() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a15', color: '#e2e8f0', paddingBottom: 70, fontFamily: "var(--font-orbitron), 'Orbitron', 'Rajdhani', sans-serif", width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
             <SEOHead 
                 title="Data Status | MLB Analytics" 
                 description="Check the current status and freshness of the MLB Analytics system."
@@ -91,62 +90,30 @@ export default function StatusPage() {
             <MlbSubNav />
 
             {/* Sub-header for Data Status Page */}
-            <div style={{ 
-                background: 'linear-gradient(180deg, #1a2332 0%, #0d1117 100%)', 
-                borderBottom: '2px solid #3d4f5f', 
-                padding: '16px', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
-            }}>
+            <div className="bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[2px] border-[#3d4f5f] p-4 flex justify-between items-center shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 <div>
-                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        Data <span style={{ color: '#00D4FF', textShadow: '0 0 10px rgba(0, 212, 255, 0.6)' }}>Status</span>
+                    <h1 className="m-0 text-2xl font-bold uppercase tracking-widest">
+                        Data <span className="text-[#00D4FF]" style={{ textShadow: '0 0 10px rgba(0, 212, 255, 0.6)' }}>Status</span>
                     </h1>
                 </div>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    <div style={{ color: '#00D4FF', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>SYSTEM</div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                        <div style={{ 
-                            width: 8, height: 8, borderRadius: '50%', 
-                            background: isSystemFresh ? '#00D4FF' : '#FF00FF',
-                            boxShadow: isSystemFresh ? '0 0 10px #00D4FF' : '0 0 10px #FF00FF'
-                        }}></div>
-                        <div style={{ 
-                            fontSize: 12, fontWeight: 700, letterSpacing: 1,
-                            color: isSystemFresh ? '#00D4FF' : '#FF00FF',
-                            textShadow: isSystemFresh ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(255,0,255,0.5)'
-                        }}>
+                <div className="text-right flex flex-col items-end">
+                    <div className="text-[#00D4FF] text-[11px] font-bold tracking-widest uppercase">SYSTEM</div>
+                    <div className="inline-flex items-center gap-1.5 mt-1">
+                        <div className={`w-2 h-2 rounded-full ${isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#FF00FF] shadow-[0_0_10px_#FF00FF]'}`}></div>
+                        <div className={`text-xs font-bold tracking-widest ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(255,0,255,0.5)' }}>
                             {isSystemFresh ? 'FRESH' : 'STALE'}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div style={{ padding: '24px 16px', maxWidth: 800, margin: '0 auto' }}>
+            <div className="px-4 py-6 max-w-4xl mx-auto w-full">
                 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <div className="flex justify-end mb-4">
                     <button 
                         onClick={() => mutate()}
                         disabled={isValidating}
-                        style={{
-                            background: 'transparent',
-                            border: '1px solid #3d4f5f',
-                            color: '#00D4FF',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            cursor: 'pointer',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            letterSpacing: '0.05em',
-                            textTransform: 'uppercase',
-                            fontFamily: 'inherit',
-                            opacity: isValidating ? 0.5 : 1
-                        }}
+                        className={`bg-transparent border border-[#3d4f5f] text-[#00D4FF] px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-xs font-bold tracking-widest uppercase transition-colors hover:bg-white/5 ${isValidating ? 'opacity-50' : ''}`}
                     >
                         <RefreshCw size={14} className={isValidating ? 'animate-spin' : ''} />
                         Refresh
@@ -164,66 +131,29 @@ export default function StatusPage() {
                     </div>
                 ) : (
                     <>
-                        <style dangerouslySetInnerHTML={{__html: `
-                            .metal-frame {
-                                position: relative;
-                                background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
-                                border: 2px solid #3d4f5f;
-                                border-radius: 12px;
-                                box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.5);
-                            }
-                            .frame-bolt {
-                                position: absolute;
-                                width: 10px;
-                                height: 10px;
-                                background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
-                                border-radius: 50%;
-                                border: 1px solid #2a3a4a;
-                                box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
-                            }
-                            .neon-strip {
-                                position: absolute;
-                                width: 2px;
-                                top: 20%;
-                                bottom: 20%;
-                                background: #00D4FF;
-                                box-shadow: 0 0 5px #00D4FF, 0 0 10px rgba(0,212,255,0.6);
-                                border-radius: 2px;
-                            }
-                            .neon-strip.left { left: 4px; }
-                            .neon-strip.right { right: 4px; }
-                        `}} />
-
                         {/* DATA FRESHNESS */}
-                        <div style={{ marginBottom: 32 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <Clock size={16} color="#00D4FF" />
-                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>DATA FRESHNESS</h2>
+                        <div className="mb-8">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Clock size={16} className="text-[#00D4FF]" />
+                                <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0" style={{ textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>DATA FRESHNESS</h2>
                             </div>
-                            <div className="metal-frame" style={{ overflow: 'hidden' }}>
-                                <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
-                                <div className="frame-bolt" style={{ top: '8px', right: '8px' }} />
-                                <div className="frame-bolt" style={{ bottom: '8px', left: '8px' }} />
-                                <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
-                                <div className="neon-strip left" />
-                                <div className="neon-strip right" />
-                                
-                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #2a3a4a', background: 'rgba(0,0,0,0.2)' }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#94A3B8', letterSpacing: 1 }}>AGG MARKET AS_OF</span>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: isSystemFresh ? '#00D4FF' : '#FF00FF', textShadow: isSystemFresh ? '0 0 8px rgba(0,212,255,0.5)' : '0 0 8px rgba(255,0,255,0.5)' }}>{data?.aggMarketAsOf || '-'}</span>
+                            <div className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden">
+                                <div className="flex justify-between px-6 py-4 border-b border-[#2a3a4a] bg-black/20">
+                                    <span className="text-[13px] font-semibold text-slate-400 tracking-wider">AGG MARKET AS_OF</span>
+                                    <span className={`text-[14px] font-bold ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 8px rgba(0,212,255,0.5)' : '0 0 8px rgba(255,0,255,0.5)' }}>{data?.aggMarketAsOf || '-'}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 24px', background: 'rgba(0,0,0,0.2)' }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#94A3B8', letterSpacing: 1 }}>TODAY</span>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: '#00D4FF', textShadow: '0 0 8px rgba(0,212,255,0.5)' }}>{data?.todayStr || '-'}</span>
+                                <div className="flex justify-between px-6 py-4 bg-black/20">
+                                    <span className="text-[13px] font-semibold text-slate-400 tracking-wider">TODAY</span>
+                                    <span className="text-[14px] font-bold text-[#00D4FF]" style={{ textShadow: '0 0 8px rgba(0,212,255,0.5)' }}>{data?.todayStr || '-'}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* TODAY'S PREDICTIONS */}
-                        <div style={{ marginBottom: 32 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <Activity size={16} color="#00D4FF" />
-                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>TODAY'S PREDICTIONS (LAST 24H)</h2>
+                        <div className="mb-8">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Activity size={16} className="text-[#00D4FF]" />
+                                <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0" style={{ textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>TODAY'S PREDICTIONS (LAST 24H)</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {[
@@ -231,14 +161,9 @@ export default function StatusPage() {
                                     { label: 'PROPS', val: data?.propsCount },
                                     { label: 'BEST BETS', val: data?.bestBetsCount }
                                 ].map((item, idx) => (
-                                    <div key={idx} className="metal-frame" style={{ padding: '20px', textAlign: 'center' }}>
-                                        <div className="frame-bolt" style={{ top: '6px', left: '6px', width: 6, height: 6 }} />
-                                        <div className="frame-bolt" style={{ top: '6px', right: '6px', width: 6, height: 6 }} />
-                                        <div className="frame-bolt" style={{ bottom: '6px', left: '6px', width: 6, height: 6 }} />
-                                        <div className="frame-bolt" style={{ bottom: '6px', right: '6px', width: 6, height: 6 }} />
-                                        
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: 1.5, marginBottom: 8 }}>{item.label}</div>
-                                        <div style={{ fontSize: 28, fontWeight: 700, color: '#00D4FF', textShadow: '0 0 15px rgba(0,212,255,0.6)' }}>
+                                    <div key={idx} className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] p-5 text-center">
+                                        <div className="text-[11px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
+                                        <div className="text-3xl font-bold text-[#00D4FF]" style={{ textShadow: '0 0 15px rgba(0,212,255,0.6)' }}>
                                             {item.val?.toLocaleString() || 0}
                                         </div>
                                     </div>
@@ -247,42 +172,31 @@ export default function StatusPage() {
                         </div>
 
                         {/* RECENT PIPELINE RUNS */}
-                        <div style={{ marginBottom: 32 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <CheckCircle2 size={16} color="#00D4FF" />
-                                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: 2, margin: 0, textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>RECENT PIPELINE RUNS</h2>
+                        <div className="mb-8">
+                            <div className="flex items-center gap-2 mb-3">
+                                <CheckCircle2 size={16} className="text-[#00D4FF]" />
+                                <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0" style={{ textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>RECENT PIPELINE RUNS</h2>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {stages.map((stage) => {
+                            <div className="flex flex-col gap-3">
+                                {stages.map((stage: string) => {
                                     const run = data?.latestRuns?.[stage];
                                     const isError = run?.status === 'error';
-                                    const glowColor = isError ? '#FF00FF' : '#00D4FF';
+                                    const glowColor = isError ? 'text-[#FF00FF]' : 'text-[#00D4FF]';
+                                    const borderGlowColor = isError ? 'border-[#FF00FF]' : 'border-[#00D4FF]';
+                                    const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,0,255,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
                                     
                                     return (
-                                        <div key={stage} className="metal-frame" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)' }}>
-                                            <div className="neon-strip left" style={{ background: glowColor, boxShadow: `0 0 5px ${glowColor}` }} />
+                                        <div key={stage} className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] px-5 py-4 flex justify-between items-center bg-black/30">
                                             <div>
-                                                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>{stage}</div>
-                                                <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4, letterSpacing: 0.5, fontFamily: 'monospace' }}>{run ? formatDate(run.run_at) : 'NO DATA FOUND'}</div>
+                                                <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
+                                                <div className="text-[11px] text-slate-400 mt-1 tracking-wider font-mono">{run ? formatDate(run.run_at) : 'NO DATA FOUND'}</div>
                                             </div>
                                             {run && (
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                    <div style={{ 
-                                                        color: '#94A3B8', fontSize: 11, fontWeight: 700, letterSpacing: 1, fontFamily: 'monospace' 
-                                                    }}>
+                                                <div className="flex gap-2 items-center">
+                                                    <div className="text-slate-400 text-[11px] font-bold tracking-wider font-mono">
                                                         {timeAgo(run.run_at)}
                                                     </div>
-                                                    <div style={{ 
-                                                        background: 'rgba(0,0,0,0.5)', 
-                                                        color: glowColor, 
-                                                        border: `1px solid ${glowColor}`,
-                                                        padding: '4px 10px', 
-                                                        borderRadius: 4, 
-                                                        fontSize: 10, 
-                                                        fontWeight: 700, 
-                                                        letterSpacing: 2,
-                                                        boxShadow: `0 0 10px rgba(${isError ? '255,0,255' : '0,212,255'},0.3)`
-                                                    }}>
+                                                    <div className={`bg-black/50 ${glowColor} border ${borderGlowColor} px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${bgShadow}`}>
                                                         {run.status.toUpperCase()}
                                                     </div>
                                                 </div>
@@ -307,21 +221,26 @@ export default function StatusPage() {
                                 <div className="neon-strip left" />
                                 <div className="neon-strip right" />
 
-                                {[
-                                    { label: 'MARKET OUTPUT', val: data?.sizes?.market },
-                                    { label: 'PROPS OUTPUT', val: data?.sizes?.props },
-                                    { label: 'FACT GAMES', val: data?.sizes?.games },
-                                    { label: 'RAW ODDS', val: data?.sizes?.odds }
-                                ].map((item, idx, arr) => (
-                                    <div key={idx} style={{ 
-                                        display: 'flex', justifyContent: 'space-between', padding: '16px 24px', 
-                                        borderBottom: idx < arr.length - 1 ? '1px solid #2a3a4a' : 'none',
-                                        background: 'rgba(0,0,0,0.2)' 
-                                    }}>
-                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#94A3B8', letterSpacing: 1.5 }}>{item.label}</span>
-                                        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{item.val?.toLocaleString() || '-'}</span>
+                        <div className="mb-8">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Database size={16} className="text-[#00D4FF]" />
+                                <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0" style={{ textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>DB TABLE SIZES</h2>
+                            </div>
+                            <div className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden">
+                                {data?.tables && Object.keys(data.tables).length > 0 ? (
+                                    <div className="flex flex-col">
+                                        {Object.entries(data.tables).map(([table, count]: any, idx, arr) => (
+                                            <div key={table} className={`flex justify-between px-6 py-4 bg-black/20 ${idx !== arr.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
+                                                <span className="text-[13px] font-semibold text-slate-400 tracking-wider font-mono">{table}</span>
+                                                <span className="text-[14px] font-bold text-[#00D4FF]">{count.toLocaleString()}</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                ) : (
+                                    <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">
+                                        NO TABLE DATA AVAILABLE
+                                    </div>
+                                )}
                             </div>
                         </div>
 
