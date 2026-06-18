@@ -85,6 +85,10 @@ export default function AccuracyPage() {
                                     <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
                                         <Loader2 size={10} className="animate-spin" /> LOADING
                                     </span>
+                                ) : (error || data?.error) ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444] shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+                                        ERROR
+                                    </span>
                                 ) : (
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
                                         isGatePassed ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]'
@@ -103,28 +107,28 @@ export default function AccuracyPage() {
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${kpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Sample Size (n≥300)</div>
                                 <div className={`text-2xl font-extrabold ${kpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: kpi.n >= 300 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
-                                    {isLoading ? '--' : kpi.n}
+                                    {isLoading || error || data?.error ? '--' : kpi.n}
                                 </div>
                             </div>
                             {/* Avg CLV */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Avg CLV (&gt;0 pts)</div>
                                 <div className={`text-2xl font-extrabold ${parseFloat(kpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: parseFloat(kpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
-                                    {isLoading ? '--' : kpi.clv}
+                                    {isLoading || error || data?.error ? '--' : kpi.clv}
                                 </div>
                             </div>
                             {/* Expected ROI */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Expected ROI (&gt;-3%)</div>
                                 <div className={`text-2xl font-extrabold ${parseFloat(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: parseFloat(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
-                                    {isLoading ? '--' : `${parseFloat(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
+                                    {isLoading || error || data?.error ? '--' : `${parseFloat(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
                                 </div>
                             </div>
                             {/* Brier Score */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Brier Score (&lt;0.23)</div>
                                 <div className={`text-2xl font-extrabold ${parseFloat(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: parseFloat(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
-                                    {isLoading ? '--' : kpi.brier}
+                                    {isLoading || error || data?.error ? '--' : kpi.brier}
                                 </div>
                             </div>
                         </div>
@@ -154,6 +158,15 @@ export default function AccuracyPage() {
                                             </div>
                                         </td>
                                     </tr>
+                                ) : (error || data?.error) ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <div className="text-[13px] font-extrabold text-[#ef4444] tracking-[1px] mb-1">SYSTEM ERROR DETECTED</div>
+                                                <div className="text-xs text-slate-400">Failed to load accuracy data. Please try again later.</div>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 ) : filteredTable.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium border-t border-[#1a2332]">
@@ -171,13 +184,13 @@ export default function AccuracyPage() {
                                             </td>
                                             <td className="px-4 py-3.5 text-slate-400 text-right font-medium">{row.n}</td>
                                             <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
-                                                {row.brier !== null ? row.brier.toFixed(3) : '—'}
+                                                {row.brier !== null ? Number(row.brier).toFixed(3) : '—'}
                                             </td>
                                             <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
-                                                {row.avg_clv !== null ? row.avg_clv.toFixed(2) : '—'}
+                                                {row.avg_clv !== null ? Number(row.avg_clv).toFixed(2) : '—'}
                                             </td>
                                             <td className={`px-4 py-3.5 text-right font-extrabold ${row.roi > 0 ? 'text-[#00D4FF]' : (row.roi < 0 ? 'text-[#FF00FF]' : 'text-white')}`} style={{ textShadow: row.roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (row.roi < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none') }}>
-                                                {row.roi !== null ? `${row.roi > 0 ? '+' : ''}${row.roi.toFixed(1)}%` : '—'}
+                                                {row.roi !== null ? `${row.roi > 0 ? '+' : ''}${Number(row.roi).toFixed(1)}%` : '—'}
                                             </td>
                                         </tr>
                                     ))
