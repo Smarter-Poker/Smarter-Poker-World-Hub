@@ -91,9 +91,10 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function PortfolioPage() {
+export default function PortfolioPage({ fallbackData, initialDays, initialMarket }: { fallbackData: PortfolioPageProps, initialDays: string | null, initialMarket: string }) {
     const { data, error, isLoading } = useSWR('/api/mlb/portfolio', fetcher, {
-        refreshInterval: 15000 // Poll every 15 seconds
+        refreshInterval: 15000,
+        fallbackData
     });
 
     const {
