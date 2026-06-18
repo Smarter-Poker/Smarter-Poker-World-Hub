@@ -1,7 +1,9 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Head from 'next/head';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { fetchPortfolioStats } from '../../../utils/mlbStats';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -62,106 +64,21 @@ interface PortfolioPageProps {
 export async function getServerSideProps() {
     try {
         const mlbDb = getMlbSupabase();
-        
-        let allBets: SimBet[] = [];
-        let hasMore = true;
-        let page = 0;
-        const PAGE_SIZE = 1000;
-
-        // Fetch all records with pagination to bypass PostgREST limits
-        while (hasMore) {
-            const { data, error } = await mlbDb
-                .from('sim_bets')
-                .select('id, as_of_ts, pnl, result, stake, bankroll_after, market, selection, edge_pts')
-                .order('as_of_ts', { ascending: true })
-                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-                
-            if (error) throw error;
-            
-            if (data && data.length > 0) {
-                allBets = [...allBets, ...data];
-                if (data.length < PAGE_SIZE) {
-                    hasMore = false;
-                } else {
-                    page++;
-                }
-            } else {
-                hasMore = false;
-            }
-        }
-
-        const bets = allBets;
-
-        let totalBets = bets.length;
-        let wins = 0, losses = 0, pushes = 0;
-        let totalPnl = 0;
-        let peakBankroll = 1000;
-        let maxDrawdown = 0;
-        let totalStaked = 0;
-
-        const weeksMap: Record<string, WeeklyCurveItem> = {};
-
-        for (const bet of bets) {
-            const pnl = bet.pnl || 0;
-            if (pnl > 0 || bet.result === 'WIN') wins++;
-            else if (pnl < 0 || bet.result === 'LOSS') losses++;
-            else pushes++;
-            
-            totalPnl += pnl;
-            totalStaked += (bet.stake || 0);
-            
-            const b_after = bet.bankroll_after || 0;
-            if (b_after > peakBankroll) {
-                peakBankroll = b_after;
-            }
-            
-            // Drawdown is calculated from the peak down to current bankroll_after
-            const currentDd = (peakBankroll - b_after) / peakBankroll;
-            if (currentDd > maxDrawdown) {
-                maxDrawdown = currentDd;
-            }
-
-            if (bet.as_of_ts) {
-                const wStart = getWeekStart(bet.as_of_ts);
-                if (!weeksMap[wStart]) {
-                    weeksMap[wStart] = { weekOf: wStart, bets: 0, pnl: 0, bankroll: b_after };
-                }
-                weeksMap[wStart].bets++;
-                weeksMap[wStart].pnl += pnl;
-                weeksMap[wStart].bankroll = b_after; // Overwritten by later bets since sorted ASC
-            }
-        }
-        
-        const roi = totalStaked > 0 ? (totalPnl / totalStaked) * 100 : 0;
-        const winRate = (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0;
-        const finalBankroll = 1000 + totalPnl;
-
-        const weeklyCurve = Object.values(weeksMap).sort((a, b) => a.weekOf.localeCompare(b.weekOf));
-        
-        const recentBets = bets.slice(-20).reverse();
+        const stats = await fetchPortfolioStats(mlbDb);
 
         return {
             props: {
-                totalBets,
-                wins,
-                losses,
-                pushes,
-                totalPnl,
-                currentBankroll: finalBankroll,
-                roi,
-                peakBankroll,
-                maxDrawdown: maxDrawdown * 100,
-                winRate,
-                weeklyCurve,
-                recentBets
+                fallbackData: stats
             }
         };
     } catch (err) {
         console.error('Error fetching sim_bets:', err);
         return { 
             props: { 
-                totalBets: 0, wins: 0, losses: 0, pushes: 0, totalPnl: 0, currentBankroll: 1000, 
-                roi: 0, peakBankroll: 1000, maxDrawdown: 0, winRate: 0, weeklyCurve: [], recentBets: [] 
+                fallbackData: {
+                    totalBets: 0, wins: 0, losses: 0, pushes: 0, totalPnl: 0, currentBankroll: 1000, 
+                    roi: 0, peakBankroll: 1000, maxDrawdown: 0, winRate: 0, weeklyCurve: [], recentBets: [] 
+                }
             } 
         };
     }
@@ -182,9 +99,18 @@ const MetricBox = ({ title, value, sub, valueColor = '#0F172A' }: MetricBoxProps
     </div>
 );
 
-export default function PortfolioPage({
-    totalBets, wins, losses, pushes, totalPnl, currentBankroll, roi, peakBankroll, maxDrawdown, winRate, weeklyCurve, recentBets
-}: PortfolioPageProps) {
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+export default function PortfolioPage({ fallbackData }: { fallbackData: PortfolioPageProps }) {
+    const { data } = useSWR('/api/mlb/portfolio', fetcher, {
+        fallbackData,
+        refreshInterval: 15000 // Poll every 15 seconds
+    });
+
+    const {
+        totalBets, wins, losses, pushes, totalPnl, currentBankroll, roi, peakBankroll, maxDrawdown, winRate, weeklyCurve, recentBets
+    } = data || fallbackData;
+
     return (
         <div style={{ background: '#F8FAFC', minHeight: '100vh', fontFamily: 'var(--font-inter), sans-serif', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
             <SEOHead 
