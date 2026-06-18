@@ -323,7 +323,11 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                                 <h1 style={{ margin: '0 0 4px', fontSize: 28, fontWeight: 900, fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                                     CLUB <span style={{ color: 'var(--neon-cyan)', textShadow: '0 0 15px var(--neon-cyan-glow)' }}>TERMINAL</span>
                                 </h1>
-                                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.1em' }}>T_SYNC: {todayStr}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.1em' }}>T_SYNC: {todayStr}</p>
+                                    {isValidating && <RefreshCw size={12} color="var(--neon-cyan)" className="animate-spin" style={{ opacity: 0.8 }} />}
+                                    {isValidating && <span style={{ fontSize: 10, color: 'var(--neon-cyan)', fontWeight: 800, letterSpacing: '0.1em', opacity: 0.8 }}>SYNCING</span>}
+                                </div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ color: globalEdgeActive ? 'var(--neon-cyan)' : '#475569', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '4px 8px', background: globalEdgeActive ? 'var(--neon-cyan-dim)' : '#1a2332', borderRadius: 4, border: `1px solid ${globalEdgeActive ? 'var(--neon-cyan)' : '#3d4f5f'}` }}>
@@ -371,18 +375,32 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                                 />
                             </div>
 
-                            {/* Filters */}
-                            <div className="scroll-hide" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+                            {/* Filters and Sorting */}
+                            <div className="scroll-hide" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, alignItems: 'center' }}>
                                 <div style={{ display: 'flex', gap: 8, paddingRight: 16, borderRight: '1px solid var(--metal-highlight)' }}>
                                     <button onClick={() => setFilterLeague('ALL')} className={`filter-pill ${filterLeague === 'ALL' ? 'active' : ''}`}>ALL</button>
                                     <button onClick={() => setFilterLeague('AL')} className={`filter-pill ${filterLeague === 'AL' ? 'active' : ''}`}>AL</button>
                                     <button onClick={() => setFilterLeague('NL')} className={`filter-pill ${filterLeague === 'NL' ? 'active' : ''}`}>NL</button>
                                 </div>
-                                <div style={{ display: 'flex', gap: 8 }}>
+                                <div style={{ display: 'flex', gap: 8, paddingRight: 16, borderRight: '1px solid var(--metal-highlight)' }}>
                                     <button onClick={() => setFilterDivision('ALL')} className={`filter-pill ${filterDivision === 'ALL' ? 'active' : ''}`}>ALL</button>
                                     <button onClick={() => setFilterDivision('East')} className={`filter-pill ${filterDivision === 'East' ? 'active' : ''}`}>EAST</button>
-                                    <button onClick={() => setFilterDivision('Central')} className={`filter-pill ${filterDivision === 'Central' ? 'active' : ''}`}>CENTRAL</button>
+                                    <button onClick={() => setFilterDivision('Central')} className={`filter-pill ${filterDivision === 'Central' ? 'active' : ''}`}>CEN</button>
                                     <button onClick={() => setFilterDivision('West')} className={`filter-pill ${filterDivision === 'West' ? 'active' : ''}`}>WEST</button>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#64748B', display: 'flex', alignItems: 'center', letterSpacing: '0.1em' }}>SORT:</span>
+                                    <select 
+                                        value={sortBy} 
+                                        onChange={(e) => setSortBy(e.target.value as any)}
+                                        style={{ background: '#0d1117', border: '1px solid var(--metal-highlight)', color: 'var(--neon-cyan)', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 800, outline: 'none' }}
+                                    >
+                                        <option value="NAME">NAME</option>
+                                        <option value="WAR">WAR</option>
+                                        <option value="OPS">OPS</option>
+                                        <option value="FIP">FIP</option>
+                                        <option value="EDGE">EDGE</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -402,95 +420,9 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {filteredTeams.map((team, idx) => {
-                                    const record = team.streaks?.record || '0-0';
-                                    const last10 = team.streaks?.last10_record || '0-0';
-                                    let isHot = false;
-                                    if (last10) {
-                                        const [w] = last10.split('-').map(Number);
-                                        if (w >= 7) isHot = true; // 7-3 or better in last 10
-                                    }
-                                    const leagueStr = team.league || '??';
-                                    const divStr = team.division || '??';
-                                    
-                                    return (
-                                        <div key={team.team_id} className="metal-frame" style={{ display: 'block', textDecoration: 'none' }}>
-                                            {/* Corner Bolts */}
-                                            <div className="frame-bolt" style={{ top: 8, left: 8 }} />
-                                            <div className="frame-bolt" style={{ top: 8, right: 8 }} />
-                                            <div className="frame-bolt" style={{ bottom: 8, left: 8 }} />
-                                            <div className="frame-bolt" style={{ bottom: 8, right: 8 }} />
-                                            
-                                            {isHot && <div className="neon-strip left" />}
-
-                                            <div style={{ display: 'block', padding: '20px', textDecoration: 'none', color: 'inherit' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                                        <TeamLogo teamId={team.team_id} teamName={team.name} />
-                                                        <div>
-                                                            <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: 'white', letterSpacing: '-0.02em' }}>{team.name}</h3>
-                                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--neon-cyan)', background: 'var(--neon-cyan-dim)', padding: '2px 6px', borderRadius: 4, letterSpacing: '0.05em' }}>
-                                                                    {leagueStr} {divStr}
-                                                                </span>
-                                                                {team.has_active_edge && (
-                                                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#22C55E', border: '1px solid #22C55E', padding: '1px 4px', borderRadius: 2, letterSpacing: '0.05em', background: 'rgba(34, 197, 94, 0.1)', textShadow: '0 0 5px rgba(34, 197, 94, 0.5)' }}>
-                                                                        EDGE
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ color: 'var(--metal-highlight)' }}>
-                                                        <Activity size={24} color={isHot ? '#EF4444' : '#475569'} style={{ filter: isHot ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))' : 'none' }} />
-                                                    </div>
-                                                </div>
-
-                                                {/* Stats Panel */}
-                                                <div className="stats-panel">
-                                                    <div className="stat-segment">
-                                                        <div className="stat-label">RECORD</div>
-                                                        <div className="stat-value" style={{ color: 'white', textShadow: 'none' }}>{record}</div>
-                                                    </div>
-                                                    <div className="stat-segment">
-                                                        <div className="stat-label">L10</div>
-                                                        <div className="stat-value">{last10}</div>
-                                                    </div>
-                                                    <div className="stat-segment">
-                                                        <div className="stat-label">HOME</div>
-                                                        <div className="stat-value" style={{ color: '#FCD34D', textShadow: '0 0 8px rgba(252, 211, 77, 0.4)' }}>
-                                                            {team.splits?.home || '0-0'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Advanced Stats Panel */}
-                                                {team.adv_stats && (
-                                                    <div className="stats-panel" style={{ marginTop: 8, background: '#0a0a15' }}>
-                                                        <div className="stat-segment">
-                                                            <div className="stat-label" style={{ color: '#F472B6' }}>WAR</div>
-                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>
-                                                                {((team.adv_stats.hitting_war || 0) + (team.adv_stats.pitching_war || 0)).toFixed(1)}
-                                                            </div>
-                                                        </div>
-                                                        <div className="stat-segment">
-                                                            <div className="stat-label" style={{ color: '#60A5FA' }}>FIP</div>
-                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.fip?.toFixed(2) || '-'}</div>
-                                                        </div>
-                                                        <div className="stat-segment">
-                                                            <div className="stat-label" style={{ color: '#34D399' }}>OPS</div>
-                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.ops?.toFixed(3) || '-'}</div>
-                                                        </div>
-                                                        <div className="stat-segment">
-                                                            <div className="stat-label" style={{ color: '#A78BFA' }}>OAA</div>
-                                                            <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.oaa || '-'}</div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {filteredTeams.map((team: any) => (
+                                    <TeamCardComponent key={team.team_id} team={team} />
+                                ))}
                             </div>
                         )}
                     </div>

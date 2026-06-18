@@ -13,7 +13,7 @@ const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false 
 const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false });
 const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Activity, Loader2 } from 'lucide-react';
 
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -76,7 +76,7 @@ interface MetricBoxProps {
 const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
     <div className="bg-[#131420] border border-white/5 rounded-xl p-4 flex flex-col shadow-md">
         <div className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">{title}</div>
-        <div className="text-2xl font-extrabold" style={{ color: valueColor }}>{isLoading ? '--' : value}</div>
+        <div className="text-2xl font-extrabold" style={{ color: isLoading ? '#00D4FF' : valueColor }}>{isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : value}</div>
         {sub && <div className="text-xs text-slate-500 mt-1 font-medium">{isLoading ? '--' : sub}</div>}
     </div>
 );
@@ -98,6 +98,25 @@ export default function PortfolioPage() {
     } = data || {};
 
     const hasError = !!error || !!data?.error;
+
+    if (hasError) {
+        return (
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Error" description="Data fetch failed" />
+                <UniversalHeader pageDepth={2} />
+                <MlbSubNav />
+                <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                    </div>
+                </main>
+                <BottomNavBar />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-[#0a0a15] min-h-screen font-inter pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
@@ -134,12 +153,10 @@ export default function PortfolioPage() {
                     </div>
                 </div>
 
-                {hasError ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-[#131420] border border-[#ef4444]/50 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] mb-8">
-                        <div className="text-[13px] font-extrabold text-[#ef4444] tracking-[1px] mb-2">SYSTEM ERROR DETECTED</div>
-                        <div className="text-sm text-slate-400 max-w-[300px] text-center">
-                            Failed to load portfolio simulation data. The database might be unreachable.
-                        </div>
+                {isLoading && !data ? (
+                    <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
+                        <Loader2 className="w-12 h-12 animate-spin text-[#00D4FF] mb-4" />
+                        <div className="text-[#00D4FF] font-bold tracking-widest text-sm animate-pulse">CALCULATING MATRICES...</div>
                     </div>
                 ) : (
                     <>
@@ -182,10 +199,10 @@ export default function PortfolioPage() {
                             <div className="w-full lg:w-1/3 bg-[#131420] border border-[#00D4FF]/20 rounded-xl p-6 flex flex-col justify-center items-center shadow-[inset_0_0_20px_rgba(0,212,255,0.05)]">
                                 <div className="text-xs font-extrabold text-[#00D4FF] tracking-widest mb-2">CURRENT BANKROLL</div>
                                 <div className="text-5xl font-extrabold text-white leading-none">
-                                    {isLoading ? '--' : formatCurrency(currentBankroll)}
+                                    {isLoading ? <Loader2 className="w-10 h-10 animate-spin mx-auto text-[#00D4FF]" /> : formatCurrency(currentBankroll)}
                                 </div>
                                 <div className={`text-sm font-bold mt-2 ${!isLoading && totalPnl < 0 ? 'text-[#FF0055]' : 'text-[#00D4FF]'}`}>
-                                    {isLoading ? '--' : formatCurrency(totalPnl, true)} from start
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin inline text-[#00D4FF]" /> : formatCurrency(totalPnl, true)} from start
                                 </div>
                                 <div className="text-xs text-slate-500 mt-1 font-medium">
                                     Started at $1,000.00
@@ -195,10 +212,10 @@ export default function PortfolioPage() {
                             <div className="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} isLoading={isLoading} />
                                 <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
-                                <MetricBox title="ROI" value={`${(roi || 0) > 0 ? '+' : ''}${(roi || 0).toFixed(2)}%`} valueColor={(roi || 0) > 0 ? '#00D4FF' : (roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
-                                <MetricBox title="MAX DRAWDOWN" value={`${(maxDrawdown || 0).toFixed(2)}%`} valueColor={(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                                <MetricBox title="ROI" value={`${Number(roi || 0) > 0 ? '+' : ''}${Number(roi || 0).toFixed(2)}%`} valueColor={Number(roi || 0) > 0 ? '#00D4FF' : Number(roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
+                                <MetricBox title="MAX DRAWDOWN" value={`${Number(maxDrawdown || 0).toFixed(2)}%`} valueColor={Number(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'} isLoading={isLoading} />
                                 <MetricBox title="PEAK BANKROLL" value={formatCurrency(peakBankroll)} valueColor="#00D4FF" isLoading={isLoading} />
-                                <MetricBox title="WIN RATE" value={`${(winRate || 0).toFixed(1)}%`} valueColor="#FFFFFF" isLoading={isLoading} />
+                                <MetricBox title="WIN RATE" value={`${Number(winRate || 0).toFixed(1)}%`} valueColor="#FFFFFF" isLoading={isLoading} />
                             </div>
                         </div>
 
@@ -256,7 +273,10 @@ export default function PortfolioPage() {
                         
                         <div className="w-full">
                             {isLoading ? (
-                                <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-6 text-center text-slate-400 w-full">Loading simulator data...</div>
+                                <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-12 text-center flex flex-col items-center justify-center w-full">
+                                    <Loader2 className="w-8 h-8 animate-spin text-[#FF00FF] mb-4" />
+                                    <div className="text-[#FF00FF] font-bold tracking-widest text-sm animate-pulse">SCANNING DATABASE...</div>
+                                </div>
                             ) : (
                                 <RecentBetsTable bets={recentBets} />
                             )}

@@ -26,12 +26,13 @@ export interface SimBet {
 
 interface RecentBetsTableProps {
     bets: SimBet[];
+    isLoading?: boolean;
 }
 
 type SortField = 'date' | 'market' | 'selection' | 'edge' | 'stake' | 'result' | 'pnl' | 'bankroll';
 type SortDirection = 'asc' | 'desc';
 
-export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
+export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoading = false }) => {
     const [sortField, setSortField] = useState<SortField>('date');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [currentPage, setCurrentPage] = useState(1);
@@ -120,8 +121,8 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
     return (
         <div className="w-full">
             <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl overflow-x-auto pb-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] w-full">
-                <table className="w-full min-w-[700px] border-collapse text-left text-[13px]">
-                    <thead>
+                <table className="w-full md:min-w-[700px] border-collapse text-left text-[13px] block md:table">
+                    <thead className="hidden md:table-header-group">
                         <tr className="border-b border-[#2a3a4a] text-[#8b9bb4] bg-[#1a2332]">
                             <Th field="date" label="Date" />
                             <Th field="market" label="Market" />
@@ -133,8 +134,21 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
                             <Th field="bankroll" label="Bankroll" align="right" />
                         </tr>
                     </thead>
-                    <tbody>
-                        {paginatedBets.length > 0 ? paginatedBets.map((bet, i) => {
+                    <tbody className="block md:table-row-group">
+                        {isLoading ? (
+                            Array.from({ length: 10 }).map((_, i) => (
+                                <tr key={`skeleton-${i}`} className={`block md:table-row border-b border-[#2a3a4a] animate-pulse ${i < 9 ? 'mb-2 md:mb-0 pb-2 md:pb-0' : ''}`}>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Date</span><div className="h-4 bg-slate-800 rounded w-16"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Market</span><div className="h-4 bg-slate-800 rounded w-20"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Selection</span><div className="h-4 bg-slate-800 rounded w-32"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Edge</span><div className="h-4 bg-slate-800 rounded w-12"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Stake</span><div className="h-4 bg-slate-800 rounded w-12"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Result</span><div className="h-4 bg-slate-800 rounded w-16"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">P&L</span><div className="h-4 bg-slate-800 rounded w-20"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Bankroll</span><div className="h-4 bg-slate-800 rounded w-20"></div></td>
+                                </tr>
+                            ))
+                        ) : paginatedBets.length > 0 ? paginatedBets.map((bet, i) => {
                             const dateObj = bet.as_of_ts ? new Date(bet.as_of_ts) : new Date();
                             const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
                             
@@ -143,33 +157,47 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets }) => {
                             const isLoss = pnl < 0 || bet.result === 'LOSS';
                             
                             return (
-                                <tr key={bet.id || i} className={i < paginatedBets.length - 1 ? 'border-b border-[#2a3a4a]' : ''}>
-                                    <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
-                                        {dateStr}
+                                <tr key={bet.id || i} className={`block md:table-row border-b border-[#2a3a4a] ${i < paginatedBets.length - 1 ? 'mb-4 md:mb-0 pb-2 md:pb-0' : ''}`}>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-slate-500 whitespace-nowrap border-b border-white/5 md:border-0 bg-white/[0.02] md:bg-transparent rounded-t-md md:rounded-none">
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Date</span>
+                                        <span className="text-right md:text-left">{dateStr}</span>
                                     </td>
-                                    <td className="py-3 px-4 whitespace-nowrap">
-                                        <span className="bg-white/5 py-1 px-2 rounded text-slate-400 text-[11px] font-bold tracking-[0.02em]">
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 whitespace-nowrap border-b border-white/5 md:border-0">
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Market</span>
+                                        <span className="bg-white/5 py-1 px-2 rounded text-slate-400 text-[11px] font-bold tracking-[0.02em] text-right md:text-left">
                                             {bet.market || 'Moneyline'}
                                         </span>
                                     </td>
-                                    <td className="py-3 px-4 text-slate-50 whitespace-nowrap">{bet.selection || '-'}</td>
-                                    <td className="py-3 px-4 text-[#00D4FF] font-semibold whitespace-nowrap">+{(bet.edge_pts || 0).toFixed(2)}</td>
-                                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">${(bet.stake || 0).toFixed(2)}</td>
-                                    <td className="py-3 px-4 whitespace-nowrap">
-                                        <span className={`py-1 px-2 rounded text-[10px] font-extrabold tracking-wide ${isWin ? 'bg-[#00D4FF]/10 text-[#00D4FF]' : isLoss ? 'bg-[#FF0055]/10 text-[#FF0055]' : 'bg-white/5 text-[#8b9bb4]'}`}>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-slate-50 whitespace-nowrap border-b border-white/5 md:border-0">
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Selection</span>
+                                        <span className="text-right md:text-left">{bet.selection || '-'}</span>
+                                    </td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-[#00D4FF] font-semibold whitespace-nowrap border-b border-white/5 md:border-0">
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Edge</span>
+                                        <span className="text-right md:text-left">+{(bet.edge_pts || 0).toFixed(2)}</span>
+                                    </td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-slate-400 whitespace-nowrap border-b border-white/5 md:border-0">
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Stake</span>
+                                        <span className="text-right md:text-left">${(bet.stake || 0).toFixed(2)}</span>
+                                    </td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 whitespace-nowrap border-b border-white/5 md:border-0">
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Result</span>
+                                        <span className={`py-1 px-2 rounded text-[10px] font-extrabold tracking-wide text-right md:text-left ${isWin ? 'bg-[#00D4FF]/10 text-[#00D4FF]' : isLoss ? 'bg-[#FF0055]/10 text-[#FF0055]' : 'bg-white/5 text-[#8b9bb4]'}`}>
                                             {bet.result || (isWin ? 'WIN' : (isLoss ? 'LOSS' : 'PUSH'))}
                                         </span>
                                     </td>
-                                    <td className={`py-3 px-4 font-semibold whitespace-nowrap ${pnl > 0 ? 'text-[#00D4FF]' : (pnl < 0 ? 'text-[#FF0055]' : 'text-[#8b9bb4]')}`}>
-                                        {formatCurrency(pnl, true)}
+                                    <td className={`flex justify-between items-center py-2 px-4 md:table-cell md:py-3 font-semibold whitespace-nowrap border-b border-white/5 md:border-0 ${pnl > 0 ? 'text-[#00D4FF]' : (pnl < 0 ? 'text-[#FF0055]' : 'text-[#8b9bb4]')}`}>
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">P&L</span>
+                                        <span className="text-right md:text-left">{formatCurrency(pnl, true)}</span>
                                     </td>
-                                    <td className="py-3 px-4 font-semibold text-slate-400 text-right whitespace-nowrap">
-                                        {formatCurrency(bet.bankroll_after || 0)}
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 font-semibold text-slate-400 whitespace-nowrap md:text-right bg-[#00D4FF]/5 md:bg-transparent rounded-b-md md:rounded-none">
+                                        <span className="md:hidden font-bold text-[#00D4FF] text-[10px] uppercase tracking-wider">Bankroll</span>
+                                        <span className="text-right">{formatCurrency(bet.bankroll_after || 0)}</span>
                                     </td>
                                 </tr>
                             );
                         }) : (
-                            <tr><td colSpan={8} className="p-6 text-center text-slate-400">No data available</td></tr>
+                            <tr className="block md:table-row"><td colSpan={8} className="p-6 text-center text-slate-400 block md:table-cell">No data available</td></tr>
                         )}
                     </tbody>
                 </table>

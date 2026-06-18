@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Activity } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -29,7 +29,27 @@ export default function AccuracyPage() {
         return false;
     });
 
-    const isGatePassed = kpi.n >= 300 && parseFloat(kpi.roi) > -3.0 && parseFloat(kpi.brier) < 0.23;
+    const isGatePassed = kpi.n >= 300 && Number(kpi.roi) > -3.0 && Number(kpi.brier) < 0.23;
+
+    if (error || data?.error) {
+        return (
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Error" description="Data fetch failed" />
+                <UniversalHeader pageDepth={2} />
+                <MlbSubNav />
+                <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        {/* Use an appropriate icon below, e.g., Target, Activity, Shield */}
+                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                    </div>
+                </main>
+                <BottomNavBar />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
@@ -81,13 +101,9 @@ export default function AccuracyPage() {
                         <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
                             <div className="flex items-center gap-3">
                                 <h2 className="m-0 text-base font-bold text-white uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Lock-In Gate</h2>
-                                {isLoading ? (
+                                {isLoading && !data ? (
                                     <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
                                         <Loader2 size={10} className="animate-spin" /> LOADING
-                                    </span>
-                                ) : (error || data?.error) ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444] shadow-[0_0_10px_rgba(239,68,68,0.3)]">
-                                        ERROR
                                     </span>
                                 ) : (
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
@@ -107,28 +123,28 @@ export default function AccuracyPage() {
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${kpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Sample Size (n≥300)</div>
                                 <div className={`text-2xl font-extrabold ${kpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: kpi.n >= 300 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
-                                    {isLoading || error || data?.error ? '--' : kpi.n}
+                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.n}
                                 </div>
                             </div>
                             {/* Avg CLV */}
-                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
+                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Avg CLV (&gt;0 pts)</div>
-                                <div className={`text-2xl font-extrabold ${parseFloat(kpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: parseFloat(kpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
-                                    {isLoading || error || data?.error ? '--' : kpi.clv}
+                                <div className={`text-2xl font-extrabold ${Number(kpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: Number(kpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
+                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.clv}
                                 </div>
                             </div>
                             {/* Expected ROI */}
-                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
+                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Expected ROI (&gt;-3%)</div>
-                                <div className={`text-2xl font-extrabold ${parseFloat(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: parseFloat(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
-                                    {isLoading || error || data?.error ? '--' : `${parseFloat(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
+                                <div className={`text-2xl font-extrabold ${Number(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: Number(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
+                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : `${Number(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
                                 </div>
                             </div>
                             {/* Brier Score */}
-                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${parseFloat(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
+                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Brier Score (&lt;0.23)</div>
-                                <div className={`text-2xl font-extrabold ${parseFloat(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: parseFloat(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
-                                    {isLoading || error || data?.error ? '--' : kpi.brier}
+                                <div className={`text-2xl font-extrabold ${Number(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: Number(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
+                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.brier}
                                 </div>
                             </div>
                         </div>
@@ -149,21 +165,12 @@ export default function AccuracyPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-[#0a0a15]">
-                                {isLoading ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium">
-                                            <div className="flex flex-col items-center justify-center gap-2">
-                                                <Loader2 className="w-6 h-6 animate-spin text-[#3d4f5f]" />
-                                                Loading backtest logs...
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (error || data?.error) ? (
+                                {isLoading && !data ? (
                                     <tr>
                                         <td colSpan={6} className="px-4 py-12 text-center">
                                             <div className="flex flex-col items-center justify-center gap-2">
-                                                <div className="text-[13px] font-extrabold text-[#ef4444] tracking-[1px] mb-1">SYSTEM ERROR DETECTED</div>
-                                                <div className="text-xs text-slate-400">Failed to load accuracy data. Please try again later.</div>
+                                                <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
+                                                <span className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">SCANNING DATABASE...</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -189,8 +196,8 @@ export default function AccuracyPage() {
                                             <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
                                                 {row.avg_clv !== null ? Number(row.avg_clv).toFixed(2) : '—'}
                                             </td>
-                                            <td className={`px-4 py-3.5 text-right font-extrabold ${row.roi > 0 ? 'text-[#00D4FF]' : (row.roi < 0 ? 'text-[#FF00FF]' : 'text-white')}`} style={{ textShadow: row.roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (row.roi < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none') }}>
-                                                {row.roi !== null ? `${row.roi > 0 ? '+' : ''}${Number(row.roi).toFixed(1)}%` : '—'}
+                                            <td className={`px-4 py-3.5 text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : (Number(row.roi) < 0 ? 'text-[#FF00FF]' : 'text-white')}`} style={{ textShadow: Number(row.roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (Number(row.roi) < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none') }}>
+                                                {row.roi !== null ? `${Number(row.roi) > 0 ? '+' : ''}${Number(row.roi).toFixed(1)}%` : '—'}
                                             </td>
                                         </tr>
                                     ))

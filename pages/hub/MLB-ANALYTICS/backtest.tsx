@@ -26,7 +26,7 @@ export default function BacktestPage() {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
                         <Target className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load Backtest results. Please try again later.</p>
+                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -34,7 +34,7 @@ export default function BacktestPage() {
         );
     }
 
-    const formatPct = (val: any) => val === null || val === undefined || isNaN(val) ? '—' : `${val > 0 ? '+' : ''}${val.toFixed(1)}%`;
+    const formatPct = (val: any) => val === null || val === undefined || isNaN(val) ? '—' : `${Number(val) > 0 ? '+' : ''}${Number(val).toFixed(1)}%`;
     const formatNum = (val: any) => val === null || val === undefined || isNaN(val) ? '—' : val.toLocaleString();
 
     const dailyTrend = data?.dailyTrend || [];
@@ -45,10 +45,10 @@ export default function BacktestPage() {
     };
 
     // Lock-in Gate evaluation
-    const sampleSizePassed = stats.totalPredictions >= 500;
-    const brierPassed = stats.avgBrier < 0.23 && stats.avgBrier > 0;
-    const roiPassed = stats.cumulativeRoi > -3.0;
-    const clvPassed = stats.avgClv > 0;
+    const sampleSizePassed = Number(stats.totalPredictions) >= 500;
+    const brierPassed = Number(stats.avgBrier) < 0.23 && Number(stats.avgBrier) > 0;
+    const roiPassed = Number(stats.cumulativeRoi) > -3.0;
+    const clvPassed = Number(stats.avgClv) > 0;
     const gatesPassed = [sampleSizePassed, brierPassed, roiPassed, clvPassed].filter(Boolean).length;
     
     const GateCard = ({ label, target, value, passed, isPct = false, isBrier = false }: any) => (
@@ -56,7 +56,7 @@ export default function BacktestPage() {
             {passed && <div className="absolute top-0 right-0 w-8 h-8 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[15px] opacity-20"></div>}
             <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase mb-1">{label} ({target})</div>
             <div className={`text-xl font-extrabold ${passed ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={passed ? { textShadow: '0 0 5px rgba(0,212,255,0.4)', fontFamily: '"Rajdhani", sans-serif' } : { fontFamily: '"Rajdhani", sans-serif' }}>
-                {isPct ? formatPct(value) : (isBrier ? (value != null ? value.toFixed(4) : '0.0000') : formatNum(value))}
+                {isPct ? formatPct(value) : (isBrier ? (value != null ? Number(value).toFixed(4) : '0.0000') : formatNum(value))}
             </div>
         </div>
     );
@@ -93,10 +93,10 @@ export default function BacktestPage() {
                    </div>
                </div>
 
-                {isLoading ? (
+                {isLoading && !data ? (
                     <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-                        <Loader2 className="w-10 h-10 animate-spin text-[#00D4FF] mx-auto mb-4" />
-                        <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">Loading Backtest Data...</div>
+                        <Loader2 className="w-12 h-12 animate-spin text-[#00D4FF] mx-auto mb-4" />
+                        <div className="text-[14px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">CALCULATING MATRICES...</div>
                     </div>
                 ) : (error || data?.error) ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-[#131420] border-[3px] border-[#ef4444]/50 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] mb-8">
@@ -118,22 +118,22 @@ export default function BacktestPage() {
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><TrendingUp size={40} /></div>
                                <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">OVERALL WIN RATE</div>
-                               <div className="text-2xl font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.winRate != null ? stats.winRate.toFixed(1) : '0.0'}%</div>
+                               <div className="text-2xl font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.winRate != null ? Number(stats.winRate).toFixed(1) : '0.0'}%</div>
                                <div className="text-[10px] font-bold text-[#00D4FF] mt-1 uppercase tracking-widest">{stats.wonBets || 0} W / {stats.lostBets || 0} L</div>
                            </div>
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-[#FF00FF]"><BarChart3 size={40} /></div>
                                <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">AVG BRIER (0.25)</div>
-                               <div className="text-2xl font-extrabold text-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(255,0,255,0.3)' }}>{stats.avgBrier != null ? stats.avgBrier.toFixed(4) : '0.0000'}</div>
-                               <div className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${stats.brierVsBaseline < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
-                                   {stats.brierVsBaseline >= 0 ? '+' : ''}{stats.brierVsBaseline != null ? stats.brierVsBaseline.toFixed(4) : '0.0000'} vs base
+                               <div className="text-2xl font-extrabold text-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(255,0,255,0.3)' }}>{stats.avgBrier != null ? Number(stats.avgBrier).toFixed(4) : '0.0000'}</div>
+                               <div className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${Number(stats.brierVsBaseline) < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
+                                   {Number(stats.brierVsBaseline) >= 0 ? '+' : ''}{stats.brierVsBaseline != null ? Number(stats.brierVsBaseline).toFixed(4) : '0.0000'} vs base
                                </div>
                            </div>
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-emerald-400"><DollarSign size={40} /></div>
                                <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">CUMULATIVE ML ROI</div>
-                               <div className={`text-2xl font-extrabold ${stats.cumulativeRoi >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(stats.cumulativeRoi)}</div>
-                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{stats.unitsWon > 0 ? '+' : ''}{stats.unitsWon != null ? stats.unitsWon.toFixed(2) : '0.00'}u profit</div>
+                               <div className={`text-2xl font-extrabold ${Number(stats.cumulativeRoi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(stats.cumulativeRoi)}</div>
+                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{Number(stats.unitsWon) > 0 ? '+' : ''}{stats.unitsWon != null ? Number(stats.unitsWon).toFixed(2) : '0.00'}u profit</div>
                            </div>
                        </div>
 
@@ -186,9 +186,9 @@ export default function BacktestPage() {
                                                     <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[11px] font-extrabold text-slate-300 uppercase tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">{row.market}</span>
                                                </td>
                                                <td className="p-4 text-center font-bold text-slate-400 text-sm">{row.n}</td>
-                                               <td className="p-4 text-center font-bold text-white text-sm">{row.winRate != null ? row.winRate.toFixed(1) : '0.0'}%</td>
-                                               <td className="p-4 text-center font-extrabold text-[#FF00FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.avgBrier ? row.avgBrier.toFixed(4) : '—'}</td>
-                                               <td className={`p-4 text-right font-extrabold text-sm ${row.roi >= 0 ? 'text-[#00D4FF]' : 'text-slate-400'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi)}</td>
+                                               <td className="p-4 text-center font-bold text-white text-sm">{row.winRate != null ? Number(row.winRate).toFixed(1) : '0.0'}%</td>
+                                               <td className="p-4 text-center font-extrabold text-[#FF00FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.avgBrier ? Number(row.avgBrier).toFixed(4) : '—'}</td>
+                                               <td className={`p-4 text-right font-extrabold text-sm ${Number(row.roi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-400'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi)}</td>
                                            </tr>
                                        ))}
                                        {marketBreakdown.length === 0 && (
@@ -220,9 +220,9 @@ export default function BacktestPage() {
                                            <tr key={idx} className="border-b border-[#3d4f5f] hover:bg-[#1a2332]/50 transition-colors">
                                                <td className="p-4 font-bold text-slate-300 text-sm tracking-widest">{row.backtest_date}</td>
                                                <td className="p-4 text-center font-bold text-slate-400 text-sm">{row.games_evaluated}</td>
-                                               <td className="p-4 text-center font-extrabold text-[#FF00FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.brier_score_ml ? row.brier_score_ml.toFixed(4) : '—'}</td>
-                                               <td className={`p-4 text-center font-extrabold text-sm ${row.roi_ml >= 0 ? 'text-[#00D4FF]' : (row.roi_ml < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_ml)}</td>
-                                               <td className={`p-4 text-right font-extrabold text-sm ${row.roi_props >= 0 ? 'text-[#00D4FF]' : (row.roi_props < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_props)}</td>
+                                               <td className="p-4 text-center font-extrabold text-[#FF00FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.brier_score_ml ? Number(row.brier_score_ml).toFixed(4) : '—'}</td>
+                                               <td className={`p-4 text-center font-extrabold text-sm ${Number(row.roi_ml) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_ml) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_ml)}</td>
+                                               <td className={`p-4 text-right font-extrabold text-sm ${Number(row.roi_props) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_props) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_props)}</td>
                                            </tr>
                                        ))}
                                        {dailyTrend.length === 0 && (
