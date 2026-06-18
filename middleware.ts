@@ -64,7 +64,7 @@ function isAllowPath(pathname: string): boolean {
     return false;
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { hostname, pathname, search } = request.nextUrl;
 
     // ── 1. Redirect www → root domain ──────────────────────────────────────
@@ -80,9 +80,9 @@ export function middleware(request: NextRequest) {
         const supabase = createMiddlewareClient(request, response);
         
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { user } } = await supabase.auth.getUser();
             
-            if (!session) {
+            if (!user) {
                 const loginUrl = request.nextUrl.clone();
                 loginUrl.pathname = '/auth/login';
                 loginUrl.search = `?next=${encodeURIComponent(pathname)}`;

@@ -1,8 +1,10 @@
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Head from 'next/head';
 import Link from 'next/link';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function getWeekStart(d: string) {
     const date = new Date(d);
@@ -184,10 +186,12 @@ export default function PortfolioPage({
     totalBets, wins, losses, pushes, totalPnl, currentBankroll, roi, peakBankroll, maxDrawdown, winRate, weeklyCurve, recentBets
 }: PortfolioPageProps) {
     return (
-        <div style={{ background: '#F8FAFC', minHeight: '100vh', fontFamily: 'var(--font-inter), sans-serif' }}>
-            <Head>
-                <title>Portfolio Simulator | MLB Analytics</title>
-            </Head>
+        <div style={{ background: '#F8FAFC', minHeight: '100vh', fontFamily: 'var(--font-inter), sans-serif', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+            <SEOHead 
+                title="Portfolio Simulator | MLB Analytics" 
+                description="MLB Analytics Portfolio Simulator and virtual bankroll tracking."
+                noIndex={true}
+            />
             
             <UniversalHeader pageDepth={2} />
             <MlbSubNav />
@@ -327,6 +331,7 @@ export default function PortfolioPage({
                     </table>
                 </div>
             </div>
+            <BottomNavBar />
         </div>
     );
 }

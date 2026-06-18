@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronRight, Search } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
 export async function getServerSideProps() {
@@ -124,10 +125,12 @@ export default function PlayersPage({ hitters = [], pitchers = [] }) {
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
 
     return (
-        <div style={{ minHeight: '100vh', background: '#fff', color: '#0F172A', paddingBottom: 80, fontFamily: "var(--font-inter), sans-serif" }}>
-           <Head>
-               <title>Players | MLB Analytics</title>
-           </Head>
+        <div style={{ minHeight: '100vh', background: '#fff', color: '#0F172A', paddingBottom: 70, fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif", width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+           <SEOHead 
+               title="Players | MLB Analytics" 
+               description="Complete profiles for every 2026 MLB hitter and pitcher."
+               noIndex={true}
+           />
 
            {/* MANDATORY HUB STANDARD HEADER */}
            <UniversalHeader pageDepth={2} />
