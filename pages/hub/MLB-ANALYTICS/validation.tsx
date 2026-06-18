@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
@@ -41,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         return (
             <div className="bg-[#0d1117] border border-[#3d4f5f] p-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 <p className="text-slate-400 text-[10px] font-extrabold tracking-[1px] mb-1 uppercase">{label} EDGE</p>
-                <p className={`text-lg font-extrabold ${roi > 0 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(255,0,255,0.5)' }}>
+                <p className={`text-lg font-extrabold ${roi > 0 ? 'text-[#00D4FF]' : roi < 0 ? 'text-[#FF00FF]' : 'text-slate-300'}`} style={{ textShadow: roi > 0 ? '0 0 5px rgba(0,212,255,0.5)' : roi < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none' }}>
                     {roi > 0 ? '+' : ''}{roi.toFixed(2)}% ROI
                 </p>
                 <p className="text-slate-500 text-xs mt-1">
@@ -244,7 +244,7 @@ export default function ValidationPage() {
                                        <ReferenceLine y={0} stroke="#3d4f5f" strokeWidth={2} />
                                        <Bar dataKey="roi" radius={[4, 4, 4, 4]} barSize={40}>
                                            {stats.edgeData.map((entry, index) => (
-                                               <Cell key={`cell-${index}`} fill={entry.roi > 0 ? '#00D4FF' : '#FF00FF'} />
+                                               <Cell key={`cell-${index}`} fill={entry.roi > 0 ? '#00D4FF' : entry.roi < 0 ? '#FF00FF' : '#94a3b8'} />
                                            ))}
                                        </Bar>
                                    </BarChart>
