@@ -44,7 +44,10 @@ export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: st
             .order('as_of_ts', { ascending: true })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
             
-        if (fetchErr) throw fetchErr;
+        if (fetchErr) {
+            console.warn('[MLB Portfolio] fetch error on sim_bets:', fetchErr.message);
+            break;
+        }
         
         if (data && data.length > 0) {
             allBets = [...allBets, ...data];

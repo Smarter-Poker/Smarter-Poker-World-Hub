@@ -18,8 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ]);
 
         if (teamsRes.error) {
-            console.error('[API/MLB/Teams] Error fetching teams:', teamsRes.error);
-            return res.status(500).json({ error: 'Failed to fetch team data' });
+            console.warn('[API/MLB/Teams] Error fetching teams (table may be missing):', teamsRes.error.message);
+            return res.status(200).json({ teams: [], globalEdgeActive: false });
         }
 
         const teams = teamsRes.data || [];

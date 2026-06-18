@@ -21,8 +21,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .order('fip', { ascending: true }) // Lower FIP is better
         ]);
 
-        if (hittersResult.error) throw hittersResult.error;
-        if (pitchersResult.error) throw pitchersResult.error;
+        if (hittersResult.error) {
+            console.warn('[MLB Players] Fallback error on v_hitter_profile:', hittersResult.error.message);
+        }
+        if (pitchersResult.error) {
+            console.warn('[MLB Players] Fallback error on v_pitcher_profile:', pitchersResult.error.message);
+        }
 
         return res.status(200).json({
             hitters: hittersResult.data || [],

@@ -24,7 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .order('official_date', { ascending: false })
                 .limit(1);
                 
-            if (dateErr) throw dateErr;
+            if (dateErr) {
+                console.warn('[MLB Best Bets] Fallback error on pred_best_bets (table might be missing):', dateErr.message);
+                return res.status(200).json({ bets: [], stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 }, officialDate: null });
+            }
             
             if (!latestDateData || latestDateData.length === 0) {
                 return res.status(200).json({ bets: [], stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 }, officialDate: null });
@@ -38,7 +41,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .eq('official_date', officialDate)
                 .order('rank', { ascending: true });
                 
-            if (betsErr) throw betsErr;
+            if (betsErr) {
+                console.warn('[MLB Best Bets] Error fetching bets:', betsErr.message);
+            }
             
             const betsArr = bets || [];
             
