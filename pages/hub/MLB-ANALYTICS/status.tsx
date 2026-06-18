@@ -30,7 +30,7 @@ export async function getServerSideProps() {
             .order('run_at', { ascending: false })
             .limit(100);
             
-        const latestRuns = {};
+        const latestRuns: any = {};
         const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
         let hasError = false;
 
@@ -105,7 +105,9 @@ export default function StatusPage({
     bestBetsCount, 
     latestRuns, 
     sizes 
-}: any) {
+}: StatusPageProps) {
+    const [refreshing, setRefreshing] = useState(false);
+
     const timeAgo = (dateString: string) => {
         if (!dateString) return '';
         const now = new Date();

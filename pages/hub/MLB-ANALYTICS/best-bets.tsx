@@ -160,16 +160,16 @@ const BetCard = ({ bet, isExpanded, onToggle }) => {
     );
 };
 
-export default function BestBetsPage({ bets = [], officialDate, isStale, todayStr }) {
+export default function BestBetsPage({ bets = [], officialDate, isStale, todayStr }: any) {
     const [filter, setFilter] = useState('ALL');
-    const [expandedBetId, setExpandedBetId] = useState(null);
+    const [expandedBetId, setExpandedBetId] = useState<number | null>(null);
 
     const totalBets = bets.length;
-    const eliteBets = bets.filter(b => b.bet_tier?.toUpperCase() === 'ELITE' || b.bet_score >= 80).length;
-    const topScore = bets.length > 0 ? Math.max(...bets.map(b => b.bet_score || 0)) : 0;
-    const topLock = bets.length > 0 ? Math.max(...bets.map(b => b.win_confidence || 0)) : 0;
+    const eliteBets = bets.filter((b: any) => b.bet_tier?.toUpperCase() === 'ELITE' || b.bet_score >= 80).length;
+    const topScore = bets.length > 0 ? Math.max(...bets.map((b: any) => b.bet_score || 0)) : 0;
+    const topLock = bets.length > 0 ? Math.max(...bets.map((b: any) => b.win_confidence || 0)) : 0;
 
-    const filteredBets = bets.filter(b => {
+    const filteredBets = bets.filter((b: any) => {
         if (filter === 'ALL') return true;
         const type = b.bet_type?.toLowerCase() || '';
         if (filter === 'ML' && (type === 'moneyline' || type === 'ml')) return true;
@@ -293,7 +293,7 @@ export default function BestBetsPage({ bets = [], officialDate, isStale, todaySt
                    </div>
                ) : (
                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                       {filteredBets.map((bet, idx) => (
+                       {filteredBets.map((bet: any, idx: number) => (
                            <BetCard 
                                key={`${bet.game_pk}-${bet.selection}-${idx}`} 
                                bet={bet} 

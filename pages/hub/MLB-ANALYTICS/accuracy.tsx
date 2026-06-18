@@ -73,7 +73,7 @@ export default function AccuracyPage({ tableData = [], kpi }) {
     const [filter, setFilter] = useState('All');
 
     // Filter table
-    const filteredTable = tableData.filter(row => {
+    const filteredTable = tableData.filter((row: any) => {
         if (filter === 'All') return true;
         const type = row.market?.toLowerCase() || '';
         if (filter === 'Moneyline' && (type === 'h2h' || type === 'f5_moneyline')) return true;

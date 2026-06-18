@@ -46,7 +46,7 @@ export async function getServerSideProps({ res }: any) {
                         .range(offset, offset + limit - 1)
                 );
             }
-            const results = await Promise.all(promises);
+            const results = await Promise.all(promises) as any[];
             for (const res of results) {
                 if (res.error) throw res.error;
                 if (res.data) allMarketRows = allMarketRows.concat(res.data);

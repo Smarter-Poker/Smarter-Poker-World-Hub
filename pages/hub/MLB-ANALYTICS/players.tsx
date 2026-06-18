@@ -106,7 +106,7 @@ export default function PlayersPage({ hitters = [], pitchers = [] }: any) {
     const [activeTab, setActiveTab] = useState('Regular Hitters');
 
     const filteredPlayers = useMemo(() => {
-        let list = [];
+        let list: any[] = [];
         if (activeTab === 'Regular Hitters') {
             list = hitters.filter(h => (h.pa || 0) >= 150);
         } else if (activeTab === 'Bench / Fringe') {
