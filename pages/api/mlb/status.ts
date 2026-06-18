@@ -44,28 +44,23 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse) {
         yesterdayDate.setHours(yesterdayDate.getHours() - 24);
         const last24hIso = yesterdayDate.toISOString();
 
-        // Parallelize all DB queries
-        const [
-            { data: pipelineData },
-            { data: latestPred },
-            { count: marketBetsCount },
-            { count: propsCount },
-            { count: bestBetsCount },
-            { count: sizeMarket },
-            { count: sizeProps },
-            { count: sizeFactGames },
-            { count: sizeOdds }
-        ] = await Promise.all([
-            mlbDb.from('pipeline_runs').select('*').order('run_at', { ascending: false }).limit(100),
-            mlbDb.from('pred_market_output').select('as_of_ts').order('as_of_ts', { ascending: false }).limit(1),
-            mlbDb.from('pred_market_output').select('*', { count: 'exact', head: true }).gte('as_of_ts', last24hIso),
-            mlbDb.from('pred_props').select('*', { count: 'exact', head: true }).gte('as_of_ts', last24hIso),
-            mlbDb.from('pred_best_bets').select('*', { count: 'exact', head: true }).eq('official_date', todayStr),
-            mlbDb.from('pred_market_output').select('*', { count: 'exact', head: true }),
-            mlbDb.from('pred_props').select('*', { count: 'estimated', head: true }),
-            mlbDb.from('fact_games').select('*', { count: 'estimated', head: true }),
-            mlbDb.from('raw_odds').select('*', { count: 'estimated', head: true })
-        ]);
+        // Use the optimized RPC to gather all metrics in a single network trip
+        const { data: rpcData, error: rpcError } = await mlbDb.rpc('get_mlb_status_metrics', {
+            last_24h_iso: last24hIso,
+            today_str: todayStr
+        });
+
+        if (rpcError) throw rpcError;
+
+        const pipelineData = rpcData?.pipeline_runs || [];
+        const latestPred = rpcData?.latest_pred_as_of ? [{ as_of_ts: rpcData.latest_pred_as_of }] : [];
+        const marketBetsCount = rpcData?.market_bets_count || 0;
+        const propsCount = rpcData?.props_count || 0;
+        const bestBetsCount = rpcData?.best_bets_count || 0;
+        const sizeMarket = rpcData?.size_market || 0;
+        const sizeProps = rpcData?.size_props || 0;
+        const sizeFactGames = rpcData?.size_fact_games || 0;
+        const sizeOdds = rpcData?.size_odds || 0;
 
         const latestRuns: any = {};
         const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
