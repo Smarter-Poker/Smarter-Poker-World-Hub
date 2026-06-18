@@ -119,11 +119,11 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
     );
 
     return (
-        <div className="w-full">
-            <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl overflow-x-auto pb-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] w-full">
+        <div className="w-full relative">
+            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl overflow-x-auto pb-0 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] w-full relative z-10">
                 <table className="w-full md:min-w-[700px] border-collapse text-left text-[13px] block md:table">
                     <thead className="hidden md:table-header-group">
-                        <tr className="border-b border-[#2a3a4a] text-[#8b9bb4] bg-[#1a2332]">
+                        <tr className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] uppercase tracking-widest text-[11px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             <Th field="date" label="Date" />
                             <Th field="market" label="Market" />
                             <Th field="selection" label="Selection" />
@@ -157,7 +157,7 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
                             const isLoss = pnl < 0 || bet.result === 'LOSS';
                             
                             return (
-                                <tr key={bet.id || i} className={`block md:table-row border-b border-[#2a3a4a] ${i < paginatedBets.length - 1 ? 'mb-4 md:mb-0 pb-2 md:pb-0' : ''}`}>
+                                <tr key={bet.id || i} className={`block md:table-row border-b border-[#2a3a4a] ${i < paginatedBets.length - 1 ? 'mb-4 md:mb-0 pb-2 md:pb-0' : ''} hover:bg-[#1a2332]/50 transition-colors`}>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-slate-500 whitespace-nowrap border-b border-white/5 md:border-0 bg-white/[0.02] md:bg-transparent rounded-t-md md:rounded-none">
                                         <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Date</span>
                                         <span className="text-right md:text-left">{dateStr}</span>
@@ -182,7 +182,7 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
                                     </td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 whitespace-nowrap border-b border-white/5 md:border-0">
                                         <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Result</span>
-                                        <span className={`py-1 px-2 rounded text-[10px] font-extrabold tracking-wide text-right md:text-left ${isWin ? 'bg-[#00D4FF]/10 text-[#00D4FF]' : isLoss ? 'bg-[#FF0055]/10 text-[#FF0055]' : 'bg-white/5 text-[#8b9bb4]'}`}>
+                                        <span className={`py-1 px-2 rounded text-[10px] font-extrabold tracking-wide text-right md:text-left ${isWin ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : isLoss ? 'bg-[#FF0055]/10 text-[#FF0055] border border-[#FF0055]/30' : 'bg-white/5 text-[#8b9bb4] border border-white/10'}`}>
                                             {bet.result || (isWin ? 'WIN' : (isLoss ? 'LOSS' : 'PUSH'))}
                                         </span>
                                     </td>
