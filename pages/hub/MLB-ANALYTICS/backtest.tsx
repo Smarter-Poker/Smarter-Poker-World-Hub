@@ -36,7 +36,7 @@ export async function getServerSideProps({ res }: any) {
         const numPages = Math.ceil((count || 0) / limit);
         
         if (numPages > 0) {
-            const promises = [];
+            const promises: any[] = [];
             for (let i = 0; i < numPages; i++) {
                 const offset = i * limit;
                 promises.push(

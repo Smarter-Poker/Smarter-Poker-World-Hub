@@ -51,7 +51,7 @@ export async function getServerSideProps() {
             .order('as_of_ts', { ascending: false })
             .limit(1);
         let aggMarketAsOf = latestPred?.[0]?.as_of_ts || null;
-        let marketDateStr = null;
+        let marketDateStr: string | null = null;
         if (aggMarketAsOf && aggMarketAsOf.includes('T')) {
             marketDateStr = aggMarketAsOf.split('T')[0]; // Simplify to YYYY-MM-DD
         }
@@ -105,8 +105,8 @@ export default function StatusPage({
     bestBetsCount, 
     latestRuns, 
     sizes 
-}) {
-    const timeAgo = (dateString) => {
+}: any) {
+    const timeAgo = (dateString: string) => {
         if (!dateString) return '';
         const now = new Date();
         const past = new Date(dateString);
