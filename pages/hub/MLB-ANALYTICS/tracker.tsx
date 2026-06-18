@@ -122,8 +122,8 @@ export default function TrackerPage() {
         if (!supabaseUrl || !supabaseAnonKey) return;
         
         const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const channel = supabase.channel('realtime:fct_games')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'fct_games' }, () => {
+        const channel = supabase.channel('realtime:raw_games')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'raw_games' }, () => {
                 mutate();
             })
             .subscribe();
@@ -247,7 +247,7 @@ export default function TrackerPage() {
                <div className="mt-8 mb-4 p-4 bg-[#1a2332] border border-[#3d4f5f] rounded-sm text-[10px] font-bold tracking-wide text-slate-400 text-center leading-relaxed shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                    <strong className="text-[#22C55E]">Real-Time WebSockets Active.</strong> 
                    <br/>
-                   <span className="uppercase text-slate-300">Data Feed</span> provided by MLB Stats API via Supabase `fct_games`.
+                   <span className="uppercase text-slate-300">Data Feed</span> provided by MLB Stats API via Supabase `raw_games`.
                </div>
            </div>
            

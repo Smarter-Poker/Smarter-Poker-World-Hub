@@ -55,7 +55,7 @@ export default async function handler(req: Request) {
                         promises.push(
                             mlbDb
                                 .from('pred_market_output')
-                                .select('market, edge, team, selection')
+                                .select('market, unit_profit, actual_result, brier_score, rec')
                                 .range(offset, offset + limit - 1)
                         );
                     }
