@@ -56,9 +56,9 @@ export default async function handler(req: Request) {
             kpi.brier = brierCount > 0 ? (sumBrier / brierCount).toFixed(3) : '0.000';
 
         } else {
-            // Fallback: manually aggregate backtest_market_output
+            // Fallback: manually aggregate pred_market_output
             const { count, error: countErr } = await mlbDb
-                .from('backtest_market_output')
+                .from('pred_market_output')
                 .select('*', { count: 'exact', head: true });
                 
             if (!countErr && count !== null) {
@@ -73,8 +73,8 @@ export default async function handler(req: Request) {
                             const offset = (i + j) * limit;
                             promises.push(
                                 mlbDb
-                                    .from('backtest_market_output')
-                                    .select('as_of_ts, market, brier_score, unit_profit, rec, actual_result')
+                                    .from('pred_market_output')
+                                    .select('as_of_ts, market, edge, team, selection')
                                     .range(offset, offset + limit - 1)
                             );
                         }

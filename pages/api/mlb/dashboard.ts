@@ -29,9 +29,9 @@ export default async function handler(req: Request) {
             { data: slateGames, error: slateErr }
         ] = await Promise.all([
             mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
-            mlbDb.from('pipeline_runs').select('*').order('run_at', { ascending: false }).limit(1),
-            // fact_games or v_daily_slate for game slate
-            mlbDb.from('v_daily_slate').select('*').eq('official_date', todayStr).order('event_time', { ascending: true })
+            mlbDb.from('agg_model').select('*').order('run_at', { ascending: false }).limit(1),
+            // fact_games or raw_games for game slate
+            mlbDb.from('raw_games').select('*').eq('official_date', todayStr).order('event_time', { ascending: true })
         ]);
 
         const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].run_at : null;

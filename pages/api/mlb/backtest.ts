@@ -15,13 +15,13 @@ export default async function handler(req: Request) {
 
         // Fetch daily trend
         const { data: accuracyData, error: accErr } = await mlbDb
-            .from('backtest_accuracy')
+            .from('v_backtest_summary')
             .select('*')
             .order('backtest_date', { ascending: false })
             .limit(14);
 
         if (accErr) {
-            console.error("Failed to fetch backtest_accuracy:", accErr);
+            console.error("Failed to fetch v_backtest_summary:", accErr);
         }
 
         let statsData;
@@ -37,7 +37,7 @@ export default async function handler(req: Request) {
             // Fallback logic
             console.warn('RPC failed or not found, falling back to manual aggregation', rpcErr);
             const { count, error: countErr } = await mlbDb
-                .from('backtest_market_output')
+                .from('pred_market_output')
                 .select('*', { count: 'exact', head: true });
                 
             if (countErr) throw countErr;
@@ -54,8 +54,8 @@ export default async function handler(req: Request) {
                         const offset = (i + j) * limit;
                         promises.push(
                             mlbDb
-                                .from('backtest_market_output')
-                                .select('market, brier_score, unit_profit, rec, actual_result')
+                                .from('pred_market_output')
+                                .select('market, edge, team, selection')
                                 .range(offset, offset + limit - 1)
                         );
                     }

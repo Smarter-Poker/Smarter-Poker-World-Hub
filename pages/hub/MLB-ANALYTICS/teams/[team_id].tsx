@@ -248,16 +248,16 @@ export default function TeamDetailPage() {
                                     <div className="stat-grid">
                                         <div className="stat-box">
                                             <div className="stat-box-title">HITTING WAR</div>
-                                            <div className="stat-box-value text-[#F472B6]">{adv.hitting_war?.toFixed(1) || '-'}</div>
+                                            <div className="stat-box-value text-[#F472B6]">{(adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : null) || '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">PITCHING WAR</div>
-                                            <div className="stat-box-value text-[#60A5FA]">{adv.pitching_war?.toFixed(1) || '-'}</div>
+                                            <div className="stat-box-value text-[#60A5FA]">{(adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : null) || '-'}</div>
                                         </div>
                                         <div className="stat-box" style={{ background: 'rgba(0, 212, 255, 0.1)', borderColor: '#00D4FF' }}>
                                             <div className="stat-box-title text-[#00D4FF]">TOTAL WAR</div>
                                             <div className="stat-box-value text-white">
-                                                {((adv.hitting_war || 0) + (adv.pitching_war || 0)).toFixed(1)}
+                                                {(Number(adv.hitting_war || 0) + Number(adv.pitching_war || 0)).toFixed(1)}
                                             </div>
                                         </div>
                                     </div>
@@ -269,19 +269,19 @@ export default function TeamDetailPage() {
                                     <div className="stat-grid">
                                         <div className="stat-box">
                                             <div className="stat-box-title">ERA</div>
-                                            <div className="stat-box-value">{adv.era?.toFixed(2) || '-'}</div>
+                                            <div className="stat-box-value">{(adv.era != null ? Number(adv.era).toFixed(2) : null) || '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">FIP</div>
-                                            <div className="stat-box-value">{adv.fip?.toFixed(2) || '-'}</div>
+                                            <div className="stat-box-value">{(adv.fip != null ? Number(adv.fip).toFixed(2) : null) || '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">xFIP</div>
-                                            <div className="stat-box-value">{adv.xfip?.toFixed(2) || '-'}</div>
+                                            <div className="stat-box-value">{(adv.xfip != null ? Number(adv.xfip).toFixed(2) : null) || '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">SIERA</div>
-                                            <div className="stat-box-value text-[#FCD34D]">{adv.siera?.toFixed(2) || '-'}</div>
+                                            <div className="stat-box-value text-[#FCD34D]">{(adv.siera != null ? Number(adv.siera).toFixed(2) : null) || '-'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -292,11 +292,11 @@ export default function TeamDetailPage() {
                                     <div className="stat-grid">
                                         <div className="stat-box">
                                             <div className="stat-box-title">AVG</div>
-                                            <div className="stat-box-value">{adv.avg?.toFixed(3).replace(/^0/, '') || '-'}</div>
+                                            <div className="stat-box-value">{(adv.avg != null ? Number(adv.avg || 0).toFixed(3).replace(/^0/, '') : '-')}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">OPS</div>
-                                            <div className="stat-box-value text-[#34D399]">{adv.ops?.toFixed(3).replace(/^0/, '') || '-'}</div>
+                                            <div className="stat-box-value text-[#34D399]">{(adv.ops != null ? Number(adv.ops || 0).toFixed(3).replace(/^0/, '') : '-')}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">HR</div>
@@ -315,11 +315,11 @@ export default function TeamDetailPage() {
                                     <div className="stat-grid">
                                         <div className="stat-box">
                                             <div className="stat-box-title">DEF</div>
-                                            <div className="stat-box-value">{adv.def?.toFixed(1) || '-'}</div>
+                                            <div className="stat-box-value">{(adv.def != null ? Number(adv.def).toFixed(1) : null) || '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">UZR</div>
-                                            <div className="stat-box-value">{adv.uzr?.toFixed(1) || '-'}</div>
+                                            <div className="stat-box-value">{(adv.uzr != null ? Number(adv.uzr).toFixed(1) : null) || '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">DRS</div>

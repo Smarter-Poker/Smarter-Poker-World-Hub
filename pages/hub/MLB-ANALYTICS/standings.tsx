@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
-import { UniversalHeader } from '@/components/UniversalHeader';
-import { BottomNavBar } from '@/components/BottomNavBar';
-import { MlbSubNav } from '@/components/mlb/MlbSubNav';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 
 export default function StandingsPage() {
     const [standings, setStandings] = useState<any[]>([]);

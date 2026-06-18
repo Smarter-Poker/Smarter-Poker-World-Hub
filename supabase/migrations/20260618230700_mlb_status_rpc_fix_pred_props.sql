@@ -43,7 +43,7 @@ BEGIN
     IF to_regclass('public.pred_props') IS NOT NULL THEN
         SELECT count(*) INTO props_count
         FROM pred_props
-        WHERE created_at >= last_24h_iso;
+        WHERE as_of_ts >= last_24h_iso;
 
         SELECT reltuples::bigint INTO size_props FROM pg_class WHERE relname = 'pred_props';
     END IF;
