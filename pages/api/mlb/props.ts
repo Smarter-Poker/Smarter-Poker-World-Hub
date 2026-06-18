@@ -13,10 +13,10 @@ export default async function handler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch from v_pred_props view to get player names and team abbreviations
+        // Fetch from pred_props table
         // Sorting by edge_pts descending to show highest value props first
         const { data, error } = await mlbDb
-            .from('v_pred_props')
+            .from('pred_props')
             .select('*')
             .order('edge_pts', { ascending: false, nullsFirst: false });
 

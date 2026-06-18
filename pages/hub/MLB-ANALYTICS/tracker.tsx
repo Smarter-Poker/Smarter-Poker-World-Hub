@@ -95,28 +95,11 @@ export default function TrackerPage() {
         setTodayStr(formatter.format(new Date()));
     }, []);
 
-    // Fetch every 60 seconds as a fallback, rely on WebSockets for real-time
+    // Fetch every 15 seconds as a fallback
     const { data, error, isLoading, mutate } = useSWR('/api/mlb/tracker', fetcher, {
-        refreshInterval: 60000,
+        refreshInterval: 15000,
     });
 
-    useEffect(() => {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-        
-        if (!supabaseUrl || !supabaseAnonKey) return;
-        
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const channel = supabase.channel('realtime:raw_games')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'raw_games' }, () => {
-                mutate();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [mutate]);
 
     if (error || data?.error) {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));

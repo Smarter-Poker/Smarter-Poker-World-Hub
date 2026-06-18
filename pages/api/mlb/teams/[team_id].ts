@@ -50,9 +50,9 @@ export default async function handler(req: Request) {
         const teamAbbr = teamData?.abbr || dimData?.abbr || id;
 
         // Fetch recent/upcoming games for team
-        // Using fct_games
+        // Using raw_games
         const { data: gamesData } = await mlbDb
-            .from('fct_games')
+            .from('raw_games')
             .select('*')
             .or(`home_team.eq.${teamName},away_team.eq.${teamName},home_team_name.eq.${teamName},away_team_name.eq.${teamName},home_team.eq.${teamAbbr},away_team.eq.${teamAbbr}`)
             .order('start_time', { ascending: false })

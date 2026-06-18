@@ -13,23 +13,41 @@ export default async function handler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch from fct_games table
-        // Sorting by start time or status to show live/upcoming games first
+        // Fetch from fact_games table, joining dim_teams to get abbreviations
+        // Sorting by first_pitch_utc to show live/upcoming games first
         const { data, error } = await mlbDb
-            .from('fct_games')
-            .select('*')
-            .order('start_time', { ascending: true });
+            .from('fact_games')
+            .select(`
+                game_pk,
+                official_date,
+                first_pitch_utc,
+                status,
+                away_score,
+                home_score,
+                away_team:dim_teams!fact_games_away_team_id_fkey(abbr),
+                home_team:dim_teams!fact_games_home_team_id_fkey(abbr)
+            `)
+            .order('first_pitch_utc', { ascending: true });
 
         if (error) {
-            console.warn('[API/MLB/Tracker] Error fetching games (table may be missing or empty):', error.message);
+            console.warn('[API/MLB/Tracker] Error fetching games from fact_games:', error.message);
             return new Response(JSON.stringify({ games: [] }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' }
             });
         }
 
+        const mappedGames = (data || []).map(game => ({
+            ...game,
+            start_time: game.first_pitch_utc,
+            away_team: game.away_team?.abbr || 'TBD',
+            home_team: game.home_team?.abbr || 'TBD',
+            inning: 'Top 1',
+            inning_state: 'Top'
+        }));
+
         return new Response(JSON.stringify({ 
-            games: data || [] 
+            games: mappedGames 
         }), {
             status: 200,
             headers: {

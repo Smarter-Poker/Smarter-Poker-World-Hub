@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { createClient } from '@supabase/supabase-js';
-import { ArrowLeft, Target, SearchX, CalendarX, Loader2, Activity, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { ArrowLeft, Target, SearchX, CalendarX, Loader2, Activity } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
