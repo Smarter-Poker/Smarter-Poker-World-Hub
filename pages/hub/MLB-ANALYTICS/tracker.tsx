@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
+import { createClient } from '@supabase/supabase-js';
 import { ArrowLeft, Activity, SearchX, CalendarX, Loader2, Radio } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -86,10 +87,28 @@ export default function TrackerPage() {
         setTodayStr(formatter.format(new Date()));
     }, []);
 
-    // Fetch every 15 seconds for live updates
-    const { data, error, isLoading } = useSWR('/api/mlb/tracker', fetcher, {
-        refreshInterval: 15000,
+    // Fetch every 60 seconds as a fallback, rely on WebSockets for real-time
+    const { data, error, isLoading, mutate } = useSWR('/api/mlb/tracker', fetcher, {
+        refreshInterval: 60000,
     });
+
+    useEffect(() => {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+        
+        if (!supabaseUrl || !supabaseAnonKey) return;
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const channel = supabase.channel('realtime:fct_games')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'fct_games' }, () => {
+                mutate();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [mutate]);
 
     if (error || data?.error) {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
@@ -202,7 +221,7 @@ export default function TrackerPage() {
                )}
 
                <div className="mt-8 mb-4 p-4 bg-[#1a2332] border border-[#3d4f5f] rounded-sm text-[10px] font-bold tracking-wide text-slate-400 text-center leading-relaxed shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-                   <strong className="text-[#22C55E]">Live Updates Every 15 Seconds.</strong> 
+                   <strong className="text-[#22C55E]">Real-Time WebSockets Active.</strong> 
                    <br/>
                    <span className="uppercase text-slate-300">Data Feed</span> provided by MLB Stats API via Supabase `fct_games`.
                </div>
