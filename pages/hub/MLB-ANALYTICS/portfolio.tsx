@@ -97,7 +97,7 @@ export default function PortfolioPage() {
         totalBets = 0, wins = 0, losses = 0, pushes = 0, totalPnl = 0, currentBankroll = 1000, roi = 0, peakBankroll = 1000, maxDrawdown = 0, winRate = 0, weeklyCurve = [], recentBets = []
     } = data || {};
 
-    const hasError = !!error;
+    const hasError = !!error || !!data?.error;
 
     return (
         <div className="bg-[#0a0a15] min-h-screen font-inter pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">

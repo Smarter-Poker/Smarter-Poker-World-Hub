@@ -144,7 +144,7 @@ export default function ValidationPage() {
                            Fetching validation statistics...
                        </div>
                    </div>
-               ) : error ? (
+               ) : (error || data?.error) ? (
                    <div className="flex flex-col items-center justify-center py-20 bg-[#1a1010] border border-[#ef4444]/50 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                        <div className="text-[13px] font-extrabold text-[#ef4444] tracking-[1px] mb-1">ERROR</div>
                        <div className="text-xs text-slate-400 max-w-[250px] text-center">
