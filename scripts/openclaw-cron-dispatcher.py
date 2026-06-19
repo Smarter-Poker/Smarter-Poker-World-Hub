@@ -221,7 +221,7 @@ ALL_CRONS = [
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
     # ── MLB Analytics Engine (SCRIPT_JOBS) ────────────────────────────────────
     ('/api/cron/mlb-analytics-daily',       dict(hour=8, minute=0)),   # Daily 8am UTC (4am ET) — Full MLB data refresh & predict
-    ('/api/cron/mlb-analytics-intraday',    dict(hour='21-23,0-3', minute='0,15,30,45')), # Every 15 mins intraday (5pm - 11:59pm ET)
+    ('/api/cron/mlb-analytics-intraday',    dict(hour='15-23,0-3', minute='0,15,30,45')), # Every 15 mins intraday (10am CDT - 10:59pm CDT)
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
