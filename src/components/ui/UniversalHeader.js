@@ -50,6 +50,16 @@ const C = {
     textSec: 'rgba(255,255,255,0.6)'
 };
 
+/**
+ * @param {Object} props
+ * @param {number} [props.pageDepth=1]
+ * @param {boolean} [props.showSearch=false]
+ * @param {Function} [props.onSearchClick]
+ * @param {Function} [props.onMenuClick]
+ * @param {Function} [props.onSettingsClick]
+ * @param {Function} [props.onBackClick]
+ * @param {boolean} [props.hideLeftIcon=false]
+ */
 export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
