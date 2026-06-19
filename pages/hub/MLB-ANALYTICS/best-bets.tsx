@@ -370,8 +370,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
 // ──────────────────────────────────────────────────────────────────────────────
 const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () => void }) => {
     const { color: tierColor, bg: tierBg, border: tierBorder } = getTierColors(bet.bet_tier || '');
-    const { isTeamBet, isPitcherProp } = detectBetCategory(bet);
-    const [imgError, setImgError] = useState(false);
+    const { isPitcherProp } = detectBetCategory(bet);
 
     let lineStr = '';
     if (bet.line !== null && bet.line !== undefined) {

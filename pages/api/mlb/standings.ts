@@ -42,7 +42,7 @@ async function edgeHandler(req: Request) {
 
         // Merge agg stats into standings (view may already have era/avg if migration ran)
         const teams = (standingsRes.data || []).map((t: any) => {
-            const agg = aggMap.get(t.team_id) || {};
+            const agg = aggMap.get(t.team_id) as { era?: any; avg?: any; fip?: any } | undefined || {};
             return {
                 ...t,
                 era: t.era ?? agg.era ?? null,
