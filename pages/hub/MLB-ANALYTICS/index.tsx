@@ -103,10 +103,14 @@ export default function MlbSlateDashboard() {
                                 <p className="text-[#00D4FF] font-bold uppercase tracking-wider text-[13px]">{formattedDate}</p>
                             </div>
                             
-                            <div className="flex gap-3">
-                                <Link href="/hub/MLB-ANALYTICS/best-bets" className="flex items-center gap-2 bg-gradient-to-b from-[#1a2332] to-[#0d1117] hover:from-[#00D4FF]/20 hover:to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] px-4 py-2 rounded-sm font-bold transition-all text-sm uppercase tracking-wider shadow-[0_0_10px_rgba(0,212,255,0.3)]">
+                            <div className="flex flex-wrap gap-3">
+                                <Link href="/hub/MLB-ANALYTICS/best-bets" className="flex items-center gap-2 bg-gradient-to-b from-[#1a2332] to-[#0d1117] hover:from-[#00D4FF]/20 hover:to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] px-4 py-2 rounded-sm font-bold transition-all text-sm uppercase tracking-wider shadow-[0_0_10px_rgba(0,212,255,0.3)] whitespace-nowrap">
                                     <TrendingUp className="w-4 h-4" />
                                     View Best Bets
+                                </Link>
+                                <Link href="/hub/MLB-ANALYTICS/hr-tracker" className="flex items-center gap-2 bg-gradient-to-b from-[#1a2332] to-[#0d1117] hover:from-[#FF4444]/20 hover:to-[#0d1117] text-[#FF4444] border border-[#FF4444] px-4 py-2 rounded-sm font-bold transition-all text-sm uppercase tracking-wider shadow-[0_0_10px_rgba(255,68,68,0.3)] whitespace-nowrap">
+                                    <Activity className="w-4 h-4" />
+                                    View HR Tracker
                                 </Link>
                             </div>
                         </div>
