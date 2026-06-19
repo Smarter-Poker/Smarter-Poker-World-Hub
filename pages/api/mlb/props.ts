@@ -42,7 +42,7 @@ async function edgeHandler(req: Request) {
         // ── 1. Fetch Props First ──────────────────────────────────────────────
         const propsRes = await mlbDb
             .from('pred_props')
-            .select('game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, market_novig_over, edge_pts, best_price, best_book, rec')
+            .select('game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_lines, edge_pts, best_price, best_book, rec')
             .gte('as_of_ts', `${slateDate}T00:00:00`)
             .lte('as_of_ts', `${slateDate}T23:59:59`)
             .order('edge_pts', { ascending: false, nullsFirst: false });
@@ -255,6 +255,8 @@ async function edgeHandler(req: Request) {
                 model_proj:   p.proj_mean,
                 over_odds:    isOver ? odds : null,
                 under_odds:   !isOver ? odds : null,
+                market_novig_over: p.market_novig_over,
+                best_lines:   p.best_lines,
                 // Full stats payload
                 stats: {
                     // Hitter

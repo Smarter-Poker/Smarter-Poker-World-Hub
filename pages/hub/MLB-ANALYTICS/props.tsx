@@ -11,7 +11,16 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 import { playerHeadshot, teamLogo } from '../../../src/lib/mlb_data';
+import BetScoreBadge from '../../../src/components/mlb/BetScoreBadge';
 
+function probToAmericanOdds(prob: number | null | undefined): string {
+    if (!prob || prob <= 0 || prob >= 1) return '—';
+    if (prob > 0.5) {
+        return Math.round(-100 * (prob / (1 - prob))).toString();
+    } else {
+        return '+' + Math.round(100 * ((1 - prob) / prob)).toString();
+    }
+}
 const fetcher = async (url: string) => {
     try {
         const res = await fetch(url);
@@ -137,8 +146,8 @@ function PlayerAvatar({ playerId, teamId, size = 64 }: { playerId: number; teamI
 function StatPill({ label, value, color = '#8a9ba8' }: { label: string; value: string; color?: string }) {
     return (
         <div className="flex flex-col items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-1 min-w-[44px]">
-            <span className="text-[9px] font-black text-[#4a5a6a] tracking-widest uppercase leading-none mb-0.5">{label}</span>
-            <span className="text-[13px] font-black  leading-none" style={{ color }}>{value}</span>
+            <span className="text-[10px] font-black text-[#4a5a6a] tracking-widest uppercase leading-none mb-0.5">{label}</span>
+            <span className="text-[17px] font-black leading-none" style={{ color }}>{value}</span>
         </div>
     );
 }
@@ -222,24 +231,8 @@ const PropCard = ({ prop, idx }: { prop: any; idx: number }) => {
                     </div>
 
                     {/* Edge badge */}
-                    <div
-                        className="flex flex-col items-center rounded-lg px-3 py-2 flex-shrink-0 border"
-                        style={{
-                            background: tier.bg,
-                            borderColor: tier.border,
-                            boxShadow: `0 0 12px ${tier.glow}`,
-                            minWidth: 60,
-                        }}
-                    >
-                        <span
-                            className="text-[26px] font-black leading-tight"
-                            style={{ color: tier.color, textShadow: `0 0 8px ${tier.glow}`, fontFamily: "'Rajdhani', sans-serif" }}
-                        >
-                            {edge.toFixed(1)}
-                        </span>
-                        <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: tier.color }}>
-                            EDGE PTS
-                        </span>
+                    <div className="flex-shrink-0 ml-auto">
+                        <BetScoreBadge score={Number((ev || 0).toFixed(1)) + 50} isOver={isOver} />
                     </div>
                 </div>
 
@@ -253,12 +246,28 @@ const PropCard = ({ prop, idx }: { prop: any; idx: number }) => {
                         <StatPill label="EV%" value={`${ev > 0 ? '+' : ''}${ev.toFixed(1)}`} color={ev > 0 ? '#22C55E' : '#8a9ba8'} />
                     )}
                     <StatPill label="WIN%" value={formatProb(prop.implied_prob)} color="#e2e8f0" />
-                    {prop.best_book && (
-                        <div className="flex items-end ml-auto">
-                            <span className="text-[10px] font-black text-[#3d4f5f] tracking-widest uppercase ">
-                                {prop.best_book.toUpperCase()}
-                            </span>
-                        </div>
+                </div>
+
+                {/* ── Odds Market Row ── */}
+                <div className="flex items-center gap-2 mb-3 bg-[#0a0a15] border border-[#2a3a4a] rounded px-3 py-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                    <span className="text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase whitespace-nowrap shrink-0">AVG LINE</span>
+                    <span className="text-[13px] font-black text-[#FFD700] shrink-0 mr-2">
+                        {probToAmericanOdds(prop.market_novig_over)}
+                    </span>
+                    
+                    {Array.isArray(prop.best_lines) && prop.best_lines.length > 0 && (
+                        <>
+                            <div className="w-px h-4 bg-[#2a3a4a] mx-1 shrink-0" />
+                            <span className="text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase whitespace-nowrap shrink-0">BEST:</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                                {prop.best_lines.slice(0, 3).map((bk: any, i: number) => (
+                                    <div key={i} className="flex items-center gap-1">
+                                        <span className="text-[11px] font-bold text-[#8a9ba8]">{bk.sportsbook}</span>
+                                        <span className="text-[11px] font-black text-white">{formatOdds(bk.price)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
 
