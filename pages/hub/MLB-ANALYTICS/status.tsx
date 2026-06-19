@@ -101,7 +101,7 @@ export default function StatusPage() {
                 <div className="text-right flex flex-col items-end">
                     <div className="text-[#00D4FF] text-[11px] font-bold tracking-widest uppercase">SYSTEM</div>
                     <div className="inline-flex items-center gap-1.5 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]'}`}></div>
+                        <div className={`w-2 h-2 rounded-full ${isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#FF4444] shadow-[0_0_10px_#FF4444]'}`}></div>
                         <div className={`text-xs font-bold tracking-widest ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(0,212,255,0.5)' }}>
                             {isSystemFresh ? 'FRESH' : 'STALE'}
                         </div>
@@ -184,8 +184,8 @@ export default function StatusPage() {
                                     const run = data?.latestRuns?.[stage];
                                     const isError = run?.status === 'error';
                                     const glowColor = isError ? 'text-[#00D4FF]' : 'text-[#00D4FF]';
-                                    const borderGlowColor = isError ? 'border-[#00D4FF]' : 'border-[#00D4FF]';
-                                    const bgShadow = isError ? 'shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
+                                    const borderGlowColor = isError ? 'border-[#FF4444]' : 'border-[#00D4FF]';
+                                    const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,68,68,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
                                     
                                     return (
                                         <div key={stage} className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] px-5 py-4 flex justify-between items-center bg-black/30">
