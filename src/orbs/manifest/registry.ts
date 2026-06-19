@@ -28,7 +28,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     { id: 'my-clubs', color: '#00bfff', label: 'My Clubs', gradient: ['#4dd0e1', '#00838f'], imageUrl: '/cards/my-clubs.jpg', description: 'YOUR CLUBS & VENUES — QUICK ACCESS TO WAITLISTS, LIVE GAMES & MORE' },
     { id: 'video-library', color: '#ff4444', label: 'Video Library', gradient: ['#ff6666', '#cc3333'], imageUrl: '/cards/video-library.jpg', description: 'ENDLESS CONTENT — THOUSANDS OF HOURS OF CASH AND TOURNAMENT PLAY' },
     { id: 'poker-tools', color: '#1877F2', label: 'Odds Calculator', gradient: ['#4299E1', '#1A56DB'], imageUrl: '/cards/poker-tools.jpg', description: 'CALCULATE YOUR EDGE — INSTANT EQUITY FOR HOLD\'EM, OMAHA, PLO5, PLO6' },
-    { id: 'MLB-ANALYTICS', color: '#003A70', label: 'MLB Analytics', gradient: ['#003A70', '#CE1141'], imageUrl: '/cards/mlb-analytics-v6.jpg', description: 'MLB SPORTS BETTING ANALYTICS AND PREDICTIONS' },
+    { id: 'MLB-ANALYTICS', color: '#003A70', label: 'MLB Analytics', gradient: ['#003A70', '#CE1141'], imageUrl: '/cards/mlb-analytics-v7.jpg', description: 'MLB SPORTS BETTING ANALYTICS AND PREDICTIONS' },
 ];
 
 // Club Commander — only shown to users with a Commander account
