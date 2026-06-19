@@ -38,16 +38,17 @@ const MLB_TEAM_IDS: Record<string, number> = {
 
 // Detect if a bet is a player prop (not a team bet)
 const detectBetCategory = (bet: any) => {
-    const type = (bet.bet_type || '').toLowerCase();
-    const isPitcherProp = type.includes('pitcher') || type.includes('strikeout') || 
-                           type.includes('outs_recorded') || type.includes('ip_') || type.includes('walks') || type.includes('earned_runs');
+    const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
+    const isPitcherProp = typeStr.includes('pitcher') || typeStr.includes('strikeout') || 
+                          typeStr.includes('outs_recorded') || typeStr.includes('ip_') || typeStr.includes('walks') || typeStr.includes('earned_runs') || typeStr.includes('pitching_outs');
                            
-    const isPlayerProp = isPitcherProp || type.includes('prop') || type.includes('hits') || 
-                          type.includes('bases') || type.includes('runs_batted_in') || type.includes('rbis') || 
-                          type.includes('home_run') || type.includes('player');
+    const isPlayerProp = bet.bet_type === 'prop' || isPitcherProp || typeStr.includes('prop') || typeStr.includes('hits') || 
+                         typeStr.includes('bases') || typeStr.includes('runs_batted_in') || typeStr.includes('rbis') || 
+                         typeStr.includes('home_run') || typeStr.includes('hrr') || typeStr.includes('player');
                           
-    const isTeamBet = !isPlayerProp && (type.includes('moneyline') || type === 'ml' || type.includes('total') || 
-                      type.includes('run_line') || type.includes('runline') || type.includes('spread'));
+    const isTeamBet = bet.bet_type === 'line' || bet.bet_type === 'game' || (!isPlayerProp && (
+                      typeStr.includes('moneyline') || typeStr.includes('h2h') || typeStr.includes('ml') || typeStr.includes('total') || 
+                      typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread')));
                       
     return { isTeamBet, isPlayerProp, isPitcherProp };
 };
