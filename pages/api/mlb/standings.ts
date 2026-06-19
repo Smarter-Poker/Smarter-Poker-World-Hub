@@ -15,14 +15,7 @@ async function edgeHandler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
 
-        const [standingsRes, aggRes] = await Promise.all([
-            mlbDb.from('v_mlb_standings').select('*'),
-            mlbDb
-                .from('agg_team')
-                .select('team_id, era, avg, fip')
-                .eq('window_kind', 'season')
-                .order('as_of', { ascending: false }),
-        ]);
+        const standingsRes = await mlbDb.from('v_mlb_standings').select('*');
 
         if (standingsRes.error) {
             console.warn('[API/MLB/Standings] Error fetching standings:', standingsRes.error.message);
@@ -32,23 +25,7 @@ async function edgeHandler(req: Request) {
             });
         }
 
-        // Build a map of latest agg stats per team (ordered desc so first = latest)
-        const aggMap = new Map<number, { era: number | null; avg: number | null; fip: number | null }>();
-        (aggRes.data || []).forEach((row: any) => {
-            if (!aggMap.has(row.team_id)) {
-                aggMap.set(row.team_id, { era: row.era, avg: row.avg, fip: row.fip });
-            }
-        });
-
-        // Merge agg stats into standings (view may already have era/avg if migration ran)
-        const teams = (standingsRes.data || []).map((t: any) => {
-            const agg = aggMap.get(t.team_id) as { era?: any; avg?: any; fip?: any } | undefined || {};
-            return {
-                ...t,
-                era: t.era ?? agg.era ?? null,
-                team_avg: t.team_avg ?? agg.avg ?? null,
-            };
-        });
+        const teams = standingsRes.data || [];
 
         return new Response(JSON.stringify({ teams }), {
             status: 200,

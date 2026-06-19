@@ -69,7 +69,7 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
     return (
       <div className="fixed bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-[#0d1117] border border-[#3d4f5f] rounded-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] z-50 pointer-events-none">
         <div className="w-2 h-2 rounded-full bg-[#3d4f5f]" />
-        <span className="text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase font-mono">System Sync</span>
+        <span className="text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase ">System Sync</span>
       </div>
     );
   }
@@ -80,7 +80,7 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
       className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] rounded-sm shadow-[0_0_15px_rgba(0,212,255,0.4)] z-50 cursor-pointer hover:bg-[#00D4FF] group transition-all animate-pulse"
     >
       <div className="w-2.5 h-2.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#00D4FF] group-hover:bg-[#0d1117]" />
-      <span className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase font-mono group-hover:text-[#0d1117]">
+      <span className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase  group-hover:text-[#0d1117]">
         Sync New Data
       </span>
     </button>
@@ -246,7 +246,7 @@ export default function MlbSlatePage() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center mt-20">
             <div className="w-8 h-8 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin mb-4" />
-            <span className="text-[#5a6a7a] font-mono font-black tracking-widest text-[10px] uppercase">
+            <span className="text-[#5a6a7a]  font-black tracking-widest text-[10px] uppercase">
               Initializing Slate Data...
             </span>
           </div>
@@ -293,7 +293,7 @@ export default function MlbSlatePage() {
                       {/* SGP badge */}
                       <span className="rounded-sm bg-[#1a2030] border border-[#3d4f5f] px-1.5 py-[2px] text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest">SGP</span>
                       {/* Game ID */}
-                      <span className="text-[9px] text-[#3d4f5f] font-mono font-black">ID:{g.gamePk}</span>
+                      <span className="text-[9px] text-[#3d4f5f]  font-black">ID:{g.gamePk}</span>
                       {/* Lineup state */}
                       {g.lineupState === 'confirmed' ? (
                         <span className="rounded-sm bg-[#001a0a] border border-[#00C853]/50 px-1.5 py-[2px] text-[9px] font-black text-[#00C853] uppercase tracking-widest">Confirmed</span>
@@ -348,7 +348,7 @@ export default function MlbSlatePage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[12px] text-[#8a9ba8] mt-1 font-bold font-mono uppercase truncate">
+                        <span className="text-[12px] text-[#8a9ba8] mt-1 font-bold  uppercase truncate">
                           P: {g.awayStarter
                             ? `${g.awayStarter.name}${g.awayStarter.wins != null ? ` (${g.awayStarter.wins}-${g.awayStarter.losses}, ${g.awayStarter.era?.toFixed(2)})` : ''}`
                             : 'TBA'}
@@ -376,7 +376,7 @@ export default function MlbSlatePage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[12px] text-[#8a9ba8] mt-1 font-bold font-mono uppercase truncate">
+                        <span className="text-[12px] text-[#8a9ba8] mt-1 font-bold  uppercase truncate">
                           P: {g.homeStarter
                             ? `${g.homeStarter.name}${g.homeStarter.wins != null ? ` (${g.homeStarter.wins}-${g.homeStarter.losses}, ${g.homeStarter.era?.toFixed(2)})` : ''}`
                             : 'TBA'}
@@ -393,7 +393,7 @@ export default function MlbSlatePage() {
                         <span className="text-[12px] text-[#8a9ba8] font-black tracking-widest uppercase mb-0.5">
                           {g.avgAwaySpreadLine != null ? (g.avgAwaySpreadLine > 0 ? `+${g.avgAwaySpreadLine}` : g.avgAwaySpreadLine) : '—'}
                         </span>
-                        <span className="text-[13px] font-black text-white leading-none font-mono">
+                        <span className="text-[13px] font-black text-white leading-none ">
                           {g.avgAwaySpreadOdds != null ? (g.avgAwaySpreadOdds > 0 ? `+${g.avgAwaySpreadOdds}` : g.avgAwaySpreadOdds) : ''}
                         </span>
                       </div>
@@ -401,7 +401,7 @@ export default function MlbSlatePage() {
                         <span className="text-[12px] text-[#8a9ba8] font-black tracking-widest uppercase mb-0.5">
                           {g.avgHomeSpreadLine != null ? (g.avgHomeSpreadLine > 0 ? `+${g.avgHomeSpreadLine}` : g.avgHomeSpreadLine) : '—'}
                         </span>
-                        <span className="text-[13px] font-black text-white leading-none font-mono">
+                        <span className="text-[13px] font-black text-white leading-none ">
                           {g.avgHomeSpreadOdds != null ? (g.avgHomeSpreadOdds > 0 ? `+${g.avgHomeSpreadOdds}` : g.avgHomeSpreadOdds) : ''}
                         </span>
                       </div>
@@ -410,12 +410,12 @@ export default function MlbSlatePage() {
                     {/* Moneyline */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[14px] font-black text-[#00D4FF] leading-none font-mono drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                        <span className="text-[14px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
                           {g.avgAwayLine != null ? (g.avgAwayLine > 0 ? `+${g.avgAwayLine}` : g.avgAwayLine) : '—'}
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[14px] font-black text-[#00D4FF] leading-none font-mono drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                        <span className="text-[14px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
                           {g.avgHomeLine != null ? (g.avgHomeLine > 0 ? `+${g.avgHomeLine}` : g.avgHomeLine) : '—'}
                         </span>
                       </div>
@@ -427,7 +427,7 @@ export default function MlbSlatePage() {
                         <span className="text-[12px] text-[#8a9ba8] font-black tracking-widest uppercase mb-0.5">
                           {g.avgTotalLine != null ? `O ${g.avgTotalLine}` : '—'}
                         </span>
-                        <span className="text-[13px] font-black text-white leading-none font-mono">
+                        <span className="text-[13px] font-black text-white leading-none ">
                           {g.avgOverOdds != null ? (g.avgOverOdds > 0 ? `+${g.avgOverOdds}` : g.avgOverOdds) : ''}
                         </span>
                       </div>
@@ -435,7 +435,7 @@ export default function MlbSlatePage() {
                         <span className="text-[12px] text-[#8a9ba8] font-black tracking-widest uppercase mb-0.5">
                           {g.avgTotalLine != null ? `U ${g.avgTotalLine}` : '—'}
                         </span>
-                        <span className="text-[13px] font-black text-white leading-none font-mono">
+                        <span className="text-[13px] font-black text-white leading-none ">
                           {g.avgUnderOdds != null ? (g.avgUnderOdds > 0 ? `+${g.avgUnderOdds}` : g.avgUnderOdds) : ''}
                         </span>
                       </div>
@@ -456,7 +456,7 @@ export default function MlbSlatePage() {
                             className="flex justify-between items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] px-3 py-2 group-hover:border-[#00D4FF]/40 transition-colors relative overflow-hidden"
                           >
                             <div className="absolute top-0 left-0 w-full h-[1px] bg-white/5 opacity-50" />
-                            <span className="text-[11px] text-[#8a9ba8] font-black uppercase tracking-wider font-mono z-10">
+                            <span className="text-[11px] text-[#8a9ba8] font-black uppercase tracking-wider  z-10">
                               {p.name} <span className="text-[#3d4f5f] mx-1">|</span>{' '}
                               <span className="text-[#00D4FF] drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
                                 {p.prop?.replace(/_/g, ' ')}
@@ -483,7 +483,7 @@ export default function MlbSlatePage() {
 
         {/* ── Footer ─────────────────────────────────────────────── */}
         <div className="mt-12 px-4 py-4 text-center border-t-2 border-[#2a3a4a] bg-[#0d1117] shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)]">
-          <p className="text-[10px] font-black tracking-widest uppercase text-[#5a6a7a] font-mono">
+          <p className="text-[10px] font-black tracking-widest uppercase text-[#5a6a7a] ">
             {'// SYSTEM ALERTS: ANALYSIS ONLY. PROBABILITIES ARE ALGORITHMIC ESTIMATES.'}
           </p>
         </div>

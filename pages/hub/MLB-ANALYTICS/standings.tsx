@@ -42,7 +42,7 @@ export default function StandingsPage() {
                         <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-wider flex items-center gap-3" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             <span className="text-[#00D4FF] font-bold">|</span> LEAGUE STANDINGS
                         </h1>
-                        <p className="text-slate-400 mt-2 tracking-wide font-mono text-xs">
+                        <p className="text-slate-400 mt-2 tracking-wide  text-xs">
                             LIVE WIN/LOSS TRACKING AND DIVISIONAL RANKINGS
                         </p>
                     </div>
@@ -63,11 +63,11 @@ export default function StandingsPage() {
 
                     <div className="divide-y divide-slate-800/40">
                         {loading ? (
-                            <div className="p-12 text-center text-slate-500 font-mono text-xs animate-pulse">
+                            <div className="p-12 text-center text-slate-500  text-xs animate-pulse">
                                 INITIATING STANDINGS SYNC...
                             </div>
                         ) : standings.length === 0 ? (
-                            <div className="p-12 text-center text-slate-500 font-mono text-xs">
+                            <div className="p-12 text-center text-slate-500  text-xs">
                                 STANDINGS UNAVAILABLE
                             </div>
                         ) : (
@@ -79,10 +79,10 @@ export default function StandingsPage() {
                                         </div>
                                         <span className="font-bold text-slate-200">{team.name || 'Unknown'}</span>
                                     </div>
-                                    <div className="text-center font-mono text-sm text-[var(--neon-cyan)]">{team.w ?? 0}</div>
-                                    <div className="text-center font-mono text-sm text-slate-300">{team.l ?? 0}</div>
-                                    <div className="text-center font-mono text-sm text-slate-400 hidden md:block">{team.pct != null ? Number(team.pct).toFixed(3).replace(/^0+/, '') : '.000'}</div>
-                                    <div className="text-right font-mono text-sm text-slate-500">{team.gb ?? '-'}</div>
+                                    <div className="text-center  text-sm text-[var(--neon-cyan)]">{team.w ?? 0}</div>
+                                    <div className="text-center  text-sm text-slate-300">{team.l ?? 0}</div>
+                                    <div className="text-center  text-sm text-slate-400 hidden md:block">{team.pct != null ? Number(team.pct).toFixed(3).replace(/^0+/, '') : '.000'}</div>
+                                    <div className="text-right  text-sm text-slate-500">{team.gb ?? '-'}</div>
                                 </div>
                             ))
                         )}

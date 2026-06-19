@@ -255,9 +255,8 @@ export default function PlayersPage() {
         refreshInterval: 60000
     });
 
-    // Also fetch standings for team stats
     const { data: standingsData } = useSWR('/api/mlb/standings', fetcher, {
-        refreshInterval: 300000, // 5 min
+        refreshInterval: 3600000, // 1 hour (matches CDN cache)
     });
 
     const EMPTY_ARRAY: any[] = [];
@@ -519,9 +518,9 @@ export default function PlayersPage() {
                                 </div>
                             ))}
                         </div>
-                    ) : visiblePlayers.length > 0 ? (
+                    ) : (
                         <div className="space-y-3">
-                            {/* Back to team selector */}
+                            {/* Selected team header always shows when a team is selected */}
                             {selectedTeam && (
                                 <div className="flex items-center gap-3 mb-4">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -541,37 +540,42 @@ export default function PlayersPage() {
                                     </button>
                                 </div>
                             )}
-                            {visiblePlayers.map((player: PlayerProfile) => (
-                                <PlayerCard 
-                                    key={player.player_id} 
-                                    player={player} 
-                                    type={activeTab === 'Pitchers' ? 'pitchers' : 'hitters'} 
-                                />
-                            ))}
-                            
-                            {isCapped && (
-                                <div className="text-center py-6 pb-8 text-slate-500 font-extrabold text-[11px] tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                    Showing Top {DISPLAY_LIMIT} Results. Keep Typing To Refine Your Search.
-                                </div>
+
+                            {visiblePlayers.length > 0 ? (
+                                <>
+                                    {visiblePlayers.map((player: PlayerProfile) => (
+                                        <PlayerCard 
+                                            key={player.player_id} 
+                                            player={player} 
+                                            type={activeTab === 'Pitchers' ? 'pitchers' : 'hitters'} 
+                                        />
+                                    ))}
+                                    
+                                    {isCapped && (
+                                        <div className="text-center py-6 pb-8 text-slate-500 font-extrabold text-[11px] tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                            Showing Top {DISPLAY_LIMIT} Results. Keep Typing To Refine Your Search.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                !fetchError && (
+                                    <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center mt-4">
+                                        <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+                                            <Search size={28} className="text-[#3d4f5f]" />
+                                        </div>
+                                        <div className="text-slate-400 font-extrabold text-sm tracking-widest uppercase mb-4" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                            {searchQuery ? `NO PLAYERS FOUND MATCHING "${searchQuery}"` : "NO PLAYERS FOUND FOR THIS TEAM"}
+                                        </div>
+                                        <button 
+                                            onClick={() => { setSearchQuery(''); setSelectedTeam(null); }}
+                                            className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[12px] font-extrabold tracking-widest uppercase hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
+                                        >
+                                            CLEAR FILTERS
+                                        </button>
+                                    </div>
+                                )
                             )}
                         </div>
-                    ) : (
-                        !fetchError && (
-                            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center">
-                                <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
-                                    <Search size={28} className="text-[#3d4f5f]" />
-                                </div>
-                                <div className="text-slate-400 font-extrabold text-sm tracking-widest uppercase mb-4" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                    {searchQuery ? `NO PLAYERS FOUND MATCHING "${searchQuery}"` : "NO PLAYERS FOUND FOR THIS TEAM"}
-                                </div>
-                                <button 
-                                    onClick={() => { setSearchQuery(''); setSelectedTeam(null); }}
-                                    className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[12px] font-extrabold tracking-widest uppercase hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
-                                >
-                                    CLEAR FILTERS
-                                </button>
-                            </div>
-                        )
                     )}
                </div>
 

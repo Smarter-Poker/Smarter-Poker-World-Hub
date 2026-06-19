@@ -191,11 +191,11 @@ export default function StatusPage() {
                                         <div key={stage} className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] px-5 py-4 flex justify-between items-center bg-black/30">
                                             <div>
                                                 <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
-                                                <div className="text-[11px] text-slate-400 mt-1 tracking-wider font-mono">{run ? formatDate(run.run_at) : 'NO DATA FOUND'}</div>
+                                                <div className="text-[11px] text-slate-400 mt-1 tracking-wider ">{run ? formatDate(run.run_at) : 'NO DATA FOUND'}</div>
                                             </div>
                                             {run && (
                                                 <div className="flex gap-2 items-center">
-                                                    <div className="text-slate-400 text-[11px] font-bold tracking-wider font-mono">
+                                                    <div className="text-slate-400 text-[11px] font-bold tracking-wider ">
                                                         {timeAgo(run.run_at)}
                                                     </div>
                                                     <div className={`bg-black/50 ${glowColor} border ${borderGlowColor} px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${bgShadow}`}>
@@ -221,7 +221,7 @@ export default function StatusPage() {
                                     <div className="flex flex-col">
                                         {Object.entries(data.tables).map(([table, count]: any, idx, arr) => (
                                             <div key={table} className={`flex justify-between px-6 py-4 bg-black/20 ${idx !== arr.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
-                                                <span className="text-[13px] font-semibold text-slate-400 tracking-wider font-mono">{table}</span>
+                                                <span className="text-[13px] font-semibold text-slate-400 tracking-wider ">{table}</span>
                                                 <span className="text-[14px] font-bold text-[#00D4FF]">{count.toLocaleString()}</span>
                                             </div>
                                         ))}

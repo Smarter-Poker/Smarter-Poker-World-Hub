@@ -123,7 +123,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
 
                 {/* Header bar */}
                 <div className="sticky top-0 z-10 flex justify-between items-center px-4 py-3 border-b border-[#2a3a4a]" style={{ background: 'rgba(13,17,23,0.97)', backdropFilter: 'blur(10px)' }}>
-                    <div className="text-[10px] font-black text-[#5a6a7a] uppercase tracking-widest font-mono">Bet Details</div>
+                    <div className="text-[10px] font-black text-[#5a6a7a] uppercase tracking-widest ">Bet Details</div>
                     <button 
                         onClick={onClose}
                         className="p-2 rounded-sm border border-[#3d4f5f] text-slate-400 hover:text-white hover:border-[#00D4FF] transition-all active:scale-95"
@@ -175,23 +175,23 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                             </div>
                         )}
                         {bet.matchup && (
-                            <div className="text-[10px] font-black text-[#5a6a7a] mt-1.5 tracking-widest uppercase font-mono">{bet.matchup}</div>
+                            <div className="text-[10px] font-black text-[#5a6a7a] mt-1.5 tracking-widest uppercase ">{bet.matchup}</div>
                         )}
                     </div>
                 </div>
 
                 {/* Bet Info */}
                 <div className="px-4 py-3 border-b border-[#2a3a4a]">
-                    <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest font-mono">Bet Details</div>
+                    <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest ">Bet Details</div>
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
-                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Selection</div>
+                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Selection</div>
                             <div className="text-[14px] font-black text-white uppercase leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                 {bet.selection} {lineStr}
                             </div>
                         </div>
                         <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
-                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Market</div>
+                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Market</div>
                             <div className="text-[13px] font-black text-slate-300 uppercase leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                 {bet.market?.replace(/_/g, ' ') || bet.bet_type?.replace(/_/g, ' ') || '—'}
                             </div>
@@ -200,14 +200,14 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     {(bet.best_price || bet.best_book) && (
                         <div className="bg-[#0d1420] border-2 border-[#3d4f5f] rounded-sm p-3 flex justify-between items-center">
                             <div>
-                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Best Odds</div>
+                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Best Odds</div>
                                 <div className="text-[26px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                     {formatOdds(bet.best_price)}
                                 </div>
                             </div>
                             {bet.best_book && (
                                 <div className="text-right">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Book</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Book</div>
                                     <div className="text-[14px] font-black text-[#00D4FF] uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{bet.best_book}</div>
                                 </div>
                             )}
@@ -217,24 +217,24 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
 
                 {/* Key Metrics */}
                 <div className="px-4 py-3 border-b border-[#2a3a4a]">
-                    <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest font-mono">Key Metrics</div>
+                    <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest ">Key Metrics</div>
                     <div className="grid grid-cols-3 gap-2 mb-2">
                         <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Score</div>
+                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Score</div>
                             <div className="text-[24px] font-black" style={{ fontFamily: '"Rajdhani", sans-serif', color: tierColor }}>
                                 {bet.bet_score ?? '—'}
                             </div>
-                            <div className="text-[8px] text-[#3d4f5f] uppercase tracking-widest font-mono">/100</div>
+                            <div className="text-[8px] text-[#3d4f5f] uppercase tracking-widest ">/100</div>
                         </div>
                         <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Win%</div>
+                            <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Win%</div>
                             <div className="text-[20px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                 {formatWinPct(bet.win_confidence)}
                             </div>
                         </div>
                         {bet.ev_pct !== null && bet.ev_pct !== undefined && (
                             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">EV%</div>
+                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">EV%</div>
                                 <div className="text-[20px] font-black" style={{ fontFamily: '"Rajdhani", sans-serif', color: Number(bet.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B' }}>
                                     {Number(bet.ev_pct) > 0 ? '+' : ''}{Number(bet.ev_pct).toFixed(1)}%
                                 </div>
@@ -244,7 +244,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     <div className="grid grid-cols-3 gap-2">
                         {bet.edge !== null && bet.edge !== undefined && (
                             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Edge</div>
+                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Edge</div>
                                 <div className="text-[16px] font-black text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                     {Number(bet.edge) > 0 ? '+' : ''}{Number(bet.edge).toFixed(1)}pts
                                 </div>
@@ -252,7 +252,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                         )}
                         {bet.ev_kelly !== null && bet.ev_kelly !== undefined && (
                             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Stake</div>
+                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Stake</div>
                                 <div className="text-[16px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                     {Number(bet.ev_kelly).toFixed(1)}u
                                 </div>
@@ -260,7 +260,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                         )}
                         {bet.rank !== null && bet.rank !== undefined && (
                             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Rank</div>
+                                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Rank</div>
                                 <div className="text-[16px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                     #{bet.rank}
                                 </div>
@@ -271,14 +271,14 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                         <div className="mt-2 bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Market No-Vig</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Market No-Vig</div>
                                     <div className="text-[14px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                         {(Number(bet.market_novig_prob) * 100).toFixed(1)}%
                                     </div>
                                 </div>
                                 {bet.implied_prob_novig !== null && bet.implied_prob_novig !== undefined && (
                                     <div className="text-right">
-                                        <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Model Prob</div>
+                                        <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Model Prob</div>
                                         <div className="text-[14px] font-black text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                             {(Number(bet.implied_prob_novig) * 100).toFixed(1)}%
                                         </div>
@@ -300,7 +300,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     if (!factors || factors.length === 0) return null;
                     return (
                         <div className="px-4 py-3 border-b border-[#2a3a4a]">
-                            <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest font-mono">
+                            <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest ">
                                 {bet.score_verdict || 'Analysis'}
                             </div>
                             <div className="flex flex-col gap-1.5">
@@ -311,7 +311,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                                         {factor.dir === 'down' && <TrendingDown size={10} className="text-[#FF6B6B]" />}
                                         {factor.dir === 'info' && <Info size={10} className="text-slate-400" />}
                                     </div>
-                                    <div className="text-[11px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1 font-mono">
+                                    <div className="text-[11px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1 ">
                                         {factor.text}
                                     </div>
                                 </div>
@@ -324,31 +324,31 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 {/* Pitcher Profile */}
                 {isPitcherProp && (
                     <div className="px-4 py-3 border-b border-[#2a3a4a]">
-                        <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                        <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 ">
                             <Zap size={10} /> Pitcher Profile
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             {era !== null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">ERA</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">ERA</div>
                                     <div className="text-[18px] font-black text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{era}</div>
                                 </div>
                             )}
                             {wins !== null && losses !== null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">W–L</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">W–L</div>
                                     <div className="text-[18px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{wins}–{losses}</div>
                                 </div>
                             )}
                             {bet.pitcher_fip !== null && bet.pitcher_fip !== undefined && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">FIP</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">FIP</div>
                                     <div className="text-[18px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.pitcher_fip).toFixed(2)}</div>
                                 </div>
                             )}
                             {bet.pitcher_so !== null && bet.pitcher_so !== undefined && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">Season K</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Season K</div>
                                     <div className="text-[18px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{bet.pitcher_so}</div>
                                 </div>
                             )}
@@ -359,49 +359,49 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 {/* Hitter Profile */}
                 {isPlayerProp && !isPitcherProp && (
                     <div className="px-4 py-3 border-b border-[#2a3a4a]">
-                        <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                        <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 ">
                             <Activity size={10} /> Hitter Profile
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                             {bet.hitter_avg != null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">AVG</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">AVG</div>
                                     <div className="text-[18px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_avg).toFixed(3).replace(/^0/, '')}</div>
                                 </div>
                             )}
                             {bet.hitter_hr != null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">HR</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">HR</div>
                                     <div className="text-[18px] font-black text-[#FFD700]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{bet.hitter_hr}</div>
                                 </div>
                             )}
                             {bet.hitter_rbi != null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">RBI</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">RBI</div>
                                     <div className="text-[18px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{bet.hitter_rbi}</div>
                                 </div>
                             )}
                             {bet.hitter_obp != null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">OBP</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">OBP</div>
                                     <div className="text-[18px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_obp).toFixed(3).replace(/^0/, '')}</div>
                                 </div>
                             )}
                             {bet.hitter_slg != null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">SLG</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">SLG</div>
                                     <div className="text-[18px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_slg).toFixed(3).replace(/^0/, '')}</div>
                                 </div>
                             )}
                             {bet.hitter_woba != null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">wOBA</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">wOBA</div>
                                     <div className="text-[18px] font-black text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_woba).toFixed(3).replace(/^0/, '')}</div>
                                 </div>
                             )}
                             {bet.hitter_wrc_plus != null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">wRC+</div>
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">wRC+</div>
                                     <div className="text-[18px] font-black" style={{ fontFamily: '"Rajdhani", sans-serif', color: Number(bet.hitter_wrc_plus) >= 115 ? '#00D4FF' : '#8a9ba8' }}>{Math.round(Number(bet.hitter_wrc_plus))}</div>
                                 </div>
                             )}
@@ -411,7 +411,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
 
                 {/* Disclaimer */}
                 <div className="px-4 py-4 mt-auto">
-                    <div className="text-[9px] text-[#5a6a7a] text-center leading-relaxed font-black tracking-wide font-mono uppercase">
+                    <div className="text-[9px] text-[#5a6a7a] text-center leading-relaxed font-black tracking-wide  uppercase">
                         Analysis Only — Not Betting Advice.<br />
                         <span className="text-[#8a9ba8]">Bet Score ranks value (EV + confidence). Bet responsibly.</span>
                     </div>
@@ -487,7 +487,7 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
             <div className="w-[3px] self-stretch rounded-full flex-shrink-0 mt-0.5" style={{ background: tierColor, boxShadow: `0 0 5px ${tierColor}66` }} />
 
             {/* Rank */}
-            <div className="text-[10px] font-black text-[#3d4f5f] w-4 text-center flex-shrink-0 font-mono mt-1.5">{rank}</div>
+            <div className="text-[10px] font-black text-[#3d4f5f] w-4 text-center flex-shrink-0  mt-1.5">{rank}</div>
 
             {/* Player headshot or team logo */}
             <div className="flex-shrink-0 mt-0.5">
@@ -535,7 +535,7 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
                 {hasStats && (
                     <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
                         {allStats.map((s, i) => (
-                            <span key={i} className="text-[9px] font-black font-mono">
+                            <span key={i} className="text-[9px] font-black ">
                                 <span className="text-[#3d4f5f]">{s.label} </span>
                                 <span style={{ color: s.color || '#8a9ba8' }}>{s.value}</span>
                             </span>
@@ -545,14 +545,14 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
 
                 {/* Win% + EV + Book */}
                 <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-black text-[#5a6a7a] font-mono">{formatWinPct(bet.win_confidence)} win</span>
+                    <span className="text-[10px] font-black text-[#5a6a7a] ">{formatWinPct(bet.win_confidence)} win</span>
                     {bet.ev_pct !== null && bet.ev_pct !== undefined && (
-                        <span className="text-[10px] font-black font-mono" style={{ color: Number(bet.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B' }}>
+                        <span className="text-[10px] font-black " style={{ color: Number(bet.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B' }}>
                             {Number(bet.ev_pct) > 0 ? '+' : ''}{Number(bet.ev_pct).toFixed(1)}% EV
                         </span>
                     )}
                     {bet.best_book && (
-                        <span className="text-[9px] font-black text-[#3d4f5f] font-mono uppercase">{bet.best_book}</span>
+                        <span className="text-[9px] font-black text-[#3d4f5f]  uppercase">{bet.best_book}</span>
                     )}
                 </div>
             </div>
@@ -562,7 +562,7 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
                 <div className="text-[22px] font-black leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', color: tierColor }}>
                     {bet.bet_score}
                 </div>
-                <div className="text-[12px] font-black text-slate-300 font-mono leading-none">
+                <div className="text-[12px] font-black text-slate-300  leading-none">
                     {formatOdds(bet.best_price)}
                 </div>
                 <ChevronRight size={12} className="text-[#3d4f5f] group-hover:text-[#00D4FF] transition-colors" />
@@ -630,7 +630,7 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
                                 <img src={getTeamLogoUrl(awayTeamId) || ''} alt={awayTeamAbbr} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             </div>
                         )}
-                        <span className="text-[9px] font-black text-[#5a6a7a] font-mono">@</span>
+                        <span className="text-[9px] font-black text-[#5a6a7a] ">@</span>
                         {homeTeamId && (
                             <div className="w-7 h-7 bg-[#0a0a15] border border-[#2a3a4a] rounded-full flex items-center justify-center p-0.5">
                                 <img src={getTeamLogoUrl(homeTeamId) || ''} alt={homeTeamAbbr} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -642,7 +642,7 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
                         <div className="text-[12px] font-black text-white uppercase tracking-[0.12em] truncate" style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '11px' }}>
                             {matchup}
                         </div>
-                        <div className="text-[9px] font-black text-[#5a6a7a] font-mono tracking-widest">
+                        <div className="text-[9px] font-black text-[#5a6a7a]  tracking-widest">
                             {bets.length} BET{bets.length !== 1 ? 'S' : ''} · TOP SCORE: <span style={{ color: groupTierColor }}>{topScore}</span>
                         </div>
                     </div>
@@ -733,7 +733,7 @@ export default function BestBetsPage() {
                         <div className="absolute left-0 top-0 w-1 h-full bg-red-500" />
                         <Activity className="w-10 h-10 text-red-400 mx-auto mb-3" />
                         <h2 className="text-xl font-black text-white uppercase tracking-wider mb-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-red-400 font-black uppercase tracking-widest text-[10px] font-mono">Failed to load data. Please try again.</p>
+                        <p className="text-red-400 font-black uppercase tracking-widest text-[10px] ">Failed to load data. Please try again.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -792,20 +792,20 @@ export default function BestBetsPage() {
 
                 <div className="flex items-start justify-between gap-3">
                     <div>
-                        <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[9px] font-black no-underline tracking-widest uppercase hover:text-white transition-colors font-mono mb-1">
+                        <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[9px] font-black no-underline tracking-widest uppercase hover:text-white transition-colors  mb-1">
                             <ArrowLeft size={12} /> Dashboard
                         </Link>
                         <h1 className="m-0 text-[28px] font-black text-white uppercase tracking-[0.12em] leading-none drop-shadow-[0_0_6px_rgba(255,255,255,0.15)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             Best <span className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.6)]">Bets</span>
                         </h1>
-                        <p className="m-0 text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase font-mono mt-1">
+                        <p className="m-0 text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase  mt-1">
                             Ranked By Bet Score · {officialDate || todayStr || '—'}
                         </p>
                     </div>
                     <div className="text-right bg-[#0a0a15] px-2.5 py-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
-                        <div className="text-[#00D4FF] text-[10px] font-black tracking-widest uppercase font-mono drop-shadow-[0_0_4px_rgba(0,212,255,0.4)]">MLB Edge</div>
-                        <div className="text-[9px] font-black text-[#5a6a7a] mt-0.5 uppercase tracking-widest border-t border-[#2a3a4a] pt-1 font-mono">Score 0–100</div>
-                        <div className="text-[8px] font-black text-[#3d4f5f] uppercase tracking-widest font-mono">Value + Conf</div>
+                        <div className="text-[#00D4FF] text-[10px] font-black tracking-widest uppercase  drop-shadow-[0_0_4px_rgba(0,212,255,0.4)]">MLB Edge</div>
+                        <div className="text-[9px] font-black text-[#5a6a7a] mt-0.5 uppercase tracking-widest border-t border-[#2a3a4a] pt-1 ">Score 0–100</div>
+                        <div className="text-[8px] font-black text-[#3d4f5f] uppercase tracking-widest ">Value + Conf</div>
                     </div>
                 </div>
 
@@ -818,7 +818,7 @@ export default function BestBetsPage() {
                         { label: 'Top Lock', value: isLoading && !data ? null : `${(Number(stats.topLock) || 0).toFixed(0)}%`, color: '#8a9ba8' },
                     ].map(({ label, value, color }) => (
                         <div key={label} className="bg-[#0a0a15] border border-[#2a3a4a] rounded-sm py-2 px-1 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                            <div className="text-[8px] font-black text-[#5a6a7a] tracking-widest uppercase font-mono">{label}</div>
+                            <div className="text-[8px] font-black text-[#5a6a7a] tracking-widest uppercase ">{label}</div>
                             {value === null ? (
                                 <Loader2 className="w-4 h-4 animate-spin mx-auto mt-1 text-[#00D4FF]" />
                             ) : (
@@ -842,7 +842,7 @@ export default function BestBetsPage() {
                                 setFilter(f);
                                 if (navigator.vibrate) try { navigator.vibrate(12); } catch(e) {}
                             }}
-                            className={`px-3 py-1.5 rounded-sm border text-[9px] font-black tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase font-mono ${
+                            className={`px-3 py-1.5 rounded-sm border text-[9px] font-black tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase  ${
                                 filter === f
                                     ? 'bg-[#0d1420] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.25)]'
                                     : 'bg-[#0a0a15] text-[#5a6a7a] border-[#2a3a4a] hover:border-[#3d4f5f] hover:text-slate-300'
@@ -857,10 +857,10 @@ export default function BestBetsPage() {
                 {isStale && !isLoading && (
                     <div className="mx-3 mt-3 bg-[#1a1500] border-2 border-amber-500/40 rounded-sm p-3 shadow-[0_0_12px_rgba(245,158,11,0.08)] relative overflow-hidden">
                         <div className="absolute left-0 top-0 w-1 h-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
-                        <div className="pl-2 text-amber-500 text-[11px] font-black tracking-widest uppercase font-mono flex items-center gap-2">
+                        <div className="pl-2 text-amber-500 text-[11px] font-black tracking-widest uppercase  flex items-center gap-2">
                             <CalendarX size={13} /> Stale Slate — Not Actionable
                         </div>
-                        <div className="pl-2 text-amber-600/70 text-[10px] font-black uppercase tracking-wider mt-0.5 font-mono">
+                        <div className="pl-2 text-amber-600/70 text-[10px] font-black uppercase tracking-wider mt-0.5 ">
                             Picks from {officialDate || 'previous date'}, not today ({todayStr}).
                         </div>
                     </div>
@@ -871,17 +871,17 @@ export default function BestBetsPage() {
                     {isLoading && !data ? (
                         <div className="text-center py-16 mx-3 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
                             <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-3" />
-                            <div className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase animate-pulse font-mono">Scanning Database...</div>
+                            <div className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase animate-pulse ">Scanning Database...</div>
                         </div>
                     ) : gameGroups.length === 0 ? (
                         <div className="text-center py-14 px-5 mx-3 bg-[#0d1117] border-2 border-dashed border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
                             <div className="mb-3 text-[#3d4f5f] flex justify-center">
                                 {filter === 'ALL' ? <CalendarX size={40} /> : <SearchX size={40} />}
                             </div>
-                            <div className="text-[15px] font-black text-white mb-1.5 uppercase tracking-wider font-mono">
+                            <div className="text-[15px] font-black text-white mb-1.5 uppercase tracking-wider ">
                                 {filter === 'ALL' ? 'No Qualifying Bets Today.' : 'No Bets For This Filter.'}
                             </div>
-                            <div className="text-[10px] font-black tracking-widest text-[#5a6a7a] uppercase font-mono">
+                            <div className="text-[10px] font-black tracking-widest text-[#5a6a7a] uppercase ">
                                 {filter === 'ALL' ? 'Model is respecting the market.' : 'Try a different bet type.'}
                             </div>
                         </div>
@@ -900,7 +900,7 @@ export default function BestBetsPage() {
                 {/* Footer */}
                 {gameGroups.length > 0 && (
                     <div className="mx-3 mb-4 px-3 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-center">
-                        <div className="text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase font-mono leading-relaxed">
+                        <div className="text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase  leading-relaxed">
                             <span className="text-[#00D4FF]">Analysis Only</span> — Not Betting Advice.{' '}
                             Score (0–100) ranks EV + Confidence. EV% = Expected Return Per $1. Bet Responsibly.
                         </div>

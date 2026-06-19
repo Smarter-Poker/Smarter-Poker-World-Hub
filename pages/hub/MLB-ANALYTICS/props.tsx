@@ -138,7 +138,7 @@ function StatPill({ label, value, color = '#8a9ba8' }: { label: string; value: s
     return (
         <div className="flex flex-col items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-1 min-w-[44px]">
             <span className="text-[9px] font-black text-[#4a5a6a] tracking-widest uppercase leading-none mb-0.5">{label}</span>
-            <span className="text-[13px] font-black font-mono leading-none" style={{ color }}>{value}</span>
+            <span className="text-[13px] font-black  leading-none" style={{ color }}>{value}</span>
         </div>
     );
 }
@@ -201,19 +201,19 @@ const PropCard = ({ prop, idx }: { prop: any; idx: number }) => {
                                 {formatProp(prop.prop_type || prop.prop)}
                             </span>
                             {prop.line != null && (
-                                <span className="text-[13px] font-black text-[#8a9ba8] font-mono">
+                                <span className="text-[13px] font-black text-[#8a9ba8] ">
                                     {isOver ? 'O' : 'U'} {prop.line}
                                 </span>
                             )}
                             {/* Rank badge */}
-                            <span className="text-[10px] font-black text-[#3d4f5f] font-mono ml-auto">
+                            <span className="text-[10px] font-black text-[#3d4f5f]  ml-auto">
                                 #{idx + 1}
                             </span>
                         </div>
 
                         {/* Pitcher record inline */}
                         {isPitcher && (stats.w != null || stats.l != null || stats.era != null) && (
-                            <div className="mt-1 text-[11px] font-black text-[#8a9ba8] tracking-wider font-mono">
+                            <div className="mt-1 text-[11px] font-black text-[#8a9ba8] tracking-wider ">
                                 {stats.w != null && stats.l != null ? `${stats.w}-${stats.l}` : ''}
                                 {stats.era != null ? ` • ERA ${fmtStat(stats.era, 2)}` : ''}
                                 {stats.whip != null ? ` • WHIP ${fmtStat(stats.whip, 2)}` : ''}
@@ -255,7 +255,7 @@ const PropCard = ({ prop, idx }: { prop: any; idx: number }) => {
                     <StatPill label="WIN%" value={formatProb(prop.implied_prob)} color="#e2e8f0" />
                     {prop.best_book && (
                         <div className="flex items-end ml-auto">
-                            <span className="text-[10px] font-black text-[#3d4f5f] tracking-widest uppercase font-mono">
+                            <span className="text-[10px] font-black text-[#3d4f5f] tracking-widest uppercase ">
                                 {prop.best_book.toUpperCase()}
                             </span>
                         </div>
@@ -370,21 +370,21 @@ export default function PropsPage() {
                     <div className="flex flex-col gap-1.5 items-end flex-shrink-0 mt-1">
                         <div className="flex items-center gap-2 bg-[#0a0a15] border border-[#3d4f5f] px-3 py-1.5 rounded-sm">
                             <span className="text-[11px] font-black text-[#5a6a7a] tracking-widest uppercase">TOTAL</span>
-                            <span className="text-[20px] font-black text-white font-mono leading-none" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
+                            <span className="text-[20px] font-black text-white  leading-none" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
                                 {isLoading ? '—' : totalProps}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 bg-[#001a2a] border border-[#00D4FF]/50 px-3 py-1.5 rounded-sm" style={{ boxShadow: '0 0 8px rgba(0,212,255,0.15)' }}>
                             <TrendingUp size={13} className="text-[#00D4FF]" />
                             <span className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase">5+ EDGE</span>
-                            <span className="text-[20px] font-black text-[#00D4FF] font-mono leading-none" style={{ fontFamily: "'Rajdhani', sans-serif", textShadow: '0 0 6px rgba(0,212,255,0.5)' }}>
+                            <span className="text-[20px] font-black text-[#00D4FF]  leading-none" style={{ fontFamily: "'Rajdhani', sans-serif", textShadow: '0 0 6px rgba(0,212,255,0.5)' }}>
                                 {isLoading ? '—' : eliteProps}
                             </span>
                         </div>
                         {goldProps > 0 && (
                             <div className="flex items-center gap-2 bg-[#1a1000] border border-[#FFD700]/50 px-3 py-1.5 rounded-sm" style={{ boxShadow: '0 0 8px rgba(255,215,0,0.15)' }}>
                                 <span className="text-[11px] font-black text-[#FFD700] tracking-widest uppercase">10+ ELITE</span>
-                                <span className="text-[20px] font-black text-[#FFD700] font-mono leading-none" style={{ fontFamily: "'Rajdhani', sans-serif", textShadow: '0 0 6px rgba(255,215,0,0.5)' }}>
+                                <span className="text-[20px] font-black text-[#FFD700]  leading-none" style={{ fontFamily: "'Rajdhani', sans-serif", textShadow: '0 0 6px rgba(255,215,0,0.5)' }}>
                                     {goldProps}
                                 </span>
                             </div>
@@ -448,7 +448,7 @@ export default function PropsPage() {
                 {isLoading && !data && (
                     <div className="flex flex-col items-center justify-center mt-20 gap-4">
                         <div className="w-10 h-10 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin" />
-                        <span className="text-[#5a6a7a] font-black tracking-widest text-[12px] uppercase font-mono">
+                        <span className="text-[#5a6a7a] font-black tracking-widest text-[12px] uppercase ">
                             Scanning Props Vault...
                         </span>
                     </div>
@@ -491,7 +491,7 @@ export default function PropsPage() {
                 {/* Result count */}
                 {!isLoading && filtered.length > 0 && (
                     <div className="mt-5 text-center">
-                        <span className="text-[11px] font-black text-[#3d4f5f] tracking-widest uppercase font-mono">
+                        <span className="text-[11px] font-black text-[#3d4f5f] tracking-widest uppercase ">
                             {filtered.length} PROPS · RANKED BY EDGE POINTS
                         </span>
                     </div>

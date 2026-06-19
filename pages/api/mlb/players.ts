@@ -20,11 +20,13 @@ async function edgeHandler(req: Request) {
             mlbDb
                 .from('v_hitter_profile')
                 .select('player_id, full_name, team_id, wrc_plus, woba, pa')
-                .order('wrc_plus', { ascending: false }),
+                .order('wrc_plus', { ascending: false })
+                .limit(3000),
             mlbDb
                 .from('v_pitcher_profile')
                 .select('player_id, full_name, team_id, fip, siera, bf')
                 .order('fip', { ascending: true }) // Lower FIP is better
+                .limit(3000)
         ]);
 
         if (hittersResult.error) {
