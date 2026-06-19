@@ -233,7 +233,7 @@ const PropCard = ({ prop, idx }: { prop: any; idx: number }) => {
                     >
                         <span
                             className="text-[26px] font-black leading-tight"
-                            style={{ color: tier.color, textShadow: `0 0 8px ${tier.glow}`, fontFamily: "'Orbitron', sans-serif" }}
+                            style={{ color: tier.color, textShadow: `0 0 8px ${tier.glow}`, fontFamily: "'Rajdhani', sans-serif" }}
                         >
                             {edge.toFixed(1)}
                         </span>
@@ -357,7 +357,7 @@ export default function PropsPage() {
                         </Link>
                         <h1
                             className="text-[30px] font-black tracking-[0.15em] uppercase text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] m-0 leading-none"
-                            style={{ fontFamily: "'Orbitron', sans-serif" }}
+                            style={{ fontFamily: "'Rajdhani', sans-serif" }}
                         >
                             PLAYER <span className="text-[#00D4FF]" style={{ textShadow: '0 0 12px rgba(0,212,255,0.7)' }}>PROPS</span>
                         </h1>
@@ -370,21 +370,21 @@ export default function PropsPage() {
                     <div className="flex flex-col gap-1.5 items-end flex-shrink-0 mt-1">
                         <div className="flex items-center gap-2 bg-[#0a0a15] border border-[#3d4f5f] px-3 py-1.5 rounded-sm">
                             <span className="text-[11px] font-black text-[#5a6a7a] tracking-widest uppercase">TOTAL</span>
-                            <span className="text-[20px] font-black text-white font-mono leading-none" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                            <span className="text-[20px] font-black text-white font-mono leading-none" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
                                 {isLoading ? '—' : totalProps}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 bg-[#001a2a] border border-[#00D4FF]/50 px-3 py-1.5 rounded-sm" style={{ boxShadow: '0 0 8px rgba(0,212,255,0.15)' }}>
                             <TrendingUp size={13} className="text-[#00D4FF]" />
                             <span className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase">5+ EDGE</span>
-                            <span className="text-[20px] font-black text-[#00D4FF] font-mono leading-none" style={{ fontFamily: "'Orbitron', sans-serif", textShadow: '0 0 6px rgba(0,212,255,0.5)' }}>
+                            <span className="text-[20px] font-black text-[#00D4FF] font-mono leading-none" style={{ fontFamily: "'Rajdhani', sans-serif", textShadow: '0 0 6px rgba(0,212,255,0.5)' }}>
                                 {isLoading ? '—' : eliteProps}
                             </span>
                         </div>
                         {goldProps > 0 && (
                             <div className="flex items-center gap-2 bg-[#1a1000] border border-[#FFD700]/50 px-3 py-1.5 rounded-sm" style={{ boxShadow: '0 0 8px rgba(255,215,0,0.15)' }}>
                                 <span className="text-[11px] font-black text-[#FFD700] tracking-widest uppercase">10+ ELITE</span>
-                                <span className="text-[20px] font-black text-[#FFD700] font-mono leading-none" style={{ fontFamily: "'Orbitron', sans-serif", textShadow: '0 0 6px rgba(255,215,0,0.5)' }}>
+                                <span className="text-[20px] font-black text-[#FFD700] font-mono leading-none" style={{ fontFamily: "'Rajdhani', sans-serif", textShadow: '0 0 6px rgba(255,215,0,0.5)' }}>
                                     {goldProps}
                                 </span>
                             </div>

@@ -356,7 +356,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                 font-weight: 700;
                 color: var(--neon-cyan);
                 text-shadow: 0 0 8px var(--neon-cyan-glow);
-                font-family: 'Orbitron', sans-serif;
+                font-family: 'Rajdhani', sans-serif;
             }
             .metal-input {
                 background: linear-gradient(180deg, #05050A 0%, #0d1117 100%);
@@ -523,7 +523,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                                     CLUB <span style={{ color: 'var(--neon-cyan)', textShadow: '0 0 15px var(--neon-cyan-glow)' }}>TERMINAL</span>
                                 </h1>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Orbitron', sans-serif", letterSpacing: '0.1em' }}>T_SYNC: {todayStr}</p>
+                                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.1em' }}>T_SYNC: {todayStr}</p>
                                     {isValidating && <RefreshCw size={12} color="var(--neon-cyan)" className="animate-spin" style={{ opacity: 0.8 }} />}
                                     {isValidating && <span style={{ fontSize: 10, color: 'var(--neon-cyan)', fontWeight: 800, letterSpacing: '0.1em', opacity: 0.8 }}>SYNCING</span>}
                                 </div>

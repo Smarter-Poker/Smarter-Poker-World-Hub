@@ -165,7 +165,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     </div>
 
                     <div className="text-center">
-                        <div className="text-[22px] font-black text-white uppercase tracking-wider mb-0.5" style={{ fontFamily: '"Orbitron", sans-serif', fontSize: '18px' }}>
+                        <div className="text-[22px] font-black text-white uppercase tracking-wider mb-0.5" style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '18px' }}>
                             {bet.player_name || bet.selection?.split(' ').slice(0, -1).join(' ') || bet.team || 'Unknown'}
                         </div>
                         {!isTeamBet && bet.team_name && (
@@ -625,7 +625,7 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
                     </div>
 
                     <div className="flex-1 min-w-0 text-left">
-                        <div className="text-[12px] font-black text-white uppercase tracking-[0.12em] truncate" style={{ fontFamily: '"Orbitron", sans-serif', fontSize: '11px' }}>
+                        <div className="text-[12px] font-black text-white uppercase tracking-[0.12em] truncate" style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '11px' }}>
                             {matchup}
                         </div>
                         <div className="text-[9px] font-black text-[#5a6a7a] font-mono tracking-widest">
@@ -695,7 +695,7 @@ export default function BestBetsPage() {
                     <div className="text-center bg-[#0d1117] p-8 rounded-sm border-2 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)] relative overflow-hidden">
                         <div className="absolute left-0 top-0 w-1 h-full bg-red-500" />
                         <Activity className="w-10 h-10 text-red-400 mx-auto mb-3" />
-                        <h2 className="text-xl font-black text-white uppercase tracking-wider mb-1" style={{ fontFamily: '"Orbitron", sans-serif' }}>System Error</h2>
+                        <h2 className="text-xl font-black text-white uppercase tracking-wider mb-1" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
                         <p className="text-red-400 font-black uppercase tracking-widest text-[10px] font-mono">Failed to load data. Please try again.</p>
                     </div>
                 </main>
@@ -758,7 +758,7 @@ export default function BestBetsPage() {
                         <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[9px] font-black no-underline tracking-widest uppercase hover:text-white transition-colors font-mono mb-1">
                             <ArrowLeft size={12} /> Dashboard
                         </Link>
-                        <h1 className="m-0 text-[28px] font-black text-white uppercase tracking-[0.12em] leading-none drop-shadow-[0_0_6px_rgba(255,255,255,0.15)]" style={{ fontFamily: '"Orbitron", sans-serif' }}>
+                        <h1 className="m-0 text-[28px] font-black text-white uppercase tracking-[0.12em] leading-none drop-shadow-[0_0_6px_rgba(255,255,255,0.15)]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             Best <span className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.6)]">Bets</span>
                         </h1>
                         <p className="m-0 text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase font-mono mt-1">

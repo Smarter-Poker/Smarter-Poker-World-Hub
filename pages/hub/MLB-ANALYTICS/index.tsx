@@ -195,7 +195,7 @@ export default function MlbSlatePage() {
           <div className="absolute top-3 left-3 w-3 h-3 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" />
           <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" />
 
-          <h1 className="text-3xl font-black tracking-[0.2em] uppercase text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] text-center" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+          <h1 className="text-3xl font-black tracking-[0.2em] uppercase text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] text-center" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
             MLB Analytics <span className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.6)]">Vault</span>
           </h1>
 
@@ -268,7 +268,7 @@ export default function MlbSlatePage() {
             {slate.map((g) => (
               <Link
                 key={g.gamePk}
-                href={`/hub/MLB-ANALYTICS/game/${g.gamePk}`}
+                href={`/hub/MLB-ANALYTICS/best-bets`}
                 className="block relative bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[3px] border-[#3d4f5f] rounded-lg mx-4 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-1px_0_rgba(0,0,0,0.5),0_8px_20px_rgba(0,0,0,0.6)] hover:border-[#00D4FF] transition-all duration-300 ease-out group hover:-translate-y-1 hover:shadow-[0_12px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(0,212,255,0.15)]"
               >
                 {/* Corner Screws */}
@@ -285,7 +285,7 @@ export default function MlbSlatePage() {
                   <div className="flex flex-col">
                     <span
                       className="text-[15px] text-white font-black tracking-[0.15em] uppercase group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]"
-                      style={{ fontFamily: "'Orbitron', sans-serif" }}
+                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
                     >
                       {g.away} @ {g.home}
                     </span>
@@ -311,7 +311,7 @@ export default function MlbSlatePage() {
                   {g.firstPitch && (
                     <span
                       className="text-[13px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
-                      style={{ fontFamily: "'Orbitron', sans-serif" }}
+                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
                     >
                       {new Date(g.firstPitch).toLocaleTimeString('en-US', {
                         hour: 'numeric',
@@ -330,7 +330,7 @@ export default function MlbSlatePage() {
 
                     {/* Away Team */}
                     <div className="flex items-center gap-4">
-                      <div className="w-[36px] h-[36px] bg-[#0a0a15] border border-[#3d4f5f] rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_0_5px_rgba(0,212,255,0.1)] p-1 flex-shrink-0">
+                      <div className="w-[72px] h-[72px] bg-[#0a0a15] border border-[#3d4f5f] rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_0_5px_rgba(0,212,255,0.1)] p-1 flex-shrink-0">
                         {teamLogo(g.awayId) ? (
                           <Image unoptimized width={100} height={100} src={teamLogo(g.awayId) ?? ''} alt="" className="h-full w-full object-contain brightness-125" />
                         ) : (
@@ -343,7 +343,7 @@ export default function MlbSlatePage() {
                             {getTeamName(g.away)}
                           </span>
                           {g.awayRecord && (
-                            <span className="text-[11px] text-[#5a6a7a] font-black tracking-widest">
+                            <span className="text-[14px] text-[#8a9ba8] font-black tracking-widest">
                               {g.awayRecord.wins}-{g.awayRecord.losses}{g.awayStreak ? ` [${g.awayStreak}]` : ''}
                             </span>
                           )}
@@ -358,7 +358,7 @@ export default function MlbSlatePage() {
 
                     {/* Home Team */}
                     <div className="flex items-center gap-4">
-                      <div className="w-[36px] h-[36px] bg-[#0a0a15] border border-[#3d4f5f] rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_0_5px_rgba(0,212,255,0.1)] p-1 flex-shrink-0">
+                      <div className="w-[72px] h-[72px] bg-[#0a0a15] border border-[#3d4f5f] rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_0_5px_rgba(0,212,255,0.1)] p-1 flex-shrink-0">
                         {teamLogo(g.homeId) ? (
                           <Image unoptimized width={100} height={100} src={teamLogo(g.homeId) ?? ''} alt="" className="h-full w-full object-contain brightness-125" />
                         ) : (
@@ -371,7 +371,7 @@ export default function MlbSlatePage() {
                             {getTeamName(g.home)}
                           </span>
                           {g.homeRecord && (
-                            <span className="text-[11px] text-[#5a6a7a] font-black tracking-widest">
+                            <span className="text-[14px] text-[#8a9ba8] font-black tracking-widest">
                               {g.homeRecord.wins}-{g.homeRecord.losses}{g.homeStreak ? ` [${g.homeStreak}]` : ''}
                             </span>
                           )}
