@@ -609,11 +609,11 @@ export default function BestBetsPage() {
 
     const filteredBets = bets.filter((b: any) => {
         if (filter === 'ALL') return true;
-        const type = b.bet_type?.toLowerCase() || '';
-        if (filter === 'ML' && (type.includes('moneyline') || type === 'ml')) return true;
-        if (filter === 'TOTAL' && type.includes('total')) return true;
-        if (filter === 'RUN LINE' && (type.includes('run_line') || type.includes('runline') || type.includes('spread'))) return true;
-        if (filter === 'PROPS' && (type.includes('prop') || type.includes('hits') || type.includes('bases') || type.includes('runs') || type.includes('pitcher') || type.includes('strikeout') || type.includes('player'))) return true;
+        const typeStr = ((b.bet_type || '') + ' ' + (b.market || '')).toLowerCase();
+        if (filter === 'ML' && (typeStr.includes('moneyline') || typeStr.includes('h2h') || typeStr.includes('ml'))) return true;
+        if (filter === 'TOTAL' && typeStr.includes('total')) return true;
+        if (filter === 'RUN LINE' && (typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread'))) return true;
+        if (filter === 'PROPS' && (typeStr.includes('prop') || typeStr.includes('hits') || typeStr.includes('bases') || typeStr.includes('runs') || typeStr.includes('pitcher') || typeStr.includes('strikeout') || typeStr.includes('player') || typeStr.includes('hrr') || typeStr.includes('walks'))) return true;
         return false;
     });
 
