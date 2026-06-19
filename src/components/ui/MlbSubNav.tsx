@@ -20,12 +20,12 @@ export default function MlbSubNav() {
     ];
 
     return (
-        <div className="bg-[#0a0a15] border-b border-[#3d4f5f] px-4 py-3 flex gap-6 overflow-x-auto whitespace-nowrap shadow-[0_4px_20px_rgba(0,0,0,0.5)]" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-            <style jsx>{`
-                div::-webkit-scrollbar { display: none; }
-            `}</style>
+        <div className="bg-[#0a0a15] border-b border-[#3d4f5f] px-4 py-3 flex gap-6 overflow-x-auto whitespace-nowrap shadow-[0_4px_20px_rgba(0,0,0,0.5)] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
             {links.map(l => {
-                const isActive = router.pathname === l.href || (router.pathname === '/hub/MLB-ANALYTICS' && l.label === 'Slate');
+                // Slate is exact-match only; all others use startsWith so nested routes stay highlighted
+                const isActive = l.label === 'Slate'
+                    ? (router.pathname === l.href || router.pathname === '/hub/MLB-ANALYTICS')
+                    : router.pathname.startsWith(l.href);
                 return (
                     <Link key={l.label} href={l.href} className={`pb-1 text-[11px] font-extrabold uppercase tracking-widest transition-all ${
                         isActive 

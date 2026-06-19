@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Loader2, User, Activity, Target, Shield } from 'lucide-react';
+import { ArrowLeft, User, Activity, Target, Shield } from 'lucide-react';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
