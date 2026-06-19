@@ -48,9 +48,9 @@ function EdgeBadge({ g }: { g: GameCard }) {
 
 // ─── Supabase live-sync indicator ─────────────────────────────────────────────
 
-const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const sbAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const sb = sbUrl ? createClient(sbUrl, sbAnonKey) : null;
+const sbUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_SUPABASE_URL || '') : '';
+const sbAnonKey = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '') : '';
+const sb = sbUrl && sbAnonKey ? createClient(sbUrl, sbAnonKey) : null;
 
 function SyncIndicator({ onSync }: { onSync: () => void }) {
   const [hasUpdate, setHasUpdate] = useState(false);

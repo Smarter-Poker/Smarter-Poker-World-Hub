@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select('official_date')
             .order('official_date', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         const slateDate = latestRow?.official_date || todayStr;
 
