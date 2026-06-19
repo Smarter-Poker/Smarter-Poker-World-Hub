@@ -268,7 +268,7 @@ export default function MlbSlatePage() {
             {slate.map((g) => (
               <Link
                 key={g.gamePk}
-                href={`/hub/MLB-ANALYTICS/best-bets`}
+                href={`/hub/MLB-ANALYTICS/game/${g.gamePk}`}
                 className="block relative bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[3px] border-[#3d4f5f] rounded-lg mx-4 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-1px_0_rgba(0,0,0,0.5),0_8px_20px_rgba(0,0,0,0.6)] hover:border-[#00D4FF] transition-all duration-300 ease-out group hover:-translate-y-1 hover:shadow-[0_12px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(0,212,255,0.15)]"
               >
                 {/* Corner Screws */}
