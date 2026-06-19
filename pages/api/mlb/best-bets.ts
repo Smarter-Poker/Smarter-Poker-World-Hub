@@ -172,10 +172,10 @@ export default async function handler(req: Request) {
                 .limit(1);
 
             if (dateErr) {
-                console.warn('[MLB Best Bets] Fallback error on pred_best_bets:', dateErr.message);
-                return new Response(JSON.stringify({ bets: [], stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 }, officialDate: null }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+                console.error('[MLB Best Bets] Fallback error on pred_best_bets:', dateErr);
+                return new Response(JSON.stringify({ error: `Database error: ${dateErr.message}` }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' }
                 });
             }
 

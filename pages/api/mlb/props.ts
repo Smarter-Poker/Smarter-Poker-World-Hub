@@ -40,10 +40,10 @@ export default async function handler(req: Request) {
         ]);
 
         if (propsRes.error) {
-            console.warn('[API/MLB/Props] Error fetching props from pred_props:', propsRes.error.message);
-            return new Response(JSON.stringify({ props: [] }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+            console.error('[API/MLB/Props] Error fetching props from pred_props:', propsRes.error);
+            return new Response(JSON.stringify({ error: `Database error: ${propsRes.error.message}` }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
             });
         }
 
