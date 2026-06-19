@@ -586,8 +586,8 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
     const homeTeamId = homeTeamAbbr ? MLB_TEAM_IDS[homeTeamAbbr.toUpperCase()] : null;
 
     // Partition bets
-    const teamBets = [];
-    const propBets = [];
+    const teamBets: any[] = [];
+    const propBets: any[] = [];
     for (const bet of bets) {
         const typeStr = ((bet.market || '') + ' ' + (bet.bet_type || '')).toLowerCase();
         const isTeam = typeStr.includes('moneyline') || typeStr.includes('ml') || typeStr.includes('h2h') || typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread') || typeStr.includes('total') || typeStr.includes('over') || typeStr.includes('under');

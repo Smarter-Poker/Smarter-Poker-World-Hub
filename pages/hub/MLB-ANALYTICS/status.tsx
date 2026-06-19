@@ -183,7 +183,7 @@ export default function StatusPage() {
                                 {stages.map((stage: string) => {
                                     const run = data?.latestRuns?.[stage];
                                     const isError = run?.status === 'error';
-                                    const glowColor = isError ? 'text-[#00D4FF]' : 'text-[#00D4FF]';
+                                    const glowColor = isError ? 'text-[#FF4444]' : 'text-[#00D4FF]';
                                     const borderGlowColor = isError ? 'border-[#FF4444]' : 'border-[#00D4FF]';
                                     const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,68,68,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
                                     

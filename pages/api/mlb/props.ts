@@ -186,16 +186,36 @@ async function edgeHandler(req: Request) {
                 .in('player_id', unresolvedIds);
             for (const f of (fallback || [])) {
                 if (f.player_id && !playerMap.has(f.player_id)) {
+                    const aggB = aggBatterMap.get(f.player_id);
+                    // We assume hitter by default for fallbacks, but we could check aggPitcherMap too
+                    const aggP = aggPitcherMap.get(f.player_id);
+                    const kind = aggP ? 'pitcher' : 'hitter';
+
                     playerMap.set(f.player_id, {
                         name: f.full_name || `Player #${f.player_id}`,
-                        team: '', team_id: null, kind: 'hitter',
+                        team: '', team_id: null, kind,
+                        avg: aggB?.avg ?? null, hr: aggB?.hr ?? null, rbi: aggB?.rbi ?? null,
+                        obp: aggB?.obp ?? null, slg: aggB?.slg ?? null,
+                        woba: aggB?.woba ?? null, wrc_plus: aggB?.wrc_plus ?? null, pa: null,
+                        era: aggP?.era ?? null, fip: null, siera: null,
+                        w: aggP?.w ?? null, l: aggP?.l ?? null, so: aggP?.so ?? null, whip: aggP?.whip ?? null,
                     });
                 }
             }
             // Final safety: never show "Unknown"
             for (const id of unresolvedIds) {
                 if (!playerMap.has(id)) {
-                    playerMap.set(id, { name: `Player #${id}`, team: '', team_id: null, kind: 'hitter' });
+                    const aggB = aggBatterMap.get(id);
+                    const aggP = aggPitcherMap.get(id);
+                    const kind = aggP ? 'pitcher' : 'hitter';
+                    playerMap.set(id, { 
+                        name: `Player #${id}`, team: '', team_id: null, kind,
+                        avg: aggB?.avg ?? null, hr: aggB?.hr ?? null, rbi: aggB?.rbi ?? null,
+                        obp: aggB?.obp ?? null, slg: aggB?.slg ?? null,
+                        woba: aggB?.woba ?? null, wrc_plus: aggB?.wrc_plus ?? null, pa: null,
+                        era: aggP?.era ?? null, fip: null, siera: null,
+                        w: aggP?.w ?? null, l: aggP?.l ?? null, so: aggP?.so ?? null, whip: aggP?.whip ?? null,
+                    });
                 }
             }
         }
