@@ -11,8 +11,35 @@ async function edgeHandler(req: Request) {
 
     try {
         const mlbDb = getMlbSupabase();
-        
-        // Fetch props and profiles concurrently
+
+        // ── Find best available date (same strategy as dashboard) ───────────────
+        const todayStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Chicago',
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date());
+
+        let slateDate = todayStr;
+        const { data: todayCheck } = await mlbDb
+            .from('pred_props')
+            .select('as_of_ts')
+            .gte('as_of_ts', `${todayStr}T00:00:00`)
+            .limit(1);
+
+        if (!todayCheck || todayCheck.length === 0) {
+            // No props today — find the most recent day that has props
+            const { data: latestRow } = await mlbDb
+                .from('pred_props')
+                .select('as_of_ts')
+                .lte('as_of_ts', `${todayStr}T23:59:59`)
+                .order('as_of_ts', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (latestRow?.as_of_ts) {
+                slateDate = latestRow.as_of_ts.slice(0, 10);
+            }
+        }
+
+        // ── Fetch props and player profiles concurrently ────────────────────────
         const [propsRes, hittersRes, pitchersRes, teamsRes] = await Promise.all([
             mlbDb
                 .from('pred_props')
@@ -30,6 +57,8 @@ async function edgeHandler(req: Request) {
                     best_book,
                     rec
                 `)
+                .gte('as_of_ts', `${slateDate}T00:00:00`)
+                .lte('as_of_ts', `${slateDate}T23:59:59`)
                 .order('edge_pts', { ascending: false, nullsFirst: false }),
             mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id'),
             mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id'),
@@ -89,7 +118,8 @@ async function edgeHandler(req: Request) {
         });
 
         return new Response(JSON.stringify({ 
-            props: mappedProps 
+            props: mappedProps,
+            official_date: slateDate,
         }), {
             status: 200,
             headers: {

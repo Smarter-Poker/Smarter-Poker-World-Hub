@@ -204,7 +204,7 @@ export default function PropsPage() {
     });
 
     const props: any[] = data?.props || [];
-    const isStale = props.length > 0 && props[0].official_date && props[0].official_date < todayStr;
+    const isStale = !!(data?.official_date && todayStr && data.official_date < todayStr);
 
     const filtered = props.filter((p: any) => {
         if (!matchesFilter(p, filter)) return false;
