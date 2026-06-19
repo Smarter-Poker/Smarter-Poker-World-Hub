@@ -33,7 +33,7 @@ export default function GameMatchupDashboard() {
         if (!game || !betsData?.bets) return [];
         // Match bets by seeing if the bet's matchup string contains our team abbreviations, 
         // or if team_id matches (if available)
-        return betsData.bets.filter((b: any) => {
+        const _matched = betsData.bets.filter((b: any) => {
             const h = game.home.toLowerCase();
             const a = game.away.toLowerCase();
             const bMatchup = (b.matchup || '').toLowerCase();
@@ -49,12 +49,27 @@ export default function GameMatchupDashboard() {
                 bTeamName === h || bTeamName === a
             );
         });
+        // Dedupe: bets API returns every intraday snapshot; keep one per bet.
+        const _seen = new Set<string>();
+        return _matched.filter((b: any) => {
+            const k = `${b.market}|${b.selection}|${b.line ?? ''}|${b.player_id ?? ''}`;
+            if (_seen.has(k)) return false;
+            _seen.add(k);
+            return true;
+        });
     }, [game, betsData]);
 
     const gameProps = useMemo(() => {
         if (!game || !propsData?.props) return [];
         // Match props by team_id precisely
-        return propsData.props.filter((p: any) => p.team_id === game.homeId || p.team_id === game.awayId);
+        const _mp = propsData.props.filter((p: any) => p.team_id === game.homeId || p.team_id === game.awayId);
+        const _sp = new Set<string>();
+        return _mp.filter((p: any) => {
+            const k = `${p.player_id}|${p.prop}|${p.line ?? ''}|${p.selection ?? ''}`;
+            if (_sp.has(k)) return false;
+            _sp.add(k);
+            return true;
+        });
     }, [game, propsData]);
 
     if (!gamePk) return null;
@@ -203,10 +218,10 @@ export default function GameMatchupDashboard() {
                                             </div>
                                             <div className="flex flex-col items-end">
                                                 <div className={`font-['Rajdhani'] text-lg font-bold ${bet.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}>
-                                                    {bet.ev_pct > 0 ? '+' : ''}{(bet.ev_pct * 100).toFixed(1)}% EV
+                                                    {bet.ev_pct > 0 ? '+' : ''}{(Number(bet.ev_pct) || 0).toFixed(1)}% EV
                                                 </div>
                                                 <span className="text-xs font-['Rajdhani'] text-[#00D4FF] bg-[#00D4FF]/10 px-2 rounded">
-                                                    Score: {bet.score ? bet.score.toFixed(0) : 'N/A'}
+                                                    Score: {bet.bet_score != null ? Number(bet.bet_score).toFixed(0) : 'N/A'}
                                                 </span>
                                             </div>
                                         </div>
@@ -239,7 +254,7 @@ export default function GameMatchupDashboard() {
                                             </div>
                                             <div className="flex flex-col items-end">
                                                 <div className={`font-['Rajdhani'] text-lg font-bold ${prop.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}>
-                                                    {prop.ev_pct > 0 ? '+' : ''}{(prop.ev_pct * 100).toFixed(1)}% EV
+                                                    {prop.ev_pct > 0 ? '+' : ''}{(Number(prop.ev_pct) || 0).toFixed(1)}% EV
                                                 </div>
                                                 <span className="text-xs font-['Rajdhani'] text-[#00D4FF] bg-[#00D4FF]/10 px-2 rounded">
                                                     Odds: {prop.price > 0 ? `+${prop.price}` : prop.price}
