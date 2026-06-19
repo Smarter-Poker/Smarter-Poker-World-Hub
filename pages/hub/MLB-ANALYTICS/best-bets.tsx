@@ -609,10 +609,10 @@ export default function BestBetsPage() {
     const filteredBets = bets.filter((b: any) => {
         if (filter === 'ALL') return true;
         const type = b.bet_type?.toLowerCase() || '';
-        if (filter === 'ML' && (type === 'moneyline' || type === 'ml')) return true;
-        if (filter === 'TOTAL' && type === 'total') return true;
-        if (filter === 'RUN LINE' && (type === 'run_line' || type === 'runline' || type === 'spread')) return true;
-        if (filter === 'PROPS' && (type.includes('prop') || type.includes('hits') || type.includes('bases') || type.includes('runs') || type.includes('pitcher') || type.includes('strikeout'))) return true;
+        if (filter === 'ML' && (type.includes('moneyline') || type === 'ml')) return true;
+        if (filter === 'TOTAL' && type.includes('total')) return true;
+        if (filter === 'RUN LINE' && (type.includes('run_line') || type.includes('runline') || type.includes('spread'))) return true;
+        if (filter === 'PROPS' && (type.includes('prop') || type.includes('hits') || type.includes('bases') || type.includes('runs') || type.includes('pitcher') || type.includes('strikeout') || type.includes('player'))) return true;
         return false;
     });
 
