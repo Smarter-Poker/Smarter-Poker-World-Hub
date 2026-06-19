@@ -1,8 +1,5 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-export const config = {
-    runtime: 'edge',
-};
 
 
 
