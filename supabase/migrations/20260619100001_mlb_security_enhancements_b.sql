@@ -19,7 +19,12 @@ BEGIN
         SELECT 1 FROM unnest(c.reloptions) opt WHERE opt ILIKE 'security_invoker=true'
       )
   LOOP
-    EXECUTE format('ALTER VIEW %s SET (security_invoker = true);', v.view_name);
+    BEGIN
+      EXECUTE format('ALTER VIEW %s SET (security_invoker = true);', v.view_name);
+    EXCEPTION WHEN insufficient_privilege THEN
+      -- PostGIS views like geography_columns are owned by the system
+      RAISE NOTICE 'Skipping % due to insufficient privileges', v.view_name;
+    END;
   END LOOP;
 END $$;
 
@@ -68,7 +73,11 @@ BEGIN
         SELECT 1 FROM unnest(p.proconfig) AS conf WHERE conf ILIKE 'search_path=%'
       )
   LOOP
-    EXECUTE format('ALTER FUNCTION %I.%I(%s) SET search_path = public, pg_temp;', 
-                   f.schema_name, f.function_name, f.arguments);
+    BEGIN
+      EXECUTE format('ALTER FUNCTION %I.%I(%s) SET search_path = public, pg_temp;', 
+                     f.schema_name, f.function_name, f.arguments);
+    EXCEPTION WHEN insufficient_privilege THEN
+      RAISE NOTICE 'Skipping % due to insufficient privileges', f.function_name;
+    END;
   END LOOP;
 END $$;

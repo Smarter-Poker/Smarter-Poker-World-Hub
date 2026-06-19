@@ -197,7 +197,7 @@ export default function PlayersPage() {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Error" description="Data fetch failed" />
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
                     <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
@@ -220,7 +220,7 @@ export default function PlayersPage() {
                noIndex={true}
            />
 
-           <UniversalHeader pageDepth={2} />
+           <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />
 
            <div className="p-4 w-full max-w-4xl mx-auto box-border relative">
