@@ -27,31 +27,27 @@ async function edgeHandler(req: Request) {
 
         if (!todayCheck || todayCheck.length === 0) {
             // No props for today yet — find the most recent available date
-            // agg_pitcher: ERA/W/L from fg_season (pitcher_id is the key, NOT player_id)
             const { data: latestRow } = await mlbDb
-                .from('agg_pitcher')
-                .select('pitcher_id, era, w, l, as_of')
-                .eq('window_kind', 'season')
-                .order('as_of', { ascending: false })
+                .from('pred_props')
+                .select('as_of_ts')
+                .lte('as_of_ts', `${todayStr}T23:59:59`)
+                .order('as_of_ts', { ascending: false })
                 .limit(1)
                 .maybeSingle();
-
-            if (latestRow?.as_of) {
-                slateDate = latestRow.as_of.slice(0, 10);
+            if (latestRow?.as_of_ts) {
+                slateDate = latestRow.as_of_ts.slice(0, 10);
             }
         }
 
         // ── Fetch all data concurrently ───────────────────────────────────────
         //
-        // CONFIRMED view columns (from mlb_data.ts / best-bets.ts usage):
-        //   v_hitter_profile  → player_id, full_name, team_id, woba, wrc_plus, pa, splits
-        //                       (splits JSON contains avg/hr/rbi/obp/slg per season)
+        // CONFIRMED view columns:
+        //   v_hitter_profile  → player_id, full_name, team_id
+        //   agg_batter        → batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus
         //   v_pitcher_profile → player_id, full_name, team_id, fip, siera
-        //                       (NO era/whip/w/l — those are in agg_pitcher)
-        //   agg_pitcher       → pitcher_id (= player_id), w, l, era, as_of
-        //                       window_kind = 'fg_season' for season totals
+        //   agg_pitcher       → pitcher_id, w, l, era, so, h, bb, ip, as_of
         //
-        const [propsRes, hittersRes, pitchersRes, teamsRes, aggPitcherRes] = await Promise.all([
+        const [propsRes, hittersRes, pitchersRes, teamsRes, aggPitcherRes, aggBatterRes] = await Promise.all([
             mlbDb
                 .from('pred_props')
                 .select('game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, market_novig_over, edge_pts, best_price, best_book, rec')
@@ -59,16 +55,22 @@ async function edgeHandler(req: Request) {
                 .lte('as_of_ts', `${slateDate}T23:59:59`)
                 .order('edge_pts', { ascending: false, nullsFirst: false }),
 
-            mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits'),
+            mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id'),
 
             mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera'),
 
             mlbDb.from('dim_teams').select('team_id, abbr'),
 
-            // pitcher_id is the PK — matches player_id from v_pitcher_profile
             mlbDb
                 .from('agg_pitcher')
-                .select('pitcher_id, w, l, era, so, whip, as_of')
+                .select('pitcher_id, w, l, era, so, h, bb, ip, as_of')
+                .eq('window_kind', 'fg_season')
+                .order('as_of', { ascending: false })
+                .limit(3000),
+
+            mlbDb
+                .from('agg_batter')
+                .select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus, as_of')
                 .eq('window_kind', 'fg_season')
                 .order('as_of', { ascending: false })
                 .limit(3000),
@@ -86,21 +88,42 @@ async function edgeHandler(req: Request) {
         const pitchers = pitchersRes.data || [];
         const dimTeams = teamsRes.data || [];
         const aggPitchers = aggPitcherRes.data || [];
+        const aggBatters = aggBatterRes.data || [];
 
         // ── Team map: team_id → abbr ──────────────────────────────────────────
         const teamMap = new Map<number, string>();
         dimTeams.forEach(t => teamMap.set(t.team_id, t.abbr));
 
-        // ── agg_pitcher map: pitcher_id → {era, w, l, so, whip} (deduped to latest row) ─
+        // ── agg_pitcher map: pitcher_id → {era, w, l, so, whip} (deduped) ─────
         const aggPitcherMap = new Map<number, { era: number | null; w: number | null; l: number | null; so: number | null; whip: number | null }>();
         for (const row of aggPitchers) {
             if (row.pitcher_id != null && !aggPitcherMap.has(row.pitcher_id)) {
+                let whip: number | null = null;
+                if (row.h != null && row.bb != null && row.ip != null && Number(row.ip) > 0) {
+                    whip = (Number(row.h) + Number(row.bb)) / Number(row.ip);
+                }
                 aggPitcherMap.set(row.pitcher_id, {
                     era:  row.era  != null ? Number(row.era)  : null,
                     w:    row.w    != null ? Number(row.w)    : null,
                     l:    row.l    != null ? Number(row.l)    : null,
                     so:   row.so   != null ? Number(row.so)   : null,
-                    whip: row.whip != null ? Number(row.whip) : null,
+                    whip: whip,
+                });
+            }
+        }
+
+        // ── agg_batter map: batter_id → stats (deduped to latest row) ─────────
+        const aggBatterMap = new Map<number, { avg: number | null; hr: number | null; rbi: number | null; obp: number | null; slg: number | null; woba: number | null; wrc_plus: number | null }>();
+        for (const row of aggBatters) {
+            if (row.batter_id != null && !aggBatterMap.has(row.batter_id)) {
+                aggBatterMap.set(row.batter_id, {
+                    avg:      row.avg      != null ? Number(row.avg)      : null,
+                    hr:       row.hr       != null ? Number(row.hr)       : null,
+                    rbi:      row.rbi      != null ? Number(row.rbi)      : null,
+                    obp:      row.obp      != null ? Number(row.obp)      : null,
+                    slg:      row.slg      != null ? Number(row.slg)      : null,
+                    woba:     row.woba     != null ? Number(row.woba)     : null,
+                    wrc_plus: row.wrc_plus != null ? Number(row.wrc_plus) : null,
                 });
             }
         }
@@ -111,7 +134,7 @@ async function edgeHandler(req: Request) {
             team: string;
             team_id: number | null;
             kind: 'hitter' | 'pitcher';
-            // hitter stats (parsed from splits JSON)
+            // hitter stats
             avg?: number | null; hr?: number | null; rbi?: number | null;
             obp?: number | null; slg?: number | null;
             woba?: number | null; wrc_plus?: number | null; pa?: number | null;
@@ -122,33 +145,23 @@ async function edgeHandler(req: Request) {
 
         const playerMap = new Map<number, PlayerEntry>();
 
-        // Hitters — parse splits JSON for counting stats
+        // Hitters — join counting stats from agg_batter
         for (const h of hitters) {
             if (!h.player_id) continue;
-            let avg: number | null = null, hr: number | null = null, rbi: number | null = null;
-            let obp: number | null = null, slg: number | null = null;
-            try {
-                const raw = typeof h.splits === 'string' ? JSON.parse(h.splits) : h.splits;
-                const season = raw?.season ?? raw?.overall ?? raw?.fg_season ?? raw?.total ?? (Array.isArray(raw) ? raw[0] : null);
-                if (season) {
-                    const n = (v: any) => (v != null ? Number(v) : null);
-                    avg = n(season.avg ?? season.BA   ?? season.batting_avg);
-                    hr  = n(season.hr  ?? season.HR   ?? season.home_runs);
-                    rbi = n(season.rbi ?? season.RBI);
-                    obp = n(season.obp ?? season.OBP);
-                    slg = n(season.slg ?? season.SLG);
-                }
-            } catch { /* splits parse failed — stats remain null */ }
-
+            const agg = aggBatterMap.get(h.player_id);
             playerMap.set(h.player_id, {
                 name:     h.full_name,
                 team:     teamMap.get(h.team_id) || '',
                 team_id:  h.team_id ?? null,
                 kind:     'hitter',
-                avg, hr, rbi, obp, slg,
-                woba:     h.woba     != null ? Number(h.woba)     : null,
-                wrc_plus: h.wrc_plus != null ? Number(h.wrc_plus) : null,
-                pa:       h.pa       != null ? Number(h.pa)       : null,
+                avg:      agg?.avg      ?? null,
+                hr:       agg?.hr       ?? null,
+                rbi:      agg?.rbi      ?? null,
+                obp:      agg?.obp      ?? null,
+                slg:      agg?.slg      ?? null,
+                woba:     agg?.woba     ?? null,
+                wrc_plus: agg?.wrc_plus ?? null,
+                pa:       null, // PA not fetched from agg_batter, rarely needed anyway
             });
         }
 
