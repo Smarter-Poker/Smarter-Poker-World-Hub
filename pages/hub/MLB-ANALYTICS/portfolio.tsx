@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Head from 'next/head';
 import Link from 'next/link';

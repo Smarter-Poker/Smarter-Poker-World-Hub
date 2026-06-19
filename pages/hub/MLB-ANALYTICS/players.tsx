@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router';
 import { useState, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -130,6 +131,7 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
 };
 
 export default function PlayersPage() {
+    const router = useRouter();
     const { data, error, isLoading } = useSWR('/api/mlb/players', fetcher, {
         refreshInterval: 60000 // Poll every minute
     });
