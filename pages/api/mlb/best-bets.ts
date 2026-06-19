@@ -163,7 +163,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             }
             if (actualTeamName) {
                 // Find matching team ID by iterating over TEAM_ID_TO_NAME values
-                let foundTeamId = null;
+                let foundTeamId: number | null = null;
                 const searchName = actualTeamName.toLowerCase().trim();
                 for (const [idStr, name] of Object.entries(TEAM_ID_TO_NAME)) {
                     if (name.toLowerCase() === searchName || searchName.includes(name.toLowerCase())) {
