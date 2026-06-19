@@ -110,8 +110,8 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
     let lineStr = '';
     if (bet.line !== null && bet.line !== undefined) {
         const numLine = Number(bet.line);
-        const type = (bet.bet_type || '').toLowerCase();
-        const isSpread = type === 'run_line' || type === 'runline' || type === 'spread';
+        const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
+        const isSpread = typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
         lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
     }
 
@@ -255,7 +255,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                         <div className="bg-[#0d1117] border border-[#3d4f5f] rounded-lg p-3">
                             <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Market</div>
                             <div className="text-[13px] font-extrabold text-slate-300 uppercase leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                {bet.bet_type?.replace(/_/g, ' ') || '—'}
+                                {bet.market?.replace(/_/g, ' ') || bet.bet_type?.replace(/_/g, ' ') || '—'}
                             </div>
                         </div>
                     </div>
@@ -458,8 +458,8 @@ const BetCard = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =
     let lineStr = '';
     if (bet.line !== null && bet.line !== undefined) {
         const numLine = Number(bet.line);
-        const type = (bet.bet_type || '').toLowerCase();
-        const isSpread = type === 'run_line' || type === 'runline' || type === 'spread';
+        const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
+        const isSpread = typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
         lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
     }
 

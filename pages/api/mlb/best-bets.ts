@@ -92,24 +92,23 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         const { isTeamBet, isPitcherProp } = detectBetType(bet);
         const enriched = { ...bet };
 
-        if (!isTeamBet && bet.selection) {
-            // Extract player name from selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
-            // The selection field might be just the player name, or include the market
-            const selectionLower = bet.selection.toLowerCase().trim();
+        if (!isTeamBet && (bet.player_name || bet.selection)) {
+            // Extract player name from player_name or selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
+            const lookupName = (bet.player_name || bet.selection || '').toLowerCase().trim();
 
             // Try hitter lookup first
-            let playerRecord = hitterMap.get(selectionLower);
+            let playerRecord = hitterMap.get(lookupName);
             let isPitcher = false;
 
             if (!playerRecord) {
                 // Try pitcher lookup
-                playerRecord = pitcherMap.get(selectionLower);
+                playerRecord = pitcherMap.get(lookupName);
                 if (playerRecord) isPitcher = true;
             }
 
             if (!playerRecord) {
                 // Try partial match — first two words of selection
-                const parts = selectionLower.split(' ');
+                const parts = lookupName.split(' ');
                 if (parts.length >= 2) {
                     const twoWord = parts.slice(0, 2).join(' ');
                     playerRecord = hitterMap.get(twoWord) || pitcherMap.get(twoWord);
@@ -141,6 +140,31 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
                         enriched.pitcher_fip = pitcherProfileData.fip;
                         enriched.pitcher_siera = pitcherProfileData.siera;
                     }
+                }
+            }
+
+        } else if (isTeamBet) {
+            let actualTeamName = bet.team_name || bet.team || bet.selection;
+            if (bet.matchup && (bet.selection?.toLowerCase() === 'home' || bet.selection?.toLowerCase() === 'away')) {
+                const parts = bet.matchup.split(' @ ');
+                if (parts.length === 2) {
+                    actualTeamName = bet.selection.toLowerCase() === 'home' ? parts[1] : parts[0];
+                }
+            }
+            if (actualTeamName) {
+                // Find matching team ID by iterating over TEAM_ID_TO_NAME values
+                let foundTeamId = null;
+                const searchName = actualTeamName.toLowerCase().trim();
+                for (const [idStr, name] of Object.entries(TEAM_ID_TO_NAME)) {
+                    if (name.toLowerCase() === searchName || searchName.includes(name.toLowerCase())) {
+                        foundTeamId = Number(idStr);
+                        break;
+                    }
+                }
+                
+                if (foundTeamId) {
+                    enriched.team_id = foundTeamId;
+                    enriched.team_name = TEAM_ID_TO_NAME[foundTeamId];
                 }
             }
         }

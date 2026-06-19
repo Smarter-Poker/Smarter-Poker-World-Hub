@@ -8,6 +8,7 @@ export default function MlbSubNav() {
         { label: 'Best Bets', href: '/hub/MLB-ANALYTICS/best-bets' },
         { label: 'Model Intel', href: '/hub/MLB-ANALYTICS/model-intel' },
         { label: 'Props', href: '/hub/MLB-ANALYTICS/props' },
+        { label: 'HR Tracker', href: '/hub/MLB-ANALYTICS/hr-tracker' },
         { label: 'Tracker', href: '/hub/MLB-ANALYTICS/tracker' },
         { label: 'Players', href: '/hub/MLB-ANALYTICS/players' },
         { label: 'Teams', href: '/hub/MLB-ANALYTICS/teams' },
