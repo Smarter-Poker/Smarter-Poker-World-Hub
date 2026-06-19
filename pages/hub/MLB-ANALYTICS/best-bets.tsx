@@ -1,7 +1,6 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import useSWR from 'swr';
 import { 
     ArrowLeft, X, TrendingUp, TrendingDown, Info, SearchX, CalendarX, 
@@ -353,6 +352,59 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     </div>
                 )}
 
+                {/* Hitter Profile */}
+                {isPlayerProp && !isPitcherProp && (
+                    <div className="px-4 py-3 border-b border-[#2a3a4a]">
+                        <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                            <Activity size={10} /> Hitter Profile
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                            {bet.hitter_avg != null && (
+                                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">AVG</div>
+                                    <div className="text-[18px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_avg).toFixed(3).replace(/^0/, '')}</div>
+                                </div>
+                            )}
+                            {bet.hitter_hr != null && (
+                                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">HR</div>
+                                    <div className="text-[18px] font-black text-[#FFD700]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{bet.hitter_hr}</div>
+                                </div>
+                            )}
+                            {bet.hitter_rbi != null && (
+                                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">RBI</div>
+                                    <div className="text-[18px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{bet.hitter_rbi}</div>
+                                </div>
+                            )}
+                            {bet.hitter_obp != null && (
+                                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">OBP</div>
+                                    <div className="text-[18px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_obp).toFixed(3).replace(/^0/, '')}</div>
+                                </div>
+                            )}
+                            {bet.hitter_slg != null && (
+                                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">SLG</div>
+                                    <div className="text-[18px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_slg).toFixed(3).replace(/^0/, '')}</div>
+                                </div>
+                            )}
+                            {bet.hitter_woba != null && (
+                                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">wOBA</div>
+                                    <div className="text-[18px] font-black text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{Number(bet.hitter_woba).toFixed(3).replace(/^0/, '')}</div>
+                                </div>
+                            )}
+                            {bet.hitter_wrc_plus != null && (
+                                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                                    <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 font-mono">wRC+</div>
+                                    <div className="text-[18px] font-black" style={{ fontFamily: '"Rajdhani", sans-serif', color: Number(bet.hitter_wrc_plus) >= 115 ? '#00D4FF' : '#8a9ba8' }}>{Math.round(Number(bet.hitter_wrc_plus))}</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Disclaimer */}
                 <div className="px-4 py-4 mt-auto">
                     <div className="text-[9px] text-[#5a6a7a] text-center leading-relaxed font-black tracking-wide font-mono uppercase">
@@ -370,13 +422,14 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
 // ──────────────────────────────────────────────────────────────────────────────
 const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () => void }) => {
     const { color: tierColor, bg: tierBg, border: tierBorder } = getTierColors(bet.bet_tier || '');
-    const { isPitcherProp } = detectBetCategory(bet);
+    const { isTeamBet, isPitcherProp } = detectBetCategory(bet);
+    const [imgError, setImgError] = useState(false);
 
     let lineStr = '';
     if (bet.line !== null && bet.line !== undefined) {
         const numLine = Number(bet.line);
-        const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-        const isSpread = typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
+        const spreadCheck = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
+        const isSpread = spreadCheck.includes('run_line') || spreadCheck.includes('runline') || spreadCheck.includes('spread');
         lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
     }
 
@@ -387,59 +440,129 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
     else if (typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread')) marketLabel = 'RL';
     else if (typeStr.includes('prop') || typeStr.includes('strikeout') || typeStr.includes('pitcher')) marketLabel = 'PROP';
 
+    // Image logic
+    const playerImageUrl = getPlayerImageUrl(bet.player_id);
+    const teamId = bet.team_id || (bet.team ? MLB_TEAM_IDS[bet.team?.toUpperCase()] : null);
+    const teamLogoUrl = getTeamLogoUrl(teamId);
+    const showPlayerImg = !isTeamBet && playerImageUrl && !imgError;
+    const showTeamLogo = !showPlayerImg && teamLogoUrl;
+
+    // Stat chips for pitchers
+    const pitcherStats: { label: string; value: string; color?: string }[] = [];
+    if (isPitcherProp) {
+        if (bet.pitcher_era != null) pitcherStats.push({ label: 'ERA', value: Number(bet.pitcher_era).toFixed(2), color: '#00D4FF' });
+        if (bet.pitcher_wins != null && bet.pitcher_losses != null) pitcherStats.push({ label: 'W-L', value: `${bet.pitcher_wins}-${bet.pitcher_losses}` });
+        if (bet.pitcher_so != null) pitcherStats.push({ label: 'K', value: String(bet.pitcher_so) });
+        if (bet.pitcher_whip != null) pitcherStats.push({ label: 'WHIP', value: Number(bet.pitcher_whip).toFixed(2) });
+        if (bet.pitcher_fip != null) pitcherStats.push({ label: 'FIP', value: Number(bet.pitcher_fip).toFixed(2) });
+    }
+
+    // Stat chips for hitters
+    const hitterStats: { label: string; value: string; color?: string }[] = [];
+    if (!isTeamBet && !isPitcherProp) {
+        if (bet.hitter_avg != null) hitterStats.push({ label: 'AVG', value: Number(bet.hitter_avg).toFixed(3).replace(/^0/, '') });
+        if (bet.hitter_hr != null) hitterStats.push({ label: 'HR', value: String(bet.hitter_hr), color: '#FFD700' });
+        if (bet.hitter_rbi != null) hitterStats.push({ label: 'RBI', value: String(bet.hitter_rbi) });
+        if (bet.hitter_obp != null) hitterStats.push({ label: 'OBP', value: Number(bet.hitter_obp).toFixed(3).replace(/^0/, '') });
+        if (bet.hitter_woba != null) hitterStats.push({ label: 'wOBA', value: Number(bet.hitter_woba).toFixed(3).replace(/^0/, ''), color: '#00D4FF' });
+        if (bet.hitter_wrc_plus != null) hitterStats.push({ label: 'wRC+', value: String(Math.round(Number(bet.hitter_wrc_plus))), color: Number(bet.hitter_wrc_plus) >= 115 ? '#00D4FF' : undefined });
+    }
+
+    const allStats = isPitcherProp ? pitcherStats : hitterStats;
+    const hasStats = allStats.length > 0;
+
     return (
         <div
-            className="flex items-center gap-2 px-3 py-2 border-b border-[#1a2530] last:border-b-0 cursor-pointer hover:bg-[#0d1420] active:bg-[#0a0f1a] transition-colors touch-manipulation group"
+            className="flex items-start gap-2 px-3 py-2.5 border-b border-[#1a2530] last:border-b-0 cursor-pointer hover:bg-[#0d1420] active:bg-[#0a0f1a] transition-colors touch-manipulation group"
             onClick={() => {
                 onClick();
                 if (navigator.vibrate) try { navigator.vibrate(8); } catch(e) {}
             }}
         >
-            {/* Left accent */}
-            <div className="w-[3px] h-8 rounded-full flex-shrink-0" style={{ background: tierColor, boxShadow: `0 0 6px ${tierColor}66` }} />
+            {/* Left accent bar */}
+            <div className="w-[3px] self-stretch rounded-full flex-shrink-0 mt-0.5" style={{ background: tierColor, boxShadow: `0 0 5px ${tierColor}66` }} />
 
             {/* Rank */}
-            <div className="text-[11px] font-black text-[#3d4f5f] w-4 text-center flex-shrink-0 font-mono">{rank}</div>
+            <div className="text-[10px] font-black text-[#3d4f5f] w-4 text-center flex-shrink-0 font-mono mt-1.5">{rank}</div>
 
-            {/* Market pill */}
-            <div
-                className="flex-shrink-0 px-1.5 py-0.5 rounded-sm text-[9px] font-black tracking-widest uppercase w-9 text-center"
-                style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}
-            >
-                {marketLabel}
+            {/* Player headshot or team logo */}
+            <div className="flex-shrink-0 mt-0.5">
+                {showPlayerImg ? (
+                    <div className="w-9 h-9 rounded-full overflow-hidden border-[1.5px] bg-[#0a0a15]" style={{ borderColor: tierColor }}>
+                        <img
+                            src={playerImageUrl!}
+                            alt={bet.player_name || bet.selection}
+                            className="w-full h-full object-cover object-top"
+                            onError={() => setImgError(true)}
+                        />
+                    </div>
+                ) : showTeamLogo ? (
+                    <div className="w-9 h-9 rounded-full bg-[#0a0a15] border border-[#2a3a4a] flex items-center justify-center p-1">
+                        <img
+                            src={teamLogoUrl!}
+                            alt={bet.team || 'MLB'}
+                            className="w-full h-full object-contain"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                    </div>
+                ) : (
+                    <div className="w-9 h-9 rounded-full bg-[#0a0a15] border border-[#2a3a4a] flex items-center justify-center" style={{ borderColor: `${tierColor}55` }}>
+                        <Target size={13} style={{ color: tierColor }} />
+                    </div>
+                )}
             </div>
 
-            {/* Selection */}
+            {/* Main content */}
             <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-black text-white uppercase tracking-wide truncate leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                    {bet.selection} {lineStr}
+                {/* Market pill + selection */}
+                <div className="flex items-center gap-1.5 mb-0.5">
+                    <div
+                        className="flex-shrink-0 px-1.5 py-0 rounded-sm text-[8px] font-black tracking-widest uppercase leading-5"
+                        style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}
+                    >
+                        {marketLabel}
+                    </div>
+                    <div className="text-[13px] font-black text-white uppercase tracking-wide truncate leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                        {bet.selection} {lineStr}
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
+
+                {/* Stat chips */}
+                {hasStats && (
+                    <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
+                        {allStats.map((s, i) => (
+                            <span key={i} className="text-[9px] font-black font-mono">
+                                <span className="text-[#3d4f5f]">{s.label} </span>
+                                <span style={{ color: s.color || '#8a9ba8' }}>{s.value}</span>
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                {/* Win% + EV + Book */}
+                <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-black text-[#5a6a7a] font-mono">{formatWinPct(bet.win_confidence)} win</span>
                     {bet.ev_pct !== null && bet.ev_pct !== undefined && (
                         <span className="text-[10px] font-black font-mono" style={{ color: Number(bet.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B' }}>
                             {Number(bet.ev_pct) > 0 ? '+' : ''}{Number(bet.ev_pct).toFixed(1)}% EV
                         </span>
                     )}
-                    {isPitcherProp && bet.pitcher_era != null && (
-                        <span className="text-[10px] font-black text-[#FFD700] font-mono">
-                            ERA {Number(bet.pitcher_era).toFixed(2)}
-                        </span>
+                    {bet.best_book && (
+                        <span className="text-[9px] font-black text-[#3d4f5f] font-mono uppercase">{bet.best_book}</span>
                     )}
                 </div>
             </div>
 
             {/* Right: Score + Odds */}
-            <div className="flex-shrink-0 text-right flex flex-col items-end">
-                <div className="text-[20px] font-black leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', color: tierColor }}>
+            <div className="flex-shrink-0 text-right flex flex-col items-end gap-0.5 ml-1">
+                <div className="text-[22px] font-black leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', color: tierColor }}>
                     {bet.bet_score}
                 </div>
-                <div className="text-[12px] font-black text-slate-300 font-mono leading-none mt-0.5">
+                <div className="text-[12px] font-black text-slate-300 font-mono leading-none">
                     {formatOdds(bet.best_price)}
                 </div>
+                <ChevronRight size={12} className="text-[#3d4f5f] group-hover:text-[#00D4FF] transition-colors" />
             </div>
-
-            <ChevronRight size={14} className="flex-shrink-0 text-[#3d4f5f] group-hover:text-[#00D4FF] transition-colors" />
         </div>
     );
 };
@@ -457,8 +580,8 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
     const awayTeamId = MLB_TEAM_IDS[awayTeamAbbr.toUpperCase()];
     const homeTeamId = MLB_TEAM_IDS[homeTeamAbbr.toUpperCase()];
 
-    // Try to get team names from first bet
-    const firstBet = bets[0];
+    // Try to get team names from first bet (unused but kept for future use)
+    // const firstBet = bets[0];
 
     // Best score in this game group
     const topScore = Math.max(...bets.map(b => Number(b.bet_score) || 0));

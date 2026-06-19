@@ -15,12 +15,17 @@ async function edgeHandler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
+        const todayStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Chicago',
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date());
+
         // Fetch teams, advanced stats, dimension info, and current market edges
         const [teamsRes, aggRes, dimRes, predRes, hittersRes, pitchersRes] = await Promise.all([
             mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
             mlbDb.from('agg_team').select('team_id, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa').eq('window_kind', 'season'),
             mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'),
-            mlbDb.from('pred_props').select('player_id, edge_pts').gt('edge_pts', 0),
+            mlbDb.from('pred_props').select('player_id, edge_pts').gt('edge_pts', 0).gte('as_of_ts', `${todayStr}T00:00:00`),
             mlbDb.from('v_hitter_profile').select('player_id, team_id'),
             mlbDb.from('v_pitcher_profile').select('player_id, team_id')
         ]);

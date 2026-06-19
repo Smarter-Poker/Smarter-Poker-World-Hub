@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // DO NOT use NEXT_PUBLIC variables here. We want to ensure this is ONLY used Server-Side
 // to protect the MLB database keys from being shipped to the client bundle.
 
-const supabaseUrl = process.env.MLB_SUPABASE_URL || 'https://nscdmxldtyszyvcxxwgr.supabase.co';
+const supabaseUrl = process.env.MLB_SUPABASE_URL || process.env.NEXT_PUBLIC_MLB_SUPABASE_URL || 'https://nscdmxldtyszyvcxxwgr.supabase.co';
 const supabaseServiceKey = process.env.MLB_SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY; // Requires env setup on Vercel
 
 export const getMlbSupabase = () => {

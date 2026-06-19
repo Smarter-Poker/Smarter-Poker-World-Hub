@@ -37,7 +37,7 @@ async function edgeHandler(req: Request) {
         return new Response(JSON.stringify({
             hitters: hittersResult.data || [],
             pitchers: pitchersResult.data || [],
-            fetchError: false
+            fetchError: !!hittersResult.error || !!pitchersResult.error
         }), {
             status: 200,
             headers: {

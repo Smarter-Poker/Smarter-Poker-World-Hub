@@ -21,7 +21,7 @@ async function edgeHandler(req: Request) {
                 .from('agg_team')
                 .select('team_id, era, avg, fip')
                 .eq('window_kind', 'season')
-                .order('created_at', { ascending: false }),
+                .order('as_of', { ascending: false }),
         ]);
 
         if (standingsRes.error) {

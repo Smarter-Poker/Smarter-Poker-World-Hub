@@ -61,7 +61,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     const [hittersResult, pitchersResult, aggPitcherResult] = await Promise.allSettled([
         mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits'),
         mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera'),
-        mlbDb.from('agg_pitcher').select('player_id, full_name, era, w, l, so, war, whip').order('as_of', { ascending: false }).limit(500),
+        mlbDb.from('agg_pitcher').select('pitcher_id, era, w, l, as_of').eq('window_kind', 'fg_season').order('as_of', { ascending: false }).limit(500),
     ]);
 
     const hitters: any[] = hittersResult.status === 'fulfilled' ? (hittersResult.value.data || []) : [];
@@ -79,21 +79,15 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         if (p.full_name) pitcherMap.set(p.full_name.toLowerCase().trim(), p);
     });
 
-    // agg_pitcher: deduplicate by player_id (take most recent)
+    // agg_pitcher: deduplicate by pitcher_id (take most recent)
     const aggPitcherMap = new Map<number, any>();
     aggPitchers.forEach((ap: any) => {
-        if (ap.player_id && !aggPitcherMap.has(ap.player_id)) {
-            aggPitcherMap.set(ap.player_id, ap);
+        if (ap.pitcher_id && !aggPitcherMap.has(ap.pitcher_id)) {
+            aggPitcherMap.set(ap.pitcher_id, ap);
         }
     });
 
-    // Build agg_pitcher by name too (fallback)
-    const aggPitcherByName = new Map<string, any>();
-    aggPitchers.forEach((ap: any) => {
-        if (ap.full_name && !aggPitcherByName.has(ap.full_name.toLowerCase().trim())) {
-            aggPitcherByName.set(ap.full_name.toLowerCase().trim(), ap);
-        }
-    });
+    // Remove aggPitcherByName since agg_pitcher doesn't reliably have full_name anymore
 
     return betsArr.map((bet: BetRow) => {
         const { isTeamBet, isPitcherProp } = detectBetType(bet);
@@ -134,13 +128,11 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
                 if (isPitcherProp) {
                     // Pitcher stats
-                    const aggData = aggPitcherMap.get(playerRecord.player_id) || aggPitcherByName.get(playerRecord.full_name?.toLowerCase().trim());
+                    const aggData = aggPitcherMap.get(playerRecord.player_id);
                     if (aggData) {
                         enriched.pitcher_era = aggData.era;
                         enriched.pitcher_wins = aggData.w;
                         enriched.pitcher_losses = aggData.l;
-                        enriched.pitcher_so = aggData.so;
-                        enriched.pitcher_whip = aggData.whip;
                     }
                     const pitcherProfileData = pitcherMap.get(playerRecord.full_name?.toLowerCase().trim());
                     if (pitcherProfileData) {

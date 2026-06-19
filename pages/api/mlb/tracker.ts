@@ -15,12 +15,17 @@ async function edgeHandler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch from raw_games table
-        // Sorting by start_time to show live/upcoming games first
+        const todayStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Chicago',
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date());
+
         const { data, error } = await mlbDb
             .from('raw_games')
             .select('*')
-            .order('start_time', { ascending: true });
+            .gte('start_time', `${todayStr}T00:00:00Z`)
+            .order('start_time', { ascending: true })
+            .limit(50);
 
         if (error) {
             console.warn('[API/MLB/Tracker] Error fetching games from raw_games:', error.message);
