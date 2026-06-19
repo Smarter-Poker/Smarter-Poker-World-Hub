@@ -128,6 +128,15 @@ export default function PlayersPage() {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('Regular Hitters');
+    const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
+
+    const uniqueTeams = useMemo(() => {
+        const teams = new Set<number>();
+        hitters.forEach((p: PlayerProfile) => p.team_id && teams.add(p.team_id));
+        pitchers.forEach((p: PlayerProfile) => p.team_id && teams.add(p.team_id));
+        // Common MLB team IDs usually range from 108 to 158.
+        return Array.from(teams).sort((a, b) => a - b);
+    }, [hitters, pitchers]);
 
     const filteredPlayers = useMemo(() => {
         let list: PlayerProfile[] = [];
@@ -139,14 +148,21 @@ export default function PlayersPage() {
             list = pitchers;
         }
 
+        if (selectedTeam) {
+            list = list.filter((p: PlayerProfile) => p.team_id === selectedTeam);
+        }
+
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             list = list.filter((p: PlayerProfile) => p.full_name?.toLowerCase().includes(query));
         }
         
-        // Optimization: limit the initial render list to prevent DOM bloat on search
-        return list.slice(0, 500); 
-    }, [hitters, pitchers, activeTab, searchQuery]);
+        return list; 
+    }, [hitters, pitchers, activeTab, searchQuery, selectedTeam]);
+
+    const DISPLAY_LIMIT = 50;
+    const isCapped = !selectedTeam && filteredPlayers.length > DISPLAY_LIMIT;
+    const visiblePlayers = isCapped ? filteredPlayers.slice(0, DISPLAY_LIMIT) : filteredPlayers;
 
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
 
@@ -205,15 +221,18 @@ export default function PlayersPage() {
                        inputMode="search"
                        placeholder="SEARCH PLAYERS BY NAME..." 
                        value={searchQuery}
-                       onChange={e => setSearchQuery(e.target.value)}
+                       onChange={e => {
+                           setSearchQuery(e.target.value);
+                           if (e.target.value && selectedTeam) setSelectedTeam(null);
+                       }}
                        className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 pl-12 pr-12 text-white font-extrabold text-sm tracking-widest uppercase focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600"
                    />
-                   {searchQuery && (
+                   {(searchQuery || selectedTeam) && (
                        <button 
-                           onClick={() => setSearchQuery('')}
-                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                           onClick={() => { setSearchQuery(''); setSelectedTeam(null); }}
+                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00D4FF] transition-colors flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase"
                        >
-                           <X size={18} />
+                           CLEAR <X size={14} />
                        </button>
                    )}
                </div>
@@ -225,7 +244,7 @@ export default function PlayersPage() {
                    {tabs.map(tab => (
                        <button 
                            key={tab}
-                           onClick={() => { setActiveTab(tab); setSearchQuery(''); }}
+                           onClick={() => { setActiveTab(tab); }}
                            className={`w-full md:w-auto px-4 py-3 md:py-2 rounded-md font-extrabold text-[13px] md:text-[11px] uppercase tracking-widest whitespace-nowrap transition-all ${
                                activeTab === tab 
                                    ? 'bg-gradient-to-b from-[#00D4FF]/20 to-[#1a2332] border-[2px] border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)]' 
@@ -266,34 +285,62 @@ export default function PlayersPage() {
                                 </div>
                             ))}
                         </div>
-                   ) : filteredPlayers.length > 0 ? (
-                       filteredPlayers.map((player: PlayerProfile) => (
-                           <PlayerCard 
-                               key={player.player_id} 
-                               player={player} 
-                               type={activeTab === 'Pitchers' ? 'pitchers' : 'hitters'} 
-                           />
-                       ))
-                   ) : (
-                       !fetchError && (
-                           <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center">
-                               <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
-                                   <Search size={28} className="text-[#3d4f5f]" />
-                               </div>
-                               <div className="text-slate-400 font-extrabold text-sm tracking-widest uppercase mb-4" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                   {searchQuery ? `NO PLAYERS FOUND MATCHING "${searchQuery}"` : "NO PLAYERS FOUND"}
-                               </div>
-                               {searchQuery && (
-                                   <button 
-                                       onClick={() => setSearchQuery('')}
-                                       className="bg-[#1a2332] text-white border border-[#3d4f5f] px-4 py-2 rounded-sm text-[10px] font-extrabold tracking-widest uppercase hover:bg-[#3d4f5f] transition-colors"
-                                   >
-                                       CLEAR QUERY
-                                   </button>
-                               )}
-                           </div>
-                       )
-                   )}
+                    ) : !searchQuery && !selectedTeam ? (
+                        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                            <h2 className="text-sm font-extrabold text-white mb-6 uppercase tracking-widest text-center" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Select a Team</h2>
+                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-4">
+                                {uniqueTeams.map((teamId) => (
+                                    <button
+                                        key={teamId}
+                                        onClick={() => setSelectedTeam(teamId)}
+                                        className="aspect-square bg-[#1a2332] border-[2px] border-[#3d4f5f] rounded-xl p-2 hover:border-[#00D4FF] hover:bg-[#0d1117] hover:shadow-[0_0_15px_rgba(0,212,255,0.4),inset_0_2px_10px_rgba(0,0,0,0.5)] transition-all flex flex-col items-center justify-center group relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 w-8 h-8 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[15px] opacity-0 group-hover:opacity-40 transition-opacity"></div>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img 
+                                            src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`} 
+                                            alt={`Team ${teamId}`}
+                                            className="w-10 h-10 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover:scale-110 transition-transform duration-300"
+                                            loading="lazy"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : visiblePlayers.length > 0 ? (
+                        <div className="space-y-3">
+                            {visiblePlayers.map((player: PlayerProfile) => (
+                                <PlayerCard 
+                                    key={player.player_id} 
+                                    player={player} 
+                                    type={activeTab === 'Pitchers' ? 'pitchers' : 'hitters'} 
+                                />
+                            ))}
+                            
+                            {isCapped && (
+                                <div className="text-center py-6 pb-8 text-slate-500 font-extrabold text-[11px] tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                    Showing Top {DISPLAY_LIMIT} Results. Keep Typing To Refine Your Search.
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        !fetchError && (
+                            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center">
+                                <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+                                    <Search size={28} className="text-[#3d4f5f]" />
+                                </div>
+                                <div className="text-slate-400 font-extrabold text-sm tracking-widest uppercase mb-4" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                    {searchQuery ? `NO PLAYERS FOUND MATCHING "${searchQuery}"` : "NO PLAYERS FOUND FOR THIS TEAM"}
+                                </div>
+                                <button 
+                                    onClick={() => { setSearchQuery(''); setSelectedTeam(null); }}
+                                    className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[12px] font-extrabold tracking-widest uppercase hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
+                                >
+                                    CLEAR FILTERS
+                                </button>
+                            </div>
+                        )
+                    )}
                </div>
 
            </div>

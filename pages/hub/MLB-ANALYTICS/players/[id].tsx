@@ -94,9 +94,40 @@ export default function PlayerProfilePage() {
                </div>
 
                {isLoading || !profile ? (
-                   <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-                       <Loader2 className="w-10 h-10 animate-spin text-[#00D4FF] mx-auto mb-4" />
-                       <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Accessing Profile Vault...</div>
+                   <div className="animate-pulse">
+                       {/* Hero Skeleton */}
+                       <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.5)] mb-6 flex flex-col md:flex-row items-center gap-6">
+                           <div className="w-32 h-32 rounded-full bg-[#1a2332] border-[3px] border-[#3d4f5f] shrink-0" />
+                           <div className="flex-1 text-center md:text-left space-y-3 w-full">
+                               <div className="w-24 h-5 bg-[#1a2332] rounded mx-auto md:mx-0" />
+                               <div className="w-64 h-10 bg-[#1a2332] rounded mx-auto md:mx-0" />
+                               <div className="w-32 h-4 bg-[#1a2332] rounded mx-auto md:mx-0" />
+                           </div>
+                       </div>
+
+                       {/* Primary Metrics Skeleton */}
+                       <div className="w-40 h-5 bg-[#3d4f5f] rounded mb-4" />
+                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                           {[1, 2, 3].map(i => (
+                               <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24">
+                                   <div className="w-16 h-3 bg-[#1a2332] rounded mb-2" />
+                                   <div className="w-20 h-8 bg-[#1a2332] rounded mt-4" />
+                               </div>
+                           ))}
+                       </div>
+
+                       {/* Secondary Metrics Skeleton */}
+                       <div className="w-48 h-5 bg-[#3d4f5f] rounded mb-4" />
+                       <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4">
+                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                   <div key={i} className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 h-16">
+                                       <div className="w-12 h-2 bg-[#3d4f5f] rounded mb-2" />
+                                       <div className="w-16 h-5 bg-[#3d4f5f] rounded mt-2" />
+                                   </div>
+                               ))}
+                           </div>
+                       </div>
                    </div>
                ) : (
                    <>
