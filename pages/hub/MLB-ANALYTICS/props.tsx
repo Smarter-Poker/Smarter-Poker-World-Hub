@@ -11,7 +11,7 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 import { playerHeadshot, teamLogo } from '../../../src/lib/mlb_data';
-import BetScoreBadge from '../../../src/components/mlb/BetScoreBadge';
+import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 
 function probToAmericanOdds(prob: number | null | undefined): string {
     if (!prob || prob <= 0 || prob >= 1) return '—';
