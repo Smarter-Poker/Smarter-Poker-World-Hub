@@ -39,7 +39,7 @@ const TeamLogo = ({ teamId, teamName }: { teamId: string, teamName: string }) =>
                 unoptimized 
                 width={48} 
                 height={48} 
-                src={`https://nscdmxldtyszyvcxxwgr.supabase.co/storage/v1/object/public/team-logos/${teamId}.svg`} 
+                src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`} 
                 alt={teamName} 
                 className="shrink-0"
                 style={{ objectFit: 'contain' }}
