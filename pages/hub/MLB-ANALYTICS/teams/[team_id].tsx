@@ -64,7 +64,7 @@ export default function TeamDetailPage() {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Team Detail - Error" description="Data fetch failed" />
-                <UniversalHeader pageDepth={3} />
+                <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
                     <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
@@ -85,7 +85,7 @@ export default function TeamDetailPage() {
     if (!data && isValidating) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
-                <UniversalHeader pageDepth={3} />
+                <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <div className="flex-1 flex items-center justify-center min-h-[50vh]">
                     <Activity className="w-12 h-12 text-[#00D4FF] animate-pulse" />
@@ -104,7 +104,7 @@ export default function TeamDetailPage() {
     if (!team && data) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
-                <UniversalHeader pageDepth={3} />
+                <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[50vh]">
                     <h2 className="text-xl font-bold text-white mb-4">Team Not Found</h2>
@@ -118,7 +118,7 @@ export default function TeamDetailPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead title={`Smarter.Poker | MLB Team | ${team?.name || 'Loading...'}`} description={`Advanced MLB analytics for ${team?.name}`} />
-            <UniversalHeader pageDepth={3} />
+            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
             <MlbSubNav />
             
             <style dangerouslySetInnerHTML={{__html: `

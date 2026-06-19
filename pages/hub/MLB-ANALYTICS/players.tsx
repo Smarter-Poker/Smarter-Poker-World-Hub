@@ -9,6 +9,19 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 
+const fuzzyMatch = (str: string, query: string) => {
+    if (!query) return true;
+    if (!str) return false;
+    let i = 0, j = 0;
+    const s = str.toLowerCase();
+    const q = query.toLowerCase();
+    while (i < s.length && j < q.length) {
+        if (s[i] === q[j]) j++;
+        i++;
+    }
+    return j === q.length;
+};
+
 export interface PlayerProfile {
     player_id: number;
     full_name: string;
@@ -127,6 +140,7 @@ export default function PlayersPage() {
     const fetchError = error || data?.fetchError || data?.error;
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [activeTab, setActiveTab] = useState('Regular Hitters');
     const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
 
@@ -153,8 +167,16 @@ export default function PlayersPage() {
         }
 
         if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            list = list.filter((p: PlayerProfile) => p.full_name?.toLowerCase().includes(query));
+            const query = searchQuery.trim();
+            list = list.filter((p: PlayerProfile) => fuzzyMatch(p.full_name || '', query));
+            
+            // Sort to put exact substring matches first
+            const lowerQuery = query.toLowerCase();
+            list.sort((a, b) => {
+                const aExact = a.full_name?.toLowerCase().includes(lowerQuery) ? 1 : 0;
+                const bExact = b.full_name?.toLowerCase().includes(lowerQuery) ? 1 : 0;
+                return bExact - aExact;
+            });
         }
         
         return list; 
@@ -163,6 +185,7 @@ export default function PlayersPage() {
     const DISPLAY_LIMIT = 50;
     const isCapped = !selectedTeam && filteredPlayers.length > DISPLAY_LIMIT;
     const visiblePlayers = isCapped ? filteredPlayers.slice(0, DISPLAY_LIMIT) : filteredPlayers;
+    const suggestions = searchQuery.length >= 3 ? filteredPlayers.slice(0, 5) : [];
 
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
 
@@ -221,19 +244,52 @@ export default function PlayersPage() {
                        inputMode="search"
                        placeholder="SEARCH PLAYERS BY NAME..." 
                        value={searchQuery}
+                       onFocus={() => setShowSuggestions(true)}
+                       onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                        onChange={e => {
                            setSearchQuery(e.target.value);
                            if (e.target.value && selectedTeam) setSelectedTeam(null);
+                           setShowSuggestions(true);
                        }}
-                       className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 pl-12 pr-12 text-white font-extrabold text-sm tracking-widest uppercase focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600"
+                       className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 pl-12 pr-12 text-white font-extrabold text-sm tracking-widest uppercase focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600 relative z-20"
                    />
                    {(searchQuery || selectedTeam) && (
                        <button 
                            onClick={() => { setSearchQuery(''); setSelectedTeam(null); }}
-                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00D4FF] transition-colors flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase"
+                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00D4FF] transition-colors flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase z-30"
                        >
                            CLEAR <X size={14} />
                        </button>
+                   )}
+                   
+                   {/* Suggestions Dropdown */}
+                   {showSuggestions && searchQuery.length >= 3 && suggestions.length > 0 && (
+                       <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[100] overflow-hidden divide-y divide-[#3d4f5f]">
+                           <div className="px-4 py-2 bg-[#1a2332] text-slate-400 text-[10px] font-extrabold tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                               Top Suggestions
+                           </div>
+                           {suggestions.map(p => (
+                               <Link 
+                                   key={p.player_id} 
+                                   href={`/hub/MLB-ANALYTICS/players/${p.player_id}`}
+                                   className="flex items-center gap-3 p-3 hover:bg-[#1a2332] transition-colors group"
+                                   style={{ textDecoration: 'none' }}
+                               >
+                                   {p.team_id ? (
+                                       // eslint-disable-next-line @next/next/no-img-element
+                                       <img src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`} className="w-8 h-8 object-contain drop-shadow-md" alt="Team" />
+                                   ) : (
+                                       <div className="w-8 h-8 rounded-full bg-[#3d4f5f]" />
+                                   )}
+                                   <div className="flex flex-col">
+                                       <span className="text-white font-extrabold tracking-widest text-sm uppercase group-hover:text-[#00D4FF] transition-colors" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                           {p.full_name}
+                                       </span>
+                                   </div>
+                                   <ChevronRight size={16} className="ml-auto text-slate-500 group-hover:text-[#00D4FF] transition-colors" />
+                               </Link>
+                           ))}
+                       </div>
                    )}
                </div>
 

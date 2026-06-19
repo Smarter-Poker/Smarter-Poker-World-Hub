@@ -57,7 +57,7 @@ export default function PlayerProfilePage() {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] text-slate-200">
-                <UniversalHeader pageDepth={3} />
+                <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/players')} />
                 <MlbSubNav />
                 <div className="p-8 text-center">
                     <div className="text-red-500 font-extrabold text-2xl uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Error Loading Player</div>
@@ -79,7 +79,7 @@ export default function PlayerProfilePage() {
                 noIndex={true}
             />
 
-            <UniversalHeader pageDepth={3} />
+            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/players')} />
             <MlbSubNav />
 
             <div className="p-4 w-full max-w-4xl mx-auto box-border relative">

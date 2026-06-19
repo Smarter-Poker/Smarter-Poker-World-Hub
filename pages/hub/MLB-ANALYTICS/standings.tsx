@@ -1,4 +1,5 @@
 import React from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -18,6 +19,7 @@ const fetcher = async (url: string) => {
 };
 
 export default function StandingsPage() {
+    const router = useRouter();
     const { data, error, isLoading } = useSWR('/api/mlb/standings', fetcher, {
         refreshInterval: 60000,
     });
@@ -31,7 +33,7 @@ export default function StandingsPage() {
                 <title>MLB Standings | Smarter.Poker Hub</title>
                 <meta name="description" content="Live MLB Standings and Power Rankings" />
             </Head>
-            <UniversalHeader pageDepth={2} />
+            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
             <MlbSubNav />
             
             <main className="max-w-7xl mx-auto px-4 py-8">
