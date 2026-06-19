@@ -3,10 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 const sb = createClient(process.env.MLB_SUPABASE_URL || 'https://nscdmxldtyszyvcxxwgr.supabase.co', process.env.MLB_SUPABASE_SERVICE_KEY);
 async function run() {
-  const h = await sb.from('v_hitter_profile').select('*').eq('player_id', 687462);
-  console.log('Spencer Horwitz:', h);
-
-  const p = await sb.from('agg_pitcher').select('*').eq('pitcher_id', 605488);
-  console.log('Jeffrey Springs:', p);
+  const ab = await sb.from('agg_batter').select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus').eq('batter_id', 687462).eq('window_kind', 'fg_season').limit(1);
+  console.log('agg_batter Spencer Horwitz:', ab);
 }
 run();

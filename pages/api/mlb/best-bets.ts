@@ -32,7 +32,28 @@ interface BetRow {
     win_confidence?: number;
     bet_type?: string;
     selection?: string;
-    [key: string]: any;
+    market?: string;
+    player_name?: string;
+    team?: string;
+    team_name?: string;
+    matchup?: string;
+    player_id?: number;
+    team_id?: number;
+    pitcher_era?: number | null;
+    pitcher_wins?: number | null;
+    pitcher_losses?: number | null;
+    pitcher_fip?: number | null;
+    pitcher_siera?: number | null;
+    hitter_woba?: number | null;
+    hitter_wrc_plus?: number | null;
+    hitter_pa?: number | null;
+    hitter_avg?: number | null;
+    hitter_hr?: number | null;
+    hitter_rbi?: number | null;
+    hitter_obp?: number | null;
+    hitter_slg?: number | null;
+    hitter_h?: number | null;
+    [key: string]: unknown; // Allow other properties safely
 }
 
 // Detect if a bet is a player prop vs team bet
@@ -59,9 +80,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
     // Fetch all hitter and pitcher profiles concurrently (lightweight, cached)
     const [hittersResult, pitchersResult, aggPitcherResult] = await Promise.allSettled([
-        mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits'),
-        mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera'),
-        mlbDb.from('agg_pitcher').select('pitcher_id, era, w, l, as_of').eq('window_kind', 'fg_season').order('as_of', { ascending: false }).limit(500),
+        mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits').limit(5000),
+        mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera').limit(5000),
+        mlbDb.from('agg_pitcher').select('pitcher_id, era, w, l, as_of').eq('window_kind', 'fg_season').order('as_of', { ascending: false }).limit(2000),
     ]);
 
     const hitters: any[] = hittersResult.status === 'fulfilled' ? (hittersResult.value.data || []) : [];
@@ -175,10 +196,16 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
                 // Find matching team ID by iterating over TEAM_ID_TO_NAME values
                 let foundTeamId: number | null = null;
                 const searchName = actualTeamName.toLowerCase().trim();
-                for (const [idStr, name] of Object.entries(TEAM_ID_TO_NAME)) {
-                    if (name.toLowerCase() === searchName || searchName.includes(name.toLowerCase())) {
-                        foundTeamId = Number(idStr);
-                        break;
+                const upperSearchName = actualTeamName.toUpperCase().trim();
+                if (MLB_TEAM_IDS[upperSearchName]) {
+                    foundTeamId = MLB_TEAM_IDS[upperSearchName];
+                } else {
+                    for (const [idStr, name] of Object.entries(TEAM_ID_TO_NAME)) {
+                        const lowerName = name.toLowerCase();
+                        if (lowerName === searchName || searchName.includes(lowerName)) {
+                            foundTeamId = Number(idStr);
+                            break;
+                        }
                     }
                 }
                 

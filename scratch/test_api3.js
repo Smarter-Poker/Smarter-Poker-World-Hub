@@ -1,6 +1,6 @@
 require('dotenv').config({ path: '.env.local' });
 require('ts-node').register({ transpileOnly: true });
-const { getSlate } = require('./src/lib/mlb_data.ts');
+const { getSlate } = require('../src/lib/mlb_data.ts');
 
 async function run() {
     try {

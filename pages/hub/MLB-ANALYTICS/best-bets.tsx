@@ -13,14 +13,9 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 
 const fetcher = async (url: string) => {
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return await res.json();
-    } catch (err) {
-        logError('SWR Fetch', err);
-        throw err;
-    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return res.json();
 };
 
 // MLB team abbreviation → team_id mapping for logos
@@ -295,13 +290,21 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 </div>
 
                 {/* Analysis */}
-                {bet.score_factors && bet.score_factors.length > 0 && (
-                    <div className="px-4 py-3 border-b border-[#2a3a4a]">
-                        <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest font-mono">
-                            {bet.score_verdict || 'Analysis'}
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            {bet.score_factors.map((factor: any, i: number) => (
+                {(() => {
+                    let factors: any[] = [];
+                    if (typeof bet.score_factors === 'string') {
+                        try { factors = JSON.parse(bet.score_factors); } catch {}
+                    } else if (Array.isArray(bet.score_factors)) {
+                        factors = bet.score_factors;
+                    }
+                    if (!factors || factors.length === 0) return null;
+                    return (
+                        <div className="px-4 py-3 border-b border-[#2a3a4a]">
+                            <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest font-mono">
+                                {bet.score_verdict || 'Analysis'}
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                {factors.map((factor: any, i: number) => (
                                 <div key={i} className="flex gap-2.5 items-start bg-[#0a0f1a] p-2.5 rounded-sm border border-[#2a3a4a]">
                                     <div className="mt-0.5 flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-sm border border-[#3d4f5f] bg-[#0d1117]">
                                         {factor.dir === 'up' && <TrendingUp size={10} className="text-[#00D4FF]" />}
@@ -315,7 +318,8 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                             ))}
                         </div>
                     </div>
-                )}
+                    );
+                })()}
 
                 {/* Pitcher Profile */}
                 {isPitcherProp && (
@@ -574,17 +578,14 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
     const [collapsed, setCollapsed] = useState(false);
 
     // Extract team names from matchup "MIL @ ATL" format
-    const parts = matchup ? matchup.split('@').map((s: string) => s.trim()) : [];
+    const parts = matchup && matchup.includes('@') ? matchup.split('@').map((s: string) => s.trim()) : [];
     const awayTeamAbbr = parts[0] || '';
     const homeTeamAbbr = parts[1] || '';
-    const awayTeamId = MLB_TEAM_IDS[awayTeamAbbr.toUpperCase()];
-    const homeTeamId = MLB_TEAM_IDS[homeTeamAbbr.toUpperCase()];
-
-    // Try to get team names from first bet (unused but kept for future use)
-    // const firstBet = bets[0];
+    const awayTeamId = awayTeamAbbr ? MLB_TEAM_IDS[awayTeamAbbr.toUpperCase()] : null;
+    const homeTeamId = homeTeamAbbr ? MLB_TEAM_IDS[homeTeamAbbr.toUpperCase()] : null;
 
     // Best score in this game group
-    const topScore = Math.max(...bets.map(b => Number(b.bet_score) || 0));
+    const topScore = bets.length > 0 ? Math.max(...bets.map(b => Number(b.bet_score) || 0)) : 0;
 
     // Top tier
     const haElite = bets.some(b => b.bet_tier === 'ELITE');
@@ -685,7 +686,6 @@ export default function BestBetsPage() {
     const closeModal = useCallback(() => setSelectedBet(null), []);
 
     if (error || data?.error) {
-        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Error" description="Data fetch failed" />
@@ -797,7 +797,7 @@ export default function BestBetsPage() {
 
             <div className="w-full max-w-2xl mx-auto">
                 {/* Filter Tabs */}
-                <div className="flex gap-1.5 overflow-x-auto px-3 py-2.5 border-b border-[#1a2530]" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+                <div className="flex gap-1.5 overflow-x-auto px-3 py-2.5 border-b border-[#1a2530] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
                     {['ALL', 'ML', 'TOTAL', 'RUN LINE', 'PROPS'].map(f => (
                         <button
                             key={f}

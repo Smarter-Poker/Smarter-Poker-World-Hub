@@ -27,15 +27,17 @@ async function edgeHandler(req: Request) {
 
         if (!todayCheck || todayCheck.length === 0) {
             // No props for today yet — find the most recent available date
+            // agg_pitcher: ERA/W/L from fg_season (pitcher_id is the key, NOT player_id)
             const { data: latestRow } = await mlbDb
-                .from('pred_props')
-                .select('as_of_ts')
-                .lte('as_of_ts', `${todayStr}T23:59:59`)
-                .order('as_of_ts', { ascending: false })
+                .from('agg_pitcher')
+                .select('pitcher_id, era, w, l, as_of')
+                .eq('window_kind', 'season')
+                .order('as_of', { ascending: false })
                 .limit(1)
                 .maybeSingle();
-            if (latestRow?.as_of_ts) {
-                slateDate = latestRow.as_of_ts.slice(0, 10);
+
+            if (latestRow?.as_of) {
+                slateDate = latestRow.as_of.slice(0, 10);
             }
         }
 
