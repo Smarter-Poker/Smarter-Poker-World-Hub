@@ -3,10 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 
 const CURRENT_SEASON = new Date().getFullYear();
 
-const supabase = createClient(
+// mlb_hr_cache lives in the MAIN smarter.poker Supabase project, not the MLB analytics project
+const getMainSupabase = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
 );
+
+const supabase = getMainSupabase();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {

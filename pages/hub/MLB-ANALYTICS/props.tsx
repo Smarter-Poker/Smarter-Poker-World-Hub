@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { CalendarX, SearchX, Loader2, TrendingUp } from 'lucide-react';
+import { CalendarX, SearchX, TrendingUp } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -23,16 +23,17 @@ const fetcher = async (url: string) => {
     }
 };
 
-const FILTERS = ['ALL', 'STRIKEOUTS', 'HOME RUNS', 'HITS', 'TOTAL BASES', 'EARNED RUNS'];
+const FILTERS = ['ALL', 'STRIKEOUTS', 'HOME RUNS', 'HITS', 'TOTAL BASES', 'EARNED RUNS', 'RUNS'];
 
 function matchesFilter(p: any, filter: string): boolean {
     if (filter === 'ALL') return true;
     const market = (p.prop_type || p.prop || '').toLowerCase();
-    if (filter === 'STRIKEOUTS') return market.includes('strikeout') || market.includes('pitcher_strikeout');
-    if (filter === 'HOME RUNS') return market.includes('home_run') || market.includes('home run') || market.includes('hr');
+    if (filter === 'STRIKEOUTS') return market.includes('strikeout') || market.includes('pitcher_strikeout') || market.includes('so') || market.includes('k_');  
+    if (filter === 'HOME RUNS') return market.includes('home_run') || market.includes('home run') || market === 'hr' || market.startsWith('hrr');
     if (filter === 'HITS') return market === 'hits' || market.includes('_hits') || market.startsWith('hitter_hits');
-    if (filter === 'TOTAL BASES') return market.includes('total_base') || market.includes('tb');
-    if (filter === 'EARNED RUNS') return market.includes('earned_run') || market.includes('er');
+    if (filter === 'TOTAL BASES') return market.includes('total_base') || market.includes('tb') || market.startsWith('tb_');
+    if (filter === 'EARNED RUNS') return market.includes('earned_run') || market.includes('er') && market.includes('run');
+    if (filter === 'RUNS') return market === 'runs' || market === 'runs_scored' || (market.includes('run') && !market.includes('earned'));
     return false;
 }
 
@@ -148,16 +149,19 @@ const PropCard = ({ prop, idx }: { prop: any; idx: number }) => {
     const tier = TIER(edge);
     const isOver = prop.rec === 'over' || (prop.model_proj != null && prop.line != null && Number(prop.model_proj) > Number(prop.line));
     const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
+    const market = (prop.prop_type || prop.prop || '').toLowerCase();
     const isPitcher = prop.player_kind === 'pitcher' ||
-        (prop.prop_type || '').toLowerCase().includes('pitcher') ||
-        (prop.prop_type || '').toLowerCase().includes('earned_run') ||
-        (prop.prop_type || '').toLowerCase().includes('strikeout');
+        market.includes('pitcher') ||
+        market.includes('earned_run') ||
+        market.includes('strikeout') ||
+        market === 'runs_allowed' ||
+        market === 'outs_recorded';
     const stats = prop.stats || {};
 
     return (
         <div
             className="relative bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-lg overflow-hidden transition-all hover:border-[#00D4FF] group"
-            style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px_12px rgba(0,0,0,0.6)' }}
+            style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.6)' }}
         >
             {/* Left tier accent bar */}
             <div
@@ -261,31 +265,31 @@ const PropCard = ({ prop, idx }: { prop: any; idx: number }) => {
                 {/* ── Player Stats Row ── */}
                 <div className="border-t border-[#2a3a4a] pt-2.5">
                     {isPitcher ? (
-                        // Pitcher stats
+                        // Pitcher stats (ERA/WHIP/W/L/SO from agg_pitcher; FIP/SIERA from v_pitcher_profile)
                         <div className="flex gap-1.5 flex-wrap">
-                            {stats.era != null && <StatPill label="ERA" value={fmtStat(stats.era, 2)} color="#00D4FF" />}
-                            {stats.fip != null && <StatPill label="FIP" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />}
-                            {stats.k_per_9 != null && <StatPill label="K/9" value={fmtStat(stats.k_per_9, 1)} color="#22C55E" />}
-                            {stats.bb_per_9 != null && <StatPill label="BB/9" value={fmtStat(stats.bb_per_9, 1)} color="#8a9ba8" />}
-                            {stats.whip != null && <StatPill label="WHIP" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />}
-                            {stats.w != null && stats.l != null && <StatPill label="W-L" value={`${stats.w}-${stats.l}`} color="#e2e8f0" />}
-                            {/* If no pitcher stats at all, show a note */}
-                            {stats.era == null && stats.fip == null && stats.k_per_9 == null && (
+                            {stats.era  != null && <StatPill label="ERA"   value={fmtStat(stats.era,  2)} color="#00D4FF" />}
+                            {stats.whip != null && <StatPill label="WHIP"  value={fmtStat(stats.whip, 2)} color="#e2e8f0" />}
+                            {stats.fip  != null && <StatPill label="FIP"   value={fmtStat(stats.fip,  2)} color="#8a9ba8" />}
+                            {stats.siera!= null && <StatPill label="SIERA" value={fmtStat(stats.siera,2)} color="#8a9ba8" />}
+                            {stats.so   != null && <StatPill label="SO"    value={String(Math.round(stats.so))} color="#22C55E" />}
+                            {stats.w != null && stats.l != null && <StatPill label="W-L" value={`${Math.round(stats.w)}-${Math.round(stats.l)}`} color="#e2e8f0" />}
+                            {stats.era == null && stats.fip == null && stats.whip == null && (
                                 <span className="text-[10px] font-black text-[#3d4f5f] tracking-widest uppercase self-center">STATS PENDING</span>
                             )}
                         </div>
                     ) : (
-                        // Hitter stats
+                        // Hitter stats (counting stats from splits JSON in v_hitter_profile)
                         <div className="flex gap-1.5 flex-wrap">
-                            {stats.avg != null && <StatPill label="AVG" value={fmtAvg(stats.avg)} color="#00D4FF" />}
-                            {stats.hr != null && <StatPill label="HR" value={String(Math.round(stats.hr))} color="#FFD700" />}
-                            {stats.rbi != null && <StatPill label="RBI" value={String(Math.round(stats.rbi))} color="#22C55E" />}
-                            {stats.obp != null && <StatPill label="OBP" value={fmtAvg(stats.obp)} color="#8a9ba8" />}
-                            {stats.slg != null && <StatPill label="SLG" value={fmtAvg(stats.slg)} color="#8a9ba8" />}
-                            {stats.wrc_plus != null && <StatPill label="wRC+" value={String(Math.round(stats.wrc_plus))} color="#e2e8f0" />}
-                            {stats.woba != null && <StatPill label="wOBA" value={fmtAvg(stats.woba)} color="#8a9ba8" />}
-                            {/* If no hitter stats at all */}
-                            {stats.avg == null && stats.hr == null && stats.rbi == null && (
+                            {stats.avg     != null && <StatPill label="AVG"  value={fmtAvg(stats.avg)}                   color="#00D4FF" />}
+                            {stats.hr      != null && <StatPill label="HR"   value={String(Math.round(stats.hr))}         color="#FFD700" />}
+                            {stats.rbi     != null && <StatPill label="RBI"  value={String(Math.round(stats.rbi))}        color="#22C55E" />}
+                            {stats.obp     != null && <StatPill label="OBP"  value={fmtAvg(stats.obp)}                   color="#8a9ba8" />}
+                            {stats.slg     != null && <StatPill label="SLG"  value={fmtAvg(stats.slg)}                   color="#8a9ba8" />}
+                            {stats.wrc_plus!= null && <StatPill label="wRC+" value={String(Math.round(stats.wrc_plus))}  color="#e2e8f0" />}
+                            {stats.woba    != null && <StatPill label="wOBA" value={fmtAvg(stats.woba)}                  color="#8a9ba8" />}
+                            {/* Fallback: show wRC+/wOBA even when splits unavailable */}
+                            {stats.avg == null && stats.hr == null && stats.rbi == null &&
+                             stats.wrc_plus == null && stats.woba == null && (
                                 <span className="text-[10px] font-black text-[#3d4f5f] tracking-widest uppercase self-center">STATS PENDING</span>
                             )}
                         </div>
@@ -311,7 +315,7 @@ export default function PropsPage() {
         setTodayStr(formatter.format(new Date()));
     }, []);
 
-    const { data, error, isLoading, mutate } = useSWR('/api/mlb/props', fetcher, {
+    const { data, error, isLoading } = useSWR('/api/mlb/props', fetcher, {
         refreshInterval: 60000,
     });
 

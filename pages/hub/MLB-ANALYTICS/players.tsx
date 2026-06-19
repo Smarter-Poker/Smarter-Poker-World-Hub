@@ -1,9 +1,8 @@
 import { useRouter } from 'next/router';
 import { useState, useMemo, useEffect } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ChevronRight, Search, X, AlertTriangle, Loader2, Activity } from 'lucide-react';
+import { ChevronRight, Search, X, AlertTriangle, Activity } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -129,7 +128,7 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                                     </span>
                                     <span className="text-slate-600 text-xs">|</span>
                                     <span className="text-slate-400 text-[11px] font-bold tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                        {player.bf || 0} BF
+                                         {player.bf != null ? player.bf : 'N/A'} BF
                                     </span>
                                 </>
                             ) : (
@@ -143,7 +142,7 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                                     </span>
                                     <span className="text-slate-600 text-xs">|</span>
                                     <span className="text-slate-400 text-[11px] font-bold tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                        {player.pa || 0} PA
+                                         {player.pa != null ? player.pa : 'N/A'} PA
                                     </span>
                                 </>
                             )}
@@ -315,7 +314,9 @@ export default function PlayersPage() {
 
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
 
-    const hasError = !!error || !!fetchError;
+    // fetchError is a soft API-level error (DB failures). SWR's `error` is a network error.
+    // Only show full-screen error on network failure — DB partial errors show the inline banner.
+    const hasError = !!error;
 
     if (hasError) {
         return (
@@ -418,10 +419,7 @@ export default function PlayersPage() {
                    )}
                </div>
 
-               <div className="flex flex-col md:flex-row gap-2 mb-6 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-                   <style jsx>{`
-                       div::-webkit-scrollbar { display: none; }
-                   `}</style>
+               <div className="flex flex-col md:flex-row gap-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
                    {tabs.map(tab => (
                        <button 
                            key={tab}
@@ -536,7 +534,7 @@ export default function PlayersPage() {
                                         {standingsMap.get(selectedTeam)?.name ?? `Team ${selectedTeam}`}
                                     </span>
                                     <button
-                                        onClick={() => setSelectedTeam(null)}
+                                        onClick={() => { setSelectedTeam(null); setSearchQuery(''); }}
                                         className="ml-auto text-slate-500 hover:text-[#00D4FF] text-[10px] font-extrabold tracking-widest uppercase flex items-center gap-1 transition-colors"
                                     >
                                         Change Team <X size={12} />
