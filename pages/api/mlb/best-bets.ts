@@ -145,7 +145,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
                 enriched.player_id = playerRecord.player_id;
                 enriched.player_name = playerRecord.full_name;
                 enriched.team_id = playerRecord.team_id;
-                enriched.team_name = TEAM_ID_TO_NAME[playerRecord.team_id] || undefined;
+                enriched.team_name = playerRecord.team_id ? TEAM_ID_TO_NAME[playerRecord.team_id] : undefined;
 
                 if (isPitcherProp) {
                     // Pitcher stats
