@@ -19,6 +19,16 @@ const TEAM_ID_TO_NAME: Record<number, string> = {
     146: 'Miami Marlins', 147: 'New York Yankees', 158: 'Milwaukee Brewers',
 };
 
+// Fallback abbreviation lookup
+const MLB_TEAM_IDS: Record<string, number> = {
+    'NYY': 147, 'BOS': 111, 'TOR': 141, 'BAL': 110, 'TBR': 139, 'TB': 139,
+    'HOU': 117, 'TEX': 140, 'OAK': 133, 'LAA': 108, 'SEA': 136,
+    'CLE': 114, 'MIN': 142, 'CWS': 145, 'CHW': 145, 'DET': 116, 'KCR': 118, 'KC': 118,
+    'ATL': 144, 'NYM': 121, 'PHI': 143, 'MIA': 146, 'WSN': 120, 'WAS': 120,
+    'MIL': 158, 'CHC': 112, 'STL': 138, 'CIN': 113, 'PIT': 134,
+    'LAD': 119, 'SF': 137, 'SFG': 137, 'ARI': 109, 'COL': 115, 'SDP': 135, 'SD': 135,
+};
+
 interface BetRow {
     edge?: number;
     bet_score?: number;

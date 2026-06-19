@@ -35,8 +35,8 @@ export default async function handler(req: Request) {
         ] = await Promise.all([
             mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
             mlbDb.from('pred_props').select('as_of_ts').order('as_of_ts', { ascending: false }).limit(1),
-            // raw_games for game slate
-            mlbDb.from('raw_games').select('*').eq('official_date', todayStr).order('event_time', { ascending: true })
+            // v_daily_slate for game slate
+            mlbDb.from('v_daily_slate').select('*').eq('official_date', todayStr).order('event_time', { ascending: true })
         ]);
 
         if (slateResult.error) {
