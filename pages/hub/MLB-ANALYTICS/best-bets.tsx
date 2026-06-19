@@ -139,21 +139,21 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     <div className="relative mb-3">
                         {isTeamBet ? (
                             teamLogoUrl ? (
-                                <div className="w-20 h-20 flex items-center justify-center bg-[#0d1117] rounded-full border-2 border-[#3d4f5f] p-2.5 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-                                    <img src={teamLogoUrl} alt={bet.team || 'MLB'} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                <div className="w-32 h-32 flex items-center justify-center bg-[#0d1117] rounded-full border-4 border-[#3d4f5f] p-3 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                                    <img src={teamLogoUrl} alt={bet?.team || 'MLB'} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                 </div>
                             ) : (
-                                <div className="w-20 h-20 flex items-center justify-center bg-[#0d1117] rounded-full border-2 border-[#3d4f5f]">
-                                    <span className="text-2xl font-black text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>MLB</span>
+                                <div className="w-32 h-32 flex items-center justify-center bg-[#0d1117] rounded-full border-4 border-[#3d4f5f]">
+                                    <span className="text-3xl font-black text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>MLB</span>
                                 </div>
                             )
                         ) : playerImageUrl ? (
-                            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 shadow-[0_0_20px_rgba(0,0,0,0.6)]" style={{ borderColor: tierColor }}>
-                                <img src={playerImageUrl} alt={bet.player_name || bet.selection} className="w-full h-full object-cover object-top" onError={() => setImgError(true)} />
+                            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 shadow-[0_0_30px_rgba(0,0,0,0.6)]" style={{ borderColor: tierColor }}>
+                                <img src={playerImageUrl} alt={bet?.player_name || bet?.selection} className="w-full h-full object-cover object-top" onError={() => setImgError(true)} />
                             </div>
                         ) : (
-                            <div className="w-20 h-20 flex items-center justify-center bg-[#0d1117] rounded-full border-2" style={{ borderColor: tierColor }}>
-                                <Target size={32} style={{ color: tierColor }} />
+                            <div className="w-32 h-32 flex items-center justify-center bg-[#0d1117] rounded-full border-4" style={{ borderColor: tierColor }}>
+                                <Target size={48} style={{ color: tierColor }} />
                             </div>
                         )}
                         <div 
@@ -164,18 +164,18 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                         </div>
                     </div>
 
-                    <div className="text-center">
-                        <div className="text-[22px] font-black text-white uppercase tracking-wider mb-0.5" style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '18px' }}>
-                            {bet.player_name || bet.selection?.split(' ').slice(0, -1).join(' ') || bet.team || 'Unknown'}
+                    <div className="text-center mt-2">
+                        <div className="text-[26px] font-black text-white uppercase tracking-wider mb-0.5" style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '22px' }}>
+                            {bet?.player_name || bet?.selection?.split(' ').slice(0, -1).join(' ') || bet?.team || 'Unknown'}
                         </div>
-                        {!isTeamBet && bet.team_name && (
-                            <div className="inline-flex items-center gap-1 bg-[#0d1117] border border-[#3d4f5f] px-2.5 py-0.5 rounded-sm mt-1">
-                                <div className="w-1.5 h-1.5 rounded-full" style={{ background: tierColor }} />
-                                <span className="text-[10px] font-black text-slate-300 tracking-wider uppercase">{bet.team_name}</span>
+                        {!isTeamBet && bet?.team_name && (
+                            <div className="inline-flex items-center gap-1.5 bg-[#0d1117] border border-[#3d4f5f] px-3 py-1 rounded-sm mt-1">
+                                <div className="w-2 h-2 rounded-full" style={{ background: tierColor }} />
+                                <span className="text-[12px] font-black text-slate-300 tracking-wider uppercase">{bet.team_name}</span>
                             </div>
                         )}
-                        {bet.matchup && (
-                            <div className="text-[10px] font-black text-[#5a6a7a] mt-1.5 tracking-widest uppercase ">{bet.matchup}</div>
+                        {bet?.matchup && (
+                            <div className="text-[12px] font-black text-[#5a6a7a] mt-2 tracking-widest uppercase">{bet.matchup}</div>
                         )}
                     </div>
                 </div>
@@ -186,8 +186,8 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
                             <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">Selection</div>
-                            <div className="text-[14px] font-black text-white uppercase leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                {bet.selection} {lineStr}
+                            <div className="text-[20px] font-black text-white uppercase leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                {bet?.selection} {lineStr}
                             </div>
                         </div>
                         <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
@@ -307,12 +307,12 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                                 {factors.map((factor: any, i: number) => (
                                 <div key={i} className="flex gap-2.5 items-start bg-[#0a0f1a] p-2.5 rounded-sm border border-[#2a3a4a]">
                                     <div className="mt-0.5 flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-sm border border-[#3d4f5f] bg-[#0d1117]">
-                                        {factor.dir === 'up' && <TrendingUp size={10} className="text-[#00D4FF]" />}
-                                        {factor.dir === 'down' && <TrendingDown size={10} className="text-[#FF6B6B]" />}
-                                        {factor.dir === 'info' && <Info size={10} className="text-slate-400" />}
+                                        {factor?.dir === 'up' && <TrendingUp size={10} className="text-[#00D4FF]" />}
+                                        {factor?.dir === 'down' && <TrendingDown size={10} className="text-[#FF6B6B]" />}
+                                        {factor?.dir === 'info' && <Info size={10} className="text-slate-400" />}
                                     </div>
-                                    <div className="text-[11px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1 ">
-                                        {factor.text}
+                                    <div className="text-[12px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1 ">
+                                        {factor?.text}
                                     </div>
                                 </div>
                             ))}
@@ -337,7 +337,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                             {wins !== null && losses !== null && (
                                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                                     <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">W–L</div>
-                                    <div className="text-[18px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{wins}–{losses}</div>
+                                    <div className="text-[24px] font-black text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{wins}–{losses}</div>
                                 </div>
                             )}
                             {bet.pitcher_fip !== null && bet.pitcher_fip !== undefined && (
@@ -492,42 +492,42 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
             {/* Player headshot or team logo */}
             <div className="flex-shrink-0 mt-0.5">
                 {showPlayerImg ? (
-                    <div className="w-9 h-9 rounded-full overflow-hidden border-[1.5px] bg-[#0a0a15]" style={{ borderColor: tierColor }}>
+                    <div className="w-14 h-14 rounded-full overflow-hidden border-[2px] bg-[#0a0a15]" style={{ borderColor: tierColor }}>
                         <img
                             src={playerImageUrl!}
-                            alt={bet.player_name || bet.selection}
+                            alt={bet?.player_name || bet?.selection}
                             className="w-full h-full object-cover object-top"
                             onError={() => setImgError(true)}
                         />
                     </div>
                 ) : showTeamLogo ? (
-                    <div className="w-9 h-9 rounded-full bg-[#0a0a15] border border-[#2a3a4a] flex items-center justify-center p-1">
+                    <div className="w-14 h-14 rounded-full bg-[#0a0a15] border-2 border-[#2a3a4a] flex items-center justify-center p-1.5">
                         <img
                             src={teamLogoUrl!}
-                            alt={bet.team || 'MLB'}
+                            alt={bet?.team || 'MLB'}
                             className="w-full h-full object-contain"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                     </div>
                 ) : (
-                    <div className="w-9 h-9 rounded-full bg-[#0a0a15] border border-[#2a3a4a] flex items-center justify-center" style={{ borderColor: `${tierColor}55` }}>
-                        <Target size={13} style={{ color: tierColor }} />
+                    <div className="w-14 h-14 rounded-full bg-[#0a0a15] border-2 border-[#2a3a4a] flex items-center justify-center" style={{ borderColor: `${tierColor}55` }}>
+                        <Target size={20} style={{ color: tierColor }} />
                     </div>
                 )}
             </div>
 
             {/* Main content */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 ml-1">
                 {/* Market pill + selection */}
-                <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="flex items-center gap-2 mb-1">
                     <div
-                        className="flex-shrink-0 px-1.5 py-0 rounded-sm text-[8px] font-black tracking-widest uppercase leading-5"
+                        className="flex-shrink-0 px-2 py-0.5 rounded-sm text-[9px] font-black tracking-widest uppercase leading-5"
                         style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}
                     >
                         {marketLabel}
                     </div>
-                    <div className="text-[13px] font-black text-white uppercase tracking-wide truncate leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                        {bet.selection} {lineStr}
+                    <div className="text-[18px] font-black text-white uppercase tracking-wide truncate leading-tight" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                        {bet?.selection} {lineStr}
                     </div>
                 </div>
 
@@ -590,11 +590,18 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
     const propBets: any[] = [];
     for (const bet of bets) {
         const typeStr = ((bet.market || '') + ' ' + (bet.bet_type || '')).toLowerCase();
-        const isTeam = typeStr.includes('moneyline') || typeStr.includes('ml') || typeStr.includes('h2h') || typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread') || typeStr.includes('total') || typeStr.includes('over') || typeStr.includes('under');
-        if (isTeam) {
-            teamBets.push(bet);
-        } else {
+        
+        // Accurate detection of props vs game lines
+        const isProp = bet.bet_type === 'prop' || typeStr.includes('prop') || 
+                       typeStr.includes('pitcher') || typeStr.includes('player') || 
+                       typeStr.includes('total_bases') || typeStr.includes('hits') || 
+                       typeStr.includes('rbi') || typeStr.includes('home_run') ||
+                       typeStr.includes('strikeout') || typeStr.includes('outs_recorded');
+                       
+        if (isProp) {
             propBets.push(bet);
+        } else {
+            teamBets.push(bet);
         }
     }
 
@@ -624,25 +631,25 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
             >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                     {/* Team logos */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                         {awayTeamId && (
-                            <div className="w-7 h-7 bg-[#0a0a15] border border-[#2a3a4a] rounded-full flex items-center justify-center p-0.5">
+                            <div className="w-12 h-12 bg-[#0a0a15] border border-[#2a3a4a] rounded-full flex items-center justify-center p-1">
                                 <img src={getTeamLogoUrl(awayTeamId) || ''} alt={awayTeamAbbr} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             </div>
                         )}
-                        <span className="text-[9px] font-black text-[#5a6a7a] ">@</span>
+                        <span className="text-[12px] font-black text-[#5a6a7a] font-mono">@</span>
                         {homeTeamId && (
-                            <div className="w-7 h-7 bg-[#0a0a15] border border-[#2a3a4a] rounded-full flex items-center justify-center p-0.5">
+                            <div className="w-12 h-12 bg-[#0a0a15] border border-[#2a3a4a] rounded-full flex items-center justify-center p-1">
                                 <img src={getTeamLogoUrl(homeTeamId) || ''} alt={homeTeamAbbr} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             </div>
                         )}
                     </div>
 
-                    <div className="flex-1 min-w-0 text-left">
-                        <div className="text-[12px] font-black text-white uppercase tracking-[0.12em] truncate" style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '11px' }}>
+                    <div className="flex-1 min-w-0 text-left ml-1">
+                        <div className="text-[16px] font-black text-white uppercase tracking-[0.12em] truncate" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             {matchup}
                         </div>
-                        <div className="text-[9px] font-black text-[#5a6a7a]  tracking-widest">
+                        <div className="text-[10px] font-black text-[#5a6a7a] tracking-widest mt-0.5">
                             {bets.length} BET{bets.length !== 1 ? 'S' : ''} · TOP SCORE: <span style={{ color: groupTierColor }}>{topScore}</span>
                         </div>
                     </div>
