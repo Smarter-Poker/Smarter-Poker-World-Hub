@@ -39,42 +39,13 @@ async function edgeHandler(req: Request) {
             }
         }
 
-        // ── Fetch all data concurrently ───────────────────────────────────────
-        //
-        // CONFIRMED view columns:
-        //   v_hitter_profile  → player_id, full_name, team_id
-        //   agg_batter        → batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus
-        //   v_pitcher_profile → player_id, full_name, team_id, fip, siera
-        //   agg_pitcher       → pitcher_id, w, l, era, so, h, bb, ip, as_of
-        //
-        const [propsRes, hittersRes, pitchersRes, teamsRes, aggPitcherRes, aggBatterRes] = await Promise.all([
-            mlbDb
-                .from('pred_props')
-                .select('game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, market_novig_over, edge_pts, best_price, best_book, rec')
-                .gte('as_of_ts', `${slateDate}T00:00:00`)
-                .lte('as_of_ts', `${slateDate}T23:59:59`)
-                .order('edge_pts', { ascending: false, nullsFirst: false }),
-
-            mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id'),
-
-            mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera'),
-
-            mlbDb.from('dim_teams').select('team_id, abbr'),
-
-            mlbDb
-                .from('agg_pitcher')
-                .select('pitcher_id, w, l, era, so, h, bb, ip, as_of')
-                .eq('window_kind', 'fg_season')
-                .order('as_of', { ascending: false })
-                .limit(3000),
-
-            mlbDb
-                .from('agg_batter')
-                .select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus, as_of')
-                .eq('window_kind', 'fg_season')
-                .order('as_of', { ascending: false })
-                .limit(3000),
-        ]);
+        // ── 1. Fetch Props First ──────────────────────────────────────────────
+        const propsRes = await mlbDb
+            .from('pred_props')
+            .select('game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, market_novig_over, edge_pts, best_price, best_book, rec')
+            .gte('as_of_ts', `${slateDate}T00:00:00`)
+            .lte('as_of_ts', `${slateDate}T23:59:59`)
+            .order('edge_pts', { ascending: false, nullsFirst: false });
 
         if (propsRes.error) {
             console.error('[API/MLB/Props] pred_props error:', propsRes.error);
@@ -83,6 +54,27 @@ async function edgeHandler(req: Request) {
                 headers: { 'Content-Type': 'application/json' },
             });
         }
+
+        const rawProps = propsRes.data || [];
+        
+        // Extract unique player_ids
+        const uniquePlayerIds = [...new Set(rawProps.map(p => p.player_id).filter((id): id is number => id != null))];
+
+        // ── 2. Fetch Player Profiles & Stats ONLY for relevant players ────────
+        // This avoids the 1000 max-rows limit per query on Supabase PostgREST
+        
+        const [hittersRes, pitchersRes, teamsRes, aggPitcherRes, aggBatterRes] = await Promise.all([
+            // Hitters view
+            uniquePlayerIds.length > 0 ? mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id').in('player_id', uniquePlayerIds).limit(1000) : { data: [] },
+            // Pitchers view
+            uniquePlayerIds.length > 0 ? mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera').in('player_id', uniquePlayerIds).limit(1000) : { data: [] },
+            // All teams
+            mlbDb.from('dim_teams').select('team_id, abbr').limit(100),
+            // Pitcher stats
+            uniquePlayerIds.length > 0 ? mlbDb.from('agg_pitcher').select('pitcher_id, w, l, era, so, h, bb, ip, as_of').eq('window_kind', 'fg_season').in('pitcher_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
+            // Batter stats
+            uniquePlayerIds.length > 0 ? mlbDb.from('agg_batter').select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus, as_of').eq('window_kind', 'fg_season').in('batter_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
+        ]);
 
         const hitters = hittersRes.data || [];
         const pitchers = pitchersRes.data || [];
@@ -161,7 +153,7 @@ async function edgeHandler(req: Request) {
                 slg:      agg?.slg      ?? null,
                 woba:     agg?.woba     ?? null,
                 wrc_plus: agg?.wrc_plus ?? null,
-                pa:       null, // PA not fetched from agg_batter, rarely needed anyway
+                pa:       null,
             });
         }
 
@@ -185,37 +177,31 @@ async function edgeHandler(req: Request) {
         }
 
         // ── Fallback: dim_players for any still-unresolved player_ids ─────────
-        const unresolvedIds = (propsRes.data || [])
-            .map(p => p.player_id)
-            .filter((id): id is number => id != null && !playerMap.has(id));
+        const unresolvedIds = uniquePlayerIds.filter(id => !playerMap.has(id));
 
         if (unresolvedIds.length > 0) {
-            const uniqueIds = [...new Set(unresolvedIds)];
-            for (let i = 0; i < uniqueIds.length; i += 500) {
-                const batch = uniqueIds.slice(i, i + 500);
-                const { data: fallback } = await mlbDb
-                    .from('dim_players')
-                    .select('player_id, full_name')
-                    .in('player_id', batch);
-                for (const f of (fallback || [])) {
-                    if (f.player_id && !playerMap.has(f.player_id)) {
-                        playerMap.set(f.player_id, {
-                            name: f.full_name || `Player #${f.player_id}`,
-                            team: '', team_id: null, kind: 'hitter',
-                        });
-                    }
+            const { data: fallback } = await mlbDb
+                .from('dim_players')
+                .select('player_id, full_name')
+                .in('player_id', unresolvedIds);
+            for (const f of (fallback || [])) {
+                if (f.player_id && !playerMap.has(f.player_id)) {
+                    playerMap.set(f.player_id, {
+                        name: f.full_name || `Player #${f.player_id}`,
+                        team: '', team_id: null, kind: 'hitter',
+                    });
                 }
-                // Final safety: never show "Unknown"
-                for (const id of batch) {
-                    if (!playerMap.has(id)) {
-                        playerMap.set(id, { name: `Player #${id}`, team: '', team_id: null, kind: 'hitter' });
-                    }
+            }
+            // Final safety: never show "Unknown"
+            for (const id of unresolvedIds) {
+                if (!playerMap.has(id)) {
+                    playerMap.set(id, { name: `Player #${id}`, team: '', team_id: null, kind: 'hitter' });
                 }
             }
         }
 
         // ── Map + enrich props ────────────────────────────────────────────────
-        const mappedProps = (propsRes.data || []).map(p => {
+        const mappedProps = rawProps.map(p => {
             const info = playerMap.get(p.player_id) || {
                 name: p.player_id ? `Player #${p.player_id}` : 'TBA',
                 team: '', team_id: null, kind: 'hitter' as const,
