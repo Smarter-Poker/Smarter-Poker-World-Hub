@@ -59,9 +59,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
     // Fetch all hitter and pitcher profiles concurrently (lightweight, cached)
     const [hittersResult, pitchersResult, aggPitcherResult] = await Promise.allSettled([
-        mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id'),
+        mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits'),
         mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera'),
-        mlbDb.from('agg_pitcher').select('player_id, full_name, era, w, l, so, war').order('as_of', { ascending: false }).limit(500),
+        mlbDb.from('agg_pitcher').select('player_id, full_name, era, w, l, so, war, whip').order('as_of', { ascending: false }).limit(500),
     ]);
 
     const hitters: any[] = hittersResult.status === 'fulfilled' ? (hittersResult.value.data || []) : [];
@@ -132,21 +132,42 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
                 enriched.team_id = playerRecord.team_id;
                 enriched.team_name = TEAM_ID_TO_NAME[playerRecord.team_id] || null;
 
-                // Pitcher-specific stats
                 if (isPitcherProp) {
+                    // Pitcher stats
                     const aggData = aggPitcherMap.get(playerRecord.player_id) || aggPitcherByName.get(playerRecord.full_name?.toLowerCase().trim());
                     if (aggData) {
                         enriched.pitcher_era = aggData.era;
                         enriched.pitcher_wins = aggData.w;
                         enriched.pitcher_losses = aggData.l;
                         enriched.pitcher_so = aggData.so;
+                        enriched.pitcher_whip = aggData.whip;
                     }
-                    // Also attach FIP/SIERA from v_pitcher_profile
                     const pitcherProfileData = pitcherMap.get(playerRecord.full_name?.toLowerCase().trim());
                     if (pitcherProfileData) {
                         enriched.pitcher_fip = pitcherProfileData.fip;
                         enriched.pitcher_siera = pitcherProfileData.siera;
                     }
+                } else {
+                    // Hitter stats — extract from splits JSON or top-level fields
+                    enriched.hitter_woba = playerRecord.woba ?? null;
+                    enriched.hitter_wrc_plus = playerRecord.wrc_plus ?? null;
+                    enriched.hitter_pa = playerRecord.pa ?? null;
+                    // Extract season counting stats from splits if available
+                    try {
+                        const splits = typeof playerRecord.splits === 'string'
+                            ? JSON.parse(playerRecord.splits)
+                            : playerRecord.splits;
+                        // splits may be an object with 'season' or 'overall' keys
+                        const season = splits?.season || splits?.overall || splits?.fg_season || splits?.total || splits?.[0] || null;
+                        if (season) {
+                            enriched.hitter_avg = season.avg ?? season.BA ?? season.batting_avg ?? null;
+                            enriched.hitter_hr = season.hr ?? season.HR ?? season.home_runs ?? null;
+                            enriched.hitter_rbi = season.rbi ?? season.RBI ?? null;
+                            enriched.hitter_obp = season.obp ?? season.OBP ?? null;
+                            enriched.hitter_slg = season.slg ?? season.SLG ?? null;
+                            enriched.hitter_h = season.h ?? season.H ?? season.hits ?? null;
+                        }
+                    } catch { /* splits parsing failed, skip */ }
                 }
             }
 
