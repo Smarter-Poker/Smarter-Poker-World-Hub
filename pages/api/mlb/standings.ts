@@ -14,22 +14,43 @@ async function edgeHandler(req: Request) {
 
     try {
         const mlbDb = getMlbSupabase();
-        
-        const { data, error } = await mlbDb
-            .from('v_mlb_standings')
-            .select('*');
 
-        if (error) {
-            console.warn('[API/MLB/Standings] Error fetching standings:', error.message);
+        const [standingsRes, aggRes] = await Promise.all([
+            mlbDb.from('v_mlb_standings').select('*'),
+            mlbDb
+                .from('agg_team')
+                .select('team_id, era, avg, fip')
+                .eq('window_kind', 'season')
+                .order('created_at', { ascending: false }),
+        ]);
+
+        if (standingsRes.error) {
+            console.warn('[API/MLB/Standings] Error fetching standings:', standingsRes.error.message);
             return new Response(JSON.stringify({ teams: [] }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' }
             });
         }
 
-        return new Response(JSON.stringify({ 
-            teams: data || []
-        }), {
+        // Build a map of latest agg stats per team (ordered desc so first = latest)
+        const aggMap = new Map<number, { era: number | null; avg: number | null; fip: number | null }>();
+        (aggRes.data || []).forEach((row: any) => {
+            if (!aggMap.has(row.team_id)) {
+                aggMap.set(row.team_id, { era: row.era, avg: row.avg, fip: row.fip });
+            }
+        });
+
+        // Merge agg stats into standings (view may already have era/avg if migration ran)
+        const teams = (standingsRes.data || []).map((t: any) => {
+            const agg = aggMap.get(t.team_id) || {};
+            return {
+                ...t,
+                era: t.era ?? agg.era ?? null,
+                team_avg: t.team_avg ?? agg.avg ?? null,
+            };
+        });
+
+        return new Response(JSON.stringify({ teams }), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
@@ -44,6 +65,7 @@ async function edgeHandler(req: Request) {
         });
     }
 }
+
 
 
 import { NextApiRequest, NextApiResponse } from 'next';
