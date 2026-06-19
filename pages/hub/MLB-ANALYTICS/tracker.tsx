@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { createClient } from '@supabase/supabase-js';
+
 import { ArrowLeft, Activity, SearchX, CalendarX, Loader2, Radio } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -116,24 +116,6 @@ export default function TrackerPage() {
     const { data, error, isLoading, mutate } = useSWR('/api/mlb/tracker', fetcher, {
         refreshInterval: 15000,
     });
-
-    useEffect(() => {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-        
-        if (!supabaseUrl || !supabaseAnonKey) return;
-        
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const channel = supabase.channel('realtime:raw_games')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'raw_games' }, () => {
-                mutate();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [mutate]);
 
 
     if (error || data?.error) {

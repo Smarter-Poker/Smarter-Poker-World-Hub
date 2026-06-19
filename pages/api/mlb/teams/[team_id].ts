@@ -69,7 +69,7 @@ export default async function handler(req: Request) {
         (pitchersRes.data || []).forEach(p => { if (p.player_id) playerMap.set(p.player_id, p.full_name); });
         
         const playerIds = Array.from(playerMap.keys());
-        let propsData = [];
+        let propsData: any[] = [];
 
         if (playerIds.length > 0) {
             const { data } = await mlbDb
