@@ -29,9 +29,9 @@ export default async function handler(req: Request) {
         const todayStr = formatter.format(new Date());
 
         const [
-            { data: topBets, error: betsErr },
-            { data: pipelineData, error: pipelineErr },
-            { data: slateGames, error: slateErr }
+            topBetsResult,
+            pipelineResult,
+            slateResult
         ] = await Promise.all([
             mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
             mlbDb.from('pred_props').select('as_of_ts').order('as_of_ts', { ascending: false }).limit(1),
@@ -39,13 +39,18 @@ export default async function handler(req: Request) {
             mlbDb.from('raw_games').select('*').eq('official_date', todayStr).order('start_time', { ascending: true })
         ]);
 
-        const lastUpdate = pipelineData && pipelineData.length > 0 ? pipelineData[0].as_of_ts : null;
+        if (slateResult.error) {
+            console.error('[API/MLB/Dashboard] Error fetching slateGames:', slateResult.error);
+            throw new Error(`Failed to fetch slate games: ${slateResult.error.message}`);
+        }
+
+        const lastUpdate = pipelineResult.data && pipelineResult.data.length > 0 ? pipelineResult.data[0].as_of_ts : null;
 
         return new Response(JSON.stringify({
             todayStr,
-            topBets: topBets || [],
+            topBets: topBetsResult.data || [],
             lastUpdate,
-            slateGames: slateGames || []
+            slateGames: slateResult.data || []
         }), {
             status: 200,
             headers: {
@@ -54,9 +59,9 @@ export default async function handler(req: Request) {
             }
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('[API/MLB/Dashboard] Error fetching dashboard data:', error);
-        return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+        return new Response(JSON.stringify({ error: error?.message || 'Internal Server Error' }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         });
