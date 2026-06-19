@@ -39,13 +39,16 @@ const MLB_TEAM_IDS: Record<string, number> = {
 // Detect if a bet is a player prop (not a team bet)
 const detectBetCategory = (bet: any) => {
     const type = (bet.bet_type || '').toLowerCase();
-    const isTeamBet = type === 'moneyline' || type === 'ml' || type === 'total' || 
-                      type === 'run_line' || type === 'runline' || type === 'spread';
     const isPitcherProp = type.includes('pitcher') || type.includes('strikeout') || 
-                           type.includes('outs_recorded') || type.includes('ip_');
-    const isPlayerProp = !isTeamBet && (type.includes('prop') || type.includes('hits') || 
-                          type.includes('bases') || type.includes('runs') || 
-                          type.includes('rbis') || type.includes('home_run') || isPitcherProp);
+                           type.includes('outs_recorded') || type.includes('ip_') || type.includes('walks') || type.includes('earned_runs');
+                           
+    const isPlayerProp = isPitcherProp || type.includes('prop') || type.includes('hits') || 
+                          type.includes('bases') || type.includes('runs_batted_in') || type.includes('rbis') || 
+                          type.includes('home_run') || type.includes('player');
+                          
+    const isTeamBet = !isPlayerProp && (type.includes('moneyline') || type === 'ml' || type.includes('total') || 
+                      type.includes('run_line') || type.includes('runline') || type.includes('spread'));
+                      
     return { isTeamBet, isPlayerProp, isPitcherProp };
 };
 
