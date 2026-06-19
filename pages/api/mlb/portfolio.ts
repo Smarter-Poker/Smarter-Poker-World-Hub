@@ -1,6 +1,11 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 import { fetchPortfolioStats } from '../../../utils/mlbStats';
 
+export const config = {
+    runtime: 'edge',
+};
+
+
 
 
 export default async function handler(req: Request) {

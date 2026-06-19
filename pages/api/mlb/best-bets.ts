@@ -1,5 +1,10 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
+export const config = {
+    runtime: 'edge',
+};
+
+
 // MLB team ID → team name mapping
 const TEAM_ID_TO_NAME: Record<number, string> = {
     108: 'Los Angeles Angels', 109: 'Arizona Diamondbacks', 110: 'Baltimore Orioles',
