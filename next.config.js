@@ -403,6 +403,8 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.smarter.poker' },                  // Catch-all for platform sub-domains
       { protocol: 'https', hostname: 'api.qrserver.com' },                 // QR code generation
       { protocol: 'https', hostname: 'img.youtube.com' },                  // YouTube thumbnails
+      { protocol: 'https', hostname: 'img.mlbstatic.com' },                // MLB player headshots
+      { protocol: 'https', hostname: 'www.mlbstatic.com' },                // MLB team logos
       // Club Arena images now served from public/hub/club-arena/ (native)
     ],
     formats: ['image/avif', 'image/webp'],

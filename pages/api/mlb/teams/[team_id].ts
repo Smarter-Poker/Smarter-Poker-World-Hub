@@ -59,13 +59,43 @@ export default async function handler(req: Request) {
             .limit(10);
             
         // Fetch predictive props for team
-        const { data: propsData } = await mlbDb
-            .from('pred_props')
-            .select('*')
-            .eq('team_abbr', teamAbbr)
-            .order('edge_pts', { ascending: false, nullsFirst: false })
-            .limit(10);
+        const [hittersRes, pitchersRes] = await Promise.all([
+            mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id').eq('team_id', id),
+            mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id').eq('team_id', id)
+        ]);
+        
+        const playerMap = new Map<number, string>();
+        (hittersRes.data || []).forEach(h => { if (h.player_id) playerMap.set(h.player_id, h.full_name); });
+        (pitchersRes.data || []).forEach(p => { if (p.player_id) playerMap.set(p.player_id, p.full_name); });
+        
+        const playerIds = Array.from(playerMap.keys());
+        let propsData = [];
 
+        if (playerIds.length > 0) {
+            const { data } = await mlbDb
+                .from('pred_props')
+                .select('*')
+                .in('player_id', playerIds)
+                .order('edge_pts', { ascending: false, nullsFirst: false })
+                .limit(10);
+                
+            propsData = (data || []).map(p => {
+                const isOver = p.rec === 'over';
+                const odds = Number(p.best_price);
+                return {
+                    ...p,
+                    player_name: playerMap.get(p.player_id) || `Unknown (${p.player_id})`,
+                    team_abbr: teamAbbr,
+                    prop_type: p.prop,
+                    implied_prob: p.prob_over,
+                    model_proj: p.proj_mean,
+                    over_odds: isOver ? odds : null,
+                    under_odds: !isOver ? odds : null,
+                    isOver,
+                    odds
+                };
+            });
+        }
         if (teamErr && !dimData) {
             console.warn(`[API/MLB/Teams/${id}] Team not found`);
             return new Response(JSON.stringify({ error: 'Team not found' }), {

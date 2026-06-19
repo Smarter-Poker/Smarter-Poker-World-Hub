@@ -19,11 +19,13 @@ export default async function handler(req: Request) {
         const mlbDb = getMlbSupabase();
         
         // Fetch teams, advanced stats, dimension info, and current market edges
-        const [teamsRes, aggRes, dimRes, predRes] = await Promise.all([
+        const [teamsRes, aggRes, dimRes, predRes, hittersRes, pitchersRes] = await Promise.all([
             mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
             mlbDb.from('agg_team').select('team_id, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa').eq('window_kind', 'season'),
             mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'),
-            mlbDb.from('pred_props').select('team_abbr, prop_type, edge_pts').gt('edge_pts', 0)
+            mlbDb.from('pred_props').select('player_id, edge_pts').gt('edge_pts', 0),
+            mlbDb.from('v_hitter_profile').select('player_id, team_id'),
+            mlbDb.from('v_pitcher_profile').select('player_id, team_id')
         ]);
 
         if (teamsRes.error) {
@@ -38,9 +40,25 @@ export default async function handler(req: Request) {
         const aggData = aggRes.data || [];
         const dimData = dimRes.data || [];
         const predData = predRes.data || [];
+        
+        // Map player_id to team_id
+        const playerToTeam = new Map<number, number>();
+        (hittersRes.data || []).forEach(h => {
+            if (h.player_id && h.team_id) playerToTeam.set(h.player_id, h.team_id);
+        });
+        (pitchersRes.data || []).forEach(p => {
+            if (p.player_id && p.team_id) playerToTeam.set(p.player_id, p.team_id);
+        });
 
         // Determine if there is a global MLB Edge available today
         const globalEdgeActive = predData.length > 0;
+
+        // Build a set of team_ids that have active edges
+        const teamIdsWithEdge = new Set<number>();
+        predData.forEach(p => {
+            const tId = playerToTeam.get(p.player_id);
+            if (tId) teamIdsWithEdge.add(tId);
+        });
 
         // Merge advanced stats, dim info, and predictions into teams
         const mergedTeams = teams.map(team => {
@@ -52,7 +70,7 @@ export default async function handler(req: Request) {
             const dimInfo = dimData.find(d => d.team_id === team.team_id) || null;
 
             // Check if this specific team has an active predictive edge today
-            const hasEdge = predData.some(p => p.team_abbr === dimInfo?.abbr || p.team_abbr === team.name || p.team_abbr === dimInfo?.name);
+            const hasEdge = teamIdsWithEdge.has(team.team_id);
 
             return {
                 ...team,

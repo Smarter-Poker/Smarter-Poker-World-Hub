@@ -5,12 +5,11 @@ import { createClient } from '@supabase/supabase-js';
 // to protect the MLB database keys from being shipped to the client bundle.
 
 const supabaseUrl = process.env.MLB_SUPABASE_URL || 'https://nscdmxldtyszyvcxxwgr.supabase.co';
-const supabaseServiceKey = process.env.MLB_SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY; // Requires env setup on Vercel
+const supabaseServiceKey = process.env.MLB_SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY; // Requires env setup on Vercel
 
 export const getMlbSupabase = () => {
     if (!supabaseUrl || !supabaseServiceKey) {
         console.warn('[MLB Supabase] Missing MLB_SUPABASE_URL or MLB_SUPABASE_SERVICE_KEY environment variables.');
-        // We do not throw because we want builds to succeed even if the key is missing locally.
     }
     
     // We use the Service Role key for read-only analytics fetching server-side
