@@ -66,7 +66,7 @@ async function edgeHandler(req: Request) {
             // pitcher_id is the PK — matches player_id from v_pitcher_profile
             mlbDb
                 .from('agg_pitcher')
-                .select('pitcher_id, w, l, era, as_of')
+                .select('pitcher_id, w, l, era, so, whip, as_of')
                 .eq('window_kind', 'fg_season')
                 .order('as_of', { ascending: false })
                 .limit(3000),
@@ -89,14 +89,16 @@ async function edgeHandler(req: Request) {
         const teamMap = new Map<number, string>();
         dimTeams.forEach(t => teamMap.set(t.team_id, t.abbr));
 
-        // ── agg_pitcher map: pitcher_id → {era, w, l} (deduped to latest row) ─
-        const aggPitcherMap = new Map<number, { era: number | null; w: number | null; l: number | null }>();
+        // ── agg_pitcher map: pitcher_id → {era, w, l, so, whip} (deduped to latest row) ─
+        const aggPitcherMap = new Map<number, { era: number | null; w: number | null; l: number | null; so: number | null; whip: number | null }>();
         for (const row of aggPitchers) {
             if (row.pitcher_id != null && !aggPitcherMap.has(row.pitcher_id)) {
                 aggPitcherMap.set(row.pitcher_id, {
-                    era: row.era != null ? Number(row.era) : null,
-                    w:   row.w   != null ? Number(row.w)   : null,
-                    l:   row.l   != null ? Number(row.l)   : null,
+                    era:  row.era  != null ? Number(row.era)  : null,
+                    w:    row.w    != null ? Number(row.w)    : null,
+                    l:    row.l    != null ? Number(row.l)    : null,
+                    so:   row.so   != null ? Number(row.so)   : null,
+                    whip: row.whip != null ? Number(row.whip) : null,
                 });
             }
         }
@@ -113,7 +115,7 @@ async function edgeHandler(req: Request) {
             woba?: number | null; wrc_plus?: number | null; pa?: number | null;
             // pitcher stats
             era?: number | null; fip?: number | null; siera?: number | null;
-            w?: number | null; l?: number | null;
+            w?: number | null; l?: number | null; so?: number | null; whip?: number | null;
         };
 
         const playerMap = new Map<number, PlayerEntry>();
@@ -148,7 +150,7 @@ async function edgeHandler(req: Request) {
             });
         }
 
-        // Pitchers — join fip/siera from view + era/w/l from agg_pitcher
+        // Pitchers — join fip/siera from view + era/w/l/so/whip from agg_pitcher
         for (const p of pitchers) {
             if (!p.player_id) continue;
             const agg = aggPitcherMap.get(p.player_id);
@@ -159,9 +161,11 @@ async function edgeHandler(req: Request) {
                 kind:    'pitcher',
                 fip:     p.fip   != null ? Number(p.fip)   : null,
                 siera:   p.siera != null ? Number(p.siera) : null,
-                era:     agg?.era ?? null,
-                w:       agg?.w   ?? null,
-                l:       agg?.l   ?? null,
+                era:     agg?.era  ?? null,
+                w:       agg?.w    ?? null,
+                l:       agg?.l    ?? null,
+                so:      agg?.so   ?? null,
+                whip:    agg?.whip ?? null,
             });
         }
 
@@ -247,6 +251,8 @@ async function edgeHandler(req: Request) {
                     siera:    info.siera    ?? null,
                     w:        info.w        ?? null,
                     l:        info.l        ?? null,
+                    so:       info.so       ?? null,
+                    whip:     info.whip     ?? null,
                 },
             };
         });
