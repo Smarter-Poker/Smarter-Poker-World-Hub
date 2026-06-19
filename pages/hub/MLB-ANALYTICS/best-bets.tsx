@@ -116,7 +116,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
     }
 
     const playerImageUrl = !imgError ? getPlayerImageUrl(bet.player_id) : null;
-    const teamId = bet.team_id || (bet.team ? MLB_TEAM_IDS[bet.team?.toUpperCase()] : null);
+    const teamId = bet.team_id || (bet.team ? MLB_TEAM_IDS[bet.team.toUpperCase()] : null);
     const teamLogoUrl = getTeamLogoUrl(teamId);
 
     // Pitcher W/L display
