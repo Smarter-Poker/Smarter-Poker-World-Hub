@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import useSWR from 'swr';
 import { ArrowLeft, Target, TrendingUp, Loader2, Zap, Activity } from 'lucide-react';
 import Link from 'next/link';

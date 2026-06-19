@@ -50,7 +50,7 @@ function EdgeBadge({ g }: { g: GameCard }) {
 
 const sbUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_SUPABASE_URL || '') : '';
 const sbAnonKey = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '') : '';
-const sb = sbUrl && sbAnonKey ? createClient(sbUrl, sbAnonKey) : null;
+const sb = typeof window !== 'undefined' && sbUrl && sbAnonKey ? createClient(sbUrl, sbAnonKey) : null;
 
 function SyncIndicator({ onSync }: { onSync: () => void }) {
   const [hasUpdate, setHasUpdate] = useState(false);
