@@ -40,7 +40,7 @@ export default function StandingsPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-wider flex items-center gap-3" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                            <span className="text-[#FF00FF] font-bold">|</span> LEAGUE STANDINGS
+                            <span className="text-[#00D4FF] font-bold">|</span> LEAGUE STANDINGS
                         </h1>
                         <p className="text-slate-400 mt-2 tracking-wide font-mono text-xs">
                             LIVE WIN/LOSS TRACKING AND DIVISIONAL RANKINGS

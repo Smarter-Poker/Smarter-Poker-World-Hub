@@ -177,9 +177,9 @@ export default function PlayerProfilePage() {
                                        <div className="text-3xl font-extrabold text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(0,212,255,0.3)' }}>{profile.wrc_plus != null ? Number(profile.wrc_plus).toFixed(0) : '—'}</div>
                                    </div>
                                    <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden">
-                                       <div className="absolute top-0 right-0 p-2 opacity-10 text-[#FF00FF]"><Activity size={40} /></div>
+                                       <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]"><Activity size={40} /></div>
                                        <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">wOBA</div>
-                                       <div className="text-3xl font-extrabold text-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,0,255,0.3)' }}>{profile.woba != null ? Number(profile.woba).toFixed(3) : '—'}</div>
+                                       <div className="text-3xl font-extrabold text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(0,212,255,0.3)' }}>{profile.woba != null ? Number(profile.woba).toFixed(3) : '—'}</div>
                                    </div>
                                    <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden">
                                        <div className="absolute top-0 right-0 p-2 opacity-10 text-slate-400"><User size={40} /></div>
@@ -195,9 +195,9 @@ export default function PlayerProfilePage() {
                                        <div className="text-3xl font-extrabold text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(0,212,255,0.3)' }}>{profile.fip != null ? Number(profile.fip).toFixed(2) : '—'}</div>
                                    </div>
                                    <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden">
-                                       <div className="absolute top-0 right-0 p-2 opacity-10 text-[#FF00FF]"><Activity size={40} /></div>
+                                       <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]"><Activity size={40} /></div>
                                        <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">SIERA</div>
-                                       <div className="text-3xl font-extrabold text-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,0,255,0.3)' }}>{profile.siera != null ? Number(profile.siera).toFixed(2) : '—'}</div>
+                                       <div className="text-3xl font-extrabold text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(0,212,255,0.3)' }}>{profile.siera != null ? Number(profile.siera).toFixed(2) : '—'}</div>
                                    </div>
                                    <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden">
                                        <div className="absolute top-0 right-0 p-2 opacity-10 text-slate-400"><User size={40} /></div>
@@ -209,7 +209,7 @@ export default function PlayerProfilePage() {
                        </div>
 
                        {/* Secondary Metrics / Full Vault */}
-                       <h2 className="text-base font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#FF00FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Advanced Metrics Vault</h2>
+                       <h2 className="text-base font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Advanced Metrics Vault</h2>
                        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)]">
                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                {Object.keys(profile)

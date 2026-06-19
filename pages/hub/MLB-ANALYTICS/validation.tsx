@@ -109,11 +109,11 @@ export default function ValidationPage() {
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Activity className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -310,12 +310,12 @@ export default function ValidationPage() {
                                    {stats.edgeData.map((row, idx) => (
                                        <div key={row.edge} className={`grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 text-[12px] hover:bg-[#1a2332] transition-colors ${idx < stats.edgeData.length - 1 ? 'border-b border-[#1a2332]' : ''}`}>
                                            <div className="font-bold text-white flex items-center gap-2">
-                                               <div className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.roi) < 0 ? 'bg-[#FF00FF] shadow-[0_0_5px_rgba(255,0,255,0.8)]' : 'bg-slate-500'}`}></div>
+                                               <div className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.roi) < 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : 'bg-slate-500'}`}></div>
                                                {row.edge}
                                            </div>
                                            <div className="text-right text-slate-300 font-medium">{row.n}</div>
                                            <div className="text-right text-slate-300 font-medium">{row.winPct}%</div>
-                                           <div className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#FF00FF]' : 'text-white'}`} style={{ textShadow: Number(row.roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : Number(row.roi) < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none' }}>
+                                           <div className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: Number(row.roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : Number(row.roi) < 0 ? '0 0 5px rgba(0,212,255,0.5)' : 'none' }}>
                                                {Number(row.roi) > 0 ? '+' : ''}{Number(row.roi).toFixed(2)}%
                                            </div>
                                        </div>

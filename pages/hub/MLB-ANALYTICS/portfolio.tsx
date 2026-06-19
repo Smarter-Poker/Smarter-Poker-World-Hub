@@ -127,11 +127,11 @@ export default function PortfolioPage() {
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Activity className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -153,7 +153,7 @@ export default function PortfolioPage() {
             <div className="edge-to-edge-container max-w-[1000px] mx-auto px-4 py-6 relative">
                 {/* Background Glows */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
-                <div className="absolute bottom-40 left-0 w-96 h-96 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.02] pointer-events-none"></div>
+                <div className="absolute bottom-40 left-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.02] pointer-events-none"></div>
 
                 <div className="flex flex-wrap gap-4 justify-between items-start mb-6 relative z-10">
                     <div>
@@ -212,7 +212,7 @@ export default function PortfolioPage() {
                                     <button
                                         key={m}
                                         onClick={() => setMarketFilter(m)}
-                                        className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${marketFilter === m ? 'bg-[#FF00FF]/10 text-[#FF00FF] border border-[#FF00FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
+                                        className={`py-1.5 px-3 rounded-md text-xs font-bold cursor-pointer transition-all duration-200 ${marketFilter === m ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
                                     >
                                         {m === 'ALL' ? 'ALL' : m === 'Moneyline' ? 'ML' : m === 'Run Line' ? 'RL' : 'TOT'}
                                     </button>
@@ -227,7 +227,7 @@ export default function PortfolioPage() {
                                 <div className="relative z-10 text-5xl font-extrabold text-white leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
                                     {isLoading ? <Loader2 className="w-10 h-10 animate-spin mx-auto text-[#00D4FF]" /> : formatCurrency(currentBankroll)}
                                 </div>
-                                <div className={`relative z-10 text-[13px] font-extrabold tracking-widest mt-2 uppercase ${!isLoading && totalPnl < 0 ? 'text-[#FF00FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: `0 0 10px ${!isLoading && totalPnl < 0 ? 'rgba(255,0,255,0.5)' : 'rgba(0,212,255,0.5)'}` }}>
+                                <div className={`relative z-10 text-[13px] font-extrabold tracking-widest mt-2 uppercase ${!isLoading && totalPnl < 0 ? 'text-[#00D4FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: `0 0 10px ${!isLoading && totalPnl < 0 ? 'rgba(0,212,255,0.5)' : 'rgba(0,212,255,0.5)'}` }}>
                                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : formatCurrency(totalPnl, true)} from start
                                 </div>
                                 <div className="relative z-10 text-[10px] text-slate-500 mt-1 font-bold tracking-widest uppercase">
@@ -299,15 +299,15 @@ export default function PortfolioPage() {
                         </div>
 
                         <h2 className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 uppercase tracking-widest relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                            <div className="w-1 h-[18px] bg-[#FF00FF] rounded-sm shadow-[0_0_8px_rgba(255,0,255,0.6)]" />
+                            <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
                             Recent Simulated Bets <span className="text-slate-400 font-bold tracking-widest text-[11px]">(LAST 20)</span>
                         </h2>
                         
                         <div className="w-full">
                             {isLoading ? (
                                 <div className="bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-12 text-center flex flex-col items-center justify-center w-full">
-                                    <Loader2 className="w-8 h-8 animate-spin text-[#FF00FF] mb-4" />
-                                    <div className="text-[#FF00FF] font-bold tracking-widest text-sm animate-pulse">SCANNING DATABASE...</div>
+                                    <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mb-4" />
+                                    <div className="text-[#00D4FF] font-bold tracking-widest text-sm animate-pulse">SCANNING DATABASE...</div>
                                 </div>
                             ) : (
                                 <RecentBetsTable bets={recentBets} />

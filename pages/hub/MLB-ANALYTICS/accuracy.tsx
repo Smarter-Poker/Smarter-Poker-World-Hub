@@ -55,12 +55,12 @@ export default function AccuracyPage() {
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
                         {/* Use an appropriate icon below, e.g., Target, Activity, Shield */}
-                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                        <Activity className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -153,14 +153,14 @@ export default function AccuracyPage() {
                             {/* Expected ROI */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Expected ROI (&gt;-3%)</div>
-                                <div className={`text-2xl font-extrabold ${Number(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: Number(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
+                                <div className={`text-2xl font-extrabold ${Number(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: Number(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(0,212,255,0.5)' }}>
                                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : `${Number(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
                                 </div>
                             </div>
                             {/* Brier Score */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
                                 <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Brier Score (&lt;0.23)</div>
-                                <div className={`text-2xl font-extrabold ${Number(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: Number(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,0,255,0.5)' }}>
+                                <div className={`text-2xl font-extrabold ${Number(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: Number(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(0,212,255,0.5)' }}>
                                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.brier}
                                 </div>
                             </div>
@@ -213,7 +213,7 @@ export default function AccuracyPage() {
                                             <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
                                                 {row.avg_clv !== null ? Number(row.avg_clv).toFixed(2) : '—'}
                                             </td>
-                                            <td className={`px-4 py-3.5 text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : (Number(row.roi) < 0 ? 'text-[#FF00FF]' : 'text-white')}`} style={{ textShadow: Number(row.roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (Number(row.roi) < 0 ? '0 0 5px rgba(255,0,255,0.5)' : 'none') }}>
+                                            <td className={`px-4 py-3.5 text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : (Number(row.roi) < 0 ? 'text-[#00D4FF]' : 'text-white')}`} style={{ textShadow: Number(row.roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (Number(row.roi) < 0 ? '0 0 5px rgba(0,212,255,0.5)' : 'none') }}>
                                                 {row.roi !== null ? `${Number(row.roi) > 0 ? '+' : ''}${Number(row.roi).toFixed(1)}%` : '—'}
                                             </td>
                                         </tr>

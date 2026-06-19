@@ -266,11 +266,11 @@ export default function HRTrackerPage() {
 
                 {/* Error State */}
                 {!isLoading && error && (
-                    <div className="bg-gradient-to-b from-[#FF00FF]/10 to-[#0d1117] border-[2px] border-[#FF00FF]/50 rounded-xl p-6 flex items-center gap-4">
-                        <AlertTriangle className="text-[#FF00FF] w-8 h-8 shrink-0" />
+                    <div className="bg-gradient-to-b from-[#00D4FF]/10 to-[#0d1117] border-[2px] border-[#00D4FF]/50 rounded-xl p-6 flex items-center gap-4">
+                        <AlertTriangle className="text-[#00D4FF] w-8 h-8 shrink-0" />
                         <div>
-                            <div className="text-[#FF00FF] font-extrabold uppercase tracking-widest text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Failed To Load HR Data</div>
-                            <div className="text-[#FF00FF]/70 text-xs font-bold mt-1">MLB Stats API may be unavailable. Try refreshing.</div>
+                            <div className="text-[#00D4FF] font-extrabold uppercase tracking-widest text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Failed To Load HR Data</div>
+                            <div className="text-[#00D4FF]/70 text-xs font-bold mt-1">MLB Stats API may be unavailable. Try refreshing.</div>
                         </div>
                     </div>
                 )}

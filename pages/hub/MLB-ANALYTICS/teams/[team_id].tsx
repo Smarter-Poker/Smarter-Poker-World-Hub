@@ -67,11 +67,11 @@ export default function TeamDetailPage() {
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <Shield className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Shield className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load Team Details. Please try again later.</p>
+                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load Team Details. Please try again later.</p>
                         <Link href="/hub/MLB-ANALYTICS/teams" className="mt-6 inline-block bg-[#1a2332] text-white px-6 py-2 rounded-sm border border-[#3d4f5f] text-[10px] font-extrabold tracking-widest uppercase hover:bg-[#2a3a4a] relative z-10">
                             BACK TO TEAMS
                         </Link>
@@ -129,7 +129,7 @@ export default function TeamDetailPage() {
                     --metal-highlight: #3d4f5f;
                     --neon-cyan: #00D4FF;
                     --neon-cyan-dim: rgba(0, 212, 255, 0.15);
-                    --neon-magenta: #FF00FF;
+                    --neon-magenta: #00D4FF;
                     --neon-magenta-dim: rgba(255, 0, 255, 0.15);
                     --alert-red: #EF4444;
                     --success-green: #22C55E;
@@ -365,7 +365,7 @@ export default function TeamDetailPage() {
 
                         {activeTab === 'PROPS' && (
                             <div className="metal-panel">
-                                <div className="panel-title flex items-center"><Target size={14} className="mr-2 text-[#FF00FF]" /> Active Prop Edges</div>
+                                <div className="panel-title flex items-center"><Target size={14} className="mr-2 text-[#00D4FF]" /> Active Prop Edges</div>
                                 <div className="flex flex-col gap-2 mt-4">
                                     {props.length > 0 ? (
                                         props.map((prop: any, idx: number) => (
@@ -374,7 +374,7 @@ export default function TeamDetailPage() {
                                                     <div className="text-[14px] font-bold text-white tracking-wider">
                                                         {prop.player_name}
                                                     </div>
-                                                    <div className="text-[10px] font-bold text-[#FF00FF] uppercase tracking-widest">
+                                                    <div className="text-[10px] font-bold text-[#00D4FF] uppercase tracking-widest">
                                                         {prop.prop_type} {prop.line !== null ? (Number(prop.line) > 0 && prop.prop_type.includes('Total') ? `O/U ${prop.line}` : prop.line) : ''}
                                                     </div>
                                                 </div>

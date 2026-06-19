@@ -576,6 +576,7 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
 // ──────────────────────────────────────────────────────────────────────────────
 const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; onBetClick: (bet: any) => void }) => {
     const [collapsed, setCollapsed] = useState(false);
+    const [propsExpanded, setPropsExpanded] = useState(false);
 
     // Extract team names from matchup "MIL @ ATL" format
     const parts = matchup && matchup.includes('@') ? matchup.split('@').map((s: string) => s.trim()) : [];
@@ -583,6 +584,19 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
     const homeTeamAbbr = parts[1] || '';
     const awayTeamId = awayTeamAbbr ? MLB_TEAM_IDS[awayTeamAbbr.toUpperCase()] : null;
     const homeTeamId = homeTeamAbbr ? MLB_TEAM_IDS[homeTeamAbbr.toUpperCase()] : null;
+
+    // Partition bets
+    const teamBets = [];
+    const propBets = [];
+    for (const bet of bets) {
+        const typeStr = ((bet.market || '') + ' ' + (bet.bet_type || '')).toLowerCase();
+        const isTeam = typeStr.includes('moneyline') || typeStr.includes('ml') || typeStr.includes('h2h') || typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread') || typeStr.includes('total') || typeStr.includes('over') || typeStr.includes('under');
+        if (isTeam) {
+            teamBets.push(bet);
+        } else {
+            propBets.push(bet);
+        }
+    }
 
     // Best score in this game group
     const topScore = bets.length > 0 ? Math.max(...bets.map(b => Number(b.bet_score) || 0)) : 0;
@@ -646,8 +660,8 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
 
             {/* Bet rows */}
             {!collapsed && (
-                <div>
-                    {bets.map((bet: any, idx: number) => (
+                <div className="pb-2">
+                    {teamBets.map((bet: any, idx: number) => (
                         <BetRow
                             key={`${bet.game_pk}-${bet.selection}-${idx}`}
                             bet={bet}
@@ -655,6 +669,29 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
                             onClick={() => onBetClick(bet)}
                         />
                     ))}
+                    {propBets.length > 0 && (
+                        <div className="px-3 mt-2">
+                            <button
+                                className="w-full py-2 bg-[#0a0a15] border border-[#2a3a4a] text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm flex items-center justify-center gap-2"
+                                onClick={() => setPropsExpanded(!propsExpanded)}
+                            >
+                                {propsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                {propsExpanded ? 'Hide Props' : `Click to see ${propBets.length} props`}
+                            </button>
+                            {propsExpanded && (
+                                <div className="mt-2 border-t border-[#2a3a4a] pt-2">
+                                    {propBets.map((bet: any, idx: number) => (
+                                        <BetRow
+                                            key={`${bet.game_pk}-${bet.selection}-${idx}-prop`}
+                                            bet={bet}
+                                            rank={teamBets.length + idx + 1}
+                                            onClick={() => onBetClick(bet)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

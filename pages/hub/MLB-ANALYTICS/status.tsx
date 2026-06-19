@@ -68,11 +68,11 @@ export default function StatusPage() {
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Activity className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -101,8 +101,8 @@ export default function StatusPage() {
                 <div className="text-right flex flex-col items-end">
                     <div className="text-[#00D4FF] text-[11px] font-bold tracking-widest uppercase">SYSTEM</div>
                     <div className="inline-flex items-center gap-1.5 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#FF00FF] shadow-[0_0_10px_#FF00FF]'}`}></div>
-                        <div className={`text-xs font-bold tracking-widest ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(255,0,255,0.5)' }}>
+                        <div className={`w-2 h-2 rounded-full ${isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]'}`}></div>
+                        <div className={`text-xs font-bold tracking-widest ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(0,212,255,0.5)' }}>
                             {isSystemFresh ? 'FRESH' : 'STALE'}
                         </div>
                     </div>
@@ -142,7 +142,7 @@ export default function StatusPage() {
                             <div className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden">
                                 <div className="flex justify-between px-6 py-4 border-b border-[#2a3a4a] bg-black/20">
                                     <span className="text-[13px] font-semibold text-slate-400 tracking-wider">AGG MARKET AS_OF</span>
-                                    <span className={`text-[14px] font-bold ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF00FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 8px rgba(0,212,255,0.5)' : '0 0 8px rgba(255,0,255,0.5)' }}>{data?.aggMarketAsOf || '-'}</span>
+                                    <span className={`text-[14px] font-bold ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: isSystemFresh ? '0 0 8px rgba(0,212,255,0.5)' : '0 0 8px rgba(0,212,255,0.5)' }}>{data?.aggMarketAsOf || '-'}</span>
                                 </div>
                                 <div className="flex justify-between px-6 py-4 bg-black/20">
                                     <span className="text-[13px] font-semibold text-slate-400 tracking-wider">TODAY</span>
@@ -183,9 +183,9 @@ export default function StatusPage() {
                                 {stages.map((stage: string) => {
                                     const run = data?.latestRuns?.[stage];
                                     const isError = run?.status === 'error';
-                                    const glowColor = isError ? 'text-[#FF00FF]' : 'text-[#00D4FF]';
-                                    const borderGlowColor = isError ? 'border-[#FF00FF]' : 'border-[#00D4FF]';
-                                    const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,0,255,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
+                                    const glowColor = isError ? 'text-[#00D4FF]' : 'text-[#00D4FF]';
+                                    const borderGlowColor = isError ? 'border-[#00D4FF]' : 'border-[#00D4FF]';
+                                    const bgShadow = isError ? 'shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
                                     
                                     return (
                                         <div key={stage} className="relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] px-5 py-4 flex justify-between items-center bg-black/30">

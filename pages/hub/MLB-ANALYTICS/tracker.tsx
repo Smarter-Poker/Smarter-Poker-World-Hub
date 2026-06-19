@@ -67,7 +67,7 @@ const GameCard = ({ game }: any) => {
                         </div>
                     </div>
                     <div className="flex flex-col items-end justify-center w-[25%] bg-[#0f1520] border-l border-[#2a3a4a] px-3">
-                        <div className={`text-[11px] font-bold tracking-widest uppercase mb-1 ${isLive ? 'text-[#FF00FF]' : isFinal ? 'text-slate-400' : 'text-[#00D4FF]'}`}>
+                        <div className={`text-[11px] font-bold tracking-widest uppercase mb-1 ${isLive ? 'text-[#00D4FF]' : isFinal ? 'text-slate-400' : 'text-[#00D4FF]'}`}>
                             {game.status || 'Scheduled'}
                         </div>
                         <div className="text-[14px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
@@ -126,11 +126,11 @@ export default function TrackerPage() {
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF00FF]/50 shadow-[0_0_20px_rgba(255,0,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <Activity className="w-12 h-12 text-[#FF00FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,0,255,0.8))' }} />
+                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+                        <Activity className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF00FF] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load live data. Please try again later.</p>
+                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load live data. Please try again later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
