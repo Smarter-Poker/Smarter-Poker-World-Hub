@@ -227,7 +227,7 @@ export default function PortfolioPage() {
                                 <div className="relative z-10 text-5xl font-extrabold text-white leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
                                     {isLoading ? <Loader2 className="w-10 h-10 animate-spin mx-auto text-[#00D4FF]" /> : formatCurrency(currentBankroll)}
                                 </div>
-                                <div className={`relative z-10 text-[13px] font-extrabold tracking-widest mt-2 uppercase ${!isLoading && totalPnl < 0 ? 'text-[#00D4FF]' : 'text-[#00D4FF]'}`} style={{ textShadow: `0 0 10px ${!isLoading && totalPnl < 0 ? 'rgba(0,212,255,0.5)' : 'rgba(0,212,255,0.5)'}` }}>
+                                <div className={`relative z-10 text-[13px] font-extrabold tracking-widest mt-2 uppercase ${!isLoading && totalPnl < 0 ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`} style={{ textShadow: `0 0 10px ${!isLoading && totalPnl < 0 ? 'rgba(255,68,68,0.5)' : 'rgba(0,212,255,0.5)'}` }}>
                                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : formatCurrency(totalPnl, true)} from start
                                 </div>
                                 <div className="relative z-10 text-[10px] text-slate-500 mt-1 font-bold tracking-widest uppercase">

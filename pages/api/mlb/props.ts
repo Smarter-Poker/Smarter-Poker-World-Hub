@@ -71,9 +71,9 @@ async function edgeHandler(req: Request) {
             // All teams
             mlbDb.from('dim_teams').select('team_id, abbr').limit(100),
             // Pitcher stats
-            uniquePlayerIds.length > 0 ? mlbDb.from('agg_pitcher').select('pitcher_id, w, l, era, so, h, bb, ip, as_of').eq('window_kind', 'fg_season').in('pitcher_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
+            uniquePlayerIds.length > 0 ? mlbDb.from('agg_pitcher').select('pitcher_id, w, l, era, so, h, bb, ip, as_of').eq('window_kind', 'fg_season').eq('vs_hand', 'A').in('pitcher_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
             // Batter stats
-            uniquePlayerIds.length > 0 ? mlbDb.from('agg_batter').select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus, as_of').eq('window_kind', 'fg_season').in('batter_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
+            uniquePlayerIds.length > 0 ? mlbDb.from('agg_batter').select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus, as_of').eq('window_kind', 'fg_season').eq('vs_hand', 'A').in('batter_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
         ]);
 
         const hitters = hittersRes.data || [];
