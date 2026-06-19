@@ -25,6 +25,11 @@ interface HRPlayer {
     games_since_hr: number | null;
     due_score: number;
     status: 'OVERDUE' | 'DUE' | 'RECENT' | 'NO_HR';
+    opp_pitcher_id?: number | null;
+    opp_pitcher_name?: string | null;
+    opp_pitcher_hr9?: number | null;
+    park_factor?: number | null;
+    matchup_due_score?: number | null;
 }
 
 const fetcher = async (url: string) => {
@@ -33,7 +38,7 @@ const fetcher = async (url: string) => {
     return res.json();
 };
 
-type SortKey = 'due_score' | 'hr' | 'games_since_hr' | 'games_per_hr' | 'full_name';
+type SortKey = 'due_score' | 'matchup_due_score' | 'hr' | 'games_since_hr' | 'games_per_hr' | 'full_name';
 type SortDir = 'asc' | 'desc';
 
 const STATUS_CONFIG = {
@@ -142,6 +147,7 @@ export default function HRTrackerPage() {
             let vb: number | string = 0;
             switch (sortKey) {
                 case 'due_score':    va = a.due_score; vb = b.due_score; break;
+                case 'matchup_due_score': va = a.matchup_due_score ?? a.due_score; vb = b.matchup_due_score ?? b.due_score; break;
                 case 'hr':          va = a.hr; vb = b.hr; break;
                 case 'games_since_hr': va = a.games_since_hr ?? -1; vb = b.games_since_hr ?? -1; break;
                 case 'games_per_hr': va = a.games_per_hr; vb = b.games_per_hr; break;
@@ -396,9 +402,10 @@ export default function HRTrackerPage() {
                                             {colHeader('games_since_hr', 'Since HR', 'text-right')}
                                             <th className="text-right py-3 px-3 text-[10px] font-extrabold tracking-widest uppercase text-slate-400"
                                                 style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                                Last HR
+                                                Matchup
                                             </th>
-                                            {colHeader('due_score', 'Due Score', 'text-right')}
+                                            {colHeader('matchup_due_score', 'Matchup Due', 'text-right')}
+                                            {colHeader('due_score', 'Raw Due', 'text-right')}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-[#3d4f5f]/50">
@@ -472,25 +479,44 @@ export default function HRTrackerPage() {
                                                         </span>
                                                     </td>
 
-                                                    {/* Last HR Date */}
+                                                    {/* Matchup */}
                                                     <td className="py-3 px-3 text-right">
-                                                        <span className="text-slate-300 font-bold text-sm">
-                                                            {formatDate(p.last_hr_date)}
-                                                        </span>
+                                                        {p.opp_pitcher_name ? (
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="text-white font-bold text-sm truncate max-w-[120px]">
+                                                                    vs {p.opp_pitcher_name.split(' ').pop()}
+                                                                </span>
+                                                                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">
+                                                                    {(p.opp_pitcher_hr9 ?? 1.15).toFixed(2)} HR/9
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-600 text-sm">—</span>
+                                                        )}
                                                     </td>
 
-                                                    {/* Due Score */}
+                                                    {/* Matchup Due Score */}
                                                     <td className="py-3 px-3 text-right">
                                                         <div className="flex flex-col items-end gap-1">
-                                                            <span className={`font-extrabold text-base ${cfg.color}`}
-                                                                style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: p.status === 'OVERDUE' ? '0 0 8px rgba(255,68,68,0.5)' : '' }}>
-                                                                {p.due_score > 0 ? `${p.due_score.toFixed(2)}x` : '—'}
+                                                            <span className={`font-extrabold text-base ${(p.matchup_due_score ?? p.due_score) > p.due_score ? 'text-[#FF4444]' : (p.matchup_due_score ?? p.due_score) < p.due_score ? 'text-[#00D4FF]' : cfg.color}`}
+                                                                style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: ((p.matchup_due_score ?? p.due_score) >= 1.25) ? '0 0 8px rgba(255,68,68,0.5)' : '' }}>
+                                                                {(p.matchup_due_score ?? p.due_score) > 0 ? `${(p.matchup_due_score ?? p.due_score).toFixed(2)}x` : '—'}
                                                             </span>
-                                                            {p.due_score > 0 && (
+                                                            {(p.matchup_due_score ?? p.due_score) > 0 && (
                                                                 <div className="w-16">
-                                                                    <DueGauge score={p.due_score} />
+                                                                    <DueGauge score={p.matchup_due_score ?? p.due_score} />
                                                                 </div>
                                                             )}
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Raw Due Score */}
+                                                    <td className="py-3 px-3 text-right">
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className={`font-extrabold text-sm text-slate-400`}
+                                                                style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                                                {p.due_score > 0 ? `${p.due_score.toFixed(2)}x` : '—'}
+                                                            </span>
                                                         </div>
                                                     </td>
                                                 </tr>

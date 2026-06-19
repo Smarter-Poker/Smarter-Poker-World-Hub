@@ -1,19 +1,12 @@
+import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-
-
-
-
-async function edgeHandler(req: Request) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
-        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-            status: 405,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     try {
-
         const mlbDb = getMlbSupabase();
         
         // Formatter for 'today' in US Central Time (America/Chicago)
@@ -32,7 +25,6 @@ async function edgeHandler(req: Request) {
         ] = await Promise.all([
             mlbDb.from('pred_best_bets').select('*').eq('official_date', todayStr).order('rank', { ascending: true }).limit(3),
             mlbDb.from('pred_props').select('as_of_ts').order('as_of_ts', { ascending: false }).limit(1),
-            // v_daily_slate for game slate
             mlbDb.from('v_daily_slate').select('*').eq('official_date', todayStr).order('event_time', { ascending: true })
         ]);
 
@@ -43,61 +35,15 @@ async function edgeHandler(req: Request) {
 
         const lastUpdate = pipelineResult.data && pipelineResult.data.length > 0 ? pipelineResult.data[0].as_of_ts : null;
 
-        return new Response(JSON.stringify({
+        return res.status(200).json({
             todayStr,
             topBets: topBetsResult.data || [],
             lastUpdate,
             slateGames: slateResult.data || []
-        }), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
-            }
         });
 
     } catch (error: any) {
         console.error('[API/MLB/Dashboard] Error fetching dashboard data:', error);
-        return new Response(JSON.stringify({ error: error?.message || 'Internal Server Error' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    }
-}
-
-
-import { NextApiRequest, NextApiResponse } from 'next';
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host || 'localhost';
-    const url = `${protocol}://${host}${req.url}`;
-    
-    const requestOptions: RequestInit = {
-        method: req.method,
-        headers: req.headers as unknown as HeadersInit,
-    };
-    
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-        requestOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    }
-    
-    const request = new Request(url, requestOptions);
-    const response = await edgeHandler(request);
-    
-    res.status(response.status);
-    response.headers.forEach((value, key) => {
-        res.setHeader(key, value);
-    });
-    
-    const text = await response.text();
-    if (text) {
-        try {
-            res.json(JSON.parse(text));
-        } catch {
-            res.send(text);
-        }
-    } else {
-        res.end();
+        return res.status(500).json({ error: error?.message || 'Internal Server Error' });
     }
 }

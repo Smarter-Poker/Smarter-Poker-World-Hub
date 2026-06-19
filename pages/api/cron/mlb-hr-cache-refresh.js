@@ -89,6 +89,25 @@ export default async function handler(req, res) {
         const eligible = splits.filter(s => (s.stat?.homeRuns || 0) >= 1 && (s.stat?.gamesPlayed || 0) >= 10);
         console.log(`[mlb-hr-cache-refresh] ${splits.length} total splits → ${eligible.length} eligible (≥1 HR, ≥10 G)`);
 
+        // ── 2.5 Fetch Matchups for Matchup-Aware Due Scores ─────────────────
+        let scheduleMap = {};
+        try {
+            const schedUrl = `${MLB_API}/schedule?sportId=1&hydrate=probablePitcher`;
+            const schedJson = await fetchWithTimeout(schedUrl, 8000);
+            const games = schedJson?.dates?.[0]?.games || [];
+            games.forEach(g => {
+                const awayTeam = g.teams?.away;
+                const homeTeam = g.teams?.home;
+                if (awayTeam && homeTeam) {
+                    scheduleMap[awayTeam.team?.id] = { oppPitcherId: homeTeam.probablePitcher?.id, oppPitcherName: homeTeam.probablePitcher?.fullName };
+                    scheduleMap[homeTeam.team?.id] = { oppPitcherId: awayTeam.probablePitcher?.id, oppPitcherName: awayTeam.probablePitcher?.fullName };
+                }
+            });
+            console.log(`[mlb-hr-cache-refresh] Fetched schedule for ${Object.keys(scheduleMap).length} teams`);
+        } catch (e) {
+            console.error('[mlb-hr-cache-refresh] Failed to fetch schedule:', e.message);
+        }
+
         // ── 3. Fetch last HR dates in parallel batches ───────────────────────
         const rows = [];
 
@@ -121,6 +140,33 @@ export default async function handler(req, res) {
                         dueScore     = gamesPerHr > 0 ? parseFloat((gamesSinceHr / gamesPerHr).toFixed(3)) : 0;
                     }
 
+                    let oppPitcherId = null;
+                    let oppPitcherName = null;
+                    let oppPitcherHr9 = null;
+                    let parkFactor = 1.0;
+                    let matchupDueScore = null;
+
+                    if (teamId && scheduleMap[teamId]) {
+                        oppPitcherId = scheduleMap[teamId].oppPitcherId || null;
+                        oppPitcherName = scheduleMap[teamId].oppPitcherName || null;
+                        
+                        // Default MLB average HR/9 is around 1.15. We'll use 1.0 as baseline multiplier if we can't find them in DB.
+                        // Ideally we'd fetch actual HR/9 from DB here, but for cache speed we'll estimate or just use 1.0.
+                        // Future optimization: Load agg_pitcher map at start of cron and join here.
+                        oppPitcherHr9 = 1.15; // Placeholder for now, could be mapped from agg_pitcher
+                        
+                        // Basic Park Factors (HR friendly = > 1.0, pitcher friendly = < 1.0)
+                        const hrFriendlyParks = [113, 115, 143, 108]; // CIN, COL, PHI, LAA
+                        const pitcherFriendlyParks = [137, 116, 134, 136]; // SF, DET, PIT, SEA
+                        if (hrFriendlyParks.includes(teamId)) parkFactor = 1.15;
+                        else if (pitcherFriendlyParks.includes(teamId)) parkFactor = 0.85;
+
+                        // Matchup multiplier
+                        if (dueScore > 0) {
+                            matchupDueScore = parseFloat((dueScore * (oppPitcherHr9 / 1.15) * parkFactor).toFixed(3));
+                        }
+                    }
+
                     return {
                         player_id:     playerId,
                         full_name:     fullName,
@@ -134,6 +180,11 @@ export default async function handler(req, res) {
                         games_since_hr: gamesSinceHr,
                         due_score:     dueScore,
                         status:        computeStatus(dueScore, hr),
+                        opp_pitcher_id: oppPitcherId,
+                        opp_pitcher_name: oppPitcherName,
+                        opp_pitcher_hr9: oppPitcherHr9,
+                        park_factor: parkFactor,
+                        matchup_due_score: matchupDueScore,
                         season:        CURRENT_SEASON,
                         refreshed_at:  new Date().toISOString(),
                     };
