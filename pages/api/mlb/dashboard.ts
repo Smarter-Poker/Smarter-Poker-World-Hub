@@ -16,30 +16,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             year: 'numeric', month: '2-digit', day: '2-digit'
         }).format(new Date());
 
-        // ── Find the best available slate date ─────────────────────────────────
-        // Strategy: Try today first in agg_market (which only has dates with real model output).
-        // If today has no data yet, fall back to the most recent date that does.
-        // NEVER use fact_games — it contains the full season schedule (returns Sept dates).
+        // ── Find the best available slate date (for GAMES) ─────────────────────
+        // Always try to show today's games. If no games today (e.g. All-Star Break),
+        // fall back to the most recent date with games.
         let slateDate = todayStr;
 
-        const { data: todayCheck } = await mlbDb
-            .from('agg_market')
-            .select('as_of')
-            .eq('as_of', todayStr)
+        const { data: todayGames } = await mlbDb
+            .from('fact_games')
+            .select('game_pk')
+            .eq('official_date', todayStr)
             .limit(1);
 
-        if (!todayCheck || todayCheck.length === 0) {
-            // Today not yet initialized — find the most recent date with model data
-            const { data: latestRow } = await mlbDb
-                .from('agg_market')
-                .select('as_of')
-                .lte('as_of', todayStr) // only look at past/today, not future
-                .order('as_of', { ascending: false })
+        if (!todayGames || todayGames.length === 0) {
+            const { data: latestGames } = await mlbDb
+                .from('fact_games')
+                .select('official_date')
+                .lte('official_date', todayStr)
+                .order('official_date', { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
-            if (latestRow?.as_of) {
-                slateDate = latestRow.as_of;
+            if (latestGames?.official_date) {
+                slateDate = latestGames.official_date;
+            }
+        }
+
+        // ── Find the best available bets date (for MODEL OUTPUT) ────────────────
+        // Top Bets might not be generated for today yet. Fall back to the most recent date.
+        let betsDate = todayStr;
+        const { data: todayBets } = await mlbDb
+            .from('pred_best_bets')
+            .select('official_date')
+            .eq('official_date', todayStr)
+            .limit(1);
+
+        if (!todayBets || todayBets.length === 0) {
+            const { data: latestBets } = await mlbDb
+                .from('pred_best_bets')
+                .select('official_date')
+                .lte('official_date', todayStr)
+                .order('official_date', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (latestBets?.official_date) {
+                betsDate = latestBets.official_date;
             }
         }
 
@@ -53,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             mlbDb
                 .from('pred_best_bets')
                 .select('*')
-                .eq('official_date', slateDate)
+                .eq('official_date', betsDate)
                 .order('rank', { ascending: true })
                 .limit(10),
             mlbDb
