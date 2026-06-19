@@ -39,9 +39,9 @@ function detectBetType(bet: BetRow): { isTeamBet: boolean; isPitcherProp: boolea
                          typeStr.includes('bases') || typeStr.includes('rbis') || typeStr.includes('runs_batted_in') || 
                          typeStr.includes('home_run') || typeStr.includes('hrr') || typeStr.includes('player');
                          
-    const isTeamBet = bet.bet_type === 'line' || bet.bet_type === 'game' || (!isPlayerProp && (
+    const isTeamBet = !isPlayerProp && (bet.bet_type === 'line' || bet.bet_type === 'game' || 
         typeStr.includes('moneyline') || typeStr.includes('h2h') || typeStr.includes('ml') || typeStr.includes('total') ||
-        typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread')));
+        typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread'));
         
     return { isTeamBet, isPitcherProp };
 }
