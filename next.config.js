@@ -441,7 +441,7 @@ const nextConfig = {
       // Fonts: Google Fonts CDN
       "font-src 'self' https://fonts.gstatic.com data:",
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
-      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com https://img.mlbstatic.com https://www.mlbstatic.com",
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
       // Media: self + blob (audio/video playback)
