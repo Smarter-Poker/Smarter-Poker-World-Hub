@@ -10,6 +10,8 @@ import { TeamGradeBadge } from '../../../src/components/mlb/TeamGradeBadge';
 import { TIER_STYLE, Tier } from '../../../src/lib/betScore';
 import { logError } from '@/utils/logger';
 
+type PlayoffStatus = 'div' | 'wc' | null;
+
 interface TeamStanding {
   team_id: number;
   name: string;
@@ -72,6 +74,24 @@ function fmtThrough(d?: string | null): string {
 
 function teamHref(teamId: number): string {
   return `/hub/MLB-ANALYTICS/teams/${teamId}`;
+}
+
+// Keyboard activation for clickable table rows (accessibility): Enter / Space.
+function handleRowKey(e: React.KeyboardEvent, onActivate: () => void) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    onActivate();
+  }
+}
+
+function accentClass(playoff: PlayoffStatus): string {
+  if (playoff === 'div') return 'border-[#00D4FF]';
+  if (playoff === 'wc') return 'border-emerald-400';
+  return 'border-transparent';
+}
+
+function gamesBetween(a: TeamStanding, b: TeamStanding): number {
+  return ((a.w - b.w) + (b.l - a.l)) / 2;
 }
 
 function TeamLogo({ teamId, abbr }: { teamId: number; abbr: string }) {
@@ -139,22 +159,29 @@ function TeamRow({
   rank,
   leader,
   showDivision,
+  playoff = null,
 }: {
   team: TeamStanding;
   rank: number;
   leader?: boolean;
   showDivision?: boolean;
+  playoff?: PlayoffStatus;
 }) {
   const router = useRouter();
+  const go = () => router.push(teamHref(team.team_id));
   const luck = (team.w ?? 0) - (team.x_w ?? 0);
   const expTitle = `Pythagorean expected record ${team.x_w}-${team.x_l} (${luck >= 0 ? '+' : ''}${luck} vs actual)`;
   return (
     <tr
-      onClick={() => router.push(teamHref(team.team_id))}
-      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors ${leader ? 'bg-[#00D4FF]/[0.04]' : ''}`}
+      role="link"
+      tabIndex={0}
+      aria-label={`${team.name}, ${team.w} and ${team.l}. View team profile.`}
+      onClick={go}
+      onKeyDown={(e) => handleRowKey(e, go)}
+      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-inset ${leader ? 'bg-[#00D4FF]/[0.04]' : ''}`}
     >
       <td
-        className={`py-2.5 pl-3 pr-1 text-left w-8 font-bold ${leader ? 'text-[#00D4FF]' : 'text-slate-500'}`}
+        className={`py-2.5 pl-3 pr-1 text-left w-8 font-bold border-l-[3px] ${accentClass(playoff)} ${leader ? 'text-[#00D4FF]' : 'text-slate-500'}`}
       >
         {rank}
       </td>
@@ -204,7 +231,7 @@ function TeamRow({
   );
 }
 
-function DivisionCard({ division, teams }: { division: string; teams: TeamStanding[] }) {
+function DivisionCard({ division, teams, playoffOf }: { division: string; teams: TeamStanding[]; playoffOf: (id: number) => PlayoffStatus }) {
   return (
     <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40 flex items-center gap-2">
@@ -221,7 +248,7 @@ function DivisionCard({ division, teams }: { division: string; teams: TeamStandi
           <HeaderRow />
           <tbody className="divide-y divide-slate-800/40">
             {teams.map((team, i) => (
-              <TeamRow key={team.team_id} team={team} rank={i + 1} leader={i === 0} />
+              <TeamRow key={team.team_id} team={team} rank={i + 1} leader={i === 0} playoff={playoffOf(team.team_id)} />
             ))}
           </tbody>
         </table>
@@ -244,10 +271,15 @@ function WildCardRow({
   inLine?: boolean;
 }) {
   const router = useRouter();
+  const go = () => router.push(teamHref(team.team_id));
   return (
     <tr
-      onClick={() => router.push(teamHref(team.team_id))}
-      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors ${inLine ? 'bg-emerald-500/[0.05]' : ''}`}
+      role="link"
+      tabIndex={0}
+      aria-label={`${team.name}, ${team.w} and ${team.l}, ${label}. View team profile.`}
+      onClick={go}
+      onKeyDown={(e) => handleRowKey(e, go)}
+      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-inset ${inLine ? 'bg-emerald-500/[0.05]' : ''}`}
     >
       <td className="py-2.5 pl-3 pr-1 w-12">
         <span className={`text-[9px] font-black uppercase tracking-wider ${labelClass}`}>{label}</span>
@@ -332,7 +364,7 @@ function WildCardLeagueCard({
                   inLine={r.inWC}
                 />
                 {i === 2 && (
-                  <tr>
+                  <tr aria-hidden="true">
                     <td colSpan={9} className="p-0">
                       <div className="h-[2px] bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent" />
                       <div className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-500/80 bg-emerald-500/[0.03]">
@@ -360,12 +392,39 @@ function GradeLegend() {
           {t}
         </span>
       ))}
+      <span className="text-slate-700">|</span>
+      <span className="inline-flex items-center gap-1 text-[#00D4FF]">
+        <span className="w-2 h-2 rounded-[1px] bg-current" />Division leader
+      </span>
+      <span className="inline-flex items-center gap-1 text-emerald-400">
+        <span className="w-2 h-2 rounded-[1px] bg-current" />Wild card
+      </span>
     </div>
   );
 }
 
-function gamesBetween(a: TeamStanding, b: TeamStanding): number {
-  return ((a.w - b.w) + (b.l - a.l)) / 2;
+function StandingsSkeleton() {
+  return (
+    <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 overflow-hidden" aria-busy="true" aria-label="Loading standings">
+      <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40">
+        <div className="h-4 w-32 rounded bg-slate-800 animate-pulse" />
+      </div>
+      <div className="divide-y divide-slate-800/40">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3">
+            <div className="w-4 h-3 rounded bg-slate-800 animate-pulse shrink-0" />
+            <div className="w-7 h-7 rounded-full bg-slate-800 animate-pulse shrink-0" />
+            <div className="h-3 flex-1 max-w-[160px] rounded bg-slate-800 animate-pulse" />
+            <div className="ml-auto flex items-center gap-4">
+              <div className="h-3 w-8 rounded bg-slate-800 animate-pulse hidden sm:block" />
+              <div className="h-3 w-8 rounded bg-slate-800 animate-pulse hidden sm:block" />
+              <div className="h-5 w-20 rounded bg-slate-800 animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function StandingsPage() {
@@ -436,6 +495,19 @@ export default function StandingsPage() {
     return out;
   }, [teams]);
 
+  // team_id -> playoff position, shared across all views for consistent accent bars.
+  const playoffMap = useMemo(() => {
+    const m = new Map<number, PlayoffStatus>();
+    (['AL', 'NL'] as const).forEach((lg) => {
+      wildcard[lg].leaders.forEach((t) => m.set(t.team_id, 'div'));
+      wildcard[lg].race.forEach((r) => {
+        if (r.inWC) m.set(r.team.team_id, 'wc');
+      });
+    });
+    return m;
+  }, [wildcard]);
+  const playoffOf = (id: number): PlayoffStatus => playoffMap.get(id) ?? null;
+
   const VIEWS: [typeof view, string][] = [
     ['division', 'By Division'],
     ['wildcard', 'Wild Card'],
@@ -447,16 +519,16 @@ export default function StandingsPage() {
       <SEOHead
         title="MLB Standings 2026 — Division Races, Wild Card & Power Rankings | Smarter.Poker"
         description="Live 2026 MLB standings: divisional breakdowns, wild-card playoff race, run differential, Pythagorean expected records, win streaks, and AI-graded team ratings on the ELITE/STRONG/LEAN/THIN/PASS scale."
-      
-                jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "Dataset",
-                "name": "MLB Standings — Power Ratings & Advanced Stats",
-                "description": "MLB standings augmented with AI power ratings, advanced metrics (wRC+, FIP, WAR), team momentum scores, and betting edge indicators.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/standings",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
-            />
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Dataset',
+          name: 'MLB Standings — Power Ratings & Advanced Stats',
+          description:
+            'MLB standings augmented with AI power ratings, advanced metrics (wRC+, FIP, WAR), team momentum scores, and betting edge indicators.',
+          url: 'https://smarter.poker/hub/MLB-ANALYTICS/standings',
+          provider: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+        }}
+      />
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />
 
@@ -475,12 +547,18 @@ export default function StandingsPage() {
             </p>
           </div>
 
-          <div className="inline-flex rounded-lg border border-slate-700/70 bg-[#0d1117] p-1 self-start">
+          <div
+            className="inline-flex rounded-lg border border-slate-700/70 bg-[#0d1117] p-1 self-start"
+            role="tablist"
+            aria-label="Standings view"
+          >
             {VIEWS.map(([key, label]) => (
               <button
                 key={key}
+                role="tab"
+                aria-selected={view === key}
                 onClick={() => setView(key)}
-                className={`px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider rounded-md transition-all ${
+                className={`px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${
                   view === key
                     ? 'bg-[#00D4FF] text-black shadow-[0_0_12px_rgba(0,212,255,0.4)]'
                     : 'text-slate-400 hover:text-slate-200'
@@ -497,9 +575,7 @@ export default function StandingsPage() {
         </div>
 
         {loading ? (
-          <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 p-12 text-center text-slate-500 text-xs uppercase tracking-widest animate-pulse">
-            Initiating standings sync...
-          </div>
+          <StandingsSkeleton />
         ) : error ? (
           <div className="bg-[#0d1117] rounded-xl border border-red-900/40 p-12 text-center text-red-400 text-xs uppercase tracking-widest">
             Standings temporarily unavailable. Retrying automatically...
@@ -522,7 +598,7 @@ export default function StandingsPage() {
                   {LEAGUE_DIVISIONS[lg]
                     .filter((d) => byDivision.has(d))
                     .map((d) => (
-                      <DivisionCard key={d} division={d} teams={byDivision.get(d) || []} />
+                      <DivisionCard key={d} division={d} teams={byDivision.get(d) || []} playoffOf={playoffOf} />
                     ))}
                 </div>
               </div>
@@ -552,7 +628,14 @@ export default function StandingsPage() {
                 <HeaderRow showDivision />
                 <tbody className="divide-y divide-slate-800/40">
                   {powerRanked.map((team, i) => (
-                    <TeamRow key={team.team_id} team={team} rank={i + 1} leader={i === 0} showDivision />
+                    <TeamRow
+                      key={team.team_id}
+                      team={team}
+                      rank={i + 1}
+                      leader={i === 0}
+                      showDivision
+                      playoff={playoffOf(team.team_id)}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -561,7 +644,7 @@ export default function StandingsPage() {
         )}
 
         <p className="text-slate-600 text-[10px] mt-6 uppercase tracking-wider">
-          Computed from final game results. GB = games behind division leader. EXP = Pythagorean expected record from run differential. Grade is a league-relative power rating on the same ELITE/STRONG/LEAN/THIN/PASS scale used across Smarter Poker MLB. Tap any team for its full profile.
+          Computed from final game results. GB = games behind division leader. EXP = Pythagorean expected record from run differential. Cyan bar = division leader, green bar = wild-card position. Grade is a league-relative power rating on the same ELITE/STRONG/LEAN/THIN/PASS scale used across Smarter Poker MLB. Tap any team for its full profile.
         </p>
       </main>
       <BottomNavBar />
