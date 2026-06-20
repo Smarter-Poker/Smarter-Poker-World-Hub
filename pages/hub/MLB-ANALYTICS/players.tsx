@@ -343,6 +343,15 @@ export default function PlayersPage() {
                 canonical="/hub/MLB-ANALYTICS/players"
            
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Player Analytics — Advanced Stats & AI Grades",
+                "description": "In-depth MLB player analytics featuring wRC+, wOBA, FIP, SIERA, situational splits, and AI-powered prop ratings for every active player.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/players",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

@@ -146,6 +146,15 @@ export default function PortfolioPage() {
                 canonical="/hub/MLB-ANALYTICS/portfolio"
             
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Portfolio Analytics — Cumulative ROI & Performance Tracking",
+                "description": "Full-season portfolio performance for MLB predictions: cumulative ROI, units won, win rate, CLV, and Brier score progression over the 2025 MLB season.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/portfolio",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
             
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

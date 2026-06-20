@@ -107,6 +107,15 @@ export default function ModelIntelPage() {
                 canonical="/hub/MLB-ANALYTICS/model-intel" 
             
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Model Intelligence — Prediction Factors & Confidence Metrics",
+                "description": "Deep insight into the Smarter.Poker MLB AI model: feature importance, confidence distributions, edge detection, and model self-assessment scores.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/model-intel",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

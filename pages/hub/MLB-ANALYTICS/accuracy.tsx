@@ -76,6 +76,15 @@ export default function AccuracyPage() {
                 canonical="/hub/MLB-ANALYTICS/accuracy" 
            
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Model Accuracy — Verified Prediction Track Record",
+                "description": "Transparent accuracy metrics for the Smarter.Poker MLB prediction model: hit rate, Brier score, CLV (Closing Line Value), and ROI by market type.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/accuracy",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />

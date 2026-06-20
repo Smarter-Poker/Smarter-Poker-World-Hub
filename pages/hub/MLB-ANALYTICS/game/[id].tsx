@@ -152,6 +152,10 @@ export default function GameMatchupDashboard() {
           <div className="space-y-6">
             {/* MATCHUP HEADER CARD */}
             <div className="bg-[#0A101C] border border-[#1A2436] rounded-xl p-6 relative overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+              {/* Visually-hidden h1 for SEO — actual matchup displayed as h2s below */}
+              <h1 className="sr-only">
+                {game.away} vs {game.home} — MLB Game Predictions
+              </h1>
               <div className="absolute top-0 left-0 w-1 h-full bg-[#00D4FF]"></div>
 
               <div className="flex flex-col md:flex-row items-center justify-between gap-8">

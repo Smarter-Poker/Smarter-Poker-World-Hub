@@ -229,7 +229,16 @@ export default function TrackerPage() {
         description="Follow every MLB game in real time on Smarter.Poker. Live scores, inning-by-inning updates, game status, and model edge alerts for all 2025 MLB games."
         canonical="/hub/MLB-ANALYTICS/tracker"
         ogImage="/images/mlb/og.png"
-      />
+      
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Live Game Tracker — Today's Slate",
+                "description": "Live MLB game scores, win probabilities, line movements, and real-time AI bet tracking for every game on today's slate.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/tracker",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
+            />
 
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />

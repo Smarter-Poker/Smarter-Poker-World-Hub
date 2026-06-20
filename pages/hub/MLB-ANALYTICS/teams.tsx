@@ -245,6 +245,15 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Teams - Error" description="Data fetch failed" 
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Team Analytics — Power Ratings & Edge Dashboard",
+                "description": "MLB team power ratings, advanced stats (ERA, FIP, OPS, WAR), and today's betting edges across all 30 clubs.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/teams",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
@@ -514,6 +523,15 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                 canonical="/hub/MLB-ANALYTICS/teams" 
             
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Team Analytics — Power Ratings & Edge Dashboard",
+                "description": "MLB team power ratings, advanced stats (ERA, FIP, OPS, WAR), and today's betting edges across all 30 clubs.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/teams",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

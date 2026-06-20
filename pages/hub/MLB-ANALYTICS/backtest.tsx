@@ -86,6 +86,15 @@ export default function BacktestPage() {
                 canonical="/hub/MLB-ANALYTICS/backtest"
            
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Model Backtesting — Historical Prediction Simulation",
+                "description": "Backtesting of the Smarter.Poker MLB AI model across historical slates: win rate, ROI, CLV, and Brier score by market type and season window.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/backtest",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

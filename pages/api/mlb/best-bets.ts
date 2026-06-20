@@ -424,7 +424,7 @@ async function edgeHandler(req: Request) {
 
     // Ensure topLock is formatted correctly if it's 0-1
     let topLock = data?.stats?.topLock || 0;
-    if (topLock > 0 && topLock <= 1) topLock = topLock * 100;
+    if (topLock > 0 && topLock < 1) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
 
     // Enrich bets from RPC result
     const rawBets = data?.bets || [];

@@ -67,6 +67,17 @@ export default function StatusPage() {
                 <SEOHead title="MLB Analytics Data Status — Pipeline Freshness & System Health | Smarter.Poker" description="Real-time status dashboard for the Smarter.Poker MLB Analytics pipeline."
                 canonical="/hub/MLB-ANALYTICS/status" 
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "WebApplication",
+                "name": "MLB Analytics — System Status",
+                "description": "Real-time status dashboard for the Smarter.Poker MLB prediction engine: data pipeline health, model freshness, API latency, and database sync indicators.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/status",
+                "applicationCategory": "SportsApplication",
+                "operatingSystem": "Any",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
@@ -91,6 +102,17 @@ export default function StatusPage() {
                 canonical="/hub/MLB-ANALYTICS/status"
             
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "WebApplication",
+                "name": "MLB Analytics — System Status",
+                "description": "Real-time status dashboard for the Smarter.Poker MLB prediction engine: data pipeline health, model freshness, API latency, and database sync indicators.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/status",
+                "applicationCategory": "SportsApplication",
+                "operatingSystem": "Any",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
+            }}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

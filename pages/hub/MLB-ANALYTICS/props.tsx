@@ -528,6 +528,16 @@ export default function PropsPage() {
                 canonical="/hub/MLB-ANALYTICS/props"
             
                 ogImage="/images/mlb/og.png"
+            
+                jsonLd={{
+                "@context": "https://schema.org",
+                "@type": "Dataset",
+                "name": "MLB Player Props — AI Edge Ratings",
+                "description": "AI-graded MLB player prop bets with Bet Scores, over/under recommendations, Kelly Criterion sizing, and model vs. market probability comparisons for today's slate.",
+                "url": "https://smarter.poker/hub/MLB-ANALYTICS/props",
+                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" },
+                "keywords": ["MLB props", "player props", "MLB AI picks", "baseball prop bets"]
+            }}
             />
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
             <MlbSubNav />
