@@ -64,7 +64,7 @@ export default function TeamDetailPage() {
     if (error || data?.error) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title={`MLB Team Analytics | Smarter.Poker`} description="Advanced MLB team analytics, splits, power ratings, and player data." noIndex={true} />
+                <SEOHead title={`MLB Team Analytics | Smarter.Poker`} description="Advanced MLB team analytics, splits, power ratings, and player data." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">

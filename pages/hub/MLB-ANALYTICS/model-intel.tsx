@@ -71,7 +71,7 @@ export default function ModelIntelPage() {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Predictive Model Intelligence — Neural Network Analytics | Smarter.Poker" description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine." noIndex={true} />
+                <SEOHead title="MLB Predictive Model Intelligence — Neural Network Analytics | Smarter.Poker" description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -102,7 +102,8 @@ export default function ModelIntelPage() {
         <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead 
                 title="MLB Predictive Model Intelligence — Neural Network Analytics | Smarter.Poker" 
-                description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine. Explore model version, total bets tracked, recent ROI, training history, and daily P&L performance matrix for the 2025 MLB season." 
+                description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine. Explore model version, total bets tracked, recent ROI, training history, and daily P&L performance matrix for the 2025 MLB season."
+                canonical="/hub/MLB-ANALYTICS/model-intel" 
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

@@ -121,7 +121,7 @@ export default function TrackerPage() {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Live Game Tracker — Real-Time Scores &amp; Edge Updates | Smarter.Poker" description="Follow every MLB game in real time on Smarter.Poker." noIndex={true} />
+                <SEOHead title="MLB Live Game Tracker — Real-Time Scores &amp; Edge Updates | Smarter.Poker" description="Follow every MLB game in real time on Smarter.Poker." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -156,6 +156,7 @@ export default function TrackerPage() {
            <SEOHead 
                title="MLB Live Game Tracker — Real-Time Scores & Edge Updates | Smarter.Poker" 
                description="Follow every MLB game in real time on Smarter.Poker. Live scores, inning-by-inning updates, game status, and model edge alerts for all 2025 MLB games."
+                canonical="/hub/MLB-ANALYTICS/tracker"
            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
@@ -182,7 +183,7 @@ export default function TrackerPage() {
                <div className="absolute top-10 right-10 w-64 h-64 bg-[#22C55E] rounded-full mix-blend-screen filter blur-[100px] opacity-[0.03] pointer-events-none"></div>
 
                <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-                   <style dangerouslySetInnerHTML={{__html: `div::-webkit-scrollbar { display: none; }`}} />
+                   <style dangerouslySetInnerHTML={{__html: `.scrollbar-hide::-webkit-scrollbar { display: none; }`}} />
                    {['ALL', 'LIVE', 'UPCOMING', 'FINAL'].map(f => (
                        <button 
                            key={f}
@@ -227,7 +228,7 @@ export default function TrackerPage() {
                )}
 
                <div className="mt-8 mb-4 p-4 bg-[#1a2332] border border-[#3d4f5f] rounded-sm text-[10px] font-bold tracking-wide text-slate-400 text-center leading-relaxed shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-                   <strong className="text-[#22C55E]">Real-Time WebSockets Active.</strong> 
+                   <strong className="text-[#22C55E]">Live Auto-Refresh Active.</strong>
                    <br/>
                    <span className="uppercase text-slate-300">Data Feed</span> provided by MLB Stats API via Supabase `raw_games`.
                </div>

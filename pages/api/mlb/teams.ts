@@ -81,8 +81,8 @@ async function edgeHandler(req: Request) {
             mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'),
             aggFloor
                 ? mlbDb.from('agg_team')
-                    .select('team_id, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa')
-                    .eq('window_kind', 'season')
+                    .select('team_id, window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, wrc_plus, woba, hitting_war, def, uzr, drs, oaa')
+                    .in('window_kind', ['season', 'fg_hitting', 'fg_pitching'])
                     .gte('as_of', aggFloor)
                     .order('as_of', { ascending: false })
                 : Promise.resolve({ data: [], error: null } as any),
@@ -112,9 +112,42 @@ async function edgeHandler(req: Request) {
         const dimMap = new Map<number, any>();
         dimData.forEach((d: any) => { if (d.team_id != null) dimMap.set(d.team_id, d); });
 
-        // latest agg row per team (rows arrive ordered as_of desc → first seen wins)
-        const aggMap = new Map<number, any>();
-        aggData.forEach((a: any) => { if (a.team_id != null && !aggMap.has(a.team_id)) aggMap.set(a.team_id, a); });
+        // Advanced team stats are split across window_kinds: pitching rate stats live
+        // in fg_pitching, hitting counting stats in fg_hitting, rate/value summary in
+        // season. Keep the latest row per (team, window) and merge them into one line.
+        const aggByTeamWindow = new Map<string, any>();
+        aggData.forEach((a: any) => {
+            if (a.team_id == null || !a.window_kind) return;
+            const key = `${a.team_id}|${a.window_kind}`;
+            if (!aggByTeamWindow.has(key)) aggByTeamWindow.set(key, a);
+        });
+        const aggNum = (v: any) => (v == null ? null : Number(v));
+        const mergeAgg = (teamId: number): any | null => {
+            const season = aggByTeamWindow.get(`${teamId}|season`);
+            const hit = aggByTeamWindow.get(`${teamId}|fg_hitting`);
+            const pit = aggByTeamWindow.get(`${teamId}|fg_pitching`);
+            if (!season && !hit && !pit) return null;
+            return {
+                era: aggNum(pit?.era),
+                fip: aggNum(pit?.fip),
+                xfip: aggNum(pit?.xfip),
+                siera: aggNum(pit?.siera),
+                ops: aggNum(season?.ops),
+                avg: aggNum(season?.avg ?? hit?.avg),
+                obp: aggNum(season?.obp),
+                slg: aggNum(season?.slg),
+                hr: aggNum(hit?.hr),
+                sb: aggNum(hit?.sb),
+                wrc_plus: aggNum(season?.wrc_plus ?? hit?.wrc_plus),
+                woba: aggNum(season?.woba ?? hit?.woba),
+                hitting_war: aggNum(season?.hitting_war ?? hit?.hitting_war),
+                pitching_war: aggNum(pit?.pitching_war),
+                def: aggNum(season?.def),
+                uzr: aggNum(season?.uzr),
+                drs: aggNum(season?.drs),
+                oaa: aggNum(season?.oaa)
+            };
+        };
 
         // player_id → team_id
         const playerToTeam = new Map<number, number>();
@@ -166,7 +199,7 @@ async function edgeHandler(req: Request) {
                     abbr: team.abbr || dim.abbr || null,
                     has_active_edge: !!grade,
                     grade,
-                    adv_stats: aggMap.get(team.team_id) || null
+                    adv_stats: mergeAgg(team.team_id)
                 };
             })
             .filter((t: any) => t !== null);

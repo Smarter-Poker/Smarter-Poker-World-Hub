@@ -122,7 +122,7 @@ export default function PortfolioPage() {
     if (hasError) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Betting Portfolio — Simulated P&amp;L &amp; Unit Tracking | Smarter.Poker" description="Simulated MLB betting portfolio tracker by Smarter.Poker." noIndex={true} />
+                <SEOHead title="MLB Betting Portfolio — Simulated P&amp;L &amp; Unit Tracking | Smarter.Poker" description="Simulated MLB betting portfolio tracker by Smarter.Poker." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -143,6 +143,7 @@ export default function PortfolioPage() {
             <SEOHead 
                 title="MLB Betting Portfolio — Simulated P&L & Unit Tracking | Smarter.Poker" 
                 description="Simulated MLB betting portfolio tracker by Smarter.Poker. Review weekly P&L curves, cumulative bankroll growth, unit-based bet sizing, and the complete bet log for model-graded picks in 2025."
+                canonical="/hub/MLB-ANALYTICS/portfolio"
             />
             
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

@@ -320,7 +320,7 @@ export default function PlayersPage() {
     if (hasError) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Player Analytics — Stats, Rankings &amp; Predictive Grades | Smarter.Poker" description="Complete MLB player database with advanced statistics and AI-powered predictive grades." noIndex={true} />
+                <SEOHead title="MLB Player Analytics — Stats, Rankings &amp; Predictive Grades | Smarter.Poker" description="Complete MLB player database with advanced statistics and AI-powered predictive grades." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -340,6 +340,7 @@ export default function PlayersPage() {
            <SEOHead 
                title="MLB Player Analytics — Stats, Rankings & Predictive Grades | Smarter.Poker" 
                description="Complete MLB player database with advanced statistics, wRC+, wOBA, FIP, SIERA, and AI-powered predictive grades for every hitter and pitcher in the 2025 season."
+                canonical="/hub/MLB-ANALYTICS/players"
            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

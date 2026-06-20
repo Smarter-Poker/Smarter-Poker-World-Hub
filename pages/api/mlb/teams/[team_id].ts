@@ -63,17 +63,43 @@ async function edgeHandler(req: Request) {
         const dimData = dimRes.data;
         const dimAll = dimAllRes.data || [];
 
-        // ── Advanced stats: agg_team is a daily snapshot (many season rows per team),
-        //    so take the most recent one. `.maybeSingle()` on the unfiltered query would
-        //    error on multiple rows — order + limit(1) first. ──
-        const { data: statsData } = await mlbDb
+        // ── Advanced stats: agg_team is a daily snapshot split across window_kinds
+        //    (pitching rates in fg_pitching, hitting counts in fg_hitting, rate/value
+        //    summary in season). Take the latest row per window and merge into one line.
+        //    (Reading a single window with `.maybeSingle()` would also error on the many
+        //    daily rows per team — order + dedupe avoids that.) ──
+        const { data: aggRows } = await mlbDb
             .from('agg_team')
-            .select('*')
+            .select('window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, wrc_plus, woba, hitting_war, def, uzr, drs, oaa')
             .eq('team_id', id)
-            .eq('window_kind', 'season')
-            .order('as_of', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .in('window_kind', ['season', 'fg_hitting', 'fg_pitching'])
+            .order('as_of', { ascending: false });
+        const aggLatestByWindow = new Map<string, any>();
+        (aggRows || []).forEach((a: any) => { if (a.window_kind && !aggLatestByWindow.has(a.window_kind)) aggLatestByWindow.set(a.window_kind, a); });
+        const aggNum = (v: any) => (v == null ? null : Number(v));
+        const seasonRow = aggLatestByWindow.get('season');
+        const hitRow = aggLatestByWindow.get('fg_hitting');
+        const pitRow = aggLatestByWindow.get('fg_pitching');
+        const statsData = (seasonRow || hitRow || pitRow) ? {
+            era: aggNum(pitRow?.era),
+            fip: aggNum(pitRow?.fip),
+            xfip: aggNum(pitRow?.xfip),
+            siera: aggNum(pitRow?.siera),
+            ops: aggNum(seasonRow?.ops),
+            avg: aggNum(seasonRow?.avg ?? hitRow?.avg),
+            obp: aggNum(seasonRow?.obp),
+            slg: aggNum(seasonRow?.slg),
+            hr: aggNum(hitRow?.hr),
+            sb: aggNum(hitRow?.sb),
+            wrc_plus: aggNum(seasonRow?.wrc_plus ?? hitRow?.wrc_plus),
+            woba: aggNum(seasonRow?.woba ?? hitRow?.woba),
+            hitting_war: aggNum(seasonRow?.hitting_war ?? hitRow?.hitting_war),
+            pitching_war: aggNum(pitRow?.pitching_war),
+            def: aggNum(seasonRow?.def),
+            uzr: aggNum(seasonRow?.uzr),
+            drs: aggNum(seasonRow?.drs),
+            oaa: aggNum(seasonRow?.oaa)
+        } : null;
 
         const teamName = teamData?.name || dimData?.name || id;
         const teamAbbr = teamData?.abbr || dimData?.abbr || id;

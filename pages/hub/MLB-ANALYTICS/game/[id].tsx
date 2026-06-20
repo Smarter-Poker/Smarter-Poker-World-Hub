@@ -226,8 +226,8 @@ export default function GameMatchupDashboard() {
                                                 <div className={`font-['Rajdhani'] text-lg font-bold ${bet.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}>
                                                     {bet.ev_pct > 0 ? '+' : ''}{(Number(bet.ev_pct) || 0).toFixed(1)}% EV
                                                 </div>
-                                                <span className="text-xs font-['Rajdhani'] text-[#00D4FF] bg-[#00D4FF]/10 px-2 rounded">
-                                                    Score: {bet.bet_score != null ? Number(bet.bet_score).toFixed(0) : 'N/A'}
+                                                <span className="text-xs font-['Rajdhani'] px-2 rounded font-bold" style={{ color: TIER_HEX[bet.bet_tier] || '#00D4FF', background: `${TIER_HEX[bet.bet_tier] || '#00D4FF'}1a` }}>
+                                                    {bet.bet_score != null ? `${Number(bet.bet_score).toFixed(0)}${bet.bet_tier ? ' · ' + bet.bet_tier : ''}` : 'N/A'}
                                                 </span>
                                             </div>
                                         </div>
@@ -263,7 +263,7 @@ export default function GameMatchupDashboard() {
                                                     {prop.ev_pct > 0 ? '+' : ''}{(Number(prop.ev_pct) || 0).toFixed(1)}% EV
                                                 </div>
                                                 <span className="text-xs font-['Rajdhani'] text-[#00D4FF] bg-[#00D4FF]/10 px-2 rounded">
-                                                    Odds: {prop.price > 0 ? `+${prop.price}` : prop.price}
+                                                    Odds: {(() => { const o = prop.odds ?? prop.price; return o == null ? '—' : (Number(o) > 0 ? `+${o}` : `${o}`); })()}
                                                 </span>
                                             </div>
                                         </div>

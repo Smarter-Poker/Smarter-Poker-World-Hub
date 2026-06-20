@@ -737,7 +737,7 @@ export default function BestBetsPage() {
     if (error || data?.error) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="Today's MLB Best Bets — AI Model Picks &amp; Edge Ratings | Smarter.Poker" description="Daily MLB best bets and betting edges powered by Smarter.Poker's AI prediction model." noIndex={true} />
+                <SEOHead title="Today's MLB Best Bets — AI Model Picks &amp; Edge Ratings | Smarter.Poker" description="Daily MLB best bets and betting edges powered by Smarter.Poker's AI prediction model." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -790,6 +790,15 @@ export default function BestBetsPage() {
             <SEOHead
                 title="Today's MLB Best Bets — AI Model Picks & Edge Ratings | Smarter.Poker"
                 description="Daily MLB best bets and betting edges powered by Smarter.Poker's AI prediction model. Covers moneyline, run line, totals, and player props with ELITE/STRONG/LEAN/THIN/PASS tier ratings for every pick."
+                canonical="/hub/MLB-ANALYTICS/best-bets"
+                jsonLd={{
+                    '@type': 'Dataset',
+                    name: "Today's MLB Best Bets",
+                    description: "Daily AI-model-generated MLB betting picks with edge percentages, tier ratings, and win probability scores.",
+                    url: 'https://smarter.poker/hub/MLB-ANALYTICS/best-bets',
+                    creator: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+                    keywords: 'MLB best bets, MLB picks today, MLB betting predictions, baseball betting',
+                }}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

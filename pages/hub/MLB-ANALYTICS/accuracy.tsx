@@ -51,7 +51,7 @@ export default function AccuracyPage() {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" description="Track the accuracy of Smarter.Poker's MLB prediction model." noIndex={true} />
+                <SEOHead title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" description="Track the accuracy of Smarter.Poker's MLB prediction model." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -72,7 +72,8 @@ export default function AccuracyPage() {
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
                title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" 
-               description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the 2025 season." 
+               description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the 2025 season."
+                canonical="/hub/MLB-ANALYTICS/accuracy" 
            />
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />

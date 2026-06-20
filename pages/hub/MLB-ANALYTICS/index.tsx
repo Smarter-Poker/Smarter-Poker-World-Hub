@@ -156,7 +156,6 @@ function FilterBar({ edgesCount, filters, onFilter }: { edgesCount: number; filt
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function MlbSlatePage() {
-  const router = useRouter();
   const [filters, setFilters] = useState<FilterState>({ actionable: false, propsOnly: false, minEdge: 0 });
   const { data, error, mutate } = useSWR('/api/mlb/dashboard', fetcher, { refreshInterval: 30000 });
 
@@ -188,8 +187,19 @@ export default function MlbSlatePage() {
       <SEOHead
         title="MLB Analytics Vault — Daily Predictions & Best Bets | Smarter.Poker"
         description="AI-powered MLB predictions, daily best bets, player props, moneyline edges, and real-time analytics. Smarter.Poker MLB Analytics Vault delivers model-backed picks every day."
+        canonical="/hub/MLB-ANALYTICS"
+        jsonLd={{
+          '@type': 'WebApplication',
+          name: 'Smarter.Poker MLB Analytics Vault',
+          url: 'https://smarter.poker/hub/MLB-ANALYTICS',
+          applicationCategory: 'SportsApplication',
+          operatingSystem: 'Web',
+          description: 'AI-powered MLB betting analytics, daily best bets, player props, and real-time model predictions.',
+          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+          provider: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+        }}
       />
-      <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub')} />
+      <UniversalHeader pageDepth={2} onBackClick={() => { window.location.href = '/hub'; }} />
       <MlbSubNav />
 
       <SyncIndicator onSync={() => mutate()} />

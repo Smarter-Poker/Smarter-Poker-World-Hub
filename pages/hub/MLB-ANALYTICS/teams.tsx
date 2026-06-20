@@ -511,7 +511,8 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
         }}>
             <SEOHead 
                 title="MLB Team Analytics — Advanced Stats & Power Ratings | Smarter.Poker" 
-                description="Deep MLB team profiles with advanced analytics, split records, WAR totals, OPS, FIP, OAA, streaks, and AI power ratings for all 30 teams in the 2025 MLB season." 
+                description="Deep MLB team profiles with advanced analytics, split records, WAR totals, OPS, FIP, OAA, streaks, and AI power ratings for all 30 teams in the 2025 MLB season."
+                canonical="/hub/MLB-ANALYTICS/teams" 
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

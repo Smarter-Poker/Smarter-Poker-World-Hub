@@ -32,7 +32,7 @@ export default function BacktestPage() {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Backtest Simulator — Unit P&amp;L &amp; Historical Edge Analysis | Smarter.Poker" description="Run historical backtests on the Smarter.Poker MLB prediction model." noIndex={true} />
+                <SEOHead title="MLB Backtest Simulator — Unit P&amp;L &amp; Historical Edge Analysis | Smarter.Poker" description="Run historical backtests on the Smarter.Poker MLB prediction model." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -82,6 +82,7 @@ export default function BacktestPage() {
            <SEOHead 
                title="MLB Model Backtest — Live Market Edge Evaluation | Smarter.Poker" 
                description="Historical backtest results for Smarter.Poker's MLB prediction model. Review daily P&L trends, market-level breakdowns, win rates, ROI, CLV, and Brier score performance across the 2025 MLB season."
+                canonical="/hub/MLB-ANALYTICS/backtest"
            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
