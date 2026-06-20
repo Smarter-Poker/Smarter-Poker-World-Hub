@@ -1,4 +1,56 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { explain, type ScoreFactor, type Tier } from '../../../src/lib/betScore';
+
+// ── Timezone helpers (America/Chicago is the canonical slate timezone) ─────────
+function chicagoYmd(d: Date): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Chicago',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(d);
+}
+
+// Offset (ms) of `tz` from UTC at the given instant. DST-safe.
+function tzOffsetMs(date: Date, tz: string): number {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hourCycle: 'h23',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const parts: Record<string, string> = {};
+    for (const p of dtf.formatToParts(date)) parts[p.type] = p.value;
+    const asUTC = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+    return asUTC - date.getTime();
+}
+
+// Half-open UTC range [start, end) covering one Chicago calendar day (YYYY-MM-DD).
+function chicagoDayUtcRange(ymd: string): { startIso: string; endIso: string } {
+    const guess = new Date(`${ymd}T00:00:00Z`);
+    const off = tzOffsetMs(guess, 'America/Chicago');
+    const start = new Date(guess.getTime() - off);
+    const end = new Date(start.getTime() + 24 * 3600 * 1000);
+    return { startIso: start.toISOString(), endIso: end.toISOString() };
+}
+
+// ── Over/Under side inference ──────────────────────────────────────────────────
+// `rec` is freeform ("NO BET", "LEAN OVER", "BET (Quarter-Kelly: 1.8%)"...) and
+// usually does NOT carry the side for actionable BETs, so we infer it from the
+// model vs market probabilities (the value is on the side the model prices higher
+// than the market), falling back to projection-vs-line, then the over coin-flip.
+function inferSide(
+    rec: string | null,
+    pOver: number | null,
+    pMarketOver: number | null,
+    proj: number | null,
+    line: number | null,
+): 'over' | 'under' {
+    const r = (rec || '').toUpperCase();
+    if (r.includes('UNDER')) return 'under';
+    if (r.includes(' OVER') || r.startsWith('OVER')) return 'over';
+    if (pOver != null && pMarketOver != null) return pOver >= pMarketOver ? 'over' : 'under';
+    if (proj != null && line != null) return Number(proj) > Number(line) ? 'over' : 'under';
+    if (pOver != null) return pOver >= 0.5 ? 'over' : 'under';
+    return 'over';
+}
 
 async function edgeHandler(req: Request) {
     if (req.method !== 'GET') {
@@ -11,41 +63,46 @@ async function edgeHandler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
 
-        // ── Find best available date ──────────────────────────────────────────
-        const todayStr = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Chicago',
-            year: 'numeric', month: '2-digit', day: '2-digit',
-        }).format(new Date());
+        // ── Find best available slate (Chicago day) ──────────────────────────
+        const today = chicagoYmd(new Date());
+        const { startIso: todayStart, endIso: todayEnd } = chicagoDayUtcRange(today);
 
-        let slateDate = todayStr;
+        let slateDate = today;
 
         const { data: todayCheck } = await mlbDb
             .from('pred_props')
             .select('as_of_ts')
-            .gte('as_of_ts', `${todayStr}T00:00:00`)
+            .gte('as_of_ts', todayStart)
+            .lt('as_of_ts', todayEnd)
+            .not('best_price', 'is', null)
             .limit(1);
 
         if (!todayCheck || todayCheck.length === 0) {
-            // No props for today yet — find the most recent available date
+            // No priced props for today yet — fall back to the most recent slate.
             const { data: latestRow } = await mlbDb
                 .from('pred_props')
                 .select('as_of_ts')
-                .lte('as_of_ts', `${todayStr}T23:59:59`)
+                .lt('as_of_ts', todayEnd)
+                .not('best_price', 'is', null)
                 .order('as_of_ts', { ascending: false })
                 .limit(1)
                 .maybeSingle();
             if (latestRow?.as_of_ts) {
-                slateDate = latestRow.as_of_ts.slice(0, 10);
+                slateDate = chicagoYmd(new Date(latestRow.as_of_ts));
             }
         }
 
-        // ── 1. Fetch Props First ──────────────────────────────────────────────
+        const { startIso, endIso } = chicagoDayUtcRange(slateDate);
+
+        // ── 1. Fetch priced props for the slate ──────────────────────────────
+        // Only rows with a posted price are gradeable / actionable.
         const propsRes = await mlbDb
             .from('pred_props')
-            .select('game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_lines, edge_pts, best_price, best_book, rec')
-            .gte('as_of_ts', `${slateDate}T00:00:00`)
-            .lte('as_of_ts', `${slateDate}T23:59:59`)
-            .order('edge_pts', { ascending: false, nullsFirst: false });
+            .select('game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, blended_over, market_novig_over, best_lines, best_price, best_book, rec, kelly_pct')
+            .gte('as_of_ts', startIso)
+            .lt('as_of_ts', endIso)
+            .not('best_price', 'is', null)
+            .limit(2000);
 
         if (propsRes.error) {
             console.error('[API/MLB/Props] pred_props error:', propsRes.error);
@@ -56,23 +113,16 @@ async function edgeHandler(req: Request) {
         }
 
         const rawProps = propsRes.data || [];
-        
+
         // Extract unique player_ids
         const uniquePlayerIds = [...new Set(rawProps.map(p => p.player_id).filter((id): id is number => id != null))];
 
         // ── 2. Fetch Player Profiles & Stats ONLY for relevant players ────────
-        // This avoids the 1000 max-rows limit per query on Supabase PostgREST
-        
         const [hittersRes, pitchersRes, teamsRes, aggPitcherRes, aggBatterRes] = await Promise.all([
-            // Hitters view
             uniquePlayerIds.length > 0 ? mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id').in('player_id', uniquePlayerIds).limit(1000) : { data: [] },
-            // Pitchers view
             uniquePlayerIds.length > 0 ? mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera').in('player_id', uniquePlayerIds).limit(1000) : { data: [] },
-            // All teams
             mlbDb.from('dim_teams').select('team_id, abbr').limit(100),
-            // Pitcher stats
             uniquePlayerIds.length > 0 ? mlbDb.from('agg_pitcher').select('pitcher_id, w, l, era, so, h, bb, ip, as_of').eq('window_kind', 'fg_season').eq('vs_hand', 'A').in('pitcher_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
-            // Batter stats
             uniquePlayerIds.length > 0 ? mlbDb.from('agg_batter').select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus, as_of').eq('window_kind', 'fg_season').eq('vs_hand', 'A').in('batter_id', uniquePlayerIds).order('as_of', { ascending: false }).limit(1000) : { data: [] },
         ]);
 
@@ -126,11 +176,9 @@ async function edgeHandler(req: Request) {
             team: string;
             team_id: number | null;
             kind: 'hitter' | 'pitcher';
-            // hitter stats
             avg?: number | null; hr?: number | null; rbi?: number | null;
             obp?: number | null; slg?: number | null;
             woba?: number | null; wrc_plus?: number | null; pa?: number | null;
-            // pitcher stats
             era?: number | null; fip?: number | null; siera?: number | null;
             w?: number | null; l?: number | null; so?: number | null; whip?: number | null;
         };
@@ -187,7 +235,6 @@ async function edgeHandler(req: Request) {
             for (const f of (fallback || [])) {
                 if (f.player_id && !playerMap.has(f.player_id)) {
                     const aggB = aggBatterMap.get(f.player_id);
-                    // We assume hitter by default for fallbacks, but we could check aggPitcherMap too
                     const aggP = aggPitcherMap.get(f.player_id);
                     const kind = aggP ? 'pitcher' : 'hitter';
 
@@ -208,7 +255,7 @@ async function edgeHandler(req: Request) {
                     const aggB = aggBatterMap.get(id);
                     const aggP = aggPitcherMap.get(id);
                     const kind = aggP ? 'pitcher' : 'hitter';
-                    playerMap.set(id, { 
+                    playerMap.set(id, {
                         name: `Player #${id}`, team: '', team_id: null, kind,
                         avg: aggB?.avg ?? null, hr: aggB?.hr ?? null, rbi: aggB?.rbi ?? null,
                         obp: aggB?.obp ?? null, slg: aggB?.slg ?? null,
@@ -220,46 +267,78 @@ async function edgeHandler(req: Request) {
             }
         }
 
-        // ── Map + enrich props ────────────────────────────────────────────────
+        // ── Map + enrich + SCORE props (canonical Bet Score, single source of truth) ──
         const mappedProps = rawProps.map(p => {
             const info = playerMap.get(p.player_id) || {
                 name: p.player_id ? `Player #${p.player_id}` : 'TBA',
                 team: '', team_id: null, kind: 'hitter' as const,
             };
 
-            const isOver = p.rec === 'over';
-            const rawOdds = p.best_price != null ? Number(p.best_price) : NaN;
-            const odds = isNaN(rawOdds) ? null : rawOdds;
+            // Model win prob for the OVER side (prefer the calibrated/blended prob).
+            const pOver = p.blended_over != null ? Number(p.blended_over)
+                : (p.prob_over != null ? Number(p.prob_over) : null);
+            const pMarketOver = p.market_novig_over != null ? Number(p.market_novig_over) : null;
 
-            // EV% = (impliedWinProb × decimalOdds) - 1
+            const side = inferSide(p.rec, pOver, pMarketOver, p.proj_mean as any, p.line as any);
+            const isOver = side === 'over';
+
+            // Win prob / market prob for the RECOMMENDED side.
+            const pWin = pOver == null ? null : (isOver ? pOver : 1 - pOver);
+            const pMarket = pMarketOver == null ? null : (isOver ? pMarketOver : 1 - pMarketOver);
+            const price = p.best_price != null ? Number(p.best_price) : null;
+
+            // Canonical Bet Score (0-100) + tier — identical scale to every other surface.
+            let bet_score: number | null = null;
+            let bet_tier: Tier | null = null;
+            let win_confidence: number | null = null;
             let ev_pct: number | null = null;
-            if (p.prob_over != null && odds != null && odds !== 0) {
-                const decOdds = odds > 0 ? (1 + odds / 100) : (1 - 100 / odds);
-                const winProb  = isOver ? Number(p.prob_over) : (1 - Number(p.prob_over));
-                ev_pct = ((winProb * decOdds) - 1) * 100;
+            let score_verdict: string | null = null;
+            let score_factors: ScoreFactor[] = [];
+            if (pWin != null && price != null && price !== 0) {
+                const ex = explain(pWin, price, { pMarket, lineupLocked: true });
+                bet_score = ex.betScore;
+                bet_tier = ex.tier;
+                win_confidence = ex.winConfidence;
+                ev_pct = ex.evPct;
+                score_verdict = ex.verdict;
+                score_factors = ex.factors;
             }
 
             return {
-                ...p,
+                game_pk: p.game_pk,
+                as_of_ts: p.as_of_ts,
+                player_id: p.player_id,
+                prop: p.prop,
+                line: p.line,
                 // Resolved player info
                 player_name:  info.name,
                 team_abbr:    info.team,
                 team_id:      info.team_id,
                 player_kind:  info.kind,
+                // Canonical grade
+                bet_score,
+                bet_tier,
+                win_confidence,
                 ev_pct,
+                score_verdict,
+                score_factors,
+                // Side + pricing (drives the BetScoreBadge on the client)
+                side,
                 isOver,
-                odds,
-                // Legacy aliases consumed by props.tsx UI
+                p_win:        pWin,
+                p_market:     pMarket,
+                price,
+                odds:         price,
+                kelly_pct:    p.kelly_pct != null ? Number(p.kelly_pct) : null,
+                // Aliases consumed by props.tsx UI
                 prop_type:    p.prop,
-                implied_prob: p.prob_over,
+                implied_prob: pWin,
                 model_proj:   p.proj_mean,
-                over_odds:    isOver ? odds : null,
-                under_odds:   !isOver ? odds : null,
                 market_novig_over: p.market_novig_over,
+                best_book:    p.best_book,
                 best_lines:   p.best_lines,
                 // Full stats payload
                 stats: {
-                    // Hitter
                     avg:      info.avg      ?? null,
                     hr:       info.hr       ?? null,
                     rbi:      info.rbi      ?? null,
@@ -268,7 +347,6 @@ async function edgeHandler(req: Request) {
                     woba:     info.woba     ?? null,
                     wrc_plus: info.wrc_plus ?? null,
                     pa:       info.pa       ?? null,
-                    // Pitcher
                     era:      info.era      ?? null,
                     fip:      info.fip      ?? null,
                     siera:    info.siera    ?? null,
@@ -280,9 +358,23 @@ async function edgeHandler(req: Request) {
             };
         });
 
+        // Rank by Bet Score (desc), unscored last — same ordering principle as Best Bets.
+        mappedProps.sort((a, b) => (b.bet_score ?? -1) - (a.bet_score ?? -1));
+
+        // Slate-level stats (tier counts use the canonical thresholds).
+        const scored = mappedProps.filter(p => p.bet_score != null);
+        const stats = {
+            total: mappedProps.length,
+            elite: scored.filter(p => p.bet_tier === 'ELITE').length,
+            strong: scored.filter(p => p.bet_tier === 'STRONG').length,
+            topScore: scored.length ? Math.max(...scored.map(p => p.bet_score as number)) : 0,
+            topLock: scored.length ? Math.max(...scored.map(p => p.win_confidence as number)) : 0,
+        };
+
         return new Response(JSON.stringify({
             props: mappedProps,
             official_date: slateDate,
+            stats,
         }), {
             status: 200,
             headers: {
