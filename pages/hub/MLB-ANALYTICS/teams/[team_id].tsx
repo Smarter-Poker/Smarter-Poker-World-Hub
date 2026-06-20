@@ -8,7 +8,7 @@ import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { ChevronLeft, Activity, Shield, TrendingUp, AlertTriangle, Swords, Target, MapPin } from 'lucide-react';
+import { ChevronLeft, Activity, Shield, TrendingUp, Swords, Target, MapPin } from 'lucide-react';
 import { logError } from '@/utils/logger';
 import { BetScoreBadge } from '../../../../src/components/mlb/BetScoreBadge';
 
@@ -36,12 +36,12 @@ const TeamLogo = ({ teamId, teamName }: { teamId: string, teamName: string }) =>
     }
     return (
         <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', background: '#0d1117', border: '2px solid #3d4f5f', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 0 15px rgba(0,0,0,0.5)' }}>
-            <Image 
-                unoptimized 
-                width={48} 
-                height={48} 
-                src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`} 
-                alt={teamName} 
+            <Image
+                unoptimized
+                width={48}
+                height={48}
+                src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
+                alt={teamName}
                 className="shrink-0"
                 style={{ objectFit: 'contain' }}
                 onError={() => setImgError(true)}
@@ -53,7 +53,7 @@ const TeamLogo = ({ teamId, teamName }: { teamId: string, teamName: string }) =>
 export default function TeamDetailPage() {
     const router = useRouter();
     const { team_id } = router.query;
-    
+
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'GAMES' | 'PROPS'>('OVERVIEW');
 
     const { data, error, isValidating } = useSWR(team_id ? `/api/mlb/teams/${team_id}` : null, fetcher, {
@@ -63,8 +63,8 @@ export default function TeamDetailPage() {
 
     if (error || data?.error) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title={`MLB Team Analytics | Smarter.Poker`} description="Advanced MLB team analytics, splits, power ratings, and player data." noindex={true} />
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Team Detail - Error" description="Data fetch failed" />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -85,7 +85,7 @@ export default function TeamDetailPage() {
 
     if (!data && isValidating) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <div className="flex-1 flex items-center justify-center min-h-[50vh]">
@@ -104,7 +104,7 @@ export default function TeamDetailPage() {
 
     if (!team && data) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[50vh]">
@@ -117,15 +117,11 @@ export default function TeamDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-            <SEOHead 
-                title={team?.name ? `${team.name} — MLB Team Analytics, Splits & Power Ratings | Smarter.Poker` : 'MLB Team Analytics | Smarter.Poker'} 
-                description={team?.name ? `Advanced MLB analytics for the ${team.name}. Team stats, WAR, OPS, FIP, OAA, split records, streaks, and AI power ratings for the 2025 MLB season.` : 'Advanced MLB team analytics with power ratings, splits, and player data.'} 
-                ogImage="/images/mlb/og.png"
-            />
+        <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+            <SEOHead title={`Smarter.Poker | MLB Team | ${team?.name || 'Loading...'}`} description={`Advanced MLB analytics for ${team?.name}`} />
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
             <MlbSubNav />
-            
+
             <style dangerouslySetInnerHTML={{__html: `
                 :root {
                     --metal-dark: #0a0a15;
@@ -201,7 +197,7 @@ export default function TeamDetailPage() {
                         {/* Header Profile */}
                         <div className={`metal-panel mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 ${hasEdge ? 'edge-glow' : ''}`}>
                             <TeamLogo teamId={team.team_id} teamName={team.name} />
-                            
+
                             <div className="flex-1 text-center md:text-left">
                                 <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2 flex items-center justify-center md:justify-start gap-3">
                                     {team.name}
@@ -210,7 +206,7 @@ export default function TeamDetailPage() {
                                     <MapPin size={14} /> {[team.league, team.division].filter(Boolean).join(' • ') || 'MLB'}
                                 </div>
                                 {team.grade && (
-                                    <div className="flex items-center gap-2 mb-1 justify-center md:justify-start">
+                                    <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
                                         <span className="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase">Top Edge</span>
                                         <BetScoreBadge pWin={team.grade.pWin} price={team.grade.price} pMarket={team.grade.pMarket} />
                                         <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">{team.grade.edgeCount} active</span>
@@ -240,12 +236,12 @@ export default function TeamDetailPage() {
                         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                             <style dangerouslySetInnerHTML={{__html: `div::-webkit-scrollbar { display: none; }`}} />
                             {['OVERVIEW', 'GAMES', 'PROPS'].map((tab: any) => (
-                                <button 
+                                <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
                                     className={`px-5 py-2 rounded-sm border-[2px] text-[10px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer transition-all uppercase ${
-                                        activeTab === tab 
-                                        ? 'bg-[#1a2332] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' 
+                                        activeTab === tab
+                                        ? 'bg-[#1a2332] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
                                         : 'bg-[#0d1117] text-slate-400 border-[#3d4f5f] hover:border-[#5a6a7a] hover:text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
                                     }`}
                                 >
@@ -256,23 +252,21 @@ export default function TeamDetailPage() {
 
                         {activeTab === 'OVERVIEW' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Value & Overall */}
+                                {/* Team Value */}
                                 <div className="metal-panel">
-                                    <div className="panel-title flex items-center"><TrendingUp size={14} className="mr-2 text-[#00D4FF]" /> OVERALL VALUE (WAR)</div>
+                                    <div className="panel-title flex items-center"><TrendingUp size={14} className="mr-2 text-[#00D4FF]" /> TEAM VALUE</div>
                                     <div className="stat-grid">
-                                        <div className="stat-box">
-                                            <div className="stat-box-title">HITTING WAR</div>
-                                            <div className="stat-box-value text-[#F472B6]">{(adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : null) || '-'}</div>
-                                        </div>
-                                        <div className="stat-box">
-                                            <div className="stat-box-title">PITCHING WAR</div>
-                                            <div className="stat-box-value text-[#60A5FA]">{(adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : null) || '-'}</div>
-                                        </div>
                                         <div className="stat-box" style={{ background: 'rgba(0, 212, 255, 0.1)', borderColor: '#00D4FF' }}>
-                                            <div className="stat-box-title text-[#00D4FF]">TOTAL WAR</div>
-                                            <div className="stat-box-value text-white">
-                                                {(Number(adv.hitting_war || 0) + Number(adv.pitching_war || 0)).toFixed(1)}
-                                            </div>
+                                            <div className="stat-box-title text-[#00D4FF]">wRC+</div>
+                                            <div className="stat-box-value text-white">{adv.wrc_plus != null ? Number(adv.wrc_plus).toFixed(0) : '-'}</div>
+                                        </div>
+                                        <div className="stat-box">
+                                            <div className="stat-box-title">wOBA</div>
+                                            <div className="stat-box-value text-[#34D399]">{adv.woba != null ? Number(adv.woba).toFixed(3).replace(/^0/, '') : '-'}</div>
+                                        </div>
+                                        <div className="stat-box">
+                                            <div className="stat-box-title">OPS</div>
+                                            <div className="stat-box-value text-[#34D399]">{adv.ops != null ? Number(adv.ops).toFixed(3).replace(/^0/, '') : '-'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -283,19 +277,19 @@ export default function TeamDetailPage() {
                                     <div className="stat-grid">
                                         <div className="stat-box">
                                             <div className="stat-box-title">ERA</div>
-                                            <div className="stat-box-value">{(adv.era != null ? Number(adv.era).toFixed(2) : null) || '-'}</div>
+                                            <div className="stat-box-value">{adv.era != null ? Number(adv.era).toFixed(2) : '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">FIP</div>
-                                            <div className="stat-box-value">{(adv.fip != null ? Number(adv.fip).toFixed(2) : null) || '-'}</div>
+                                            <div className="stat-box-value">{adv.fip != null ? Number(adv.fip).toFixed(2) : '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">xFIP</div>
-                                            <div className="stat-box-value">{(adv.xfip != null ? Number(adv.xfip).toFixed(2) : null) || '-'}</div>
+                                            <div className="stat-box-value">{adv.xfip != null ? Number(adv.xfip).toFixed(2) : '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">SIERA</div>
-                                            <div className="stat-box-value text-[#FCD34D]">{(adv.siera != null ? Number(adv.siera).toFixed(2) : null) || '-'}</div>
+                                            <div className="stat-box-value text-[#FCD34D]">{adv.siera != null ? Number(adv.siera).toFixed(2) : '-'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -306,42 +300,23 @@ export default function TeamDetailPage() {
                                     <div className="stat-grid">
                                         <div className="stat-box">
                                             <div className="stat-box-title">AVG</div>
-                                            <div className="stat-box-value">{(adv.avg != null ? Number(adv.avg || 0).toFixed(3).replace(/^0/, '') : '-')}</div>
+                                            <div className="stat-box-value">{adv.avg != null ? Number(adv.avg).toFixed(3).replace(/^0/, '') : '-'}</div>
                                         </div>
                                         <div className="stat-box">
-                                            <div className="stat-box-title">OPS</div>
-                                            <div className="stat-box-value text-[#34D399]">{(adv.ops != null ? Number(adv.ops || 0).toFixed(3).replace(/^0/, '') : '-')}</div>
+                                            <div className="stat-box-title">OBP</div>
+                                            <div className="stat-box-value">{adv.obp != null ? Number(adv.obp).toFixed(3).replace(/^0/, '') : '-'}</div>
+                                        </div>
+                                        <div className="stat-box">
+                                            <div className="stat-box-title">SLG</div>
+                                            <div className="stat-box-value">{adv.slg != null ? Number(adv.slg).toFixed(3).replace(/^0/, '') : '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">HR</div>
-                                            <div className="stat-box-value">{adv.hr || '-'}</div>
+                                            <div className="stat-box-value">{adv.hr != null ? Number(adv.hr).toFixed(0) : '-'}</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-box-title">SB</div>
-                                            <div className="stat-box-value">{adv.sb || '-'}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Fielding Metrics */}
-                                <div className="metal-panel">
-                                    <div className="panel-title flex items-center"><Shield size={14} className="mr-2 text-[#A78BFA]" /> FIELDING METRICS</div>
-                                    <div className="stat-grid">
-                                        <div className="stat-box">
-                                            <div className="stat-box-title">DEF</div>
-                                            <div className="stat-box-value">{(adv.def != null ? Number(adv.def).toFixed(1) : null) || '-'}</div>
-                                        </div>
-                                        <div className="stat-box">
-                                            <div className="stat-box-title">UZR</div>
-                                            <div className="stat-box-value">{(adv.uzr != null ? Number(adv.uzr).toFixed(1) : null) || '-'}</div>
-                                        </div>
-                                        <div className="stat-box">
-                                            <div className="stat-box-title">DRS</div>
-                                            <div className="stat-box-value">{adv.drs || '-'}</div>
-                                        </div>
-                                        <div className="stat-box">
-                                            <div className="stat-box-title">OAA</div>
-                                            <div className="stat-box-value">{adv.oaa || '-'}</div>
+                                            <div className="stat-box-value">{adv.sb != null ? Number(adv.sb).toFixed(0) : '-'}</div>
                                         </div>
                                     </div>
                                 </div>
