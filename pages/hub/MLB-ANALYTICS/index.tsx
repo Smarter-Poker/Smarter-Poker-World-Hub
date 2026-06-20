@@ -183,7 +183,7 @@ export default function MlbSlatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a15]" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
+    <div className="min-h-screen bg-[#0a0a15] pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
       <SEOHead
         title="MLB Analytics Vault — Daily Predictions & Best Bets | Smarter.Poker"
         description="AI-powered MLB predictions, daily best bets, player props, moneyline edges, and real-time analytics. Smarter.Poker MLB Analytics Vault delivers model-backed picks every day."
@@ -193,7 +193,7 @@ export default function MlbSlatePage() {
 
       <SyncIndicator onSync={() => mutate()} />
 
-      <main className="mx-auto max-w-2xl bg-[#0a0a15] min-h-screen shadow-2xl relative pb-16 text-slate-300">
+      <main className="mx-auto max-w-2xl bg-[#0a0a15] min-h-screen shadow-2xl relative pb-[70px] text-slate-300 w-full">
 
         {/* ── Header ─────────────────────────────────────────────── */}
         <header className="relative px-4 pt-6 pb-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[3px] border-[#3d4f5f] shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-10">

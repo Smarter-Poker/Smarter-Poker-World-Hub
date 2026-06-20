@@ -75,14 +75,14 @@ export default function GameMatchupDashboard() {
     if (!gamePk) return null;
 
     return (
-        <div className="min-h-screen bg-[#060B14] text-[#E0E7FF] font-['Orbitron',sans-serif] selection:bg-[#00D4FF]/30 pb-24">
+        <div className="min-h-screen bg-[#060B14] text-[#E0E7FF] font-['Orbitron',sans-serif] selection:bg-[#00D4FF]/30 pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border">
             <SEOHead
                 title={game ? `${game.away} @ ${game.home} Matchup | Smarter.Poker` : "Game Matchup | Smarter.Poker"}
                 description="Live odds, predictions, and top bets for the MLB matchup."
                 imageUrl="/images/mlb/hero.jpg"
             />
             
-            <UniversalHeader />
+            <UniversalHeader pageDepth={2} onBackClick={() => router.back()} />
             <MlbSubNav />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

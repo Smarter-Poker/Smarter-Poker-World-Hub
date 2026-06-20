@@ -75,19 +75,37 @@ function detectBetType(bet: BetRow): { isTeamBet: boolean; isPitcherProp: boolea
 }
 
 // Enrich bets with player_id, team_name, pitcher stats
+// PostgREST caps every response at 1000 rows regardless of .limit(); page through with
+// .range() so the enrichment maps cover the full pool (v_hitter_profile ~1950 rows,
+// v_pitcher_profile ~1220) instead of being silently truncated to the first 1000.
+async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
+    let all: any[] = [];
+    for (let from = 0; from < maxRows; from += pageSize) {
+        const { data, error } = await build().range(from, from + pageSize - 1);
+        if (error) throw error;
+        const rows = data || [];
+        all = all.concat(rows);
+        if (rows.length < pageSize) break;
+    }
+    return all;
+}
+
 async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     if (!betsArr || betsArr.length === 0) return betsArr;
 
-    // Fetch all hitter and pitcher profiles concurrently (lightweight, cached)
-    const [hittersResult, pitchersResult, aggPitcherResult] = await Promise.allSettled([
-        mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits').limit(5000),
-        mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera').limit(5000),
-        mlbDb.from('agg_pitcher').select('pitcher_id, era, w, l, as_of').eq('window_kind', 'fg_season').order('as_of', { ascending: false }).limit(2000),
-    ]);
-
-    const hitters: any[] = hittersResult.status === 'fulfilled' ? (hittersResult.value.data || []) : [];
-    const pitchers: any[] = pitchersResult.status === 'fulfilled' ? (pitchersResult.value.data || []) : [];
-    const aggPitchers: any[] = aggPitcherResult.status === 'fulfilled' ? (aggPitcherResult.value.data || []) : [];
+    // Fetch the full hitter / pitcher / agg-pitcher pools (paginated past the 1000 cap).
+    let hitters: any[] = [];
+    let pitchers: any[] = [];
+    let aggPitchers: any[] = [];
+    try {
+        [hitters, pitchers, aggPitchers] = await Promise.all([
+            fetchAllRows(() => mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits')),
+            fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera')),
+            fetchAllRows(() => mlbDb.from('agg_pitcher').select('pitcher_id, era, w, l, as_of').eq('window_kind', 'fg_season').order('as_of', { ascending: false })),
+        ]);
+    } catch (e: any) {
+        console.warn('[MLB Best Bets] enrichment fetch error:', e?.message || e);
+    }
 
     // Build lookup maps by full_name (lowercased for fuzzy match)
     const hitterMap = new Map<string, any>();
@@ -275,7 +293,9 @@ async function edgeHandler(req: Request) {
             const enriched = await enrichBets(betsArr, mlbDb);
 
             const totalBets = enriched.length;
-            const eliteBets = enriched.filter((b: BetRow) => (b.edge || 0) >= 5).length;
+            // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), matching src/lib/betScore.ts —
+            // not the legacy edge>=5 heuristic (and b.edge was never populated; the column is edge_pts).
+            const eliteBets = enriched.filter((b: BetRow) => (b as any).bet_tier === 'ELITE').length;
             const topScore = enriched.length > 0 ? Math.max(...enriched.map((b: BetRow) => b.bet_score || 0)) : 0;
             const topLock = enriched.length > 0 ? Math.max(...enriched.map((b: BetRow) => b.win_confidence || 0)) : 0;
 

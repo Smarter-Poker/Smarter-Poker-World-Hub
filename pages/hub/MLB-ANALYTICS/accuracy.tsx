@@ -25,7 +25,7 @@ const fetcher = async (url: string) => {
 export default function AccuracyPage() {
     const router = useRouter();
     const { data, error, isLoading } = useSWR('/api/mlb/accuracy', fetcher, {
-        refreshInterval: 15000,
+        refreshInterval: 300000,
     });
 
     const tableData = data?.tableData || [];
@@ -50,8 +50,8 @@ export default function AccuracyPage() {
     if (error || data?.error) {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Error" description="Data fetch failed" />
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" description="Track the accuracy of Smarter.Poker's MLB prediction model." noIndex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -144,21 +144,21 @@ export default function AccuracyPage() {
                             </div>
                             {/* Avg CLV */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Avg CLV (&gt;0 pts)</div>
+                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Avg CLV ({'>'}0 pts)</div>
                                 <div className={`text-2xl font-extrabold ${Number(kpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: Number(kpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
                                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.clv}
                                 </div>
                             </div>
                             {/* Expected ROI */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Expected ROI (&gt;-3%)</div>
+                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Expected ROI ({'>'}&#x2011;3%)</div>
                                 <div className={`text-2xl font-extrabold ${Number(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`} style={{ textShadow: Number(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,68,68,0.5)' }}>
                                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : `${Number(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
                                 </div>
                             </div>
                             {/* Brier Score */}
                             <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Brier Score (&lt;0.23)</div>
+                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Brier Score ({'<'}0.23)</div>
                                 <div className={`text-2xl font-extrabold ${Number(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`} style={{ textShadow: Number(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,68,68,0.5)' }}>
                                     {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.brier}
                                 </div>

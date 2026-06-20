@@ -63,8 +63,8 @@ export default function TeamDetailPage() {
 
     if (error || data?.error) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Team Detail - Error" description="Data fetch failed" />
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title={`MLB Team Analytics | Smarter.Poker`} description="Advanced MLB team analytics, splits, power ratings, and player data." noIndex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -85,7 +85,7 @@ export default function TeamDetailPage() {
 
     if (!data && isValidating) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <div className="flex-1 flex items-center justify-center min-h-[50vh]">
@@ -104,7 +104,7 @@ export default function TeamDetailPage() {
 
     if (!team && data) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
                 <MlbSubNav />
                 <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[50vh]">
@@ -117,8 +117,11 @@ export default function TeamDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-            <SEOHead title={`Smarter.Poker | MLB Team | ${team?.name || 'Loading...'}`} description={`Advanced MLB analytics for ${team?.name}`} />
+        <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+            <SEOHead 
+                title={team?.name ? `${team.name} — MLB Team Analytics, Splits & Power Ratings | Smarter.Poker` : 'MLB Team Analytics | Smarter.Poker'} 
+                description={team?.name ? `Advanced MLB analytics for the ${team.name}. Team stats, WAR, OPS, FIP, OAA, split records, streaks, and AI power ratings for the 2025 MLB season.` : 'Advanced MLB team analytics with power ratings, splits, and player data.'} 
+            />
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
             <MlbSubNav />
             

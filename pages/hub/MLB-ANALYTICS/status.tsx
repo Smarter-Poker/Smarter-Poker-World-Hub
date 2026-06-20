@@ -63,8 +63,8 @@ export default function StatusPage() {
 
     if (error || data?.error) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Error" description="Data fetch failed" />
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Analytics Data Status — Pipeline Freshness & System Health | Smarter.Poker" description="Real-time status dashboard for the Smarter.Poker MLB Analytics pipeline." />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -207,8 +207,6 @@ export default function StatusPage() {
                                 })}
                             </div>
                         </div>
-
-
 
                         <div className="mb-8">
                             <div className="flex items-center gap-2 mb-3">

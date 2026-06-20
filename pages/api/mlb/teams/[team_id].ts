@@ -220,6 +220,7 @@ async function edgeHandler(req: Request) {
             tier: topProp.bet_tier,
             pWin: topProp.p_win,
             price: topProp.price,
+            pMarket: topProp.p_market,
             edgeCount: propsData.filter((p: any) => p.bet_score != null).length
         } : null;
 

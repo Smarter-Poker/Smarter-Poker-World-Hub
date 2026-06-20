@@ -49,7 +49,7 @@ const STATUS_CONFIG = {
         border: 'border-[#FF4444]/60',
         glow: 'shadow-[0_0_12px_rgba(255,68,68,0.4)]',
         dot: 'bg-[#FF4444]',
-        icon: '🔴',
+        icon: '●',
     },
     DUE: {
         label: 'DUE',

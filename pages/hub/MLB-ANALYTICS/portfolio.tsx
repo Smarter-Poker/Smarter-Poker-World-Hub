@@ -121,8 +121,8 @@ export default function PortfolioPage() {
 
     if (hasError) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Error" description="Data fetch failed" />
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Betting Portfolio — Simulated P&amp;L &amp; Unit Tracking | Smarter.Poker" description="Simulated MLB betting portfolio tracker by Smarter.Poker." noIndex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">

@@ -56,7 +56,7 @@ export default function PlayerProfilePage() {
     if (error || data?.error) {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
-            <div className="min-h-screen bg-[#0a0a15] text-slate-200">
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/players')} />
                 <MlbSubNav />
                 <div className="p-8 text-center">
@@ -72,11 +72,10 @@ export default function PlayerProfilePage() {
     const type = data?.type; // 'hitter' or 'pitcher'
 
     return (
-        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
+        <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead 
-                title={`${profile ? profile.full_name : 'Player Profile'} | MLB Analytics`} 
-                description="In-depth MLB player analytics and situational splits."
-                noIndex={true}
+                title={profile ? `${profile.full_name} — MLB ${type === 'pitcher' ? 'Pitcher' : 'Hitter'} Analytics & Stats | Smarter.Poker` : 'MLB Player Profile | Smarter.Poker'} 
+                description={profile ? `Advanced analytics and situational splits for ${profile.full_name}. ${type === 'pitcher' ? 'ERA, FIP, SIERA, strikeouts, and pitch-level data' : 'wRC+, wOBA, OPS, home runs, and platoon splits'} for the 2025 MLB season.` : 'In-depth MLB player analytics, advanced statistics, and situational splits.'}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/players')} />

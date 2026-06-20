@@ -31,8 +31,8 @@ export default function BacktestPage() {
     if (error || data?.error) {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Backtest - Error" description="Data fetch failed" />
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Backtest Simulator — Unit P&amp;L &amp; Historical Edge Analysis | Smarter.Poker" description="Run historical backtests on the Smarter.Poker MLB prediction model." noIndex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">

@@ -201,7 +201,7 @@ export default function StandingsPage() {
     );
 
     return (
-        <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+        <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead
                 title="MLB Standings 2025 — Division Races & Power Rankings | Smarter.Poker"
                 description="Live 2025 MLB standings with divisional breakdowns, run differential, win streaks, power rankings, and AI-graded team ratings on the ELITE/STRONG/LEAN/THIN/PASS scale."

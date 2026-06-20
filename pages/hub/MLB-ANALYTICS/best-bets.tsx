@@ -65,11 +65,16 @@ const formatWinPct = (wc: any) => {
     return n.toFixed(1) + '%';
 };
 
-// Tier colors: no pink/purple — cyan for ELITE, gold for STRONG, slate for others
+// Canonical tier palette — identical five tiers/colors to src/lib/betScore.ts (TIER_STYLE)
+// and the props page: ELITE cyan, STRONG emerald, LEAN sky, THIN amber, PASS slate. No gold.
 const getTierColors = (tier: string) => {
-    if (tier === 'ELITE') return { color: '#00D4FF', glow: 'rgba(0,212,255,0.35)', bg: 'rgba(0,212,255,0.12)', border: 'rgba(0,212,255,0.4)' };
-    if (tier === 'STRONG') return { color: '#FFD700', glow: 'rgba(255,215,0,0.35)', bg: 'rgba(255,215,0,0.10)', border: 'rgba(255,215,0,0.4)' };
-    return { color: '#8a9ba8', glow: 'rgba(138,155,168,0.2)', bg: 'rgba(138,155,168,0.08)', border: 'rgba(138,155,168,0.3)' };
+    switch (tier) {
+        case 'ELITE':  return { color: '#00D4FF', glow: 'rgba(0,212,255,0.35)',  bg: 'rgba(0,212,255,0.12)',  border: 'rgba(0,212,255,0.4)' };
+        case 'STRONG': return { color: '#34D399', glow: 'rgba(52,211,153,0.35)', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.4)' };
+        case 'LEAN':   return { color: '#38BDF8', glow: 'rgba(56,189,248,0.30)', bg: 'rgba(56,189,248,0.10)', border: 'rgba(56,189,248,0.4)' };
+        case 'THIN':   return { color: '#F59E0B', glow: 'rgba(245,158,11,0.30)', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.4)' };
+        default:       return { color: '#64748B', glow: 'rgba(100,116,139,0.20)', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.3)' };
+    }
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -611,7 +616,7 @@ const GameBox = ({ matchup, bets, onBetClick }: { matchup: string; bets: any[]; 
     // Top tier
     const haElite = bets.some(b => b.bet_tier === 'ELITE');
     const hasStrong = bets.some(b => b.bet_tier === 'STRONG');
-    const groupTierColor = haElite ? '#00D4FF' : hasStrong ? '#FFD700' : '#3d4f5f';
+    const groupTierColor = haElite ? '#00D4FF' : hasStrong ? '#34D399' : '#3d4f5f';
 
     return (
         <div className="relative bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg mx-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-1px_0_rgba(0,0,0,0.4),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] transition-all duration-200 overflow-hidden">
@@ -731,8 +736,8 @@ export default function BestBetsPage() {
 
     if (error || data?.error) {
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Error" description="Data fetch failed" />
+            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="Today's MLB Best Bets — AI Model Picks &amp; Edge Ratings | Smarter.Poker" description="Daily MLB best bets and betting edges powered by Smarter.Poker's AI prediction model." noIndex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">

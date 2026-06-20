@@ -16,30 +16,44 @@ async function edgeHandler(req: Request) {
         const mlbDb = getMlbSupabase();
 
         // Fetch Hitters and Pitchers concurrently
-        const [hittersResult, pitchersResult] = await Promise.all([
-            mlbDb
-                .from('v_hitter_profile')
-                .select('player_id, full_name, team_id, wrc_plus, woba, pa')
-                .order('wrc_plus', { ascending: false })
-                .limit(3000),
-            mlbDb
-                .from('v_pitcher_profile')
-                .select('player_id, full_name, team_id, fip, siera, bf')
-                .order('fip', { ascending: true }) // Lower FIP is better
-                .limit(3000)
-        ]);
+        // PostgREST caps responses at 1000 rows regardless of .limit(); page through with
+        // .range() so the directory returns the full pool (~1950 hitters / ~1220 pitchers)
+        // instead of the first 1000.
+        const fetchAllRows = async (build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> => {
+            let all: any[] = [];
+            for (let from = 0; from < maxRows; from += pageSize) {
+                const { data, error } = await build().range(from, from + pageSize - 1);
+                if (error) throw error;
+                const rows = data || [];
+                all = all.concat(rows);
+                if (rows.length < pageSize) break;
+            }
+            return all;
+        };
 
-        if (hittersResult.error) {
-            console.warn('[MLB Players] Fallback error on v_hitter_profile:', hittersResult.error.message);
-        }
-        if (pitchersResult.error) {
-            console.warn('[MLB Players] Fallback error on v_pitcher_profile:', pitchersResult.error.message);
+        let hitters: any[] = [];
+        let pitchers: any[] = [];
+        let fetchError = false;
+        try {
+            [hitters, pitchers] = await Promise.all([
+                fetchAllRows(() => mlbDb
+                    .from('v_hitter_profile')
+                    .select('player_id, full_name, team_id, wrc_plus, woba, pa')
+                    .order('wrc_plus', { ascending: false })),
+                fetchAllRows(() => mlbDb
+                    .from('v_pitcher_profile')
+                    .select('player_id, full_name, team_id, fip, siera, bf')
+                    .order('fip', { ascending: true })), // Lower FIP is better
+            ]);
+        } catch (err: any) {
+            fetchError = true;
+            console.warn('[MLB Players] Profile fetch error:', err?.message || err);
         }
 
         return new Response(JSON.stringify({
-            hitters: hittersResult.data || [],
-            pitchers: pitchersResult.data || [],
-            fetchError: !!hittersResult.error || !!pitchersResult.error
+            hitters,
+            pitchers,
+            fetchError
         }), {
             status: 200,
             headers: {
