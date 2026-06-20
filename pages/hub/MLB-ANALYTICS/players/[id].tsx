@@ -28,7 +28,7 @@ export default function PlayerProfilePage() {
     const { id } = router.query;
 
     const { data, error, isLoading } = useSWR(id ? `/api/mlb/players/${id}` : null, fetcher, {
-        refreshInterval: 60000
+        refreshInterval: 300000, // 5 min — player stats update nightly, revalidateOnFocus: false
     });
 
     const headshotUrl = id ? `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${id}/headshot/67/current` : '/default-avatar.png';

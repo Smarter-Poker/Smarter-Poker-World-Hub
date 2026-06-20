@@ -22,11 +22,11 @@ export default function GameMatchupDashboard() {
     const { id } = router.query;
     const gamePk = typeof id === 'string' ? parseInt(id, 10) : null;
 
-    // Fetch dashboard data to get the slate games (and find our game)
-    const { data: dashData, error: dashErr } = useSWR('/api/mlb/dashboard', fetcher, { refreshInterval: 60000 });
-    // Fetch bets and props
-    const { data: betsData, error: betsErr } = useSWR('/api/mlb/best-bets', fetcher, { refreshInterval: 60000 });
-    const { data: propsData, error: propsErr } = useSWR('/api/mlb/props', fetcher, { refreshInterval: 60000 });
+    // Fetch dashboard data to get the slate games (and find our game) — live, refresh every 2 min
+    const { data: dashData, error: dashErr } = useSWR('/api/mlb/dashboard', fetcher, { refreshInterval: 120000 });
+    // Fetch bets and props — model output updates daily, check every 5 min
+    const { data: betsData, error: betsErr } = useSWR('/api/mlb/best-bets', fetcher, { refreshInterval: 300000 });
+    const { data: propsData, error: propsErr } = useSWR('/api/mlb/props', fetcher, { refreshInterval: 300000 });
 
     const isLoading = (!dashData && !dashErr) || (!betsData && !betsErr) || (!propsData && !propsErr);
 

@@ -216,7 +216,7 @@ function GradeLegend() {
 export default function StandingsPage() {
   const router = useRouter();
   const { data, error, isLoading } = useSWR('/api/mlb/standings', fetcher, {
-    refreshInterval: 60000,
+    refreshInterval: 300000, // 5 min — standings update after each game day, revalidateOnFocus: false
   });
   const [view, setView] = useState<'division' | 'power'>('division');
 

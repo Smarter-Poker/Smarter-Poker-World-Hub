@@ -65,6 +65,7 @@ export default function ModelIntelPage() {
     const router = useRouter();
     const { data, error, isLoading, mutate } = useSWR('/api/mlb/model-intel', fetcher, {
         refreshInterval: 60000,
+        revalidateOnFocus: false,
     });
 
     if (error || data?.error) {

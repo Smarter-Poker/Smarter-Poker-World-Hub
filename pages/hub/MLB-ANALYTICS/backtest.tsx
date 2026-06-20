@@ -26,6 +26,7 @@ export default function BacktestPage() {
     const router = useRouter();
     const { data, error, isLoading } = useSWR('/api/mlb/backtest', fetcher, {
         refreshInterval: 60000,
+        revalidateOnFocus: false,
     });
 
     if (error || data?.error) {

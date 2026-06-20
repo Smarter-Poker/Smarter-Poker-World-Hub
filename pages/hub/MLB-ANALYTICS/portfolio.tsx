@@ -107,7 +107,7 @@ export default function PortfolioPage() {
     const apiUrl = `/api/mlb/portfolio?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
 
     const { data, error, isLoading } = useSWR(apiUrl, fetcher, {
-        refreshInterval: 15000
+        refreshInterval: 600000, // 10 min — portfolio stats update nightly, revalidateOnFocus: false
     });
 
     const {

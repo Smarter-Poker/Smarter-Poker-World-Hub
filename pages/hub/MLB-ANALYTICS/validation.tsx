@@ -88,6 +88,7 @@ export default function ValidationPage() {
     const apiUrl = currentDays ? `/api/mlb/validation?days=${currentDays}` : '/api/mlb/validation';
     const { data, error, isLoading } = useSWR(apiUrl, fetcher, {
         refreshInterval: 60000,
+        revalidateOnFocus: false,
     });
     
     const stats: ValidationStats | null = data?.stats || null;

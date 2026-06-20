@@ -157,7 +157,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function MlbSlatePage() {
   const [filters, setFilters] = useState<FilterState>({ actionable: false, propsOnly: false, minEdge: 0 });
-  const { data, error, mutate } = useSWR('/api/mlb/dashboard', fetcher, { refreshInterval: 30000 });
+  const { data, error, mutate } = useSWR('/api/mlb/dashboard', fetcher, { refreshInterval: 120000 });
 
   const isLoading = !data && !error;
   const fetchError = !!error;

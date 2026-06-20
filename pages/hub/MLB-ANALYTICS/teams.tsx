@@ -236,8 +236,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
 
     const { data, error, isValidating } = useSWR('/api/mlb/teams', fetcher, {
         fallbackData: fallbackTeams ? { teams: fallbackTeams, globalEdgeActive: fallbackGlobalEdgeActive } : undefined,
-        refreshInterval: 15000,
-        revalidateOnFocus: true,
+        refreshInterval: 300000, // 5 min — team stats update nightly
     });
 
     if (error || data?.error) {
