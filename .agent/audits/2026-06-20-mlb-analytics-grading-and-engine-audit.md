@@ -84,3 +84,30 @@ Migration **`fix_best_bets_stats_date_cast_and_elite_tier`** (applied via Supaba
 - SQL fix verified by direct RPC call against the engine DB (numbers in section 4).
 - Production deploy of the carrying commit was in flight at audit close (prod advancing
   c5020d52 -> 0f8d7d37 -> ...6e9a97f3); the engine-DB SQL fix is live immediately.
+
+---
+
+## 7. Phase 2 — completeness upgrades (same day)
+
+Second pass focused on engine/evaluation completeness (the concurrent agent stayed on
+SEO/perf/a11y/teams polish, so the analytics logic was clear to work in).
+
+**Code (committed to `origin/main`, swept into the "commit orphaned hub-vanguard MLB" commit):**
+
+| File | Upgrade |
+|------|---------|
+| `pages/api/mlb/model-intel.ts` + `model-intel.tsx` | The "Daily Performance Matrix" chart read non-existent `official_date/daily_pnl/bets_won/bets_lost` -> rendered all-zeros over ~2 dates. Rebuilt as a real **cumulative P&L (equity) curve**: API aggregates `v_backtest_summary` per-date and returns `{date,pnl,cum_pnl,bets,roi}`; chart plots `cum_pnl` (climbs to **+153.3u** over 86 days). `total_bets_tracked` now real **bet count** (~9.3k) not predictions; `recent_roi` portfolio-weighted; removed fabricated `v4.2.1-Edge` fallback. |
+| `pages/api/mlb/best-bets.ts` | Added `dedupeLatestBets()` for the JS fallback path (mirrors the new RPC dedupe). |
+| `pages/api/mlb/accuracy.ts` | ROI KPI + per-date ROI changed from prediction-weighted (~0.1%, understated ~16x) to a **true portfolio return** `sum_unit_profit / bet_count` = **+1.65%**. Brier/CLV stay n-weighted. |
+
+**SQL (applied to engine DB `nscdmxldtyszyvcxxwgr`, live immediately):**
+
+- `dedupe_intraday_snapshots_in_best_bets_stats`: `get_best_bets_stats` returned every intraday
+  repricing snapshot (today: **398 rows / 17 snapshots / only 49 distinct bets** — an ~8x inflated
+  list + counts). Now `DISTINCT ON` the latest `as_of_ts` per bet, with all stats computed on the
+  deduped set. Verified live: totalBets 398 -> **49–68** (slate grows intraday), elite canonical.
+
+**Verified live (engine-DB SQL, immediate):** best-bets API `totalBets` deduped (68), `eliteBets`
+canonical (3). **Pending deploy at write time:** accuracy portfolio ROI + model-intel equity curve
+(committed on HEAD `73db1da`, prod still on an ancestor while the concurrent agent's rapid pushes
+churn the Vercel build queue; every new commit descends from HEAD so it deploys on the next build).

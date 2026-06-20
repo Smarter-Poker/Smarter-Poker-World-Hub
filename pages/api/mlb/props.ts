@@ -157,7 +157,6 @@ async function edgeHandler(req: Request) {
             .from('agg_pitcher')
             .select('pitcher_id, w, l, era, so, h, bb, ip, as_of')
             .eq('window_kind', 'fg_season')
-            .eq('vs_hand', 'A')
             .in('pitcher_id', uniquePlayerIds)
             .order('as_of', { ascending: false })
             .limit(1000)

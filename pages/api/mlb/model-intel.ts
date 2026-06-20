@@ -69,7 +69,9 @@ async function edgeHandler(req: Request) {
     });
     const recentRoi = roiDen > 0 ? Number((roiNum / roiDen).toFixed(2)) : 0;
     const asOfTs =
-      history.length > 0 ? history[history.length - 1].date : new Date().toISOString().split('T')[0];
+      history.length > 0
+        ? history[history.length - 1].date
+        : new Date().toISOString().split('T')[0];
     const modelVersion =
       versionRes?.data && versionRes.data.length > 0 && versionRes.data[0].model_version
         ? versionRes.data[0].model_version
