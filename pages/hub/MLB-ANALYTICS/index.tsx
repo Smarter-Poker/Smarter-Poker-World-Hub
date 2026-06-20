@@ -156,6 +156,7 @@ function FilterBar({ edgesCount, filters, onFilter }: { edgesCount: number; filt
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function MlbSlatePage() {
+  const router = useRouter();
   const [filters, setFilters] = useState<FilterState>({ actionable: false, propsOnly: false, minEdge: 0 });
   const { data, error, mutate } = useSWR('/api/mlb/dashboard', fetcher, { refreshInterval: 30000 });
 

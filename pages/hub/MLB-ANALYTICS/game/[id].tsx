@@ -11,6 +11,12 @@ import { teamLogo, type GameCard } from '../../../../src/lib/mlb_data';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+// Canonical tier palette — same five tiers/colors as src/lib/betScore.ts and every other
+// MLB surface (ELITE cyan, STRONG emerald, LEAN sky, THIN amber, PASS slate).
+const TIER_HEX: Record<string, string> = {
+    ELITE: '#00D4FF', STRONG: '#34D399', LEAN: '#38BDF8', THIN: '#F59E0B', PASS: '#64748B',
+};
+
 export default function GameMatchupDashboard() {
     const router = useRouter();
     const { id } = router.query;
