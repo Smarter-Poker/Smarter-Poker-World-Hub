@@ -141,22 +141,20 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                     {team.adv_stats && (
                         <div className="stats-panel" style={{ marginTop: 8, background: '#0a0a15' }}>
                             <div className="stat-segment">
-                                <div className="stat-label" style={{ color: '#F472B6' }}>WAR</div>
-                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>
-                                    {team.adv_stats ? ((Number(team.adv_stats.hitting_war) || 0) + (Number(team.adv_stats.pitching_war) || 0)).toFixed(1) : '-'}
-                                </div>
+                                <div className="stat-label" style={{ color: '#F472B6' }}>wRC+</div>
+                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.wrc_plus != null ? Number(team.adv_stats.wrc_plus).toFixed(0) : '-'}</div>
                             </div>
                             <div className="stat-segment">
-                                <div className="stat-label" style={{ color: '#60A5FA' }}>FIP</div>
-                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.fip != null ? Number(team.adv_stats.fip).toFixed(2) : '-'}</div>
+                                <div className="stat-label" style={{ color: '#60A5FA' }}>ERA</div>
+                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.era != null ? Number(team.adv_stats.era).toFixed(2) : '-'}</div>
                             </div>
                             <div className="stat-segment">
                                 <div className="stat-label" style={{ color: '#34D399' }}>OPS</div>
-                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.ops != null ? Number(team.adv_stats.ops).toFixed(3) : '-'}</div>
+                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.ops != null ? Number(team.adv_stats.ops).toFixed(3).replace(/^0/, '') : '-'}</div>
                             </div>
                             <div className="stat-segment">
-                                <div className="stat-label" style={{ color: '#A78BFA' }}>OAA</div>
-                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.oaa || '-'}</div>
+                                <div className="stat-label" style={{ color: '#A78BFA' }}>FIP</div>
+                                <div className="stat-value" style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}>{team.adv_stats.fip != null ? Number(team.adv_stats.fip).toFixed(2) : '-'}</div>
                             </div>
                         </div>
                     )}
@@ -192,7 +190,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                                         </div>
                                     </div>
                                     <div>
-                                        <div style={{ color: '#64748B', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', marginBottom: 8, borderBottom: '1px solid #1a2332', paddingBottom: 4 }}>OFFENSE / DEF</div>
+                                        <div style={{ color: '#64748B', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', marginBottom: 8, borderBottom: '1px solid #1a2332', paddingBottom: 4 }}>OFFENSE</div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>AVG</span>
                                             <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.avg != null ? Number(team.adv_stats.avg).toFixed(3).replace(/^0/, '') : '-'}</span>

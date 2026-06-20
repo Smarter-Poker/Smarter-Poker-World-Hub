@@ -75,13 +75,14 @@ async function edgeHandler(req: Request) {
             const lostBets = allMarketRows.filter(r => Number(r.pnl || 0) <= 0 && r.result != null);
             const winRate = totalPredictions > 0 ? (wonBets.length / totalPredictions) * 100 : 0;
             
-            const avgBrier = 0;
-            const brierVsBaseline = 0;
-            
-            const unitsWon = allMarketRows.reduce((sum, r) => sum + Number(r.pnl || 0), 0);
-            const cumulativeRoi = totalPredictions > 0 ? (unitsWon / totalPredictions) * 100 : 0;
+            // Note: sim_bets fallback lacks brier and CLV columns — return null
+            // so the UI shows '—' rather than a false 0 that triggers FAIL on Lock-In Gate
+            const avgBrier = null;
+            const brierVsBaseline = null;
+            const avgClv = null;
 
-            const avgClv = 0;
+            const unitsWon = allMarketRows.reduce((sum: number, r: any) => sum + Number(r.pnl || 0), 0);
+            const cumulativeRoi = totalPredictions > 0 ? (unitsWon / totalPredictions) * 100 : 0;
 
             statsData = {
                 totalPredictions,

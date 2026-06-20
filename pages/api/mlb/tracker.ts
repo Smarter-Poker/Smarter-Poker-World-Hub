@@ -20,10 +20,17 @@ async function edgeHandler(req: Request) {
             year: 'numeric', month: '2-digit', day: '2-digit'
         }).format(new Date());
 
+        // todayStr is in America/Chicago (CST/CDT). Games stored in UTC.
+        // Midnight CDT = 05:00 UTC, Midnight CST = 06:00 UTC.
+        // Use a 30-hour window from the prior day to catch late night and doubleheaders.
+        const windowStart = `${todayStr}T06:00:00Z`;
+        const windowEnd = new Date(new Date(`${todayStr}T06:00:00Z`).getTime() + 30 * 60 * 60 * 1000).toISOString();
+
         const { data, error } = await mlbDb
             .from('raw_games')
             .select('*')
-            .gte('start_time', `${todayStr}T00:00:00Z`)
+            .gte('start_time', windowStart)
+            .lt('start_time', windowEnd)
             .order('start_time', { ascending: true })
             .limit(50);
 

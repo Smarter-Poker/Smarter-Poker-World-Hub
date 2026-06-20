@@ -10,7 +10,6 @@ const getMainSupabase = () => createClient(
     { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
 );
 
-const supabase = getMainSupabase();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
@@ -22,6 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const limit = Math.min(parseInt((req.query.limit as string) || '500', 10), 1000);
 
     try {
+        const supabase = getMainSupabase();
         let query = supabase
             .from('mlb_hr_cache')
             .select('*')
