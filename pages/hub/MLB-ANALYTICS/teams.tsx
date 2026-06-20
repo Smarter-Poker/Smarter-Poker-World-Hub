@@ -55,12 +55,12 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number, teamName: string }) =>
     }
     return (
         <div style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', background: '#0d1117', border: '2px solid #3d4f5f', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <Image 
-                unoptimized 
-                width={28} 
-                height={28} 
-                src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`} 
-                alt={teamName} 
+            <Image
+                unoptimized
+                width={28}
+                height={28}
+                src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
+                alt={teamName}
                 className="shrink-0"
                 style={{ objectFit: 'contain' }}
                 onError={() => setImgError(true)}
@@ -84,17 +84,16 @@ const fetcher = async (url: string) => {
 
 const TeamCardComponent = ({ team }: { team: any }) => {
     const [expanded, setExpanded] = useState(false);
-    
+
     const record = team.streaks?.record || '0-0';
     const last10 = team.streaks?.last10_record || '0-0';
     let isHot = false;
     if (last10) {
         const [w] = last10.split('-').map(Number);
-        if (w >= 7) isHot = true; 
+        if (w >= 7) isHot = true;
     }
-    const leagueStr = team.league || '??';
     const divStr = team.division || '??';
-    
+
     return (
         <div className="metal-frame" style={{ display: 'block', textDecoration: 'none', marginBottom: 16 }}>
             {/* Corner Bolts */}
@@ -163,14 +162,14 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                 {/* Expanded Telemetry Drawer */}
                 {team.adv_stats && (
                     <div style={{ marginTop: 12 }}>
-                        <button 
+                        <button
                             onClick={(e) => { e.preventDefault(); setExpanded(!expanded); }}
                             style={{ width: '100%', background: 'transparent', border: 'none', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', padding: '4px 0' }}
                         >
                             {expanded ? 'COLLAPSE TELEMETRY' : 'EXPAND TELEMETRY'}
                             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </button>
-                        
+
                         {expanded && (
                             <div style={{ marginTop: 12, padding: '12px 16px', background: '#05050A', borderRadius: 8, border: '1px solid var(--metal-highlight)', animation: 'fadeIn 0.2s ease' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -197,11 +196,11 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <span style={{ fontSize: 11, color: '#94A3B8' }}>HR / SB</span>
-                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.hr || 0} / {team.adv_stats.sb || 0}</span>
+                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.hr != null ? Number(team.adv_stats.hr).toFixed(0) : '-'} / {team.adv_stats.sb != null ? Number(team.adv_stats.sb).toFixed(0) : '-'}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                            <span style={{ fontSize: 11, color: '#94A3B8' }}>DRS / UZR</span>
-                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.drs || 0} / {team.adv_stats.uzr != null ? Number(team.adv_stats.uzr).toFixed(1) : 0}</span>
+                                            <span style={{ fontSize: 11, color: '#94A3B8' }}>OBP / SLG</span>
+                                            <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{team.adv_stats.obp != null ? Number(team.adv_stats.obp).toFixed(3).replace(/^0/, '') : '-'} / {team.adv_stats.slg != null ? Number(team.adv_stats.slg).toFixed(3).replace(/^0/, '') : '-'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -219,7 +218,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLeague, setFilterLeague] = useState<'ALL' | 'AL' | 'NL'>('ALL');
     const [filterDivision, setFilterDivision] = useState<'ALL' | 'East' | 'Central' | 'West'>('ALL');
-    const [sortBy, setSortBy] = useState<'SCORE' | 'NAME' | 'WAR' | 'OPS' | 'FIP'>('SCORE');
+    const [sortBy, setSortBy] = useState<'SCORE' | 'NAME' | 'WRC' | 'OPS' | 'FIP'>('SCORE');
     const [todayStr, setTodayStr] = useState<string>(fallbackToday || '');
 
     React.useEffect(() => {
@@ -236,25 +235,15 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
 
     const { data, error, isValidating } = useSWR('/api/mlb/teams', fetcher, {
         fallbackData: fallbackTeams ? { teams: fallbackTeams, globalEdgeActive: fallbackGlobalEdgeActive } : undefined,
-        refreshInterval: 300000, // 5 min — team stats update nightly
+        refreshInterval: 15000,
+        revalidateOnFocus: true,
     });
 
     if (error || data?.error) {
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
-            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Teams - Error" description="Data fetch failed" 
-                ogImage="/images/mlb/og.png"
-            
-                jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "Dataset",
-                "name": "MLB Team Analytics — Power Ratings & Edge Dashboard",
-                "description": "MLB team power ratings, advanced stats (ERA, FIP, OPS, WAR), and today's betting edges across all 30 clubs.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/teams",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
-            />
+            <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                <SEOHead title="MLB Teams - Error" description="Data fetch failed" />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -283,11 +272,11 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
             if (teamName.includes("All-Stars")) return false;
 
             const matchSearch = teamName.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchLeague = filterLeague === 'ALL' || 
-                teamLeague === filterLeague || 
+            const matchLeague = filterLeague === 'ALL' ||
+                teamLeague === filterLeague ||
                 (filterLeague === 'AL' && teamLeague.includes('American')) ||
                 (filterLeague === 'NL' && teamLeague.includes('National'));
-            
+
             const matchDivision = filterDivision === 'ALL' || teamDivision.includes(filterDivision);
 
             return matchSearch && matchLeague && matchDivision;
@@ -295,7 +284,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
 
         return result.sort((a: any, b: any) => {
             if (sortBy === 'SCORE') return ((b.grade?.score || 0) - (a.grade?.score || 0)) || (a.name || '').localeCompare(b.name || '');
-            if (sortBy === 'WAR') return ((b.adv_stats?.hitting_war || 0) + (b.adv_stats?.pitching_war || 0)) - ((a.adv_stats?.hitting_war || 0) + (a.adv_stats?.pitching_war || 0));
+            if (sortBy === 'WRC') return (b.adv_stats?.wrc_plus || 0) - (a.adv_stats?.wrc_plus || 0);
             if (sortBy === 'OPS') return (b.adv_stats?.ops || 0) - (a.adv_stats?.ops || 0);
             if (sortBy === 'FIP') return (a.adv_stats?.fip || 99) - (b.adv_stats?.fip || 99);
             return (a.name || '').localeCompare(b.name || '');
@@ -506,10 +495,10 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                 min-width: 60px;
             }
         `}} />
-        
-        <div className="page-container futuristic-bg" style={{ 
-            minHeight: '100vh', 
-            color: '#FFFFFF', 
+
+        <div className="page-container futuristic-bg" style={{
+            minHeight: '100vh',
+            color: '#FFFFFF',
             paddingBottom: 90,
             fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
             width: '100%',
@@ -517,21 +506,10 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
             overflowX: 'hidden',
             boxSizing: 'border-box'
         }}>
-            <SEOHead 
-                title="MLB Team Analytics — Advanced Stats & Power Ratings | Smarter.Poker" 
-                description="Deep MLB team profiles with advanced analytics, split records, WAR totals, OPS, FIP, OAA, streaks, and AI power ratings for all 30 teams in the 2025 MLB season."
-                canonical="/hub/MLB-ANALYTICS/teams" 
-            
-                ogImage="/images/mlb/og.png"
-            
-                jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "Dataset",
-                "name": "MLB Team Analytics — Power Ratings & Edge Dashboard",
-                "description": "MLB team power ratings, advanced stats (ERA, FIP, OPS, WAR), and today's betting edges across all 30 clubs.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/teams",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
+            <SEOHead
+                title="Teams | MLB Analytics"
+                description="MLB Team profiles and tactical terminal."
+                noIndex={true}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
@@ -545,7 +523,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                 boxSizing: 'border-box'
             }}>
                 <div className="feed-column" style={{ width: '100%', maxWidth: 680, margin: '0 auto', boxSizing: 'border-box' }}>
-                    
+
                     {/* HUD Terminal Header */}
                     <div style={{ background: 'var(--metal-base)', borderBottom: '2px solid var(--metal-highlight)', padding: '24px 16px 20px', position: 'relative', zIndex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -600,15 +578,15 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                                 <div style={{ position: 'absolute', left: 14, top: 12, color: 'var(--neon-cyan)' }}>
                                     <Search size={18} />
                                 </div>
-                                <input 
+                                <input
                                     type="text"
                                     placeholder="INITIATE SEARCH PROTOCOL..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="metal-input"
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '12px 12px 12px 42px', 
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px 12px 12px 42px',
                                         fontSize: 14,
                                         boxSizing: 'border-box',
                                     }}
@@ -630,14 +608,14 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                                 </div>
                                 <div className="filter-group sort-group" style={{ alignItems: 'center', width: '100%' }}>
                                     <span style={{ fontSize: 10, fontWeight: 800, color: '#64748B', display: 'flex', alignItems: 'center', letterSpacing: '0.1em' }}>SORT:</span>
-                                    <select 
-                                        value={sortBy} 
+                                    <select
+                                        value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value as any)}
                                         className="metal-select"
                                     >
                                         <option value="SCORE">BET SCORE</option>
                                         <option value="NAME">NAME</option>
-                                        <option value="WAR">WAR</option>
+                                        <option value="WRC">wRC+</option>
                                         <option value="OPS">OPS</option>
                                         <option value="FIP">FIP</option>
                                     </select>
@@ -668,7 +646,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                     </div>
                 </div>
             </main>
-            
+
             <BottomNavBar />
         </div>
         </>
