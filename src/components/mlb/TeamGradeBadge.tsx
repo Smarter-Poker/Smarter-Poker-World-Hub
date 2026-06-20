@@ -1,4 +1,4 @@
-import { tier, TIER_STYLE } from "../../lib/betScore";
+import { tier, TIER_STYLE } from '../../lib/betScore';
 
 // Team power-rating badge. Uses the SAME tier() thresholds and TIER_STYLE colors
 // as BetScoreBadge / every other MLB surface, so the grade scale
