@@ -166,7 +166,7 @@ export default function GameMatchupDashboard() {
                     <img
                       src={teamLogo(game.awayId) || ''}
                       alt={game.away}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain" loading="lazy"
                     />
                   </div>
                   <h2 className="text-2xl font-bold tracking-widest uppercase font-['Rajdhani'] text-white">
@@ -212,7 +212,7 @@ export default function GameMatchupDashboard() {
                     <img
                       src={teamLogo(game.homeId) || ''}
                       alt={game.home}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain" loading="lazy"
                     />
                   </div>
                   <h2 className="text-2xl font-bold tracking-widest uppercase font-['Rajdhani'] text-white">

@@ -545,7 +545,7 @@ export default function HRTrackerPage() {
                                   <img
                                     src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`}
                                     alt=""
-                                    className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0d1117] rounded-full p-0.5"
+                                    className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0d1117] rounded-full p-0.5" loading="lazy"
                                   />
                                 ) : null}
                               </div>

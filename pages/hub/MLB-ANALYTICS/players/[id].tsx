@@ -139,7 +139,7 @@ export default function PlayerProfilePage() {
                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                <img 
                                    src={imgSrc} 
-                                   onError={() => setImgSrc('/default-avatar.png')}
+                                   onError={() = alt="" loading="lazy"> setImgSrc('/default-avatar.png')}
                                    alt={profile.full_name}
                                    className="w-32 h-32 rounded-full object-cover bg-[#1a2332] border-[3px] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.4),inset_0_4px_8px_rgba(0,0,0,0.8)]"
                                />
@@ -148,7 +148,7 @@ export default function PlayerProfilePage() {
                                    <img 
                                        src={`https://www.mlbstatic.com/team-logos/${profile.team_id}.svg`} 
                                        alt="Team Logo"
-                                       className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#0d1117] rounded-full p-1 border-[2px] border-[#3d4f5f] shadow-[0_4px_10px_rgba(0,0,0,0.8)]"
+                                       className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#0d1117] rounded-full p-1 border-[2px] border-[#3d4f5f] shadow-[0_4px_10px_rgba(0,0,0,0.8)]" loading="lazy"
                                    />
                                )}
                            </div>

@@ -160,6 +160,20 @@ async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000):
   return all;
 }
 
+// Collapse intraday repricing snapshots to the latest as_of_ts per unique bet, so the list and
+// counts reflect ~one row per bet (today: 398 raw rows -> 49 unique bets). Mirrors the dedupe the
+// get_best_bets_stats RPC does server-side; used for the JS fallback path.
+function dedupeLatestBets(rows: any[]): any[] {
+  if (!Array.isArray(rows) || rows.length === 0) return rows || [];
+  const best = new Map<string, any>();
+  for (const r of rows) {
+    const k = `${r.game_pk}|${r.bet_type}|${r.market}|${r.selection}|${r.player_id ?? ''}|${r.line ?? ''}`;
+    const prev = best.get(k);
+    if (!prev || String(r.as_of_ts) > String(prev.as_of_ts)) best.set(k, r);
+  }
+  return Array.from(best.values()).sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
+}
+
 async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   if (!betsArr || betsArr.length === 0) return betsArr;
 
@@ -394,7 +408,7 @@ async function edgeHandler(req: Request) {
         console.warn('[MLB Best Bets] Error fetching bets:', betsErr.message);
       }
 
-      const betsArr = bets || [];
+      const betsArr = dedupeLatestBets(bets || []);
       const enriched = await enrichBets(betsArr, mlbDb);
 
       const totalBets = enriched.length;

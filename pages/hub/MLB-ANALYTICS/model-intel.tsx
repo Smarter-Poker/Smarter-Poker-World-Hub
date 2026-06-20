@@ -91,11 +91,12 @@ export default function ModelIntelPage() {
     const intel = data?.intel || {};
     const history = data?.history || [];
 
-    // Format chart data (reverse to show chronological if it came in descending)
-    const chartData = [...history].reverse().map((day: any) => ({
-        date: day.official_date,
-        pnl: day.daily_pnl || 0,
-        bets: (day.bets_won || 0) + (day.bets_lost || 0),
+    // History arrives per-date ascending with a cumulative P&L (equity) curve already computed.
+    const chartData = history.map((day: any) => ({
+        date: day.date,
+        pnl: day.pnl || 0,
+        cum_pnl: day.cum_pnl || 0,
+        bets: day.bets || 0,
         roi: day.roi || 0
     }));
 
@@ -145,8 +146,8 @@ export default function ModelIntelPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 relative z-10">
                     <MetricBox 
                         title="MODEL VERSION" 
-                        value={intel.model_version || 'v4.2.1-Edge'} 
-                        valueColor="#00D4FF" 
+                        value={intel.model_version || '—'}
+                        valueColor="#00D4FF"
                         isLoading={isLoading} 
                     />
                     <MetricBox 
@@ -171,7 +172,7 @@ export default function ModelIntelPage() {
 
                 <h2 className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 uppercase tracking-widest relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                     <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
-                    Daily Performance Matrix
+                    Cumulative P&amp;L Curve (Units)
                 </h2>
                 <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-8 h-[350px] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden z-10">
                     {isLoading ? (
@@ -206,17 +207,17 @@ export default function ModelIntelPage() {
                                     stroke="#64748B" 
                                     fontSize={12} 
                                     tickLine={false} 
-                                    axisLine={false} 
-                                    tickFormatter={(val) => `$${val}`}
+                                    axisLine={false}
+                                    tickFormatter={(val) => `${val}u`}
                                 />
                                 <Tooltip 
                                     contentStyle={{ background: '#0a0a15', border: '1px solid #00D4FF', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)' }}
                                     itemStyle={{ color: '#00D4FF', fontWeight: 700 }}
                                     labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
-                                    formatter={(value: number) => [formatCurrency(value), 'Daily P&L']}
+                                    formatter={(value: number) => [`${Number(value).toFixed(2)}u`, 'Cumulative P&L']}
                                     labelFormatter={(label) => `Date: ${label}`}
                                 />
-                                <Area type="monotone" dataKey="pnl" stroke="#00D4FF" strokeWidth={3} fillOpacity={1} fill="url(#colorPnl)" activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }} />
+                                <Area type="monotone" dataKey="cum_pnl" stroke="#00D4FF" strokeWidth={3} fillOpacity={1} fill="url(#colorPnl)" activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }} />
                             </AreaChart>
                         </ResponsiveContainer>
                     ) : (

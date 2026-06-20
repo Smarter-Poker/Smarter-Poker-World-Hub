@@ -11,10 +11,16 @@ async function edgeHandler(req: Request) {
   try {
     const mlbDb = getMlbSupabase();
 
-    // Fetch recent backtest summary for history and global stats, plus the real
-    // model version stamped on the simulated bet ledger (no fabricated version string).
+    // Pull the per-(date,market) backtest summary plus the real model version stamped on the
+    // simulated bet ledger (no fabricated version string). v_backtest_summary columns:
+    // date, market, n, brier, avg_clv, roi, sum_unit_profit, bet_count. Order desc + limit so
+    // the most recent dates survive once the table grows past the 1000-row response cap.
     const [summaryRes, versionRes] = await Promise.all([
-      mlbDb.from('v_backtest_summary').select('*').order('date', { ascending: false }).limit(10),
+      mlbDb
+        .from('v_backtest_summary')
+        .select('date, sum_unit_profit, bet_count')
+        .order('date', { ascending: false })
+        .limit(2000),
       mlbDb
         .from('sim_bets')
         .select('model_version')
@@ -23,31 +29,47 @@ async function edgeHandler(req: Request) {
         .limit(1),
     ]);
 
-    const { data: summary, error: summaryError } = summaryRes;
+    const { data: summaryRows, error: summaryError } = summaryRes;
     if (summaryError) {
       console.warn('[API/MLB/ModelIntel] Error fetching backtest summary:', summaryError.message);
     }
 
-    const asOfTs =
-      summary && summary.length > 0 ? summary[0].date : new Date().toISOString().split('T')[0];
+    // Collapse markets into one row per date and build a cumulative P&L (equity) curve.
+    // "bets" is the real bet count; ROI is a portfolio return (profit / bets placed).
+    const byDate = new Map<string, { date: string; bets: number; pnl: number }>();
+    (summaryRows || []).forEach((r: any) => {
+      const d = r.date;
+      if (!byDate.has(d)) byDate.set(d, { date: d, bets: 0, pnl: 0 });
+      const g = byDate.get(d)!;
+      g.bets += Number(r.bet_count) || 0;
+      g.pnl += Number(r.sum_unit_profit) || 0;
+    });
+    const dates = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+    let cum = 0;
+    const history = dates.map((g) => {
+      cum += g.pnl;
+      return {
+        date: g.date,
+        pnl: Number(g.pnl.toFixed(2)),
+        cum_pnl: Number(cum.toFixed(2)),
+        bets: g.bets,
+        roi: g.bets > 0 ? Number(((g.pnl / g.bets) * 100).toFixed(2)) : 0,
+      };
+    });
 
-    // total_bets_tracked = sum of real per-day prediction counts (column `n`).
-    // recent_roi = n-weighted average ROI across the recent window (not one noisy day).
-    const totalBets = summary
-      ? summary.reduce((s: number, day: any) => s + (Number(day.n) || 0), 0)
-      : 0;
+    const totalBets = dates.reduce((s, g) => s + g.bets, 0);
+    // recent_roi = n-weighted ROI over the most recent 14 active dates (not one noisy day).
     let roiNum = 0,
       roiDen = 0;
-    if (summary) {
-      summary.forEach((day: any) => {
-        const n = Number(day.n) || 0;
-        if (n > 0 && day.roi != null) {
-          roiNum += Number(day.roi) * n;
-          roiDen += n;
-        }
-      });
-    }
+    history.slice(-14).forEach((h) => {
+      if (h.bets > 0) {
+        roiNum += h.roi * h.bets;
+        roiDen += h.bets;
+      }
+    });
     const recentRoi = roiDen > 0 ? Number((roiNum / roiDen).toFixed(2)) : 0;
+    const asOfTs =
+      history.length > 0 ? history[history.length - 1].date : new Date().toISOString().split('T')[0];
     const modelVersion =
       versionRes?.data && versionRes.data.length > 0 && versionRes.data[0].model_version
         ? versionRes.data[0].model_version
@@ -61,7 +83,7 @@ async function edgeHandler(req: Request) {
           model_version: modelVersion,
           last_training_date: asOfTs,
         },
-        history: summary || [],
+        history,
       }),
       {
         status: 200,

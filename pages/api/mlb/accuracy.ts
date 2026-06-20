@@ -22,26 +22,34 @@ async function edgeHandler(req: Request) {
 
     if (!sumErr && summaryData && summaryData.length > 0) {
       // v_backtest_summary real columns: date, market, n, brier, avg_clv, roi,
-      // sum_unit_profit, bet_count. Aggregate per-date across markets, weighting
-      // brier / clv / roi by n so the KPIs and table show real measured values
-      // instead of the hardcoded zeros the previous (non-existent-column) read produced.
+      // sum_unit_profit, bet_count. Aggregate per-date across markets. Brier/CLV are
+      // n-weighted (calibration over graded predictions); ROI is a TRUE portfolio return
+      // (total unit profit / total bets placed), NOT prediction-weighted — the latter
+      // understates it ~16x (~9.3k bets placed vs ~154k graded predictions).
       const byDate: Record<
         string,
-        { date: string; n: number; brierNum: number; clvNum: number; roiNum: number }
+        { date: string; n: number; bets: number; profit: number; brierNum: number; clvNum: number }
       > = {};
       let totalN = 0,
+        totalBets = 0,
+        totalProfit = 0,
         gBrierNum = 0,
-        gClvNum = 0,
-        gRoiNum = 0;
+        gClvNum = 0;
 
       summaryData.forEach((row: any) => {
         const n = Number(row.n) || 0;
         if (n <= 0) return;
         totalN += n;
+        const bets = Number(row.bet_count) || 0;
+        const profit = Number(row.sum_unit_profit) || 0;
+        totalBets += bets;
+        totalProfit += profit;
         const d = row.date;
-        if (!byDate[d]) byDate[d] = { date: d, n: 0, brierNum: 0, clvNum: 0, roiNum: 0 };
+        if (!byDate[d]) byDate[d] = { date: d, n: 0, bets: 0, profit: 0, brierNum: 0, clvNum: 0 };
         const g = byDate[d];
         g.n += n;
+        g.bets += bets;
+        g.profit += profit;
         if (row.brier != null) {
           g.brierNum += Number(row.brier) * n;
           gBrierNum += Number(row.brier) * n;
@@ -49,10 +57,6 @@ async function edgeHandler(req: Request) {
         if (row.avg_clv != null) {
           g.clvNum += Number(row.avg_clv) * n;
           gClvNum += Number(row.avg_clv) * n;
-        }
-        if (row.roi != null) {
-          g.roiNum += Number(row.roi) * n;
-          gRoiNum += Number(row.roi) * n;
         }
       });
 
@@ -63,14 +67,14 @@ async function edgeHandler(req: Request) {
           n: g.n,
           brier: g.n > 0 ? Number((g.brierNum / g.n).toFixed(4)) : null,
           avg_clv: g.n > 0 ? Number((g.clvNum / g.n).toFixed(2)) : null,
-          roi: g.n > 0 ? Number((g.roiNum / g.n).toFixed(2)) : null,
+          roi: g.bets > 0 ? Number(((g.profit / g.bets) * 100).toFixed(2)) : null,
         }))
         .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
       kpi.n = totalN;
       kpi.brier = totalN > 0 ? (gBrierNum / totalN).toFixed(3) : '0.000';
       kpi.clv = totalN > 0 ? (gClvNum / totalN).toFixed(2) : '0.00';
-      kpi.roi = totalN > 0 ? (gRoiNum / totalN).toFixed(1) : '0.0';
+      kpi.roi = totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0';
     } else {
       // Fallback: manually aggregate sim_bets
       const { count, error: countErr } = await mlbDb

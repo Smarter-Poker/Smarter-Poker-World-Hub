@@ -46,13 +46,21 @@ async function edgeHandler(req: Request) {
     const latestDate: string | undefined = seasonRes.data?.[0]?.official_date;
     const season = latestDate ? new Date(latestDate).getUTCFullYear() : null;
 
-    return new Response(JSON.stringify({ teams, season, last_game_date: latestDate ?? null, updated: new Date().toISOString() }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900',
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        teams,
+        season,
+        last_game_date: latestDate ?? null,
+        updated: new Date().toISOString(),
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900',
+        },
+      }
+    );
   } catch (err) {
     console.error('[API/MLB/Standings] Unhandled error:', err);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {

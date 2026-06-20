@@ -97,7 +97,7 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                             src={imgSrc} 
-                            onError={() => setImgSrc('/default-avatar.png')}
+                            onError={() = alt="" loading="lazy"> setImgSrc('/default-avatar.png')}
                             alt={player.full_name}
                             loading="lazy"
                             className="w-14 h-14 rounded-full object-cover bg-[#0d1117] border-[2px] border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,212,255,0.2)]"
@@ -413,7 +413,7 @@ export default function PlayersPage() {
                                >
                                    {p.team_id ? (
                                        // eslint-disable-next-line @next/next/no-img-element
-                                       <img src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`} className="w-8 h-8 object-contain drop-shadow-md" alt="Team" />
+                                       <img src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`} className="w-8 h-8 object-contain drop-shadow-md" alt="Team" loading="lazy" />
                                    ) : (
                                        <div className="w-8 h-8 rounded-full bg-[#3d4f5f]" />
                                    )}
@@ -538,7 +538,7 @@ export default function PlayersPage() {
                                     <img
                                         src={`https://www.mlbstatic.com/team-logos/${selectedTeam}.svg`}
                                         alt="Selected Team"
-                                        className="w-10 h-10 object-contain"
+                                        className="w-10 h-10 object-contain" loading="lazy"
                                     />
                                     <span className="text-white font-extrabold text-lg uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                         {standingsMap.get(selectedTeam)?.name ?? `Team ${selectedTeam}`}
