@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useFeatureGate } from '../../../components/gates/FeatureGatePopup';
 
 interface JarvisMessengerWidgetProps {
     onMinimize?: () => void;
@@ -42,8 +43,23 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    const { hasAccess: isVip, guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
+
     const sendMessage = async (content: string) => {
         if (!content.trim() || isLoading) return;
+
+        // Free tier message cap (10 per day)
+        const today = new Date().toISOString().split('T')[0];
+        const storageKey = `jarvis_msg_count_${today}`;
+        const currentCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
+        
+        if (!isVip && currentCount >= 10) {
+            guardAction(() => {});
+            return;
+        }
+
+        // Increment count
+        localStorage.setItem(storageKey, (currentCount + 1).toString());
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -324,6 +340,7 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
                     Send
                 </button>
             </div>
+            <UpgradePopup />
         </motion.div>
     );
 }

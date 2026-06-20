@@ -424,8 +424,8 @@ export default function MemoryGamesPage() {
             return;
         }
         
-        // Check diamond access
-        if (isVIP === false) {
+        // Check diamond access for advanced levels (Level 1-3 are free)
+        if (isVIP === false && level > 3) {
             const canPlay = await checkAndDeductDiamonds();
             if (!canPlay) return;
         }
@@ -2183,7 +2183,15 @@ export default function MemoryGamesPage() {
                                                     </div>
                                                     <div style={styles.levelMeta}>
                                                         <span>{scenarioCount} scenario{scenarioCount !== 1 ? 's' : ''}</span>
-                                                        {!isUnlocked && <Lock size={12} aria-hidden style={{ color: 'rgba(255,255,255,0.45)' }} />}
+                                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                            {level.level > 3 && isVIP === false && (
+                                                                <span style={{ fontSize: 10, color: '#FFD700', border: '1px solid #FFD700', borderRadius: 4, padding: '1px 4px' }}>10 💎</span>
+                                                            )}
+                                                            {level.level > 3 && isVIP && (
+                                                                <span style={{ fontSize: 10, color: '#00D4FF', border: '1px solid #00D4FF', borderRadius: 4, padding: '1px 4px' }}>VIP</span>
+                                                            )}
+                                                            {!isUnlocked && <Lock size={12} aria-hidden style={{ color: 'rgba(255,255,255,0.45)' }} />}
+                                                        </div>
                                                     </div>
                                                     {/* 2026-05-07 — real progress from memoryDashboard.per_level_mastery */}
                                                     {(() => {

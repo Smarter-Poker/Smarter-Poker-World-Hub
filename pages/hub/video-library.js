@@ -28,7 +28,8 @@ import { DiamondEngine } from '../../src/services/DiamondEngine';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
 const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
-import { ReelsViewer } from '../../src/components/social/Reels';
+// ReelsViewer is dynamically loaded to reduce initial bundle size
+const ReelsViewer = dynamic(() => import('../../src/components/social/Reels').then(mod => mod.ReelsViewer), { ssr: false });
 import { findBestGames, buildSandboxUrl, extractCardsFromContext } from '../../src/utils/videoToTrainingMapper';
 
 // Static fallback catalog — used until DB fetch resolves

@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
 import { PokerTierBadge, PokerReactionBar } from './PokerReputationBadges';
+import { useFeatureGate } from '../gates/FeatureGatePopup';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🃏 POST TYPES (Like SmarterPoker's photo/video/live but poker-themed)
@@ -40,6 +41,9 @@ export const PokerFeedCard = ({
 }) => {
     const [showComments, setShowComments] = useState(false);
     const [localReaction, setLocalReaction] = useState(post.userReaction || null);
+    
+    // VIP Feature Gate for Premium Social Data
+    const { hasAccess: allowed, guardAction, UpgradePopup } = useFeatureGate('social_premium');
 
     const handleReaction = (reactionType) => {
         const newReaction = localReaction === reactionType ? null : reactionType;
@@ -136,36 +140,75 @@ export const PokerFeedCard = ({
                             )}
                         </div>
                         {post.handData.analysis && (
-                            <p className="hand-analysis">{post.handData.analysis}</p>
+                            <div style={{ position: 'relative', marginTop: 12, borderRadius: 8, overflow: 'hidden' }}>
+                                <p className="hand-analysis" style={{ margin: 0, filter: allowed ? 'none' : 'blur(4px)' }}>
+                                    {post.handData.analysis}
+                                </p>
+                                {!allowed && (
+                                    <div style={{
+                                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                        background: 'rgba(0,0,0,0.5)', zIndex: 10, textAlign: 'center'
+                                    }}>
+                                        <div style={{ fontSize: 20, marginBottom: 4 }}>🔒</div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Premium Analysis</div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); guardAction(() => {}); }}
+                                            style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                                        >
+                                            Unlock
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 )}
 
                 {/* Session Recap */}
                 {post.type === 'session_recap' && post.sessionData && (
-                    <div className="session-recap-embed">
-                        <div className="session-stats">
-                            <div className="stat">
-                                <span className="stat-value">{post.sessionData.duration}</span>
-                                <span className="stat-label">Duration</span>
-                            </div>
-                            <div className="stat">
-                                <span className="stat-value">{post.sessionData.handsPlayed}</span>
-                                <span className="stat-label">Hands</span>
-                            </div>
-                            <div className="stat">
-                                <span
-                                    className="stat-value"
-                                    style={{
-                                        color: post.sessionData.profitLoss >= 0 ? '#22C55E' : '#EF4444'
-                                    }}
-                                >
-                                    {post.sessionData.profitLoss >= 0 ? '+' : ''}
-                                    ${post.sessionData.profitLoss}
-                                </span>
-                                <span className="stat-label">P/L</span>
+                    <div style={{ position: 'relative', marginTop: 12 }}>
+                        <div className="session-recap-embed" style={{ filter: allowed ? 'none' : 'blur(5px)' }}>
+                            <div className="session-stats">
+                                <div className="stat">
+                                    <span className="stat-value">{post.sessionData.duration}</span>
+                                    <span className="stat-label">Duration</span>
+                                </div>
+                                <div className="stat">
+                                    <span className="stat-value">{post.sessionData.handsPlayed}</span>
+                                    <span className="stat-label">Hands</span>
+                                </div>
+                                <div className="stat">
+                                    <span
+                                        className="stat-value"
+                                        style={{
+                                            color: post.sessionData.profitLoss >= 0 ? '#22C55E' : '#EF4444'
+                                        }}
+                                    >
+                                        {post.sessionData.profitLoss >= 0 ? '+' : ''}
+                                        ${post.sessionData.profitLoss}
+                                    </span>
+                                    <span className="stat-label">P/L</span>
+                                </div>
                             </div>
                         </div>
+                        
+                        {!allowed && (
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                background: 'rgba(0,0,0,0.5)', borderRadius: 12, zIndex: 10, textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: 24, marginBottom: 8 }}>🔒</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Session Analysis</div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); guardAction(() => {}); }}
+                                    style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                    Unlock
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -649,7 +692,9 @@ export const PokerFeedCard = ({
                 }
             `}</style>
         </div>
-    );
+        <UpgradePopup />
+    </>
+);
 
     // Wrap with heat map and GTO master effects
     return (

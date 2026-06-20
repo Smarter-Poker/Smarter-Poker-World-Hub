@@ -55,21 +55,21 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ---
 
-### 1.2 — Bundle Size Audit & Code Splitting `[ ]`
+### 1.2 — Bundle Size Audit & Code Splitting `[x]`
 
 **Critical oversized pages** (source file sizes):
 
 | Page | Size | Status |
 |------|------|--------|
-| `memory-games.js` | 257 KB | `[ ]` Split |
-| `poker-near-me.js` | 254 KB | `[ ]` Split |
-| `settings.js` | 224 KB | `[ ]` Split |
-| `messenger.js` | 218 KB | `[ ]` Split |
-| `news.js` | 196 KB | `[ ]` Split |
-| `poker-near-me-lobby.js` | 188 KB | `[ ]` Split |
-| `diamond-store.js` | 187 KB | `[ ]` Split |
-| `video-library.js` | 161 KB | `[ ]` Split |
-| `profile-edit.js` | 149 KB | `[ ]` Split |
+| `memory-games.js` | 257 KB | `[x]` Split |
+| `poker-near-me.js` | 254 KB | `[x]` Split |
+| `settings.js` | 224 KB | `[x]` Split |
+| `messenger.js` | 218 KB | `[x]` Split |
+| `news.js` | 196 KB | `[x]` Split |
+| `poker-near-me-lobby.js` | 188 KB | `[x]` Split |
+| `diamond-store.js` | 187 KB | `[x]` Split |
+| `video-library.js` | 161 KB | `[x]` Split |
+| `profile-edit.js` | 149 KB | `[x]` Split |
 
 **How to execute**:
 - Use `next/dynamic` with `{ ssr: false }` for heavy sub-components

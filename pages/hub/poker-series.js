@@ -2042,9 +2042,10 @@ import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
 
 export async function getStaticProps() {
     try {
+        const columns = 'id, series_name, name, start_date, end_date, venue, city, state, country, logo_url, series_uid, latitude, longitude, is_suppressed, venue_id, created_at, updated_at';
         const [psRes, tsRes] = await Promise.all([
-            supabaseAdmin.from('poker_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
-            supabaseAdmin.from('tournament_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
+            supabaseAdmin.from('poker_series').select(columns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
+            supabaseAdmin.from('tournament_series').select(columns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
         ]);
         
         if (psRes.error) throw psRes.error;
