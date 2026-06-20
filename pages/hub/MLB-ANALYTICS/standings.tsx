@@ -31,6 +31,10 @@ interface TeamStanding {
   l10_l: number;
   streak: string | null;
   power_score: number;
+  gp: number;
+  pyth: number;
+  x_w: number;
+  x_l: number;
 }
 
 const fetcher = async (url: string) => {
@@ -49,11 +53,25 @@ const LEAGUE_DIVISIONS: Record<string, string[]> = {
   NL: ['NL East', 'NL Central', 'NL West'],
 };
 const TIER_FLOORS: Tier[] = ['ELITE', 'STRONG', 'LEAN', 'THIN', 'PASS'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function fmtPct(p: number | null | undefined): string {
   if (p == null || Number.isNaN(Number(p))) return '.000';
   const s = Number(p).toFixed(3);
   return s.charAt(0) === '0' ? s.slice(1) : s; // .605 / 1.000
+}
+
+function fmtThrough(d?: string | null): string {
+  if (!d) return '';
+  const parts = String(d).split('-');
+  if (parts.length !== 3) return '';
+  const mi = parseInt(parts[1], 10) - 1;
+  if (mi < 0 || mi > 11) return '';
+  return `${MONTHS[mi]} ${parseInt(parts[2], 10)}`;
+}
+
+function teamHref(teamId: number): string {
+  return `/hub/MLB-ANALYTICS/teams/${teamId}`;
 }
 
 function TeamLogo({ teamId, abbr }: { teamId: number; abbr: string }) {
@@ -105,6 +123,9 @@ function HeaderRow({ showDivision }: { showDivision?: boolean }) {
         <th className="py-2 px-2 text-center w-14 hidden sm:table-cell">L10</th>
         <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">STRK</th>
         <th className="py-2 px-2 text-center w-14 hidden md:table-cell">DIFF</th>
+        <th className="py-2 px-2 text-center w-16 hidden xl:table-cell" title="Pythagorean expected record">
+          EXP
+        </th>
         <th className="py-2 px-2 text-center w-16 hidden lg:table-cell">HOME</th>
         <th className="py-2 px-2 text-center w-16 hidden lg:table-cell">AWAY</th>
         <th className="py-2 px-2 pr-3 text-right">Grade</th>
@@ -124,9 +145,13 @@ function TeamRow({
   leader?: boolean;
   showDivision?: boolean;
 }) {
+  const router = useRouter();
+  const luck = (team.w ?? 0) - (team.x_w ?? 0);
+  const expTitle = `Pythagorean expected record ${team.x_w}-${team.x_l} (${luck >= 0 ? '+' : ''}${luck} vs actual)`;
   return (
     <tr
-      className={`text-sm hover:bg-slate-800/20 transition-colors ${leader ? 'bg-[#00D4FF]/[0.04]' : ''}`}
+      onClick={() => router.push(teamHref(team.team_id))}
+      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors ${leader ? 'bg-[#00D4FF]/[0.04]' : ''}`}
     >
       <td
         className={`py-2.5 pl-3 pr-1 text-left w-8 font-bold ${leader ? 'text-[#00D4FF]' : 'text-slate-500'}`}
@@ -159,6 +184,12 @@ function TeamRow({
       </td>
       <td className="py-2.5 px-2 text-center tabular-nums hidden md:table-cell">
         <DiffCell diff={team.run_diff} />
+      </td>
+      <td
+        className="py-2.5 px-2 text-center text-slate-400 tabular-nums hidden xl:table-cell"
+        title={expTitle}
+      >
+        {team.x_w}-{team.x_l}
       </td>
       <td className="py-2.5 px-2 text-center text-slate-400 tabular-nums hidden lg:table-cell">
         {team.home_w}-{team.home_l}
@@ -199,6 +230,126 @@ function DivisionCard({ division, teams }: { division: string; teams: TeamStandi
   );
 }
 
+function WildCardRow({
+  team,
+  label,
+  labelClass,
+  gbText,
+  inLine,
+}: {
+  team: TeamStanding;
+  label: string;
+  labelClass: string;
+  gbText: string;
+  inLine?: boolean;
+}) {
+  const router = useRouter();
+  return (
+    <tr
+      onClick={() => router.push(teamHref(team.team_id))}
+      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors ${inLine ? 'bg-emerald-500/[0.05]' : ''}`}
+    >
+      <td className="py-2.5 pl-3 pr-1 w-12">
+        <span className={`text-[9px] font-black uppercase tracking-wider ${labelClass}`}>{label}</span>
+      </td>
+      <td className="py-2.5 px-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <TeamLogo teamId={team.team_id} abbr={team.abbr} />
+          <span className="font-black text-slate-200">{team.abbr}</span>
+          <span className="font-medium text-slate-400 truncate hidden sm:inline">{team.name}</span>
+        </div>
+      </td>
+      <td className="py-2.5 px-2 text-center font-bold text-[#00D4FF]">{team.w}</td>
+      <td className="py-2.5 px-2 text-center text-slate-300">{team.l}</td>
+      <td className="py-2.5 px-2 text-center text-slate-200 tabular-nums">{fmtPct(team.pct)}</td>
+      <td className="py-2.5 px-2 text-center text-slate-400 tabular-nums w-14">{gbText}</td>
+      <td className="py-2.5 px-2 text-center hidden sm:table-cell">
+        <StreakCell streak={team.streak} />
+      </td>
+      <td className="py-2.5 px-2 text-center tabular-nums hidden md:table-cell">
+        <DiffCell diff={team.run_diff} />
+      </td>
+      <td className="py-2.5 px-2 pr-3 text-right whitespace-nowrap">
+        <TeamGradeBadge score={team.power_score} compact />
+      </td>
+    </tr>
+  );
+}
+
+function WildCardLeagueCard({
+  league,
+  leaders,
+  race,
+}: {
+  league: 'AL' | 'NL';
+  leaders: TeamStanding[];
+  race: { team: TeamStanding; gbText: string; inWC: boolean }[];
+}) {
+  return (
+    <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40 flex items-center gap-2">
+        <span className="text-[#00D4FF] font-bold">|</span>
+        <h3
+          className="text-sm font-black text-white uppercase tracking-wider"
+          style={{ fontFamily: '"Rajdhani", sans-serif' }}
+        >
+          {league === 'AL' ? 'American League' : 'National League'} — Playoff Picture
+        </h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/60">
+              <th className="py-2 pl-3 pr-1 text-left w-12">Seed</th>
+              <th className="py-2 px-2 text-left">Team</th>
+              <th className="py-2 px-2 text-center w-9">W</th>
+              <th className="py-2 px-2 text-center w-9">L</th>
+              <th className="py-2 px-2 text-center w-12">PCT</th>
+              <th className="py-2 px-2 text-center w-14">GB/+</th>
+              <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">STRK</th>
+              <th className="py-2 px-2 text-center w-14 hidden md:table-cell">DIFF</th>
+              <th className="py-2 px-2 pr-3 text-right">Grade</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/40">
+            {leaders.map((t, i) => (
+              <WildCardRow
+                key={t.team_id}
+                team={t}
+                label={`DIV ${i + 1}`}
+                labelClass="text-[#00D4FF]"
+                gbText="-"
+                inLine
+              />
+            ))}
+            {race.map((r, i) => (
+              <React.Fragment key={r.team.team_id}>
+                <WildCardRow
+                  team={r.team}
+                  label={r.inWC ? `WC${i + 1}` : 'OUT'}
+                  labelClass={r.inWC ? 'text-emerald-400' : 'text-slate-500'}
+                  gbText={r.gbText}
+                  inLine={r.inWC}
+                />
+                {i === 2 && (
+                  <tr>
+                    <td colSpan={9} className="p-0">
+                      <div className="h-[2px] bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent" />
+                      <div className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-500/80 bg-emerald-500/[0.03]">
+                        Wild Card cut line
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function GradeLegend() {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-bold uppercase tracking-wider">
@@ -213,16 +364,21 @@ function GradeLegend() {
   );
 }
 
+function gamesBetween(a: TeamStanding, b: TeamStanding): number {
+  return ((a.w - b.w) + (b.l - a.l)) / 2;
+}
+
 export default function StandingsPage() {
   const router = useRouter();
   const { data, error, isLoading } = useSWR('/api/mlb/standings', fetcher, {
-    refreshInterval: 300000, // 5 min — standings update after each game day, revalidateOnFocus: false
+    refreshInterval: 60000,
   });
-  const [view, setView] = useState<'division' | 'power'>('division');
+  const [view, setView] = useState<'division' | 'wildcard' | 'power'>('division');
 
   const teams: TeamStanding[] = data?.teams || [];
   const loading = isLoading && !data;
   const season: number | null = data?.season ?? null;
+  const through: string = fmtThrough(data?.last_game_date);
 
   const byDivision = useMemo(() => {
     const map = new Map<string, TeamStanding[]>();
@@ -242,26 +398,56 @@ export default function StandingsPage() {
     [teams]
   );
 
+  const wildcard = useMemo(() => {
+    const out: Record<
+      'AL' | 'NL',
+      { leaders: TeamStanding[]; race: { team: TeamStanding; gbText: string; inWC: boolean }[] }
+    > = {
+      AL: { leaders: [], race: [] },
+      NL: { leaders: [], race: [] },
+    };
+    (['AL', 'NL'] as const).forEach((lg) => {
+      const lgTeams = teams.filter((t) => t.league === lg);
+      const leaders: TeamStanding[] = [];
+      for (const d of LEAGUE_DIVISIONS[lg]) {
+        const dt = lgTeams
+          .filter((t) => t.division === d)
+          .sort((a, b) => b.pct - a.pct || b.w - a.w);
+        if (dt[0]) leaders.push(dt[0]);
+      }
+      leaders.sort((a, b) => b.pct - a.pct || b.w - a.w);
+      const leaderIds = new Set(leaders.map((t) => t.team_id));
+      const contenders = lgTeams
+        .filter((t) => !leaderIds.has(t.team_id))
+        .sort((a, b) => b.pct - a.pct || b.w - a.w || b.run_diff - a.run_diff);
+      const wc3 = contenders[2];
+      const firstOut = contenders[3];
+      const race = contenders.map((t, i) => {
+        let gbText = '-';
+        if (i < 3) {
+          gbText = firstOut ? `+${gamesBetween(t, firstOut).toFixed(1)}` : '-';
+        } else if (wc3) {
+          gbText = gamesBetween(wc3, t).toFixed(1);
+        }
+        return { team: t, gbText, inWC: i < 3 };
+      });
+      out[lg] = { leaders, race };
+    });
+    return out;
+  }, [teams]);
+
+  const VIEWS: [typeof view, string][] = [
+    ['division', 'By Division'],
+    ['wildcard', 'Wild Card'],
+    ['power', 'Power Rankings'],
+  ];
+
   return (
-    <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+    <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
       <SEOHead
-        title="MLB Standings 2025 — Division Races & Power Rankings | Smarter.Poker"
-        description="Live 2025 MLB standings with divisional breakdowns, run differential, win streaks, power rankings, and AI-graded team ratings on the ELITE/STRONG/LEAN/THIN/PASS scale."
-        canonical="/hub/MLB-ANALYTICS/standings"
-        jsonLd={{
-          '@type': 'Dataset',
-          name: '2025 MLB Standings',
-          description:
-            'Live 2025 MLB standings with AI power ratings, run differential, and division standings.',
-          url: 'https://smarter.poker/hub/MLB-ANALYTICS/standings',
-          creator: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
-          temporalCoverage: '2025',
-          keywords:
-            'MLB standings 2025, baseball standings, MLB division standings, NL standings, AL standings',
-        }}
-      
-                ogImage="/images/mlb/og.png"
-            />
+        title="MLB Standings 2026 — Division Races, Wild Card & Power Rankings | Smarter.Poker"
+        description="Live 2026 MLB standings: divisional breakdowns, wild-card playoff race, run differential, Pythagorean expected records, win streaks, and AI-graded team ratings on the ELITE/STRONG/LEAN/THIN/PASS scale."
+      />
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />
 
@@ -275,18 +461,13 @@ export default function StandingsPage() {
               <span className="text-[#00D4FF] font-bold">|</span> LEAGUE STANDINGS
             </h1>
             <p className="text-slate-400 mt-2 tracking-wide text-xs uppercase">
-              {season ? `${season} SEASON · ` : ''}LIVE W/L, RUN DIFFERENTIAL, AND POWER RANKINGS
+              {season ? `${season} SEASON · ` : ''}
+              {through ? `THROUGH ${through.toUpperCase()} · ` : ''}LIVE W/L, RUN DIFFERENTIAL, POWER RANKINGS
             </p>
           </div>
 
-          {/* View toggle */}
           <div className="inline-flex rounded-lg border border-slate-700/70 bg-[#0d1117] p-1 self-start">
-            {(
-              [
-                ['division', 'By Division'],
-                ['power', 'Power Rankings'],
-              ] as const
-            ).map(([key, label]) => (
+            {VIEWS.map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setView(key)}
@@ -338,6 +519,14 @@ export default function StandingsPage() {
               </div>
             ))}
           </div>
+        ) : view === 'wildcard' ? (
+          <div className="space-y-6">
+            <WildCardLeagueCard league="AL" leaders={wildcard.AL.leaders} race={wildcard.AL.race} />
+            <WildCardLeagueCard league="NL" leaders={wildcard.NL.leaders} race={wildcard.NL.race} />
+            <p className="text-slate-600 text-[10px] uppercase tracking-wider">
+              DIV = division leader (auto-berth). WC1-3 = wild-card spots. GB/+ shows games ahead of the cut (+) for in-teams, games behind for the rest.
+            </p>
+          </div>
         ) : (
           <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40 flex items-center gap-2">
@@ -354,13 +543,7 @@ export default function StandingsPage() {
                 <HeaderRow showDivision />
                 <tbody className="divide-y divide-slate-800/40">
                   {powerRanked.map((team, i) => (
-                    <TeamRow
-                      key={team.team_id}
-                      team={team}
-                      rank={i + 1}
-                      leader={i === 0}
-                      showDivision
-                    />
+                    <TeamRow key={team.team_id} team={team} rank={i + 1} leader={i === 0} showDivision />
                   ))}
                 </tbody>
               </table>
@@ -369,9 +552,7 @@ export default function StandingsPage() {
         )}
 
         <p className="text-slate-600 text-[10px] mt-6 uppercase tracking-wider">
-          Computed from final game results. GB = games behind division leader. Grade is a
-          league-relative power rating on the same ELITE/STRONG/LEAN/THIN/PASS scale used across
-          Smarter Poker MLB.
+          Computed from final game results. GB = games behind division leader. EXP = Pythagorean expected record from run differential. Grade is a league-relative power rating on the same ELITE/STRONG/LEAN/THIN/PASS scale used across Smarter Poker MLB. Tap any team for its full profile.
         </p>
       </main>
       <BottomNavBar />
