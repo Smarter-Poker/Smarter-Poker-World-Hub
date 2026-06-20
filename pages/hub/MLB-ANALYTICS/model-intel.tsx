@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
 import dynamic from 'next/dynamic';
@@ -102,9 +101,8 @@ export default function ModelIntelPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead 
-                title="Model Intel | MLB Analytics" 
-                description="Behind the scenes look into the MLB predictive model's logic." 
-                noIndex={true}
+                title="MLB Predictive Model Intelligence — Neural Network Analytics | Smarter.Poker" 
+                description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine. Explore model version, total bets tracked, recent ROI, training history, and daily P&L performance matrix for the 2025 MLB season." 
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

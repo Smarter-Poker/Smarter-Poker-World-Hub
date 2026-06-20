@@ -783,9 +783,8 @@ export default function BestBetsPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
             <SEOHead
-                title="Best Bets | MLB Analytics"
-                description="Daily MLB Betting Edges Surfaced By AI Models."
-                noIndex={true}
+                title="Today's MLB Best Bets — AI Model Picks & Edge Ratings | Smarter.Poker"
+                description="Daily MLB best bets and betting edges powered by Smarter.Poker's AI prediction model. Covers moneyline, run line, totals, and player props with ELITE/STRONG/LEAN/THIN/PASS tier ratings for every pick."
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

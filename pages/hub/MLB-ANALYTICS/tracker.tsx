@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
 
@@ -155,9 +154,8 @@ export default function TrackerPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
-               title="Live Tracker | MLB Analytics" 
-               description="Real-time MLB Game Tracking & Edge Updates."
-               noIndex={true}
+               title="MLB Live Game Tracker — Real-Time Scores & Edge Updates | Smarter.Poker" 
+               description="Follow every MLB game in real time on Smarter.Poker. Live scores, inning-by-inning updates, game status, and model edge alerts for all 2025 MLB games."
            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

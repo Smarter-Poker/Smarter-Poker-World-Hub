@@ -25,43 +25,39 @@ async function edgeHandler(req: Request) {
             .order('date', { ascending: false });
             
         if (!sumErr && summaryData && summaryData.length > 0) {
-            let totalN = 0;
-            let sumAccuracy = 0;
-            let accuracyCount = 0;
-            let sumRoi = 0;
-            let roiCount = 0;
+            // v_backtest_summary real columns: date, market, n, brier, avg_clv, roi,
+            // sum_unit_profit, bet_count. Aggregate per-date across markets, weighting
+            // brier / clv / roi by n so the KPIs and table show real measured values
+            // instead of the hardcoded zeros the previous (non-existent-column) read produced.
+            const byDate: Record<string, { date: string; n: number; brierNum: number; clvNum: number; roiNum: number }> = {};
+            let totalN = 0, gBrierNum = 0, gClvNum = 0, gRoiNum = 0;
 
             summaryData.forEach((row: any) => {
-                const n = (row.bets_won || 0) + (row.bets_lost || 0);
-                if (n === 0) return;
-                
+                const n = Number(row.n) || 0;
+                if (n <= 0) return;
                 totalN += n;
-                
-                if (row.accuracy !== null && row.accuracy !== undefined) {
-                    sumAccuracy += Number(row.accuracy);
-                    accuracyCount++;
-                }
-                
-                if (row.roi !== null && row.roi !== undefined) {
-                    sumRoi += Number(row.roi);
-                    roiCount++;
-                }
-
-                tableData.push({
-                    date: row.date,
-                    market: 'All', // The table aggregates all markets
-                    n,
-                    brier: null,
-                    avg_clv: null,
-                    roi: row.roi,
-                    accuracy: row.accuracy
-                });
+                const d = row.date;
+                if (!byDate[d]) byDate[d] = { date: d, n: 0, brierNum: 0, clvNum: 0, roiNum: 0 };
+                const g = byDate[d];
+                g.n += n;
+                if (row.brier != null) { g.brierNum += Number(row.brier) * n; gBrierNum += Number(row.brier) * n; }
+                if (row.avg_clv != null) { g.clvNum += Number(row.avg_clv) * n; gClvNum += Number(row.avg_clv) * n; }
+                if (row.roi != null) { g.roiNum += Number(row.roi) * n; gRoiNum += Number(row.roi) * n; }
             });
 
+            tableData = Object.values(byDate).map((g) => ({
+                date: g.date,
+                market: 'All', // aggregated across all markets for that date
+                n: g.n,
+                brier: g.n > 0 ? Number((g.brierNum / g.n).toFixed(4)) : null,
+                avg_clv: g.n > 0 ? Number((g.clvNum / g.n).toFixed(2)) : null,
+                roi: g.n > 0 ? Number((g.roiNum / g.n).toFixed(2)) : null,
+            })).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
             kpi.n = totalN;
-            kpi.clv = '0.00';
-            kpi.brier = '0.000';
-            kpi.roi = roiCount > 0 ? (sumRoi / roiCount).toFixed(1) : '0.0';
+            kpi.brier = totalN > 0 ? (gBrierNum / totalN).toFixed(3) : '0.000';
+            kpi.clv = totalN > 0 ? (gClvNum / totalN).toFixed(2) : '0.00';
+            kpi.roi = totalN > 0 ? (gRoiNum / totalN).toFixed(1) : '0.0';
 
         } else {
             // Fallback: manually aggregate sim_bets

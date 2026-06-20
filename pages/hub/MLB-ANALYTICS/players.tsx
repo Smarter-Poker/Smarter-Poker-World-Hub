@@ -338,9 +338,8 @@ export default function PlayersPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
-               title="Players Database | MLB Analytics" 
-               description="Complete profiles for every MLB hitter and pitcher."
-               noIndex={true}
+               title="MLB Player Analytics — Stats, Rankings & Predictive Grades | Smarter.Poker" 
+               description="Complete MLB player database with advanced statistics, wRC+, wOBA, FIP, SIERA, and AI-powered predictive grades for every hitter and pitcher in the 2025 season."
            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

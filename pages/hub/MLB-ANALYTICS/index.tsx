@@ -9,6 +9,8 @@ import { createClient } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { teamLogo, type GameCard } from '../../../src/lib/mlb_data';
 
@@ -182,6 +184,10 @@ export default function MlbSlatePage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a15]" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
+      <SEOHead
+        title="MLB Analytics Vault — Daily Predictions & Best Bets | Smarter.Poker"
+        description="AI-powered MLB predictions, daily best bets, player props, moneyline edges, and real-time analytics. Smarter.Poker MLB Analytics Vault delivers model-backed picks every day."
+      />
       <UniversalHeader pageDepth={2} />
       <MlbSubNav />
 

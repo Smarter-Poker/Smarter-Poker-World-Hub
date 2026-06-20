@@ -124,9 +124,8 @@ export default function ValidationPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
-               title="Validation | MLB Analytics" 
-               description="Historical graded results and model validation."
-               noIndex={true}
+               title="MLB Model Validation — Edge Calibration & Win Rate Audit | Smarter.Poker" 
+               description="Statistical validation of Smarter.Poker's MLB prediction model. Review edge group win rates, Brier score vs. market baseline, graded prediction history, and edge calibration for the 2025 season."
            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

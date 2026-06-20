@@ -15,24 +15,49 @@ async function edgeHandler(req: Request) {
     try {
         const mlbDb = getMlbSupabase();
         
-        // Fetch recent backtest summary for history and global stats
-        const { data: summary, error: summaryError } = await mlbDb
-            .from('v_backtest_summary')
-            .select('*')
-            .order('date', { ascending: false })
-            .limit(10);
+        // Fetch recent backtest summary for history and global stats, plus the real
+        // model version stamped on the simulated bet ledger (no fabricated version string).
+        const [summaryRes, versionRes] = await Promise.all([
+            mlbDb
+                .from('v_backtest_summary')
+                .select('*')
+                .order('date', { ascending: false })
+                .limit(10),
+            mlbDb
+                .from('sim_bets')
+                .select('model_version')
+                .not('model_version', 'is', null)
+                .order('as_of_ts', { ascending: false })
+                .limit(1),
+        ]);
 
+        const { data: summary, error: summaryError } = summaryRes;
         if (summaryError) {
             console.warn('[API/MLB/ModelIntel] Error fetching backtest summary:', summaryError.message);
         }
 
         const asOfTs = summary && summary.length > 0 ? summary[0].date : new Date().toISOString().split('T')[0];
 
-        return new Response(JSON.stringify({ 
+        // total_bets_tracked = sum of real per-day prediction counts (column `n`).
+        // recent_roi = n-weighted average ROI across the recent window (not one noisy day).
+        const totalBets = summary ? summary.reduce((s: number, day: any) => s + (Number(day.n) || 0), 0) : 0;
+        let roiNum = 0, roiDen = 0;
+        if (summary) {
+            summary.forEach((day: any) => {
+                const n = Number(day.n) || 0;
+                if (n > 0 && day.roi != null) { roiNum += Number(day.roi) * n; roiDen += n; }
+            });
+        }
+        const recentRoi = roiDen > 0 ? Number((roiNum / roiDen).toFixed(2)) : 0;
+        const modelVersion = (versionRes?.data && versionRes.data.length > 0 && versionRes.data[0].model_version)
+            ? versionRes.data[0].model_version
+            : null;
+
+        return new Response(JSON.stringify({
             intel: {
-                total_bets_tracked: summary ? summary.reduce((sum, day) => sum + (day.bets_won || 0) + (day.bets_lost || 0), 0) : 0,
-                recent_roi: summary && summary.length > 0 ? summary[0].roi : 0,
-                model_version: 'v4.2.1-Edge',
+                total_bets_tracked: totalBets,
+                recent_roi: recentRoi,
+                model_version: modelVersion,
                 last_training_date: asOfTs
             },
             history: summary || []

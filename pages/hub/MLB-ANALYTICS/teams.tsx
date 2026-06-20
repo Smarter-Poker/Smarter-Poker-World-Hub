@@ -2,12 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Search, SearchX, Activity, Shield, Crosshair, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Search, SearchX, Shield, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import useSWR from 'swr';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { logError } from '@/utils/logger';
 
 export interface Streaks {
@@ -104,23 +105,36 @@ const TeamCardComponent = ({ team }: { team: any }) => {
 
             <div style={{ display: 'block', padding: '20px', textDecoration: 'none', color: 'inherit' }}>
                 <Link href={`/hub/MLB-ANALYTICS/teams/${team.team_id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <TeamLogo teamId={team.team_id} teamName={team.name} />
                             <div>
                                 <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: 'white', letterSpacing: '-0.02em' }}>{team.name}</h3>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--neon-cyan)', background: 'var(--neon-cyan-dim)', padding: '2px 6px', borderRadius: 4, letterSpacing: '0.05em' }}>
-                                        {leagueStr} {divStr}
+                                        {divStr}
                                     </span>
-                                    {team.has_active_edge && (
-                                        <span style={{ fontSize: 10, fontWeight: 800, color: '#22C55E', border: '1px solid #22C55E', padding: '1px 4px', borderRadius: 2, letterSpacing: '0.05em', background: 'rgba(34, 197, 94, 0.1)', textShadow: '0 0 5px rgba(34, 197, 94, 0.5)' }}>
-                                            EDGE
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.04em' }}>
+                                        {record} · L10 {last10}
+                                    </span>
+                                    {isHot && (
+                                        <span style={{ fontSize: 9, fontWeight: 800, color: '#F59E0B', border: '1px solid #F59E0B', padding: '1px 4px', borderRadius: 2, letterSpacing: '0.05em', background: 'rgba(245,158,11,0.1)' }}>
+                                            HOT
                                         </span>
                                     )}
                                 </div>
                             </div>
                         </div>
+                        {team.grade ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                                <BetScoreBadge pWin={team.grade.pWin} price={team.grade.price} pMarket={team.grade.pMarket} />
+                                <span style={{ fontSize: 9, fontWeight: 700, color: '#64748B', letterSpacing: '0.08em' }}>
+                                    {team.grade.edgeCount} EDGE{team.grade.edgeCount === 1 ? '' : 'S'}
+                                </span>
+                            </div>
+                        ) : (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0, paddingTop: 4 }}>No edge</span>
+                        )}
                     </div>
 
                     {/* Advanced Stats Panel */}
@@ -207,7 +221,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLeague, setFilterLeague] = useState<'ALL' | 'AL' | 'NL'>('ALL');
     const [filterDivision, setFilterDivision] = useState<'ALL' | 'East' | 'Central' | 'West'>('ALL');
-    const [sortBy, setSortBy] = useState<'NAME' | 'WAR' | 'OPS' | 'FIP' | 'EDGE'>('NAME');
+    const [sortBy, setSortBy] = useState<'SCORE' | 'NAME' | 'WAR' | 'OPS' | 'FIP'>('SCORE');
     const [todayStr, setTodayStr] = useState<string>(fallbackToday || '');
 
     React.useEffect(() => {
@@ -250,6 +264,7 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
 
     const activeTeams = data?.teams || fallbackTeams || [];
     const globalEdgeActive = data?.globalEdgeActive || fallbackGlobalEdgeActive || false;
+    const summary = data?.summary || { gradedCount: 0, eliteCount: 0, strongCount: 0 };
 
     const filteredTeams = useMemo(() => {
         let result = activeTeams.filter((team: any) => {
@@ -271,10 +286,10 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
         });
 
         return result.sort((a: any, b: any) => {
+            if (sortBy === 'SCORE') return ((b.grade?.score || 0) - (a.grade?.score || 0)) || (a.name || '').localeCompare(b.name || '');
             if (sortBy === 'WAR') return ((b.adv_stats?.hitting_war || 0) + (b.adv_stats?.pitching_war || 0)) - ((a.adv_stats?.hitting_war || 0) + (a.adv_stats?.pitching_war || 0));
             if (sortBy === 'OPS') return (b.adv_stats?.ops || 0) - (a.adv_stats?.ops || 0);
             if (sortBy === 'FIP') return (a.adv_stats?.fip || 99) - (b.adv_stats?.fip || 99);
-            if (sortBy === 'EDGE') return (b.has_active_edge ? 1 : 0) - (a.has_active_edge ? 1 : 0);
             return (a.name || '').localeCompare(b.name || '');
         });
     }, [activeTeams, searchQuery, filterLeague, filterDivision, sortBy]);
@@ -495,9 +510,8 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
             boxSizing: 'border-box'
         }}>
             <SEOHead 
-                title="Teams | MLB Analytics" 
-                description="MLB Team profiles and tactical terminal."
-                noIndex={true} 
+                title="MLB Team Analytics — Advanced Stats & Power Ratings | Smarter.Poker" 
+                description="Deep MLB team profiles with advanced analytics, split records, WAR totals, OPS, FIP, OAA, streaks, and AI power ratings for all 30 teams in the 2025 MLB season." 
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
@@ -536,7 +550,14 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: globalEdgeActive ? '#22C55E' : '#475569', position: 'relative', boxShadow: globalEdgeActive ? '0 0 8px #22C55E' : 'none' }} />
                                     </div>
                                 </div>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', marginTop: 8, letterSpacing: '0.05em' }}>{activeTeams.length} DATA NODES</div>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', marginTop: 8, letterSpacing: '0.05em' }}>{activeTeams.length} CLUBS</div>
+                                {summary.gradedCount > 0 && (
+                                    <div style={{ fontSize: 10, fontWeight: 800, marginTop: 2, letterSpacing: '0.05em' }}>
+                                        <span style={{ color: 'var(--neon-cyan)' }}>{summary.eliteCount} ELITE</span>
+                                        <span style={{ color: '#475569' }}> · </span>
+                                        <span style={{ color: '#34D399' }}>{summary.strongCount} STRONG</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -594,11 +615,11 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                                         onChange={(e) => setSortBy(e.target.value as any)}
                                         className="metal-select"
                                     >
+                                        <option value="SCORE">BET SCORE</option>
                                         <option value="NAME">NAME</option>
                                         <option value="WAR">WAR</option>
                                         <option value="OPS">OPS</option>
                                         <option value="FIP">FIP</option>
-                                        <option value="EDGE">EDGE</option>
                                     </select>
                                 </div>
                             </div>

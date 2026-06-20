@@ -1,8 +1,29 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { betScore, tier } from '../../../src/lib/betScore';
 
+// ── Canonical bet-side inference for a pred_props row ─────────────────────────
+// pred_props stores the model's OVER probability (prob_over), the market's no-vig
+// OVER probability (market_novig_over) and the best available price (best_price).
+// The value side is OVER when the model's over-prob exceeds the market's; otherwise
+// UNDER. `rec` is a Kelly-stake string ("BET (Quarter-Kelly: ...)"), never "over"/
+// "under", so direction MUST be inferred from model-vs-market, not `rec`.
+function betInputsFromProp(p: any): { pWin: number; price: number; pMarket: number | null; isOver: boolean } | null {
+    const price = p.best_price != null ? Number(p.best_price) : NaN;
+    if (!Number.isFinite(price) || price === 0) return null; // no price → cannot score
+    const probOver = p.prob_over != null ? Number(p.prob_over) : NaN;
+    if (!Number.isFinite(probOver)) return null;
 
+    const mktOver = p.market_novig_over != null ? Number(p.market_novig_over) : null;
+    let isOver: boolean;
+    if (mktOver != null) isOver = probOver >= mktOver;
+    else if (p.proj_mean != null && p.line != null) isOver = Number(p.proj_mean) > Number(p.line);
+    else isOver = probOver >= 0.5;
 
-
+    const pWin = isOver ? probOver : 1 - probOver;
+    if (!(pWin > 0 && pWin < 1)) return null;
+    const pMarket = mktOver == null ? null : (isOver ? mktOver : 1 - mktOver);
+    return { pWin, price, pMarket, isOver };
+}
 
 async function edgeHandler(req: Request) {
     if (req.method !== 'GET') {
@@ -14,78 +35,151 @@ async function edgeHandler(req: Request) {
 
     try {
         const mlbDb = getMlbSupabase();
-        
+
         const todayStr = new Intl.DateTimeFormat('en-CA', {
             timeZone: 'America/Chicago',
             year: 'numeric', month: '2-digit', day: '2-digit'
         }).format(new Date());
 
-        // Fetch teams, advanced stats, dimension info, and current market edges
-        const [teamsRes, aggRes, dimRes, predRes, hittersRes, pitchersRes] = await Promise.all([
+        // ── Resolve the active slate (today if predictions exist, else most recent) ──
+        let slateDate = todayStr;
+        const { data: todayCheck } = await mlbDb
+            .from('pred_props')
+            .select('as_of_ts')
+            .gte('as_of_ts', `${todayStr}T00:00:00`)
+            .limit(1);
+        if (!todayCheck || todayCheck.length === 0) {
+            const { data: latestRow } = await mlbDb
+                .from('pred_props')
+                .select('as_of_ts')
+                .lte('as_of_ts', `${todayStr}T23:59:59`)
+                .order('as_of_ts', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (latestRow?.as_of_ts) slateDate = latestRow.as_of_ts.slice(0, 10);
+        }
+
+        // ── Resolve the latest advanced-stat snapshot date (agg_team is daily) ──
+        const { data: latestAggRow } = await mlbDb
+            .from('agg_team')
+            .select('as_of')
+            .eq('window_kind', 'season')
+            .order('as_of', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        const aggLatest: string | null = latestAggRow?.as_of ?? null;
+        // Floor 6 days back so a team lagging a snapshot still gets stats; dedupe to latest per team.
+        let aggFloor = aggLatest;
+        if (aggLatest) {
+            const d = new Date(`${aggLatest}T00:00:00Z`);
+            d.setUTCDate(d.getUTCDate() - 6);
+            aggFloor = d.toISOString().slice(0, 10);
+        }
+
+        const [profRes, dimRes, aggRes, propsRes, hittersRes, pitchersRes] = await Promise.all([
             mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
-            mlbDb.from('agg_team').select('team_id, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa').eq('window_kind', 'season'),
             mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'),
-            mlbDb.from('pred_props').select('player_id, edge_pts').gt('edge_pts', 0).gte('as_of_ts', `${todayStr}T00:00:00`),
+            aggFloor
+                ? mlbDb.from('agg_team')
+                    .select('team_id, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, hitting_war, def, uzr, drs, oaa')
+                    .eq('window_kind', 'season')
+                    .gte('as_of', aggFloor)
+                    .order('as_of', { ascending: false })
+                : Promise.resolve({ data: [], error: null } as any),
+            mlbDb.from('pred_props')
+                .select('player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts')
+                .gte('as_of_ts', `${slateDate}T00:00:00`)
+                .lte('as_of_ts', `${slateDate}T23:59:59`)
+                .gt('edge_pts', 0),
             mlbDb.from('v_hitter_profile').select('player_id, team_id'),
             mlbDb.from('v_pitcher_profile').select('player_id, team_id')
         ]);
 
-        if (teamsRes.error) {
-            console.warn('[API/MLB/Teams] Error fetching teams (table may be missing):', teamsRes.error.message);
-            return new Response(JSON.stringify({ teams: [], globalEdgeActive: false }), {
+        if (profRes.error) {
+            console.warn('[API/MLB/Teams] Error fetching v_team_profile (table may be missing):', profRes.error.message);
+            return new Response(JSON.stringify({ teams: [], globalEdgeActive: false, summary: { gradedCount: 0, eliteCount: 0, strongCount: 0 }, slateDate }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
             });
         }
 
-        const teams = teamsRes.data || [];
-        const aggData = aggRes.data || [];
+        const profiles = profRes.data || [];
         const dimData = dimRes.data || [];
-        const predData = predRes.data || [];
-        
-        // Map player_id to team_id
+        const aggData = aggRes.data || [];
+        const propsData = propsRes.data || [];
+
+        // dim map (league / division / fallback name & abbr)
+        const dimMap = new Map<number, any>();
+        dimData.forEach((d: any) => { if (d.team_id != null) dimMap.set(d.team_id, d); });
+
+        // latest agg row per team (rows arrive ordered as_of desc → first seen wins)
+        const aggMap = new Map<number, any>();
+        aggData.forEach((a: any) => { if (a.team_id != null && !aggMap.has(a.team_id)) aggMap.set(a.team_id, a); });
+
+        // player_id → team_id
         const playerToTeam = new Map<number, number>();
-        (hittersRes.data || []).forEach(h => {
-            if (h.player_id && h.team_id) playerToTeam.set(h.player_id, h.team_id);
-        });
-        (pitchersRes.data || []).forEach(p => {
-            if (p.player_id && p.team_id) playerToTeam.set(p.player_id, p.team_id);
-        });
+        (hittersRes.data || []).forEach((h: any) => { if (h.player_id && h.team_id) playerToTeam.set(h.player_id, h.team_id); });
+        (pitchersRes.data || []).forEach((p: any) => { if (p.player_id && p.team_id) playerToTeam.set(p.player_id, p.team_id); });
 
-        // Determine if there is a global MLB Edge available today
-        const globalEdgeActive = predData.length > 0;
+        // ── Build per-team grade = best canonical Bet Score among today's prop edges ──
+        type Grade = { score: number; pWin: number; price: number; pMarket: number | null; edgeCount: number; topProp: string | null; topLine: number | null; isOver: boolean };
+        const teamGrade = new Map<number, Grade>();
+        for (const p of propsData) {
+            const teamId = p.player_id != null ? playerToTeam.get(p.player_id) : undefined;
+            if (!teamId) continue;
+            const inputs = betInputsFromProp(p);
+            if (!inputs) continue;
+            const score = betScore(inputs.pWin, inputs.price, { pMarket: inputs.pMarket, lineupLocked: true });
+            const existing = teamGrade.get(teamId);
+            const edgeCount = (existing?.edgeCount || 0) + 1;
+            if (!existing || score > existing.score) {
+                teamGrade.set(teamId, {
+                    score, pWin: inputs.pWin, price: inputs.price, pMarket: inputs.pMarket,
+                    edgeCount, topProp: p.prop ?? null, topLine: p.line != null ? Number(p.line) : null, isOver: inputs.isOver
+                });
+            } else {
+                existing.edgeCount = edgeCount;
+            }
+        }
 
-        // Build a set of team_ids that have active edges
-        const teamIdsWithEdge = new Set<number>();
-        predData.forEach(p => {
-            const tId = playerToTeam.get(p.player_id);
-            if (tId) teamIdsWithEdge.add(tId);
-        });
+        // ── Merge & filter to real MLB clubs (must have a division in dim_teams) ──
+        const mergedTeams = profiles
+            .map((team: any) => {
+                const dim = dimMap.get(team.team_id) || null;
+                if (!dim || !dim.division) return null; // drops AAA / All-Star / international entries
+                const g = teamGrade.get(team.team_id) || null;
+                const grade = g ? {
+                    score: g.score,
+                    tier: tier(g.score),
+                    pWin: g.pWin,
+                    price: g.price,
+                    pMarket: g.pMarket,
+                    edgeCount: g.edgeCount,
+                    topProp: g.topProp,
+                    topLine: g.topLine,
+                    isOver: g.isOver
+                } : null;
+                return {
+                    ...team,
+                    league: team.league || dim.league || null,
+                    division: team.division || dim.division || null,
+                    abbr: team.abbr || dim.abbr || null,
+                    has_active_edge: !!grade,
+                    grade,
+                    adv_stats: aggMap.get(team.team_id) || null
+                };
+            })
+            .filter((t: any) => t !== null);
 
-        // Merge advanced stats, dim info, and predictions into teams
-        const mergedTeams = teams.map(team => {
-            // Find latest stats for team
-            const teamStats = aggData.filter(a => a.team_id === team.team_id);
-            const latestStats = teamStats.length > 0 ? teamStats[0] : null;
-            
-            // Find dimension info
-            const dimInfo = dimData.find(d => d.team_id === team.team_id) || null;
+        const gradedCount = mergedTeams.filter((t: any) => t.grade).length;
+        const eliteCount = mergedTeams.filter((t: any) => t.grade?.tier === 'ELITE').length;
+        const strongCount = mergedTeams.filter((t: any) => t.grade?.tier === 'STRONG').length;
 
-            // Check if this specific team has an active predictive edge today
-            const hasEdge = teamIdsWithEdge.has(team.team_id);
-
-            return {
-                ...team,
-                league: team.league || dimInfo?.league,
-                division: team.division || dimInfo?.division,
-                has_active_edge: hasEdge,
-                adv_stats: latestStats
-            };
-        });
-
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
             teams: mergedTeams,
-            globalEdgeActive
+            globalEdgeActive: gradedCount > 0,
+            summary: { gradedCount, eliteCount, strongCount },
+            slateDate
         }), {
             status: 200,
             headers: {
@@ -110,7 +204,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const protocol = req.headers['x-forwarded-proto'] || 'http';
         const host = req.headers.host || 'localhost';
         const url = `${protocol}://${host}${req.url}`;
-        
+
         // Safely convert headers to Record<string, string>
         const safeHeaders: Record<string, string> = {};
         for (const [key, value] of Object.entries(req.headers)) {
@@ -120,24 +214,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 safeHeaders[key] = value;
             }
         }
-        
+
         const requestOptions: RequestInit = {
             method: req.method,
             headers: safeHeaders,
         };
-        
+
         if (req.method !== 'GET' && req.method !== 'HEAD') {
             requestOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         }
-        
+
         const request = new Request(url, requestOptions);
         const response = await edgeHandler(request);
-        
+
         res.status(response.status);
         response.headers.forEach((value, key) => {
             res.setHeader(key, value);
         });
-        
+
         const text = await response.text();
         if (text) {
             try {

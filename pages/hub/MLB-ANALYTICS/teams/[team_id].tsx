@@ -10,6 +10,7 @@ import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ChevronLeft, Activity, Shield, TrendingUp, AlertTriangle, Swords, Target, MapPin } from 'lucide-react';
 import { logError } from '@/utils/logger';
+import { BetScoreBadge } from '../../../../src/components/mlb/BetScoreBadge';
 
 const fetcher = async (url: string) => {
     try {
@@ -129,6 +130,8 @@ export default function TeamDetailPage() {
                     --metal-highlight: #3d4f5f;
                     --neon-cyan: #00D4FF;
                     --neon-cyan-dim: rgba(0, 212, 255, 0.15);
+                    --neon-cyan-glow: rgba(0, 212, 255, 0.6);
+                    --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
                     --neon-magenta: #00D4FF;
                     --neon-magenta-dim: rgba(255, 0, 255, 0.15);
                     --alert-red: #EF4444;
@@ -200,8 +203,15 @@ export default function TeamDetailPage() {
                                     {team.name}
                                 </h1>
                                 <div className="text-[#00D4FF] font-bold tracking-widest text-sm mb-4 flex items-center gap-2 justify-center md:justify-start">
-                                    <MapPin size={14} /> {team.league} • {team.division}
+                                    <MapPin size={14} /> {[team.league, team.division].filter(Boolean).join(' • ') || 'MLB'}
                                 </div>
+                                {team.grade && (
+                                    <div className="flex items-center gap-2 mb-1 justify-center md:justify-start">
+                                        <span className="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase">Top Edge</span>
+                                        <BetScoreBadge pWin={team.grade.pWin} price={team.grade.price} pMarket={team.grade.pMarket} />
+                                        <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">{team.grade.edgeCount} active</span>
+                                    </div>
+                                )}
                                 <div className="flex flex-wrap justify-center md:justify-start gap-4">
                                     <div className="bg-[#000] px-4 py-2 rounded border border-[#3d4f5f]">
                                         <div className="text-[10px] text-[#94A3B8] font-bold tracking-widest mb-1">RECORD</div>
@@ -339,23 +349,42 @@ export default function TeamDetailPage() {
                                 <div className="panel-title flex items-center"><Swords size={14} className="mr-2 text-[#00D4FF]" /> Recent & Upcoming Games</div>
                                 <div className="flex flex-col gap-2 mt-4">
                                     {games.length > 0 ? (
-                                        games.map((game: any, idx: number) => (
-                                            <div key={idx} className="p-4 border border-[#3d4f5f] rounded bg-[rgba(0,0,0,0.3)] flex justify-between items-center hover:bg-[rgba(255,255,255,0.05)] transition-colors">
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="text-[14px] font-bold text-white tracking-wider">
-                                                        {game.away_team || 'Away'} @ {game.home_team || 'Home'}
+                                        games.map((game: any) => {
+                                            const dateLabel = game.official_date
+                                                ? new Date(`${game.official_date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                                : 'TBD';
+                                            const timeLabel = game.first_pitch_utc
+                                                ? new Date(game.first_pitch_utc).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }) + ' ET'
+                                                : 'TBD';
+                                            return (
+                                                <div key={game.game_pk} className="p-4 border border-[#3d4f5f] rounded bg-[rgba(0,0,0,0.3)] flex justify-between items-center gap-3 hover:bg-[rgba(255,255,255,0.05)] transition-colors">
+                                                    <div className="flex flex-col gap-1 min-w-0">
+                                                        <div className="text-[14px] font-bold text-white tracking-wider truncate">
+                                                            <span className="text-slate-500">{game.is_home ? 'vs' : '@'}</span> {game.opponent || (game.is_home ? game.away_team : game.home_team)}
+                                                        </div>
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                            {dateLabel}{game.final ? ` · ${game.status}` : ` · ${timeLabel}`}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                                        {game.status || 'Scheduled'} | {game.start_time || 'TBD'}
+                                                    <div className="text-right flex items-center gap-3 flex-shrink-0">
+                                                        {game.final && game.team_score != null && game.opp_score != null ? (
+                                                            <>
+                                                                {game.result && (
+                                                                    <span className={`text-[11px] font-black w-5 h-5 flex items-center justify-center rounded ${game.result === 'W' ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E]' : 'bg-[rgba(239,68,68,0.15)] text-[#EF4444]'}`}>
+                                                                        {game.result}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[16px] font-extrabold text-white tabular-nums">
+                                                                    {game.team_score}-{game.opp_score}
+                                                                </span>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-[11px] font-bold text-[#00D4FF] uppercase tracking-widest">{game.status || 'Scheduled'}</span>
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className="text-[16px] font-extrabold text-[#00D4FF]">
-                                                        {game.status === 'Final' || game.status === 'Completed' ? `${game.away_score} - ${game.home_score}` : '-'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     ) : (
                                         <div className="p-6 text-center text-slate-500 text-[11px] font-bold uppercase tracking-widest">No games found</div>
                                     )}
@@ -368,24 +397,32 @@ export default function TeamDetailPage() {
                                 <div className="panel-title flex items-center"><Target size={14} className="mr-2 text-[#00D4FF]" /> Active Prop Edges</div>
                                 <div className="flex flex-col gap-2 mt-4">
                                     {props.length > 0 ? (
-                                        props.map((prop: any, idx: number) => (
-                                            <div key={idx} className="p-4 border border-[#3d4f5f] rounded bg-[rgba(0,0,0,0.3)] flex justify-between items-center hover:bg-[rgba(255,255,255,0.05)] transition-colors">
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="text-[14px] font-bold text-white tracking-wider">
-                                                        {prop.player_name}
+                                        props.map((prop: any, idx: number) => {
+                                            const label = String(prop.prop_type || prop.prop || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+                                            const lineLabel = prop.line != null ? `${prop.side ? prop.side + ' ' : ''}${prop.line}` : (prop.side || '');
+                                            return (
+                                                <div key={idx} className="p-4 border border-[#3d4f5f] rounded bg-[rgba(0,0,0,0.3)] flex justify-between items-center gap-3 hover:bg-[rgba(255,255,255,0.05)] transition-colors">
+                                                    <div className="flex flex-col gap-1 min-w-0">
+                                                        <div className="text-[14px] font-bold text-white tracking-wider truncate">
+                                                            {prop.player_name}
+                                                        </div>
+                                                        <div className="text-[10px] font-bold text-[#00D4FF] uppercase tracking-widest truncate">
+                                                            {label}{lineLabel ? ` · ${lineLabel}` : ''}
+                                                        </div>
+                                                        {prop.ev_pct != null && (
+                                                            <div className="text-[10px] font-bold text-slate-500 tracking-widest">
+                                                                EV {prop.ev_pct > 0 ? '+' : ''}{Number(prop.ev_pct).toFixed(1)}%{prop.edge_pts != null ? ` · ${Number(prop.edge_pts).toFixed(1)} edge` : ''}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="text-[10px] font-bold text-[#00D4FF] uppercase tracking-widest">
-                                                        {prop.prop_type} {prop.line !== null ? (Number(prop.line) > 0 && prop.prop_type.includes('Total') ? `O/U ${prop.line}` : prop.line) : ''}
+                                                    <div className="flex-shrink-0">
+                                                        {prop.p_win != null && prop.price != null
+                                                            ? <BetScoreBadge pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
+                                                            : <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Awaiting price</span>}
                                                     </div>
                                                 </div>
-                                                <div className="text-right flex flex-col items-end">
-                                                    <span className="text-[16px] font-extrabold text-white">
-                                                        {prop.edge_pts != null ? Number(prop.edge_pts).toFixed(1) : '--'}
-                                                    </span>
-                                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Edge Pts</span>
-                                                </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     ) : (
                                         <div className="p-6 text-center text-slate-500 text-[11px] font-bold uppercase tracking-widest">No active props found for this team</div>
                                     )}

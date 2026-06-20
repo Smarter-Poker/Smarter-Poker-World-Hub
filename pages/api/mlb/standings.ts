@@ -1,9 +1,9 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
-
-
-
-
+// Live MLB standings. Reads public.v_mlb_standings on the mlb-analytics-engine DB,
+// which computes W/L/PCT/GB/run-diff/L10/streak/home-away splits + a 0-100
+// power_score from fact_games for the current season. The page maps power_score
+// onto the canonical ELITE/STRONG/LEAN/THIN/PASS tiers (src/lib/betScore.ts).
 async function edgeHandler(req: Request) {
     if (req.method !== 'GET') {
         return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
@@ -12,26 +12,37 @@ async function edgeHandler(req: Request) {
         });
     }
 
+    const EMPTY = (extra: Record<string, unknown> = {}) => new Response(
+        JSON.stringify({ teams: [], season: null, updated: new Date().toISOString(), ...extra }),
+        { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } }
+    );
+
     try {
         const mlbDb = getMlbSupabase();
 
-        const standingsRes = await mlbDb.from('v_mlb_standings').select('*');
+        const [standingsRes, seasonRes] = await Promise.all([
+            mlbDb.from('v_mlb_standings').select('*'),
+            mlbDb.from('fact_games')
+                .select('official_date')
+                .eq('final', true)
+                .order('official_date', { ascending: false })
+                .limit(1)
+        ]);
 
         if (standingsRes.error) {
             console.warn('[API/MLB/Standings] Error fetching standings:', standingsRes.error.message);
-            return new Response(JSON.stringify({ teams: [] }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' }
-            });
+            return EMPTY({ error: 'standings_unavailable' });
         }
 
         const teams = standingsRes.data || [];
+        const latestDate: string | undefined = seasonRes.data?.[0]?.official_date;
+        const season = latestDate ? new Date(latestDate).getUTCFullYear() : null;
 
-        return new Response(JSON.stringify({ teams }), {
+        return new Response(JSON.stringify({ teams, season, updated: new Date().toISOString() }), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200'
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900'
             }
         });
     } catch (err) {
@@ -52,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const protocol = req.headers['x-forwarded-proto'] || 'http';
         const host = req.headers.host || 'localhost';
         const url = `${protocol}://${host}${req.url}`;
-        
+
         // Safely convert headers to Record<string, string>
         const safeHeaders: Record<string, string> = {};
         for (const [key, value] of Object.entries(req.headers)) {
@@ -62,24 +73,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 safeHeaders[key] = value;
             }
         }
-        
+
         const requestOptions: RequestInit = {
             method: req.method,
             headers: safeHeaders,
         };
-        
+
         if (req.method !== 'GET' && req.method !== 'HEAD') {
             requestOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         }
-        
+
         const request = new Request(url, requestOptions);
         const response = await edgeHandler(request);
-        
+
         res.status(response.status);
         response.headers.forEach((value, key) => {
             res.setHeader(key, value);
         });
-        
+
         const text = await response.text();
         if (text) {
             try {

@@ -1,6 +1,5 @@
 import React from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { ArrowLeft, ArrowRight, Loader2, Target, BarChart3, TrendingUp, DollarSign } from 'lucide-react';
@@ -81,9 +80,8 @@ export default function BacktestPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
-               title="Backtest Results | MLB Analytics" 
-               description="Live market evaluation and backtest results for MLB models."
-               noIndex={true}
+               title="MLB Model Backtest — Live Market Edge Evaluation | Smarter.Poker" 
+               description="Historical backtest results for Smarter.Poker's MLB prediction model. Review daily P&L trends, market-level breakdowns, win rates, ROI, CLV, and Brier score performance across the 2025 MLB season."
            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

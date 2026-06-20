@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useState } from 'react';
@@ -142,9 +141,8 @@ export default function PortfolioPage() {
     return (
         <div className="bg-[#0a0a15] min-h-screen font-inter pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead 
-                title="Portfolio Simulator | MLB Analytics" 
-                description="MLB Analytics Portfolio Simulator and virtual bankroll tracking."
-                noIndex={true}
+                title="MLB Betting Portfolio — Simulated P&L & Unit Tracking | Smarter.Poker" 
+                description="Simulated MLB betting portfolio tracker by Smarter.Poker. Review weekly P&L curves, cumulative bankroll growth, unit-based bet sizing, and the complete bet log for model-graded picks in 2025."
             />
             
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

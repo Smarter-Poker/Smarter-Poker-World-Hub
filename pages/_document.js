@@ -33,7 +33,7 @@ export default class MyDocument extends Document {
 
                     {/* Fallback Open Graph — overridden by per-page SEOHead */}
                     <meta property="og:site_name" content="Smarter.Poker" />
-                    <meta property="og:type" content="Website" />
+                    <meta property="og:type" content="website" />
                     <meta property="og:locale" content="en_US" />
                     <meta property="og:url" content="https://smarter.poker" />
                     <meta property="og:title" content="Smarter.Poker | The Future Of The Game" />
@@ -43,7 +43,7 @@ export default class MyDocument extends Document {
                     <meta property="og:image:height" content="2151" />
 
                     {/* Fallback Twitter Card */}
-                    <meta name="twitter:card" content="Summary_large_image" />
+                    <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:site" content="@SmarterPoker" />
                     <meta name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
                     <meta name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />

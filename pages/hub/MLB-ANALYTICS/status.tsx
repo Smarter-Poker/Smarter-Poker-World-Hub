@@ -83,9 +83,8 @@ export default function StatusPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
             <SEOHead 
-                title="Data Status | MLB Analytics" 
-                description="Check the current status and freshness of the MLB Analytics system."
-                noIndex={true}
+                title="MLB Analytics Data Status — Pipeline Freshness & System Health | Smarter.Poker" 
+                description="Real-time status dashboard for the Smarter.Poker MLB Analytics pipeline. Monitor data freshness, prediction counts, pipeline stage health, and database sizes for the 2025 MLB season."
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

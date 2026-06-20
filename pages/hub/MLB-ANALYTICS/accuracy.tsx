@@ -71,9 +71,8 @@ export default function AccuracyPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
-               title="Model Performance | MLB Analytics" 
-               description="MLB Analytics Model Performance and backtest results. Track CLV, Brier Scores, and ROI for predictive models." 
-               noIndex={true}
+               title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" 
+               description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the 2025 season." 
            />
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />

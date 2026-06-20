@@ -194,9 +194,8 @@ export default function HRTrackerPage() {
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
             <SEOHead
-                title="HR Tracker | MLB Analytics"
-                description="Track which MLB hitters are due for a home run. Daily-updated due scores, last HR dates, and sortable betting data."
-                noIndex={true}
+                title="MLB Home Run Tracker — Due Scores & Matchup Analysis | Smarter.Poker"
+                description="Track which MLB sluggers are statistically due for a home run. Daily-updated due scores, last HR dates, games since last HR, opponent pitcher HR/9, and park factor adjustments for the 2025 MLB season."
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
