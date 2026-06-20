@@ -8,6 +8,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 
 const fetcher = async (url: string) => {
     try {
@@ -88,7 +89,7 @@ export default function AccuracyPage() {
             />
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />
-
+           <MlbPremiumGate featureName="Historical Accuracy">
            <div className="p-4 max-w-4xl mx-auto w-full box-border">
                 <div className="mb-6">
                     <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-bold tracking-wide mb-3 hover:text-white transition-colors uppercase" style={{ textShadow: '0 0 10px rgba(0,212,255,0.4)' }}>
@@ -234,7 +235,8 @@ export default function AccuracyPage() {
                         </table>
                     </div>
                 </div>
-           </div>
+            </div>
+            </MlbPremiumGate>
            <BottomNavBar />
         </div>
     );

@@ -21,6 +21,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 import { playerHeadshot, teamLogo } from '../../../src/lib/mlb_data';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 
@@ -1021,6 +1022,7 @@ export default function PropsPage() {
       )}
 
       {/* ── Main Content ──────────────────────────────────────────── */}
+      <MlbPremiumGate featureName="Prop Bets Edge">
       <main className="mx-auto max-w-2xl px-3 pt-4 pb-6 relative">
         {/* Loading */}
         {isLoading && !data && (
@@ -1107,6 +1109,7 @@ export default function PropsPage() {
           (0–100) RANKS VALUE = EV + CONFIDENCE.
         </div>
       </main>
+      </MlbPremiumGate>
 
       <BottomNavBar />
 

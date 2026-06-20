@@ -18,6 +18,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 
 const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), { ssr: false });
 const Area = dynamic(() => import('recharts').then((m) => m.Area), { ssr: false });
@@ -170,6 +171,7 @@ export default function ModelIntelPage() {
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />
 
+      <MlbPremiumGate featureName="Model Intelligence">
       <div className="edge-to-edge-container max-w-[1000px] mx-auto px-4 py-6 relative">
         {/* Background Glows */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
@@ -323,6 +325,7 @@ export default function ModelIntelPage() {
           )}
         </div>
       </div>
+      </MlbPremiumGate>
       <BottomNavBar />
     </div>
   );

@@ -8,6 +8,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 
 const fetcher = async (url: string) => {
     try {
@@ -100,6 +101,7 @@ export default function BacktestPage() {
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />
 
+           <MlbPremiumGate featureName="Backtest Portfolio">
            <div className="p-4 w-full max-w-4xl mx-auto box-border relative">
                {/* Background Glows */}
                <div className="absolute top-20 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
@@ -265,6 +267,7 @@ export default function BacktestPage() {
                    </>
                )}
            </div>
+           </MlbPremiumGate>
            
            <BottomNavBar />
         </div>

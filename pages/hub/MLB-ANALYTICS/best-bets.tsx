@@ -23,6 +23,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -1355,6 +1356,7 @@ export default function BestBetsPage() {
         <div className="absolute bottom-0 left-[10%] right-[10%] h-[2px] bg-[#00D4FF] shadow-[0_0_8px_#00D4FF,0_0_16px_rgba(0,212,255,0.3)] rounded-t-full" />
       </header>
 
+      <MlbPremiumGate featureName="Best Bets Recommendations">
       <div className="w-full max-w-2xl mx-auto">
         {/* Filter Tabs */}
         <div
@@ -1433,6 +1435,7 @@ export default function BestBetsPage() {
           </div>
         )}
       </div>
+      </MlbPremiumGate>
 
       <BottomNavBar />
 
