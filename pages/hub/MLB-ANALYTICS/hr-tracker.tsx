@@ -196,6 +196,16 @@ export default function HRTrackerPage() {
             <SEOHead
                 title="MLB Home Run Tracker — Due Scores & Matchup Analysis | Smarter.Poker"
                 description="Track which MLB sluggers are statistically due for a home run. Daily-updated due scores, last HR dates, games since last HR, opponent pitcher HR/9, and park factor adjustments for the 2025 MLB season."
+                canonical="/hub/MLB-ANALYTICS/hr-tracker"
+                jsonLd={{
+                    '@type': 'Dataset',
+                    name: 'MLB Home Run Due Score Tracker',
+                    description: 'Statistical tracker of MLB hitters most due for a home run based on games since last HR, HR/G rate, matchup, and park factors.',
+                    url: 'https://smarter.poker/hub/MLB-ANALYTICS/hr-tracker',
+                    creator: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+                    temporalCoverage: '2025',
+                    keywords: 'MLB home run tracker, HR due score, baseball home run prediction',
+                }}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

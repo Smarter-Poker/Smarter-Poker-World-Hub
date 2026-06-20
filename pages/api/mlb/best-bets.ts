@@ -321,7 +321,9 @@ async function edgeHandler(req: Request) {
             bets: enrichedBets,
             stats: {
                 totalBets: data?.stats?.totalBets || 0,
-                eliteBets: data?.stats?.eliteBets || 0,
+                // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), derived from the returned
+                // rows so the count matches betScore.ts everywhere — not the RPC's legacy edge>=5.
+                eliteBets: enrichedBets.filter((b: any) => b.bet_tier === 'ELITE').length,
                 topScore: data?.stats?.topScore || 0,
                 topLock: topLock
             },

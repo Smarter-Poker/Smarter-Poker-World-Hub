@@ -205,6 +205,16 @@ export default function StandingsPage() {
             <SEOHead
                 title="MLB Standings 2025 — Division Races & Power Rankings | Smarter.Poker"
                 description="Live 2025 MLB standings with divisional breakdowns, run differential, win streaks, power rankings, and AI-graded team ratings on the ELITE/STRONG/LEAN/THIN/PASS scale."
+                canonical="/hub/MLB-ANALYTICS/standings"
+                jsonLd={{
+                    '@type': 'Dataset',
+                    name: '2025 MLB Standings',
+                    description: 'Live 2025 MLB standings with AI power ratings, run differential, and division standings.',
+                    url: 'https://smarter.poker/hub/MLB-ANALYTICS/standings',
+                    creator: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+                    temporalCoverage: '2025',
+                    keywords: 'MLB standings 2025, baseball standings, MLB division standings, NL standings, AL standings',
+                }}
             />
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
             <MlbSubNav />
