@@ -78,7 +78,19 @@ export default function GameMatchupDashboard() {
         });
     }, [game, propsData]);
 
-    if (!gamePk) return null;
+    if (!gamePk) {
+        return (
+            <div className="min-h-screen bg-[#060B14] text-[#E0E7FF] pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border">
+                <UniversalHeader pageDepth={2} onBackClick={() => router.back()} />
+                <MlbSubNav />
+                <div className="flex flex-col items-center justify-center py-20 text-[#00D4FF]">
+                    <Loader2 className="w-12 h-12 animate-spin mb-4" />
+                    <p className="tracking-widest uppercase font-bold text-sm">Loading Matchup...</p>
+                </div>
+                <BottomNavBar />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#060B14] text-[#E0E7FF] font-['Orbitron',sans-serif] selection:bg-[#00D4FF]/30 pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border">

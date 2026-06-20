@@ -435,6 +435,7 @@ export default function TeamDetailPage() {
                     </>
                 )}
             </main>
+            <BottomNavBar />
         </div>
     );
 }
