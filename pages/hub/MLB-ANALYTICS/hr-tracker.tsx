@@ -58,7 +58,7 @@ const STATUS_CONFIG = {
         border: 'border-[#FFB800]/60',
         glow: 'shadow-[0_0_12px_rgba(255,184,0,0.3)]',
         dot: 'bg-[#FFB800]',
-        icon: '⚡',
+        icon: '◆',
     },
     RECENT: {
         label: 'RECENT',
@@ -67,7 +67,7 @@ const STATUS_CONFIG = {
         border: 'border-[#00D4FF]/40',
         glow: '',
         dot: 'bg-[#00D4FF]',
-        icon: '✅',
+        icon: '●',
     },
     NO_HR: {
         label: 'NO HR',

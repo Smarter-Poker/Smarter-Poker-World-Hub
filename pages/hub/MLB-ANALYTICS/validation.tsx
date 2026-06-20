@@ -309,7 +309,7 @@ export default function ValidationPage() {
                                    {stats.edgeData.map((row, idx) => (
                                        <div key={row.edge} className={`grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 text-[12px] hover:bg-[#1a2332] transition-colors ${idx < stats.edgeData.length - 1 ? 'border-b border-[#1a2332]' : ''}`}>
                                            <div className="font-bold text-white flex items-center gap-2">
-                                               <div className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.roi) < 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : 'bg-slate-500'}`}></div>
+                                               <div className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.roi) < 0 ? 'bg-[#FF0055] shadow-[0_0_5px_rgba(255,0,85,0.8)]' : 'bg-slate-500'}`}></div>
                                                {row.edge}
                                            </div>
                                            <div className="text-right text-slate-300 font-medium">{row.n}</div>

@@ -188,7 +188,7 @@ export default function MlbSlatePage() {
         title="MLB Analytics Vault — Daily Predictions & Best Bets | Smarter.Poker"
         description="AI-powered MLB predictions, daily best bets, player props, moneyline edges, and real-time analytics. Smarter.Poker MLB Analytics Vault delivers model-backed picks every day."
       />
-      <UniversalHeader pageDepth={2} />
+      <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub')} />
       <MlbSubNav />
 
       <SyncIndicator onSync={() => mutate()} />
