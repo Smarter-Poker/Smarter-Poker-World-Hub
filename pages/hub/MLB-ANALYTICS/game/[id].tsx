@@ -122,6 +122,18 @@ export default function GameMatchupDashboard() {
         }
         canonical={game ? `/hub/MLB-ANALYTICS/game/${router.query.id}` : undefined}
         ogImage="/images/mlb/og.png"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'SportsEvent',
+          name: game ? `${game.away} vs ${game.home}` : 'MLB Game',
+          description: `AI-powered predictions and betting odds for ${game?.away} at ${game?.home}.`,
+          startDate: game?.firstPitch || new Date().toISOString(),
+          competitor: [
+            { '@type': 'SportsTeam', name: game?.away || 'Away Team' },
+            { '@type': 'SportsTeam', name: game?.home || 'Home Team' }
+          ],
+          provider: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' }
+        }}
       />
 
       <UniversalHeader pageDepth={2} onBackClick={() => router.back()} />

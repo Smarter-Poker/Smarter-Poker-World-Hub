@@ -118,7 +118,17 @@ export default function TeamDetailPage() {
 
     return (
         <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-            <SEOHead title={`Smarter.Poker | MLB Team | ${team?.name || 'Loading...'}`} description={`Advanced MLB analytics for ${team?.name}`} />
+            <SEOHead 
+                title={`Smarter.Poker | MLB Team | ${team?.name || 'Loading...'}`} 
+                description={`Advanced MLB analytics for ${team?.name}`} 
+                ogImage="/images/mlb/og.png"
+                jsonLd={{
+                    '@context': 'https://schema.org',
+                    '@type': 'SportsTeam',
+                    name: team?.name || 'MLB Team',
+                    sport: 'Baseball'
+                }}
+            />
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
             <MlbSubNav />
 

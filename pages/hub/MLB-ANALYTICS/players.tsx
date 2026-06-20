@@ -97,7 +97,7 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                             src={imgSrc} 
-                            onError={() = alt="" loading="lazy"> setImgSrc('/default-avatar.png')}
+                            onError={() => setImgSrc('/default-avatar.png')}
                             alt={player.full_name}
                             loading="lazy"
                             className="w-14 h-14 rounded-full object-cover bg-[#0d1117] border-[2px] border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,212,255,0.2)]"

@@ -266,7 +266,8 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     src={teamLogoUrl}
                     alt={bet?.team || 'MLB'}
                     className="w-full h-full object-contain"
-                    onError={(e) = loading="lazy"> {
+                    loading="lazy"
+                    onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
@@ -290,7 +291,8 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                   src={playerImageUrl}
                   alt={bet?.player_name || bet?.selection}
                   className="w-full h-full object-cover object-top"
-                  onError={() = loading="lazy"> setImgError(true)}
+                  loading="lazy"
+                  onError={() => setImgError(true)}
                 />
               </div>
             ) : (
@@ -860,7 +862,8 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
               src={playerImageUrl!}
               alt={bet?.player_name || bet?.selection}
               className="w-full h-full object-cover object-top"
-              onError={() = loading="lazy"> setImgError(true)}
+              loading="lazy"
+              onError={() => setImgError(true)}
             />
           </div>
         ) : showTeamLogo ? (
@@ -869,7 +872,8 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
               src={teamLogoUrl!}
               alt={bet?.team || 'MLB'}
               className="w-full h-full object-contain"
-              onError={(e) = loading="lazy"> {
+              loading="lazy"
+              onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
@@ -1039,7 +1043,8 @@ const GameBox = ({
                   src={getTeamLogoUrl(awayTeamId) || ''}
                   alt={awayTeamAbbr}
                   className="w-full h-full object-contain"
-                  onError={(e) = loading="lazy"> {
+                  loading="lazy"
+                  onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
@@ -1052,7 +1057,8 @@ const GameBox = ({
                   src={getTeamLogoUrl(homeTeamId) || ''}
                   alt={homeTeamAbbr}
                   className="w-full h-full object-contain"
-                  onError={(e) = loading="lazy"> {
+                  loading="lazy"
+                  onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />

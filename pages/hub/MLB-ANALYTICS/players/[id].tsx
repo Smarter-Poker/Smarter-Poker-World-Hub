@@ -77,6 +77,13 @@ export default function PlayerProfilePage() {
                 title={profile ? `${profile.full_name} — MLB ${type === 'pitcher' ? 'Pitcher' : 'Hitter'} Analytics & Stats | Smarter.Poker` : 'MLB Player Profile | Smarter.Poker'} 
                 description={profile ? `Advanced analytics and situational splits for ${profile.full_name}. ${type === 'pitcher' ? 'ERA, FIP, SIERA, strikeouts, and pitch-level data' : 'wRC+, wOBA, OPS, home runs, and platoon splits'} for the 2025 MLB season.` : 'In-depth MLB player analytics, advanced statistics, and situational splits.'}
                 ogImage="/images/mlb/og.png"
+                jsonLd={{
+                    '@context': 'https://schema.org',
+                    '@type': 'Person',
+                    name: profile?.full_name || 'MLB Player',
+                    jobTitle: type === 'pitcher' ? 'Pitcher' : 'Hitter',
+                    memberOf: { '@type': 'SportsTeam', name: 'MLB Team' }
+                }}
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/players')} />
@@ -139,8 +146,9 @@ export default function PlayerProfilePage() {
                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                <img 
                                    src={imgSrc} 
-                                   onError={() = alt="" loading="lazy"> setImgSrc('/default-avatar.png')}
+                                   onError={() => setImgSrc('/default-avatar.png')}
                                    alt={profile.full_name}
+                                   loading="lazy"
                                    className="w-32 h-32 rounded-full object-cover bg-[#1a2332] border-[3px] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.4),inset_0_4px_8px_rgba(0,0,0,0.8)]"
                                />
                                {profile.team_id && (
