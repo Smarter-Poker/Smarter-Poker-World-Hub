@@ -72,6 +72,7 @@ export const PokerFeedCard = ({
     };
 
     const CardContent = (
+        <>
         <div className="poker-feed-card">
             {/* Header: User Info + Post Type */}
             <div className="card-header">
