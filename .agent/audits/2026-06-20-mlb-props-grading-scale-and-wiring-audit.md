@@ -91,3 +91,40 @@ via `<BetScoreBadge pWin price pMarket lineupLocked>`.
 - `best_price` is assumed to be the recommended-side price (matches the prior
   author's intent). All sampled priced `BET` rows were OVER; the side logic
   handles UNDER symmetrically should the engine ever recommend it.
+
+## Phase 2 — "Bet Score 1 / PASS" diagnosis + reliability-suppression consistency (live app)
+
+**Finding (NOT a bug):** Some priced props (e.g. Troy Melton earned_runs O2.5,
+TJ Rumfield runs O0.5 +4.9 edge @ +120) render a frozen Bet Score of **1 / PASS**
+despite a positive raw model edge. Root cause: `bet_type_reliability` marks
+`earned_runs, rbi, runs, hrr, walks, pitcher_walks, stolen_bases` as
+`status='suppress'` / `score_mult=0` (proven -EV historically, ROI -31% to -70%).
+The Bet Score correctly bakes that in → 1/PASS. So the score is RIGHT; the model's
+"edge" on these markets does not translate to profit.
+
+**Real bug fixed:** the live props page still labeled those proven-loser props as
+`BET/LEAN OVER` with a Kelly stake and a positive edge — advertising ~357 props as
+actionable that its own Bet Score graded PASS. The rec layer ignored the reliability
+ledger.
+
+**Fix (mlb-analytics-engine PR #5):** the live API
+(`web/src/app/api/props/live/route.ts`) and the SSR initialProps
+(`web/src/app/props/page.tsx`) now load `bet_type_reliability`, build a suppressed
+set (`status='suppress'` or `score_mult < 0.2`), and classify suppressed bet types
+as `NO EDGE` with `kelly_pct = null`. Only reliability-approved markets
+(hits, home_run, total_bases, pitcher_strikeouts) are recommended; suppressed
+markets are hidden (consistent with their PASS Bet Score).
+
+**Verified live (production proxy):**
+- API rec distribution: earned_runs 42→all NO EDGE, runs 27→NO EDGE, hrr 77→NO EDGE,
+  walks/pitcher_walks/rbi→NO EDGE, 0 Kelly; `suppressedLeak: []`.
+- Rendered UI: BET OVER 46 / LEAN 174 (was 85/257), `score1Visible: 0`,
+  Earned Runs / H+R+RBI no longer shown as actionable cards.
+
+**SQL:** none required — reads the existing `bet_type_reliability` ledger.
+
+**Architecture note (unchanged):** the live page is the `mlb-analytics-engine` app
+(App Router, basePath `/hub/MLB-ANALYTICS`) served via the World Hub `beforeFiles`
+proxy. The World Hub `pages/hub/MLB-ANALYTICS/props.*` is the shadowed/vendored copy
+(fixed in Phase 1 for consistency but not user-facing). A parallel agent swarm was
+concurrently moving every MLB page onto the canonical Bet Score during this audit.
