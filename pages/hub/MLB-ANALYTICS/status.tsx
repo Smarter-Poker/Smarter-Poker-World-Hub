@@ -65,7 +65,9 @@ export default function StatusPage() {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
                 <SEOHead title="MLB Analytics Data Status — Pipeline Freshness & System Health | Smarter.Poker" description="Real-time status dashboard for the Smarter.Poker MLB Analytics pipeline."
-                canonical="/hub/MLB-ANALYTICS/status" />
+                canonical="/hub/MLB-ANALYTICS/status" 
+                ogImage="/images/mlb/og.png"
+            />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -87,6 +89,8 @@ export default function StatusPage() {
                 title="MLB Analytics Data Status — Pipeline Freshness & System Health | Smarter.Poker" 
                 description="Real-time status dashboard for the Smarter.Poker MLB Analytics pipeline. Monitor data freshness, prediction counts, pipeline stage health, and database sizes for the 2025 MLB season."
                 canonical="/hub/MLB-ANALYTICS/status"
+            
+                ogImage="/images/mlb/og.png"
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

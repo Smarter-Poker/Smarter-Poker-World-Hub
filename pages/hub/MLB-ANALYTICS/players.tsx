@@ -341,7 +341,9 @@ export default function PlayersPage() {
                title="MLB Player Analytics — Stats, Rankings & Predictive Grades | Smarter.Poker" 
                description="Complete MLB player database with advanced statistics, wRC+, wOBA, FIP, SIERA, and AI-powered predictive grades for every hitter and pitcher in the 2025 season."
                 canonical="/hub/MLB-ANALYTICS/players"
-           />
+           
+                ogImage="/images/mlb/og.png"
+            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />

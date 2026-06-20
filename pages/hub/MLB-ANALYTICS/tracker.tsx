@@ -157,7 +157,9 @@ export default function TrackerPage() {
                title="MLB Live Game Tracker — Real-Time Scores & Edge Updates | Smarter.Poker" 
                description="Follow every MLB game in real time on Smarter.Poker. Live scores, inning-by-inning updates, game status, and model edge alerts for all 2025 MLB games."
                 canonical="/hub/MLB-ANALYTICS/tracker"
-           />
+           
+                ogImage="/images/mlb/og.png"
+            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />

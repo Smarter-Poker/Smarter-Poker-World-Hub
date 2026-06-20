@@ -98,7 +98,7 @@ export default function GameMatchupDashboard() {
                 title={game ? `${game.away} vs ${game.home} — MLB Predictions & Betting Odds | Smarter.Poker` : 'MLB Game Matchup — Predictions & Odds | Smarter.Poker'}
                 description={game ? `AI-powered predictions, live odds, and best bets for ${game.away} @ ${game.home}. Win probability, edge ratings, and prop picks for today's MLB matchup.` : 'Live odds, AI predictions, and top bets for today\'s MLB matchup.'}
                 canonical={game ? `/hub/MLB-ANALYTICS/game/${router.query.id}` : undefined}
-                ogImage="/images/mlb/hero.jpg"
+                ogImage="/images/mlb/og.png"
             />
             
             <UniversalHeader pageDepth={2} onBackClick={() => router.back()} />

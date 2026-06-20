@@ -206,6 +206,8 @@ export default function HRTrackerPage() {
                     temporalCoverage: '2025',
                     keywords: 'MLB home run tracker, HR due score, baseball home run prediction',
                 }}
+            
+                ogImage="/images/mlb/og.png"
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

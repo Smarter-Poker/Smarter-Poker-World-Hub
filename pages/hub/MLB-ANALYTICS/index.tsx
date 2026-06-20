@@ -198,7 +198,9 @@ export default function MlbSlatePage() {
           offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
           provider: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
         }}
-      />
+      
+                ogImage="/images/mlb/og.png"
+            />
       <UniversalHeader pageDepth={2} onBackClick={() => { window.location.href = '/hub'; }} />
       <MlbSubNav />
 

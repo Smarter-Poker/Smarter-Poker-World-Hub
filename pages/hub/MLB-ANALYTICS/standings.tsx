@@ -259,7 +259,9 @@ export default function StandingsPage() {
           keywords:
             'MLB standings 2025, baseball standings, MLB division standings, NL standings, AL standings',
         }}
-      />
+      
+                ogImage="/images/mlb/og.png"
+            />
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />
 

@@ -243,7 +243,9 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
         logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Teams - Error" description="Data fetch failed" />
+                <SEOHead title="MLB Teams - Error" description="Data fetch failed" 
+                ogImage="/images/mlb/og.png"
+            />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -510,6 +512,8 @@ export default function TeamsPage({ teams: fallbackTeams, todayStr: fallbackToda
                 title="MLB Team Analytics — Advanced Stats & Power Ratings | Smarter.Poker" 
                 description="Deep MLB team profiles with advanced analytics, split records, WAR totals, OPS, FIP, OAA, streaks, and AI power ratings for all 30 teams in the 2025 MLB season."
                 canonical="/hub/MLB-ANALYTICS/teams" 
+            
+                ogImage="/images/mlb/og.png"
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

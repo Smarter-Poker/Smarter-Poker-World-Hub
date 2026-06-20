@@ -121,6 +121,7 @@ export default function TeamDetailPage() {
             <SEOHead 
                 title={team?.name ? `${team.name} — MLB Team Analytics, Splits & Power Ratings | Smarter.Poker` : 'MLB Team Analytics | Smarter.Poker'} 
                 description={team?.name ? `Advanced MLB analytics for the ${team.name}. Team stats, WAR, OPS, FIP, OAA, split records, streaks, and AI power ratings for the 2025 MLB season.` : 'Advanced MLB team analytics with power ratings, splits, and player data.'} 
+                ogImage="/images/mlb/og.png"
             />
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
             <MlbSubNav />

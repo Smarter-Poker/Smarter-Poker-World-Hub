@@ -105,6 +105,8 @@ export default function ModelIntelPage() {
                 title="MLB Predictive Model Intelligence — Neural Network Analytics | Smarter.Poker" 
                 description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine. Explore model version, total bets tracked, recent ROI, training history, and daily P&L performance matrix for the 2025 MLB season."
                 canonical="/hub/MLB-ANALYTICS/model-intel" 
+            
+                ogImage="/images/mlb/og.png"
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

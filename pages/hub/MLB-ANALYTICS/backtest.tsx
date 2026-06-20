@@ -84,7 +84,9 @@ export default function BacktestPage() {
                title="MLB Model Backtest — Live Market Edge Evaluation | Smarter.Poker" 
                description="Historical backtest results for Smarter.Poker's MLB prediction model. Review daily P&L trends, market-level breakdowns, win rates, ROI, CLV, and Brier score performance across the 2025 MLB season."
                 canonical="/hub/MLB-ANALYTICS/backtest"
-           />
+           
+                ogImage="/images/mlb/og.png"
+            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />

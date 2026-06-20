@@ -128,7 +128,9 @@ export default function ValidationPage() {
                title="MLB Model Validation — Edge Calibration & Win Rate Audit | Smarter.Poker" 
                description="Statistical validation of Smarter.Poker's MLB prediction model. Review edge group win rates, Brier score vs. market baseline, graded prediction history, and edge calibration for the 2025 season."
                 canonical="/hub/MLB-ANALYTICS/validation"
-           />
+           
+                ogImage="/images/mlb/og.png"
+            />
 
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
 

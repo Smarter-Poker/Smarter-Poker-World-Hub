@@ -799,6 +799,8 @@ export default function BestBetsPage() {
                     creator: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
                     keywords: 'MLB best bets, MLB picks today, MLB betting predictions, baseball betting',
                 }}
+            
+                ogImage="/images/mlb/og.png"
             />
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />

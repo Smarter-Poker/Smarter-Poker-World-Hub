@@ -74,7 +74,9 @@ export default function AccuracyPage() {
                title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" 
                description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the 2025 season."
                 canonical="/hub/MLB-ANALYTICS/accuracy" 
-           />
+           
+                ogImage="/images/mlb/og.png"
+            />
            <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
            <MlbSubNav />
 

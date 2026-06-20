@@ -526,6 +526,8 @@ export default function PropsPage() {
                 title="MLB Player Props Today — AI Prediction Model & Edge Picks | Smarter.Poker"
                 description="Daily MLB player prop predictions powered by AI models. Strikeouts, hits, home runs, total bases, RBIs, and more — with win probability, market edge percentage, and ELITE/STRONG tier ratings."
                 canonical="/hub/MLB-ANALYTICS/props"
+            
+                ogImage="/images/mlb/og.png"
             />
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
             <MlbSubNav />

@@ -144,6 +144,8 @@ export default function PortfolioPage() {
                 title="MLB Betting Portfolio — Simulated P&L & Unit Tracking | Smarter.Poker" 
                 description="Simulated MLB betting portfolio tracker by Smarter.Poker. Review weekly P&L curves, cumulative bankroll growth, unit-based bet sizing, and the complete bet log for model-graded picks in 2025."
                 canonical="/hub/MLB-ANALYTICS/portfolio"
+            
+                ogImage="/images/mlb/og.png"
             />
             
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
