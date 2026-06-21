@@ -52,11 +52,11 @@ class StatusErrorBoundary extends React.Component<
               className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF4444]/50 shadow-[0_0_20px_rgba(255,68,68,0.15)] relative overflow-hidden max-w-md w-full"
               role="alert"
             >
-              <ServerCrash className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10" />
+              <ServerCrash className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10" aria-hidden="true" />
               <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10 font-['Rajdhani']">
                 Render Error
               </h2>
-              <p className="text-slate-400 text-[12px] relative z-10 mb-6 break-words">
+              <p className="text-slate-400 text-xs relative z-10 mb-6 break-words">
                 {this.state.error?.message || 'An unexpected rendering error occurred.'}
               </p>
               <button
@@ -270,10 +270,12 @@ const EMPTY_OBJ: any = {};
 
 const SkeletonDashboard = () => (
   <div className="flex flex-col gap-8 mt-6">
-    <MetalFrame className="px-5 py-4 h-[74px] animate-pulse bg-white/5">
-      <div />
-    </MetalFrame>
-    <div>
+    <div className="px-4 md:px-0">
+      <MetalFrame className="px-5 py-4 h-[74px] animate-pulse bg-white/5">
+        <div />
+      </MetalFrame>
+    </div>
+    <div className="px-4 md:px-0">
       <div className="h-6 w-48 bg-white/5 rounded animate-pulse mb-4" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -283,7 +285,7 @@ const SkeletonDashboard = () => (
         ))}
       </div>
     </div>
-    <div>
+    <div className="px-4 md:px-0">
       <div className="h-6 w-48 bg-white/5 rounded animate-pulse mb-4" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -351,7 +353,7 @@ export default function StatusPage() {
             <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10 font-['Rajdhani']">
               System Error
             </h2>
-            <p className="text-slate-300 text-[12px] relative z-10 mb-6 break-words">{apiError}</p>
+            <p className="text-slate-300 text-xs relative z-10 mb-6 break-words">{apiError}</p>
             <button
               onClick={handleRefresh}
               disabled={manualRefreshing && isValidating}
@@ -400,7 +402,7 @@ export default function StatusPage() {
             Data <span className="text-[#00D4FF]">Status</span>
           </h1>
           {data?.health?.last_refresh && (
-            <div className="text-[10px] text-slate-400 tracking-widest uppercase mt-0.5 flex items-center gap-2 flex-wrap">
+            <div className="text-xs text-slate-400 tracking-widest uppercase mt-0.5 flex items-center gap-2 flex-wrap">
               <span>
                 Data refreshed{' '}
                 <TimeAgo dateString={data.health.last_refresh} serverNow={data?.serverNow} />
@@ -412,12 +414,12 @@ export default function StatusPage() {
           )}
         </div>
         <div className="text-right flex flex-col items-end shrink-0">
-          <div className="text-[#00D4FF] text-[11px] font-bold tracking-widest uppercase">
+          <div className="text-[#00D4FF] text-xs font-bold tracking-widest uppercase">
             SYSTEM
           </div>
           <div
             className="inline-flex items-center gap-1.5 mt-1"
-            role="status"
+            role="status" aria-live="polite"
             aria-label={`System status: ${isLoading ? 'loading' : isSystemFresh ? 'fresh' : 'stale'}`}
           >
             <div
@@ -476,7 +478,7 @@ export default function StatusPage() {
                     >
                       {pipeline.hasError ? 'Pipeline Errors Detected' : 'All Pipeline Stages OK'}
                     </div>
-                    <div className="text-[11px] text-slate-300 tracking-wider mt-0.5">
+                    <div className="text-xs text-slate-300 tracking-wider mt-0.5">
                       {fmt(pipeline.okCount)} OK &bull; {fmt(pipeline.total)} STAGES
                     </div>
                   </div>
@@ -526,7 +528,7 @@ export default function StatusPage() {
                   },
                 ].map((item) => (
                   <MetalFrame key={item.label} className="p-4">
-                    <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">
+                    <div className="text-xs font-bold text-slate-400 tracking-[0.15em] mb-2">
                       {item.label}
                     </div>
                     <div
@@ -548,7 +550,7 @@ export default function StatusPage() {
                   { label: 'BEST BETS', val: slate.best },
                 ].map((item) => (
                   <MetalFrame key={item.label} className="p-5 text-center">
-                    <div className="text-[11px] font-bold text-slate-400 tracking-[0.15em] mb-2">
+                    <div className="text-xs font-bold text-slate-400 tracking-[0.15em] mb-2">
                       {item.label}
                     </div>
                     <div className="text-3xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
@@ -563,7 +565,7 @@ export default function StatusPage() {
               <SectionHeader icon={Gauge} label="MODEL ACCURACY" />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                 <MetalFrame className="p-4 text-center">
-                  <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                  <div className="text-xs font-bold text-slate-400 tracking-[0.12em] mb-2">
                     BRIER (ML)
                   </div>
                   <div
@@ -573,7 +575,7 @@ export default function StatusPage() {
                   </div>
                 </MetalFrame>
                 <MetalFrame className="p-4 text-center">
-                  <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                  <div className="text-xs font-bold text-slate-400 tracking-[0.12em] mb-2">
                     BRIER (PROPS)
                   </div>
                   <div
@@ -583,7 +585,7 @@ export default function StatusPage() {
                   </div>
                 </MetalFrame>
                 <MetalFrame className="p-4 text-center">
-                  <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                  <div className="text-xs font-bold text-slate-400 tracking-[0.12em] mb-2">
                     GAMES EVAL
                   </div>
                   <div className="text-2xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
@@ -591,7 +593,7 @@ export default function StatusPage() {
                   </div>
                 </MetalFrame>
                 <MetalFrame className="p-4 text-center">
-                  <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                  <div className="text-xs font-bold text-slate-400 tracking-[0.12em] mb-2">
                     DAILY SAMPLES
                   </div>
                   <div className="text-2xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
@@ -599,7 +601,7 @@ export default function StatusPage() {
                   </div>
                 </MetalFrame>
               </div>
-              <div className="text-[10px] text-slate-500 tracking-wider mt-2 px-4 md:px-0">
+              <div className="text-xs text-slate-400 tracking-wider mt-2 px-4 md:px-0">
                 Brier score: lower is better (0.25 = coin flip). Weighted average over recent graded
                 slates.
               </div>
@@ -617,7 +619,7 @@ export default function StatusPage() {
                         style={{ borderColor: t.color }}
                       >
                         <div
-                          className="text-[10px] font-bold tracking-[0.12em] mb-1"
+                          className="text-xs font-bold tracking-[0.12em] mb-1"
                           style={{ color: t.color }}
                         >
                           {t.key}
@@ -632,10 +634,10 @@ export default function StatusPage() {
                     ))}
                     {Number(tierDist.UNSCORED) > 0 && (
                       <div className="flex-1 min-w-[80px] text-center rounded-lg border border-[#475569] bg-black/30 py-3 px-2">
-                        <div className="text-[11px] font-bold tracking-[0.12em] mb-1 text-slate-500">
+                        <div className="text-xs font-bold tracking-[0.12em] mb-1 text-slate-400">
                           UNSCORED
                         </div>
-                        <div className="text-xl font-extrabold font-['Rajdhani'] tabular-nums text-slate-500">
+                        <div className="text-xl font-extrabold font-['Rajdhani'] tabular-nums text-slate-400">
                           {fmt(tierDist.UNSCORED)}
                         </div>
                       </div>
@@ -672,7 +674,7 @@ export default function StatusPage() {
                             </div>
                           </div>
                           <div
-                            className={`bg-black/50 border px-2.5 py-1 rounded text-[11px] font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF]' : 'text-[#FF4444] border-[#FF4444]'}`}
+                            className={`bg-black/50 border px-2.5 py-1 rounded text-xs font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF]' : 'text-[#FF4444] border-[#FF4444]'}`}
                           >
                             {String(src?.status || 'UNKNOWN').toUpperCase()}
                           </div>
@@ -681,7 +683,7 @@ export default function StatusPage() {
                     })}
                   </ul>
                 ) : (
-                  <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-xs uppercase">
+                  <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-xs uppercase">
                     No Data Available
                   </div>
                 )}
@@ -707,7 +709,7 @@ export default function StatusPage() {
                           </div>
                         </div>
                         <div
-                          className={`bg-black/50 border px-2 py-0.5 rounded text-[11px] font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}
+                          className={`bg-black/50 border px-2 py-0.5 rounded text-xs font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}
                         >
                           {String(al?.level || 'INFO').toUpperCase()}
                         </div>
@@ -715,7 +717,7 @@ export default function StatusPage() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-xs uppercase">
+                  <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-xs uppercase">
                     No Alerts Found
                   </div>
                 )}
@@ -749,7 +751,7 @@ export default function StatusPage() {
                             </div>
                           </div>
                           <div
-                            className={`bg-black/50 border px-2.5 py-1 rounded text-[11px] font-bold tracking-[0.2em] ${statusColor}`}
+                            className={`bg-black/50 border px-2.5 py-1 rounded text-xs font-bold tracking-[0.2em] ${statusColor}`}
                           >
                             {status}
                           </div>
@@ -758,7 +760,7 @@ export default function StatusPage() {
                     })}
                   </ul>
                 ) : (
-                  <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-xs uppercase">
+                  <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-xs uppercase">
                     No Stages Found
                   </div>
                 )}
@@ -785,7 +787,7 @@ export default function StatusPage() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">
+                  <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-xs uppercase">
                     No Table Data Available
                   </div>
                 )}
