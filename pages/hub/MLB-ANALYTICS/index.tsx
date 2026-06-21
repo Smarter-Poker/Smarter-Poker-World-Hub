@@ -143,7 +143,11 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   if (g.modelHome != null && g.marketHome != null && g.avgTotalLine) {
     ouScore = Math.max(0, Math.round(mlScore * 0.6));
     ouTier = getTier(ouScore);
-    ouRec = `O/U ${g.avgTotalLine}`;
+    const overFv = g.avgOverOdds || -110;
+    const underFv = g.avgUnderOdds || -110;
+    let choice = overFv < underFv ? 'Over' : 'Under';
+    if (overFv === underFv) choice = (g.gamePk % 2 === 0) ? 'Over' : 'Under';
+    ouRec = `${choice} ${g.avgTotalLine}`;
   } else if (g.avgTotalLine) {
     ouRec = `O/U ${g.avgTotalLine}`;
   }
@@ -170,7 +174,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
             >
               <span className="text-[12px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1.5 opacity-90">{label}</span>
               <div className="flex flex-col items-center justify-center">
-                <span className={`text-[28px] font-black leading-none ${st.text}`}>{score > 0 ? score : '—'}</span>
+                <span className={`text-[28px] font-black leading-none text-slate-200 font-sans tracking-tight`}>{score > 0 ? score : '—'}</span>
                 {score > 0 && label === 'Money Line' && (
                   <span className={`text-[11px] font-black tracking-widest uppercase mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-500'}`}>
                     {ev > 0 ? '+' : ''}{ev}% EV
@@ -471,12 +475,12 @@ export default function MlbSlatePage() {
                             {getTeamName(g.away)}
                           </span>
                           {g.awayRecord && (
-                            <span className="text-[12px] text-[#8a9ba8] font-bold uppercase">
+                            <span className="text-[18px] text-[#8a9ba8] font-bold uppercase">
                               {g.awayRecord.wins}-{g.awayRecord.losses}{g.awayStreak ? ` [${g.awayStreak}]` : ''}
                             </span>
                           )}
                         </div>
-                        <span className="text-[12px] text-[#8a9ba8] mt-1 font-bold  uppercase truncate">
+                        <span className="text-[18px] text-[#8a9ba8] font-bold uppercase truncate">
                           P: {g.awayStarter
                             ? `${g.awayStarter.name}${g.awayStarter.wins != null ? ` (${g.awayStarter.wins}-${g.awayStarter.losses}, ${g.awayStarter.era?.toFixed(2)})` : ''}`
                             : 'TBA'}
@@ -499,12 +503,12 @@ export default function MlbSlatePage() {
                             {getTeamName(g.home)}
                           </span>
                           {g.homeRecord && (
-                            <span className="text-[12px] text-[#8a9ba8] font-bold uppercase">
+                            <span className="text-[18px] text-[#8a9ba8] font-bold uppercase">
                               {g.homeRecord.wins}-{g.homeRecord.losses}{g.homeStreak ? ` [${g.homeStreak}]` : ''}
                             </span>
                           )}
                         </div>
-                        <span className="text-[12px] text-[#8a9ba8] mt-1 font-bold  uppercase truncate">
+                        <span className="text-[18px] text-[#8a9ba8] font-bold uppercase truncate">
                           P: {g.homeStarter
                             ? `${g.homeStarter.name}${g.homeStarter.wins != null ? ` (${g.homeStarter.wins}-${g.homeStarter.losses}, ${g.homeStarter.era?.toFixed(2)})` : ''}`
                             : 'TBA'}
