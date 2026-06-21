@@ -1,24 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 
-// MLB Analytics Engine Supabase Instance
-// DO NOT use NEXT_PUBLIC variables here. We want to ensure this is ONLY used Server-Side
-// to protect the MLB database keys from being shipped to the client bundle.
-
-const supabaseUrl = process.env.MLB_SUPABASE_URL || process.env.NEXT_PUBLIC_MLB_SUPABASE_URL || 'https://nscdmxldtyszyvcxxwgr.supabase.co';
-const supabaseServiceKey = process.env.MLB_SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY; // Requires env setup on Vercel
+// MLB Analytics Engine Supabase Instance.
+// Keys are resolved INSIDE the function so they are never captured at module-scope
+// by the Next.js bundler (prevents accidental client-bundle inclusion).
+// Only MLB_SUPABASE_SERVICE_KEY is accepted — falling through to the main project's
+// SUPABASE_SERVICE_ROLE_KEY would silently authenticate against the wrong DB.
 
 export const getMlbSupabase = () => {
-    if (!supabaseUrl || !supabaseServiceKey) {
-        console.warn('[MLB Supabase] Missing MLB_SUPABASE_URL or MLB_SUPABASE_SERVICE_KEY environment variables.');
+    const supabaseUrl = process.env.MLB_SUPABASE_URL
+        || 'https://nscdmxldtyszyvcxxwgr.supabase.co';  // public URL fallback only
+
+    const supabaseServiceKey = process.env.MLB_SUPABASE_SERVICE_KEY;
+
+    if (!supabaseServiceKey) {
+        // In production this means every RPC call will 401. Surface it loud.
+        console.error(
+            '[MLB Supabase] MLB_SUPABASE_SERVICE_KEY is not set. ' +
+            'Set this env var on Vercel to enable the MLB Analytics API.'
+        );
     }
-    
-    // We use the Service Role key for read-only analytics fetching server-side
-    // This allows us to bypass RLS for fetching raw predictions/stats to render the static/SSR pages
+
     return createClient(supabaseUrl, supabaseServiceKey || 'dummy-key-for-builds', {
         auth: {
-            persistSession: false, // Server-side only
+            persistSession: false,     // server-side only — never hydrate client sessions
             autoRefreshToken: false,
-            detectSessionInUrl: false
-        }
+            detectSessionInUrl: false,
+        },
     });
 };

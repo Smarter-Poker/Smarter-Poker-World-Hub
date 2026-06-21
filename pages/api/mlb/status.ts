@@ -8,9 +8,13 @@ const STAGE_ORDER = [
     'grade', 'grade_props', 'track', 'alert', 'export', 'evaluate'
 ];
 
+const CORS_ORIGIN = process.env.VERCEL_ENV === 'production'
+    ? 'https://smarter.poker'
+    : '*';  // allow any origin in dev/preview
+
 const JSON_HEADERS = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': CORS_ORIGIN,
     'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
 };
 
@@ -81,8 +85,8 @@ async function handleRequest() {
         let errorCount = 0;
         for (const stage of stages) {
             const s = latestRuns[stage]?.status;
-            if (s === 'success') okCount += 1;
-            else if (s === 'error') errorCount += 1;
+            if (s === 'success' || s === 'ok' || s === 'done') okCount += 1;
+            else if (s === 'error' || s === 'failed') errorCount += 1;
         }
         const pipelineHasError = errorCount > 0;
 
@@ -140,7 +144,9 @@ async function handleRequest() {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
-        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        // x-forwarded-proto can be a comma-separated list (e.g. 'https, http') on some
+        // proxy configurations — take only the first value to avoid a malformed URL.
+        const protocol = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
         const host = req.headers.host || 'localhost';
         const url = `${protocol}://${host}${req.url}`;
 

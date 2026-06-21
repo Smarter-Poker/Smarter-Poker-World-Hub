@@ -21,6 +21,19 @@ const fetcher = async (url: string) => {
     }
 };
 
+// Human-readable labels for pipeline source keys (matches engine SOURCE_ROWS constant).
+const SOURCE_LABEL_MAP: Record<string, string> = {
+    daily_predict: 'Predictions',
+    odds_api: 'Sportsbook Odds',
+    mlb_api: 'MLB API (schedule/lineups)',
+    fangraphs: 'FanGraphs',
+    fangraphs_splits: 'FanGraphs Splits',
+    statcast: 'Statcast',
+    injuries: 'Injuries',
+    weather: 'Weather',
+    umpire_scorecards: 'Umpire Scorecards',
+};
+
 // Tier rendering order + accent colors (inline styles so Tailwind JIT keeps them).
 const TIER_META: { key: string; color: string }[] = [
     { key: 'ELITE', color: '#FFD24A' },
@@ -33,8 +46,9 @@ const TIER_META: { key: string; color: string }[] = [
 export default function StatusPage() {
     const router = useRouter();
     const { data, error, mutate, isValidating } = useSWR('/api/mlb/status', fetcher, {
-        refreshInterval: 60000,
-        revalidateOnFocus: true
+        refreshInterval: 30000,           // match API s-maxage=30 so we don't show stale data
+        revalidateOnFocus: true,
+        onError: (err) => logError('SWR MLB Status', err),
     });
 
     // Local ticker so relative timestamps ("3M AGO") stay live between fetches.
@@ -91,7 +105,8 @@ export default function StatusPage() {
         });
     };
 
-    const fmt = (n: any): string => Number(n ?? 0).toLocaleString();
+    // Return '—' for null/undefined so health cards don't misleadingly show 0.
+    const fmt = (n: any): string => (n == null) ? '\u2014' : Number(n).toLocaleString();
 
     const brierColor = (b: any): string => {
         if (typeof b !== 'number' || isNaN(b)) return 'text-slate-400';
@@ -190,9 +205,13 @@ export default function StatusPage() {
                     <h1 className="m-0 text-2xl font-bold uppercase tracking-widest">
                         Data <span className="text-[#00D4FF]" style={{ textShadow: '0 0 10px rgba(0, 212, 255, 0.6)' }}>Status</span>
                     </h1>
-                    {data?.serverNow && (
-                        <div className="text-[10px] text-slate-500 tracking-widest uppercase mt-0.5">
-                            Data as of {timeAgo(data.serverNow)}
+                    {/* Show when last model refresh occurred (not serverNow which is always 'JUST NOW') */}
+                    {(data?.health?.last_refresh || data?.serverNow) && (
+                        <div className="text-[10px] text-slate-500 tracking-widest uppercase mt-0.5 flex items-center gap-2">
+                            <span>Data refreshed {timeAgo(data.health?.last_refresh || data.serverNow)}</span>
+                            {isValidating && !isLoading && (
+                                <span className="text-[#00D4FF] animate-pulse">· updating…</span>
+                            )}
                         </div>
                     )}
                 </div>
@@ -267,6 +286,7 @@ export default function StatusPage() {
                                     { label: 'LAST REFRESH', val: timeAgo(health.last_refresh) || '-', warn: false },
                                     { label: 'SLATE AS OF', val: formatDate(health.slate_as_of) || '-', warn: false },
                                     { label: 'GAMES IN RUN', val: fmt(health.games_in_run), warn: false },
+                                    { label: 'GAMES IN SLATE', val: fmt(health.games_in_slate), warn: false },
                                     { label: 'LIVE RECS', val: fmt(health.total_live_recs), warn: false },
                                     { label: 'UNMODELED GAMES', val: fmt(health.unmodeled_games), warn: Number(health.unmodeled_games) > 0 },
                                     { label: 'RUNLINE CONFLICTS', val: fmt(health.incoherent_runlines_with_bet), warn: Number(health.incoherent_runlines_with_bet) > 0 }
@@ -354,11 +374,11 @@ export default function StatusPage() {
                                 {sources.length > 0 ? (
                                     <div className="flex flex-col">
                                         {sources.map((src, idx) => {
-                                            const ok = String(src?.status || '').toLowerCase() === 'ok';
+                                            const ok = ['ok', 'success', 'done', 'partial'].includes(String(src?.status || '').toLowerCase());
                                             return (
                                                 <div key={src?.source || idx} className={`flex justify-between items-center px-5 py-3 bg-black/20 gap-3 ${idx !== sources.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
                                                     <div className="min-w-0">
-                                                        <div className="text-[13px] font-semibold text-slate-200 tracking-wider truncate">{src?.source || '-'}</div>
+                                                        <div className="text-[13px] font-semibold text-slate-200 tracking-wider truncate">{SOURCE_LABEL_MAP[src?.source] || src?.source || '-'}</div>
                                                         <div className="text-[10px] text-slate-500 tracking-wider mt-0.5">{timeAgo(src?.pulled_at) || 'NO PULL DATA'}</div>
                                                     </div>
                                                     <div className="flex items-center gap-3 shrink-0">
