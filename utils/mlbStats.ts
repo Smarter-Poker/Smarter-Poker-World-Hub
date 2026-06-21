@@ -26,15 +26,33 @@ export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: st
     let page = 0;
     const PAGE_SIZE = 1000;
 
+    // Anchor the rolling window to the latest bet (mirrors get_portfolio_stats RPC),
+    // so "last N days" stays meaningful when the backtest data is not refreshed daily.
+    let anchorCutoffIso: string | undefined;
+    if (days !== undefined) {
+        let maxQuery = mlbDb
+            .from('sim_bets')
+            .select('as_of_ts')
+            .order('as_of_ts', { ascending: false })
+            .limit(1);
+        if (market !== undefined && market !== 'ALL') {
+            maxQuery = maxQuery.eq('market', market);
+        }
+        const { data: maxRow } = await maxQuery.maybeSingle();
+        if (maxRow?.as_of_ts) {
+            const anchor = new Date(maxRow.as_of_ts);
+            anchor.setDate(anchor.getDate() - days);
+            anchorCutoffIso = anchor.toISOString();
+        }
+    }
+
     while (hasMore) {
         let query = mlbDb
             .from('sim_bets')
-            .select('id, as_of_ts, pnl, result, stake, bankroll_after, market, selection, edge_pts');
-            
-        if (days !== undefined) {
-            const cutoff = new Date();
-            cutoff.setDate(cutoff.getDate() - days);
-            query = query.gte('as_of_ts', cutoff.toISOString());
+            .select('id, as_of_ts, pnl, result, stake, bankroll_after, market, selection, edge_pts, bet_score, bet_tier, game_pk');
+
+        if (anchorCutoffIso) {
+            query = query.gte('as_of_ts', anchorCutoffIso);
         }
         if (market !== undefined && market !== 'ALL') {
             query = query.eq('market', market);
@@ -42,6 +60,7 @@ export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: st
 
         const { data, error: fetchErr } = await query
             .order('as_of_ts', { ascending: true })
+            .order('id', { ascending: true })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
             
         if (fetchErr) {

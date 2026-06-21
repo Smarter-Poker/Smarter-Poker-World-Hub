@@ -2,14 +2,37 @@ import React, { useState, useMemo } from 'react';
 
 // Format currency helper
 const formatCurrency = (val: number, showSign = false) => {
-    if (val === undefined || val === null) return '$0.00';
-    const isNegative = val < 0;
+    if (val === undefined || val === null || isNaN(val)) return '$0.00';
     const absVal = Math.abs(val);
     const formatted = absVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (showSign) {
         return val > 0 ? `+$${formatted}` : val < 0 ? `-$${formatted}` : `$${formatted}`;
     }
     return `$${formatted}`;
+};
+
+// The DB stores raw 'h2h' / 'total' and machine selections like 'over_8.5' / 'away'.
+const marketLabel = (m: string) => (m === 'h2h' ? 'Moneyline' : m === 'total' ? 'Totals' : (m || '—'));
+
+const prettySelection = (s: string) => {
+    if (!s) return '—';
+    const ou = s.match(/^(over|under)[_\s-]?([0-9.]+)$/i);
+    if (ou) return `${ou[1].charAt(0).toUpperCase()}${ou[1].slice(1).toLowerCase()} ${ou[2]}`;
+    const lower = s.toLowerCase();
+    if (lower === 'home') return 'Home';
+    if (lower === 'away') return 'Away';
+    return s;
+};
+
+// Canonical five-tier palette — identical to src/lib/betScore.ts TIER_STYLE and best-bets.
+const tierColor = (tier: string) => {
+    switch ((tier || '').toUpperCase()) {
+        case 'ELITE': return { color: '#00D4FF', bg: 'rgba(0,212,255,0.12)', border: 'rgba(0,212,255,0.4)' };
+        case 'STRONG': return { color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.4)' };
+        case 'LEAN': return { color: '#38BDF8', bg: 'rgba(56,189,248,0.10)', border: 'rgba(56,189,248,0.4)' };
+        case 'THIN': return { color: '#F59E0B', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.4)' };
+        default: return { color: '#64748B', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.3)' };
+    }
 };
 
 export interface SimBet {
@@ -22,6 +45,9 @@ export interface SimBet {
     market: string;
     selection: string;
     edge_pts: number;
+    bet_score?: number | null;
+    bet_tier?: string | null;
+    game_pk?: number | null;
 }
 
 interface RecentBetsTableProps {
@@ -29,7 +55,7 @@ interface RecentBetsTableProps {
     isLoading?: boolean;
 }
 
-type SortField = 'date' | 'market' | 'selection' | 'edge' | 'stake' | 'result' | 'pnl' | 'bankroll';
+type SortField = 'date' | 'market' | 'selection' | 'score' | 'stake' | 'result' | 'pnl' | 'bankroll';
 type SortDirection = 'asc' | 'desc';
 
 export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoading = false }) => {
@@ -45,13 +71,11 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
             setSortField(field);
             setSortDirection('desc'); // Default to desc for new field
         }
-        // Reset to first page on sort
-        setCurrentPage(1);
+        setCurrentPage(1); // Reset to first page on sort
     };
 
     const sortedBets = useMemo(() => {
-        if (!bets) return [];
-        return [...bets].sort((a, b) => {
+        return [...(bets || [])].sort((a, b) => {
             let aValue: any;
             let bValue: any;
 
@@ -68,9 +92,9 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
                     aValue = (a.selection || '').toLowerCase();
                     bValue = (b.selection || '').toLowerCase();
                     break;
-                case 'edge':
-                    aValue = a.edge_pts || 0;
-                    bValue = b.edge_pts || 0;
+                case 'score':
+                    aValue = a.bet_score ?? -1;
+                    bValue = b.bet_score ?? -1;
                     break;
                 case 'stake':
                     aValue = a.stake || 0;
@@ -103,31 +127,37 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
     const paginatedBets = sortedBets.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
     const SortIcon = ({ field }: { field: SortField }) => {
-        if (sortField !== field) return <span className="opacity-30 ml-1">↕</span>;
-        return <span className="ml-1 text-[#00D4FF]">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+        if (sortField !== field) return <span className="opacity-30 ml-1" aria-hidden="true">↕</span>;
+        return <span className="ml-1 text-[#00D4FF]" aria-hidden="true">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
     };
 
     const Th = ({ field, label, align = 'left' }: { field: SortField, label: string, align?: 'left' | 'right' | 'center' }) => (
-        <th 
-            onClick={() => handleSort(field)}
-            className={`py-3 px-4 font-semibold whitespace-nowrap cursor-pointer select-none text-${align}`}
+        <th
+            scope="col"
+            aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+            className={`py-3 px-4 font-semibold whitespace-nowrap text-${align}`}
         >
-            <div className={`flex items-center ${align === 'right' ? 'justify-end' : (align === 'center' ? 'justify-center' : 'justify-start')}`}>
+            <button
+                type="button"
+                onClick={() => handleSort(field)}
+                className={`flex items-center w-full select-none cursor-pointer bg-transparent border-0 text-inherit font-inherit uppercase tracking-widest ${align === 'right' ? 'justify-end' : (align === 'center' ? 'justify-center' : 'justify-start')}`}
+                aria-label={`Sort by ${label}`}
+            >
                 {label} <SortIcon field={field} />
-            </div>
+            </button>
         </th>
     );
 
     return (
         <div className="w-full relative">
             <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl overflow-x-auto pb-0 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] w-full relative z-10">
-                <table className="w-full md:min-w-[700px] border-collapse text-left text-[13px] block md:table">
+                <table className="w-full md:min-w-[760px] border-collapse text-left text-[13px] block md:table">
                     <thead className="hidden md:table-header-group">
                         <tr className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] uppercase tracking-widest text-[11px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                             <Th field="date" label="Date" />
                             <Th field="market" label="Market" />
                             <Th field="selection" label="Selection" />
-                            <Th field="edge" label="Edge" />
+                            <Th field="score" label="Score" />
                             <Th field="stake" label="Stake" />
                             <Th field="result" label="Result" />
                             <Th field="pnl" label="P&L" />
@@ -141,7 +171,7 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Date</span><div className="h-4 bg-slate-800 rounded w-16"></div></td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Market</span><div className="h-4 bg-slate-800 rounded w-20"></div></td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Selection</span><div className="h-4 bg-slate-800 rounded w-32"></div></td>
-                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Edge</span><div className="h-4 bg-slate-800 rounded w-12"></div></td>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Score</span><div className="h-4 bg-slate-800 rounded w-16"></div></td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Stake</span><div className="h-4 bg-slate-800 rounded w-12"></div></td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Result</span><div className="h-4 bg-slate-800 rounded w-16"></div></td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 border-b border-white/5 md:border-0"><span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">P&L</span><div className="h-4 bg-slate-800 rounded w-20"></div></td>
@@ -149,13 +179,18 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
                                 </tr>
                             ))
                         ) : paginatedBets.length > 0 ? paginatedBets.map((bet, i) => {
-                            const dateObj = bet.as_of_ts ? new Date(bet.as_of_ts) : new Date();
-                            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-                            
+                            const dateObj = bet.as_of_ts ? new Date(bet.as_of_ts) : null;
+                            const dateStr = dateObj && !isNaN(dateObj.getTime())
+                                ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+                                : '—';
+
                             const pnl = bet.pnl || 0;
                             const isWin = pnl > 0 || bet.result === 'WIN';
                             const isLoss = pnl < 0 || bet.result === 'LOSS';
-                            
+                            const tc = tierColor(bet.bet_tier || '');
+                            const edge = Number(bet.edge_pts || 0);
+                            const edgeStr = `${edge >= 0 ? '+' : ''}${edge.toFixed(2)} edge pts`;
+
                             return (
                                 <tr key={bet.id || i} className={`block md:table-row border-b border-[#2a3a4a] ${i < paginatedBets.length - 1 ? 'mb-4 md:mb-0 pb-2 md:pb-0' : ''} hover:bg-[#1a2332]/50 transition-colors`}>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-slate-500 whitespace-nowrap border-b border-white/5 md:border-0 bg-white/[0.02] md:bg-transparent rounded-t-md md:rounded-none">
@@ -164,17 +199,31 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
                                     </td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 whitespace-nowrap border-b border-white/5 md:border-0">
                                         <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Market</span>
-                                        <span className="bg-white/5 py-1 px-2 rounded text-slate-400 text-[11px] font-bold tracking-[0.02em] text-right md:text-left">
-                                            {bet.market || 'Moneyline'}
+                                        <span className="bg-white/5 py-1 px-2 rounded text-slate-300 text-[11px] font-bold tracking-[0.02em] text-right md:text-left">
+                                            {marketLabel(bet.market)}
                                         </span>
                                     </td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-slate-50 whitespace-nowrap border-b border-white/5 md:border-0">
                                         <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Selection</span>
-                                        <span className="text-right md:text-left">{bet.selection || '-'}</span>
+                                        <span className="text-right md:text-left capitalize">{prettySelection(bet.selection)}</span>
                                     </td>
-                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-[#00D4FF] font-semibold whitespace-nowrap border-b border-white/5 md:border-0">
-                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Edge</span>
-                                        <span className="text-right md:text-left">+{(bet.edge_pts || 0).toFixed(2)}</span>
+                                    <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 whitespace-nowrap border-b border-white/5 md:border-0" title={edgeStr}>
+                                        <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Score</span>
+                                        {bet.bet_score != null ? (
+                                            <span
+                                                className="inline-flex items-center gap-1.5"
+                                                aria-label={`Bet score ${bet.bet_score}${bet.bet_tier ? `, ${bet.bet_tier} tier` : ''}`}
+                                            >
+                                                <span className="font-extrabold" style={{ color: tc.color }}>{bet.bet_score}</span>
+                                                {bet.bet_tier && (
+                                                    <span className="py-0.5 px-1.5 rounded text-[9px] font-extrabold tracking-wide" style={{ color: tc.color, background: tc.bg, border: `1px solid ${tc.border}` }}>
+                                                        {bet.bet_tier}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[#00D4FF] font-semibold">{edge >= 0 ? '+' : ''}{edge.toFixed(2)}</span>
+                                        )}
                                     </td>
                                     <td className="flex justify-between items-center py-2 px-4 md:table-cell md:py-3 text-slate-400 whitespace-nowrap border-b border-white/5 md:border-0">
                                         <span className="md:hidden font-bold text-slate-400 text-[10px] uppercase tracking-wider">Stake</span>
@@ -210,14 +259,14 @@ export const RecentBetsTable: React.FC<RecentBetsTableProps> = ({ bets, isLoadin
                         Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, sortedBets.length)} of {sortedBets.length}
                     </div>
                     <div className="flex gap-2">
-                        <button 
+                        <button
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
                             className={`py-1.5 px-3 rounded-md text-xs transition-all duration-200 border ${currentPage === 1 ? 'bg-white/2 border-white/10 text-slate-600 cursor-not-allowed' : 'bg-white/5 border-white/10 text-slate-200 cursor-pointer hover:bg-white/10'}`}
                         >
                             Previous
                         </button>
-                        <button 
+                        <button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
                             className={`py-1.5 px-3 rounded-md text-xs transition-all duration-200 border ${currentPage === totalPages ? 'bg-white/2 border-white/10 text-slate-600 cursor-not-allowed' : 'bg-white/5 border-white/10 text-slate-200 cursor-pointer hover:bg-white/10'}`}
