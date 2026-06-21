@@ -114,17 +114,13 @@ in the World-Hub repo mirroring the engine's canonical SQL. Now tracked in both 
 ## SQL Migrations Written
 
 | File | Repo | Status | DB Target |
-|------|------|--------|--------|
+|------|------|--------|-----------|
 | `supabase/migrations/20260621004109_mlb_get_status_dashboard_rpc.sql` | World-Hub | ✅ Committed (mirror — already live) | MLB Supabase |
-| `supabase/migrations/20260621150001_status_page_indexes.sql` | Engine | ✅ Committed — **⚠️ PENDING APPLY** | MLB Supabase |
-| `supabase/migrations/20260621150002_v_model_health_view.sql` | Engine | ✅ Committed — **⚠️ PENDING APPLY** | MLB Supabase |
+| `supabase/migrations/20260621150001_status_page_indexes.sql` | Engine | ✅ Applied to live DB 2026-06-21 | MLB Supabase |
+| `supabase/migrations/20260621150002_v_model_health_view.sql` | Engine | ✅ Applied to live DB 2026-06-21 | MLB Supabase |
 
-The index + v_model_health migrations need the current DB password to apply:
-```bash
-cd mlb-analytics-engine
-SUPABASE_DB_PASSWORD='<current-password>' supabase db push
-```
-Until applied: `games_in_slate` column won't appear in health data (additive only — page works without it).
+Applied via `supabase db query --linked -f <file>` (Management API — no DB password needed).
+Post-apply: `games_in_slate=15, games_in_run=15` confirmed flowing through RPC + status page.
 
 ---
 
