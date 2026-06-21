@@ -346,6 +346,14 @@ export default function MlbSlatePage() {
             <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[45deg] group-hover:left-[200%] transition-all duration-700 ease-in-out" />
           </Link>
 
+          <Link
+            href="/hub/MLB-ANALYTICS/model-intel"
+            className="block w-full text-center relative overflow-hidden bg-[#0d1117] border border-[#3d4f5f] hover:border-[#00D4FF] text-[#5a6a7a] hover:text-[#00D4FF] font-black uppercase tracking-[0.2em] text-[11px] py-2 mt-2 transition-all rounded-sm group"
+          >
+            <span className="relative z-10">View Model Intel &amp; Track Record</span>
+            <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-[#00D4FF]/10 to-transparent skew-x-[45deg] group-hover:left-[200%] transition-all duration-700 ease-in-out" />
+          </Link>
+
           {/* Bottom neon strip */}
           <div className="absolute bottom-0 left-[10%] right-[10%] h-[3px] bg-[#00D4FF] shadow-[0_0_10px_#00D4FF,0_0_20px_rgba(0,212,255,0.4)] rounded-t-full" />
         </header>
