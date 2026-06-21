@@ -118,6 +118,17 @@ in the World-Hub repo mirroring the engine's canonical SQL. Now tracked in both 
 | `supabase/migrations/20260621004109_mlb_get_status_dashboard_rpc.sql` | World-Hub | ✅ Committed (mirror — already live) | MLB Supabase |
 | `supabase/migrations/20260621150001_status_page_indexes.sql` | Engine | ✅ Applied to live DB 2026-06-21 | MLB Supabase |
 | `supabase/migrations/20260621150002_v_model_health_view.sql` | Engine | ✅ Applied to live DB 2026-06-21 | MLB Supabase |
+| `supabase/migrations/20260615000000_base_tables.sql` | Engine | ✅ Committed (Missing DDLs + GRANTs) | MLB Supabase |
+| `supabase/migrations/20260621160000_perf_indexes.sql` | Engine | ✅ Committed (Performance indexes) | MLB Supabase |
+
+### 14. DB Schema and SQL Audit Gaps ✅ FIXED
+**Was:** `flush_sql_backup.sql` had syntax errors (`CREATE POLICY IF NOT EXISTS`). Base tables (`alert_log`, `snapshots`, `pred_market_output`, etc.) and `v_model_validation` view were missing DDLs. Migration timestamp collisions existed. Performance indexes on `as_of_ts` were missing.
+**Fix:**
+- Replaced `CREATE POLICY IF NOT EXISTS` with `DROP POLICY IF EXISTS` followed by `CREATE POLICY`.
+- Created `20260615000000_base_tables.sql` to backfill missing base tables and the `v_model_validation` view, fixing `GRANT SELECT` failures.
+- Renamed malformed migration files and deduplicated timestamp collisions (e.g., `20260618060000_*` and `20260620180000_*`).
+- Created `20260621160000_perf_indexes.sql` to add `DESC` indexes on `as_of_ts` for `pred_market_output`, `pred_props`, and `agg_market`.
+- Code pushed to `mlb-analytics-engine` main branch.
 
 Applied via `supabase db query --linked -f <file>` (Management API — no DB password needed).
 Post-apply: `games_in_slate=15, games_in_run=15` confirmed flowing through RPC + status page.

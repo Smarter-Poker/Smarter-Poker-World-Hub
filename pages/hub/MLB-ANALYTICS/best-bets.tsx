@@ -749,11 +749,11 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Inline Bet Row — inside a game box
+// Bet Card — Fully Visible Stats
 // ──────────────────────────────────────────────────────────────────────────────
-const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () => void }) => {
+const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: number; onClick: () => void; rankLabel?: string }) => {
   const { color: tierColor, bg: tierBg, border: tierBorder } = getTierColors(bet.bet_tier || '');
-  const { isTeamBet, isPitcherProp } = detectBetCategory(bet);
+  const { isTeamBet, isPitcherProp, isPlayerProp } = detectBetCategory(bet);
   const [imgError, setImgError] = useState(false);
 
   let lineStr = '';
@@ -777,7 +777,7 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
     typeStr.includes('spread')
   )
     marketLabel = 'RL';
-  else if (typeStr.includes('prop') || typeStr.includes('strikeout') || typeStr.includes('pitcher'))
+  else if (typeStr.includes('prop') || typeStr.includes('strikeout') || typeStr.includes('pitcher') || typeStr.includes('hits') || typeStr.includes('home_run'))
     marketLabel = 'PROP';
 
   // Image logic
@@ -787,358 +787,157 @@ const BetRow = ({ bet, rank, onClick }: { bet: any; rank: number; onClick: () =>
   const showPlayerImg = !isTeamBet && playerImageUrl && !imgError;
   const showTeamLogo = !showPlayerImg && teamLogoUrl;
 
-  // Stat chips for pitchers
+  // Stats arrays
   const pitcherStats: { label: string; value: string; color?: string }[] = [];
   if (isPitcherProp) {
-    if (bet.pitcher_era != null)
-      pitcherStats.push({
-        label: 'ERA',
-        value: Number(bet.pitcher_era).toFixed(2),
-        color: '#00D4FF',
-      });
     if (bet.pitcher_wins != null && bet.pitcher_losses != null)
-      pitcherStats.push({ label: 'W-L', value: `${bet.pitcher_wins}-${bet.pitcher_losses}` });
-    if (bet.pitcher_so != null) pitcherStats.push({ label: 'K', value: String(bet.pitcher_so) });
+      pitcherStats.push({ label: 'W-L', value: `${bet.pitcher_wins}-${bet.pitcher_losses}`, color: '#fff' });
+    if (bet.pitcher_era != null)
+      pitcherStats.push({ label: 'ERA', value: Number(bet.pitcher_era).toFixed(2), color: '#00D4FF' });
+    if (bet.pitcher_so != null) pitcherStats.push({ label: 'K', value: String(bet.pitcher_so), color: '#fff' });
     if (bet.pitcher_whip != null)
-      pitcherStats.push({ label: 'WHIP', value: Number(bet.pitcher_whip).toFixed(2) });
+      pitcherStats.push({ label: 'WHIP', value: Number(bet.pitcher_whip).toFixed(2), color: '#fff' });
     if (bet.pitcher_fip != null)
-      pitcherStats.push({ label: 'FIP', value: Number(bet.pitcher_fip).toFixed(2) });
+      pitcherStats.push({ label: 'FIP', value: Number(bet.pitcher_fip).toFixed(2), color: '#fff' });
   }
 
-  // Stat chips for hitters
   const hitterStats: { label: string; value: string; color?: string }[] = [];
   if (!isTeamBet && !isPitcherProp) {
     if (bet.hitter_avg != null)
-      hitterStats.push({
-        label: 'AVG',
-        value: Number(bet.hitter_avg).toFixed(3).replace(/^0/, ''),
-      });
+      hitterStats.push({ label: 'AVG', value: Number(bet.hitter_avg).toFixed(3).replace(/^0/, ''), color: '#fff' });
     if (bet.hitter_hr != null)
       hitterStats.push({ label: 'HR', value: String(bet.hitter_hr), color: '#FFD700' });
-    if (bet.hitter_rbi != null) hitterStats.push({ label: 'RBI', value: String(bet.hitter_rbi) });
+    if (bet.hitter_rbi != null) hitterStats.push({ label: 'RBI', value: String(bet.hitter_rbi), color: '#fff' });
     if (bet.hitter_obp != null)
-      hitterStats.push({
-        label: 'OBP',
-        value: Number(bet.hitter_obp).toFixed(3).replace(/^0/, ''),
-      });
+      hitterStats.push({ label: 'OBP', value: Number(bet.hitter_obp).toFixed(3).replace(/^0/, ''), color: '#fff' });
+    if (bet.hitter_slg != null)
+      hitterStats.push({ label: 'SLG', value: Number(bet.hitter_slg).toFixed(3).replace(/^0/, ''), color: '#fff' });
     if (bet.hitter_woba != null)
-      hitterStats.push({
-        label: 'wOBA',
-        value: Number(bet.hitter_woba).toFixed(3).replace(/^0/, ''),
-        color: '#00D4FF',
-      });
+      hitterStats.push({ label: 'wOBA', value: Number(bet.hitter_woba).toFixed(3).replace(/^0/, ''), color: '#00D4FF' });
     if (bet.hitter_wrc_plus != null)
-      hitterStats.push({
-        label: 'wRC+',
-        value: String(Math.round(Number(bet.hitter_wrc_plus))),
-        color: Number(bet.hitter_wrc_plus) >= 115 ? '#00D4FF' : undefined,
-      });
+      hitterStats.push({ label: 'wRC+', value: String(Math.round(Number(bet.hitter_wrc_plus))), color: Number(bet.hitter_wrc_plus) >= 115 ? '#00D4FF' : '#fff' });
   }
 
   const allStats = isPitcherProp ? pitcherStats : hitterStats;
-  const hasStats = allStats.length > 0;
 
   return (
     <div
-      className="flex items-start gap-2 px-3 py-2.5 border-b border-[#1a2530] last:border-b-0 cursor-pointer hover:bg-[#0d1420] active:bg-[#0a0f1a] transition-colors touch-manipulation group"
+      className="flex-shrink-0 w-[300px] md:w-[340px] bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] transition-all duration-200 cursor-pointer touch-manipulation snap-start group"
       onClick={() => {
         onClick();
-        if (navigator.vibrate)
-          try {
-            navigator.vibrate(8);
-          } catch (e) {}
+        if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
       }}
     >
-      {/* Left accent bar */}
-      <div
-        className="w-[3px] self-stretch rounded-full flex-shrink-0 mt-0.5"
-        style={{ background: tierColor, boxShadow: `0 0 5px ${tierColor}66` }}
-      />
+      {/* Top tier bar */}
+      <div className="h-1 w-full" style={{ background: tierColor, boxShadow: `0 0 8px ${tierColor}` }} />
+      
+      <div className="p-3">
+        <div className="flex justify-between items-start mb-2">
+          {rank !== undefined && (
+            <div className="bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-0.5 text-[10px] font-black text-slate-300">
+              {rankLabel} <span style={{ color: tierColor }}>#{rank}</span>
+            </div>
+          )}
+          {bet.best_book && (
+            <div className="ml-auto text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-0.5">{bet.best_book}</div>
+          )}
+        </div>
 
-      {/* Rank */}
-      <div className="text-[10px] font-black text-[#3d4f5f] w-4 text-center flex-shrink-0  mt-1.5">
-        {rank}
-      </div>
+        <div className="flex gap-3 mb-3">
+          {/* Image */}
+          <div className="flex-shrink-0 relative">
+            {showPlayerImg ? (
+              <div className="w-16 h-16 rounded-full overflow-hidden border-[2px] bg-[#0a0a15] shadow-md" style={{ borderColor: tierColor }}>
+                <img src={playerImageUrl!} alt={bet?.player_name || bet?.selection} className="w-full h-full object-cover object-top" loading="lazy" onError={() => setImgError(true)} />
+              </div>
+            ) : showTeamLogo ? (
+              <div className="w-16 h-16 rounded-full bg-[#0a0a15] border-2 border-[#2a3a4a] flex items-center justify-center p-1.5 shadow-md">
+                <img src={teamLogoUrl!} alt={bet?.team || 'MLB'} className="w-full h-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[#0a0a15] border-2 border-[#2a3a4a] flex items-center justify-center" style={{ borderColor: `${tierColor}55` }}>
+                <Target size={24} style={{ color: tierColor }} />
+              </div>
+            )}
+            {/* Overlay team logo on player image */}
+            {showPlayerImg && teamLogoUrl && (
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0a0a15] rounded-full border border-[#2a3a4a] p-0.5 flex items-center justify-center z-10">
+                 <img src={teamLogoUrl} alt="Team" className="w-full h-full object-contain" />
+              </div>
+            )}
+          </div>
 
-      {/* Player headshot or team logo */}
-      <div className="flex-shrink-0 mt-0.5">
-        {showPlayerImg ? (
-          <div
-            className="w-14 h-14 rounded-full overflow-hidden border-[2px] bg-[#0a0a15]"
-            style={{ borderColor: tierColor }}
-          >
-            <img
-              src={playerImageUrl!}
-              alt={bet?.player_name || bet?.selection}
-              className="w-full h-full object-cover object-top"
-              loading="lazy"
-              onError={() => setImgError(true)}
-            />
-          </div>
-        ) : showTeamLogo ? (
-          <div className="w-14 h-14 rounded-full bg-[#0a0a15] border-2 border-[#2a3a4a] flex items-center justify-center p-1.5">
-            <img
-              src={teamLogoUrl!}
-              alt={bet?.team || 'MLB'}
-              className="w-full h-full object-contain"
-              loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          </div>
-        ) : (
-          <div
-            className="w-14 h-14 rounded-full bg-[#0a0a15] border-2 border-[#2a3a4a] flex items-center justify-center"
-            style={{ borderColor: `${tierColor}55` }}
-          >
-            <Target size={20} style={{ color: tierColor }} />
-          </div>
-        )}
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 min-w-0 ml-1">
-        {/* Market pill + selection */}
-        <div className="flex items-center gap-2 mb-1">
-          <div
-            className="flex-shrink-0 px-2 py-0.5 rounded-sm text-[9px] font-black tracking-widest uppercase leading-5"
-            style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}
-          >
-            {marketLabel}
-          </div>
-          <div
-            className="text-[18px] font-black text-white uppercase tracking-wide truncate leading-tight"
-            style={{ fontFamily: '"Rajdhani", sans-serif' }}
-          >
-            {bet?.selection} {lineStr}
+          {/* Info */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="text-[10px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 truncate">
+              {bet.matchup || bet.team_name || 'MLB GAME'}
+            </div>
+            <div className="text-[18px] font-black text-white uppercase leading-tight truncate" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+              {bet?.selection} {lineStr}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 text-[10px] font-black uppercase">
+               <span className="px-1.5 rounded-sm" style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}>{marketLabel}</span>
+               <span className="text-[#3d4f5f] truncate">{bet.market?.replace(/_/g, ' ')}</span>
+            </div>
           </div>
         </div>
 
-        {/* Stat chips */}
-        {hasStats && (
-          <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
-            {allStats.map((s, i) => (
-              <span key={i} className="text-[9px] font-black ">
-                <span className="text-[#3d4f5f]">{s.label} </span>
-                <span style={{ color: s.color || '#8a9ba8' }}>{s.value}</span>
-              </span>
+        {/* Stats Grid */}
+        {allStats.length > 0 && (
+          <div className="grid grid-cols-5 gap-1 mb-3">
+            {allStats.slice(0, 5).map((s, i) => (
+              <div key={i} className="bg-[#0a0a15] border border-[#1a2530] rounded-sm py-1 flex flex-col items-center justify-center">
+                <span className="text-[8px] font-black text-[#5a6a7a] uppercase tracking-widest leading-none mb-0.5">{s.label}</span>
+                <span className="text-[12px] font-black leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', color: s.color || '#fff' }}>{s.value}</span>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Win% + EV + Book */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-black text-[#5a6a7a] ">
-            {formatWinPct(bet.win_confidence)} win
-          </span>
-          {bet.ev_pct !== null && bet.ev_pct !== undefined && (
-            <span
-              className="text-[10px] font-black "
-              style={{ color: Number(bet.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B' }}
-            >
-              {Number(bet.ev_pct) > 0 ? '+' : ''}
-              {Number(bet.ev_pct).toFixed(1)}% EV
-            </span>
-          )}
-          {bet.best_book && (
-            <span className="text-[9px] font-black text-[#3d4f5f]  uppercase">{bet.best_book}</span>
-          )}
+        {/* Metrics Footer */}
+        <div className="flex justify-between items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm p-2 shadow-inner">
+           <div className="text-center px-2 border-r border-[#2a3a4a] flex-1">
+              <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">Odds</div>
+              <div className="text-[16px] font-black text-white leading-none" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatOdds(bet.best_price)}</div>
+           </div>
+           <div className="text-center px-2 border-r border-[#2a3a4a] flex-1">
+              <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">Win%</div>
+              <div className="text-[16px] font-black text-white leading-none" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatWinPct(bet.win_confidence)}</div>
+           </div>
+           {bet.ev_pct != null && (
+            <div className="text-center px-2 border-r border-[#2a3a4a] flex-1">
+                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">EV%</div>
+                <div className="text-[16px] font-black leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', color: Number(bet.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B' }}>
+                  {Number(bet.ev_pct) > 0 ? '+' : ''}{Number(bet.ev_pct).toFixed(1)}%
+                </div>
+            </div>
+           )}
+           <div className="text-center px-2 flex-1">
+              <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">Score</div>
+              <div className="text-[18px] font-black leading-none" style={{ fontFamily: '"Rajdhani", sans-serif', color: tierColor }}>{bet.bet_score}</div>
+           </div>
         </div>
-      </div>
-
-      {/* Right: Score + Odds */}
-      <div className="flex-shrink-0 text-right flex flex-col items-end gap-0.5 ml-1">
-        <div
-          className="text-[22px] font-black leading-none"
-          style={{ fontFamily: '"Rajdhani", sans-serif', color: tierColor }}
-        >
-          {bet.bet_score}
-        </div>
-        <div className="text-[12px] font-black text-slate-300  leading-none">
-          {formatOdds(bet.best_price)}
-        </div>
-        <ChevronRight
-          size={12}
-          className="text-[#3d4f5f] group-hover:text-[#00D4FF] transition-colors"
-        />
       </div>
     </div>
   );
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Game Box — groups all bets for a single matchup
+// Category Carousel Section
 // ──────────────────────────────────────────────────────────────────────────────
-const GameBox = ({
-  matchup,
-  bets,
-  onBetClick,
-}: {
-  matchup: string;
-  bets: any[];
-  onBetClick: (bet: any) => void;
-}) => {
-  const [collapsed, setCollapsed] = useState(false);
-  const [propsExpanded, setPropsExpanded] = useState(false);
-
-  // Extract team names from matchup "MIL @ ATL" format
-  const parts =
-    matchup && matchup.includes('@') ? matchup.split('@').map((s: string) => s.trim()) : [];
-  const awayTeamAbbr = parts[0] || '';
-  const homeTeamAbbr = parts[1] || '';
-  const awayTeamId = awayTeamAbbr ? MLB_TEAM_IDS[awayTeamAbbr.toUpperCase()] : null;
-  const homeTeamId = homeTeamAbbr ? MLB_TEAM_IDS[homeTeamAbbr.toUpperCase()] : null;
-
-  // Partition bets
-  const teamBets: any[] = [];
-  const propBets: any[] = [];
-  for (const bet of bets) {
-    const typeStr = ((bet.market || '') + ' ' + (bet.bet_type || '')).toLowerCase();
-
-    // Accurate detection of props vs game lines
-    const isProp =
-      bet.bet_type === 'prop' ||
-      typeStr.includes('prop') ||
-      typeStr.includes('pitcher') ||
-      typeStr.includes('player') ||
-      typeStr.includes('total_bases') ||
-      typeStr.includes('hits') ||
-      typeStr.includes('rbi') ||
-      typeStr.includes('home_run') ||
-      typeStr.includes('strikeout') ||
-      typeStr.includes('outs_recorded');
-
-    if (isProp) {
-      propBets.push(bet);
-    } else {
-      teamBets.push(bet);
-    }
-  }
-
-  // Best score in this game group
-  const topScore = bets.length > 0 ? Math.max(...bets.map((b) => Number(b.bet_score) || 0)) : 0;
-
-  // Top tier
-  const hasElite = bets.some((b) => b.bet_tier === 'ELITE');
-  const hasStrong = bets.some((b) => b.bet_tier === 'STRONG');
-  const groupTierColor = hasElite ? '#00D4FF' : hasStrong ? '#34D399' : '#3d4f5f';
-
+const CategoryCarousel = ({ title, icon: Icon, bets, onBetClick, rankLabel = 'RANK' }: { title: string; icon?: any; bets: any[]; onBetClick: (bet: any) => void; rankLabel?: string }) => {
+  if (!bets || bets.length === 0) return null;
   return (
-    <div className="relative bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg mx-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-1px_0_rgba(0,0,0,0.4),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] transition-all duration-200 overflow-hidden">
-      {/* Corner screws */}
-      <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] shadow-inner" />
-      <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] shadow-inner" />
-      <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] shadow-inner" />
-      <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] shadow-inner" />
-
-      {/* Left neon edge */}
-      <div
-        className="absolute top-[15%] bottom-[15%] left-[-2px] w-[3px] rounded-r-md opacity-60"
-        style={{ background: groupTierColor, boxShadow: `0 0 8px ${groupTierColor}` }}
-      />
-
-      {/* Game Header */}
-      <button
-        className="w-full flex items-center justify-between px-5 py-3 border-b border-[#2a3a4a] touch-manipulation"
-        onClick={() => setCollapsed((c) => !c)}
-      >
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {/* Team logos */}
-          <div className="flex items-center gap-2">
-            {awayTeamId && (
-              <div className="w-12 h-12 bg-[#0a0a15] border border-[#2a3a4a] rounded-full flex items-center justify-center p-1">
-                <img
-                  src={getTeamLogoUrl(awayTeamId) || ''}
-                  alt={awayTeamAbbr}
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-            <span className="text-[12px] font-black text-[#5a6a7a] font-mono">@</span>
-            {homeTeamId && (
-              <div className="w-12 h-12 bg-[#0a0a15] border border-[#2a3a4a] rounded-full flex items-center justify-center p-1">
-                <img
-                  src={getTeamLogoUrl(homeTeamId) || ''}
-                  alt={homeTeamAbbr}
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0 text-left ml-1">
-            <div
-              className="text-[16px] font-black text-white uppercase tracking-[0.12em] truncate"
-              style={{ fontFamily: '"Rajdhani", sans-serif' }}
-            >
-              {matchup}
-            </div>
-            <div className="text-[10px] font-black text-[#5a6a7a] tracking-widest mt-0.5">
-              {bets.length} BET{bets.length !== 1 ? 'S' : ''} · TOP SCORE:{' '}
-              <span style={{ color: groupTierColor }}>{topScore}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {hasElite && (
-            <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-black tracking-widest uppercase bg-[rgba(0,212,255,0.12)] text-[#00D4FF] border border-[rgba(0,212,255,0.35)]">
-              ELITE
-            </span>
-          )}
-          {collapsed ? (
-            <ChevronDown size={14} className="text-[#5a6a7a]" />
-          ) : (
-            <ChevronUp size={14} className="text-[#5a6a7a]" />
-          )}
-        </div>
-      </button>
-
-      {/* Bet rows */}
-      {!collapsed && (
-        <div className="pb-2">
-          {teamBets.map((bet: any, idx: number) => (
-            <BetRow
-              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
-              bet={bet}
-              rank={idx + 1}
-              onClick={() => onBetClick(bet)}
-            />
-          ))}
-          {propBets.length > 0 && (
-            <div className="px-3 mt-2">
-              <button
-                className="w-full py-2 bg-[#0a0a15] border border-[#2a3a4a] text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm flex items-center justify-center gap-2"
-                onClick={() => setPropsExpanded(!propsExpanded)}
-              >
-                {propsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                {propsExpanded ? 'Hide Props' : `Click to see ${propBets.length} props`}
-              </button>
-              {propsExpanded && (
-                <div className="mt-2 border-t border-[#2a3a4a] pt-2">
-                  {propBets.map((bet: any, idx: number) => (
-                    <BetRow
-                      key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}-prop`}
-                      bet={bet}
-                      rank={teamBets.length + idx + 1}
-                      onClick={() => onBetClick(bet)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-3 px-4">
+        {Icon && <Icon className="text-[#00D4FF]" size={20} />}
+        <h2 className="text-[20px] font-black text-white uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{title}</h2>
+      </div>
+      <div className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+        {bets.map((bet, idx) => (
+          <BetCard key={idx} bet={bet} rank={idx + 1} rankLabel={rankLabel} onClick={() => onBetClick(bet)} />
+        ))}
+      </div>
     </div>
   );
 };
@@ -1148,7 +947,6 @@ const GameBox = ({
 // ──────────────────────────────────────────────────────────────────────────────
 export default function BestBetsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState('ALL');
   const [selectedBet, setSelectedBet] = useState<any | null>(null);
   const [todayStr, setTodayStr] = useState<string>('');
 
@@ -1174,48 +972,87 @@ export default function BestBetsPage() {
   const stats = data?.stats || { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 };
   const isStale = !!(todayStr && officialDate && officialDate < todayStr);
 
-  // Filter bets by structured bet_type/market (mutually exclusive). Substring matching
-  // previously mis-bucketed e.g. "total_bases" props into the TOTAL tab and let one bet
-  // satisfy multiple tabs. Real values: bet_type in {line, prop}; market in
-  // {h2h, run_line, total, hits, total_bases, pitcher_strikeouts, home_run, rbi, ...}.
-  const filteredBets = useMemo(() => {
-    if (filter === 'ALL') return bets;
-    return bets.filter((b: any) => {
-      const type = (b.bet_type || '').toLowerCase();
-      const market = (b.market || '').toLowerCase();
-      switch (filter) {
-        case 'ML':
-          return type === 'line' && (market === 'h2h' || market === 'moneyline');
-        case 'TOTAL':
-          return type === 'line' && market === 'total';
-        case 'RUN LINE':
-          return (
-            type === 'line' &&
-            (market === 'run_line' || market === 'runline' || market === 'spread')
-          );
-        case 'PROPS':
-          return type === 'prop';
-        default:
-          return false;
+  // Categorize
+  const mostLikelyToWin = useMemo(() => {
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline' || b.market === 'run_line' || b.market === 'runline' || b.market === 'spread'))
+      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
+      .slice(0, 3);
+  }, [bets]);
+
+  const bestMoneyLines = useMemo(() => {
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
+      .slice(0, 3);
+  }, [bets]);
+
+  const bestRunLines = useMemo(() => {
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread'))
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
+      .slice(0, 3);
+  }, [bets]);
+
+  const bestTotals = useMemo(() => {
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && b.market === 'total')
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
+      .slice(0, 3);
+  }, [bets]);
+
+  const bestF5 = useMemo(() => {
+    return [...bets]
+      .filter((b) => {
+        const m = (b.market || '').toLowerCase();
+        return m.includes('first_5') || m.includes('f5') || m.includes('1st_half');
+      })
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
+      .slice(0, 3);
+  }, [bets]);
+
+  const mostLikelyToHomer = useMemo(() => {
+    return [...bets]
+      .filter((b) => {
+        const m = (b.market || '').toLowerCase();
+        return m === 'home_run' || m === 'hr' || m.includes('home_run');
+      })
+      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
+      .slice(0, 10);
+  }, [bets]);
+
+  const topPropsByMarket = useMemo(() => {
+    const propsMap = new Map<string, any[]>();
+    bets.forEach((b: any) => {
+      const typeStr = ((b.bet_type || '') + ' ' + (b.market || '')).toLowerCase();
+      // Only props
+      if (b.bet_type === 'prop' || typeStr.includes('prop') || typeStr.includes('pitcher') || typeStr.includes('hits') || typeStr.includes('home_run') || typeStr.includes('strikeout') || typeStr.includes('rbi')) {
+         const m = b.market || 'Other Prop';
+         // Skip home runs here since we have a dedicated section
+         if (m === 'home_run' || m === 'hr') return;
+         
+         if (!propsMap.has(m)) propsMap.set(m, []);
+         propsMap.get(m)!.push(b);
       }
     });
-  }, [bets, filter]);
 
-  // Group bets by matchup, sorted by best bet_score desc. Hooks must run before any
-  // conditional return (the error early-return below) to keep hook order stable.
-  const gameGroups = useMemo(() => {
-    const groups = new Map<string, any[]>();
-    for (const bet of filteredBets) {
-      const key = bet.matchup || 'Unknown Matchup';
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(bet);
+    const groups: { title: string; bets: any[] }[] = [];
+    for (const [market, groupBets] of propsMap.entries()) {
+      const sorted = [...groupBets].sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0)).slice(0, 5);
+      if (sorted.length > 0) {
+          groups.push({ title: `Top ${market.replace(/_/g, ' ')}`, bets: sorted });
+      }
     }
-    return Array.from(groups.entries()).sort((a, b) => {
-      const aTop = a[1].reduce((m: number, x: any) => Math.max(m, Number(x.bet_score) || 0), 0);
-      const bTop = b[1].reduce((m: number, x: any) => Math.max(m, Number(x.bet_score) || 0), 0);
-      return bTop - aTop;
+
+    // Sort groups by the highest bet score in the group
+    groups.sort((a, b) => {
+      const maxA = a.bets[0] ? Number(a.bets[0].bet_score) : 0;
+      const maxB = b.bets[0] ? Number(b.bets[0].bet_score) : 0;
+      return maxB - maxA;
     });
-  }, [filteredBets]);
+    
+    return groups;
+  }, [bets]);
 
   if (error || data?.error) {
     return (
@@ -1361,36 +1198,11 @@ export default function BestBetsPage() {
       </header>
 
       <MlbPremiumGate featureName="Best Bets Recommendations">
-        <div className="w-full max-w-2xl mx-auto">
-          {/* Filter Tabs */}
-          <div
-            className="flex gap-1.5 overflow-x-auto px-3 py-2.5 border-b border-[#1a2530] [&::-webkit-scrollbar]:hidden"
-            style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
-          >
-            {['ALL', 'ML', 'TOTAL', 'RUN LINE', 'PROPS'].map((f) => (
-              <button
-                key={f}
-                onClick={() => {
-                  setFilter(f);
-                  if (navigator.vibrate)
-                    try {
-                      navigator.vibrate(12);
-                    } catch (e) {}
-                }}
-                className={`px-3 py-1.5 rounded-sm border text-[9px] font-black tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase  ${
-                  filter === f
-                    ? 'bg-[#0d1420] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.25)]'
-                    : 'bg-[#0a0a15] text-[#5a6a7a] border-[#2a3a4a] hover:border-[#3d4f5f] hover:text-slate-300'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+        <div className="w-full max-w-5xl mx-auto pt-6">
 
           {/* Stale Warning */}
           {isStale && !isLoading && (
-            <div className="mx-3 mt-3 bg-[#1a1500] border-2 border-amber-500/40 rounded-sm p-3 shadow-[0_0_12px_rgba(245,158,11,0.08)] relative overflow-hidden">
+            <div className="mx-4 mb-4 bg-[#1a1500] border-2 border-amber-500/40 rounded-sm p-3 shadow-[0_0_12px_rgba(245,158,11,0.08)] relative overflow-hidden">
               <div className="absolute left-0 top-0 w-1 h-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
               <div className="pl-2 text-amber-500 text-[11px] font-black tracking-widest uppercase  flex items-center gap-2">
                 <CalendarX size={13} /> Stale Slate — Not Actionable
@@ -1402,38 +1214,45 @@ export default function BestBetsPage() {
           )}
 
           {/* Content */}
-          <div className="flex flex-col gap-3 pt-3 pb-4">
+          <div className="flex flex-col gap-2 pb-4">
             {isLoading && !data ? (
-              <div className="text-center py-16 mx-3 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+              <div className="text-center py-16 mx-4 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
                 <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-3" />
                 <div className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase animate-pulse ">
                   Scanning Database...
                 </div>
               </div>
-            ) : gameGroups.length === 0 ? (
-              <div className="text-center py-14 px-5 mx-3 bg-[#0d1117] border-2 border-dashed border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+            ) : bets.length === 0 ? (
+              <div className="text-center py-14 px-5 mx-4 bg-[#0d1117] border-2 border-dashed border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
                 <div className="mb-3 text-[#3d4f5f] flex justify-center">
-                  {filter === 'ALL' ? <CalendarX size={40} /> : <SearchX size={40} />}
+                  <CalendarX size={40} />
                 </div>
                 <div className="text-[15px] font-black text-white mb-1.5 uppercase tracking-wider ">
-                  {filter === 'ALL' ? 'No Qualifying Bets Today.' : 'No Bets For This Filter.'}
+                  No Qualifying Bets Today.
                 </div>
                 <div className="text-[10px] font-black tracking-widest text-[#5a6a7a] uppercase ">
-                  {filter === 'ALL'
-                    ? 'Model is respecting the market.'
-                    : 'Try a different bet type.'}
+                  Model is respecting the market.
                 </div>
               </div>
             ) : (
-              gameGroups.map(([matchup, gameBets]) => (
-                <GameBox key={matchup} matchup={matchup} bets={gameBets} onBetClick={openModal} />
-              ))
+              <>
+                <CategoryCarousel title="Most Likely to Win" icon={Target} bets={mostLikelyToWin} onBetClick={openModal} />
+                <CategoryCarousel title="Best Money Lines" icon={Zap} bets={bestMoneyLines} onBetClick={openModal} />
+                <CategoryCarousel title="Best Run Lines" icon={Activity} bets={bestRunLines} onBetClick={openModal} />
+                <CategoryCarousel title="Best Over / Unders" icon={TrendingUp} bets={bestTotals} onBetClick={openModal} />
+                {bestF5.length > 0 && <CategoryCarousel title="Best First 5 Innings" bets={bestF5} onBetClick={openModal} />}
+                <CategoryCarousel title="Most Likely to Homer" icon={Zap} bets={mostLikelyToHomer} onBetClick={openModal} />
+                
+                {topPropsByMarket.map((group, idx) => (
+                  <CategoryCarousel key={idx} title={group.title} bets={group.bets} onBetClick={openModal} />
+                ))}
+              </>
             )}
           </div>
 
           {/* Footer */}
-          {gameGroups.length > 0 && (
-            <div className="mx-3 mb-4 px-3 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-center">
+          {bets.length > 0 && (
+            <div className="mx-4 mb-4 px-3 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-center">
               <div className="text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase  leading-relaxed">
                 <span className="text-[#00D4FF]">Analysis Only</span> — Not Betting Advice. Score
                 (0–100) ranks EV + Confidence. EV% = Expected Return Per $1. Bet Responsibly.

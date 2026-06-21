@@ -13,14 +13,16 @@ export const getMlbSupabase = () => {
     const supabaseServiceKey = process.env.MLB_SUPABASE_SERVICE_KEY;
 
     if (!supabaseServiceKey) {
-        // In production this means every RPC call will 401. Surface it loud.
-        console.error(
+        // Throw immediately — returning a client with a dummy key would silently
+        // succeed the client construction but fail every RPC with an opaque 401.
+        // Surface the real cause (missing env var) as early as possible.
+        throw new Error(
             '[MLB Supabase] MLB_SUPABASE_SERVICE_KEY is not set. ' +
-            'Set this env var on Vercel to enable the MLB Analytics API.'
+            'Add this env var on Vercel to enable the MLB Analytics API.'
         );
     }
 
-    return createClient(supabaseUrl, supabaseServiceKey || 'dummy-key-for-builds', {
+    return createClient(supabaseUrl, supabaseServiceKey, {
         auth: {
             persistSession: false,     // server-side only — never hydrate client sessions
             autoRefreshToken: false,
