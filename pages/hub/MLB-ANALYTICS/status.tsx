@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
+import MetalFrame from '../../../src/components/ui/MetalFrame';
+import SectionHeader from '../../../src/components/ui/SectionHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -208,41 +211,7 @@ const TimeAgo = ({
   return <>{`${dd}D AGO`}</>;
 };
 
-const MetalFrame = ({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div
-    className={`relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden ${className}`}
-  >
-    {/* Frame Bolts */}
-    <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] top-2 left-2 pointer-events-none z-0">
-      +
-    </div>
-    <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] top-2 right-2 pointer-events-none z-0">
-      +
-    </div>
-    <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] bottom-2 left-2 pointer-events-none z-0">
-      +
-    </div>
-    <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] bottom-2 right-2 pointer-events-none z-0">
-      +
-    </div>
-    <div className="relative z-10 w-full h-full">{children}</div>
-  </div>
-);
 
-const SectionHeader = ({ icon: Icon, label }: { icon: React.ElementType; label: string }) => (
-  <div className="flex items-center gap-2 mb-3 px-4 md:px-0">
-    <Icon size={16} className="text-[#00D4FF]" aria-hidden="true" />
-    <h2 className="text-[15px] font-extrabold text-[#00D4FF] tracking-[0.15em] m-0 drop-shadow-[0_0_8px_rgba(0,212,255,0.3)] font-['Rajdhani'] uppercase">
-      {label}
-    </h2>
-  </div>
-);
 
 export default function StatusPage() {
   const router = useRouter();
