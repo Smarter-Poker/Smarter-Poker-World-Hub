@@ -239,8 +239,10 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   });
 
   const pitcherMap = new Map<string, any>();
+  const pitcherMapById = new Map<number, any>();
   pitchers.forEach((p: any) => {
     if (p.full_name) pitcherMap.set(normName(p.full_name), p);
+    if (p.player_id) pitcherMapById.set(p.player_id, p);
   });
 
   // agg_pitcher: deduplicate by pitcher_id (take most recent)
