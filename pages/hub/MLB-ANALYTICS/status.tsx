@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import SectionHeader from '../../../src/components/ui/SectionHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -62,8 +61,9 @@ class StatusErrorBoundary extends React.Component<
               </p>
               <button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center gap-2 bg-transparent border border-[#00D4FF] text-[#00D4FF] px-4 py-2 rounded text-xs font-bold tracking-widest uppercase hover:bg-[#00D4FF]/10"
+                className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-xs font-bold tracking-widest uppercase touch-manipulation"
               >
+                <RefreshCw size={14} />
                 Reload
               </button>
             </div>
@@ -202,7 +202,8 @@ const TimeAgo = ({
   const past = new Date(safeDate);
   if (isNaN(past.getTime())) return <>{fallback}</>;
   const serverClientDiff = serverNow ? new Date(serverNow).getTime() - Date.now() : 0;
-  const effectiveNow = nowMs + serverClientDiff;
+  const diff = Number.isNaN(serverClientDiff) ? 0 : serverClientDiff;
+  const effectiveNow = nowMs + diff;
   const diffMs = Math.max(0, effectiveNow - past.getTime());
   const s = Math.round(diffMs / 1000);
   if (s < 45) return <>{'JUST NOW'}</>;
@@ -259,6 +260,28 @@ const alertLevelColor = (level: string | null | undefined): string => {
   };
 
 const EMPTY_OBJ: any = {};
+
+const SkeletonDashboard = () => (
+  <div className="flex flex-col gap-8 mt-6">
+    <MetalFrame className="px-5 py-4 h-[74px] animate-pulse bg-white/5" />
+    <div>
+      <div className="h-6 w-48 bg-white/5 rounded animate-pulse mb-4" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <MetalFrame key={i} className="p-4 h-[76px] animate-pulse bg-white/5" />
+        ))}
+      </div>
+    </div>
+    <div>
+      <div className="h-6 w-48 bg-white/5 rounded animate-pulse mb-4" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <MetalFrame key={i} className="p-5 h-[94px] animate-pulse bg-white/5" />
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 export default function StatusPage() {
   const router = useRouter();

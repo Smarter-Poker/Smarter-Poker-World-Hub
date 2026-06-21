@@ -204,8 +204,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let aggPitchers: any[] = [];
   let slates: any[] = [];
   let games: any[] = [];
+  let teamStats: any[] = [];
   try {
-    [hitters, pitchers, aggPitchers, slates, games] = await Promise.all([
+    [hitters, pitchers, aggPitchers, slates, games, teamStats] = await Promise.all([
       fetchAllRows(() =>
         mlbDb
           .from('v_hitter_profile')
@@ -226,6 +227,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       ),
       fetchAllRows(() =>
         mlbDb.from('fact_games').select('game_pk, first_pitch_utc')
+      ),
+      fetchAllRows(() =>
+        mlbDb.from('v_mlb_standings').select('*')
       ),
     ]);
   } catch (e: any) {
