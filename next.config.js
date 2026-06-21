@@ -625,12 +625,6 @@ const nextConfig = {
         // Phase 3-deploy: commander proxy has been removed to restore
         // the native monolithic routes in /pages/commander/* because
         // the standalone deployment is currently failing/unavailable.
-        // MLB Analytics — proxy /hub/MLB-ANALYTICS to the standalone
-        // mlb-analytics-engine app (its basePath is /hub/MLB-ANALYTICS, so a
-        // single rule covers pages AND _next assets). beforeFiles runs ahead of
-        // the local stale copy, so the live, current dashboard is served.
-        { source: '/hub/MLB-ANALYTICS', destination: 'https://mlb-analytics-engine-smarter-poker.vercel.app/hub/MLB-ANALYTICS' },
-        { source: '/hub/MLB-ANALYTICS/:path*', destination: 'https://mlb-analytics-engine-smarter-poker.vercel.app/hub/MLB-ANALYTICS/:path*' },
       ],
       afterFiles: [],
       // fallback rewrites run LAST — after pages AND public/ files.

@@ -14,6 +14,7 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { teamLogo, type GameCard } from '../../../src/lib/mlb_data';
+import { betScore, tier as getTier, TIER_STYLE, type Tier } from '../../../src/lib/betScore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -92,84 +93,61 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
 
 // ─── Market Grades Panel ──────────────────────────────────────────────────────
 
-type GradeLevel = 'A+' | 'A' | 'B' | 'C' | 'D' | '—';
-
-function edgeToGrade(edgePts: number | null | undefined): GradeLevel {
-  if (edgePts == null) return '—';
-  if (edgePts >= 8) return 'A+';
-  if (edgePts >= 5) return 'A';
-  if (edgePts >= 3) return 'B';
-  if (edgePts >= 1) return 'C';
-  return 'D';
-}
-
-function gradeColor(grade: GradeLevel): string {
-  switch (grade) {
-    case 'A+': return 'text-[#00FF88] drop-shadow-[0_0_6px_rgba(0,255,136,0.5)]';
-    case 'A':  return 'text-[#00D4FF] drop-shadow-[0_0_4px_rgba(0,212,255,0.4)]';
-    case 'B':  return 'text-[#A8FF00] drop-shadow-[0_0_4px_rgba(168,255,0,0.3)]';
-    case 'C':  return 'text-[#FFB800]';
-    case 'D':  return 'text-[#FF4444]';
-    default:   return 'text-[#5a6a7a]';
-  }
-}
-
-function gradeBorder(grade: GradeLevel): string {
-  switch (grade) {
-    case 'A+': return 'border-[#00FF88]/50 bg-[#001a0a]';
-    case 'A':  return 'border-[#00D4FF]/50 bg-[#001218]';
-    case 'B':  return 'border-[#A8FF00]/40 bg-[#0a1000]';
-    case 'C':  return 'border-[#FFB800]/40 bg-[#1a1200]';
-    case 'D':  return 'border-[#FF4444]/30 bg-[#1a0808]';
-    default:   return 'border-[#2a3a4a] bg-[#0a0a15]';
-  }
-}
-
-function recLabel(g: GameCard, market: 'ml' | 'rl' | 'ou'): string {
-  if (market === 'ml') {
-    if (!g.bet) return 'Hold';
-    return `Bet ${g.bet.team.split(' ').pop()}`;
-  }
-  if (market === 'rl') {
-    if (!g.avgHomeSpreadLine) return 'Hold';
-    // Lean toward favourite (negative spread side = team giving runs = favorite)
-    const favSide = g.bet?.selection ?? null;
-    if (!favSide) return 'Hold';
-    const line = favSide === 'home'
-      ? (g.avgHomeSpreadLine != null ? (g.avgHomeSpreadLine > 0 ? `+${g.avgHomeSpreadLine}` : g.avgHomeSpreadLine) : null)
-      : (g.avgAwaySpreadLine != null ? (g.avgAwaySpreadLine > 0 ? `+${g.avgAwaySpreadLine}` : g.avgAwaySpreadLine) : null);
-    return line ? `${g.bet!.team.split(' ').pop()} ${line}` : 'Hold';
-  }
-  // ou
-  if (g.avgTotalLine == null) return 'Hold';
-  // Simple heuristic: if both starters have low ERA and the park is neutral, lean Under
-  // We use modelHome vs marketHome divergence as a proxy for total scoring
-  const modelH = g.modelHome;
-  const mktH = g.marketHome;
-  if (modelH == null || mktH == null) return `O/U ${g.avgTotalLine}`;
-  const diff = Math.abs(modelH - mktH);
-  if (diff < 0.03) return `O/U ${g.avgTotalLine}`;
-  return `O/U ${g.avgTotalLine}`;
-}
-
 function MarketGradesPanel({ g }: { g: GameCard }) {
   const router = useRouter();
-  const mlEdge = g.bet?.edge ?? g.homeEdge;
-  const mlGrade = edgeToGrade(mlEdge);
 
-  // RL grade: use scaled ML edge proxy (model doesn't output explicit RL edge)
-  const rlEdge = mlEdge != null ? mlEdge * 0.6 : null;
-  const rlGrade = edgeToGrade(rlEdge);
+  // ML
+  let mlScore = 0;
+  let mlTier: Tier = 'PASS';
+  let mlRec = 'Hold';
+  let mlSide: 'home' | 'away' | null = null;
+  const isLocked = g.lineupState === 'confirmed';
 
-  // O/U: derived grade — one tier lower than ML when model is present
-  const ouGrade: GradeLevel = g.modelHome != null
-    ? (mlGrade === 'A+' || mlGrade === 'A' ? 'B' : mlGrade === 'B' ? 'C' : '—')
-    : '—';
+  if (g.bet && g.bet.edge != null) {
+    mlScore = betScore(g.bet.winProb ?? 0, g.bet.price ?? -110, { pMarket: g.bet.market, lineupLocked: isLocked });
+    mlTier = getTier(mlScore);
+    mlRec = `Bet ${g.bet.team.split(' ').pop()}`;
+    mlSide = g.bet.selection;
+  } else if (g.modelHome != null && g.marketHome != null) {
+    const homeScore = betScore(g.modelHome, g.avgHomeLine || -110, { pMarket: g.marketHome, lineupLocked: isLocked });
+    const awayScore = betScore(1 - g.modelHome, g.avgAwayLine || -110, { pMarket: 1 - g.marketHome, lineupLocked: isLocked });
+    if (homeScore >= awayScore) {
+      mlScore = homeScore; mlTier = getTier(mlScore); mlRec = `Bet ${g.home.split(' ').pop()}`; mlSide = 'home';
+    } else {
+      mlScore = awayScore; mlTier = getTier(mlScore); mlRec = `Bet ${g.away.split(' ').pop()}`; mlSide = 'away';
+    }
+  }
 
-  const cells: { label: string; grade: GradeLevel; rec: string }[] = [
-    { label: 'Money Line', grade: mlGrade, rec: recLabel(g, 'ml') },
-    { label: 'Run Line',   grade: rlGrade, rec: recLabel(g, 'rl') },
-    { label: 'Over / Under', grade: ouGrade, rec: recLabel(g, 'ou') },
+  // RL
+  let rlScore = 0;
+  let rlTier: Tier = 'PASS';
+  let rlRec = 'Hold';
+  if (mlScore > 0 && mlSide) {
+    rlScore = Math.max(0, Math.round(mlScore * 0.7)); // Scale down proxy
+    rlTier = getTier(rlScore);
+    const line = mlSide === 'home'
+      ? (g.avgHomeSpreadLine != null ? (g.avgHomeSpreadLine > 0 ? `+${g.avgHomeSpreadLine}` : g.avgHomeSpreadLine) : null)
+      : (g.avgAwaySpreadLine != null ? (g.avgAwaySpreadLine > 0 ? `+${g.avgAwaySpreadLine}` : g.avgAwaySpreadLine) : null);
+    const teamName = mlSide === 'home' ? g.home.split(' ').pop() : g.away.split(' ').pop();
+    if (line) rlRec = `${teamName} ${line}`;
+  }
+
+  // O/U
+  let ouScore = 0;
+  let ouTier: Tier = 'PASS';
+  let ouRec = 'Hold';
+  if (g.modelHome != null && g.marketHome != null && g.avgTotalLine) {
+    ouScore = Math.max(0, Math.round(mlScore * 0.6));
+    ouTier = getTier(ouScore);
+    ouRec = `O/U ${g.avgTotalLine}`;
+  } else if (g.avgTotalLine) {
+    ouRec = `O/U ${g.avgTotalLine}`;
+  }
+
+  const cells = [
+    { label: 'Money Line', score: mlScore, tier: mlTier, rec: mlRec },
+    { label: 'Run Line',   score: rlScore, tier: rlTier, rec: rlRec },
+    { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec },
   ];
 
   return (
@@ -178,16 +156,22 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
 
       {/* 3-column grade grid */}
       <div className="grid grid-cols-3 gap-2 mb-3">
-        {cells.map(({ label, grade, rec }) => (
-          <div
-            key={label}
-            className={`flex flex-col items-center justify-center rounded-sm border px-2 py-2.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${gradeBorder(grade)}`}
-          >
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#5a6a7a] mb-1">{label}</span>
-            <span className={`text-[22px] font-black leading-none ${gradeColor(grade)}`}>{grade}</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[#8a9ba8] mt-1 text-center leading-tight">{rec}</span>
-          </div>
-        ))}
+        {cells.map(({ label, score, tier, rec }) => {
+          const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
+          return (
+            <div
+              key={label}
+              className={`flex flex-col items-center justify-center rounded-sm border px-2 py-2.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+            >
+              <span className="text-[9px] font-black uppercase tracking-widest text-[#5a6a7a] mb-1 opacity-70">{label}</span>
+              <div className="flex items-baseline gap-1">
+                <span className={`text-[20px] font-black leading-none ${st.text}`}>{score > 0 ? score : '—'}</span>
+                {score > 0 && <span className="text-[10px] font-bold opacity-60 text-slate-500">/100</span>}
+              </div>
+              <span className={`text-[10px] font-black uppercase tracking-wider mt-1 text-center leading-tight ${st.text} opacity-90`}>{rec}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* See Prop Bets — div button avoids nested <a> inside the parent Link */}
