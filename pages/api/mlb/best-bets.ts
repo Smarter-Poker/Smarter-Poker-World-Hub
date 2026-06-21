@@ -69,9 +69,12 @@ const MLB_TEAM_IDS: Record<string, number> = {
   SF: 137,
   SFG: 137,
   ARI: 109,
+  AZ: 109,
   COL: 115,
   SDP: 135,
   SD: 135,
+  ATH: 133,
+  WSH: 120,
 };
 
 interface BetRow {
@@ -144,6 +147,24 @@ function detectBetType(bet: BetRow): { isTeamBet: boolean; isPitcherProp: boolea
   return { isTeamBet, isPitcherProp };
 }
 
+// Normalize a player name for matching: lowercase, strip accents/diacritics,
+// punctuation, and generational suffixes (Jr/Sr/II/III/IV) so "Jose Ramirez" and
+// "Luis Robert Jr." still match the bet selection text.
+function normName(s: string): string {
+  const decomposed = (s || '').toLowerCase().normalize('NFD');
+  let out = '';
+  for (const ch of decomposed) {
+    const code = ch.charCodeAt(0);
+    if (code >= 768 && code <= 879) continue; // strip combining diacritical marks
+    out += ch;
+  }
+  return out
+    .replace(/[.'`]/g, '')
+    .replace(/\b(jr|sr|ii|iii|iv)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Enrich bets with player_id, team_name, pitcher stats
 // PostgREST caps every response at 1000 rows regardless of .limit(); page through with
 // .range() so the enrichment maps cover the full pool (v_hitter_profile ~1950 rows,
@@ -194,7 +215,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       fetchAllRows(() =>
         mlbDb
           .from('agg_pitcher')
-          .select('pitcher_id, era, w, l, as_of')
+          .select('pitcher_id, era, w, l, so, bb, h, ip, as_of')
           .eq('window_kind', 'fg_season')
           .order('as_of', { ascending: false })
       ),
@@ -203,15 +224,15 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     console.warn('[MLB Best Bets] enrichment fetch error:', e?.message || e);
   }
 
-  // Build lookup maps by full_name (lowercased for fuzzy match)
+  // Build lookup maps by normalized full_name (accent/suffix/punct-insensitive).
   const hitterMap = new Map<string, any>();
   hitters.forEach((h: any) => {
-    if (h.full_name) hitterMap.set(h.full_name.toLowerCase().trim(), h);
+    if (h.full_name) hitterMap.set(normName(h.full_name), h);
   });
 
   const pitcherMap = new Map<string, any>();
   pitchers.forEach((p: any) => {
-    if (p.full_name) pitcherMap.set(p.full_name.toLowerCase().trim(), p);
+    if (p.full_name) pitcherMap.set(normName(p.full_name), p);
   });
 
   // agg_pitcher: deduplicate by pitcher_id (take most recent)
@@ -230,7 +251,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
     if (!isTeamBet && (bet.player_name || bet.selection)) {
       // Extract player name from player_name or selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
-      const lookupName = (bet.player_name || bet.selection || '').toLowerCase().trim();
+      const lookupName = normName(bet.player_name || bet.selection || '');
 
       // Try hitter lookup first
       let playerRecord = hitterMap.get(lookupName);
@@ -270,8 +291,14 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             enriched.pitcher_era = aggData.era;
             enriched.pitcher_wins = aggData.w;
             enriched.pitcher_losses = aggData.l;
+            enriched.pitcher_so = aggData.so ?? null;
+            // WHIP = (BB + H) / IP - agg_pitcher carries the components, not WHIP itself.
+            const ip = Number(aggData.ip);
+            const walksHits = Number(aggData.bb) + Number(aggData.h);
+            enriched.pitcher_whip =
+              ip > 0 && Number.isFinite(walksHits) ? Number((walksHits / ip).toFixed(2)) : null;
           }
-          const pitcherProfileData = pitcherMap.get(playerRecord.full_name?.toLowerCase().trim());
+          const pitcherProfileData = pitcherMap.get(normName(playerRecord.full_name || ''));
           if (pitcherProfileData) {
             enriched.pitcher_fip = pitcherProfileData.fip;
             enriched.pitcher_siera = pitcherProfileData.siera;
