@@ -89,7 +89,7 @@ const fetcher = async (url: string) => {
 const SOURCE_LABEL_MAP: Record<string, string> = {
     daily_predict: 'Predictions',
     odds_api: 'Sportsbook Odds',
-    mlb_api: 'MLB API (schedule/lineups)',
+    mlb_api: 'MLB API (Schedule/Lineups)',
     fangraphs: 'FanGraphs',
     fangraphs_splits: 'FanGraphs Splits',
     statcast: 'Statcast',
@@ -107,6 +107,46 @@ const TIER_META: { key: string; color: string }[] = [
     { key: 'PASS', color: '#64748b' }
 ];
 
+const TimeAgo = ({ dateString, fallback = '' }: { dateString: string | null | undefined, fallback?: string }) => {
+    const [nowMs, setNowMs] = useState(() => Date.now());
+    useEffect(() => {
+        const id = setInterval(() => setNowMs(Date.now()), 15000);
+        return () => clearInterval(id);
+    }, []);
+
+    if (!dateString) return <>{fallback}</>;
+    const safeDate = dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+    const past = new Date(safeDate);
+    if (isNaN(past.getTime())) return <>{fallback}</>;
+    const diffMs = Math.max(0, nowMs - past.getTime());
+    const s = Math.round(diffMs / 1000);
+    if (s < 45) return <>{'Just Now'}</>;
+    const m = Math.round(s / 60);
+    if (m < 60) return <>{`${m}m Ago`}</>;
+    const h = Math.round(m / 60);
+    if (h < 24) return <>{`${h}h Ago`}</>;
+    const dd = Math.round(h / 24);
+    return <>{`${dd}d Ago`}</>;
+};
+
+const MetalFrame = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
+    <div className={`relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden ${className}`}>
+        {/* Frame Bolts */}
+        <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] top-2 left-2 pointer-events-none z-0">+</div>
+        <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] top-2 right-2 pointer-events-none z-0">+</div>
+        <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] bottom-2 left-2 pointer-events-none z-0">+</div>
+        <div className="absolute w-3 h-3 rounded-full border border-[#2a3a4a] bg-[radial-gradient(circle,#5a6a7a_30%,#3a4a5a_70%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center text-[8px] text-[#1a2a3a] bottom-2 right-2 pointer-events-none z-0">+</div>
+        <div className="relative z-10 w-full h-full">{children}</div>
+    </div>
+);
+
+const SectionHeader = ({ icon: Icon, label }: { icon: React.ElementType, label: string }) => (
+    <div className="flex items-center gap-2 mb-3 px-4 md:px-0">
+        <Icon size={16} className="text-[#00D4FF]" aria-hidden="true" />
+        <h2 className="text-[15px] font-extrabold text-[#00D4FF] tracking-[0.15em] m-0 drop-shadow-[0_0_8px_rgba(0,212,255,0.3)] font-['Rajdhani'] uppercase">{label}</h2>
+    </div>
+);
+
 export default function StatusPage() {
     const router = useRouter();
     const { data, error, mutate, isValidating } = useSWR<MLBStatusPayload>('/api/mlb/status', fetcher, {
@@ -116,11 +156,12 @@ export default function StatusPage() {
     });
 
     // Local ticker so relative timestamps ("3M AGO") stay live between fetches.
-    const [nowMs, setNowMs] = useState<number>(() => Date.now());
+    const [nowMs, setNowMs] = useState<number | null>(null);
     // Track manual refreshes so background revalidation doesn't grey the button.
     const [manualRefreshing, setManualRefreshing] = useState(false);
 
     useEffect(() => {
+        setNowMs(Date.now());
         const id = setInterval(() => setNowMs(Date.now()), 15000);
         return () => clearInterval(id);
     }, []);
@@ -141,11 +182,12 @@ export default function StatusPage() {
         : (data && data.ok !== true ? (data.error || 'Failed to load status data.') : null);
 
     const timeAgo = (dateString: string | null | undefined): string => {
-        if (!dateString) return '';
-        const safeDate = dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
-        const past = new Date(safeDate);
+        if (!dateString || !nowMs) return '';
+        const serverClientDiff = data?.serverNow ? new Date(data.serverNow).getTime() - Date.now() : 0;
+        const past = new Date(dateString);
         if (isNaN(past.getTime())) return '';
-        const diffMs = Math.max(0, nowMs - past.getTime());
+        const effectiveNow = nowMs + serverClientDiff;
+        const diffMs = Math.max(0, effectiveNow - past.getTime());
         const s = Math.round(diffMs / 1000);
         if (s < 45) return 'JUST NOW';
         const m = Math.round(s / 60);
@@ -312,7 +354,7 @@ export default function StatusPage() {
                         aria-label="Refresh status data"
                         className={`bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_10px_rgba(0,0,0,0.4)] text-[#00D4FF] px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-[10px] font-extrabold tracking-widest uppercase transition-all hover:bg-[#1a2332] hover:shadow-[0_0_10px_rgba(0,212,255,0.2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${manualRefreshing && isValidating ? 'opacity-50' : ''}`}
                     >
-                        <RefreshCw size={14} className={isValidating ? 'animate-spin' : ''} />
+                        <RefreshCw aria-hidden="true" size={14} className={isValidating ? 'animate-spin' : ''} />
                         Refresh
                     </button>
                 </div>
@@ -361,10 +403,11 @@ export default function StatusPage() {
                         {/* SYSTEM HEALTH */}
                         <div className="mb-8">
                             {sectionHeader(Clock, 'SYSTEM HEALTH')}
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-4 md:px-0">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                             {[
                                 { label: 'LAST REFRESH', val: timeAgo(health.last_refresh) || '-', warn: !!health.is_stale },
                                 { label: 'SLATE AS OF', val: formatDate(health.slate_as_of) || '-', warn: false },
+                                { label: 'AGG MARKET', val: timeAgo(data?.aggAsOf) || '-', warn: false },
                                 { label: 'GAMES IN RUN', val: fmt(health.games_in_run), warn: false },
                                 { label: 'GAMES IN SLATE', val: fmt(health.games_in_slate), warn: false },
                                 { label: 'LIVE RECS', val: fmt(health.total_live_recs), warn: false },
@@ -512,13 +555,14 @@ export default function StatusPage() {
                                     <div className="flex flex-col">
                                         {stages.map((stage, idx) => {
                                             const run = latestRuns?.[stage];
-                                            const status = String(run?.status || 'unknown');
-                                            const isError = ['error', 'failed', 'timeout', 'critical'].includes(status.toLowerCase());
-                                            const glowColor = isError ? 'text-[#FF4444]' : 'text-[#00D4FF]';
-                                            const borderGlowColor = isError ? 'border-[#FF4444]' : 'border-[#00D4FF]';
-                                            const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,68,68,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
+                                            const status = String(run?.status || 'unknown').toLowerCase();
+                                            const isError = ['error', 'failed', 'timeout', 'critical'].includes(status);
+                                            const isSuccess = ['ok', 'success', 'done', 'partial'].includes(status);
+                                            const glowColor = isError ? 'text-[#FF4444]' : (isSuccess ? 'text-[#00D4FF]' : 'text-slate-400');
+                                            const borderGlowColor = isError ? 'border-[#FF4444]' : (isSuccess ? 'border-[#00D4FF]' : 'border-slate-500');
+                                            const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,68,68,0.3)]' : (isSuccess ? 'shadow-[0_0_10px_rgba(0,212,255,0.3)]' : '');
                                             return (
-                                                <div key={stage} className={`px-5 py-4 flex justify-between items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
+                                                <div key={stage} className={`px-4 sm:px-5 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
                                                     <div className="min-w-0">
                                                         <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
                                                         <div className="text-[11px] text-slate-400 mt-1 tracking-wider break-words">
@@ -527,14 +571,14 @@ export default function StatusPage() {
                                                             {run && typeof run.duration_sec === 'number' ? ` • ${run.duration_sec.toFixed(1)}s` : ''}
                                                         </div>
                                                     </div>
-                                                    {run && (
-                                                        <div className="flex gap-2 items-center shrink-0">
+                                                    <div className="flex gap-2 items-center sm:shrink-0 self-end sm:self-auto mt-2 sm:mt-0">
+                                                        {run?.run_ts && (
                                                             <div className="text-slate-400 text-[11px] font-bold tracking-wider hidden sm:block">{timeAgo(run.run_ts)}</div>
-                                                            <div className={`bg-black/50 ${glowColor} border ${borderGlowColor} px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${bgShadow}`}>
-                                                                {status.toUpperCase()}
-                                                            </div>
+                                                        )}
+                                                        <div className={`bg-black/50 ${glowColor} border ${borderGlowColor} px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${bgShadow}`}>
+                                                            {status.toUpperCase()}
                                                         </div>
-                                                    )}
+                                                    </div>
                                                 </div>
                                             );
                                         })}

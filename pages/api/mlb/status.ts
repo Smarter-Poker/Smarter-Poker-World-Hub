@@ -92,12 +92,12 @@ async function handleRequest() {
 
         const rawHealth = (d.health && typeof d.health === 'object') ? d.health : {};
         const health = {
-            minutes_since_refresh: rawHealth.minutes_since_refresh ?? null,
-            last_refresh: rawHealth.last_refresh ?? null,
+            minutes_since_refresh: rawHealth.hours_stale != null ? Math.round(rawHealth.hours_stale * 60) : null,
+            last_refresh: rawHealth.latest_as_of ?? null,
             is_stale: rawHealth.is_stale ?? true,
-            slate_as_of: rawHealth.slate_as_of ?? null,
+            slate_as_of: rawHealth.latest_as_of ?? null,
             games_in_run: rawHealth.games_in_run ?? null,
-            games_in_slate: rawHealth.games_in_slate ?? null,
+            games_in_slate: rawHealth.games_in_run ?? null,
             total_live_recs: rawHealth.total_live_recs ?? null,
             unmodeled_games: rawHealth.unmodeled_games ?? null,
             incoherent_runlines_with_bet: rawHealth.incoherent_runlines_with_bet ?? null

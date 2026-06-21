@@ -55,7 +55,7 @@ function latestBy<T extends Record<string, unknown>>(rows: T[], keyOf: (r: T) =>
   const best = new Map<string, T>();
   for (const r of rows) {
     const k = keyOf(r); const prev = best.get(k);
-    if (!prev || String(r.knowledge_time) > String(prev.knowledge_time)) best.set(k, r);
+    if (!prev || String(r.knowledge_time ?? "") > String(prev.knowledge_time ?? "")) best.set(k, r);
   }
   return [...best.values()];
 }
@@ -466,7 +466,7 @@ export async function getTopProps(date: string, limit = 40) {
     .gte("as_of_ts", `${date}T00:00:00+00:00`).lt("as_of_ts", `${date}T23:59:59+00:00`)
     .order("prob_over", { ascending: false, nullsFirst: false }).limit(400);
   if (!props?.length) return [];
-  const ids = Array.from(new Set(props.map((p) => p.player_id)));
+  const ids = Array.from(new Set(props.map((p) => p.player_id).filter(Boolean)));
   const names = new Map<number, string>();
   const sbNames = getMlbSupabase();
   for (let i = 0; i < ids.length; i += 500) {
@@ -876,15 +876,15 @@ export async function getStandings(): Promise<TeamStanding[]> {
   const sb = getMlbSupabase();
   const [teamsRes, aggRes] = await Promise.all([
     sb.from("dim_teams").select("team_id,name,abbr"),
-    sb.from("agg_team").select("team_id,window_kind,metrics").in("window_kind", ["streaks"]),
+    sb.from("agg_team").select("team_id,window_kind,metrics,as_of").in("window_kind", ["streaks"]).order("as_of", { ascending: false }),
   ]);
 
   const teams = (teamsRes.data ?? []) as { team_id: number; name: string; abbr: string | null }[];
-  const agg = (aggRes.data ?? []) as { team_id: number; window_kind: string; metrics: Record<string, unknown> }[];
+  const agg = (aggRes.data ?? []) as { team_id: number; window_kind: string; metrics: Record<string, unknown>; as_of: string }[];
 
   const streakMap: Record<number, Record<string, unknown>> = {};
   for (const row of agg) {
-    if (row.window_kind === "streaks" && row.metrics?.streaks) {
+    if (row.window_kind === "streaks" && row.metrics?.streaks && !streakMap[row.team_id]) {
       streakMap[row.team_id] = row.metrics.streaks as Record<string, unknown>;
     }
   }
