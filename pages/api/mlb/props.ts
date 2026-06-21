@@ -11,38 +11,27 @@ function chicagoYmd(d: Date): string {
   }).format(d);
 }
 
-// Offset (ms) of `tz` from UTC at the given instant. DST-safe.
-function tzOffsetMs(date: Date, tz: string): number {
-  const dtf = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-  const parts: Record<string, string> = {};
-  for (const p of dtf.formatToParts(date)) parts[p.type] = p.value;
-  const asUTC = Date.UTC(
-    +parts.year,
-    +parts.month - 1,
-    +parts.day,
-    +parts.hour,
-    +parts.minute,
-    +parts.second
-  );
-  return asUTC - date.getTime();
-}
-
-// Half-open UTC range [start, end) covering one Chicago calendar day (YYYY-MM-DD).
-function chicagoDayUtcRange(ymd: string): { startIso: string; endIso: string } {
-  const guess = new Date(`${ymd}T00:00:00Z`);
-  const off = tzOffsetMs(guess, 'America/Chicago');
-  const start = new Date(guess.getTime() - off);
+// Half-open UTC range [start, end) for one slate date (YYYY-MM-DD).
+//
+// IMPORTANT: the analytics engine writes pred_props.as_of_ts as the slate's
+// calendar date at UTC midnight (e.g. "2026-06-21" -> 2026-06-21T00:00:00Z).
+// The slate is therefore keyed by the UTC *date* embedded in as_of_ts, NOT by
+// a Chicago-local instant. The previous chicagoDayUtcRange() shifted that
+// midnight-UTC value back through the Chicago offset (start = 05:00Z), which
+// EXCLUDED the engine's main run and landed the fallback slate a day early
+// (showing yesterday's date with a false "stale" banner). Keying strictly on
+// the UTC day guarantees a row stored at <date>T00:00:00Z falls inside
+// utcDayRange(<date>).
+function utcDayRange(ymd: string): { startIso: string; endIso: string } {
+  const start = new Date(`${ymd}T00:00:00.000Z`);
   const end = new Date(start.getTime() + 24 * 3600 * 1000);
   return { startIso: start.toISOString(), endIso: end.toISOString() };
+}
+
+// Slate date (YYYY-MM-DD) embedded in an as_of_ts value, read in UTC — matches
+// the engine's "date @ UTC midnight" write convention.
+function slateYmdFromTs(ts: string): string {
+  return new Date(ts).toISOString().slice(0, 10);
 }
 
 // ── Over/Under side inference ──────────────────────────────────────────────────
@@ -79,7 +68,7 @@ async function edgeHandler(req: Request) {
 
     // ── Find best available slate (Chicago day) ──────────────────────────
     const today = chicagoYmd(new Date());
-    const { startIso: todayStart, endIso: todayEnd } = chicagoDayUtcRange(today);
+    const { startIso: todayStart, endIso: todayEnd } = utcDayRange(today);
 
     let slateDate = today;
 
@@ -102,11 +91,11 @@ async function edgeHandler(req: Request) {
         .limit(1)
         .maybeSingle();
       if (latestRow?.as_of_ts) {
-        slateDate = chicagoYmd(new Date(latestRow.as_of_ts));
+        slateDate = slateYmdFromTs(latestRow.as_of_ts as string);
       }
     }
 
-    const { startIso, endIso } = chicagoDayUtcRange(slateDate);
+    const { startIso, endIso } = utcDayRange(slateDate);
 
     // ── 1. Fetch priced props for the slate ──────────────────────────────
     // Only rows with a posted price are gradeable / actionable.
@@ -130,9 +119,21 @@ async function edgeHandler(req: Request) {
 
     const rawProps = propsRes.data || [];
 
+    // De-duplicate to one row per (player_id, prop, line), keeping the most
+    // recent as_of_ts. The engine currently writes a single run per slate day
+    // (verified: zero duplicate keys), but an intraday re-price run would
+    // otherwise surface a second card for the same prop — this keeps one card.
+    const dedupMap = new Map<string, any>();
+    for (const r of rawProps) {
+      const key = `${r.player_id}|${r.prop}|${r.line}`;
+      const prev = dedupMap.get(key);
+      if (!prev || String(r.as_of_ts) > String(prev.as_of_ts)) dedupMap.set(key, r);
+    }
+    const slateProps: any[] = [...dedupMap.values()];
+
     // Extract unique player_ids
     const uniquePlayerIds = [
-      ...new Set(rawProps.map((p) => p.player_id).filter((id): id is number => id != null)),
+      ...new Set(slateProps.map((p) => p.player_id).filter((id): id is number => id != null)),
     ];
 
     // ── 2. Fetch Player Profiles & Stats ONLY for relevant players ────────
@@ -178,6 +179,18 @@ async function edgeHandler(req: Request) {
     const dimTeams = teamsRes.data || [];
     const aggPitchers = aggPitcherRes.data || [];
     const aggBatters = aggBatterRes.data || [];
+
+    // Surface partial-data degradation instead of silently rendering Player #<id>.
+    for (const [label, r] of [
+      ['v_hitter_profile', hittersRes],
+      ['v_pitcher_profile', pitchersRes],
+      ['dim_teams', teamsRes],
+      ['agg_pitcher', aggPitcherRes],
+      ['agg_batter', aggBatterRes],
+    ] as const) {
+      if ((r as any).error)
+        console.error(`[API/MLB/Props] ${label} fetch error:`, (r as any).error);
+    }
 
     // ── Team map: team_id → abbr ──────────────────────────────────────────
     const teamMap = new Map<number, string>();
@@ -305,10 +318,11 @@ async function edgeHandler(req: Request) {
     const unresolvedIds = uniquePlayerIds.filter((id) => !playerMap.has(id));
 
     if (unresolvedIds.length > 0) {
-      const { data: fallback } = await mlbDb
+      const { data: fallback, error: fbErr } = await mlbDb
         .from('dim_players')
         .select('player_id, full_name')
         .in('player_id', unresolvedIds);
+      if (fbErr) console.error('[API/MLB/Props] dim_players fallback error:', fbErr);
       for (const f of fallback || []) {
         if (f.player_id && !playerMap.has(f.player_id)) {
           const aggB = aggBatterMap.get(f.player_id);
@@ -370,7 +384,7 @@ async function edgeHandler(req: Request) {
     }
 
     // ── Map + enrich + SCORE props (canonical Bet Score, single source of truth) ──
-    const mappedProps = rawProps.map((p) => {
+    const mappedProps = slateProps.map((p) => {
       const info = playerMap.get(p.player_id) || {
         name: p.player_id ? `Player #${p.player_id}` : 'TBA',
         team: '',
@@ -475,8 +489,8 @@ async function edgeHandler(req: Request) {
       total: mappedProps.length,
       elite: scored.filter((p) => p.bet_tier === 'ELITE').length,
       strong: scored.filter((p) => p.bet_tier === 'STRONG').length,
-      topScore: scored.length ? Math.max(...scored.map((p) => p.bet_score as number)) : 0,
-      topLock: scored.length ? Math.max(...scored.map((p) => p.win_confidence as number)) : 0,
+      topScore: scored.reduce((m, p) => Math.max(m, p.bet_score ?? 0), 0),
+      topLock: scored.reduce((m, p) => Math.max(m, p.win_confidence ?? 0), 0),
     };
 
     return new Response(

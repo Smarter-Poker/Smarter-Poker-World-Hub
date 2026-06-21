@@ -59,6 +59,14 @@ const FILTERS: { label: string; match: (prop: string) => boolean }[] = [
   { label: 'EARNED RUNS', match: (p) => p === 'earned_runs' },
 ];
 
+// ── Sort options (client-side reorder of the already-ranked slate) ──────────────
+const SORTS: { key: string; label: string }[] = [
+  { key: 'SCORE', label: 'Bet Score' },
+  { key: 'EV', label: 'EV%' },
+  { key: 'WIN', label: 'Win%' },
+  { key: 'KELLY', label: 'Kelly' },
+];
+
 // Canonical tier palette — same five tiers / thresholds as src/lib/betScore.ts.
 const TIER_COLOR: Record<string, { color: string; glow: string; bg: string; border: string }> = {
   ELITE: {
@@ -243,6 +251,51 @@ function StatPill({
   );
 }
 
+// ── Header stat chip (slate-level totals) ──────────────────────────────────────
+function HeaderStat({
+  label,
+  value,
+  color,
+  border,
+  bg,
+  glow = false,
+}: {
+  label: string;
+  value: string | number;
+  color: string;
+  border: string;
+  bg: string;
+  glow?: boolean;
+}) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center px-3 py-1.5 rounded-sm border flex-shrink-0 min-w-[64px]"
+      style={{
+        background: bg,
+        borderColor: border,
+        boxShadow: glow ? `0 0 8px ${color}26` : undefined,
+      }}
+    >
+      <span
+        className="text-[10px] font-black tracking-widest uppercase leading-none mb-0.5"
+        style={{ color }}
+      >
+        {label}
+      </span>
+      <span
+        className="text-[20px] font-black leading-none"
+        style={{
+          fontFamily: "'Rajdhani', sans-serif",
+          color,
+          textShadow: glow ? `0 0 6px ${color}80` : undefined,
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
 // ── Detail Modal — rationale + full stats (parity with Best Bets) ──────────────
 function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) {
   useEffect(() => {
@@ -263,7 +316,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
   const isPitcher = isPitcherProp(prop);
   const stats = prop.stats || {};
   const factors: any[] = Array.isArray(prop.score_factors) ? prop.score_factors : [];
-  const isOver = prop.side ? prop.side === 'over' : (prop.isOver ?? true);
+  const isOver = prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
 
   return (
     <div
@@ -563,12 +616,8 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
 // ── Prop Card ────────────────────────────────────────────────────────────────
 const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: any) => void }) => {
   const ts = tierStyle(prop.bet_tier);
-  const isOver = prop.side
-    ? prop.side === 'over'
-    : (prop.isOver ??
-      (prop.model_proj != null &&
-        prop.line != null &&
-        Number(prop.model_proj) > Number(prop.line)));
+  const isOver =
+    prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
   const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
   const isPitcher = isPitcherProp(prop);
   const stats = prop.stats || {};
@@ -689,7 +738,7 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
             MKT LINE
           </span>
           <span className="text-[13px] font-black text-[#FFD700] shrink-0 mr-2">
-            {probToAmericanOdds(prop.p_market != null ? prop.p_market : prop.market_novig_over)}
+            {probToAmericanOdds(prop.p_market)}
           </span>
 
           {Array.isArray(prop.best_lines) && prop.best_lines.length > 0 && (
@@ -797,6 +846,7 @@ export default function PropsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState('ALL');
   const [minScore, setMinScore] = useState(0);
+  const [sort, setSort] = useState('SCORE');
   const [todayStr, setTodayStr] = useState<string>('');
   const [selected, setSelected] = useState<any | null>(null);
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -808,15 +858,26 @@ export default function PropsPage() {
       month: '2-digit',
       day: '2-digit',
     });
-    setTodayStr(formatter.format(new Date()));
+    const sync = () => setTodayStr(formatter.format(new Date()));
+    sync();
+    // Re-evaluate periodically so the stale-slate check rolls over at midnight
+    // even if the tab is left open past midnight Chicago time.
+    const id = setInterval(sync, 5 * 60 * 1000);
+    return () => clearInterval(id);
   }, []);
 
-  const { data, error, isLoading } = useSWR('/api/mlb/props', fetcher, {
+  const { data, error, isLoading, isValidating } = useSWR('/api/mlb/props', fetcher, {
     refreshInterval: 60000,
   });
 
   const props: any[] = data?.props || [];
-  const slateStats = data?.stats || { total: 0, elite: 0, strong: 0, topScore: 0 };
+  const slateStats = data?.stats || {
+    total: 0,
+    elite: 0,
+    strong: 0,
+    topScore: 0,
+    topLock: 0,
+  };
   const isStale = !!(data?.official_date && todayStr && data.official_date < todayStr);
 
   const activeFilter = useMemo(
@@ -824,20 +885,34 @@ export default function PropsPage() {
     [filter]
   );
 
-  const filtered = useMemo(
-    () =>
-      props.filter((p: any) => {
-        if (!activeFilter.match((p.prop_type || p.prop || '').toLowerCase())) return false;
-        if (minScore > 0 && (p.bet_score == null || p.bet_score < minScore)) return false;
-        return true;
-      }),
-    [props, activeFilter, minScore]
-  );
+  const filtered = useMemo(() => {
+    const rows = props.filter((p: any) => {
+      if (!activeFilter.match((p.prop_type || p.prop || '').toLowerCase())) return false;
+      if (minScore > 0 && (p.bet_score == null || p.bet_score < minScore)) return false;
+      return true;
+    });
+    // Sort key — nulls always sort last regardless of direction.
+    const keyFn: Record<string, (p: any) => number | null> = {
+      SCORE: (p) => (p.bet_score != null ? Number(p.bet_score) : null),
+      EV: (p) => (p.ev_pct != null ? Number(p.ev_pct) : null),
+      WIN: (p) => (p.win_confidence != null ? Number(p.win_confidence) : null),
+      KELLY: (p) => (p.kelly_pct != null ? Number(p.kelly_pct) : null),
+    };
+    const getKey = keyFn[sort] || keyFn.SCORE;
+    return [...rows].sort((a, b) => {
+      const av = getKey(a);
+      const bv = getKey(b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return bv - av;
+    });
+  }, [props, activeFilter, minScore, sort]);
 
-  // Reset pagination when the filter/threshold changes.
+  // Reset pagination when the filter/threshold/sort changes.
   useEffect(() => {
     setVisible(PAGE_SIZE);
-  }, [filter, minScore]);
+  }, [filter, minScore, sort]);
 
   const openModal = useCallback((p: any) => setSelected(p), []);
   const closeModal = useCallback(() => setSelected(null), []);
@@ -878,7 +953,7 @@ export default function PropsPage() {
         <div className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)]" />
 
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <Link
               href="/hub/MLB-ANALYTICS"
               className="inline-flex items-center gap-1 text-[#5a6a7a] text-[11px] font-black no-underline tracking-widest uppercase hover:text-[#00D4FF] transition-colors mb-1.5"
@@ -897,62 +972,66 @@ export default function PropsPage() {
                 PROPS
               </span>
             </h1>
-            <p className="m-0 text-[12px] font-black text-[#5a6a7a] tracking-widest uppercase mt-1">
-              Ranked By Bet Score • {data?.official_date || todayStr || '...'}
+            <p className="m-0 text-[12px] font-black text-[#5a6a7a] tracking-widest uppercase mt-1 flex items-center gap-2 flex-wrap">
+              <span>
+                Ranked By {SORTS.find((s) => s.key === sort)?.label || 'Bet Score'} •{' '}
+                {data?.official_date || todayStr || '...'}
+              </span>
+              {isValidating && data && (
+                <span className="inline-flex items-center gap-1 text-[#00D4FF]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-pulse" />
+                  SYNCING
+                </span>
+              )}
             </p>
           </div>
+        </div>
 
-          {/* Stats */}
-          <div className="flex flex-col gap-1.5 items-end flex-shrink-0 mt-1">
-            <div className="flex items-center gap-2 bg-[#0a0a15] border border-[#3d4f5f] px-3 py-1.5 rounded-sm">
-              <span className="text-[11px] font-black text-[#5a6a7a] tracking-widest uppercase">
-                TOTAL
-              </span>
-              <span
-                className="text-[20px] font-black text-white leading-none"
-                style={{ fontFamily: "'Rajdhani', sans-serif" }}
-              >
-                {isLoading && !data ? '—' : slateStats.total}
-              </span>
-            </div>
-            <div
-              className="flex items-center gap-2 bg-[#001a2a] border border-[#00D4FF]/50 px-3 py-1.5 rounded-sm"
-              style={{ boxShadow: '0 0 8px rgba(0,212,255,0.15)' }}
-            >
-              <TrendingUp size={13} className="text-[#00D4FF]" />
-              <span className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase">
-                ELITE
-              </span>
-              <span
-                className="text-[20px] font-black text-[#00D4FF] leading-none"
-                style={{
-                  fontFamily: "'Rajdhani', sans-serif",
-                  textShadow: '0 0 6px rgba(0,212,255,0.5)',
-                }}
-              >
-                {isLoading && !data ? '—' : slateStats.elite}
-              </span>
-            </div>
-            {slateStats.topScore > 0 && (
-              <div
-                className="flex items-center gap-2 bg-[#1a1000] border border-[#FFD700]/50 px-3 py-1.5 rounded-sm"
-                style={{ boxShadow: '0 0 8px rgba(255,215,0,0.15)' }}
-              >
-                <span className="text-[11px] font-black text-[#FFD700] tracking-widest uppercase">
-                  TOP
-                </span>
-                <span
-                  className="text-[20px] font-black text-[#FFD700] leading-none"
-                  style={{
-                    fontFamily: "'Rajdhani', sans-serif",
-                    textShadow: '0 0 6px rgba(255,215,0,0.5)',
-                  }}
-                >
-                  {slateStats.topScore}
-                </span>
-              </div>
-            )}
-          </div>
+        {/* Slate stat strip */}
+        <div
+          className="flex items-stretch gap-2 mt-3 overflow-x-auto pb-0.5"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          <HeaderStat
+            label="TOTAL"
+            value={isLoading && !data ? '—' : slateStats.total}
+            color="#ffffff"
+            border="#3d4f5f"
+            bg="#0a0a15"
+          />
+          <HeaderStat
+            label="ELITE"
+            value={isLoading && !data ? '—' : slateStats.elite}
+            color="#00D4FF"
+            border="rgba(0,212,255,0.5)"
+            bg="#001a2a"
+            glow
+          />
+          <HeaderStat
+            label="STRONG"
+            value={isLoading && !data ? '—' : slateStats.strong}
+            color="#34D399"
+            border="rgba(52,211,153,0.5)"
+            bg="#06140f"
+          />
+          {slateStats.topScore > 0 && (
+            <HeaderStat
+              label="TOP"
+              value={slateStats.topScore}
+              color="#FFD700"
+              border="rgba(255,215,0,0.5)"
+              bg="#1a1000"
+            />
+          )}
+          {slateStats.topLock > 0 && (
+            <HeaderStat
+              label="LOCK"
+              value={`${Math.round(slateStats.topLock)}%`}
+              color="#A78BFA"
+              border="rgba(167,139,250,0.5)"
+              bg="#120a1f"
+            />
+          )}
         </div>
 
         <div className="absolute bottom-0 left-[10%] right-[10%] h-[2px] bg-[#00D4FF] shadow-[0_0_10px_#00D4FF,0_0_20px_rgba(0,212,255,0.4)] rounded-t-full" />
@@ -978,28 +1057,46 @@ export default function PropsPage() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 ml-auto bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm px-2.5 py-1.5 hover:border-[#3d4f5f] transition-colors flex-shrink-0">
-          <span className="text-[11px] font-black uppercase tracking-widest text-[#5a6a7a]">
-            MIN GRADE:
-          </span>
-          <select
-            value={minScore}
-            onChange={(e) => setMinScore(parseInt(e.target.value, 10))}
-            className="bg-transparent border-none text-[13px] font-black text-[#00D4FF] outline-none cursor-pointer uppercase tracking-wider"
-          >
-            <option value="0" className="bg-[#0d1117]">
-              ANY
-            </option>
-            <option value="52" className="bg-[#0d1117]">
-              LEAN+
-            </option>
-            <option value="68" className="bg-[#0d1117]">
-              STRONG+
-            </option>
-            <option value="82" className="bg-[#0d1117]">
-              ELITE
-            </option>
-          </select>
+        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+          <div className="flex items-center gap-1.5 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm px-2.5 py-1.5 hover:border-[#3d4f5f] transition-colors">
+            <span className="text-[11px] font-black uppercase tracking-widest text-[#5a6a7a]">
+              SORT:
+            </span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="bg-transparent border-none text-[13px] font-black text-[#00D4FF] outline-none cursor-pointer uppercase tracking-wider"
+            >
+              {SORTS.map((s) => (
+                <option key={s.key} value={s.key} className="bg-[#0d1117]">
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm px-2.5 py-1.5 hover:border-[#3d4f5f] transition-colors">
+            <span className="text-[11px] font-black uppercase tracking-widest text-[#5a6a7a]">
+              MIN GRADE:
+            </span>
+            <select
+              value={minScore}
+              onChange={(e) => setMinScore(parseInt(e.target.value, 10))}
+              className="bg-transparent border-none text-[13px] font-black text-[#00D4FF] outline-none cursor-pointer uppercase tracking-wider"
+            >
+              <option value="0" className="bg-[#0d1117]">
+                ANY
+              </option>
+              <option value="52" className="bg-[#0d1117]">
+                LEAN+
+              </option>
+              <option value="68" className="bg-[#0d1117]">
+                STRONG+
+              </option>
+              <option value="82" className="bg-[#0d1117]">
+                ELITE
+              </option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -1073,7 +1170,7 @@ export default function PropsPage() {
           <div className="flex flex-col gap-3">
             {shown.map((prop: any, idx: number) => (
               <PropCard
-                key={`prop-${prop.player_id}-${prop.prop}-${prop.line}-${idx}`}
+                key={`prop-${prop.player_id}-${prop.prop}-${prop.line}`}
                 prop={prop}
                 idx={idx}
                 onOpen={openModal}
@@ -1098,7 +1195,8 @@ export default function PropsPage() {
         {!isLoading && filtered.length > 0 && (
           <div className="mt-5 text-center">
             <span className="text-[11px] font-black text-[#3d4f5f] tracking-widest uppercase">
-              SHOWING {shown.length} OF {filtered.length} PROPS · RANKED BY BET SCORE
+              SHOWING {shown.length} OF {filtered.length} PROPS · RANKED BY{' '}
+              {SORTS.find((s) => s.key === sort)?.label || 'Bet Score'}
             </span>
           </div>
         )}
