@@ -419,29 +419,29 @@ export default function StatusPage() {
         </div>
       </div>
 
-      <div className="px-0 md:px-4 py-6 max-w-4xl mx-auto w-full transition-opacity duration-300">
-        <div className="flex justify-end mb-4 px-4 md:px-0">
-          <button
-            onClick={handleRefresh}
-            disabled={manualRefreshing && isValidating}
-            className="bg-[#1a2332] border-[2px] border-[#3d4f5f] text-[#00D4FF] px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-[10px] font-extrabold tracking-widest uppercase hover:bg-[#253040] disabled:opacity-50"
-          >
-            <RefreshCw
-              aria-hidden="true"
-              size={14}
-              className={isValidating ? 'animate-spin' : ''}
-            />
-            Refresh
-          </button>
-        </div>
+      <main className="page-container transition-opacity duration-300">
+        <div className="feed-layout">
+          <div className="feed-column py-6 md:py-12">
+            <div className="flex justify-end mb-4 px-4 md:px-0">
+              <button
+                onClick={handleRefresh}
+                disabled={manualRefreshing && isValidating}
+                className="hex-button px-4 py-3 rounded flex items-center gap-2 cursor-pointer text-xs font-extrabold tracking-widest uppercase touch-manipulation disabled:opacity-50"
+              >
+                <RefreshCw
+                  aria-hidden="true"
+                  size={14}
+                  className={isValidating ? 'animate-spin neon-animated drop-shadow-[0_0_8px_#00D4FF]' : ''}
+                />
+                Refresh
+              </button>
+            </div>
 
-        {isLoading ? (
-          <div className="flex flex-col gap-8 mt-6 px-4 md:px-0">
-            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse"></div>
-          </div>
-        ) : (
-          <>
-            <div className="mb-8">
+            {isLoading ? (
+              <SkeletonDashboard />
+            ) : (
+              <>
+                <div className="mb-8">
               <MetalFrame className="px-5 py-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   {pipeline.hasError ? (
@@ -619,13 +619,13 @@ export default function StatusPage() {
                         </div>
                       </div>
                     ))}
-                    {Number(tierDist.unscored) > 0 && (
+                    {Number(tierDist.UNSCORED) > 0 && (
                       <div className="flex-1 min-w-[80px] text-center rounded-lg border border-[#475569] bg-black/30 py-3 px-2">
-                        <div className="text-[10px] font-bold tracking-[0.12em] mb-1 text-slate-500">
+                        <div className="text-[11px] font-bold tracking-[0.12em] mb-1 text-slate-500">
                           UNSCORED
                         </div>
                         <div className="text-xl font-extrabold font-['Rajdhani'] tabular-nums text-slate-500">
-                          {fmt(tierDist.unscored)}
+                          {fmt(tierDist.UNSCORED)}
                         </div>
                       </div>
                     )}
@@ -637,102 +637,120 @@ export default function StatusPage() {
             <div className="mb-8">
               <SectionHeader icon={Database} label="DATA SOURCE FRESHNESS" />
               <MetalFrame className="p-0">
-                <ul className="flex flex-col m-0 p-0 list-none">
-                  {sources.map((src, idx) => {
-                    const ok = ['ok', 'success', 'done', 'partial'].includes(
-                      String(src?.status || '').toLowerCase()
-                    );
-                    return (
-                      <li
-                        key={src?.source || idx}
-                        className={`flex justify-between items-center px-5 py-3 bg-black/20 gap-3 ${idx !== sources.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
-                      >
-                        <div className="min-w-0">
-                          <div className="text-[13px] font-semibold text-slate-200 tracking-wider truncate">
-                            {SOURCE_LABEL_MAP[src?.source] || src?.source || '-'}
-                          </div>
-                          <div className="text-[10px] text-slate-400 tracking-wider mt-0.5">
-                            <TimeAgo
-                              dateString={src?.pulled_at}
-                              serverNow={data?.serverNow}
-                              fallback="NO PULL DATA"
-                            />
-                          </div>
-                        </div>
-                        <div
-                          className={`bg-black/50 border px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF]' : 'text-[#FF4444] border-[#FF4444]'}`}
+                {sources.length > 0 ? (
+                  <ul className="flex flex-col m-0 p-0 list-none">
+                    {sources.map((src, idx) => {
+                      const ok = ['ok', 'success', 'done', 'partial'].includes(
+                        String(src?.status || '').toLowerCase()
+                      );
+                      return (
+                        <li
+                          key={src?.source || idx}
+                          className={`flex justify-between items-center px-5 py-3 bg-black/20 gap-3 ${idx !== sources.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
                         >
-                          {String(src?.status || 'UNKNOWN').toUpperCase()}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          <div className="min-w-0">
+                            <div className="text-[13px] font-semibold text-slate-200 tracking-wider truncate">
+                              {SOURCE_LABEL_MAP[src?.source] || src?.source || '-'}
+                            </div>
+                            <div className="text-xs text-slate-400 tracking-wider mt-0.5">
+                              <TimeAgo
+                                dateString={src?.pulled_at}
+                                serverNow={data?.serverNow}
+                                fallback="NO PULL DATA"
+                              />
+                            </div>
+                          </div>
+                          <div
+                            className={`bg-black/50 border px-2.5 py-1 rounded text-[11px] font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF]' : 'text-[#FF4444] border-[#FF4444]'}`}
+                          >
+                            {String(src?.status || 'UNKNOWN').toUpperCase()}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-xs uppercase">
+                    No Data Available
+                  </div>
+                )}
               </MetalFrame>
             </div>
 
             <div className="mb-8">
               <SectionHeader icon={Bell} label="RECENT ALERTS" />
               <MetalFrame className="p-0">
-                <ul className="flex flex-col m-0 p-0 list-none">
-                  {alerts.map((al, idx) => (
-                    <li
-                      key={`${al?.id}-${idx}`}
-                      className={`flex justify-between items-start px-5 py-3 bg-black/20 gap-3 ${idx !== alerts.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
-                    >
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-semibold text-slate-200 break-words">
-                          {al?.message || '-'}
-                        </div>
-                        <div className="text-[10px] text-slate-400 tracking-wider mt-0.5 uppercase">
-                          {al?.source || 'SYSTEM'}
-                        </div>
-                      </div>
-                      <div
-                        className={`bg-black/50 border px-2 py-0.5 rounded text-[9px] font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}
+                {alerts.length > 0 ? (
+                  <ul className="flex flex-col m-0 p-0 list-none">
+                    {alerts.map((al, idx) => (
+                      <li
+                        key={`${al?.id}-${idx}`}
+                        className={`flex justify-between items-start px-5 py-3 bg-black/20 gap-3 ${idx !== alerts.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
                       >
-                        {String(al?.level || 'INFO').toUpperCase()}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-semibold text-slate-200 break-words">
+                            {al?.message || '-'}
+                          </div>
+                          <div className="text-xs text-slate-400 tracking-wider mt-0.5 uppercase">
+                            {al?.source || 'SYSTEM'}
+                          </div>
+                        </div>
+                        <div
+                          className={`bg-black/50 border px-2 py-0.5 rounded text-[11px] font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}
+                        >
+                          {String(al?.level || 'INFO').toUpperCase()}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-xs uppercase">
+                    No Alerts Found
+                  </div>
+                )}
               </MetalFrame>
             </div>
 
             <div className="mb-8">
               <SectionHeader icon={CheckCircle2} label="RECENT PIPELINE RUNS" />
               <MetalFrame className="p-0">
-                <ul className="flex flex-col m-0 p-0 list-none">
-                  {stages.map((stage, idx) => {
-                    const run = latestRuns?.[stage];
-                    const status = String(run?.status || 'PENDING').toUpperCase();
-                    const statusColor = ['ERROR', 'FAILED', 'TIMEOUT', 'CRITICAL'].includes(status)
-                      ? 'text-[#FF4444] border-[#FF4444]'
-                      : ['OK', 'SUCCESS', 'DONE'].includes(status)
-                        ? 'text-[#00D4FF] border-[#00D4FF]'
-                        : 'text-[#94a3b8] border-[#475569]';
-                    return (
-                      <li
-                        key={stage}
-                        className={`px-5 py-4 flex justify-between items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
-                      >
-                        <div className="min-w-0">
-                          <div className="text-[15px] font-bold text-white uppercase tracking-wider">
-                            {stage}
-                          </div>
-                          <div className="text-[11px] text-slate-400 mt-1 tracking-wider">
-                            {run?.run_ts ? formatDate(run.run_ts) : '—'}
-                          </div>
-                        </div>
-                        <div
-                          className={`bg-black/50 border px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${statusColor}`}
+                {stages.length > 0 ? (
+                  <ul className="flex flex-col m-0 p-0 list-none">
+                    {stages.map((stage, idx) => {
+                      const run = latestRuns?.[stage];
+                      const status = String(run?.status || 'PENDING').toUpperCase();
+                      const statusColor = ['ERROR', 'FAILED', 'TIMEOUT', 'CRITICAL'].includes(status)
+                        ? 'text-[#FF4444] border-[#FF4444]'
+                        : ['OK', 'SUCCESS', 'DONE'].includes(status)
+                          ? 'text-[#00D4FF] border-[#00D4FF]'
+                          : 'text-[#94a3b8] border-[#475569]';
+                      return (
+                        <li
+                          key={stage}
+                          className={`px-5 py-4 flex justify-between items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
                         >
-                          {status}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          <div className="min-w-0">
+                            <div className="text-[15px] font-bold text-white uppercase tracking-wider">
+                              {stage}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1 tracking-wider">
+                              {run?.run_ts ? formatDate(run.run_ts) : '—'}
+                            </div>
+                          </div>
+                          <div
+                            className={`bg-black/50 border px-2.5 py-1 rounded text-[11px] font-bold tracking-[0.2em] ${statusColor}`}
+                          >
+                            {status}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-xs uppercase">
+                    No Stages Found
+                  </div>
+                )}
               </MetalFrame>
             </div>
 
@@ -764,7 +782,9 @@ export default function StatusPage() {
             </div>
           </>
         )}
-      </div>
+          </div>
+        </div>
+      </main>
       <BottomNavBar />
     </div>
   );
