@@ -887,8 +887,15 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
               {rankLabel} <span style={{ color: tierColor }}>#{rank}</span>
             </div>
           )}
-          {bet.best_book && (
-            <div className="ml-auto text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-0.5">{bet.best_book}</div>
+          {bet.game_time && (
+            <div className="ml-auto text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-0.5">
+              {new Date(bet.game_time).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'America/Chicago',
+                timeZoneName: 'short'
+              })}
+            </div>
           )}
         </div>
 
