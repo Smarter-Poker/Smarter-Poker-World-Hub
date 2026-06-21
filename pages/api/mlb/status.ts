@@ -4,8 +4,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 // Canonical pipeline stage order (engine run sequence). Used to render runs in a
 // sensible order regardless of the order rows come back from the database.
 const STAGE_ORDER = [
-    'heal', 'ingest', 'compute', 'enrich', 'predict', 'push',
-    'grade', 'grade_props', 'track', 'alert', 'export', 'evaluate'
+    'predict', 'push', 'grade', 'grade_props', 'track', 'alert', 'export'
 ];
 
 const CORS_ORIGIN = process.env.VERCEL_ENV === 'production'
@@ -30,7 +29,7 @@ async function edgeHandler(req: Request) {
         return new Response(null, {
             status: 200,
             headers: {
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': CORS_ORIGIN,
                 'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
             }
         });
@@ -85,13 +84,16 @@ async function handleRequest() {
         let errorCount = 0;
         for (const stage of stages) {
             const s = latestRuns[stage]?.status;
-            if (s === 'success' || s === 'ok' || s === 'done') okCount += 1;
+            // 'partial' counts as ok — engine writes it for incremental loads.
+            if (s === 'success' || s === 'ok' || s === 'done' || s === 'partial') okCount += 1;
             else if (s === 'error' || s === 'failed') errorCount += 1;
         }
         const pipelineHasError = errorCount > 0;
 
         const health = (d.health && typeof d.health === 'object') ? d.health : {};
-        const isSystemFresh = !health.is_stale && !pipelineHasError;
+        // isSystemFresh requires we actually have health data (last_refresh present).
+        // An empty health object {} means v_model_health returned no rows — that is NOT fresh.
+        const isSystemFresh = !!health.last_refresh && !health.is_stale && !pipelineHasError;
 
         return new Response(JSON.stringify({
             ok: true,

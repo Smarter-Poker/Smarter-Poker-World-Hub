@@ -8,6 +8,29 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { RefreshCw, Activity, Database, Clock, ServerCrash, CheckCircle2, AlertTriangle, Gauge, Layers, Bell } from 'lucide-react';
 import { logError } from '@/utils/logger';
 
+interface MLBStatusPayload {
+    ok: boolean;
+    error?: string;
+    isSystemFresh: boolean;
+    serverNow: string;
+    accuracy: {
+        brier_ml?: number | null;
+        brier_props?: number | null;
+        games_evaluated?: number | null;
+    };
+    tierDist: Array<{ tier: string; count: number }>;
+    health: {
+        games_in_slate?: number | null;
+        games_in_run?: number | null;
+        live_recs?: number | null;
+        last_refresh: string | null;
+    };
+    stages: Array<{ stage: string; status: string; run_ts: string; row_ct?: number | null }>;
+    sources: Array<{ source: string; status: string; checked_at: string; rows_loaded?: number | null }>;
+    alerts: Array<{ id: number; alert_type: string; level: string; message: string; fired_at: string; created_at?: string | null }>;
+    tableCounts: Record<string, number>;
+}
+
 const fetcher = async (url: string) => {
     try {
         const res = await fetch(url);
@@ -45,7 +68,7 @@ const TIER_META: { key: string; color: string }[] = [
 
 export default function StatusPage() {
     const router = useRouter();
-    const { data, error, mutate, isValidating } = useSWR('/api/mlb/status', fetcher, {
+    const { data, error, mutate, isValidating } = useSWR<MLBStatusPayload>('/api/mlb/status', fetcher, {
         refreshInterval: 30000,           // match API s-maxage=30 so we don't show stale data
         revalidateOnFocus: true,
         onError: (err) => logError('SWR MLB Status', err),
@@ -105,8 +128,9 @@ export default function StatusPage() {
         });
     };
 
-    // Return '—' for null/undefined so health cards don't misleadingly show 0.
-    const fmt = (n: any): string => (n == null) ? '\u2014' : Number(n).toLocaleString();
+    // Return '—' for null/undefined/NaN/Infinity so health cards never show junk values.
+    // Note: fmt(0) correctly returns '0' (zero is a valid and meaningful count).
+    const fmt = (n: any): string => (n == null || (typeof n === 'number' && !isFinite(n)) || isNaN(Number(n))) ? '\u2014' : Number(n).toLocaleString();
 
     const brierColor = (b: any): string => {
         if (typeof b !== 'number' || isNaN(b)) return 'text-slate-400';
@@ -205,12 +229,12 @@ export default function StatusPage() {
                     <h1 className="m-0 text-2xl font-bold uppercase tracking-widest">
                         Data <span className="text-[#00D4FF]" style={{ textShadow: '0 0 10px rgba(0, 212, 255, 0.6)' }}>Status</span>
                     </h1>
-                    {/* Show when last model refresh occurred (not serverNow which is always 'JUST NOW') */}
-                    {(data?.health?.last_refresh || data?.serverNow) && (
+                    {/* Show when last model refresh occurred — only show if we actually have a refresh time, not serverNow which always reads 'JUST NOW' */}
+                    {data?.health?.last_refresh && (
                         <div className="text-[10px] text-slate-500 tracking-widest uppercase mt-0.5 flex items-center gap-2">
-                            <span>Data refreshed {timeAgo(data.health?.last_refresh || data.serverNow)}</span>
+                            <span>Data refreshed {timeAgo(data.health.last_refresh)}</span>
                             {isValidating && !isLoading && (
-                                <span className="text-[#00D4FF] animate-pulse">· updating…</span>
+                                <span className="text-[#00D4FF] animate-pulse">&middot; updating&hellip;</span>
                             )}
                         </div>
                     )}
@@ -269,10 +293,11 @@ export default function StatusPage() {
                                         </div>
                                     </div>
                                 </div>
-                                {typeof health.minutes_since_refresh === 'number' && (
+                                {/* null-safe: minutes_since_refresh comes as numeric from RPC but may be string from direct PostgREST */}
+                                {health.minutes_since_refresh != null && (
                                     <div className="text-right shrink-0">
                                         <div className="text-[10px] text-slate-500 tracking-widest uppercase">Last Refresh</div>
-                                        <div className="text-[13px] font-bold text-[#00D4FF] tabular-nums">{health.minutes_since_refresh < 1 ? '<1' : Math.round(health.minutes_since_refresh)}M</div>
+                                        <div className="text-[13px] font-bold text-[#00D4FF] tabular-nums">{Number(health.minutes_since_refresh) < 1 ? '<1' : Math.round(Number(health.minutes_since_refresh))}M</div>
                                     </div>
                                 )}
                             </div>
@@ -282,22 +307,22 @@ export default function StatusPage() {
                         <div className="mb-8">
                             {sectionHeader(Clock, 'SYSTEM HEALTH')}
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {[
-                                    { label: 'LAST REFRESH', val: timeAgo(health.last_refresh) || '-', warn: false },
-                                    { label: 'SLATE AS OF', val: formatDate(health.slate_as_of) || '-', warn: false },
-                                    { label: 'GAMES IN RUN', val: fmt(health.games_in_run), warn: false },
-                                    { label: 'GAMES IN SLATE', val: fmt(health.games_in_slate), warn: false },
-                                    { label: 'LIVE RECS', val: fmt(health.total_live_recs), warn: false },
-                                    { label: 'UNMODELED GAMES', val: fmt(health.unmodeled_games), warn: Number(health.unmodeled_games) > 0 },
-                                    { label: 'RUNLINE CONFLICTS', val: fmt(health.incoherent_runlines_with_bet), warn: Number(health.incoherent_runlines_with_bet) > 0 }
-                                ].map((item) => (
-                                    <div key={item.label} className={`${panelClass} p-4`}>
-                                        <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
-                                        <div className={`text-lg font-bold tabular-nums break-words ${item.warn ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`} style={{ textShadow: item.warn ? '0 0 10px rgba(255,68,68,0.4)' : '0 0 10px rgba(0,212,255,0.4)' }}>
-                                            {item.val}
-                                        </div>
+                            {[
+                                { label: 'LAST REFRESH', val: timeAgo(health.last_refresh) || '-', warn: !!health.is_stale },
+                                { label: 'SLATE AS OF', val: formatDate(health.slate_as_of) || '-', warn: false },
+                                { label: 'GAMES IN RUN', val: fmt(health.games_in_run), warn: false },
+                                { label: 'GAMES IN SLATE', val: fmt(health.games_in_slate), warn: false },
+                                { label: 'LIVE RECS', val: fmt(health.total_live_recs), warn: false },
+                                { label: 'UNMODELED GAMES', val: fmt(health.unmodeled_games), warn: typeof health.unmodeled_games === 'number' && health.unmodeled_games > 0 },
+                                { label: 'RUNLINE CONFLICTS', val: fmt(health.incoherent_runlines_with_bet), warn: typeof health.incoherent_runlines_with_bet === 'number' && health.incoherent_runlines_with_bet > 0 }
+                            ].map((item) => (
+                                <div key={item.label} className={`${panelClass} p-4`}>
+                                    <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
+                                    <div className={`text-lg font-bold tabular-nums break-words ${item.warn ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`} style={{ textShadow: item.warn ? '0 0 10px rgba(255,68,68,0.4)' : '0 0 10px rgba(0,212,255,0.4)' }}>
+                                        {item.val}
                                     </div>
-                                ))}
+                                </div>
+                            ))}
                             </div>
                         </div>
 
@@ -440,7 +465,7 @@ export default function StatusPage() {
                                             <div className="min-w-0">
                                                 <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
                                                 <div className="text-[11px] text-slate-400 mt-1 tracking-wider break-words">
-                                                    {run?.run_ts ? formatDate(run.run_ts) : 'NO DATA FOUND'}
+                                                    {run?.run_ts ? formatDate(run.run_ts) : '—'}
                                                     {run && typeof run.rows_written === 'number' ? ` • ${fmt(run.rows_written)} rows` : ''}
                                                     {run && typeof run.duration_sec === 'number' ? ` • ${run.duration_sec.toFixed(1)}s` : ''}
                                                 </div>
