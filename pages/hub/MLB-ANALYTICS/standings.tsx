@@ -73,7 +73,7 @@ function fmtThrough(d?: string | null): string {
 }
 
 function teamHref(teamId: number): string {
-  return `/hub/MLB-ANALYTICS/teams/${teamId}`;
+  return `/hub/MLB-ANALYTICS/team/${teamId}`;
 }
 
 // Keyboard activation for clickable table rows (accessibility): Enter / Space.
