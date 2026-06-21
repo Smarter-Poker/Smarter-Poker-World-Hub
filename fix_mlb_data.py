@@ -1,34 +1,44 @@
 import re
 
-with open("src/lib/mlb_data.ts", "r") as f:
+with open('src/lib/mlb_data.ts', 'r') as f:
     code = f.read()
 
-# Replace import "./cached_data" with "./mlb_cached_data"
-code = code.replace('"./cached_data"', '"./mlb_cached_data"')
+# 1. Fix String(r.as_of_ts) string comparison bug
+code = code.replace("String(r.as_of_ts)", 'String(r.as_of_ts ?? "")')
+code = code.replace("String(p.as_of_ts)", 'String(p.as_of_ts ?? "")')
 
-# Fix getSlate wrapper
-code = re.sub(
-    r'export const getSlate = \(date: string\) => \n\s*unstable_cache\(\n\s*async \(d: string\) => _getSlate\(d\),\n\s*\["slate", date\],\n\s*\{ revalidate: 120 \}\n\s*\)\(date\);',
-    r'export const getSlate = async (date: string) => _getSlate(date);',
-    code, flags=re.DOTALL
-)
+# 2. Fix String(r.knowledge_time) string comparison bug
+code = code.replace("String(r.knowledge_time)", 'String(r.knowledge_time ?? "")')
+code = code.replace('String(prev.knowledge_time ?? "")', 'String(prev.knowledge_time ?? "")') # handled in latestBy? Wait, I might have replaced it twice.
+# Let's fix it safely:
+code = code.replace('String(r.knowledge_time ?? "") ?? ""', 'String(r.knowledge_time ?? "")')
+code = code.replace('String(prev.knowledge_time ?? "") ?? ""', 'String(prev.knowledge_time ?? "")')
 
-# Fix getGame wrapper
-code = re.sub(
-    r'export const getGame = \(gamePk: number\) => \n\s*unstable_cache\(\n\s*async \(id: number\) => _getGame\(id\),\n\s*\["game", String\(gamePk\)\],\n\s*\{ revalidate: 120 \}\n\s*\)\(gamePk\);',
-    r'export const getGame = async (gamePk: number) => _getGame(gamePk);',
-    code, flags=re.DOTALL
-)
+# 3. Fix N+1 queries in _getGame
+old_n1 = """  // Paginate dim_players — default cap is 1000; league has 1218+ players
+  const allPlayers: { player_id: number; full_name: string }[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data } = await sb.from("dim_players").select("player_id,full_name").range(offset, offset + 999);
+    if (!data?.length) break;
+    allPlayers.push(...data);
+    if (data.length < 1000) break;
+  }"""
 
-# Fix getPortfolio wrapper
-code = re.sub(
-    r'export const getPortfolio = \(date: string\) => \n\s*unstable_cache\(\n\s*async \(d: string\) => _getPortfolio\(d\),\n\s*\["portfolio", date\],\n\s*\{ revalidate: 120 \}\n\s*\)\(date\);',
-    r'export const getPortfolio = async (date: string) => _getPortfolio(date);',
-    code, flags=re.DOTALL
-)
+new_n1 = """  const batIds = [...new Set((lineups ?? []).map((l: any) => l.player_id))];
+  const allPlayers: { player_id: number; full_name: string }[] = [];
+  if (batIds.length > 0) {
+    const { data } = await sb.from("dim_players").select("player_id,full_name").in("player_id", batIds);
+    if (data) allPlayers.push(...data);
+  }"""
+code = code.replace(old_n1, new_n1)
 
-code = code.replace('import { unstable_cache } from "next/cache";\n', '')
+# 4. Fix getStandings sorting
+# We need to find how getStandings queries agg_team. Let's see if we can find it.
+old_standings = 'sb.from("agg_team").select("team_id,wrc_plus,woba,era,fip").eq("window_kind", "season")'
+new_standings = 'sb.from("agg_team").select("team_id,wrc_plus,woba,era,fip").eq("window_kind", "season").order("as_of", { ascending: false })'
+code = code.replace(old_standings, new_standings)
 
-with open("src/lib/mlb_data.ts", "w") as f:
+with open('src/lib/mlb_data.ts', 'w') as f:
     f.write(code)
 
+print("MLB data fixes applied.")

@@ -197,13 +197,13 @@ async function _getSlate(date: string): Promise<GameCard[]> {
   // latest prediction run per game; keep BOTH sides so an away-side edge is not hidden.
   const latestTs = new Map<number, string>();
   for (const p of preds ?? []) {
-    const t = String(p.as_of_ts);
+    const t = String(p.as_of_ts ?? "");
     if (!latestTs.has(p.game_pk) || t > latestTs.get(p.game_pk)!) latestTs.set(p.game_pk, t);
   }
   type Row = NonNullable<typeof preds>[number];
   const byGame = new Map<number, { home?: Row; away?: Row; bet?: Row }>();
   for (const p of preds ?? []) {
-    if (String(p.as_of_ts) !== latestTs.get(p.game_pk)) continue;
+    if (String(p.as_of_ts ?? "") !== latestTs.get(p.game_pk)) continue;
     const e = byGame.get(p.game_pk) ?? {};
     if (p.selection === "home") e.home = p; else e.away = p;
     if (p.rec?.startsWith("BET")) e.bet = p;
@@ -334,13 +334,11 @@ async function _getGame(gamePk: number) {
   ]);
   const g = fg?.[0];
   const tmap = new Map((teams ?? []).map((t) => [t.team_id, t.name]));
-  // Paginate dim_players — default cap is 1000; league has 1218+ players
+  const batIds = [...new Set((lineups ?? []).map((l: any) => l.player_id))];
   const allPlayers: { player_id: number; full_name: string }[] = [];
-  for (let offset = 0; ; offset += 1000) {
-    const { data } = await sb.from("dim_players").select("player_id,full_name").range(offset, offset + 999);
-    if (!data?.length) break;
-    allPlayers.push(...data);
-    if (data.length < 1000) break;
+  if (batIds.length > 0) {
+    const { data } = await sb.from("dim_players").select("player_id,full_name").in("player_id", batIds);
+    if (data) allPlayers.push(...data);
   }
   const pname = new Map(allPlayers.map((p) => [p.player_id, p.full_name]));
   let venue: string | null = null;
@@ -352,8 +350,8 @@ async function _getGame(gamePk: number) {
     .sort((a, b) => a.batting_order - b.batting_order)
     .map((l) => ({ team_id: l.team_id, batting_order: l.batting_order, player_id: l.player_id, name: pname.get(l.player_id) ?? String(l.player_id) }));
   const mkts = market ?? [];
-  const maxTs = mkts.reduce((m, r) => (String(r.as_of_ts) > m ? String(r.as_of_ts) : m), "");
-  const marketLatest = mkts.filter((r) => String(r.as_of_ts) === maxTs);
+  const maxTs = mkts.reduce((m, r) => (String(r.as_of_ts ?? "") > m ? String(r.as_of_ts ?? "") : m), "");
+  const marketLatest = mkts.filter((r) => String(r.as_of_ts ?? "") === maxTs);
   return {
     gamePk, home_team_id: g?.home_team_id, away_team_id: g?.away_team_id,
     home: tmap.get(g?.home_team_id) ?? "Home", away: tmap.get(g?.away_team_id) ?? "Away",
@@ -506,13 +504,13 @@ async function _getGameFull(gamePk: number) {
     sb.from("pred_game_packages").select("package_json").eq("game_pk", gamePk).limit(1)
   ]);
   const tmap = new Map((teams ?? []).map((t) => [t.team_id, t]));
-  const projLineups = _latestBy((lu ?? []).filter((r: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ ) => !r.confirmed), (r) => `${r.team_id}:${r.batting_order}`, (r) => String(r.knowledge_time)).sort((a, b) => a.batting_order - b.batting_order);
-  const confLineups = _latestBy((lu ?? []).filter((r: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ ) => r.confirmed), (r) => `${r.team_id}:${r.batting_order}`, (r) => String(r.knowledge_time)).sort((a, b) => a.batting_order - b.batting_order);
+  const projLineups = _latestBy((lu ?? []).filter((r: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ ) => !r.confirmed), (r) => `${r.team_id}:${r.batting_order}`, (r) => String(r.knowledge_time ?? "")).sort((a, b) => a.batting_order - b.batting_order);
+  const confLineups = _latestBy((lu ?? []).filter((r: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ ) => r.confirmed), (r) => `${r.team_id}:${r.batting_order}`, (r) => String(r.knowledge_time ?? "")).sort((a, b) => a.batting_order - b.batting_order);
   const lineups = [...projLineups, ...confLineups];
-  const probs = _latestBy(pr ?? [], (r) => String(r.team_id), (r) => String(r.knowledge_time));
-  const maxTs = (rows: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ []) => rows.reduce((m, r) => (String(r.as_of_ts) > m ? String(r.as_of_ts) : m), "");
+  const probs = _latestBy(pr ?? [], (r) => String(r.team_id), (r) => String(r.knowledge_time ?? ""));
+  const maxTs = (rows: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ []) => rows.reduce((m, r) => (String(r.as_of_ts ?? "") > m ? String(r.as_of_ts ?? "") : m), "");
   const mTs = maxTs(mkt ?? []); const pTs = maxTs(props ?? []);
-  const markets = (mkt ?? []).filter((r) => String(r.as_of_ts) === mTs);
+  const markets = (mkt ?? []).filter((r) => String(r.as_of_ts ?? "") === mTs);
   // team analytics (latest window per team)
   const teamWin = (tid: number, w: string) => {
     const rows = (aggteam ?? []).filter((r) => r.team_id === tid && r.window_kind === w);
@@ -522,7 +520,7 @@ async function _getGameFull(gamePk: number) {
   // player profiles for lineup batters + starters
   const batIds = Array.from(new Set(lineups.map((l) => l.player_id)));
   const spIds = probs.map((p) => p.pitcher_id);
-  const propPlayerIds = Array.from(new Set((props ?? []).filter((r) => String(r.as_of_ts) === pTs).map((p) => p.player_id)));
+  const propPlayerIds = Array.from(new Set((props ?? []).filter((r) => String(r.as_of_ts ?? "") === pTs).map((p) => p.player_id)));
   const extraIds = propPlayerIds.filter((id) => !batIds.includes(id) && !spIds.includes(id));
 
   const [{ data: hp }, { data: pp }, { data: extraP }, { data: bAdv }, { data: pAdv }, { data: spSeason }] = await Promise.all([
@@ -601,12 +599,12 @@ async function _getGameFull(gamePk: number) {
     };
   };
   const propsByPlayer = new Map<number, any /* eslint-disable-line @typescript-eslint/no-explicit-any */ []>();
-  for (const p of (props ?? []).filter((r) => String(r.as_of_ts) === pTs)) {
+  for (const p of (props ?? []).filter((r) => String(r.as_of_ts ?? "") === pTs)) {
     if (!propsByPlayer.has(p.player_id)) propsByPlayer.set(p.player_id, []);
     propsByPlayer.get(p.player_id)!.push({ ...p, prob_over: p.prob_over != null ? Number(p.prob_over) : null, blended_over: p.blended_over != null ? Number(p.blended_over) : null });
   }
   const nameOf = (id: number) => hmap.get(id)?.full_name ?? pmap.get(id)?.full_name ?? emap.get(id)?.full_name ?? String(id);
-  const allProps = (props ?? []).filter((r) => String(r.as_of_ts) === pTs)
+  const allProps = (props ?? []).filter((r) => String(r.as_of_ts ?? "") === pTs)
     .map((p) => ({ ...p, name: nameOf(p.player_id), prob_over: p.prob_over != null ? Number(p.prob_over) : null, blended_over: p.blended_over != null ? Number(p.blended_over) : null }))
     .sort((a, b) => (b.prob_over ?? 0) - (a.prob_over ?? 0));
   const gameTotalLine = mktAgg?.[0]?.metrics?.total_line != null ? Number(mktAgg[0].metrics.total_line) : null;

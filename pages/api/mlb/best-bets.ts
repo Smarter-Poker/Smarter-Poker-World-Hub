@@ -203,7 +203,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let pitchers: any[] = [];
   let aggPitchers: any[] = [];
   try {
-    [hitters, pitchers, aggPitchers] = await Promise.all([
+    [hitters, pitchers, aggPitchers, slates] = await Promise.all([
       fetchAllRows(() =>
         mlbDb
           .from('v_hitter_profile')
@@ -218,6 +218,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .select('pitcher_id, era, w, l, so, bb, h, ip, as_of')
           .eq('window_kind', 'fg_season')
           .order('as_of', { ascending: false })
+      ),
+      fetchAllRows(() =>
+        mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')
       ),
     ]);
   } catch (e: any) {
@@ -243,11 +246,15 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     }
   });
 
-  // Remove aggPitcherByName since agg_pitcher doesn't reliably have full_name anymore
+  // Slate map for game_pk
+  const slateMap = new Map<number, any>();
+  slates?.forEach((s: any) => {
+    if (s.game_pk) slateMap.set(s.game_pk, s);
+  });
 
   return betsArr.map((bet: BetRow) => {
     const { isTeamBet, isPitcherProp } = detectBetType(bet);
-    const enriched = { ...bet };
+    let enriched = { ...bet };
 
     if (!isTeamBet && (bet.player_name || bet.selection)) {
       // Extract player name from player_name or selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
@@ -371,6 +378,77 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         if (foundTeamId) {
           enriched.team_id = foundTeamId;
           enriched.team_name = TEAM_ID_TO_NAME[foundTeamId];
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // DATA PENALIZATION (The "Rodriguez-Cruz" Fix)
+    // Globally penalize unproven pitchers (< 25 IP) so the model stops
+    // favoring them or their teams over proven superstars.
+    // ─────────────────────────────────────────────────────────────────
+    let penaltyApplied = false;
+    let pitcherToEvaluateId: number | null = null;
+    let opposingPitcherToEvaluateId: number | null = null;
+
+    if (isPitcherProp && enriched.player_id) {
+      pitcherToEvaluateId = enriched.player_id;
+    } else if (isTeamBet && enriched.game_pk) {
+      const slate = slateMap.get(Number(enriched.game_pk));
+      if (slate) {
+        // Find if they bet on Home or Away
+        let betOnHome = false;
+        let betOnAway = false;
+        const selLow = enriched.selection?.toLowerCase() || '';
+        
+        if (selLow === 'home' || selLow.startsWith('home_')) {
+          betOnHome = true;
+        } else if (selLow === 'away' || selLow.startsWith('away_')) {
+          betOnAway = true;
+        } else if (enriched.matchup && enriched.team_name) {
+          const parts = enriched.matchup.split(' @ ');
+          if (parts.length === 2) {
+            if (enriched.team_name.toLowerCase() === parts[1].toLowerCase()) betOnHome = true;
+            if (enriched.team_name.toLowerCase() === parts[0].toLowerCase()) betOnAway = true;
+          }
+        }
+        
+        // Find the team's pitcher and opposing pitcher
+        if (betOnHome) {
+          const homeP = pitcherMap.get(normName(slate.home_pitcher || ''));
+          const awayP = pitcherMap.get(normName(slate.away_pitcher || ''));
+          if (homeP) pitcherToEvaluateId = homeP.player_id;
+          if (awayP) opposingPitcherToEvaluateId = awayP.player_id;
+        } else if (betOnAway) {
+          const awayP = pitcherMap.get(normName(slate.away_pitcher || ''));
+          const homeP = pitcherMap.get(normName(slate.home_pitcher || ''));
+          if (awayP) pitcherToEvaluateId = awayP.player_id;
+          if (homeP) opposingPitcherToEvaluateId = homeP.player_id;
+        }
+      }
+    }
+
+    if (pitcherToEvaluateId) {
+      const aggP = aggPitcherMap.get(pitcherToEvaluateId);
+      // If the pitcher has fewer than 25 IP, penalize the bet severely
+      if (!aggP || Number(aggP.ip) < 25) {
+        enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 20);
+        if (enriched.bet_tier === 'ELITE') enriched.bet_tier = 'STRONG';
+        if (enriched.bet_tier === 'STRONG' && enriched.bet_score < 68) enriched.bet_tier = 'LEAN';
+        enriched.win_confidence = Math.max(0, (enriched.win_confidence || 0) - 0.15);
+        penaltyApplied = true;
+        enriched.penalty_reason = `Reduced score: Low data sample on starting pitcher (<25 IP).`;
+      }
+    }
+    
+    // Penalize if opposing pitcher is a proven superstar with elite ERA and our pitcher is not
+    if (opposingPitcherToEvaluateId && !penaltyApplied) {
+      const oppP = aggPitcherMap.get(opposingPitcherToEvaluateId);
+      const ourP = pitcherToEvaluateId ? aggPitcherMap.get(pitcherToEvaluateId) : null;
+      if (oppP && oppP.era < 3.00 && Number(oppP.ip) > 50) {
+        if (!ourP || ourP.era > 4.50 || Number(ourP.ip) < 25) {
+           enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
+           enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
         }
       }
     }

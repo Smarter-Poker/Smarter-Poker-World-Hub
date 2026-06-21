@@ -24,11 +24,10 @@ export function TeamGradeBadge({
   const st = TIER_STYLE[t];
   return (
     <span
-      title={`Power rating ${s}/100 — ${t}`}
+      title={`Power rating ${s} — ${t}`}
       className={`inline-flex items-baseline gap-1 rounded-[5px] border px-2 py-0.5 ${st.chip} shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),_inset_0_-1px_2px_rgba(0,0,0,0.3)]`}
     >
       <span className={`text-[17px] font-black leading-none ${st.text}`}>{s}</span>
-      {!compact && <span className="text-[10px] font-bold opacity-60 text-slate-500">/100</span>}
       <span className={`text-[12px] font-black uppercase tracking-wide ${st.text}`}>· {t}</span>
     </span>
   );

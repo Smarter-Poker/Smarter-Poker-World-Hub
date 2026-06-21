@@ -187,11 +187,14 @@ const TimeAgo = ({
   serverNow?: string | null;
   fallback?: string;
 }) => {
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState<number | null>(null);
   useEffect(() => {
+    setNowMs(Date.now());
     const id = setInterval(() => setNowMs(Date.now()), 15000);
     return () => clearInterval(id);
   }, []);
+  
+  if (nowMs === null) return <>{fallback}</>;
 
   if (!dateString) return <>{fallback}</>;
   const safeDate =
@@ -212,6 +215,50 @@ const TimeAgo = ({
 };
 
 
+
+const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+  const safeDate =
+      dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+  const d = new Date(safeDate);
+    if (isNaN(d.getTime())) return String(dateString);
+    return d.toLocaleString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+const fmt = (n: number | string | null | undefined): string => {
+    if (n == null || n === '') return '—';
+  const num = Number(n);
+    if (isNaN(num) || !isFinite(num)) return '—';
+    return num.toLocaleString();
+  };
+
+const brierColor = (val: number | string | null | undefined): string => {
+  const b = Number(val);
+    if (isNaN(b) || val == null || val === '') return 'text-slate-300';
+    if (b < 0.2) return 'text-[#00D4FF]';
+    if (b <= 0.25) return 'text-[#FFB020]';
+    return 'text-[#FF4444]';
+  };
+const fmtBrier = (val: number | string | null | undefined): string => {
+  const b = Number(val);
+    return !isNaN(b) && val != null && val !== '' ? b.toFixed(3) : '-';
+  };
+
+const alertLevelColor = (level: string | null | undefined): string => {
+  const l = String(level || '').toLowerCase();
+    if (l === 'critical' || l === 'error') return 'text-[#FF4444] border-[#FF4444]';
+    if (l === 'warning' || l === 'warn') return 'text-[#FFB020] border-[#FFB020]';
+    return 'text-[#00D4FF] border-[#00D4FF]';
+  };
+
+const EMPTY_OBJ = {};
 
 export default function StatusPage() {
   const router = useRouter();
@@ -329,19 +376,19 @@ export default function StatusPage() {
   }
 
   const isSystemFresh = !!data?.isSystemFresh;
-  const health = data?.health || {};
-  const slate = data?.slate || {};
-  const accuracy = data?.accuracy || {};
-  const tierDist = data?.tierDist || {};
+  const health = data?.health || EMPTY_OBJ;
+  const slate = data?.slate || EMPTY_OBJ;
+  const accuracy = data?.accuracy || EMPTY_OBJ;
+  const tierDist = data?.tierDist || EMPTY_OBJ;
 
   const sources = useMemo(
     () => (Array.isArray(data?.sources) ? data.sources : []),
     [data?.sources]
   );
   const alerts = useMemo(() => (Array.isArray(data?.alerts) ? data.alerts : []), [data?.alerts]);
-  const tableCounts = data?.tableCounts || {};
+  const tableCounts = typeof data?.tableCounts === 'object' && data.tableCounts !== null ? data.tableCounts : EMPTY_OBJ;
   const stages = useMemo(() => (Array.isArray(data?.stages) ? data.stages : []), [data?.stages]);
-  const latestRuns = data?.latestRuns || {};
+  const latestRuns = typeof data?.latestRuns === 'object' && data.latestRuns !== null ? data.latestRuns : EMPTY_OBJ;
   const pipeline = data?.pipeline || { hasError: false, okCount: 0, errorCount: 0, total: 0 };
 
   const wrappedContent = (
@@ -357,7 +404,7 @@ export default function StatusPage() {
             Data <span className="text-[#00D4FF]">Status</span>
           </h1>
           {data?.health?.last_refresh && (
-            <div className="text-[10px] text-slate-400 tracking-widest uppercase mt-0.5 flex items-center gap-2">
+            <div className="text-[10px] text-slate-400 tracking-widest uppercase mt-0.5 flex items-center gap-2 flex-wrap">
               <span>
                 Data refreshed{' '}
                 <TimeAgo dateString={data.health.last_refresh} serverNow={data?.serverNow} />

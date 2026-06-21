@@ -139,28 +139,48 @@ const formatWinPct = (wc: any) => {
   return n.toFixed(1) + '%';
 };
 
+export const toTitleCase = (str: string | null | undefined): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const selectionLabel = (selection: string | null, matchup?: string): string => {
   if (!selection) return '—';
-  const s = selection.toLowerCase();
+  let s = selection.toLowerCase();
+
+  // If selection already contains team names, use it
+  if (s !== 'home' && s !== 'away' && !s.startsWith('home_') && !s.startsWith('away_') && !s.startsWith('over') && !s.startsWith('under')) {
+    return toTitleCase(s.replace(/_/g, ' '));
+  }
+
+  let teamName = '';
   if (s === 'home' || s.startsWith('home_')) {
-    let teamName = 'HOME';
+    teamName = 'Home';
     if (matchup) {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[1];
     }
-    return teamName.toUpperCase();
+    return toTitleCase(teamName);
   }
   if (s === 'away' || s.startsWith('away_')) {
-    let teamName = 'AWAY';
+    teamName = 'Away';
     if (matchup) {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[0];
     }
-    return teamName.toUpperCase();
+    return toTitleCase(teamName);
   }
-  if (s.startsWith('over')) return `OVER ${s.replace(/^over_?/, '')}`.trim();
-  if (s.startsWith('under')) return `UNDER ${s.replace(/^under_?/, '')}`.trim();
-  return selection.replace(/_/g, ' ').toUpperCase();
+  
+  // Totals formatting
+  const matchupScope = matchup ? ` (${matchup})` : '';
+  if (s.startsWith('over')) return toTitleCase(`Over ${s.replace(/^over_?/, '')}`) + matchupScope;
+  if (s.startsWith('under')) return toTitleCase(`Under ${s.replace(/^under_?/, '')}`) + matchupScope;
+  
+  return toTitleCase(selection.replace(/_/g, ' '));
 };
 
 // Canonical tier palette — identical five tiers/colors to src/lib/betScore.ts (TIER_STYLE)
@@ -952,13 +972,29 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
 // ──────────────────────────────────────────────────────────────────────────────
 const CategoryCarousel = ({ title, icon: Icon, bets, onBetClick, rankLabel = 'RANK' }: { title: string; icon?: any; bets: any[]; onBetClick: (bet: any) => void; rankLabel?: string }) => {
   if (!bets || bets.length === 0) return null;
+  
+  // Enforce exactly 3 cards
+  const paddedBets = [...bets];
+  while (paddedBets.length < 3) {
+    paddedBets.push({ isStub: true });
+  }
+
   return (
-    <div className="mb-8">
-      <SectionHeader icon={Icon || Zap} label={title} />
-      <MetalFrame className="p-4 bg-transparent border-0">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {bets.map((bet, idx) => (
-            <BetCard key={idx} bet={bet} rank={idx + 1} rankLabel={rankLabel} onClick={() => onBetClick(bet)} />
+    <div className="mb-8 w-full">
+      <SectionHeader icon={Icon || Zap} label={toTitleCase(title)} />
+      <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
+          {paddedBets.map((bet, idx) => (
+            bet.isStub ? (
+              <div key={`stub-${idx}`} className="flex flex-col items-center justify-center h-full min-h-[140px] bg-[#0a0a15] border border-dashed border-[#2a3a4a]/50 rounded-sm opacity-50 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#1a2a3a]/10 to-transparent"></div>
+                <div className="text-[#3d4f5f] text-[10px] font-black uppercase tracking-widest relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                  AWAITING MODEL
+                </div>
+              </div>
+            ) : (
+              <BetCard key={idx} bet={bet} rank={idx + 1} rankLabel={rankLabel} onClick={() => onBetClick(bet)} />
+            )
           ))}
         </div>
       </MetalFrame>
