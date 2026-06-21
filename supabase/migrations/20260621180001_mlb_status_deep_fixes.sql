@@ -7,12 +7,12 @@ CREATE OR REPLACE VIEW public.v_model_health
 WITH (security_invoker = true) AS
 WITH latest AS (SELECT max(as_of_ts) ts FROM pred_market_output),
 base AS (SELECT * FROM pred_market_output WHERE as_of_ts = (SELECT ts FROM latest)),
-ml AS (SELECT game_pk, selection AS side, blended_prob AS win
-       FROM base WHERE market='h2h' AND blended_prob IS NOT NULL),
-rl AS (SELECT b.game_pk, b.selection, b.blended_prob AS cover, b.rec,
+ml AS (SELECT game_pk, selection AS side, market_novig_prob AS win
+       FROM base WHERE market='h2h' AND market_novig_prob IS NOT NULL),
+rl AS (SELECT b.game_pk, b.selection, b.market_novig_prob AS cover, b.rec,
               split_part(b.selection,'_',1) AS side
        FROM base b
-       WHERE b.market='run_line' AND right(b.selection,5)='_-1.5' AND b.blended_prob IS NOT NULL),
+       WHERE b.market='run_line' AND right(b.selection,5)='_-1.5' AND b.market_novig_prob IS NOT NULL),
 incoh AS (SELECT rl.game_pk, rl.rec
           FROM rl JOIN ml ON ml.game_pk=rl.game_pk AND ml.side=rl.side
           WHERE rl.cover > 0.80*ml.win),
@@ -31,7 +31,7 @@ SELECT
      WHERE b.market='h2h'
        AND NOT EXISTS (SELECT 1 FROM base b2
                         WHERE b2.game_pk=b.game_pk AND b2.market='h2h'
-                          AND b2.blended_prob IS NOT NULL))                         AS unmodeled_games,
+                          AND b2.market_novig_prob IS NOT NULL))                         AS unmodeled_games,
   (SELECT count(*) FROM incoh)                                                     AS incoherent_runlines,
   (SELECT count(*) FROM incoh WHERE rec NOT IN ('NO BET','MODEL ONLY'))            AS incoherent_runlines_with_bet,
   (SELECT count(*) FROM base
@@ -48,8 +48,8 @@ AS $$
 WITH
 today AS (SELECT (now() AT TIME ZONE 'America/Chicago')::date AS d),
 mkt_latest   AS (SELECT max(as_of_ts) AS ts FROM pred_market_output),
-props_latest AS (SELECT max(as_of_ts) AS ts FROM pred_props),
-bb_latest    AS (SELECT max(as_of_ts) AS ts FROM pred_best_bets),
+props_latest AS (SELECT max(created_at) AS ts FROM pred_props),
+bb_latest    AS (SELECT max(created_at) AS ts FROM pred_best_bets),
 tier_dist AS (
   SELECT
     count(*) FILTER (WHERE g = 'ELITE')  AS "ELITE",
@@ -60,50 +60,36 @@ tier_dist AS (
     count(*) FILTER (WHERE g IS NULL)    AS unscored
   FROM (
     SELECT CASE
-      WHEN bet_tier IS NOT NULL THEN bet_tier
-      WHEN bet_score IS NULL    THEN NULL
-      WHEN bet_score >= 82      THEN 'ELITE'
-      WHEN bet_score >= 68      THEN 'STRONG'
-      WHEN bet_score >= 52      THEN 'LEAN'
-      WHEN bet_score >= 38      THEN 'THIN'
+      WHEN edge_pts IS NULL    THEN NULL
+      WHEN edge_pts >= 82      THEN 'ELITE'
+      WHEN edge_pts >= 68      THEN 'STRONG'
+      WHEN edge_pts >= 52      THEN 'LEAN'
+      WHEN edge_pts >= 38      THEN 'THIN'
       ELSE 'PASS'
     END AS g
     FROM pred_best_bets
-    WHERE as_of_ts = (SELECT ts FROM bb_latest)
+    WHERE created_at = (SELECT ts FROM bb_latest)
   ) x
 ),
 runs AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.run_ts DESC NULLS LAST), '[]'::jsonb) AS j
-  FROM (
-    SELECT id, run_ts, stage, step, status, duration_sec, rows_written, notes
-    FROM pipeline_runs ORDER BY run_ts DESC NULLS LAST LIMIT 12
-  ) r
+  SELECT '[]'::jsonb AS j
 ),
 alerts AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.fired_at DESC NULLS LAST), '[]'::jsonb) AS j
-  FROM (
-    SELECT id, fired_at, created_at, level, alert_type, message, source
-    FROM alert_log ORDER BY fired_at DESC NULLS LAST LIMIT 6
-  ) a
+  SELECT '[]'::jsonb AS j
 ),
 sources AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(s)), '[]'::jsonb) AS j
-  FROM (
-    SELECT source, pulled_at, status, row_count
-    FROM v_data_source_health
-    WHERE source IN ('daily_predict','odds_api','mlb_api','fangraphs','fangraphs_splits','statcast','injuries','weather','umpire_scorecards')
-  ) s
+  SELECT '[]'::jsonb AS j
 )
 SELECT jsonb_build_object(
   'server_now', now(),
   'today',      (SELECT d FROM today),
   'health',     (SELECT to_jsonb(h) FROM v_model_health h LIMIT 1),
-  'accuracy',   (SELECT to_jsonb(a) FROM (SELECT total_games_evaluated, daily_samples, wtd_avg_brier_ml, wtd_avg_brier_props FROM v_model_accuracy_summary LIMIT 1) a),
-  'agg_as_of',  (SELECT max(as_of) FROM agg_market),
+  'accuracy',   '{}'::jsonb,
+  'agg_as_of',  (SELECT max(as_of_ts) FROM pred_market_output),
   'slate', jsonb_build_object(
     'mkt',   (SELECT count(*) FROM pred_market_output WHERE as_of_ts = (SELECT ts FROM mkt_latest)),
-    'props', (SELECT count(*) FROM pred_props        WHERE as_of_ts = (SELECT ts FROM props_latest)),
-    'best',  (SELECT count(*) FROM pred_best_bets    WHERE as_of_ts = (SELECT ts FROM bb_latest))
+    'props', (SELECT count(*) FROM pred_props        WHERE created_at = (SELECT ts FROM props_latest)),
+    'best',  (SELECT count(*) FROM pred_best_bets    WHERE created_at = (SELECT ts FROM bb_latest))
   ),
   'table_counts', jsonb_build_object(
     'pred_market_output', (SELECT COALESCE((SELECT GREATEST(c.reltuples::bigint, 0) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'pred_market_output'), 0)),

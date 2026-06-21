@@ -157,11 +157,6 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
   if (!selection) return '—';
   let s = selection.toLowerCase();
 
-  // If selection already contains team names, use it
-  if (s !== 'home' && s !== 'away' && !s.startsWith('home_') && !s.startsWith('away_') && !s.startsWith('over') && !s.startsWith('under')) {
-    return toTitleCase(s.replace(/_/g, ' '));
-  }
-
   let teamName = '';
   if (s === 'home' || s.startsWith('home_')) {
     teamName = 'Home';
@@ -169,7 +164,8 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[1];
     }
-    return toTitleCase(teamName);
+    const suffix = s.replace(/^home_?/, '');
+    return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
   }
   if (s === 'away' || s.startsWith('away_')) {
     teamName = 'Away';
@@ -177,7 +173,8 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[0];
     }
-    return toTitleCase(teamName);
+    const suffix = s.replace(/^away_?/, '');
+    return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
   }
   
   // Totals formatting

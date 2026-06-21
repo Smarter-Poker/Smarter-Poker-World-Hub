@@ -560,7 +560,9 @@ async function edgeHandler(req: Request) {
     const mlbDb = getMlbSupabase();
 
     // Call our RPC
-    const { data, error } = await mlbDb.rpc('get_best_bets_stats');
+    const { data, error } = await mlbDb.rpc('get_best_bets_stats', {
+      p_limit: 1000,
+    });
 
     if (error) {
       console.error('RPC Error, falling back to JS aggregation:', error);
