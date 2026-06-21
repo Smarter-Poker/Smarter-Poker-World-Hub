@@ -1,14 +1,24 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { NextApiRequest, NextApiResponse } from 'next';
 
+// Canonical pipeline stage order (engine run sequence). Used to render runs in a
+// sensible order regardless of the order rows come back from the database.
+const STAGE_ORDER = [
+    'heal', 'ingest', 'compute', 'enrich', 'predict', 'push',
+    'grade', 'grade_props', 'track', 'alert', 'export', 'evaluate'
+];
 
-
-
+const JSON_HEADERS = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
+};
 
 async function edgeHandler(req: Request) {
     if (req.method !== 'GET' && req.method !== 'OPTIONS' && req.method !== 'HEAD') {
-        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+        return new Response(JSON.stringify({ ok: false, error: 'Method Not Allowed' }), {
             status: 405,
-            headers: { 'Content-Type': 'application/json' }
+            headers: JSON_HEADERS
         });
     }
 
@@ -17,132 +27,123 @@ async function edgeHandler(req: Request) {
             status: 200,
             headers: {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
             }
         });
     }
 
-    return handleRequest(req);
+    return handleRequest();
 }
 
-async function handleRequest(req: Request) {
+async function handleRequest() {
     try {
         const mlbDb = getMlbSupabase();
-        
-        // Compute 'today' in America/Chicago
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Chicago',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        const todayStr = formatter.format(new Date());
-        
-        // 24 hours ago
-        const yesterdayDate = new Date();
-        yesterdayDate.setHours(yesterdayDate.getHours() - 24);
-        const last24hIso = yesterdayDate.toISOString();
 
-        // Use the optimized RPC to gather all metrics in a single network trip
-        const { data: rpcData, error: rpcError } = await mlbDb.rpc('get_mlb_status_metrics', {
-            last_24h_iso: last24hIso,
-            today_str: todayStr
-        });
+        // Single hardened RPC returns the full status dashboard payload:
+        // server_now, today, health, slate, accuracy, tier_dist, sources,
+        // alerts, table_counts, pipeline_runs (newest-first), agg_as_of.
+        const { data, error: rpcError } = await mlbDb.rpc('get_status_dashboard');
 
         if (rpcError) throw rpcError;
 
-        const pipelineData = rpcData?.pipeline_runs || [];
-        const latestPred = rpcData?.latest_pred_as_of ? [{ as_of_ts: rpcData.latest_pred_as_of }] : [];
-        const marketBetsCount = rpcData?.market_bets_count || 0;
-        const propsCount = rpcData?.props_count || 0;
-        const bestBetsCount = rpcData?.best_bets_count || 0;
-        const sizeMarket = rpcData?.size_market || 0;
-        const sizeProps = rpcData?.size_props || 0;
-        const sizeFactGames = rpcData?.size_fact_games || 0;
-        const sizeOdds = rpcData?.size_odds || 0;
+        const d: any = data || {};
 
-        const latestRuns: any = {};
-        const stages = ['ingest', 'heal', 'evaluate', 'export', 'alert', 'track', 'grade_props', 'grade', 'push', 'predict'];
-        let hasError = false;
-
-        if (pipelineData) {
-            pipelineData.forEach(run => {
-                if (!latestRuns[run.stage] && stages.includes(run.stage)) {
-                    latestRuns[run.stage] = run;
-                    if (run.status === 'error') {
-                        hasError = true;
-                    }
-                }
-            });
-        }
-        
-        // 2. Freshness
-        let aggMarketAsOf = latestPred?.[0]?.as_of_ts || null;
-        let marketDateStr: string | null = null;
-        let isDateStale = true; // Default to stale if no data exists
-        
-        if (aggMarketAsOf) {
-            const marketDate = new Date(aggMarketAsOf);
-            // If the latest prediction is newer than 24 hours ago, it's fresh
-            if (marketDate >= yesterdayDate) {
-                isDateStale = false;
-            }
-            
-            // Format for UI display (simplifying the ISO string for visual display)
-            if (aggMarketAsOf.includes('T')) {
-                marketDateStr = aggMarketAsOf.split('T')[0];
+        // Build "latest run per stage" from the newest-first pipeline_runs feed.
+        const pipelineRuns: any[] = Array.isArray(d.pipeline_runs) ? d.pipeline_runs : [];
+        const latestRuns: Record<string, any> = {};
+        for (const run of pipelineRuns) {
+            const stage = run?.stage || run?.step;
+            if (stage && !latestRuns[stage]) {
+                latestRuns[stage] = {
+                    step: run?.step ?? stage,
+                    stage,
+                    run_ts: run?.run_ts ?? null,
+                    status: run?.status ?? 'unknown',
+                    duration_sec: typeof run?.duration_sec === 'number' ? run.duration_sec : null,
+                    rows_written: typeof run?.rows_written === 'number' ? run.rows_written : null,
+                    notes: run?.notes ?? null
+                };
             }
         }
 
-        // Determine System Freshness
-        const isSystemFresh = !hasError && !isDateStale;
-        
+        // Order stages: canonical order first, then any unknown stages alphabetically.
+        const presentStages = Object.keys(latestRuns);
+        const stages = presentStages.sort((a, b) => {
+            const ia = STAGE_ORDER.indexOf(a);
+            const ib = STAGE_ORDER.indexOf(b);
+            if (ia === -1 && ib === -1) return a.localeCompare(b);
+            if (ia === -1) return 1;
+            if (ib === -1) return -1;
+            return ia - ib;
+        });
+
+        let okCount = 0;
+        let errorCount = 0;
+        for (const stage of stages) {
+            const s = latestRuns[stage]?.status;
+            if (s === 'success') okCount += 1;
+            else if (s === 'error') errorCount += 1;
+        }
+        const pipelineHasError = errorCount > 0;
+
+        const health = (d.health && typeof d.health === 'object') ? d.health : {};
+        const isSystemFresh = !health.is_stale && !pipelineHasError;
+
         return new Response(JSON.stringify({
-            todayStr,
-            aggMarketAsOf: marketDateStr,
+            ok: true,
+            serverNow: d.server_now ?? null,
+            today: d.today ?? null,
+            aggAsOf: d.agg_as_of ?? null,
             isSystemFresh,
-            marketBetsCount: marketBetsCount || 0,
-            propsCount: propsCount || 0,
-            bestBetsCount: bestBetsCount || 0,
-            latestRuns,
+            pipeline: {
+                okCount,
+                errorCount,
+                total: stages.length,
+                hasError: pipelineHasError
+            },
+            health,
+            slate: (d.slate && typeof d.slate === 'object') ? d.slate : {},
+            accuracy: (d.accuracy && typeof d.accuracy === 'object') ? d.accuracy : {},
+            tierDist: (d.tier_dist && typeof d.tier_dist === 'object') ? d.tier_dist : {},
+            sources: Array.isArray(d.sources) ? d.sources : [],
+            alerts: Array.isArray(d.alerts) ? d.alerts : [],
+            tableCounts: (d.table_counts && typeof d.table_counts === 'object') ? d.table_counts : {},
             stages,
-            tables: {
-                "pred_market_output": sizeMarket || 0,
-                "pred_props": sizeProps || 0,
-                "fact_games": sizeFactGames || 0,
-                "raw_odds": sizeOdds || 0
-            }
+            latestRuns
         }), {
             status: 200,
             headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
+                ...JSON_HEADERS,
+                // Short edge cache: keep a live status view fresh but shield the DB
+                // from abuse. Was 60/300 which could serve a 5-min-stale status page.
+                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
             }
         });
-    } catch (err) {
-        console.error('Error fetching status data:', err);
-        return new Response(JSON.stringify({ error: true }), {
-            status: 500,
+    } catch (err: any) {
+        // Surface a safe, specific error instead of an opaque 500 so the UI can
+        // tell the user which subsystem failed and offer a retry. Returned as 200
+        // (no-store) so the client renders the message rather than throwing.
+        console.error('Error fetching MLB status data:', err);
+        return new Response(JSON.stringify({
+            ok: false,
+            error: (err && err.message) ? String(err.message) : 'Failed to load status data',
+            serverNow: new Date().toISOString()
+        }), {
+            status: 200,
             headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'
+                ...JSON_HEADERS,
+                'Cache-Control': 'no-store'
             }
         });
     }
 }
-
-
-import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         const protocol = req.headers['x-forwarded-proto'] || 'http';
         const host = req.headers.host || 'localhost';
         const url = `${protocol}://${host}${req.url}`;
-        
+
         // Safely convert headers to Record<string, string>
         const safeHeaders: Record<string, string> = {};
         for (const [key, value] of Object.entries(req.headers)) {
@@ -152,24 +153,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 safeHeaders[key] = value;
             }
         }
-        
+
         const requestOptions: RequestInit = {
             method: req.method,
-            headers: safeHeaders,
+            headers: safeHeaders
         };
-        
-        if (req.method !== 'GET' && req.method !== 'HEAD') {
-            requestOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-        }
-        
+
         const request = new Request(url, requestOptions);
         const response = await edgeHandler(request);
-        
+
         res.status(response.status);
         response.headers.forEach((value, key) => {
             res.setHeader(key, value);
         });
-        
+
         const text = await response.text();
         if (text) {
             try {
@@ -182,6 +179,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
     } catch (err: any) {
         console.error('API Polyfill Error:', err);
-        res.status(500).json({ error: err.message || 'Internal Server Error' });
+        res.status(500).json({ ok: false, error: err.message || 'Internal Server Error' });
     }
 }
