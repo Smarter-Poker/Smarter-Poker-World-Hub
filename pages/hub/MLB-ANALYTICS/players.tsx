@@ -66,6 +66,30 @@ const MLB_STRUCTURE: Record<string, Record<string, number[]>> = {
     },
 };
 
+// Static team identity (id -> name/abbr). Used as a graceful fallback so the team
+// selector never shows a raw "Team 111" when the standings feed is briefly unavailable.
+const MLB_TEAMS: Record<number, { name: string; abbr: string }> = {
+    108: { name: 'Los Angeles Angels', abbr: 'LAA' }, 109: { name: 'Arizona Diamondbacks', abbr: 'ARI' },
+    110: { name: 'Baltimore Orioles', abbr: 'BAL' }, 111: { name: 'Boston Red Sox', abbr: 'BOS' },
+    112: { name: 'Chicago Cubs', abbr: 'CHC' }, 113: { name: 'Cincinnati Reds', abbr: 'CIN' },
+    114: { name: 'Cleveland Guardians', abbr: 'CLE' }, 115: { name: 'Colorado Rockies', abbr: 'COL' },
+    116: { name: 'Detroit Tigers', abbr: 'DET' }, 117: { name: 'Houston Astros', abbr: 'HOU' },
+    118: { name: 'Kansas City Royals', abbr: 'KC' }, 119: { name: 'Los Angeles Dodgers', abbr: 'LAD' },
+    120: { name: 'Washington Nationals', abbr: 'WSH' }, 121: { name: 'New York Mets', abbr: 'NYM' },
+    133: { name: 'Athletics', abbr: 'ATH' }, 134: { name: 'Pittsburgh Pirates', abbr: 'PIT' },
+    135: { name: 'San Diego Padres', abbr: 'SD' }, 136: { name: 'Seattle Mariners', abbr: 'SEA' },
+    137: { name: 'San Francisco Giants', abbr: 'SF' }, 138: { name: 'St. Louis Cardinals', abbr: 'STL' },
+    139: { name: 'Tampa Bay Rays', abbr: 'TB' }, 140: { name: 'Texas Rangers', abbr: 'TEX' },
+    141: { name: 'Toronto Blue Jays', abbr: 'TOR' }, 142: { name: 'Minnesota Twins', abbr: 'MIN' },
+    143: { name: 'Philadelphia Phillies', abbr: 'PHI' }, 144: { name: 'Atlanta Braves', abbr: 'ATL' },
+    145: { name: 'Chicago White Sox', abbr: 'CWS' }, 146: { name: 'Miami Marlins', abbr: 'MIA' },
+    147: { name: 'New York Yankees', abbr: 'NYY' }, 158: { name: 'Milwaukee Brewers', abbr: 'MIL' },
+};
+
+// Module-scope stable empty array (avoids re-allocating a fresh [] on every render,
+// which would needlessly invalidate the useMemo below while data is loading).
+const EMPTY_ARRAY: PlayerProfile[] = [];
+
 const fetcher = async (url: string) => {
     try {
         const res = await fetch(url);
@@ -95,19 +119,23 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile, type: 'hitters' |
                 <div className="flex items-center gap-4 z-10 pl-2">
                     <div className="relative w-14 h-14">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img 
-                            src={imgSrc} 
+                        <img
+                            src={imgSrc}
                             onError={() => setImgSrc('/default-avatar.png')}
                             alt={player.full_name}
                             loading="lazy"
+                            width={56}
+                            height={56}
                             className="w-14 h-14 rounded-full object-cover bg-[#0d1117] border-[2px] border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,212,255,0.2)]"
                         />
                         {player.team_id && (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img 
-                                src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`} 
+                            <img
+                                src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`}
                                 alt="Team Logo"
                                 loading="lazy"
+                                width={24}
+                                height={24}
                                 className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0d1117] rounded-full p-0.5 border border-[#3d4f5f] shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                             />
                         )}
@@ -181,7 +209,7 @@ const TeamSelectorRow = ({
     const avg = standing?.team_avg != null ? Number(standing.team_avg).toFixed(3) : null;
     const rpg = standing?.runs_per_game != null ? Number(standing.runs_per_game).toFixed(1) : null;
     const rapg = standing?.runs_allowed_per_game != null ? Number(standing.runs_allowed_per_game).toFixed(1) : null;
-    const teamName = standing?.name ?? `Team ${teamId}`;
+    const teamName = standing?.name ?? MLB_TEAMS[teamId]?.name ?? `Team ${teamId}`;
 
     return (
         <button
@@ -194,6 +222,8 @@ const TeamSelectorRow = ({
                 src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
                 alt={teamName}
                 loading="lazy"
+                width={72}
+                height={72}
                 className="w-[72px] h-[72px] object-contain flex-shrink-0 transition-transform duration-200 group-hover:scale-110 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
             />
 
@@ -259,7 +289,6 @@ export default function PlayersPage() {
         refreshInterval: 3600000, // 1 hour (matches CDN cache)
     });
 
-    const EMPTY_ARRAY: any[] = [];
     const hitters = data?.hitters || EMPTY_ARRAY;
     const pitchers = data?.pitchers || EMPTY_ARRAY;
     const fetchError = error || data?.fetchError || data?.error;
@@ -281,9 +310,15 @@ export default function PlayersPage() {
     const filteredPlayers = useMemo(() => {
         let list: PlayerProfile[] = [];
         if (activeTab === 'Regular Hitters') {
+            // API returns hitters ordered by wRC+ desc (nulls excluded) — keep that ranking.
             list = hitters.filter((h: PlayerProfile) => (h.pa || 0) >= 150);
         } else if (activeTab === 'Bench / Fringe') {
-            list = hitters.filter((h: PlayerProfile) => (h.pa || 0) < 150);
+            // Bench is small-sample territory: rank by volume (PA) so a 4-PA hot streak with
+            // an inflated wRC+ doesn't top the list ahead of established part-timers.
+            list = hitters
+                .filter((h: PlayerProfile) => (h.pa || 0) > 0 && (h.pa || 0) < 150)
+                .slice()
+                .sort((a, b) => (b.pa || 0) - (a.pa || 0));
         } else if (activeTab === 'Pitchers') {
             list = pitchers;
         }
@@ -294,22 +329,33 @@ export default function PlayersPage() {
 
         if (searchQuery.trim()) {
             const query = searchQuery.trim();
-            list = list.filter((p: PlayerProfile) => fuzzyMatch(p.full_name || '', query));
             const lowerQuery = query.toLowerCase();
-            list.sort((a, b) => {
-                const aExact = a.full_name?.toLowerCase().includes(lowerQuery) ? 1 : 0;
-                const bExact = b.full_name?.toLowerCase().includes(lowerQuery) ? 1 : 0;
-                return bExact - aExact;
+            list = list.filter((p: PlayerProfile) => fuzzyMatch(p.full_name || '', query));
+            // Rank by match quality: earliest substring position first (prefix/word-start
+            // beats a mid-string match), then alphabetical for a stable, predictable order.
+            list = list.slice().sort((a, b) => {
+                const an = (a.full_name || '').toLowerCase();
+                const bn = (b.full_name || '').toLowerCase();
+                const ai = an.indexOf(lowerQuery);
+                const bi = bn.indexOf(lowerQuery);
+                const ar = ai === -1 ? Infinity : ai;
+                const br = bi === -1 ? Infinity : bi;
+                if (ar !== br) return ar - br;
+                return an.localeCompare(bn);
             });
         }
-        
-        return list; 
+
+        return list;
     }, [hitters, pitchers, activeTab, searchQuery, selectedTeam]);
 
     const DISPLAY_LIMIT = 50;
     const isCapped = !selectedTeam && filteredPlayers.length > DISPLAY_LIMIT;
     const visiblePlayers = isCapped ? filteredPlayers.slice(0, DISPLAY_LIMIT) : filteredPlayers;
     const suggestions = searchQuery.length >= 3 ? filteredPlayers.slice(0, 5) : [];
+    // Distinct "feed returned nothing" state: data loaded successfully but both directories
+    // are empty. Without this the user is silently dropped into the team selector and then
+    // into per-team dead-ends.
+    const noData = !fetchError && !!data && hitters.length === 0 && pitchers.length === 0;
 
     const tabs = ['Regular Hitters', 'Bench / Fringe', 'Pitchers'];
 
@@ -339,7 +385,7 @@ export default function PlayersPage() {
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
                title="MLB Player Analytics — Stats, Rankings & Predictive Grades | Smarter.Poker" 
-               description="Complete MLB player database with advanced statistics, wRC+, wOBA, FIP, SIERA, and AI-powered predictive grades for every hitter and pitcher in the 2025 season."
+               description="Complete MLB player database with advanced statistics — wRC+, wOBA, FIP, SIERA — plus recent form and model projections for every hitter and pitcher in the 2026 season."
                 canonical="/hub/MLB-ANALYTICS/players"
            
                 ogImage="/images/mlb/og.png"
@@ -348,7 +394,7 @@ export default function PlayersPage() {
                 "@context": "https://schema.org",
                 "@type": "Dataset",
                 "name": "MLB Player Analytics — Advanced Stats & AI Grades",
-                "description": "In-depth MLB player analytics featuring wRC+, wOBA, FIP, SIERA, situational splits, and AI-powered prop ratings for every active player.",
+                "description": "In-depth MLB player analytics featuring wRC+, wOBA, FIP, SIERA, recent form, and model projection rates for every active player.",
                 "url": "https://smarter.poker/hub/MLB-ANALYTICS/players",
                 "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
             }}
@@ -367,7 +413,7 @@ export default function PlayersPage() {
                        Player Database
                    </h1>
                    <p className="mt-2 text-sm text-slate-400 font-bold tracking-wide">
-                       Complete profiles for every MLB hitter and pitcher. Access situational splits, recent form, and advanced metrics.
+                       Complete profiles for every MLB hitter and pitcher. Explore recent form, model projections, and advanced metrics.
                    </p>
                </div>
 
@@ -376,9 +422,10 @@ export default function PlayersPage() {
                        <Search size={18} style={{ filter: 'drop-shadow(0 0 2px rgba(0,212,255,0.5))' }} />
                    </div>
                    <input 
-                       type="text" 
+                       type="text"
                        inputMode="search"
-                       placeholder="SEARCH PLAYERS BY NAME..." 
+                       aria-label="Search players by name"
+                       placeholder="SEARCH PLAYERS BY NAME..."
                        value={searchQuery}
                        onFocus={() => setShowSuggestions(true)}
                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -413,7 +460,7 @@ export default function PlayersPage() {
                                >
                                    {p.team_id ? (
                                        // eslint-disable-next-line @next/next/no-img-element
-                                       <img src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`} className="w-8 h-8 object-contain drop-shadow-md" alt="Team" loading="lazy" />
+                                       <img src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`} className="w-8 h-8 object-contain drop-shadow-md" alt="Team" loading="lazy" width={32} height={32} />
                                    ) : (
                                        <div className="w-8 h-8 rounded-full bg-[#3d4f5f]" />
                                    )}
@@ -431,9 +478,10 @@ export default function PlayersPage() {
 
                <div className="flex flex-col md:flex-row gap-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
                    {tabs.map(tab => (
-                       <button 
+                       <button
                            key={tab}
                            onClick={() => { setActiveTab(tab); }}
+                           aria-pressed={activeTab === tab}
                            className={`w-full md:w-auto px-4 py-3 md:py-2 rounded-md font-extrabold text-[13px] md:text-[11px] uppercase tracking-widest whitespace-nowrap transition-all ${
                                activeTab === tab 
                                    ? 'bg-gradient-to-b from-[#00D4FF]/20 to-[#1a2332] border-[2px] border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)]' 
@@ -473,6 +521,19 @@ export default function PlayersPage() {
                                     <div className="w-8 h-8 rounded-full bg-[#3d4f5f]"></div>
                                 </div>
                             ))}
+                        </div>
+                    ) : noData ? (
+                        /* ── NO DATA: feed returned zero players (distinct from loading) ── */
+                        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center mt-4">
+                            <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+                                <Activity size={28} className="text-[#3d4f5f]" />
+                            </div>
+                            <div className="text-slate-400 font-extrabold text-sm tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                No Player Data Available
+                            </div>
+                            <div className="text-slate-600 font-bold text-[11px] tracking-wide mt-2">
+                                The analytics feed returned no players. Please check back shortly.
+                            </div>
                         </div>
                     ) : !searchQuery && !selectedTeam ? (
                         /* ── TEAM SELECTOR: League / Division Grouped ── */
@@ -539,9 +600,11 @@ export default function PlayersPage() {
                                         src={`https://www.mlbstatic.com/team-logos/${selectedTeam}.svg`}
                                         alt="Selected Team"
                                         className="w-10 h-10 object-contain" loading="lazy"
+                                        width={40}
+                                        height={40}
                                     />
                                     <span className="text-white font-extrabold text-lg uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                        {standingsMap.get(selectedTeam)?.name ?? `Team ${selectedTeam}`}
+                                        {standingsMap.get(selectedTeam)?.name ?? MLB_TEAMS[selectedTeam]?.name ?? `Team ${selectedTeam}`}
                                     </span>
                                     <button
                                         onClick={() => { setSelectedTeam(null); setSearchQuery(''); }}

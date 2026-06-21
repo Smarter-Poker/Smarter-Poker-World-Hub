@@ -31,28 +31,60 @@ async function edgeHandler(req: Request) {
       return all;
     };
 
+    // Hitters: only rows that have actually batted (pa > 0). This excludes the ~1100
+    // pitchers/non-batters that exist in v_hitter_profile with NULL wRC+ and would
+    // otherwise float to the TOP of the directory under Postgres' default
+    // "DESC => NULLS FIRST" ordering. nullsFirst:false is a belt-and-suspenders guard.
+    // player_id is a deterministic tiebreak so .range() pagination is stable across pages.
+    const buildHitters = () =>
+      mlbDb
+        .from('v_hitter_profile')
+        .select('player_id, full_name, team_id, wrc_plus, woba, pa')
+        .gt('pa', 0)
+        .order('wrc_plus', { ascending: false, nullsFirst: false })
+        .order('pa', { ascending: false, nullsFirst: false })
+        .order('player_id', { ascending: true });
+
+    // Pitchers: only rows that have faced a batter (bf > 0). Lower FIP is better.
+    const buildPitchers = () =>
+      mlbDb
+        .from('v_pitcher_profile')
+        .select('player_id, full_name, team_id, fip, siera, bf')
+        .gt('bf', 0)
+        .order('fip', { ascending: true, nullsFirst: false })
+        .order('bf', { ascending: false, nullsFirst: false })
+        .order('player_id', { ascending: true });
+
     let hitters: any[] = [];
     let pitchers: any[] = [];
-    let fetchError = false;
-    try {
-      [hitters, pitchers] = await Promise.all([
-        fetchAllRows(() =>
-          mlbDb
-            .from('v_hitter_profile')
-            .select('player_id, full_name, team_id, wrc_plus, woba, pa')
-            .order('wrc_plus', { ascending: false })
-        ),
-        fetchAllRows(() =>
-          mlbDb
-            .from('v_pitcher_profile')
-            .select('player_id, full_name, team_id, fip, siera, bf')
-            .order('fip', { ascending: true })
-        ), // Lower FIP is better
-      ]);
-    } catch (err: any) {
-      fetchError = true;
-      console.warn('[MLB Players] Profile fetch error:', err?.message || err);
+    let hittersFailed = false;
+    let pitchersFailed = false;
+
+    // Isolate the two fetches: a failure in one view must not blank the other.
+    const [hRes, pRes] = await Promise.allSettled([
+      fetchAllRows(buildHitters),
+      fetchAllRows(buildPitchers),
+    ]);
+
+    if (hRes.status === 'fulfilled') {
+      hitters = hRes.value;
+    } else {
+      hittersFailed = true;
+      console.error('[MLB Players] hitter fetch failed:', hRes.reason);
     }
+
+    if (pRes.status === 'fulfilled') {
+      pitchers = pRes.value;
+    } else {
+      pitchersFailed = true;
+      console.error('[MLB Players] pitcher fetch failed:', pRes.reason);
+    }
+
+    const fetchError = hittersFailed || pitchersFailed;
+    // If BOTH lists failed, return a real error status so the client renders its error
+    // state instead of a deceptively-successful empty directory. A partial failure keeps
+    // 200 plus the list that did load, with fetchError flagged for the inline banner.
+    const status = hittersFailed && pitchersFailed ? 503 : 200;
 
     return new Response(
       JSON.stringify({
@@ -61,10 +93,12 @@ async function edgeHandler(req: Request) {
         fetchError,
       }),
       {
-        status: 200,
+        status,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          ...(status === 200
+            ? { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+            : {}),
         },
       }
     );
