@@ -487,7 +487,7 @@ async function _getGameFull(gamePk: number) {
   const sb = getMlbSupabase();
   const { data: fg } = await sb.from("fact_games").select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc,home_score,away_score,final").eq("game_pk", gamePk).limit(1);
   const g = fg?.[0]; if (!g) return null;
-  const [{ data: teams }, { data: lu }, { data: pr }, { data: mkt }, { data: props }, { data: aggteam }, { data: mktAgg }, { data: weather }, { data: park }, { data: st }, { data: bullpen }, { data: fgTeam }, { data: recentGames }, { data: pkgs }] = await Promise.all([
+  const [{ data: teams }, { data: lu }, { data: pr }, { data: mkt }, { data: props }, { data: aggteam }, { data: mktAgg }, { data: weather }, { data: park }, { data: st }, { data: bullpen }, { data: fgTeam }, { data: recentGames }, { data: pkgs }, { data: feats }] = await Promise.all([
     sb.from("dim_teams").select("team_id,name,abbr"),
     sb.from("raw_lineups").select("team_id,batting_order,player_id,knowledge_time,confirmed").eq("game_pk", gamePk),
     sb.from("raw_probables").select("team_id,pitcher_id,knowledge_time").eq("game_pk", gamePk),
@@ -501,7 +501,8 @@ async function _getGameFull(gamePk: number) {
     sb.from("agg_bullpen").select("team_id,pen_fip,pen_k_bb,available_arms,fatigue_index,closer_available,metrics,as_of").in("team_id", [g.home_team_id, g.away_team_id]),
     sb.from("agg_team").select("team_id,window_kind,as_of,wrc_plus,woba,metrics").in("team_id", [g.home_team_id, g.away_team_id]).eq("window_kind", "fg_hitting"),
     sb.from("fact_games").select("game_pk,official_date,home_score,away_score,final,home_team_id,away_team_id,home_wins,home_losses,away_wins,away_losses").or(`home_team_id.in.(${g.home_team_id},${g.away_team_id}),away_team_id.in.(${g.home_team_id},${g.away_team_id})`).not("final", "is", null).order("official_date", { ascending: false }).limit(20),
-    sb.from("pred_game_packages").select("package_json").eq("game_pk", gamePk).limit(1)
+    sb.from("pred_game_packages").select("package_json").eq("game_pk", gamePk).limit(1),
+    sb.from("pred_game_features").select("features").eq("game_pk", gamePk).limit(1)
   ]);
   const tmap = new Map((teams ?? []).map((t) => [t.team_id, t]));
   const projLineups = _latestBy((lu ?? []).filter((r: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ ) => !r.confirmed), (r) => `${r.team_id}:${r.batting_order}`, (r) => String(r.knowledge_time ?? "")).sort((a, b) => a.batting_order - b.batting_order);
@@ -608,10 +609,10 @@ async function _getGameFull(gamePk: number) {
     .map((p) => ({ ...p, name: nameOf(p.player_id), prob_over: p.prob_over != null ? Number(p.prob_over) : null, blended_over: p.blended_over != null ? Number(p.blended_over) : null }))
     .sort((a, b) => (b.prob_over ?? 0) - (a.prob_over ?? 0));
   const gameTotalLine = mktAgg?.[0]?.metrics?.total_line != null ? Number(mktAgg[0].metrics.total_line) : null;
-  const explainability = pkgs?.[0]?.package_json?.features?.explainability ?? null;
+  const explainability = feats?.[0]?.features?.explainability ?? pkgs?.[0]?.package_json?.features?.explainability ?? null;
   return { 
     game: g, home: side(g.home_team_id), away: side(g.away_team_id), markets, marketHistory: mkt ?? [], props: allProps, venueId: g.venue_id, venueName: st?.[0]?.name ?? null, firstPitch: g.first_pitch_utc, gameTotalLine,
-    weather: weather?.[0] ?? null, park: park?.[0] ?? null, explainability
+    weather: weather?.[0] ?? null, park: { ...(park?.[0] ?? {}), name: st?.[0]?.name, park_factor_runs: park?.[0]?.run_factor }, explainability
   };
 }
 

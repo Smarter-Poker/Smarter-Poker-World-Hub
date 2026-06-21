@@ -83,7 +83,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // NOTE: fallbacks removed — next-pwa@5.6.0 crashes with 'precacheFallback' TypeError
   // when injecting fallback handlers into runtimeCaching entries. All PWA caching remains intact.
   cacheOnFrontEndNav: false, // Don't cache client-side navigations — prevents stale page renders
-  reloadOnOnline: false,     // DISABLED — mobile devices constantly toggle online/offline causing unwanted auto-refresh loops
+  reloadOnOnline: false, // DISABLED — mobile devices constantly toggle online/offline causing unwanted auto-refresh loops
   // Dan-fix/pwa-v10-workbox (2026-05-12): @ducanh2912/next-pwa@10+ requires custom
   // rules to live under workboxOptions.runtimeCaching, with extendDefaultRuntimeCaching=false
   // to prevent library defaults from overriding our NetworkOnly rules. The top-level
@@ -92,87 +92,89 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   extendDefaultRuntimeCaching: false,
   workboxOptions: {
     runtimeCaching: [
-    // ─── CRITICAL: Override next-pwa defaults that cause stale pages on mobile ───
-    // next-pwa defaults use CacheFirst for /_next/static JS, which means mobile
-    // browsers (especially Safari) serve old page JS from SW cache indefinitely.
-    // These rules MUST come first to take priority over the library defaults.
+      // ─── CRITICAL: Override next-pwa defaults that cause stale pages on mobile ───
+      // next-pwa defaults use CacheFirst for /_next/static JS, which means mobile
+      // browsers (especially Safari) serve old page JS from SW cache indefinitely.
+      // These rules MUST come first to take priority over the library defaults.
 
-    // Dan-fix/mobile-white-screen (2026-05-12): page JS chunks are now
-    // NetworkOnly. The previous NetworkFirst+5s+24h-cache combo caused mobile
-    // Safari/Chrome to serve stale chunks after deploys whose hashes no longer
-    // matched the current HTML — producing a blank page on signup, login, and
-    // other navigations. NetworkOnly means slightly slower offline mode but
-    // zero post-deploy mismatches.
-    {
-      urlPattern: /\/_next\/static\/chunks\/pages\/.+\.js$/i,
-      handler: 'NetworkOnly',
-      options: {
-        cacheName: 'page-js-chunks',
+      // Dan-fix/mobile-white-screen (2026-05-12): page JS chunks are now
+      // NetworkOnly. The previous NetworkFirst+5s+24h-cache combo caused mobile
+      // Safari/Chrome to serve stale chunks after deploys whose hashes no longer
+      // matched the current HTML — producing a blank page on signup, login, and
+      // other navigations. NetworkOnly means slightly slower offline mode but
+      // zero post-deploy mismatches.
+      {
+        urlPattern: /\/_next\/static\/chunks\/pages\/.+\.js$/i,
+        handler: 'NetworkOnly',
+        options: {
+          cacheName: 'page-js-chunks',
+        },
       },
-    },
-    // Next.js data routes — NetworkOnly (same reasoning as page JS above)
-    {
-      urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
-      handler: 'NetworkOnly',
-      options: {
-        cacheName: 'next-data',
+      // Next.js data routes — NetworkOnly (same reasoning as page JS above)
+      {
+        urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
+        handler: 'NetworkOnly',
+        options: {
+          cacheName: 'next-data',
+        },
       },
-    },
-    // Framework/vendor JS — these are content-hashed and safe to cache aggressively
-    // (webpack chunk hash changes when content changes, so CacheFirst is correct here)
-    {
-      urlPattern: /\/_next\/static\/chunks\/(?!pages\/).+\.js$/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'framework-js',
-        expiration: { maxEntries: 128, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+      // Framework/vendor JS — these are content-hashed and safe to cache aggressively
+      // (webpack chunk hash changes when content changes, so CacheFirst is correct here)
+      {
+        urlPattern: /\/_next\/static\/chunks\/(?!pages\/).+\.js$/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'framework-js',
+          expiration: { maxEntries: 128, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+        },
       },
-    },
-    // Dan-fix/mobile-white-screen: HTML → NetworkOnly. Cached HTML can
-    // reference page-JS chunks that no longer exist after a deploy → blank page.
-    {
-      urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'document',
-      handler: 'NetworkOnly',
-      options: {
-        cacheName: 'pages-html',
+      // Dan-fix/mobile-white-screen: HTML → NetworkOnly. Cached HTML can
+      // reference page-JS chunks that no longer exist after a deploy → blank page.
+      {
+        urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'document',
+        handler: 'NetworkOnly',
+        options: {
+          cacheName: 'pages-html',
+        },
       },
-    },
-    // Cache static assets (images, fonts) - cache first (content-hashed, safe)
-    {
-      urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'static-assets',
-        expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+      // Cache static assets (images, fonts) - cache first (content-hashed, safe)
+      {
+        urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'static-assets',
+          expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+        },
       },
-    },
-    // Cache public API data - NetworkFirst for venues (must always be fresh, stale causes 0-venue blank page)
-    {
-      urlPattern: /\/api\/(public|poker\/daily-tournaments|training\/leaderboard|arcade\/leaderboard)/,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'public-api',
-        expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
+      // Cache public API data - NetworkFirst for venues (must always be fresh, stale causes 0-venue blank page)
+      {
+        urlPattern:
+          /\/api\/(public|poker\/daily-tournaments|training\/leaderboard|arcade\/leaderboard)/,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'public-api',
+          expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
+        },
       },
-    },
-    // Venues API — ALWAYS fetch from network (location-sensitive, must never serve stale 0-venue cache)
-    {
-      urlPattern: /\/api\/poker\/venues/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'venues-api',
-        networkTimeoutSeconds: 8,
-        expiration: { maxEntries: 50, maxAgeSeconds: 60 * 2 }, // 2 min fallback only
+      // Venues API — ALWAYS fetch from network (location-sensitive, must never serve stale 0-venue cache)
+      {
+        urlPattern: /\/api\/poker\/venues/,
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'venues-api',
+          networkTimeoutSeconds: 8,
+          expiration: { maxEntries: 50, maxAgeSeconds: 60 * 2 }, // 2 min fallback only
+        },
       },
-    },
-    // Never cache auth, financial, or realtime routes
-    {
-      urlPattern: /\/api\/(auth|club-arena\/(?:cashout|mint|distribute|clawback)|poker\/engine)\//,
-      handler: 'NetworkOnly',
-      options: {
-        cacheName: 'no-cache-auth',
+      // Never cache auth, financial, or realtime routes
+      {
+        urlPattern:
+          /\/api\/(auth|club-arena\/(?:cashout|mint|distribute|clawback)|poker\/engine)\//,
+        handler: 'NetworkOnly',
+        options: {
+          cacheName: 'no-cache-auth',
+        },
       },
-    },
     ],
   },
   buildExcludes: [/middleware-manifest\.json$/],
@@ -210,7 +212,12 @@ const nextConfig = {
   // pre-compilation). Without it here, the build crashes:
   //   "Module parse failed: Unexpected token" on any .jsx in node_modules.
   // See failed deploys 4xJcGVy2N / DWyP5RYRT (April 2026). DO NOT REMOVE.
-  transpilePackages: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', '@smarter-poker/commander-shared'],
+  transpilePackages: [
+    '@react-three/fiber',
+    '@react-three/drei',
+    '@react-three/postprocessing',
+    '@smarter-poker/commander-shared',
+  ],
 
   // ─── Build Memory Optimization ───────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
@@ -224,13 +231,18 @@ const nextConfig = {
   // key `serverExternalPackages` in Next.js 15+. Using the old path causes a build warning
   // and the setting is silently ignored. Moved here so it actually takes effect.
   serverExternalPackages: [
-    'puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth',
-    'canvas', 'phaser',
-    'pg', 'pg-protocol',
+    'puppeteer',
+    'puppeteer-extra',
+    'puppeteer-extra-plugin-stealth',
+    'canvas',
+    'phaser',
+    'pg',
+    'pg-protocol',
     'sharp',
     'pdf-parse',
     'twilio',
-    'jspdf', 'jspdf-autotable',
+    'jspdf',
+    'jspdf-autotable',
     'docx',
     'livekit-server-sdk',
     'posthog-node',
@@ -320,8 +332,8 @@ const nextConfig = {
   // thrashing, but not so many that it wastes GB of RAM on a 950+ page codebase.
   // Previous: 128 pages / 24h — consumed 2-4 GB keeping unused pages warm.
   onDemandEntries: {
-    maxInactiveAge: 2 * 60 * 60 * 1000,  // Dispose compiled pages after 2h of inactivity
-    pagesBufferLength: 16,               // Keep 16 pages hot in memory (sufficient for active dev)
+    maxInactiveAge: 2 * 60 * 60 * 1000, // Dispose compiled pages after 2h of inactivity
+    pagesBufferLength: 16, // Keep 16 pages hot in memory (sufficient for active dev)
   },
 
   // ─── TypeScript Build Config ──────────────────────────────────────────────────
@@ -348,8 +360,10 @@ const nextConfig = {
     // This forces ALL imports of supabase.js to use the real .ts client instead.
     const path = require('path');
     config.resolve.alias = Object.assign(config.resolve.alias || {}, {
-      [path.resolve(__dirname, 'src/lib/supabase.js')]:
-        path.resolve(__dirname, 'src/lib/supabase.ts'),
+      [path.resolve(__dirname, 'src/lib/supabase.js')]: path.resolve(
+        __dirname,
+        'src/lib/supabase.ts'
+      ),
       // ─── authUtils.js (commander-shared re-export stub) → authUtils.ts ─────
       // src/lib/authUtils.js is a 136-byte stub that re-exports from
       // @smarter-poker/commander-shared, which does NOT export
@@ -360,8 +374,10 @@ const nextConfig = {
       // EndStreamModal, LiveActivityFeed — get an empty namespace and
       // (0,s.getFreshAccessToken) is undefined at runtime. Force resolution
       // to the .ts file where the function actually lives.
-      [path.resolve(__dirname, 'src/lib/authUtils.js')]:
-        path.resolve(__dirname, 'src/lib/authUtils.ts'),
+      [path.resolve(__dirname, 'src/lib/authUtils.js')]: path.resolve(
+        __dirname,
+        'src/lib/authUtils.ts'
+      ),
     });
 
     if (dev) {
@@ -395,16 +411,16 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'kuklfnapbkmacvwxktbh.supabase.co' }, // Supabase storage (avatars, uploads)
-      { protocol: 'https', hostname: '*.supabase.co' },                    // Any Supabase project
-      { protocol: 'https', hostname: 'images.unsplash.com' },              // Fallback stock photos
-      { protocol: 'https', hostname: 'smarter.poker' },                    // Platform CDN
-      { protocol: 'https', hostname: 'diamond.smarter.poker' },            // Diamond assets
-      { protocol: 'https', hostname: 'auth.smarter.poker' },               // Supabase auth + storage proxy (avatars, logos)
-      { protocol: 'https', hostname: '*.smarter.poker' },                  // Catch-all for platform sub-domains
-      { protocol: 'https', hostname: 'api.qrserver.com' },                 // QR code generation
-      { protocol: 'https', hostname: 'img.youtube.com' },                  // YouTube thumbnails
-      { protocol: 'https', hostname: 'img.mlbstatic.com' },                // MLB player headshots
-      { protocol: 'https', hostname: 'www.mlbstatic.com' },                // MLB team logos
+      { protocol: 'https', hostname: '*.supabase.co' }, // Any Supabase project
+      { protocol: 'https', hostname: 'images.unsplash.com' }, // Fallback stock photos
+      { protocol: 'https', hostname: 'smarter.poker' }, // Platform CDN
+      { protocol: 'https', hostname: 'diamond.smarter.poker' }, // Diamond assets
+      { protocol: 'https', hostname: 'auth.smarter.poker' }, // Supabase auth + storage proxy (avatars, logos)
+      { protocol: 'https', hostname: '*.smarter.poker' }, // Catch-all for platform sub-domains
+      { protocol: 'https', hostname: 'api.qrserver.com' }, // QR code generation
+      { protocol: 'https', hostname: 'img.youtube.com' }, // YouTube thumbnails
+      { protocol: 'https', hostname: 'img.mlbstatic.com' }, // MLB player headshots
+      { protocol: 'https', hostname: 'www.mlbstatic.com' }, // MLB team logos
       // Club Arena images now served from public/hub/club-arena/ (native)
     ],
     formats: ['image/avif', 'image/webp'],
@@ -465,7 +481,7 @@ const nextConfig = {
       "form-action 'self'",
       // [Phase 6.1.14] Auto-upgrade any lingering http:// sub-resource requests
       // (e.g. inline <img src="http://..."> in user-generated content) to https.
-      "upgrade-insecure-requests",
+      'upgrade-insecure-requests',
     ].join('; ');
 
     return [
@@ -579,7 +595,6 @@ const nextConfig = {
     ];
   },
 
-
   // Club Arena pages are served directly from this deployment (no external proxy)
   async redirects() {
     return [
@@ -598,18 +613,34 @@ const nextConfig = {
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
       // Memory Games → Preflop Charts (renamed April 2026)
       { source: '/hub/memory-games', destination: '/hub/preflop-charts', permanent: true },
-      { source: '/hub/memory-games/:path*', destination: '/hub/preflop-charts/:path*', permanent: true },
+      {
+        source: '/hub/memory-games/:path*',
+        destination: '/hub/preflop-charts/:path*',
+        permanent: true,
+      },
       // ── Poker Near Me URL Migration (April 2026) ────────────────────────────────────────
       // Old lobby URL → new canonical lobby sub-route (301 permanent redirect)
-      { source: '/hub/poker-near-me-lobby', destination: '/hub/poker-near-me/lobby', permanent: true },
+      {
+        source: '/hub/poker-near-me-lobby',
+        destination: '/hub/poker-near-me/lobby',
+        permanent: true,
+      },
       // MLB Analytics lowercase URL -> uppercase canonical proxy path
       { source: '/hub/mlb-analytics', destination: '/hub/MLB-ANALYTICS', permanent: true },
-      { source: '/hub/mlb-analytics/:path*', destination: '/hub/MLB-ANALYTICS/:path*', permanent: true },
+      {
+        source: '/hub/mlb-analytics/:path*',
+        destination: '/hub/MLB-ANALYTICS/:path*',
+        permanent: true,
+      },
       // MLB Analytics — /teams/:id (plural, stale shadow-copy pattern) → /team/:id (singular, live engine route)
       // The live engine uses /team/[id]; the World-Hub shadow copy used /teams/[team_id].
       // Shadow pages are never served (proxy intercepts first), but cached/shared links using
       // the old plural form would 404 at the engine. This 301 fixes that permanently.
-      { source: '/hub/MLB-ANALYTICS/teams/:id', destination: '/hub/MLB-ANALYTICS/team/:id', permanent: true },
+      {
+        source: '/hub/MLB-ANALYTICS/teams/:id',
+        destination: '/hub/MLB-ANALYTICS/team/:id',
+        permanent: true,
+      },
     ];
   },
 
@@ -622,7 +653,15 @@ const nextConfig = {
       // afterFiles handles SPA routing — serves index.html for routes that
       // don't match a real file in public/ or a native Next.js page.
       beforeFiles: [
-        // Proxy ALL nested MLB-ANALYTICS routes to the standalone engine host
+        // Proxy MLB-ANALYTICS to the standalone engine host. The exact-root rule
+        // (no trailing slash) MUST come first: the :path* rule matches the bare root
+        // with an EMPTY path and yields a trailing-slash destination
+        // (.../hub/MLB-ANALYTICS/), which the engine (Next trailingSlash:false)
+        // 308-redirects, resolving back to smarter.poker -> infinite loop on the root.
+        {
+          source: '/hub/MLB-ANALYTICS',
+          destination: 'https://mlb-analytics-engine.vercel.app/hub/MLB-ANALYTICS',
+        },
         {
           source: '/hub/MLB-ANALYTICS/:path*',
           destination: 'https://mlb-analytics-engine.vercel.app/hub/MLB-ANALYTICS/:path*',
