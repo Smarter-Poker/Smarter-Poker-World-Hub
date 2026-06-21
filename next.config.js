@@ -622,9 +622,11 @@ const nextConfig = {
       // afterFiles handles SPA routing — serves index.html for routes that
       // don't match a real file in public/ or a native Next.js page.
       beforeFiles: [
-        // Phase 3-deploy: commander proxy has been removed to restore
-        // the native monolithic routes in /pages/commander/* because
-        // the standalone deployment is currently failing/unavailable.
+        // Proxy ALL nested MLB-ANALYTICS routes to the standalone engine host
+        {
+          source: '/hub/MLB-ANALYTICS/:path*',
+          destination: 'https://mlb-analytics-engine.vercel.app/hub/MLB-ANALYTICS/:path*',
+        },
       ],
       afterFiles: [],
       // fallback rewrites run LAST — after pages AND public/ files.

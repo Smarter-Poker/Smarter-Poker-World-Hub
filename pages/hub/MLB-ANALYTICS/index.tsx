@@ -145,7 +145,9 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
     mlTier = exp.tier;
     mlEv = exp.evPct;
     mlFactors = exp.factors.map((f) => f.text).join('\n');
-    mlRec = g.bet.team.split(' ').pop() || 'Hold';
+    const teamName = g.bet.team.split(' ').pop() || 'Hold';
+    const priceStr = g.bet.price != null ? (g.bet.price > 0 ? `+${g.bet.price}` : `${g.bet.price}`) : '';
+    mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
     mlSide = g.bet.selection;
   } else if (g.modelHome != null && g.marketHome != null) {
     const homeExp = explain(g.modelHome, g.avgHomeLine || -110, {
@@ -161,14 +163,18 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       mlTier = homeExp.tier;
       mlEv = homeExp.evPct;
       mlFactors = homeExp.factors.map((f) => f.text).join('\n');
-      mlRec = g.home.split(' ').pop() || 'Hold';
+      const teamName = g.home.split(' ').pop() || 'Hold';
+      const priceStr = g.avgHomeLine != null ? (g.avgHomeLine > 0 ? `+${g.avgHomeLine}` : `${g.avgHomeLine}`) : '';
+      mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
       mlSide = 'home';
     } else {
       mlScore = awayExp.betScore;
       mlTier = awayExp.tier;
       mlEv = awayExp.evPct;
       mlFactors = awayExp.factors.map((f) => f.text).join('\n');
-      mlRec = g.away.split(' ').pop() || 'Hold';
+      const teamName = g.away.split(' ').pop() || 'Hold';
+      const priceStr = g.avgAwayLine != null ? (g.avgAwayLine > 0 ? `+${g.avgAwayLine}` : `${g.avgAwayLine}`) : '';
+      mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
       mlSide = 'away';
     }
   }
@@ -235,11 +241,16 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
               <span className="text-[12px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1.5 opacity-90">
                 {label}
               </span>
-              <div className="flex flex-col items-center justify-center">
+              <div className="flex flex-col items-center justify-center w-full">
                 <span
                   className={`text-[28px] font-black leading-none text-slate-200 font-sans tracking-tight`}
                 >
                   {score > 0 ? score : '—'}
+                </span>
+                <span
+                  className={`text-[14px] font-black uppercase tracking-widest mt-1.5 text-center leading-tight ${st.text} drop-shadow-sm`}
+                >
+                  {score > 0 ? rec : 'PASS'}
                 </span>
                 {score > 0 && label === 'Money Line' && (
                   <span
@@ -250,11 +261,6 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
                   </span>
                 )}
               </div>
-              <span
-                className={`text-[14px] font-black uppercase tracking-widest mt-1.5 text-center leading-tight ${st.text} drop-shadow-sm`}
-              >
-                {rec}
-              </span>
             </div>
           );
         })}
