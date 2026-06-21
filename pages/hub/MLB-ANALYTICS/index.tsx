@@ -14,7 +14,7 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { teamLogo, type GameCard } from '../../../src/lib/mlb_data';
-import { betScore, tier as getTier, TIER_STYLE, type Tier } from '../../../src/lib/betScore';
+import { betScore, explain, tier as getTier, TIER_STYLE, type Tier } from '../../../src/lib/betScore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -101,20 +101,24 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let mlTier: Tier = 'PASS';
   let mlRec = 'Hold';
   let mlSide: 'home' | 'away' | null = null;
+  let mlEv = 0;
+  let mlFactors = '';
   const isLocked = g.lineupState === 'confirmed';
 
   if (g.bet && g.bet.edge != null) {
-    mlScore = betScore(g.bet.winProb ?? 0, g.bet.price ?? -110, { pMarket: g.bet.market, lineupLocked: isLocked });
-    mlTier = getTier(mlScore);
+    const exp = explain(g.bet.winProb ?? 0, g.bet.price ?? -110, { pMarket: g.bet.market, lineupLocked: isLocked });
+    mlScore = exp.betScore; mlTier = exp.tier; mlEv = exp.evPct; mlFactors = exp.factors.map(f => f.text).join('\n');
     mlRec = g.bet.team.split(' ').pop() || 'Hold';
     mlSide = g.bet.selection;
   } else if (g.modelHome != null && g.marketHome != null) {
-    const homeScore = betScore(g.modelHome, g.avgHomeLine || -110, { pMarket: g.marketHome, lineupLocked: isLocked });
-    const awayScore = betScore(1 - g.modelHome, g.avgAwayLine || -110, { pMarket: 1 - g.marketHome, lineupLocked: isLocked });
-    if (homeScore >= awayScore) {
-      mlScore = homeScore; mlTier = getTier(mlScore); mlRec = g.home.split(' ').pop() || 'Hold'; mlSide = 'home';
+    const homeExp = explain(g.modelHome, g.avgHomeLine || -110, { pMarket: g.marketHome, lineupLocked: isLocked });
+    const awayExp = explain(1 - g.modelHome, g.avgAwayLine || -110, { pMarket: 1 - g.marketHome, lineupLocked: isLocked });
+    if (homeExp.betScore >= awayExp.betScore) {
+      mlScore = homeExp.betScore; mlTier = homeExp.tier; mlEv = homeExp.evPct; mlFactors = homeExp.factors.map(f => f.text).join('\n');
+      mlRec = g.home.split(' ').pop() || 'Hold'; mlSide = 'home';
     } else {
-      mlScore = awayScore; mlTier = getTier(mlScore); mlRec = g.away.split(' ').pop() || 'Hold'; mlSide = 'away';
+      mlScore = awayExp.betScore; mlTier = awayExp.tier; mlEv = awayExp.evPct; mlFactors = awayExp.factors.map(f => f.text).join('\n');
+      mlRec = g.away.split(' ').pop() || 'Hold'; mlSide = 'away';
     }
   }
 
@@ -145,9 +149,9 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   }
 
   const cells = [
-    { label: 'Money Line', score: mlScore, tier: mlTier, rec: mlRec },
-    { label: 'Run Line',   score: rlScore, tier: rlTier, rec: rlRec },
-    { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec },
+    { label: 'Money Line', score: mlScore, tier: mlTier, rec: mlRec, ev: mlEv, factors: mlFactors },
+    { label: 'Run Line',   score: rlScore, tier: rlTier, rec: rlRec, ev: 0, factors: '' },
+    { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec, ev: 0, factors: '' },
   ];
 
   return (
@@ -156,16 +160,22 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
 
       {/* 3-column grade grid */}
       <div className="grid grid-cols-3 gap-2 mb-3">
-        {cells.map(({ label, score, tier, rec }) => {
+        {cells.map(({ label, score, tier, rec, ev, factors }) => {
           const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
           return (
             <div
               key={label}
+              title={factors}
               className={`flex flex-col items-center justify-center rounded-sm border px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
             >
               <span className="text-[12px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1.5 opacity-90">{label}</span>
-              <div className="flex items-baseline gap-1">
+              <div className="flex flex-col items-center justify-center">
                 <span className={`text-[28px] font-black leading-none ${st.text}`}>{score > 0 ? score : '—'}</span>
+                {score > 0 && label === 'Money Line' && (
+                  <span className={`text-[11px] font-black tracking-widest uppercase mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-500'}`}>
+                    {ev > 0 ? '+' : ''}{ev}% EV
+                  </span>
+                )}
               </div>
               <span className={`text-[14px] font-black uppercase tracking-widest mt-1.5 text-center leading-tight ${st.text} drop-shadow-sm`}>{rec}</span>
             </div>
