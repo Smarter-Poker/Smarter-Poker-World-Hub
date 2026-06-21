@@ -106,15 +106,15 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   if (g.bet && g.bet.edge != null) {
     mlScore = betScore(g.bet.winProb ?? 0, g.bet.price ?? -110, { pMarket: g.bet.market, lineupLocked: isLocked });
     mlTier = getTier(mlScore);
-    mlRec = `Bet ${g.bet.team.split(' ').pop()}`;
+    mlRec = g.bet.team.split(' ').pop() || 'Hold';
     mlSide = g.bet.selection;
   } else if (g.modelHome != null && g.marketHome != null) {
     const homeScore = betScore(g.modelHome, g.avgHomeLine || -110, { pMarket: g.marketHome, lineupLocked: isLocked });
     const awayScore = betScore(1 - g.modelHome, g.avgAwayLine || -110, { pMarket: 1 - g.marketHome, lineupLocked: isLocked });
     if (homeScore >= awayScore) {
-      mlScore = homeScore; mlTier = getTier(mlScore); mlRec = `Bet ${g.home.split(' ').pop()}`; mlSide = 'home';
+      mlScore = homeScore; mlTier = getTier(mlScore); mlRec = g.home.split(' ').pop() || 'Hold'; mlSide = 'home';
     } else {
-      mlScore = awayScore; mlTier = getTier(mlScore); mlRec = `Bet ${g.away.split(' ').pop()}`; mlSide = 'away';
+      mlScore = awayScore; mlTier = getTier(mlScore); mlRec = g.away.split(' ').pop() || 'Hold'; mlSide = 'away';
     }
   }
 
@@ -161,14 +161,13 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
           return (
             <div
               key={label}
-              className={`flex flex-col items-center justify-center rounded-sm border px-2 py-2.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+              className={`flex flex-col items-center justify-center rounded-sm border px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
             >
-              <span className="text-[9px] font-black uppercase tracking-widest text-[#5a6a7a] mb-1 opacity-70">{label}</span>
+              <span className="text-[12px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1.5 opacity-90">{label}</span>
               <div className="flex items-baseline gap-1">
-                <span className={`text-[20px] font-black leading-none ${st.text}`}>{score > 0 ? score : '—'}</span>
-                {score > 0 && <span className="text-[10px] font-bold opacity-60 text-slate-500">/100</span>}
+                <span className={`text-[28px] font-black leading-none ${st.text}`}>{score > 0 ? score : '—'}</span>
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-wider mt-1 text-center leading-tight ${st.text} opacity-90`}>{rec}</span>
+              <span className={`text-[14px] font-black uppercase tracking-widest mt-1.5 text-center leading-tight ${st.text} drop-shadow-sm`}>{rec}</span>
             </div>
           );
         })}
