@@ -17,6 +17,7 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
+  Shield,
 } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -613,6 +614,73 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
             </div>
           );
         })()}
+
+        {/* Team Profile */}
+        {isTeamBet && bet.team_w !== undefined && (
+          <div className="px-4 py-3 border-b border-[#2a3a4a]">
+            <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 ">
+              <Shield size={10} /> Team Profile
+            </div>
+            <div className="grid grid-cols-2 gap-2 px-4 md:px-0">
+              <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
+                  Record (Streak)
+                </div>
+                <div
+                  className="text-[18px] font-black text-[#00D4FF]"
+                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                >
+                  {bet.team_w}-{bet.team_l} 
+                  <span className={`text-[12px] ml-1 ${bet.team_streak > 0 ? 'text-[#00D4FF]' : 'text-[#FF6B6B]'}`}>
+                    ({bet.team_streak > 0 ? `W${bet.team_streak}` : `L${Math.abs(bet.team_streak)}`})
+                  </span>
+                </div>
+              </div>
+              
+              {bet.team_run_diff !== undefined && (
+                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                  <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
+                    Run Differential
+                  </div>
+                  <div
+                    className={`text-[18px] font-black ${bet.team_run_diff > 0 ? 'text-white' : 'text-slate-300'}`}
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    {bet.team_run_diff > 0 ? '+' : ''}{bet.team_run_diff}
+                  </div>
+                </div>
+              )}
+
+              {bet.team_era !== undefined && (
+                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                  <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
+                    Team ERA
+                  </div>
+                  <div
+                    className="text-[18px] font-black text-slate-300"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    {Number(bet.team_era).toFixed(2)}
+                  </div>
+                </div>
+              )}
+              
+              {bet.team_avg !== undefined && (
+                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                  <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
+                    Team AVG
+                  </div>
+                  <div
+                    className="text-[18px] font-black text-slate-300"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    .{String(Number(bet.team_avg).toFixed(3)).split('.')[1] || '000'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Pitcher Profile */}
         {(isPitcherProp || (isTeamBet && era !== null)) && (

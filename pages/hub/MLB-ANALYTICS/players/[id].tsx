@@ -1,7 +1,9 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, User, Activity, Target, Shield, Info } from 'lucide-react';
+import { ArrowLeft, User, Activity, Target, Shield, Info, Loader2 } from 'lucide-react';
+import MetalFrame from '../../../../src/components/ui/MetalFrame';
+import SectionHeader from '../../../../src/components/ui/SectionHeader';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
@@ -97,15 +99,6 @@ const MetricTile = ({
       {value}
     </div>
   </div>
-);
-
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2
-    className="text-base font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#00D4FF]"
-    style={{ fontFamily: '"Rajdhani", sans-serif' }}
-  >
-    {children}
-  </h2>
 );
 
 export default function PlayerProfilePage() {
@@ -219,48 +212,13 @@ export default function PlayerProfilePage() {
         </div>
 
         {isLoading || !profile ? (
-          <div className="animate-pulse">
-            {/* Hero Skeleton */}
-            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.5)] mb-6 flex flex-col md:flex-row items-center gap-6">
-              <div className="w-32 h-32 rounded-full bg-[#1a2332] border-[3px] border-[#3d4f5f] shrink-0" />
-              <div className="flex-1 text-center md:text-left space-y-3 w-full">
-                <div className="w-24 h-5 bg-[#1a2332] rounded mx-auto md:mx-0" />
-                <div className="w-64 h-10 bg-[#1a2332] rounded mx-auto md:mx-0" />
-                <div className="w-32 h-4 bg-[#1a2332] rounded mx-auto md:mx-0" />
-              </div>
-            </div>
-
-            {/* Primary Metrics Skeleton */}
-            <div className="w-40 h-5 bg-[#3d4f5f] rounded mb-4" />
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 px-4 md:px-0">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24"
-                >
-                  <div className="w-16 h-3 bg-[#1a2332] rounded mb-2" />
-                  <div className="w-20 h-8 bg-[#1a2332] rounded mt-4" />
-                </div>
-              ))}
-            </div>
-
-            {/* Secondary Metrics Skeleton */}
-            <div className="w-48 h-5 bg-[#3d4f5f] rounded mb-4" />
-            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 h-16">
-                    <div className="w-12 h-2 bg-[#3d4f5f] rounded mb-2" />
-                    <div className="w-16 h-5 bg-[#3d4f5f] rounded mt-2" />
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+            <Loader2 className="w-12 h-12 text-[#00D4FF] animate-spin" />
           </div>
         ) : (
           <>
             {/* Hero Header */}
-            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] mb-6 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+            <MetalFrame className="p-6 mb-6 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
               <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,0.8)]" />
 
               <div className="relative w-32 h-32 shrink-0 z-10">
@@ -323,15 +281,16 @@ export default function PlayerProfilePage() {
                   )}
                 </div>
               </div>
-            </div>
+            </MetalFrame>
 
             {/* Primary Ratings */}
-            <SectionTitle>Primary Ratings</SectionTitle>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 px-4 md:px-0">
+            <SectionHeader icon={Target} label="Primary Ratings" />
+            <MetalFrame className="p-4 sm:p-6 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {type === 'hitter' ? (
                 <>
                   <div
-                    className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden"
+                    className="bg-black/20 border border-[#3d4f5f]/50 rounded-lg p-4 relative overflow-hidden"
                     title="Weighted Runs Created Plus — total offense vs league average (100 = average, higher is better)."
                   >
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
@@ -351,7 +310,7 @@ export default function PlayerProfilePage() {
                     </div>
                   </div>
                   <div
-                    className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden"
+                    className="bg-black/20 border border-[#3d4f5f]/50 rounded-lg p-4 relative overflow-hidden"
                     title="Weighted On-Base Average — overall offensive value per plate appearance."
                   >
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
@@ -371,7 +330,7 @@ export default function PlayerProfilePage() {
                     </div>
                   </div>
                   <div
-                    className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden"
+                    className="bg-black/20 border border-[#3d4f5f]/50 rounded-lg p-4 relative overflow-hidden"
                     title="Plate appearances — sample size for the season."
                   >
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-slate-400">
@@ -391,7 +350,7 @@ export default function PlayerProfilePage() {
               ) : (
                 <>
                   <div
-                    className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden"
+                    className="bg-black/20 border border-[#3d4f5f]/50 rounded-lg p-4 relative overflow-hidden"
                     title="Fielding Independent Pitching — ERA estimate from K, BB, HBP and HR only (lower is better)."
                   >
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
@@ -411,7 +370,7 @@ export default function PlayerProfilePage() {
                     </div>
                   </div>
                   <div
-                    className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden"
+                    className="bg-black/20 border border-[#3d4f5f]/50 rounded-lg p-4 relative overflow-hidden"
                     title="Skill-Interactive ERA — ERA estimate accounting for batted-ball type (lower is better)."
                   >
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
@@ -431,7 +390,7 @@ export default function PlayerProfilePage() {
                     </div>
                   </div>
                   <div
-                    className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative overflow-hidden"
+                    className="bg-black/20 border border-[#3d4f5f]/50 rounded-lg p-4 relative overflow-hidden"
                     title="Batters faced — sample size for the season."
                   >
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-slate-400">
@@ -449,11 +408,12 @@ export default function PlayerProfilePage() {
                   </div>
                 </>
               )}
-            </div>
+              </div>
+            </MetalFrame>
 
             {/* Advanced Metrics — curated, labelled, with explanations */}
-            <SectionTitle>Advanced Metrics</SectionTitle>
-            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] mb-8">
+            <SectionHeader icon={Activity} label="Advanced Metrics" />
+            <MetalFrame className="p-4 sm:p-6 mb-8">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                 {type === 'hitter' ? (
                   <>
@@ -505,16 +465,16 @@ export default function PlayerProfilePage() {
                   </>
                 )}
               </div>
-            </div>
+            </MetalFrame>
 
             {/* Model Projection Rates (sim_rates) */}
             {sim && (
               <>
-                <SectionTitle>
-                  Model Projection{' '}
+                <SectionHeader icon={Target} label="Model Projection" />
+                <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-4 px-4 md:px-0">
                   {type === 'pitcher' ? '(per batter faced)' : '(per plate appearance)'}
-                </SectionTitle>
-                <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] mb-8">
+                </p>
+                <MetalFrame className="p-4 sm:p-6 mb-8">
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 px-4 md:px-0">
                     <MetricTile
                       label="K Rate"
@@ -547,15 +507,15 @@ export default function PlayerProfilePage() {
                     Projected outcome rates from the Smarter.Poker simulation engine, regressed for
                     sample size.
                   </p>
-                </div>
+                </MetalFrame>
               </>
             )}
 
             {/* Recent Form (streaks) */}
             {hasStreaks && (
               <>
-                <SectionTitle>Recent Form</SectionTitle>
-                <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] mb-8">
+                <SectionHeader icon={Activity} label="Recent Form" />
+                <MetalFrame className="p-4 sm:p-6 mb-8">
                   {hotCold && (
                     <div className="mb-4">
                       <span
@@ -701,7 +661,7 @@ export default function PlayerProfilePage() {
                         </div>
                       </div>
                     )}
-                </div>
+                </MetalFrame>
               </>
             )}
           </>

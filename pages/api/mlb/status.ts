@@ -45,11 +45,11 @@ async function handleRequest() {
         // Single hardened RPC returns the full status dashboard payload:
         // server_now, today, health, slate, accuracy, tier_dist, sources,
         // alerts, table_counts, pipeline_runs (newest-first), agg_as_of.
-        const { data, error: rpcError } = await mlbDb.rpc('get_status_dashboard');
+        const { data, error: rpcError } = await mlbDb.rpc('get_status_dashboard').single();
 
         if (rpcError) throw rpcError;
 
-        const d: any = (Array.isArray(data) ? data[0] : data) || {};
+        const d: any = data || {};
 
         // Build "latest run per stage" from the newest-first pipeline_runs feed.
         const pipelineRuns: any[] = Array.isArray(d.pipeline_runs) ? d.pipeline_runs : [];
@@ -92,12 +92,12 @@ async function handleRequest() {
 
         const rawHealth = (d.health && typeof d.health === 'object') ? d.health : {};
         const health = {
-            minutes_since_refresh: rawHealth.hours_stale != null ? Math.round(rawHealth.hours_stale * 60) : (rawHealth.minutes_since_refresh ?? null),
+            minutes_since_refresh: rawHealth.minutes_since_refresh ?? (rawHealth.hours_stale != null ? Math.round(rawHealth.hours_stale * 60) : null),
             last_refresh: rawHealth.latest_as_of ?? null,
             is_stale: rawHealth.is_stale ?? true,
-            slate_as_of: rawHealth.latest_as_of ?? null,
+            slate_as_of: rawHealth.slate_as_of ?? rawHealth.latest_as_of ?? null,
             games_in_run: rawHealth.games_in_run ?? null,
-            games_in_slate: rawHealth.games_in_run ?? null,
+            games_in_slate: rawHealth.games_in_slate ?? rawHealth.games_in_run ?? null,
             total_live_recs: rawHealth.total_live_recs ?? null,
             unmodeled_games: rawHealth.unmodeled_games ?? null,
             incoherent_runlines_with_bet: rawHealth.incoherent_runlines_with_bet ?? null

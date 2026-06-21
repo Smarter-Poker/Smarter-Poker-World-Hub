@@ -267,6 +267,11 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     }
   });
 
+  const teamStatMap = new Map<number, any>();
+  teamStats?.forEach((ts: any) => {
+    if (ts.team_id) teamStatMap.set(ts.team_id, ts);
+  });
+
   return betsArr.map((bet: BetRow) => {
     const { isTeamBet, isPitcherProp } = detectBetType(bet);
     let enriched = { ...bet };
@@ -487,6 +492,46 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         if (!ourP || ourP.era > 4.50 || Number(ourP.ip) < 25) {
            enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
            enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
+        }
+      }
+    }
+    
+    if (enriched.team_id) {
+      const ts = teamStatMap.get(enriched.team_id);
+      if (ts) {
+        enriched.team_w = ts.w;
+        enriched.team_l = ts.l;
+        enriched.team_streak = ts.win_streak;
+        enriched.team_run_diff = ts.runs_scored - ts.runs_allowed;
+        enriched.team_era = ts.era;
+        enriched.team_avg = ts.team_avg;
+
+        if (isTeamBet) {
+          let factors: any[] = [];
+          if (typeof enriched.score_factors === 'string') {
+            try { factors = JSON.parse(enriched.score_factors); } catch {}
+          } else if (Array.isArray(enriched.score_factors)) {
+            factors = [...enriched.score_factors];
+          }
+
+          if (ts.win_streak >= 3) {
+             factors.push({ dir: 'up', text: `${ts.name} are on a hot ${ts.win_streak}-game win streak.` });
+          } else if (ts.win_streak <= -3) {
+             factors.push({ dir: 'down', text: `${ts.name} are struggling on a ${Math.abs(ts.win_streak)}-game losing streak.` });
+          }
+          const runDiff = ts.runs_scored - ts.runs_allowed;
+          if (runDiff > 40) {
+             factors.push({ dir: 'up', text: `Strong run differential (+${runDiff}).` });
+          } else if (runDiff < -40) {
+             factors.push({ dir: 'down', text: `Poor run differential (${runDiff}).` });
+          }
+          if (ts.era && ts.era < 3.80) {
+             factors.push({ dir: 'up', text: `Strong team pitching (ERA: ${ts.era.toFixed(2)}).` });
+          } else if (ts.era && ts.era > 4.50) {
+             factors.push({ dir: 'down', text: `Vulnerable team pitching (ERA: ${ts.era.toFixed(2)}).` });
+          }
+          
+          enriched.score_factors = factors;
         }
       }
     }
