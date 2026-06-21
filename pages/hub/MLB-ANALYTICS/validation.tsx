@@ -263,7 +263,7 @@ export default function ValidationPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 px-4 md:px-0">
               <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                 <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">
                   WIN RATE
@@ -321,7 +321,7 @@ export default function ValidationPage() {
                 {stats.all.count} GRADED
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 px-4 md:px-0">
               <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                 <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">
                   MODEL BRIER

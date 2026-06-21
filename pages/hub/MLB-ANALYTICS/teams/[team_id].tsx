@@ -165,7 +165,7 @@ export default function TeamDetailPage() {
         />
         <MlbSubNav />
         <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[50vh]">
-          <h2 className="text-xl font-bold text-white mb-4">Team Not Found</h2>
+          <h2 className="text-xl font-extrabold font-['Rajdhani'] text-white mb-4">Team Not Found</h2>
           <Link href="/hub/MLB-ANALYTICS/teams" className="text-[#00D4FF] underline">
             Return to Teams
           </Link>
@@ -366,7 +366,7 @@ export default function TeamDetailPage() {
             </div>
 
             {activeTab === 'OVERVIEW' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:px-0">
                 {/* Team Value */}
                 <div className="metal-panel">
                   <div className="panel-title flex items-center">

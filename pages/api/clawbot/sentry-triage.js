@@ -170,6 +170,7 @@ function categorizeError(issue) {
   if (title.includes('network') || title.includes('fetch') || title.includes('timeout')) return 'network';
   if (title.includes('hydration') || title.includes('ssr')) return 'hydration';
   if (title.includes('chunk') || title.includes('loading')) return 'chunk-loading';
+  if (culprit.includes('/api/mlb') || culprit.includes('mlb-analytics')) return 'mlb';
   if (culprit.includes('/api/')) return 'api';
   if (culprit.includes('commander')) return 'commander';
   if (culprit.includes('training') || culprit.includes('gto')) return 'training';

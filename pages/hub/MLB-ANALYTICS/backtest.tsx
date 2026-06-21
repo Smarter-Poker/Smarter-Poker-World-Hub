@@ -138,7 +138,7 @@ export default function BacktestPage() {
                 ) : (
                    <>
                        {/* Top Metric Cards */}
-                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 px-4 md:px-0">
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><Target size={40} /></div>
                                <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">TOTAL PREDICTIONS</div>
@@ -179,7 +179,7 @@ export default function BacktestPage() {
                                </div>
                            </div>
                            
-                           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 md:px-0">
                                <GateCard label="Sample Size" target="n≥500" value={stats.totalPredictions} passed={sampleSizePassed} />
                                <GateCard label="Brier Score" target="<0.23" value={stats.avgBrier} passed={brierPassed} isBrier={true} />
                                <GateCard label="ML ROI" target=">-3%" value={stats.cumulativeRoi} passed={roiPassed} isPct={true} />

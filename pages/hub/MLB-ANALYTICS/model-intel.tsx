@@ -353,7 +353,7 @@ export default function ModelIntelPage() {
         </div>
 
         {/* KPI grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 relative z-10">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 relative z-10 px-4 md:px-0">
           <MetricBox
             title="Graded Predictions"
             value={fmtInt(intel.graded_predictions)}

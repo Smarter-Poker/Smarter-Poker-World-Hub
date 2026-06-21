@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -7,6 +7,31 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { RefreshCw, Activity, Database, Clock, ServerCrash, CheckCircle2, AlertTriangle, Gauge, Layers, Bell } from 'lucide-react';
 import { logError } from '@/utils/logger';
+
+class StatusErrorBoundary extends React.Component<{children: React.ReactNode, seo: React.ReactNode, header: React.ReactNode, nav: React.ReactNode}, {hasError: boolean, error?: Error}> {
+    constructor(props: any) { super(props); this.state = { hasError: false }; }
+    static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+    componentDidCatch(error: Error) { logError('Status UI Error', error); }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+                    {this.props.seo}{this.props.header}{this.props.nav}
+                    <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
+                        <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF4444]/50 shadow-[0_0_20px_rgba(255,68,68,0.15)] relative overflow-hidden max-w-md w-full" role="alert">
+                            <ServerCrash className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10" />
+                            <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10 font-['Rajdhani']">Render Error</h2>
+                            <p className="text-slate-400 text-[12px] relative z-10 mb-6 break-words">{this.state.error?.message || 'An unexpected rendering error occurred.'}</p>
+                            <button onClick={() => window.location.reload()} className="inline-flex items-center gap-2 bg-transparent border border-[#00D4FF] text-[#00D4FF] px-4 py-2 rounded text-xs font-bold tracking-widest uppercase hover:bg-[#00D4FF]/10">Reload</button>
+                        </div>
+                    </main>
+                    <BottomNavBar />
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 interface MLBStatusPayload {
     ok: boolean;
@@ -150,30 +175,26 @@ const SectionHeader = ({ icon: Icon, label }: { icon: React.ElementType, label: 
 export default function StatusPage() {
     const router = useRouter();
     const { data, error, mutate, isValidating } = useSWR<MLBStatusPayload>('/api/mlb/status', fetcher, {
-        refreshInterval: 30000,           // match API s-maxage=30 so we don't show stale data
+        refreshInterval: 30000,
         revalidateOnFocus: true,
         onError: (err) => logError('SWR MLB Status', err),
     });
 
-    // Local ticker so relative timestamps ("3M AGO") stay live between fetches.
-    const [nowMs, setNowMs] = useState<number | null>(null);
-    // Track manual refreshes so background revalidation doesn't grey the button.
+    const [nowMs, setNowMs] = useState<number>(() => Date.now());
     const [manualRefreshing, setManualRefreshing] = useState(false);
 
     useEffect(() => {
-        setNowMs(Date.now());
-        const id = setInterval(() => setNowMs(Date.now()), 15000);
+        const id = setInterval(() => {
+            if (document.visibilityState === 'visible') setNowMs(Date.now());
+        }, 15000);
         return () => clearInterval(id);
     }, []);
 
-    useEffect(() => {
-        if (!isValidating) setManualRefreshing(false);
-    }, [isValidating]);
-
-    const handleRefresh = () => {
+    const handleRefresh = async () => {
         setManualRefreshing(true);
         setNowMs(Date.now());
-        mutate();
+        await mutate();
+        setManualRefreshing(false);
     };
 
     const isLoading = !data && !error;
@@ -213,8 +234,6 @@ export default function StatusPage() {
         });
     };
 
-    // Return '—' for null/undefined/NaN/Infinity/EmptyString so health cards never show junk values.
-    // Note: fmt(0) correctly returns '0' (zero is a valid and meaningful count).
     const fmt = (n: number | string | null | undefined): string => {
         if (n == null || n === '') return '\u2014';
         const num = Number(n);
@@ -224,7 +243,7 @@ export default function StatusPage() {
 
     const brierColor = (val: number | string | null | undefined): string => {
         const b = Number(val);
-        if (isNaN(b) || val == null || val === '') return 'text-slate-400';
+        if (isNaN(b) || val == null || val === '') return 'text-slate-300';
         if (b < 0.20) return 'text-[#00D4FF]';
         if (b <= 0.25) return 'text-[#FFB020]';
         return 'text-[#FF4444]';
@@ -244,23 +263,12 @@ export default function StatusPage() {
     const seo = (
         <SEOHead
             title="MLB Analytics Data Status — Pipeline Freshness & System Health | Smarter.Poker"
-            description="Real-time status dashboard for the Smarter.Poker MLB Analytics pipeline. Monitor data freshness, model accuracy, prediction counts, data-source health, pipeline stage runs, and database sizes for the 2026 MLB season."
+            description="Real-time status dashboard for the Smarter.Poker MLB Analytics pipeline."
             canonical="/hub/MLB-ANALYTICS/status"
             ogImage="/images/mlb/og.png"
-            jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "WebApplication",
-                "name": "MLB Analytics — System Status",
-                "description": "Real-time status dashboard for the Smarter.Poker MLB prediction engine: data pipeline health, model freshness, data-source latency, and database sync indicators.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/status",
-                "applicationCategory": "SportsApplication",
-                "operatingSystem": "Any",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
         />
     );
 
-    // ---- ERROR STATE -------------------------------------------------------
     if (apiError) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
@@ -269,15 +277,12 @@ export default function StatusPage() {
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
                     <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF4444]/50 shadow-[0_0_20px_rgba(255,68,68,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden max-w-md w-full" role="alert">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF4444] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <ServerCrash aria-hidden="true" className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10 drop-shadow-[0_0_8px_rgba(255,68,68,0.8)]" />
+                        <ServerCrash aria-hidden="true" className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10" />
                         <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10 font-['Rajdhani']">System Error</h2>
-                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10 mb-1">Failed to load status data</p>
-                        <p className="text-slate-400 text-[12px] relative z-10 mb-6 break-words">{apiError}</p>
+                        <p className="text-slate-300 text-[12px] relative z-10 mb-6 break-words">{apiError}</p>
                         <button
                             onClick={handleRefresh}
-                            aria-label="Retry loading status data"
-                            className="inline-flex items-center gap-2 bg-transparent border border-[#00D4FF] text-[#00D4FF] px-4 py-2 rounded cursor-pointer text-xs font-bold tracking-widest uppercase transition-colors hover:bg-[#00D4FF]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] relative z-10"
+                            className="inline-flex items-center gap-2 bg-transparent border border-[#00D4FF] text-[#00D4FF] px-4 py-2 rounded text-xs font-bold tracking-widest uppercase transition-colors hover:bg-[#00D4FF]/10 relative z-10"
                         >
                             <RefreshCw aria-hidden="true" size={14} className={isValidating ? 'animate-spin' : ''} />
                             Retry
@@ -294,39 +299,28 @@ export default function StatusPage() {
     const slate = data?.slate || {};
     const accuracy = data?.accuracy || {};
     const tierDist = data?.tierDist || {};
-    const sources = Array.isArray(data?.sources) ? data.sources : [];
-    const alerts = Array.isArray(data?.alerts) ? data.alerts : [];
+    
+    const sources = useMemo(() => Array.isArray(data?.sources) ? data.sources : [], [data?.sources]);
+    const alerts = useMemo(() => Array.isArray(data?.alerts) ? data.alerts : [], [data?.alerts]);
     const tableCounts = data?.tableCounts || {};
-    const stages = Array.isArray(data?.stages) ? data.stages : [];
+    const stages = useMemo(() => Array.isArray(data?.stages) ? data.stages : [], [data?.stages]);
     const latestRuns = data?.latestRuns || {};
     const pipeline = data?.pipeline || { hasError: false, okCount: 0, errorCount: 0, total: 0 };
 
-    const sectionHeader = (Icon: React.ElementType, label: string) => (
-        <div className="flex items-center gap-2 mb-3 px-4 md:px-0">
-            <Icon size={16} className="text-[#00D4FF]" aria-hidden="true" />
-            <h2 className="text-[14px] font-extrabold text-[#00D4FF] tracking-[0.15em] m-0 drop-shadow-[0_0_8px_rgba(0,212,255,0.3)] font-['Rajdhani'] uppercase">{label}</h2>
-        </div>
-    );
-
-    const listPanelClass = "relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] md:border-[2px] border-y border-[#3d4f5f] md:rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden";
-    const cardClass = "relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden";
-
-    return (
+    const wrappedContent = (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
             {seo}
 
             <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
             <MlbSubNav />
 
-            {/* Sub-header */}
-            <div className="bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[2px] border-[#3d4f5f] p-4 flex justify-between items-center gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+            <div className="bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[2px] border-[#3d4f5f] p-4 flex justify-between items-center gap-3">
                 <div className="min-w-0">
-                    <h1 className="m-0 text-2xl font-bold uppercase tracking-widest">
-                        Data <span className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.6)]">Status</span>
+                    <h1 className="m-0 text-2xl font-extrabold font-['Rajdhani'] uppercase tracking-widest">
+                        Data <span className="text-[#00D4FF]">Status</span>
                     </h1>
-                    {/* Show when last model refresh occurred — only show if we actually have a refresh time, not serverNow which always reads 'JUST NOW' */}
                     {data?.health?.last_refresh && (
-                        <div className="text-[10px] text-slate-500 tracking-widest uppercase mt-0.5 flex items-center gap-2">
+                        <div className="text-[10px] text-slate-400 tracking-widest uppercase mt-0.5 flex items-center gap-2">
                             <span>Data refreshed {timeAgo(data.health.last_refresh)}</span>
                             {isValidating && !isLoading && (
                                 <span className="text-[#00D4FF] animate-pulse">&middot; updating&hellip;</span>
@@ -336,23 +330,22 @@ export default function StatusPage() {
                 </div>
                 <div className="text-right flex flex-col items-end shrink-0">
                     <div className="text-[#00D4FF] text-[11px] font-bold tracking-widest uppercase">SYSTEM</div>
-                    <div className="inline-flex items-center gap-1.5 mt-1" role="status" aria-live="polite" aria-label={`System status: ${isLoading ? 'loading' : (isSystemFresh ? 'fresh' : 'stale')}`}>
-                        <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-slate-400 shadow-none' : (isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#FF4444] shadow-[0_0_10px_#FF4444]')}`}></div>
-                        <div className={`text-xs font-bold tracking-widest ${isLoading ? 'text-slate-400 drop-shadow-none' : (isSystemFresh ? 'text-[#00D4FF] drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]' : 'text-[#FF4444] drop-shadow-[0_0_5px_rgba(255,68,68,0.5)]')}`}>
+                    <div className="inline-flex items-center gap-1.5 mt-1" role="status" aria-label={`System status: ${isLoading ? 'loading' : (isSystemFresh ? 'fresh' : 'stale')}`}>
+                        <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-slate-400' : (isSystemFresh ? 'bg-[#00D4FF]' : 'bg-[#FF4444]')}`}></div>
+                        <div className={`text-xs font-bold tracking-widest ${isLoading ? 'text-slate-400' : (isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF4444]')}`}>
                             {isLoading ? 'LOADING' : (isSystemFresh ? 'FRESH' : 'STALE')}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className={`px-0 md:px-4 py-6 max-w-4xl mx-auto w-full transition-opacity duration-300 ${isValidating && !isLoading ? 'opacity-70' : ''}`}>
+            <div className="px-0 md:px-4 py-6 max-w-4xl mx-auto w-full transition-opacity duration-300">
 
                 <div className="flex justify-end mb-4 px-4 md:px-0">
                     <button
                         onClick={handleRefresh}
                         disabled={manualRefreshing && isValidating}
-                        aria-label="Refresh status data"
-                        className={`bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_10px_rgba(0,0,0,0.4)] text-[#00D4FF] px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-[10px] font-extrabold tracking-widest uppercase transition-all hover:bg-[#1a2332] hover:shadow-[0_0_10px_rgba(0,212,255,0.2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${manualRefreshing && isValidating ? 'opacity-50' : ''}`}
+                        className="bg-[#1a2332] border-[2px] border-[#3d4f5f] text-[#00D4FF] px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-[10px] font-extrabold tracking-widest uppercase hover:bg-[#253040] disabled:opacity-50"
                     >
                         <RefreshCw aria-hidden="true" size={14} className={isValidating ? 'animate-spin' : ''} />
                         Refresh
@@ -360,47 +353,29 @@ export default function StatusPage() {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex flex-col gap-8 mt-6 px-4 md:px-0" aria-busy="true" aria-label="Loading status data">
-                        {/* Summary skeleton */}
-                        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]"></div>
-                        {/* Cards skeleton */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-4 md:px-0">
-                            {[1, 2, 3, 4, 5, 6].map((i) => (
-                                <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]"></div>
-                            ))}
-                        </div>
+                    <div className="flex flex-col gap-8 mt-6 px-4 md:px-0">
+                        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse"></div>
                     </div>
                 ) : (
                     <>
-                        {/* PIPELINE HEALTH SUMMARY */}
                         <div className="mb-8">
                             <div className={`${listPanelClass} px-5 py-4 flex items-center justify-between gap-3`}>
                                 <div className="flex items-center gap-3 min-w-0">
                                     {pipeline.hasError
-                                        ? <AlertTriangle size={22} className="text-[#FF4444] shrink-0 drop-shadow-[0_0_6px_rgba(255,68,68,0.7)]" aria-hidden="true" />
-                                        : <CheckCircle2 size={22} className="text-[#00D4FF] shrink-0 drop-shadow-[0_0_6px_rgba(0,212,255,0.7)]" aria-hidden="true" />}
+                                        ? <AlertTriangle size={22} className="text-[#FF4444] shrink-0" aria-hidden="true" />
+                                        : <CheckCircle2 size={22} className="text-[#00D4FF] shrink-0" aria-hidden="true" />}
                                     <div className="min-w-0">
                                         <div className={`text-[15px] font-extrabold uppercase tracking-wider font-['Rajdhani'] ${pipeline.hasError ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}>
                                             {pipeline.hasError ? 'Pipeline Errors Detected' : 'All Pipeline Stages OK'}
                                         </div>
-                                        <div className="text-[11px] text-slate-400 tracking-wider mt-0.5">
-                                            {fmt(pipeline.okCount)} OK
-                                            {Number(pipeline.errorCount) > 0 ? ` • ${fmt(pipeline.errorCount)} ERROR` : ''}
-                                            {` • ${fmt(pipeline.total)} STAGES`}
+                                        <div className="text-[11px] text-slate-300 tracking-wider mt-0.5">
+                                            {fmt(pipeline.okCount)} OK &bull; {fmt(pipeline.total)} STAGES
                                         </div>
                                     </div>
                                 </div>
-                                {/* null-safe: minutes_since_refresh comes as numeric from RPC but may be string from direct PostgREST */}
-                                {health.minutes_since_refresh != null && (
-                                    <div className="text-right shrink-0">
-                                        <div className="text-[10px] text-slate-500 tracking-widest uppercase">Last Refresh</div>
-                                        <div className="text-[13px] font-bold text-[#00D4FF] tabular-nums">{Number(health.minutes_since_refresh) < 1 ? '<1' : Math.round(Number(health.minutes_since_refresh))}M</div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        {/* SYSTEM HEALTH */}
                         <div className="mb-8">
                             {sectionHeader(Clock, 'SYSTEM HEALTH')}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
@@ -416,7 +391,7 @@ export default function StatusPage() {
                             ].map((item) => (
                                 <div key={item.label} className={`${cardClass} p-4`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
-                                    <div className={`text-xl font-extrabold font-['Rajdhani'] tabular-nums break-words ${item.warn ? 'text-[#FF4444] drop-shadow-[0_0_10px_rgba(255,68,68,0.4)]' : 'text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.4)]'}`}>
+                                    <div className={`text-xl font-extrabold font-['Rajdhani'] tabular-nums break-words ${item.warn ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}>
                                         {item.val}
                                     </div>
                                 </div>
@@ -424,7 +399,6 @@ export default function StatusPage() {
                             </div>
                         </div>
 
-                        {/* TODAY'S SLATE */}
                         <div className="mb-8">
                             {sectionHeader(Activity, "TODAY'S SLATE")}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 md:px-0">
@@ -435,7 +409,7 @@ export default function StatusPage() {
                                 ].map((item) => (
                                     <div key={item.label} className={`${cardClass} p-5 text-center`}>
                                         <div className="text-[11px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
-                                        <div className="text-3xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums drop-shadow-[0_0_15px_rgba(0,212,255,0.6)]">
+                                        <div className="text-3xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
                                             {fmt(item.val)}
                                         </div>
                                     </div>
@@ -443,31 +417,29 @@ export default function StatusPage() {
                             </div>
                         </div>
 
-                        {/* MODEL ACCURACY */}
                         <div className="mb-8">
-                            {sectionHeader(Gauge, 'MODEL ACCURACY')}
+                            <SectionHeader icon={Gauge} label="MODEL ACCURACY" />
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
-                                <div className={`${cardClass} p-4 text-center`}>
+                                <MetalFrame className="p-4 text-center">
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">BRIER (ML)</div>
                                     <div className={`text-2xl font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_ml)}`}>{fmtBrier(accuracy.wtd_avg_brier_ml)}</div>
-                                </div>
-                                <div className={`${cardClass} p-4 text-center`}>
+                                </MetalFrame>
+                                <MetalFrame className="p-4 text-center">
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">BRIER (PROPS)</div>
                                     <div className={`text-2xl font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_props)}`}>{fmtBrier(accuracy.wtd_avg_brier_props)}</div>
-                                </div>
-                                <div className={`${cardClass} p-4 text-center`}>
+                                </MetalFrame>
+                                <MetalFrame className="p-4 text-center">
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">GAMES EVAL</div>
                                     <div className="text-2xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">{fmt(accuracy.total_games_evaluated)}</div>
-                                </div>
-                                <div className={`${cardClass} p-4 text-center`}>
+                                </MetalFrame>
+                                <MetalFrame className="p-4 text-center">
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">DAILY SAMPLES</div>
                                     <div className="text-2xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">{fmt(accuracy.daily_samples)}</div>
-                                </div>
+                                </MetalFrame>
                             </div>
                             <div className="text-[10px] text-slate-500 tracking-wider mt-2 px-4 md:px-0">Brier score: lower is better (0.25 = coin flip). Weighted average over recent graded slates.</div>
                         </div>
 
-                        {/* BET TIER DISTRIBUTION */}
                         {Object.keys(tierDist).length > 0 && (
                             <div className="mb-8">
                                 {sectionHeader(Layers, 'BET TIER DISTRIBUTION')}
@@ -476,13 +448,13 @@ export default function StatusPage() {
                                         {TIER_META.filter(t => t.key in tierDist).map((t) => (
                                             <div key={t.key} className="flex-1 min-w-[80px] text-center rounded-lg border bg-black/30 py-3 px-2" style={{ borderColor: t.color }}>
                                                 <div className="text-[10px] font-bold tracking-[0.12em] mb-1" style={{ color: t.color }}>{t.key}</div>
-                                                <div className="text-xl font-bold tabular-nums" style={{ color: t.color }}>{fmt(tierDist[t.key])}</div>
+                                                <div className="text-xl font-extrabold font-['Rajdhani'] tabular-nums" style={{ color: t.color }}>{fmt(tierDist[t.key])}</div>
                                             </div>
                                         ))}
                                         {Number(tierDist.unscored) > 0 && (
                                             <div className="flex-1 min-w-[80px] text-center rounded-lg border border-[#475569] bg-black/30 py-3 px-2">
                                                 <div className="text-[10px] font-bold tracking-[0.12em] mb-1 text-slate-500">UNSCORED</div>
-                                                <div className="text-xl font-bold tabular-nums text-slate-500">{fmt(tierDist.unscored)}</div>
+                                                <div className="text-xl font-extrabold font-['Rajdhani'] tabular-nums text-slate-500">{fmt(tierDist.unscored)}</div>
                                             </div>
                                         )}
                                     </div>
@@ -490,122 +462,91 @@ export default function StatusPage() {
                             </div>
                         )}
 
-                        {/* DATA SOURCE FRESHNESS */}
                         <div className="mb-8">
-                            {sectionHeader(Database, 'DATA SOURCE FRESHNESS')}
-                            <div className={listPanelClass}>
-                                {sources.length > 0 ? (
-                                    <div className="flex flex-col">
-                                        {sources.map((src, idx) => {
-                                            const ok = ['ok', 'success', 'done', 'partial'].includes(String(src?.status || '').toLowerCase());
-                                            return (
-                                                <div key={src?.source || idx} className={`flex justify-between items-center px-5 py-3 bg-black/20 gap-3 ${idx !== sources.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
-                                                    <div className="min-w-0">
-                                                        <div className="text-[13px] font-semibold text-slate-200 tracking-wider truncate">{SOURCE_LABEL_MAP[src?.source] || src?.source || '-'}</div>
-                                                        <div className="text-[10px] text-slate-500 tracking-wider mt-0.5">{timeAgo(src?.pulled_at) || 'NO PULL DATA'}</div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 shrink-0">
-                                                        <div className="text-[11px] text-slate-400 tabular-nums">{src?.row_count != null ? fmt(src.row_count) : '-'}</div>
-                                                        <div className={`bg-black/50 border px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'text-[#FF4444] border-[#FF4444] shadow-[0_0_10px_rgba(255,68,68,0.3)]'}`}>
-                                                            {String(src?.status || 'UNKNOWN').toUpperCase()}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">No data source info available</div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* RECENT ALERTS */}
-                        <div className="mb-8">
-                            {sectionHeader(Bell, 'RECENT ALERTS')}
-                            <div className={listPanelClass}>
-                                {alerts.length > 0 ? (
-                                    <div className="flex flex-col">
-                                        {alerts.map((al, idx) => (
-                                            <div key={al?.id ?? idx} className={`flex justify-between items-start px-5 py-3 bg-black/20 gap-3 ${idx !== alerts.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
+                            <SectionHeader icon={Database} label="DATA SOURCE FRESHNESS" />
+                            <MetalFrame className="p-0">
+                                <ul className="flex flex-col m-0 p-0 list-none">
+                                    {sources.map((src, idx) => {
+                                        const ok = ['ok', 'success', 'done', 'partial'].includes(String(src?.status || '').toLowerCase());
+                                        return (
+                                            <li key={src?.source || idx} className={`flex justify-between items-center px-5 py-3 bg-black/20 gap-3 ${idx !== sources.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
                                                 <div className="min-w-0">
-                                                    <div className="text-[13px] font-semibold text-slate-200 break-words">{al?.message || '-'}</div>
-                                                    <div className="text-[10px] text-slate-500 tracking-wider mt-0.5 uppercase">{al?.source || 'system'}{al?.alert_type ? ` • ${al.alert_type}` : ''}</div>
+                                                    <div className="text-[13px] font-semibold text-slate-200 tracking-wider truncate">{SOURCE_LABEL_MAP[src?.source] || src?.source || '-'}</div>
+                                                    <div className="text-[10px] text-slate-400 tracking-wider mt-0.5"><TimeAgo dateString={src?.pulled_at} fallback="NO PULL DATA" /></div>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                                    <div className={`bg-black/50 border px-2 py-0.5 rounded text-[9px] font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}>
-                                                        {String(al?.level || 'INFO').toUpperCase()}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-500 tracking-wider">{timeAgo(al?.fired_at)}</div>
+                                                <div className={`bg-black/50 border px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF]' : 'text-[#FF4444] border-[#FF4444]'}`}>
+                                                    {String(src?.status || 'UNKNOWN').toUpperCase()}
                                                 </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </MetalFrame>
+                        </div>
+
+                        <div className="mb-8">
+                            <SectionHeader icon={Bell} label="RECENT ALERTS" />
+                            <MetalFrame className="p-0">
+                                <ul className="flex flex-col m-0 p-0 list-none">
+                                    {alerts.map((al, idx) => (
+                                        <li key={`${al?.id}-${idx}`} className={`flex justify-between items-start px-5 py-3 bg-black/20 gap-3 ${idx !== alerts.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
+                                            <div className="min-w-0">
+                                                <div className="text-[13px] font-semibold text-slate-200 break-words">{al?.message || '-'}</div>
+                                                <div className="text-[10px] text-slate-400 tracking-wider mt-0.5 uppercase">{al?.source || 'SYSTEM'}</div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">No recent alerts</div>
-                                )}
-                            </div>
+                                            <div className={`bg-black/50 border px-2 py-0.5 rounded text-[9px] font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}>
+                                                {String(al?.level || 'INFO').toUpperCase()}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </MetalFrame>
                         </div>
 
-                        {/* RECENT PIPELINE RUNS */}
                         <div className="mb-8">
-                            {sectionHeader(CheckCircle2, 'RECENT PIPELINE RUNS')}
-                            <div className={listPanelClass}>
-                                {stages.length > 0 ? (
-                                    <div className="flex flex-col">
-                                        {stages.map((stage, idx) => {
-                                            const run = latestRuns?.[stage];
-                                            const status = String(run?.status || 'unknown').toLowerCase();
-                                            const isError = ['error', 'failed', 'timeout', 'critical'].includes(status);
-                                            const isSuccess = ['ok', 'success', 'done', 'partial'].includes(status);
-                                            const glowColor = isError ? 'text-[#FF4444]' : (isSuccess ? 'text-[#00D4FF]' : 'text-slate-400');
-                                            const borderGlowColor = isError ? 'border-[#FF4444]' : (isSuccess ? 'border-[#00D4FF]' : 'border-slate-500');
-                                            const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,68,68,0.3)]' : (isSuccess ? 'shadow-[0_0_10px_rgba(0,212,255,0.3)]' : '');
-                                            return (
-                                                <div key={stage} className={`px-4 sm:px-5 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
-                                                    <div className="min-w-0">
-                                                        <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
-                                                        <div className="text-[11px] text-slate-400 mt-1 tracking-wider break-words">
-                                                            {run?.run_ts ? formatDate(run.run_ts) : '—'}
-                                                            {run && typeof run.rows_written === 'number' ? ` • ${fmt(run.rows_written)} rows` : ''}
-                                                            {run && typeof run.duration_sec === 'number' ? ` • ${run.duration_sec.toFixed(1)}s` : ''}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-2 items-center sm:shrink-0 self-end sm:self-auto mt-2 sm:mt-0">
-                                                        {run?.run_ts && (
-                                                            <div className="text-slate-400 text-[11px] font-bold tracking-wider hidden sm:block">{timeAgo(run.run_ts)}</div>
-                                                        )}
-                                                        <div className={`bg-black/50 ${glowColor} border ${borderGlowColor} px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${bgShadow}`}>
-                                                            {status.toUpperCase()}
-                                                        </div>
+                            <SectionHeader icon={CheckCircle2} label="RECENT PIPELINE RUNS" />
+                            <MetalFrame className="p-0">
+                                <ul className="flex flex-col m-0 p-0 list-none">
+                                    {stages.map((stage, idx) => {
+                                        const run = latestRuns?.[stage];
+                                        const status = String(run?.status || 'unknown');
+                                        const isError = ['error', 'failed', 'timeout', 'critical'].includes(status.toLowerCase());
+                                        return (
+                                            <li key={stage} className={`px-5 py-4 flex justify-between items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
+                                                <div className="min-w-0">
+                                                    <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
+                                                    <div className="text-[11px] text-slate-400 mt-1 tracking-wider">
+                                                        {run?.run_ts ? formatDate(run.run_ts) : '—'}
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">No pipeline runs found</div>
-                                )}
-                            </div>
+                                                {run && (
+                                                    <div className={`bg-black/50 border px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${isError ? 'text-[#FF4444] border-[#FF4444]' : 'text-[#00D4FF] border-[#00D4FF]'}`}>
+                                                        {status.toUpperCase()}
+                                                    </div>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </MetalFrame>
                         </div>
 
-                        {/* DB TABLE COUNTS */}
                         <div className="mb-8">
-                            {sectionHeader(Database, 'DB TABLE COUNTS')}
-                            <div className={listPanelClass}>
-                                {tableCounts && Object.keys(tableCounts).length > 0 ? (
-                                    <div className="flex flex-col">
+                            <SectionHeader icon={Database} label="DB TABLE COUNTS" />
+                            <MetalFrame className="p-0">
+                                {Object.keys(tableCounts).length > 0 ? (
+                                    <ul className="flex flex-col m-0 p-0 list-none">
                                         {Object.entries(tableCounts).map(([table, count], idx, arr) => (
-                                            <div key={table} className={`flex justify-between px-6 py-4 bg-black/20 gap-3 ${idx !== arr.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
+                                            <li key={table} className={`flex justify-between px-6 py-4 bg-black/20 gap-3 ${idx !== arr.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
                                                 <span className="text-[13px] font-semibold text-slate-400 tracking-wider truncate">{table}</span>
-                                                <span className="text-[14px] font-bold text-[#00D4FF] tabular-nums shrink-0">{fmt(count)}</span>
-                                            </div>
+                                                <span className="text-[14px] font-bold text-[#00D4FF] tabular-nums shrink-0">{fmt(count as number)}</span>
+                                            </li>
                                         ))}
-                                    </div>
+                                    </ul>
                                 ) : (
-                                    <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">No table data available</div>
+                                    <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">No Table Data Available</div>
                                 )}
-                            </div>
+                            </MetalFrame>
                         </div>
 
                     </>
@@ -613,5 +554,11 @@ export default function StatusPage() {
             </div>
             <BottomNavBar />
         </div>
+    );
+    
+    return (
+        <StatusErrorBoundary seo={seo} header={<UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />} nav={<MlbSubNav />}>
+            {wrappedContent}
+        </StatusErrorBoundary>
     );
 }

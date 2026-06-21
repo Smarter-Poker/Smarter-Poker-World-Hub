@@ -232,7 +232,7 @@ export default function PlayerProfilePage() {
 
             {/* Primary Metrics Skeleton */}
             <div className="w-40 h-5 bg-[#3d4f5f] rounded mb-4" />
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 px-4 md:px-0">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -247,7 +247,7 @@ export default function PlayerProfilePage() {
             {/* Secondary Metrics Skeleton */}
             <div className="w-48 h-5 bg-[#3d4f5f] rounded mb-4" />
             <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 h-16">
                     <div className="w-12 h-2 bg-[#3d4f5f] rounded mb-2" />
@@ -327,7 +327,7 @@ export default function PlayerProfilePage() {
 
             {/* Primary Ratings */}
             <SectionTitle>Primary Ratings</SectionTitle>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 px-4 md:px-0">
               {type === 'hitter' ? (
                 <>
                   <div
@@ -454,7 +454,7 @@ export default function PlayerProfilePage() {
             {/* Advanced Metrics — curated, labelled, with explanations */}
             <SectionTitle>Advanced Metrics</SectionTitle>
             <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] mb-8">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                 {type === 'hitter' ? (
                   <>
                     <MetricTile
@@ -515,7 +515,7 @@ export default function PlayerProfilePage() {
                   {type === 'pitcher' ? '(per batter faced)' : '(per plate appearance)'}
                 </SectionTitle>
                 <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)] mb-8">
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 px-4 md:px-0">
                     <MetricTile
                       label="K Rate"
                       value={pct1(sim.k)}
@@ -582,7 +582,7 @@ export default function PlayerProfilePage() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                     {type === 'hitter' ? (
                       <>
                         <MetricTile

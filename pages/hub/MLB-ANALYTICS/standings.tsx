@@ -594,7 +594,7 @@ export default function StandingsPage() {
                 >
                   {lg === 'AL' ? 'American League' : 'National League'}
                 </h2>
-                <div className="grid grid-cols-1 gap-5">
+                <div className="grid grid-cols-1 gap-5 px-4 md:px-0">
                   {LEAGUE_DIVISIONS[lg]
                     .filter((d) => byDivision.has(d))
                     .map((d) => (

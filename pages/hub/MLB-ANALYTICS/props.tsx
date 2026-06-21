@@ -411,7 +411,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
           <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest">
             Key Metrics
           </div>
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-3 gap-2 mb-2 px-4 md:px-0">
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
               <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
                 Bet Score
@@ -453,7 +453,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
               </div>
             )}
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 px-4 md:px-0">
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
               <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
                 Best Odds

@@ -344,7 +344,7 @@ export default function HRTrackerPage() {
             {/* Spotlight skeleton */}
             <div className="animate-pulse bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-5 mb-6">
               <div className="w-40 h-4 bg-[#3d4f5f] rounded mb-4" />
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 md:px-0">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="bg-[#1a2332] rounded-xl p-4 h-28" />
                 ))}
@@ -428,7 +428,7 @@ export default function HRTrackerPage() {
               >
                 Most Due for a Home Run
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 md:px-0">
                 {spotlight.map((p, idx) => {
                   const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.RECENT;
                   return (

@@ -213,7 +213,7 @@ export default function AccuracyPage() {
               <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
                 <div className="flex items-center gap-3">
                   <h2
-                    className="m-0 text-base font-bold text-white uppercase tracking-wider"
+                    className="m-0 text-base font-extrabold font-['Rajdhani'] uppercase text-white uppercase tracking-wider"
                     style={{ fontFamily: '"Rajdhani", sans-serif' }}
                   >
                     Lock-In Gate
@@ -239,7 +239,7 @@ export default function AccuracyPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-0">
                 {/* Sample Size */}
                 <div
                   className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${kpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}

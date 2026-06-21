@@ -294,7 +294,7 @@ export default function PortfolioPage() {
                                 </div>
                             </div>
 
-                            <div className="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div className="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-4 px-4 md:px-0">
                                 <MetricBox title="TOTAL BETS" value={totalBets} sub={`${wins}W - ${losses}L - ${pushes}P`} />
                                 <MetricBox title="TOTAL P&L" value={formatCurrency(totalPnl, true)} valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'} />
                                 <MetricBox title="ROI" value={formatPct(roi, true)} valueColor={Number(roi || 0) > 0 ? '#00D4FF' : Number(roi || 0) < 0 ? '#FF0055' : '#FFFFFF'} />
@@ -367,7 +367,7 @@ export default function PortfolioPage() {
                         {baseline && kellyFinal != null && flatFinal != null && (
                             <div className="mb-8 relative z-10">
                                 <SectionTitle tag="FULL BACKTEST">Kelly Sizing vs Flat Staking</SectionTitle>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 md:px-0">
                                     <div className="bg-[#0d1117] border-[2px] border-[#00D4FF]/40 rounded-xl p-5 shadow-[0_0_15px_rgba(0,212,255,0.1)]">
                                         <div className="text-[10px] font-bold text-[#00D4FF] tracking-widest mb-2 uppercase">Model (Kelly-Sized)</div>
                                         <div className="text-3xl font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatCurrency(kellyFinal)}</div>
@@ -391,7 +391,7 @@ export default function PortfolioPage() {
                         {risk && (
                             <div className="mb-8 relative z-10">
                                 <SectionTitle tag="FULL BACKTEST">Risk &amp; Quality</SectionTitle>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 px-4 md:px-0">
                                     <MetricBox title="PROFIT FACTOR" value={`${Number(risk.profit_factor || 0).toFixed(2)}x`} sub="Gross won / lost" valueColor={Number(risk.profit_factor || 0) >= 1 ? '#00D4FF' : '#FF0055'} />
                                     <MetricBox title="EXPECTANCY / BET" value={formatCurrency(Number(risk.expectancy || 0), true)} sub="Avg profit per bet" valueColor={Number(risk.expectancy || 0) >= 0 ? '#00D4FF' : '#FF0055'} />
                                     <MetricBox title="AVG STAKE" value={formatCurrency(Number(risk.avg_stake || 0))} sub="Per bet" />

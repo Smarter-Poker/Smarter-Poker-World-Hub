@@ -375,7 +375,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
           <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest ">
             Bet Details
           </div>
-          <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="grid grid-cols-2 gap-2 mb-2 px-4 md:px-0">
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
               <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
                 Selection
@@ -434,7 +434,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
           <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest ">
             Key Metrics
           </div>
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-3 gap-2 mb-2 px-4 md:px-0">
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
               <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
                 Score
@@ -476,7 +476,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
               </div>
             )}
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 px-4 md:px-0">
             {bet.edge_pts !== null && bet.edge_pts !== undefined && (
               <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                 <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
@@ -595,7 +595,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
             <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 ">
               <Zap size={10} /> Pitcher Profile
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 px-4 md:px-0">
               {era !== null && (
                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                   <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
@@ -658,7 +658,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
             <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 ">
               <Activity size={10} /> Hitter Profile
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 px-4 md:px-0">
               {bet.hitter_avg != null && (
                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                   <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
@@ -908,7 +908,7 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
 
         {/* Stats Grid */}
         {allStats.length > 0 && (
-          <div className="grid grid-cols-5 gap-1 mb-3">
+          <div className="grid grid-cols-5 gap-1 mb-3 px-4 md:px-0">
             {allStats.slice(0, 5).map((s, i) => (
               <div key={i} className="bg-[#0a0a15] border border-[#1a2530] rounded-sm py-1 flex flex-col items-center justify-center">
                 <span className="text-[8px] font-black text-[#5a6a7a] uppercase tracking-widest leading-none mb-0.5">{s.label}</span>
@@ -1170,7 +1170,7 @@ export default function BestBetsPage() {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-4 gap-2 mt-3">
+        <div className="grid grid-cols-4 gap-2 mt-3 px-4 md:px-0">
           {[
             { label: 'Bets', value: isLoading && !data ? null : stats.totalBets, color: '#ffffff' },
             {

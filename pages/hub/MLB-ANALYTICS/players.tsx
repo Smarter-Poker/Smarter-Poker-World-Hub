@@ -692,7 +692,7 @@ export default function PlayersPage() {
                     <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#3d4f5f]" />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-0">
                     {Object.entries(divisions).map(([division, teamIds]) => {
                       // Sort teams in this division by win pct (best first)
                       const sortedIds = [...teamIds].sort((a, b) => {

@@ -1,12 +1,7 @@
--- 1. Create missing indexes for max(as_of_ts) queries to prevent Full Table Scans
-CREATE INDEX IF NOT EXISTS idx_pred_market_output_as_of_ts ON public.pred_market_output (as_of_ts DESC);
-CREATE INDEX IF NOT EXISTS idx_pred_best_bets_as_of_ts ON public.pred_best_bets (as_of_ts DESC);
-CREATE INDEX IF NOT EXISTS idx_pred_props_as_of_ts ON public.pred_props (as_of_ts DESC);
-CREATE INDEX IF NOT EXISTS idx_agg_market_as_of ON public.agg_market (as_of DESC);
-CREATE INDEX IF NOT EXISTS idx_pipeline_runs_run_ts ON public.pipeline_runs (run_ts DESC NULLS LAST);
-CREATE INDEX IF NOT EXISTS idx_alert_log_fired_at ON public.alert_log (fired_at DESC NULLS LAST);
+-- Fixes for get_status_dashboard():
+-- 1. Pipeline runs DISTINCT ON to ensure we don't erase older stages if limit pushes them out.
+-- 2. Scoped and COALESCE-wrapped pg_class lookup to prevent crashes on missing or duplicate tables.
 
--- 2. Update the RPC to fix the pg_class crash risk and inefficient aggregations
 CREATE OR REPLACE FUNCTION public.get_status_dashboard()
 RETURNS jsonb
 LANGUAGE sql
@@ -15,6 +10,7 @@ SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $$
 WITH
+today AS (SELECT (now() AT TIME ZONE 'America/Chicago')::date AS d),
 mkt_latest   AS (SELECT max(as_of_ts) AS ts FROM pred_market_output),
 props_latest AS (SELECT max(as_of_ts) AS ts FROM pred_props),
 bb_latest    AS (SELECT max(as_of_ts) AS ts FROM pred_best_bets),
@@ -41,14 +37,16 @@ tier_dist AS (
   ) x
 ),
 runs AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb) AS j
+  SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.run_ts DESC NULLS LAST), '[]'::jsonb) AS j
   FROM (
-    SELECT id, run_ts, stage, step, status, duration_sec, rows_written, notes
-    FROM pipeline_runs ORDER BY run_ts DESC NULLS LAST LIMIT 12
+    SELECT DISTINCT ON (COALESCE(stage, step))
+      id, run_ts, stage, step, status, duration_sec, rows_written, notes
+    FROM pipeline_runs
+    ORDER BY COALESCE(stage, step), run_ts DESC NULLS LAST
   ) r
 ),
 alerts AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(a)), '[]'::jsonb) AS j
+  SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.fired_at DESC NULLS LAST), '[]'::jsonb) AS j
   FROM (
     SELECT id, fired_at, created_at, level, alert_type, message, source
     FROM alert_log ORDER BY fired_at DESC NULLS LAST LIMIT 6
@@ -64,7 +62,7 @@ sources AS (
 )
 SELECT jsonb_build_object(
   'server_now', now(),
-  'today',      (now() AT TIME ZONE 'America/Chicago')::date,
+  'today',      (SELECT d FROM today),
   'health',     (SELECT to_jsonb(h) FROM v_model_health h LIMIT 1),
   'accuracy',   (SELECT to_jsonb(a) FROM (SELECT total_games_evaluated, daily_samples, wtd_avg_brier_ml, wtd_avg_brier_props FROM v_model_accuracy_summary LIMIT 1) a),
   'agg_as_of',  (SELECT max(as_of) FROM agg_market),
@@ -74,11 +72,11 @@ SELECT jsonb_build_object(
     'best',  (SELECT count(*) FROM pred_best_bets    WHERE as_of_ts = (SELECT ts FROM bb_latest))
   ),
   'table_counts', jsonb_build_object(
-    'pred_market_output', COALESCE((SELECT c.reltuples::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'pred_market_output'), 0),
-    'pred_props',         COALESCE((SELECT c.reltuples::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'pred_props'), 0),
-    'pred_best_bets',     COALESCE((SELECT c.reltuples::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'pred_best_bets'), 0),
-    'agg_market',         COALESCE((SELECT c.reltuples::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'agg_market'), 0),
-    'snapshots',          COALESCE((SELECT c.reltuples::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'snapshots'), 0)
+    'pred_market_output', COALESCE((SELECT reltuples::bigint FROM pg_class WHERE relname = 'pred_market_output' AND relnamespace = 'public'::regnamespace), 0),
+    'pred_props',         COALESCE((SELECT reltuples::bigint FROM pg_class WHERE relname = 'pred_props' AND relnamespace = 'public'::regnamespace), 0),
+    'pred_best_bets',     COALESCE((SELECT reltuples::bigint FROM pg_class WHERE relname = 'pred_best_bets' AND relnamespace = 'public'::regnamespace), 0),
+    'agg_market',         COALESCE((SELECT reltuples::bigint FROM pg_class WHERE relname = 'agg_market' AND relnamespace = 'public'::regnamespace), 0),
+    'snapshots',          COALESCE((SELECT reltuples::bigint FROM pg_class WHERE relname = 'snapshots' AND relnamespace = 'public'::regnamespace), 0)
   ),
   'tier_dist',     (SELECT to_jsonb(tier_dist) FROM tier_dist),
   'pipeline_runs', (SELECT j FROM runs),
@@ -86,3 +84,8 @@ SELECT jsonb_build_object(
   'sources',       (SELECT j FROM sources)
 );
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.get_status_dashboard() FROM PUBLIC, anon, authenticated;
+GRANT  EXECUTE ON FUNCTION public.get_status_dashboard() TO service_role;
+
+NOTIFY pgrst, 'reload schema';

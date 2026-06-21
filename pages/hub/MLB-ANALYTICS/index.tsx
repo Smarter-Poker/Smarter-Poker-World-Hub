@@ -163,7 +163,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       <div className="absolute top-[-2px] left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#3d4f5f]" />
 
       {/* 3-column grade grid */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      <div className="grid grid-cols-3 gap-2 mb-3 px-4 md:px-0">
         {cells.map(({ label, score, tier, rec, ev, factors }) => {
           const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
           return (
