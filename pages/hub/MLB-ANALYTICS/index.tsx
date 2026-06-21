@@ -478,7 +478,7 @@ export default function MlbSlatePage() {
                             {getTeamName(g.away)}
                           </span>
                           {g.awayRecord && (
-                            <span className="text-[12px] text-[#8a9ba8] font-bold tracking-widest uppercase">
+                            <span className="text-[12px] text-[#8a9ba8] font-bold uppercase">
                               {g.awayRecord.wins}-{g.awayRecord.losses}{g.awayStreak ? ` [${g.awayStreak}]` : ''}
                             </span>
                           )}
@@ -506,7 +506,7 @@ export default function MlbSlatePage() {
                             {getTeamName(g.home)}
                           </span>
                           {g.homeRecord && (
-                            <span className="text-[12px] text-[#8a9ba8] font-bold tracking-widest uppercase">
+                            <span className="text-[12px] text-[#8a9ba8] font-bold uppercase">
                               {g.homeRecord.wins}-{g.homeRecord.losses}{g.homeStreak ? ` [${g.homeStreak}]` : ''}
                             </span>
                           )}
