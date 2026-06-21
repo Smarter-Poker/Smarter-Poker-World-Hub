@@ -24,7 +24,8 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
-
+import MetalFrame from '../../../src/components/ui/MetalFrame';
+import SectionHeader from '../../../src/components/ui/SectionHeader';
 const fetcher = async (url: string) => {
   try {
     const res = await fetch(url);
@@ -953,15 +954,14 @@ const CategoryCarousel = ({ title, icon: Icon, bets, onBetClick, rankLabel = 'RA
   if (!bets || bets.length === 0) return null;
   return (
     <div className="mb-8">
-      <div className="flex items-center gap-2 mb-3 px-4">
-        {Icon && <Icon className="text-[#00D4FF]" size={20} />}
-        <h2 className="text-[20px] font-black text-white uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{title}</h2>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-4 pb-4">
-        {bets.map((bet, idx) => (
-          <BetCard key={idx} bet={bet} rank={idx + 1} rankLabel={rankLabel} onClick={() => onBetClick(bet)} />
-        ))}
-      </div>
+      <SectionHeader icon={Icon || Zap} label={title} />
+      <MetalFrame className="p-4 bg-transparent border-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {bets.map((bet, idx) => (
+            <BetCard key={idx} bet={bet} rank={idx + 1} rankLabel={rankLabel} onClick={() => onBetClick(bet)} />
+          ))}
+        </div>
+      </MetalFrame>
     </div>
   );
 };
