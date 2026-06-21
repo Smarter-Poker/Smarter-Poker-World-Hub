@@ -203,8 +203,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let pitchers: any[] = [];
   let aggPitchers: any[] = [];
   let slates: any[] = [];
+  let games: any[] = [];
   try {
-    [hitters, pitchers, aggPitchers, slates] = await Promise.all([
+    [hitters, pitchers, aggPitchers, slates, games] = await Promise.all([
       fetchAllRows(() =>
         mlbDb
           .from('v_hitter_profile')
@@ -222,6 +223,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       ),
       fetchAllRows(() =>
         mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')
+      ),
+      fetchAllRows(() =>
+        mlbDb.from('fact_games').select('game_pk, first_pitch_utc')
       ),
     ]);
   } catch (e: any) {
@@ -252,10 +256,25 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   slates?.forEach((s: any) => {
     if (s.game_pk) slateMap.set(s.game_pk, s);
   });
+  
+  games?.forEach((g: any) => {
+    if (g.game_pk) {
+      const slate = slateMap.get(g.game_pk) || {};
+      slate.first_pitch_utc = g.first_pitch_utc;
+      slateMap.set(g.game_pk, slate);
+    }
+  });
 
   return betsArr.map((bet: BetRow) => {
     const { isTeamBet, isPitcherProp } = detectBetType(bet);
     let enriched = { ...bet };
+
+    if (enriched.game_pk) {
+      const slate = slateMap.get(Number(enriched.game_pk));
+      if (slate && slate.first_pitch_utc) {
+        enriched.game_time = slate.first_pitch_utc;
+      }
+    }
 
     if (!isTeamBet && (bet.player_name || bet.selection)) {
       // Extract player name from player_name or selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
@@ -431,7 +450,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
     if (pitcherToEvaluateId) {
       const aggP = aggPitcherMap.get(pitcherToEvaluateId);
-      const vP = pitcherMap.get(pitcherToEvaluateId);
+      const vP = pitcherMapById.get(pitcherToEvaluateId);
       
       // Inject pitcher stats for Team Bets so UI isn't blank
       if (isTeamBet) {
