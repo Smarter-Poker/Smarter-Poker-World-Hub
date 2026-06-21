@@ -11,270 +11,413 @@ import { logError } from '@/utils/logger';
 import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 
 const fetcher = async (url: string) => {
-    try {
-        const res = await fetch(url);
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return await res.json();
-    } catch (err) {
-        logError('SWR Fetch', err);
-        throw err;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
+    return await res.json();
+  } catch (err) {
+    logError('SWR Fetch', err);
+    throw err;
+  }
 };
 
 export default function AccuracyPage() {
-    const router = useRouter();
-    const { data, error, isLoading } = useSWR('/api/mlb/accuracy', fetcher, {
-        refreshInterval: 300000,
-    });
+  const router = useRouter();
+  const { data, error, isLoading } = useSWR('/api/mlb/accuracy', fetcher, {
+    refreshInterval: 300000,
+  });
 
-    const tableData = data?.tableData || [];
-    const kpi = data?.kpi || { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
-    const [filter, setFilter] = useState('All');
+  const tableData = data?.tableData || [];
+  const kpi = data?.kpi || { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
+  const [filter, setFilter] = useState('All');
 
-    // Map a raw market to its display category (matches the filter buttons).
-    const categoryOf = (market: string) => {
-        const m = (market || '').toLowerCase();
-        if (m === 'h2h' || m === 'f5_moneyline') return 'Moneyline';
-        if (m === 'total' || m === 'team_total') return 'Totals';
-        if (m === 'run_line') return 'Run Line';
-        return 'Props';
-    };
+  // Map a raw market to its display category (matches the filter buttons).
+  const categoryOf = (market: string) => {
+    const m = (market || '').toLowerCase();
+    if (m === 'h2h' || m === 'f5_moneyline') return 'Moneyline';
+    if (m === 'total' || m === 'team_total') return 'Totals';
+    if (m === 'run_line') return 'Run Line';
+    return 'Props';
+  };
 
-    // The API returns per-market-per-date rows. Filter by the active market category,
-    // then aggregate back up to one row per date so the table stays a clean daily time
-    // series. Brier/CLV are n-weighted over rows where the metric exists; ROI is total
-    // unit profit / total bets placed.
-    const filteredTable = useMemo(() => {
-        const rows = (tableData as any[]).filter(
-            (r) => filter === 'All' || categoryOf(r.market) === filter
-        );
-        const byDate: Record<string, any> = {};
-        for (const r of rows) {
-            const n = Number(r.n) || 0;
-            if (n <= 0) continue;
-            const d = r.date;
-            if (!byDate[d]) {
-                byDate[d] = { date: d, n: 0, brierNum: 0, brierW: 0, clvNum: 0, clvW: 0, profit: 0, bets: 0 };
-            }
-            const g = byDate[d];
-            g.n += n;
-            g.profit += Number(r.sum_unit_profit) || 0;
-            g.bets += Number(r.bet_count) || 0;
-            if (r.brier != null) { g.brierNum += Number(r.brier) * n; g.brierW += n; }
-            if (r.avg_clv != null) { g.clvNum += Number(r.avg_clv) * n; g.clvW += n; }
-        }
-        const label = filter === 'All' ? 'All' : filter;
-        return Object.values(byDate)
-            .map((g: any) => ({
-                date: g.date,
-                market: label,
-                n: g.n,
-                brier: g.brierW > 0 ? g.brierNum / g.brierW : null,
-                avg_clv: g.clvW > 0 ? g.clvNum / g.clvW : null,
-                roi: g.bets > 0 ? (g.profit / g.bets) * 100 : null,
-            }))
-            .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-    }, [tableData, filter]);
-
-    const isGatePassed = kpi.n >= 300 && Number(kpi.roi) > -3.0 && Number(kpi.brier) < 0.23;
-
-    if (error || data?.error) {
-        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
-        return (
-            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" description="Track the accuracy of Smarter.Poker's MLB prediction model." noindex={true} />
-                <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
-                <MlbSubNav />
-                <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        {/* Use an appropriate icon below, e.g., Target, Activity, Shield */}
-                        <Activity className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
-                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
-                    </div>
-                </main>
-                <BottomNavBar />
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
-           <SEOHead 
-               title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" 
-               description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the current MLB season."
-                canonical="/hub/MLB-ANALYTICS/accuracy" 
-           
-                ogImage="/images/mlb/og.png"
-            
-                jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "Dataset",
-                "name": "MLB Model Accuracy — Verified Prediction Track Record",
-                "description": "Transparent accuracy metrics for the Smarter.Poker MLB prediction model: hit rate, Brier score, CLV (Closing Line Value), and ROI by market type.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/accuracy",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
-            />
-           <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
-           <MlbSubNav />
-           <MlbPremiumGate featureName="Historical Accuracy">
-           <div className="p-4 max-w-4xl mx-auto w-full box-border">
-                <div className="mb-6">
-                    <Link href="/hub/MLB-ANALYTICS" className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-bold tracking-wide mb-3 hover:text-white transition-colors uppercase" style={{ textShadow: '0 0 10px rgba(0,212,255,0.4)' }}>
-                        <ArrowLeft size={16} /> Dashboard
-                    </Link>
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                        <div>
-                            <h1 className="m-0 mb-1 text-2xl md:text-[28px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif', letterSpacing: '0.05em' }}>MODEL PERFORMANCE</h1>
-                            <p className="m-0 text-[13px] text-slate-400">CLV-first scoring. Populated nightly once games settle.</p>
-                        </div>
-                        <div className="flex flex-wrap gap-1 bg-[#0d1117] p-1 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
-                            {['All', 'Moneyline', 'Totals', 'Run Line', 'Props'].map(f => (
-                                <button 
-                                    key={f}
-                                    onClick={() => setFilter(f)}
-                                    aria-label={`Filter by ${f}`}
-                                    className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-all uppercase tracking-wider ${
-                                        filter === f 
-                                            ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' 
-                                            : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
-                                    }`}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                    {/* Metal Frame Details */}
-                    <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-                    <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-                    <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-                    <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center"><span className="text-[6px] text-[#1a2a3a]">+</span></div>
-
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
-                            <div className="flex items-center gap-3">
-                                <h2 className="m-0 text-base font-bold text-white uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Lock-In Gate</h2>
-                                {isLoading && !data ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
-                                        <Loader2 size={10} className="animate-spin" /> LOADING
-                                    </span>
-                                ) : (
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
-                                        isGatePassed ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]'
-                                    }`}>
-                                        {isGatePassed ? 'PASSED' : 'EVALUATING'}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="text-[10px] font-bold text-[#00D4FF] tracking-widest hidden sm:block">
-                                REQUIRED FOR REAL-MONEY PLAY
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {/* Sample Size */}
-                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${kpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Sample Size (n≥300)</div>
-                                <div className={`text-2xl font-extrabold ${kpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: kpi.n >= 300 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
-                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.n}
-                                </div>
-                            </div>
-                            {/* Avg CLV */}
-                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Avg CLV ({'>'}0 pts)</div>
-                                <div className={`text-2xl font-extrabold ${Number(kpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`} style={{ textShadow: Number(kpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}>
-                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.clv}
-                                </div>
-                            </div>
-                            {/* Expected ROI */}
-                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Expected ROI ({'>'}&#x2011;3%)</div>
-                                <div className={`text-2xl font-extrabold ${Number(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`} style={{ textShadow: Number(kpi.roi) > -3 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,68,68,0.5)' }}>
-                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : `${Number(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`}
-                                </div>
-                            </div>
-                            {/* Brier Score */}
-                            <div className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}>
-                                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Brier Score ({'<'}0.23)</div>
-                                <div className={`text-2xl font-extrabold ${Number(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`} style={{ textShadow: Number(kpi.brier) < 0.23 ? '0 0 10px rgba(0,212,255,0.5)' : '0 0 10px rgba(255,68,68,0.5)' }}>
-                                    {isLoading && !data ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" /> : kpi.brier}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-[13px] whitespace-nowrap">
-                            <thead>
-                                <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                                    <th className="px-4 py-4">Date</th>
-                                    <th className="px-4 py-4">Market</th>
-                                    <th className="px-4 py-4 text-right">n</th>
-                                    <th className="px-4 py-4 text-right">Brier</th>
-                                    <th className="px-4 py-4 text-right">Avg CLV</th>
-                                    <th className="px-4 py-4 text-right">ROI</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-[#0a0a15]">
-                                {isLoading && !data ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-12 text-center">
-                                            <div className="flex flex-col items-center justify-center gap-2">
-                                                <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
-                                                <span className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">SCANNING DATABASE...</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : filteredTable.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium border-t border-[#1a2332]">
-                                            No data available for the selected filter.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredTable.map((row: any, i: number) => {
-                                        const roiNum = row.roi != null ? Number(row.roi) : null;
-                                        const roiColor = roiNum == null ? 'text-white' : (roiNum > 0 ? 'text-[#00D4FF]' : (roiNum < 0 ? 'text-[#FF4444]' : 'text-white'));
-                                        const roiShadow = roiNum == null ? 'none' : (roiNum > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (roiNum < 0 ? '0 0 5px rgba(255,68,68,0.5)' : 'none'));
-                                        return (
-                                        <tr key={`${row.date}-${row.market}-${i}`} className="border-b border-[#1a2332] last:border-b-0 hover:bg-[#1a2332] transition-colors">
-                                            <td className="px-4 py-3.5 font-bold text-slate-300">{row.date}</td>
-                                            <td className="px-4 py-3.5">
-                                                <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[10px] text-slate-300 font-bold uppercase tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-                                                    {row.market}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3.5 text-slate-400 text-right font-medium">{row.n}</td>
-                                            <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
-                                                {row.brier !== null ? Number(row.brier).toFixed(3) : '—'}
-                                            </td>
-                                            <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
-                                                {row.avg_clv !== null ? Number(row.avg_clv).toFixed(2) : '—'}
-                                            </td>
-                                            <td className={`px-4 py-3.5 text-right font-extrabold ${roiColor}`} style={{ textShadow: roiShadow }}>
-                                                {roiNum != null ? `${roiNum > 0 ? '+' : ''}${roiNum.toFixed(1)}%` : '—'}
-                                            </td>
-                                        </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            </MlbPremiumGate>
-           <BottomNavBar />
-        </div>
+  // The API returns per-market-per-date rows. Filter by the active market category,
+  // then aggregate back up to one row per date so the table stays a clean daily time
+  // series. Brier/CLV are n-weighted over rows where the metric exists; ROI is total
+  // unit profit / total bets placed.
+  const filteredTable = useMemo(() => {
+    const rows = (tableData as any[]).filter(
+      (r) => filter === 'All' || categoryOf(r.market) === filter
     );
+    const byDate: Record<string, any> = {};
+    for (const r of rows) {
+      const n = Number(r.n) || 0;
+      if (n <= 0) continue;
+      const d = r.date;
+      if (!byDate[d]) {
+        byDate[d] = {
+          date: d,
+          n: 0,
+          brierNum: 0,
+          brierW: 0,
+          clvNum: 0,
+          clvW: 0,
+          profit: 0,
+          bets: 0,
+        };
+      }
+      const g = byDate[d];
+      g.n += n;
+      g.profit += Number(r.sum_unit_profit) || 0;
+      g.bets += Number(r.bet_count) || 0;
+      if (r.brier != null) {
+        g.brierNum += Number(r.brier) * n;
+        g.brierW += n;
+      }
+      if (r.avg_clv != null) {
+        g.clvNum += Number(r.avg_clv) * n;
+        g.clvW += n;
+      }
+    }
+    const label = filter === 'All' ? 'All' : filter;
+    return Object.values(byDate)
+      .map((g: any) => ({
+        date: g.date,
+        market: label,
+        n: g.n,
+        brier: g.brierW > 0 ? g.brierNum / g.brierW : null,
+        avg_clv: g.clvW > 0 ? g.clvNum / g.clvW : null,
+        roi: g.bets > 0 ? (g.profit / g.bets) * 100 : null,
+      }))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }, [tableData, filter]);
+
+  const isGatePassed = kpi.n >= 300 && Number(kpi.roi) > -3.0 && Number(kpi.brier) < 0.23;
+
+  if (error || data?.error) {
+    logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
+    return (
+      <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+        <SEOHead
+          title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker"
+          description="Track the accuracy of Smarter.Poker's MLB prediction model."
+          noindex={true}
+        />
+        <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
+        <MlbSubNav />
+        <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
+          <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
+            {/* Use an appropriate icon below, e.g., Target, Activity, Shield */}
+            <Activity
+              className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10"
+              style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }}
+            />
+            <h2
+              className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10"
+              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+            >
+              System Error
+            </h2>
+            <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
+              Failed to load data. Please try again later.
+            </p>
+          </div>
+        </main>
+        <BottomNavBar />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
+      <SEOHead
+        title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker"
+        description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the current MLB season."
+        canonical="/hub/MLB-ANALYTICS/accuracy"
+        ogImage="/images/mlb/og.png"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Dataset',
+          name: 'MLB Model Accuracy — Verified Prediction Track Record',
+          description:
+            'Transparent accuracy metrics for the Smarter.Poker MLB prediction model: hit rate, Brier score, CLV (Closing Line Value), and ROI by market type.',
+          url: 'https://smarter.poker/hub/MLB-ANALYTICS/accuracy',
+          provider: {
+            '@type': 'Organization',
+            name: 'Smarter.Poker',
+            url: 'https://smarter.poker',
+          },
+        }}
+      />
+      <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
+      <MlbSubNav />
+      <MlbPremiumGate featureName="Historical Accuracy">
+        <div className="p-4 max-w-4xl mx-auto w-full box-border">
+          <div className="mb-6">
+            <Link
+              href="/hub/MLB-ANALYTICS"
+              className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-bold tracking-wide mb-3 hover:text-white transition-colors uppercase"
+              style={{ textShadow: '0 0 10px rgba(0,212,255,0.4)' }}
+            >
+              <ArrowLeft size={16} /> Dashboard
+            </Link>
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+              <div>
+                <h1
+                  className="m-0 mb-1 text-2xl md:text-[28px] font-extrabold text-white"
+                  style={{ fontFamily: '"Rajdhani", sans-serif', letterSpacing: '0.05em' }}
+                >
+                  MODEL PERFORMANCE
+                </h1>
+                <p className="m-0 text-[13px] text-slate-400">
+                  CLV-first scoring. Populated nightly once games settle.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1 bg-[#0d1117] p-1 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
+                {['All', 'Moneyline', 'Totals', 'Run Line', 'Props'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    aria-label={`Filter by ${f}`}
+                    className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-all uppercase tracking-wider ${
+                      filter === f
+                        ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
+                        : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
+            {/* Metal Frame Details */}
+            <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+              <span className="text-[6px] text-[#1a2a3a]">+</span>
+            </div>
+            <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+              <span className="text-[6px] text-[#1a2a3a]">+</span>
+            </div>
+            <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+              <span className="text-[6px] text-[#1a2a3a]">+</span>
+            </div>
+            <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+              <span className="text-[6px] text-[#1a2a3a]">+</span>
+            </div>
+
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
+                <div className="flex items-center gap-3">
+                  <h2
+                    className="m-0 text-base font-bold text-white uppercase tracking-wider"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    Lock-In Gate
+                  </h2>
+                  {isLoading && !data ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
+                      <Loader2 size={10} className="animate-spin" /> LOADING
+                    </span>
+                  ) : (
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
+                        isGatePassed
+                          ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
+                          : 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]'
+                      }`}
+                    >
+                      {isGatePassed ? 'PASSED' : 'EVALUATING'}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] font-bold text-[#00D4FF] tracking-widest hidden sm:block">
+                  REQUIRED FOR REAL-MONEY PLAY
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Sample Size */}
+                <div
+                  className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${kpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+                >
+                  <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                    Sample Size (n≥300)
+                  </div>
+                  <div
+                    className={`text-2xl font-extrabold ${kpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`}
+                    style={{ textShadow: kpi.n >= 300 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}
+                  >
+                    {isLoading && !data ? (
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                    ) : (
+                      kpi.n
+                    )}
+                  </div>
+                </div>
+                {/* Avg CLV */}
+                <div
+                  className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+                >
+                  <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                    Avg CLV ({'>'}0 pts)
+                  </div>
+                  <div
+                    className={`text-2xl font-extrabold ${Number(kpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`}
+                    style={{
+                      textShadow: Number(kpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none',
+                    }}
+                  >
+                    {isLoading && !data ? (
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                    ) : (
+                      kpi.clv
+                    )}
+                  </div>
+                </div>
+                {/* Expected ROI */}
+                <div
+                  className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+                >
+                  <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                    Expected ROI ({'>'}&#x2011;3%)
+                  </div>
+                  <div
+                    className={`text-2xl font-extrabold ${Number(kpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
+                    style={{
+                      textShadow:
+                        Number(kpi.roi) > -3
+                          ? '0 0 10px rgba(0,212,255,0.5)'
+                          : '0 0 10px rgba(255,68,68,0.5)',
+                    }}
+                  >
+                    {isLoading && !data ? (
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                    ) : (
+                      `${Number(kpi.roi) > 0 ? '+' : ''}${kpi.roi}%`
+                    )}
+                  </div>
+                </div>
+                {/* Brier Score */}
+                <div
+                  className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(kpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+                >
+                  <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                    Brier Score ({'<'}0.23)
+                  </div>
+                  <div
+                    className={`text-2xl font-extrabold ${Number(kpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
+                    style={{
+                      textShadow:
+                        Number(kpi.brier) < 0.23
+                          ? '0 0 10px rgba(0,212,255,0.5)'
+                          : '0 0 10px rgba(255,68,68,0.5)',
+                    }}
+                  >
+                    {isLoading && !data ? (
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                    ) : (
+                      kpi.brier
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[13px] whitespace-nowrap">
+                <thead>
+                  <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                    <th className="px-4 py-4">Date</th>
+                    <th className="px-4 py-4">Market</th>
+                    <th className="px-4 py-4 text-right">n</th>
+                    <th className="px-4 py-4 text-right">Brier</th>
+                    <th className="px-4 py-4 text-right">Avg CLV</th>
+                    <th className="px-4 py-4 text-right">ROI</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-[#0a0a15]">
+                  {isLoading && !data ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
+                          <span className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">
+                            SCANNING DATABASE...
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredTable.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-4 py-12 text-center text-slate-500 font-medium border-t border-[#1a2332]"
+                      >
+                        No data available for the selected filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTable.map((row: any, i: number) => {
+                      const roiNum = row.roi != null ? Number(row.roi) : null;
+                      const roiColor =
+                        roiNum == null
+                          ? 'text-white'
+                          : roiNum > 0
+                            ? 'text-[#00D4FF]'
+                            : roiNum < 0
+                              ? 'text-[#FF4444]'
+                              : 'text-white';
+                      const roiShadow =
+                        roiNum == null
+                          ? 'none'
+                          : roiNum > 0
+                            ? '0 0 5px rgba(0,212,255,0.5)'
+                            : roiNum < 0
+                              ? '0 0 5px rgba(255,68,68,0.5)'
+                              : 'none';
+                      return (
+                        <tr
+                          key={`${row.date}-${row.market}-${i}`}
+                          className="border-b border-[#1a2332] last:border-b-0 hover:bg-[#1a2332] transition-colors"
+                        >
+                          <td className="px-4 py-3.5 font-bold text-slate-300">{row.date}</td>
+                          <td className="px-4 py-3.5">
+                            <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[10px] text-slate-300 font-bold uppercase tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                              {row.market}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-400 text-right font-medium">
+                            {row.n}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
+                            {row.brier !== null ? Number(row.brier).toFixed(3) : '—'}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
+                            {row.avg_clv !== null ? Number(row.avg_clv).toFixed(2) : '—'}
+                          </td>
+                          <td
+                            className={`px-4 py-3.5 text-right font-extrabold ${roiColor}`}
+                            style={{ textShadow: roiShadow }}
+                          >
+                            {roiNum != null ? `${roiNum > 0 ? '+' : ''}${roiNum.toFixed(1)}%` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </MlbPremiumGate>
+      <BottomNavBar />
+    </div>
+  );
 }

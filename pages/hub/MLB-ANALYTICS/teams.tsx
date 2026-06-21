@@ -109,7 +109,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
 
       <div style={{ display: 'block', padding: '20px', textDecoration: 'none', color: 'inherit' }}>
         <Link
-          href={`/hub/MLB-ANALYTICS/teams/${team.team_id}`}
+          href={`/hub/MLB-ANALYTICS/team/${team.team_id}`}
           style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
         >
           <div

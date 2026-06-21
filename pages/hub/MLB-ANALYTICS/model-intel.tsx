@@ -29,7 +29,9 @@ const CartesianGrid = dynamic(() => import('recharts').then((m) => m.CartesianGr
   ssr: false,
 });
 const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), { ssr: false });
-const ReferenceLine = dynamic(() => import('recharts').then((m) => m.ReferenceLine), { ssr: false });
+const ReferenceLine = dynamic(() => import('recharts').then((m) => m.ReferenceLine), {
+  ssr: false,
+});
 const ResponsiveContainer = dynamic(() => import('recharts').then((m) => m.ResponsiveContainer), {
   ssr: false,
 });
@@ -305,7 +307,10 @@ export default function ModelIntelPage() {
                 }}
               >
                 MODEL{' '}
-                <span className="text-[#00D4FF]" style={{ textShadow: '0 0 15px rgba(0,212,255,0.4)' }}>
+                <span
+                  className="text-[#00D4FF]"
+                  style={{ textShadow: '0 0 15px rgba(0,212,255,0.4)' }}
+                >
                   INTEL
                 </span>
               </h1>
@@ -342,8 +347,7 @@ export default function ModelIntelPage() {
                     })
                   : '--'}
               </span>{' '}
-              &middot; Model{' '}
-              <span className="text-[#00D4FF]">{intel.model_version || 'n/a'}</span>
+              &middot; Model <span className="text-[#00D4FF]">{intel.model_version || 'n/a'}</span>
             </>
           )}
         </div>

@@ -21,6 +21,7 @@ import { addVenueFavorite, removeVenueFavorite } from '../../../src/services/pok
 import { formatGameType } from '../../../src/utils/pokerFormatters';
 import { openNativeMaps as openNativeMapsUtil, buildVenueAddress, getMapProviderName } from '../../../src/utils/openNativeMaps';
 import dynamic from 'next/dynamic';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 const BestTimeToGoWidget = dynamic(
   () => import('../../../src/components/poker-near-me/BestTimeToGoWidget'),
@@ -221,6 +222,7 @@ export default function VenueDetailPage() {
   const router = useRouter();
   const { id, action, tab } = router.query;
   const bus = useTrainingBus();
+  const { hasAccess: isVip, guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
 
   // Global Favorite Status (Poker Near Me)
   const [menuOpen, setMenuOpen] = useState(false);
@@ -2628,12 +2630,42 @@ export default function VenueDetailPage() {
             {/* ============================================ */}
             {/* POPULAR HOURS (REPLACED WITH PeakHoursHeatmap) */}
             {/* ============================================ */}
-            <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
+            <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16, position: 'relative' }}>
               <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Popular Times Heatmap
               </h3>
-              <PeakHoursHeatmap venueId={id} />
+              
+              {!isVip ? (
+                <div style={{ position: 'relative' }}>
+                  <div style={{ filter: 'blur(8px)', opacity: 0.5, pointerEvents: 'none' }}>
+                    <PeakHoursHeatmap venueId={id} />
+                  </div>
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10
+                  }}>
+                    <span style={{ fontSize: 32, marginBottom: 8 }}>🔒</span>
+                    <h4 style={{ color: '#fff', margin: '0 0 8px', fontSize: 16, fontWeight: 800 }}>VIP Feature</h4>
+                    <p style={{ color: '#a0aec0', fontSize: 13, marginBottom: 16, textAlign: 'center', maxWidth: 220 }}>
+                      Upgrade to view peak hour predictions and avoid long wait lists.
+                    </p>
+                    <button
+                      onClick={() => guardAction(() => {})}
+                      style={{
+                        background: 'linear-gradient(90deg, #d4a853, #b8860b)',
+                        color: '#000', border: 'none', borderRadius: 8, padding: '10px 20px',
+                        fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 15px rgba(212, 168, 83, 0.4)'
+                      }}
+                    >
+                      Unlock Peak Analytics
+                    </button>
+                    {UpgradePopup}
+                  </div>
+                </div>
+              ) : (
+                <PeakHoursHeatmap venueId={id} />
+              )}
             </section>
 
             {/* ============================================ */}

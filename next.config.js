@@ -605,6 +605,11 @@ const nextConfig = {
       // MLB Analytics lowercase URL -> uppercase canonical proxy path
       { source: '/hub/mlb-analytics', destination: '/hub/MLB-ANALYTICS', permanent: true },
       { source: '/hub/mlb-analytics/:path*', destination: '/hub/MLB-ANALYTICS/:path*', permanent: true },
+      // MLB Analytics — /teams/:id (plural, stale shadow-copy pattern) → /team/:id (singular, live engine route)
+      // The live engine uses /team/[id]; the World-Hub shadow copy used /teams/[team_id].
+      // Shadow pages are never served (proxy intercepts first), but cached/shared links using
+      // the old plural form would 404 at the engine. This 301 fixes that permanently.
+      { source: '/hub/MLB-ANALYTICS/teams/:id', destination: '/hub/MLB-ANALYTICS/team/:id', permanent: true },
     ];
   },
 

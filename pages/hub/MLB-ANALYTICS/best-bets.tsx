@@ -1361,84 +1361,86 @@ export default function BestBetsPage() {
       </header>
 
       <MlbPremiumGate featureName="Best Bets Recommendations">
-      <div className="w-full max-w-2xl mx-auto">
-        {/* Filter Tabs */}
-        <div
-          className="flex gap-1.5 overflow-x-auto px-3 py-2.5 border-b border-[#1a2530] [&::-webkit-scrollbar]:hidden"
-          style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
-        >
-          {['ALL', 'ML', 'TOTAL', 'RUN LINE', 'PROPS'].map((f) => (
-            <button
-              key={f}
-              onClick={() => {
-                setFilter(f);
-                if (navigator.vibrate)
-                  try {
-                    navigator.vibrate(12);
-                  } catch (e) {}
-              }}
-              className={`px-3 py-1.5 rounded-sm border text-[9px] font-black tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase  ${
-                filter === f
-                  ? 'bg-[#0d1420] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.25)]'
-                  : 'bg-[#0a0a15] text-[#5a6a7a] border-[#2a3a4a] hover:border-[#3d4f5f] hover:text-slate-300'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
-        {/* Stale Warning */}
-        {isStale && !isLoading && (
-          <div className="mx-3 mt-3 bg-[#1a1500] border-2 border-amber-500/40 rounded-sm p-3 shadow-[0_0_12px_rgba(245,158,11,0.08)] relative overflow-hidden">
-            <div className="absolute left-0 top-0 w-1 h-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
-            <div className="pl-2 text-amber-500 text-[11px] font-black tracking-widest uppercase  flex items-center gap-2">
-              <CalendarX size={13} /> Stale Slate — Not Actionable
-            </div>
-            <div className="pl-2 text-amber-600/70 text-[10px] font-black uppercase tracking-wider mt-0.5 ">
-              Picks from {officialDate || 'previous date'}, not today ({todayStr}).
-            </div>
+        <div className="w-full max-w-2xl mx-auto">
+          {/* Filter Tabs */}
+          <div
+            className="flex gap-1.5 overflow-x-auto px-3 py-2.5 border-b border-[#1a2530] [&::-webkit-scrollbar]:hidden"
+            style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+          >
+            {['ALL', 'ML', 'TOTAL', 'RUN LINE', 'PROPS'].map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  setFilter(f);
+                  if (navigator.vibrate)
+                    try {
+                      navigator.vibrate(12);
+                    } catch (e) {}
+                }}
+                className={`px-3 py-1.5 rounded-sm border text-[9px] font-black tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase  ${
+                  filter === f
+                    ? 'bg-[#0d1420] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.25)]'
+                    : 'bg-[#0a0a15] text-[#5a6a7a] border-[#2a3a4a] hover:border-[#3d4f5f] hover:text-slate-300'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* Content */}
-        <div className="flex flex-col gap-3 pt-3 pb-4">
-          {isLoading && !data ? (
-            <div className="text-center py-16 mx-3 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-              <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-3" />
-              <div className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase animate-pulse ">
-                Scanning Database...
+          {/* Stale Warning */}
+          {isStale && !isLoading && (
+            <div className="mx-3 mt-3 bg-[#1a1500] border-2 border-amber-500/40 rounded-sm p-3 shadow-[0_0_12px_rgba(245,158,11,0.08)] relative overflow-hidden">
+              <div className="absolute left-0 top-0 w-1 h-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
+              <div className="pl-2 text-amber-500 text-[11px] font-black tracking-widest uppercase  flex items-center gap-2">
+                <CalendarX size={13} /> Stale Slate — Not Actionable
+              </div>
+              <div className="pl-2 text-amber-600/70 text-[10px] font-black uppercase tracking-wider mt-0.5 ">
+                Picks from {officialDate || 'previous date'}, not today ({todayStr}).
               </div>
             </div>
-          ) : gameGroups.length === 0 ? (
-            <div className="text-center py-14 px-5 mx-3 bg-[#0d1117] border-2 border-dashed border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-              <div className="mb-3 text-[#3d4f5f] flex justify-center">
-                {filter === 'ALL' ? <CalendarX size={40} /> : <SearchX size={40} />}
+          )}
+
+          {/* Content */}
+          <div className="flex flex-col gap-3 pt-3 pb-4">
+            {isLoading && !data ? (
+              <div className="text-center py-16 mx-3 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-3" />
+                <div className="text-[11px] font-black text-[#00D4FF] tracking-widest uppercase animate-pulse ">
+                  Scanning Database...
+                </div>
               </div>
-              <div className="text-[15px] font-black text-white mb-1.5 uppercase tracking-wider ">
-                {filter === 'ALL' ? 'No Qualifying Bets Today.' : 'No Bets For This Filter.'}
+            ) : gameGroups.length === 0 ? (
+              <div className="text-center py-14 px-5 mx-3 bg-[#0d1117] border-2 border-dashed border-[#2a3a4a] rounded-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                <div className="mb-3 text-[#3d4f5f] flex justify-center">
+                  {filter === 'ALL' ? <CalendarX size={40} /> : <SearchX size={40} />}
+                </div>
+                <div className="text-[15px] font-black text-white mb-1.5 uppercase tracking-wider ">
+                  {filter === 'ALL' ? 'No Qualifying Bets Today.' : 'No Bets For This Filter.'}
+                </div>
+                <div className="text-[10px] font-black tracking-widest text-[#5a6a7a] uppercase ">
+                  {filter === 'ALL'
+                    ? 'Model is respecting the market.'
+                    : 'Try a different bet type.'}
+                </div>
               </div>
-              <div className="text-[10px] font-black tracking-widest text-[#5a6a7a] uppercase ">
-                {filter === 'ALL' ? 'Model is respecting the market.' : 'Try a different bet type.'}
+            ) : (
+              gameGroups.map(([matchup, gameBets]) => (
+                <GameBox key={matchup} matchup={matchup} bets={gameBets} onBetClick={openModal} />
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          {gameGroups.length > 0 && (
+            <div className="mx-3 mb-4 px-3 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-center">
+              <div className="text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase  leading-relaxed">
+                <span className="text-[#00D4FF]">Analysis Only</span> — Not Betting Advice. Score
+                (0–100) ranks EV + Confidence. EV% = Expected Return Per $1. Bet Responsibly.
               </div>
             </div>
-          ) : (
-            gameGroups.map(([matchup, gameBets]) => (
-              <GameBox key={matchup} matchup={matchup} bets={gameBets} onBetClick={openModal} />
-            ))
           )}
         </div>
-
-        {/* Footer */}
-        {gameGroups.length > 0 && (
-          <div className="mx-3 mb-4 px-3 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-center">
-            <div className="text-[9px] font-black tracking-widest text-[#5a6a7a] uppercase  leading-relaxed">
-              <span className="text-[#00D4FF]">Analysis Only</span> — Not Betting Advice. Score
-              (0–100) ranks EV + Confidence. EV% = Expected Return Per $1. Bet Responsibly.
-            </div>
-          </div>
-        )}
-      </div>
       </MlbPremiumGate>
 
       <BottomNavBar />

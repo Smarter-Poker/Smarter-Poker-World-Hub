@@ -94,7 +94,10 @@ async function edgeHandler(req: Request) {
       // Each sim_bets row is one placed bet; unit_profit is already stake-normalized
       // to units, so bet_count == row count keeps ROI math identical to the view.
       if (sumErr) {
-        console.warn('[API/MLB/Accuracy] v_backtest_summary unavailable, falling back to sim_bets:', sumErr.message);
+        console.warn(
+          '[API/MLB/Accuracy] v_backtest_summary unavailable, falling back to sim_bets:',
+          sumErr.message
+        );
       }
       const { count, error: countErr } = await mlbDb
         .from('sim_bets')
@@ -110,7 +113,10 @@ async function edgeHandler(req: Request) {
           for (let j = 0; j < 5 && i + j < numPages; j++) {
             const offset = (i + j) * limit;
             promises.push(
-              mlbDb.from('sim_bets').select('as_of_ts, market, unit_profit').range(offset, offset + limit - 1)
+              mlbDb
+                .from('sim_bets')
+                .select('as_of_ts, market, unit_profit')
+                .range(offset, offset + limit - 1)
             );
           }
           const results = (await Promise.all(promises)) as any[];
@@ -130,7 +136,15 @@ async function edgeHandler(req: Request) {
           const market = String(row.market || 'unknown').toLowerCase();
           const key = `${date}_${market}`;
           if (!groups[key]) {
-            groups[key] = { date, market, n: 0, brier: null, avg_clv: null, sum_unit_profit: 0, bet_count: 0 };
+            groups[key] = {
+              date,
+              market,
+              n: 0,
+              brier: null,
+              avg_clv: null,
+              sum_unit_profit: 0,
+              bet_count: 0,
+            };
           }
           const g = groups[key];
           const profit = Number(row.unit_profit) || 0;
@@ -141,7 +155,9 @@ async function edgeHandler(req: Request) {
           totalBets += 1;
         }
 
-        tableData = Object.values(groups).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        tableData = Object.values(groups).sort((a, b) =>
+          String(b.date).localeCompare(String(a.date))
+        );
         kpi = {
           n: totalBets,
           clv: '0.00',

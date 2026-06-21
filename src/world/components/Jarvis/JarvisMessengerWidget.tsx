@@ -340,7 +340,7 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
                     Send
                 </button>
             </div>
-            <UpgradePopup />
+            {UpgradePopup}
         </motion.div>
     );
 }

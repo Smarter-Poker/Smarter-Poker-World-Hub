@@ -91,14 +91,10 @@ export default function TeamDetailPage() {
 
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'GAMES' | 'PROPS'>('OVERVIEW');
 
-  const { data, error } = useSWR(
-    team_id ? `/api/mlb/teams/${team_id}` : null,
-    fetcher,
-    {
-      refreshInterval: 60000,
-      revalidateOnFocus: true,
-    }
-  );
+  const { data, error } = useSWR(team_id ? `/api/mlb/teams/${team_id}` : null, fetcher, {
+    refreshInterval: 60000,
+    revalidateOnFocus: true,
+  });
 
   if (error || data?.error) {
     return (
