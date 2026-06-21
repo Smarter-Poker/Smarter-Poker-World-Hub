@@ -81,11 +81,13 @@ async function handleRequest() {
 
         let okCount = 0;
         let errorCount = 0;
+        let pendingCount = 0;
         for (const stage of stages) {
             const s = String(latestRuns[stage]?.status || '').toLowerCase();
             // 'partial' counts as ok — engine writes it for incremental loads.
             if (s === 'success' || s === 'ok' || s === 'done' || s === 'partial') okCount += 1;
             else if (['error', 'failed', 'timeout', 'critical'].includes(s)) errorCount += 1;
+            else if (['pending', 'running', 'started', 'in_progress'].includes(s)) pendingCount += 1;
         }
         const pipelineHasError = errorCount > 0;
 
@@ -119,6 +121,7 @@ async function handleRequest() {
             pipeline: {
                 okCount,
                 errorCount,
+                pendingCount,
                 total: stages.length,
                 hasError: pipelineHasError
             },

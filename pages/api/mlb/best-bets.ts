@@ -485,6 +485,15 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         enriched.win_confidence = Math.max(0, (enriched.win_confidence || 0) - 0.15);
         penaltyApplied = true;
         enriched.penalty_reason = `Reduced score: Low data sample on starting pitcher (<25 IP).`;
+        
+        let factors: any[] = [];
+        if (typeof enriched.score_factors === 'string') {
+          try { factors = JSON.parse(enriched.score_factors); } catch {}
+        } else if (Array.isArray(enriched.score_factors)) {
+          factors = [...enriched.score_factors];
+        }
+        factors.push({ dir: 'down', text: enriched.penalty_reason });
+        enriched.score_factors = factors;
       }
     }
     
@@ -496,6 +505,15 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         if (!ourP || ourP.era > 4.50 || Number(ourP.ip) < 25) {
            enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
            enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
+           
+           let factors: any[] = [];
+           if (typeof enriched.score_factors === 'string') {
+             try { factors = JSON.parse(enriched.score_factors); } catch {}
+           } else if (Array.isArray(enriched.score_factors)) {
+             factors = [...enriched.score_factors];
+           }
+           factors.push({ dir: 'down', text: enriched.penalty_reason });
+           enriched.score_factors = factors;
         }
       }
     }
@@ -518,12 +536,17 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             factors = [...enriched.score_factors];
           }
 
-          if (ts.win_streak >= 3) {
-             factors.push({ dir: 'up', text: `${ts.name} are on a hot ${ts.win_streak}-game win streak.` });
-          } else if (ts.win_streak <= -3) {
-             factors.push({ dir: 'down', text: `${ts.name} are struggling on a ${Math.abs(ts.win_streak)}-game losing streak.` });
+          const winStreak = ts.win_streak || 0;
+          const runsScored = ts.runs_scored || 0;
+          const runsAllowed = ts.runs_allowed || 0;
+          const teamName = ts.name || enriched.team_name || 'Team';
+
+          if (winStreak >= 3) {
+             factors.push({ dir: 'up', text: `${teamName} are on a hot ${winStreak}-game win streak.` });
+          } else if (winStreak <= -3) {
+             factors.push({ dir: 'down', text: `${teamName} are struggling on a ${Math.abs(winStreak)}-game losing streak.` });
           }
-          const runDiff = ts.runs_scored - ts.runs_allowed;
+          const runDiff = runsScored - runsAllowed;
           if (runDiff > 40) {
              factors.push({ dir: 'up', text: `Strong run differential (+${runDiff}).` });
           } else if (runDiff < -40) {

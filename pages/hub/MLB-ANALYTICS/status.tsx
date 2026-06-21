@@ -43,30 +43,29 @@ class StatusErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+        <div className="page-container pb-[70px]">
           {this.props.seo}
           {this.props.header}
           {this.props.nav}
-          <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-            <div
-              className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF4444]/50 shadow-[0_0_20px_rgba(255,68,68,0.15)] relative overflow-hidden max-w-md w-full"
-              role="alert"
+          <main className="feed-layout flex justify-center items-center min-h-[50vh] py-12">
+            <MetalFrame
+              className="w-full max-w-md p-8 text-center border-[#FF4444]/50 shadow-[0_0_20px_rgba(255,68,68,0.15)]"
             >
-              <ServerCrash className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10" aria-hidden="true" />
-              <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10 font-['Rajdhani']">
+              <ServerCrash className="w-12 h-12 text-[#FF4444] mx-auto mb-4" aria-hidden="true" />
+              <h2 className="text-2xl font-black text-white uppercase tracking-[0.12em] mb-2 font-['Rajdhani']">
                 Render Error
               </h2>
-              <p className="text-slate-400 text-xs relative z-10 mb-6 break-words">
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-6 break-words">
                 {this.state.error?.message || 'An unexpected rendering error occurred.'}
               </p>
               <button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-xs font-bold tracking-widest uppercase touch-manipulation"
+                className="inline-flex items-center justify-center gap-2 hex-button px-6 py-3 text-[11px] font-black tracking-widest uppercase touch-manipulation text-[#00D4FF] hover:text-white transition-colors"
               >
                 <RefreshCw size={14} />
                 Reload
               </button>
-            </div>
+            </MetalFrame>
           </main>
           <BottomNavBar />
         </div>
@@ -86,6 +85,7 @@ interface MLBStatusPayload {
   pipeline: {
     okCount: number;
     errorCount: number;
+    pendingCount?: number;
     total: number;
     hasError: boolean;
   };
@@ -187,8 +187,12 @@ const TimeAgo = ({
   serverNow?: string | null;
   fallback?: string;
 }) => {
-  const [nowMs, setNowMs] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [diff, setDiff] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (serverNow) {
@@ -197,29 +201,25 @@ const TimeAgo = ({
     }
   }, [serverNow]);
 
-  useEffect(() => {
-    setNowMs(Date.now());
-    const id = setInterval(() => setNowMs(Date.now()), 15000);
-    return () => clearInterval(id);
-  }, []);
-  
-  if (nowMs === null) return <>{fallback}</>;
-
+  if (!mounted) return <>{fallback}</>;
   if (!dateString) return <>{fallback}</>;
+
   const isoStr = dateString.trim().replace(' ', 'T');
   const safeDate = isoStr.endsWith('Z') || isoStr.includes('+') ? isoStr : isoStr + 'Z';
   const past = new Date(safeDate);
   if (isNaN(past.getTime())) return <>{fallback}</>;
-  const effectiveNow = nowMs + diff;
+  
+  const effectiveNow = Date.now() + diff;
   const diffMs = Math.max(0, effectiveNow - past.getTime());
   const s = Math.round(diffMs / 1000);
-  if (s < 45) return <>{'JUST NOW'}</>;
+  
+  if (s < 45) return <>Just Now</>;
   const m = Math.round(s / 60);
-  if (m < 60) return <>{`${m}M AGO`}</>;
+  if (m < 60) return <>{`${m}m Ago`}</>;
   const h = Math.round(m / 60);
-  if (h < 24) return <>{`${h}H AGO`}</>;
+  if (h < 24) return <>{`${h}h Ago`}</>;
   const dd = Math.round(h / 24);
-  return <>{`${dd}D AGO`}</>;
+  return <>{`${dd}d Ago`}</>;
 };
 
 
@@ -266,7 +266,7 @@ const alertLevelColor = (level: string | null | undefined): string => {
     return 'text-[#00D4FF] border-[#00D4FF]';
   };
 
-const EMPTY_OBJ: any = {};
+// EMPTY_OBJ removed for destructuring
 
 const SkeletonDashboard = () => (
   <div className="flex flex-col gap-8 mt-6">
@@ -374,19 +374,19 @@ export default function StatusPage() {
   }
 
   const isSystemFresh = !!data?.isSystemFresh;
-  const health = data?.health || EMPTY_OBJ;
-  const slate = data?.slate || EMPTY_OBJ;
-  const accuracy = data?.accuracy || EMPTY_OBJ;
-  const tierDist = data?.tierDist || EMPTY_OBJ;
+  const health = data?.health || {};
+  const slate = data?.slate || {};
+  const accuracy = data?.accuracy || {};
+  const tierDist = data?.tierDist || {};
 
   const sources = useMemo(
     () => (Array.isArray(data?.sources) ? data.sources : []),
     [data?.sources]
   );
   const alerts = useMemo(() => (Array.isArray(data?.alerts) ? data.alerts : []), [data?.alerts]);
-  const tableCounts = typeof data?.tableCounts === 'object' && data.tableCounts !== null ? data.tableCounts : EMPTY_OBJ;
+  const tableCounts = typeof data?.tableCounts === 'object' && data.tableCounts !== null ? data.tableCounts : {};
   const stages = useMemo(() => (Array.isArray(data?.stages) ? data.stages : []), [data?.stages]);
-  const latestRuns = typeof data?.latestRuns === 'object' && data.latestRuns !== null ? data.latestRuns : EMPTY_OBJ;
+  const latestRuns = typeof data?.latestRuns === 'object' && data.latestRuns !== null ? data.latestRuns : {};
   const pipeline = data?.pipeline || { hasError: false, okCount: 0, errorCount: 0, total: 0 };
 
   const wrappedContent = (
@@ -479,7 +479,10 @@ export default function StatusPage() {
                       {pipeline.hasError ? 'Pipeline Errors Detected' : 'All Pipeline Stages OK'}
                     </div>
                     <div className="text-xs text-slate-300 tracking-wider mt-0.5">
-                      {fmt(pipeline.okCount)} OK &bull; {fmt(pipeline.total)} STAGES
+                      {fmt(pipeline.okCount)} OK 
+                      {pipeline.pendingCount ? ` \u2022 ${pipeline.pendingCount} PENDING` : ''} 
+                      {' \u2022 '} 
+                      {fmt(pipeline.total)} STAGES
                     </div>
                   </div>
                 </div>
@@ -487,7 +490,7 @@ export default function StatusPage() {
             </div>
 
             <div className="mb-8">
-              <SectionHeader icon={Clock} label="SYSTEM HEALTH" />
+              <SectionHeader icon={Clock} label="System Health" />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                 {[
                   {
@@ -542,7 +545,7 @@ export default function StatusPage() {
             </div>
 
             <div className="mb-8">
-              <SectionHeader icon={Activity} label="TODAY'S SLATE" />
+              <SectionHeader icon={Activity} label="Today's Slate" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 md:px-0">
                 {[
                   { label: 'MARKET BETS', val: slate.mkt },
@@ -562,7 +565,7 @@ export default function StatusPage() {
             </div>
 
             <div className="mb-8">
-              <SectionHeader icon={Gauge} label="MODEL ACCURACY" />
+              <SectionHeader icon={Gauge} label="Model Accuracy" />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                 <MetalFrame className="p-4 text-center">
                   <div className="text-xs font-bold text-slate-400 tracking-[0.12em] mb-2">
@@ -609,7 +612,7 @@ export default function StatusPage() {
 
             {Object.keys(tierDist).length > 0 && (
               <div className="mb-8">
-                <SectionHeader icon={Layers} label="BET TIER DISTRIBUTION" />
+                <SectionHeader icon={Layers} label="Bet Tier Distribution" />
                 <MetalFrame className="p-4 mx-4 md:mx-0">
                   <div className="flex flex-wrap gap-3">
                     {TIER_META.filter((t) => t.key in tierDist).map((t) => (
@@ -648,7 +651,7 @@ export default function StatusPage() {
             )}
 
             <div className="mb-8">
-              <SectionHeader icon={Database} label="DATA SOURCE FRESHNESS" />
+              <SectionHeader icon={Database} label="Data Source Freshness" />
               <MetalFrame className="p-0">
                 {sources.length > 0 ? (
                   <ul className="flex flex-col m-0 p-0 list-none">
@@ -691,7 +694,7 @@ export default function StatusPage() {
             </div>
 
             <div className="mb-8">
-              <SectionHeader icon={Bell} label="RECENT ALERTS" />
+              <SectionHeader icon={Bell} label="Recent Alerts" />
               <MetalFrame className="p-0">
                 {alerts.length > 0 ? (
                   <ul className="flex flex-col m-0 p-0 list-none">
@@ -725,7 +728,7 @@ export default function StatusPage() {
             </div>
 
             <div className="mb-8">
-              <SectionHeader icon={CheckCircle2} label="RECENT PIPELINE RUNS" />
+              <SectionHeader icon={CheckCircle2} label="Recent Pipeline Runs" />
               <MetalFrame className="p-0">
                 {stages.length > 0 ? (
                   <ul className="flex flex-col m-0 p-0 list-none">
@@ -768,7 +771,7 @@ export default function StatusPage() {
             </div>
 
             <div className="mb-8">
-              <SectionHeader icon={Database} label="DB TABLE COUNTS" />
+              <SectionHeader icon={Database} label="DB Table Counts" />
               <MetalFrame className="p-0">
                 {Object.keys(tableCounts).length > 0 ? (
                   <ul className="flex flex-col m-0 p-0 list-none">
