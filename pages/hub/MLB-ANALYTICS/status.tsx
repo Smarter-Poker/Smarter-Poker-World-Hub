@@ -359,7 +359,7 @@ export default function StatusPage() {
                 ) : (
                     <>
                         <div className="mb-8">
-                            <div className={`${listPanelClass} px-5 py-4 flex items-center justify-between gap-3`}>
+                            <MetalFrame className="px-5 py-4 flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
                                     {pipeline.hasError
                                         ? <AlertTriangle size={22} className="text-[#FF4444] shrink-0" aria-hidden="true" />
@@ -373,11 +373,11 @@ export default function StatusPage() {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </MetalFrame>
                         </div>
 
                         <div className="mb-8">
-                            {sectionHeader(Clock, 'SYSTEM HEALTH')}
+                            <SectionHeader icon={Clock} label="SYSTEM HEALTH" />
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                             {[
                                 { label: 'LAST REFRESH', val: timeAgo(health.last_refresh) || '-', warn: !!health.is_stale },
@@ -389,30 +389,30 @@ export default function StatusPage() {
                                 { label: 'UNMODELED GAMES', val: fmt(health.unmodeled_games), warn: typeof health.unmodeled_games === 'number' && health.unmodeled_games > 0 },
                                 { label: 'RUNLINE CONFLICTS', val: fmt(health.incoherent_runlines_with_bet), warn: typeof health.incoherent_runlines_with_bet === 'number' && health.incoherent_runlines_with_bet > 0 }
                             ].map((item) => (
-                                <div key={item.label} className={`${cardClass} p-4`}>
+                                <MetalFrame key={item.label} className="p-4">
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
                                     <div className={`text-xl font-extrabold font-['Rajdhani'] tabular-nums break-words ${item.warn ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}>
                                         {item.val}
                                     </div>
-                                </div>
+                                </MetalFrame>
                             ))}
                             </div>
                         </div>
 
                         <div className="mb-8">
-                            {sectionHeader(Activity, "TODAY'S SLATE")}
+                            <SectionHeader icon={Activity} label="TODAY'S SLATE" />
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 md:px-0">
                                 {[
                                     { label: 'MARKET BETS', val: slate.mkt },
                                     { label: 'PROPS', val: slate.props },
                                     { label: 'BEST BETS', val: slate.best }
                                 ].map((item) => (
-                                    <div key={item.label} className={`${cardClass} p-5 text-center`}>
+                                    <MetalFrame key={item.label} className="p-5 text-center">
                                         <div className="text-[11px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
                                         <div className="text-3xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
                                             {fmt(item.val)}
                                         </div>
-                                    </div>
+                                    </MetalFrame>
                                 ))}
                             </div>
                         </div>
@@ -442,8 +442,8 @@ export default function StatusPage() {
 
                         {Object.keys(tierDist).length > 0 && (
                             <div className="mb-8">
-                                {sectionHeader(Layers, 'BET TIER DISTRIBUTION')}
-                                <div className={`${cardClass} p-4 mx-4 md:mx-0`}>
+                                <SectionHeader icon={Layers} label="BET TIER DISTRIBUTION" />
+                                <MetalFrame className="p-4 mx-4 md:mx-0">
                                     <div className="flex flex-wrap gap-3">
                                         {TIER_META.filter(t => t.key in tierDist).map((t) => (
                                             <div key={t.key} className="flex-1 min-w-[80px] text-center rounded-lg border bg-black/30 py-3 px-2" style={{ borderColor: t.color }}>
@@ -458,7 +458,7 @@ export default function StatusPage() {
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                </MetalFrame>
                             </div>
                         )}
 
