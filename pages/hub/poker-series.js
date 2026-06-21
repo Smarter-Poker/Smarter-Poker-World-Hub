@@ -2042,24 +2042,30 @@ import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
 
 export async function getStaticProps() {
     try {
-        const columns = 'id, series_name, name, start_date, end_date, venue, city, state, country, logo_url, series_uid, latitude, longitude, is_suppressed, venue_id, created_at, updated_at';
+        // NOTE: poker_series uses 'series_name' (not 'name'), and lacks venue/latitude/longitude/country/logo_url
+        // tournament_series uses 'name' (not 'series_name'), and lacks venue_id/logo_url/latitude/longitude/country
+        // Each table gets its own column list to avoid "column does not exist" ISR errors.
+        const psColumns = 'id, series_name, start_date, end_date, city, state, logo_url, series_uid, is_suppressed, venue_id, created_at, updated_at, tour_code, main_event_buyin, total_guaranteed, events_count, is_featured, short_name';
+        const tsColumns = 'id, name, start_date, end_date, venue, city, state, series_uid, is_suppressed, tour_code, main_event_buyin, main_event_guaranteed, events_count, is_featured, short_name';
+
         const [psRes, tsRes] = await Promise.all([
-            supabaseAdmin.from('poker_series').select(columns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
-            supabaseAdmin.from('tournament_series').select(columns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
+            supabaseAdmin.from('poker_series').select(psColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
+            supabaseAdmin.from('tournament_series').select(tsColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
         ]);
-        
+
         if (psRes.error) throw psRes.error;
         if (tsRes.error) throw tsRes.error;
 
+        // Normalize poker_series rows: map series_name -> name so downstream code is unified
+        const normalizedPs = (psRes.data || []).map(ps => ({ ...ps, name: ps.series_name }));
+
         let allData = [];
         if (tsRes.data) allData = [...tsRes.data];
-        if (psRes.data) {
-            for (const ps of psRes.data) {
-                const uid = ps.series_uid;
-                if (!uid || !allData.some(t => t.series_uid === uid)) allData.push(ps);
-            }
+        for (const ps of normalizedPs) {
+            const uid = ps.series_uid;
+            if (!uid || !allData.some(t => t.series_uid === uid)) allData.push(ps);
         }
-        
+
         return {
             props: { initialSeries: allData },
             revalidate: 60, // 60 second Edge caching
