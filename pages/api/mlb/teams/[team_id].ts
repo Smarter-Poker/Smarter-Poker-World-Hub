@@ -39,11 +39,14 @@ async function edgeHandler(req: Request) {
   try {
     const url = new URL(req.url);
     const segments = url.pathname.split('/');
-    const id = segments[segments.length - 1];
+    const id = decodeURIComponent(segments[segments.length - 1] || '').trim();
 
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing Team ID' }), {
-        status: 400,
+    // MLB team_ids are positive integers. Reject anything else up front so an
+    // unknown/garbage id returns a real 404 (instead of a fabricated team) and
+    // never reaches the PostgREST .eq()/.or() filters as an unsanitized value.
+    if (!/^[0-9]+$/.test(id)) {
+      return new Response(JSON.stringify({ notFound: true }), {
+        status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -72,7 +75,7 @@ async function edgeHandler(req: Request) {
     //    summary in season). Take the latest row per window and merge into one line.
     //    (Reading a single window with `.maybeSingle()` would also error on the many
     //    daily rows per team — order + dedupe avoids that.) ──
-    const { data: aggRows } = await mlbDb
+    const { data: aggRows, error: aggErr } = await mlbDb
       .from('agg_team')
       .select(
         'window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, wrc_plus, woba, hitting_war, def, uzr, drs, oaa'
@@ -80,6 +83,7 @@ async function edgeHandler(req: Request) {
       .eq('team_id', id)
       .in('window_kind', ['season', 'fg_hitting', 'fg_pitching'])
       .order('as_of', { ascending: false });
+    if (aggErr) console.warn(`[API/MLB/Teams/${id}] agg_team query error:`, aggErr.message);
     const aggLatestByWindow = new Map<string, any>();
     (aggRows || []).forEach((a: any) => {
       if (a.window_kind && !aggLatestByWindow.has(a.window_kind))
@@ -127,7 +131,7 @@ async function edgeHandler(req: Request) {
     past.setUTCDate(past.getUTCDate() - 8);
     const future = new Date(`${todayStr}T00:00:00Z`);
     future.setUTCDate(future.getUTCDate() + 8);
-    const { data: gamesRaw } = await mlbDb
+    const { data: gamesRaw, error: gamesErr } = await mlbDb
       .from('fact_games')
       .select(
         'game_pk, official_date, status, final, home_team_id, away_team_id, home_score, away_score, first_pitch_utc, home_wins, home_losses, away_wins, away_losses'
@@ -136,6 +140,7 @@ async function edgeHandler(req: Request) {
       .gte('official_date', ymd(past))
       .lte('official_date', ymd(future))
       .order('official_date', { ascending: true });
+    if (gamesErr) console.warn(`[API/MLB/Teams/${id}] fact_games query error:`, gamesErr.message);
 
     const teamIdNum = Number(id);
     const games = (gamesRaw || []).map((g: any) => {
@@ -216,7 +221,7 @@ async function edgeHandler(req: Request) {
     let propsData: any[] = [];
 
     if (playerIds.length > 0) {
-      const { data } = await mlbDb
+      const { data, error: propsErr } = await mlbDb
         .from('pred_props')
         .select(
           'player_id, prop, line, proj_mean, prob_over, market_novig_over, edge_pts, best_price, best_book'
@@ -226,6 +231,7 @@ async function edgeHandler(req: Request) {
         .lte('as_of_ts', `${slateDate}T23:59:59`)
         .gt('edge_pts', 0)
         .order('edge_pts', { ascending: false, nullsFirst: false });
+      if (propsErr) console.warn(`[API/MLB/Teams/${id}] pred_props query error:`, propsErr.message);
 
       propsData = (data || []).map((p: any) => {
         const inputs = betInputsFromProp(p);
@@ -273,9 +279,14 @@ async function edgeHandler(req: Request) {
       propsData = propsData.slice(0, 12);
     }
 
-    if (profileRes.error && !dimData) {
+    // .maybeSingle() returns {data:null,error:null} for 0 rows, so the old
+    // `profileRes.error` guard never fired and unknown ids fell through to a
+    // fabricated team below. A team genuinely exists only if it is present in
+    // v_team_profile OR dim_teams. Return {notFound:true} (no `error` key) so
+    // the page renders its "Team Not Found" UI rather than the error card.
+    if (!teamData && !dimData) {
       console.warn(`[API/MLB/Teams/${id}] Team not found`);
-      return new Response(JSON.stringify({ error: 'Team not found' }), {
+      return new Response(JSON.stringify({ notFound: true }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -294,7 +305,9 @@ async function edgeHandler(req: Request) {
         }
       : null;
 
-    const baseTeam = teamData || dimData || { team_id: id, name: id };
+    // Guaranteed non-null: the not-found guard above already returned 404 when
+    // both sources were missing.
+    const baseTeam = teamData || dimData;
     const team = {
       ...baseTeam,
       league: (teamData as any)?.league || dimData?.league || null,

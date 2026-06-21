@@ -47,11 +47,12 @@ async function edgeHandler(req: Request) {
 
     // ── Resolve the active slate (today if predictions exist, else most recent) ──
     let slateDate = todayStr;
-    const { data: todayCheck } = await mlbDb
+    const { data: todayCheck, error: todayErr } = await mlbDb
       .from('pred_props')
       .select('as_of_ts')
       .gte('as_of_ts', `${todayStr}T00:00:00`)
       .limit(1);
+    if (todayErr) console.warn('[API/MLB/Teams] pred_props slate probe error:', todayErr.message);
     if (!todayCheck || todayCheck.length === 0) {
       const { data: latestRow } = await mlbDb
         .from('pred_props')
@@ -64,13 +65,15 @@ async function edgeHandler(req: Request) {
     }
 
     // ── Resolve the latest advanced-stat snapshot date (agg_team is daily) ──
-    const { data: latestAggRow } = await mlbDb
+    const { data: latestAggRow, error: latestAggErr } = await mlbDb
       .from('agg_team')
       .select('as_of')
       .eq('window_kind', 'season')
       .order('as_of', { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (latestAggErr)
+      console.warn('[API/MLB/Teams] agg_team snapshot-date probe error:', latestAggErr.message);
     const aggLatest: string | null = latestAggRow?.as_of ?? null;
     // Floor 6 days back so a team lagging a snapshot still gets stats; dedupe to latest per team.
     let aggFloor = aggLatest;
@@ -125,6 +128,19 @@ async function edgeHandler(req: Request) {
           },
         }
       );
+    }
+
+    // Surface (but don't fail on) secondary query errors so missing-data
+    // incidents are diagnosable from the server logs.
+    for (const [label, r] of [
+      ['dim_teams', dimRes],
+      ['agg_team', aggRes],
+      ['pred_props', propsRes],
+      ['v_hitter_profile', hittersRes],
+      ['v_pitcher_profile', pitchersRes],
+    ] as const) {
+      if ((r as any)?.error)
+        console.warn(`[API/MLB/Teams] ${label} query error:`, (r as any).error.message);
     }
 
     const profiles = profRes.data || [];

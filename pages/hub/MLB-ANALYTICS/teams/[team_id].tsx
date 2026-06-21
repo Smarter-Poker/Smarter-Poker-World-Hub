@@ -15,6 +15,12 @@ import { BetScoreBadge } from '../../../../src/components/mlb/BetScoreBadge';
 const fetcher = async (url: string) => {
   try {
     const res = await fetch(url);
+    // A 404 from the team-detail API is a real "team not found" signal, not a
+    // transport error. Surface its body as data so the page can render the
+    // dedicated Not-Found UI instead of the generic System Error card.
+    if (res.status === 404) {
+      return await res.json().catch(() => ({ notFound: true }));
+    }
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
@@ -85,7 +91,7 @@ export default function TeamDetailPage() {
 
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'GAMES' | 'PROPS'>('OVERVIEW');
 
-  const { data, error, isValidating } = useSWR(
+  const { data, error } = useSWR(
     team_id ? `/api/mlb/teams/${team_id}` : null,
     fetcher,
     {
@@ -132,7 +138,7 @@ export default function TeamDetailPage() {
     );
   }
 
-  if (!data && isValidating) {
+  if (!data && !error) {
     return (
       <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
         <UniversalHeader
@@ -201,8 +207,6 @@ export default function TeamDetailPage() {
                     --neon-cyan-dim: rgba(0, 212, 255, 0.15);
                     --neon-cyan-glow: rgba(0, 212, 255, 0.6);
                     --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
-                    --neon-magenta: #00D4FF;
-                    --neon-magenta-dim: rgba(255, 0, 255, 0.15);
                     --alert-red: #EF4444;
                     --success-green: #22C55E;
                 }
@@ -335,6 +339,8 @@ export default function TeamDetailPage() {
             </div>
 
             <div
+              role="tablist"
+              aria-label="Team detail sections"
               className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide"
               style={{
                 WebkitOverflowScrolling: 'touch',
@@ -348,8 +354,11 @@ export default function TeamDetailPage() {
               {['OVERVIEW', 'GAMES', 'PROPS'].map((tab: any) => (
                 <button
                   key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-5 py-2 rounded-sm border-[2px] text-[10px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer transition-all uppercase ${
+                  className={`px-5 min-h-[44px] inline-flex items-center justify-center rounded-sm border-[2px] text-[10px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer transition-all uppercase ${
                     activeTab === tab
                       ? 'bg-[#1a2332] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
                       : 'bg-[#0d1117] text-slate-400 border-[#3d4f5f] hover:border-[#5a6a7a] hover:text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
