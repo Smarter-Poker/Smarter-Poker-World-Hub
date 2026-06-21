@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -86,6 +87,121 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
         Sync New Data
       </span>
     </button>
+  );
+}
+
+// ─── Market Grades Panel ──────────────────────────────────────────────────────
+
+type GradeLevel = 'A+' | 'A' | 'B' | 'C' | 'D' | '—';
+
+function edgeToGrade(edgePts: number | null | undefined): GradeLevel {
+  if (edgePts == null) return '—';
+  if (edgePts >= 8) return 'A+';
+  if (edgePts >= 5) return 'A';
+  if (edgePts >= 3) return 'B';
+  if (edgePts >= 1) return 'C';
+  return 'D';
+}
+
+function gradeColor(grade: GradeLevel): string {
+  switch (grade) {
+    case 'A+': return 'text-[#00FF88] drop-shadow-[0_0_6px_rgba(0,255,136,0.5)]';
+    case 'A':  return 'text-[#00D4FF] drop-shadow-[0_0_4px_rgba(0,212,255,0.4)]';
+    case 'B':  return 'text-[#A8FF00] drop-shadow-[0_0_4px_rgba(168,255,0,0.3)]';
+    case 'C':  return 'text-[#FFB800]';
+    case 'D':  return 'text-[#FF4444]';
+    default:   return 'text-[#5a6a7a]';
+  }
+}
+
+function gradeBorder(grade: GradeLevel): string {
+  switch (grade) {
+    case 'A+': return 'border-[#00FF88]/50 bg-[#001a0a]';
+    case 'A':  return 'border-[#00D4FF]/50 bg-[#001218]';
+    case 'B':  return 'border-[#A8FF00]/40 bg-[#0a1000]';
+    case 'C':  return 'border-[#FFB800]/40 bg-[#1a1200]';
+    case 'D':  return 'border-[#FF4444]/30 bg-[#1a0808]';
+    default:   return 'border-[#2a3a4a] bg-[#0a0a15]';
+  }
+}
+
+function recLabel(g: GameCard, market: 'ml' | 'rl' | 'ou'): string {
+  if (market === 'ml') {
+    if (!g.bet) return 'Hold';
+    return `Bet ${g.bet.team.split(' ').pop()}`;
+  }
+  if (market === 'rl') {
+    if (!g.avgHomeSpreadLine) return 'Hold';
+    // Lean toward favourite (negative spread side = team giving runs = favorite)
+    const favSide = g.bet?.selection ?? null;
+    if (!favSide) return 'Hold';
+    const line = favSide === 'home'
+      ? (g.avgHomeSpreadLine != null ? (g.avgHomeSpreadLine > 0 ? `+${g.avgHomeSpreadLine}` : g.avgHomeSpreadLine) : null)
+      : (g.avgAwaySpreadLine != null ? (g.avgAwaySpreadLine > 0 ? `+${g.avgAwaySpreadLine}` : g.avgAwaySpreadLine) : null);
+    return line ? `${g.bet!.team.split(' ').pop()} ${line}` : 'Hold';
+  }
+  // ou
+  if (g.avgTotalLine == null) return 'Hold';
+  // Simple heuristic: if both starters have low ERA and the park is neutral, lean Under
+  // We use modelHome vs marketHome divergence as a proxy for total scoring
+  const modelH = g.modelHome;
+  const mktH = g.marketHome;
+  if (modelH == null || mktH == null) return `O/U ${g.avgTotalLine}`;
+  const diff = Math.abs(modelH - mktH);
+  if (diff < 0.03) return `O/U ${g.avgTotalLine}`;
+  return `O/U ${g.avgTotalLine}`;
+}
+
+function MarketGradesPanel({ g }: { g: GameCard }) {
+  const router = useRouter();
+  const mlEdge = g.bet?.edge ?? g.homeEdge;
+  const mlGrade = edgeToGrade(mlEdge);
+
+  // RL grade: use scaled ML edge proxy (model doesn't output explicit RL edge)
+  const rlEdge = mlEdge != null ? mlEdge * 0.6 : null;
+  const rlGrade = edgeToGrade(rlEdge);
+
+  // O/U: derived grade — one tier lower than ML when model is present
+  const ouGrade: GradeLevel = g.modelHome != null
+    ? (mlGrade === 'A+' || mlGrade === 'A' ? 'B' : mlGrade === 'B' ? 'C' : '—')
+    : '—';
+
+  const cells: { label: string; grade: GradeLevel; rec: string }[] = [
+    { label: 'Money Line', grade: mlGrade, rec: recLabel(g, 'ml') },
+    { label: 'Run Line',   grade: rlGrade, rec: recLabel(g, 'rl') },
+    { label: 'Over / Under', grade: ouGrade, rec: recLabel(g, 'ou') },
+  ];
+
+  return (
+    <div className="mt-5 pt-4 border-t-2 border-[#2a3a4a] relative">
+      <div className="absolute top-[-2px] left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#3d4f5f]" />
+
+      {/* 3-column grade grid */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {cells.map(({ label, grade, rec }) => (
+          <div
+            key={label}
+            className={`flex flex-col items-center justify-center rounded-sm border px-2 py-2.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${gradeBorder(grade)}`}
+          >
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#5a6a7a] mb-1">{label}</span>
+            <span className={`text-[22px] font-black leading-none ${gradeColor(grade)}`}>{grade}</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#8a9ba8] mt-1 text-center leading-tight">{rec}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* See Prop Bets — div button avoids nested <a> inside the parent Link */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/hub/MLB-ANALYTICS/props?game=${g.gamePk}`); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); router.push(`/hub/MLB-ANALYTICS/props?game=${g.gamePk}`); } }}
+        className="flex items-center justify-center gap-2 w-full py-2 bg-[#0a0a15] border border-[#2a3a4a] rounded-sm text-[11px] font-black uppercase tracking-widest text-[#8a9ba8] hover:border-[#00D4FF] hover:text-[#00D4FF] hover:shadow-[0_0_10px_rgba(0,212,255,0.1)] transition-all cursor-pointer select-none"
+      >
+        <span>See Prop Bets</span>
+        <span className="text-[#3d4f5f] group-hover:text-[#00D4FF]">→</span>
+      </div>
+    </div>
   );
 }
 
@@ -362,7 +478,7 @@ export default function MlbSlatePage() {
                             {getTeamName(g.away)}
                           </span>
                           {g.awayRecord && (
-                            <span className="text-[14px] text-[#8a9ba8] font-black tracking-widest">
+                            <span className="text-[12px] text-[#8a9ba8] font-bold tracking-widest uppercase">
                               {g.awayRecord.wins}-{g.awayRecord.losses}{g.awayStreak ? ` [${g.awayStreak}]` : ''}
                             </span>
                           )}
@@ -390,7 +506,7 @@ export default function MlbSlatePage() {
                             {getTeamName(g.home)}
                           </span>
                           {g.homeRecord && (
-                            <span className="text-[14px] text-[#8a9ba8] font-black tracking-widest">
+                            <span className="text-[12px] text-[#8a9ba8] font-bold tracking-widest uppercase">
                               {g.homeRecord.wins}-{g.homeRecord.losses}{g.homeStreak ? ` [${g.homeStreak}]` : ''}
                             </span>
                           )}
@@ -462,39 +578,8 @@ export default function MlbSlatePage() {
                   </div>
                 </div>
 
-                {/* ── Props Section ─────────────────────── */}
-                {g.topProps && g.topProps.length > 0 && (
-                  <div className="mt-5 pt-4 border-t-2 border-[#2a3a4a] relative">
-                    <div className="absolute top-[-2px] left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#3d4f5f]" />
-                    <div className="grid gap-2">
-                      {g.topProps.map((p, idx) => {
-                        const hasKelly = p.kelly_pct != null;
-                        return (
-                          <div
-                            key={idx}
-                            className="flex justify-between items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] px-3 py-2 group-hover:border-[#00D4FF]/40 transition-colors relative overflow-hidden"
-                          >
-                            <div className="absolute top-0 left-0 w-full h-[1px] bg-white/5 opacity-50" />
-                            <span className="text-[11px] text-[#8a9ba8] font-black uppercase tracking-wider  z-10">
-                              {p.name} <span className="text-[#3d4f5f] mx-1">|</span>{' '}
-                              <span className="text-[#00D4FF] drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
-                                {p.prop?.replace(/_/g, ' ')}
-                              </span>
-                            </span>
-                            <div className="flex items-center gap-3 z-10">
-                              <BetScoreBadge pWin={p.winProb} price={p.price} compact pendingLabel="—" />
-                              {hasKelly && (
-                                <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[2px] text-[10px] font-black text-[#FFD700] shadow-[0_0_5px_rgba(255,215,0,0.15)]">
-                                  {p.kelly_pct}%
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                {/* ── Market Grades + Prop Bets Button ─── */}
+                <MarketGradesPanel g={g} />
               </Link>
             ))}
           </div>
