@@ -180,19 +180,10 @@ export default function StatusPage() {
         onError: (err) => logError('SWR MLB Status', err),
     });
 
-    const [nowMs, setNowMs] = useState<number>(() => Date.now());
     const [manualRefreshing, setManualRefreshing] = useState(false);
-
-    useEffect(() => {
-        const id = setInterval(() => {
-            if (document.visibilityState === 'visible') setNowMs(Date.now());
-        }, 15000);
-        return () => clearInterval(id);
-    }, []);
 
     const handleRefresh = async () => {
         setManualRefreshing(true);
-        setNowMs(Date.now());
         await mutate();
         setManualRefreshing(false);
     };
@@ -202,22 +193,7 @@ export default function StatusPage() {
         ? 'Failed to reach the status service.'
         : (data && data.ok !== true ? (data.error || 'Failed to load status data.') : null);
 
-    const timeAgo = (dateString: string | null | undefined): string => {
-        if (!dateString || !nowMs) return '';
-        const serverClientDiff = data?.serverNow ? new Date(data.serverNow).getTime() - Date.now() : 0;
-        const past = new Date(dateString);
-        if (isNaN(past.getTime())) return '';
-        const effectiveNow = nowMs + serverClientDiff;
-        const diffMs = Math.max(0, effectiveNow - past.getTime());
-        const s = Math.round(diffMs / 1000);
-        if (s < 45) return 'JUST NOW';
-        const m = Math.round(s / 60);
-        if (m < 60) return `${m}M AGO`;
-        const h = Math.round(m / 60);
-        if (h < 24) return `${h}H AGO`;
-        const dd = Math.round(h / 24);
-        return `${dd}D AGO`;
-    };
+
 
     const formatDate = (dateString: string | null | undefined): string => {
         if (!dateString) return '';
@@ -321,7 +297,7 @@ export default function StatusPage() {
                     </h1>
                     {data?.health?.last_refresh && (
                         <div className="text-[10px] text-slate-400 tracking-widest uppercase mt-0.5 flex items-center gap-2">
-                            <span>Data refreshed {timeAgo(data.health.last_refresh)}</span>
+                            <span>Data refreshed <TimeAgo dateString={data.health.last_refresh} /></span>
                             {isValidating && !isLoading && (
                                 <span className="text-[#00D4FF] animate-pulse">&middot; updating&hellip;</span>
                             )}
@@ -380,9 +356,9 @@ export default function StatusPage() {
                             <SectionHeader icon={Clock} label="SYSTEM HEALTH" />
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                             {[
-                                { label: 'LAST REFRESH', val: timeAgo(health.last_refresh) || '-', warn: !!health.is_stale },
+                                { label: 'LAST REFRESH', val: <TimeAgo dateString={health.last_refresh} fallback="-" />, warn: !!health.is_stale },
                                 { label: 'SLATE AS OF', val: formatDate(health.slate_as_of) || '-', warn: false },
-                                { label: 'AGG MARKET', val: timeAgo(data?.aggAsOf) || '-', warn: false },
+                                { label: 'AGG MARKET', val: <TimeAgo dateString={data?.aggAsOf} fallback="-" />, warn: false },
                                 { label: 'GAMES IN RUN', val: fmt(health.games_in_run), warn: false },
                                 { label: 'GAMES IN SLATE', val: fmt(health.games_in_slate), warn: false },
                                 { label: 'LIVE RECS', val: fmt(health.total_live_recs), warn: false },
@@ -509,8 +485,12 @@ export default function StatusPage() {
                                 <ul className="flex flex-col m-0 p-0 list-none">
                                     {stages.map((stage, idx) => {
                                         const run = latestRuns?.[stage];
-                                        const status = String(run?.status || 'unknown');
-                                        const isError = ['error', 'failed', 'timeout', 'critical'].includes(status.toLowerCase());
+                                        const status = String(run?.status || 'PENDING').toUpperCase();
+                                        const statusColor = ['ERROR', 'FAILED', 'TIMEOUT', 'CRITICAL'].includes(status)
+                                            ? 'text-[#FF4444] border-[#FF4444]'
+                                            : ['OK', 'SUCCESS', 'DONE'].includes(status)
+                                                ? 'text-[#00D4FF] border-[#00D4FF]'
+                                                : 'text-[#94a3b8] border-[#475569]';
                                         return (
                                             <li key={stage} className={`px-5 py-4 flex justify-between items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
                                                 <div className="min-w-0">
@@ -519,11 +499,9 @@ export default function StatusPage() {
                                                         {run?.run_ts ? formatDate(run.run_ts) : '—'}
                                                     </div>
                                                 </div>
-                                                {run && (
-                                                    <div className={`bg-black/50 border px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${isError ? 'text-[#FF4444] border-[#FF4444]' : 'text-[#00D4FF] border-[#00D4FF]'}`}>
-                                                        {status.toUpperCase()}
-                                                    </div>
-                                                )}
+                                                <div className={`bg-black/50 border px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${statusColor}`}>
+                                                    {status}
+                                                </div>
                                             </li>
                                         );
                                     })}
