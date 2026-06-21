@@ -52,6 +52,7 @@ interface MLBStatusPayload {
     }>;
     alerts: Array<{
         id?: number;
+        created_at?: string | null;
         alert_type?: string;
         level?: string;
         message?: string;
@@ -137,7 +138,7 @@ export default function StatusPage() {
     const isLoading = !data && !error;
     const apiError: string | null = error
         ? 'Failed to reach the status service.'
-        : (data && data.ok === false ? (data.error || 'Failed to load status data.') : null);
+        : (data && data.ok !== true ? (data.error || 'Failed to load status data.') : null);
 
     const timeAgo = (dateString: string | null | undefined): string => {
         if (!dateString) return '';
@@ -168,9 +169,14 @@ export default function StatusPage() {
         });
     };
 
-    // Return '—' for null/undefined/NaN/Infinity so health cards never show junk values.
+    // Return '—' for null/undefined/NaN/Infinity/EmptyString so health cards never show junk values.
     // Note: fmt(0) correctly returns '0' (zero is a valid and meaningful count).
-    const fmt = (n: number | string | null | undefined): string => (n == null || (typeof n === 'number' && !isFinite(n)) || isNaN(Number(n))) ? '\u2014' : Number(n).toLocaleString();
+    const fmt = (n: number | string | null | undefined): string => {
+        if (n == null || n === '') return '\u2014';
+        const num = Number(n);
+        if (isNaN(num) || !isFinite(num)) return '\u2014';
+        return num.toLocaleString();
+    };
 
     const brierColor = (b: number | null | undefined): string => {
         if (typeof b !== 'number' || isNaN(b)) return 'text-slate-400';
@@ -216,8 +222,8 @@ export default function StatusPage() {
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
                     <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#FF4444]/50 shadow-[0_0_20px_rgba(255,68,68,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden max-w-md w-full" role="alert">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF4444] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <ServerCrash className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,68,68,0.8))' }} />
-                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
+                        <ServerCrash aria-hidden="true" className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10 drop-shadow-[0_0_8px_rgba(255,68,68,0.8)]" />
+                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10 font-['Rajdhani']">System Error</h2>
                         <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10 mb-1">Failed to load status data</p>
                         <p className="text-slate-400 text-[12px] relative z-10 mb-6 break-words">{apiError}</p>
                         <button
@@ -225,7 +231,7 @@ export default function StatusPage() {
                             aria-label="Retry loading status data"
                             className="inline-flex items-center gap-2 bg-transparent border border-[#00D4FF] text-[#00D4FF] px-4 py-2 rounded cursor-pointer text-xs font-bold tracking-widest uppercase transition-colors hover:bg-[#00D4FF]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] relative z-10"
                         >
-                            <RefreshCw size={14} className={isValidating ? 'animate-spin' : ''} />
+                            <RefreshCw aria-hidden="true" size={14} className={isValidating ? 'animate-spin' : ''} />
                             Retry
                         </button>
                     </div>
@@ -254,7 +260,8 @@ export default function StatusPage() {
         </div>
     );
 
-    const panelClass = "relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] md:border-[2px] border-y border-[#3d4f5f] md:rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden";
+    const listPanelClass = "relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] md:border-[2px] border-y border-[#3d4f5f] md:rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden";
+    const cardClass = "relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden";
 
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
@@ -266,7 +273,7 @@ export default function StatusPage() {
             {/* Sub-header */}
             <div className="bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[2px] border-[#3d4f5f] p-4 flex justify-between items-center gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 <div className="min-w-0">
-                    <h1 className="m-0 text-2xl font-bold uppercase tracking-widest px-4 md:px-0">
+                    <h1 className="m-0 text-2xl font-bold uppercase tracking-widest">
                         Data <span className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.6)]">Status</span>
                     </h1>
                     {/* Show when last model refresh occurred — only show if we actually have a refresh time, not serverNow which always reads 'JUST NOW' */}
@@ -281,9 +288,9 @@ export default function StatusPage() {
                 </div>
                 <div className="text-right flex flex-col items-end shrink-0">
                     <div className="text-[#00D4FF] text-[11px] font-bold tracking-widest uppercase">SYSTEM</div>
-                    <div className="inline-flex items-center gap-1.5 mt-1" role="status" aria-live="polite" aria-label={`System status: ${isSystemFresh ? 'fresh' : 'stale'}`}>
-                        <div className={`w-2 h-2 rounded-full ${isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#FF4444] shadow-[0_0_10px_#FF4444]'}`}></div>
-                        <div className={`text-xs font-bold tracking-widest ${isSystemFresh ? 'text-[#00D4FF] drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]' : 'text-[#FF4444] drop-shadow-[0_0_5px_rgba(255,68,68,0.5)]'}`}>
+                    <div className="inline-flex items-center gap-1.5 mt-1" role="status" aria-live="polite" aria-label={`System status: ${isLoading ? 'loading' : (isSystemFresh ? 'fresh' : 'stale')}`}>
+                        <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-slate-400 shadow-none' : (isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#FF4444] shadow-[0_0_10px_#FF4444]')}`}></div>
+                        <div className={`text-xs font-bold tracking-widest ${isLoading ? 'text-slate-400 drop-shadow-none' : (isSystemFresh ? 'text-[#00D4FF] drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]' : 'text-[#FF4444] drop-shadow-[0_0_5px_rgba(255,68,68,0.5)]')}`}>
                             {isLoading ? 'LOADING' : (isSystemFresh ? 'FRESH' : 'STALE')}
                         </div>
                     </div>
@@ -305,25 +312,27 @@ export default function StatusPage() {
                 </div>
 
                 {isLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 px-4 md:px-0" aria-busy="true" aria-label="Loading status data">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                            <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-                                <div className="h-3 w-1/2 bg-[#3d4f5f] rounded mb-3"></div>
-                                <div className="h-8 w-3/4 bg-[#3d4f5f] rounded"></div>
-                            </div>
-                        ))}
+                    <div className="flex flex-col gap-8 mt-6 px-4 md:px-0" aria-busy="true" aria-label="Loading status data">
+                        {/* Summary skeleton */}
+                        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]"></div>
+                        {/* Cards skeleton */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]"></div>
+                            ))}
+                        </div>
                     </div>
                 ) : (
                     <>
                         {/* PIPELINE HEALTH SUMMARY */}
                         <div className="mb-8">
-                            <div className={`${panelClass} px-5 py-4 flex items-center justify-between gap-3`}>
+                            <div className={`${listPanelClass} px-5 py-4 flex items-center justify-between gap-3`}>
                                 <div className="flex items-center gap-3 min-w-0">
                                     {pipeline.hasError
                                         ? <AlertTriangle size={22} className="text-[#FF4444] shrink-0 drop-shadow-[0_0_6px_rgba(255,68,68,0.7)]" aria-hidden="true" />
                                         : <CheckCircle2 size={22} className="text-[#00D4FF] shrink-0 drop-shadow-[0_0_6px_rgba(0,212,255,0.7)]" aria-hidden="true" />}
                                     <div className="min-w-0">
-                                        <div className={`text-[15px] font-extrabold uppercase tracking-wider ${pipeline.hasError ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                        <div className={`text-[15px] font-extrabold uppercase tracking-wider font-['Rajdhani'] ${pipeline.hasError ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}>
                                             {pipeline.hasError ? 'Pipeline Errors Detected' : 'All Pipeline Stages OK'}
                                         </div>
                                         <div className="text-[11px] text-slate-400 tracking-wider mt-0.5">
@@ -356,7 +365,7 @@ export default function StatusPage() {
                                 { label: 'UNMODELED GAMES', val: fmt(health.unmodeled_games), warn: typeof health.unmodeled_games === 'number' && health.unmodeled_games > 0 },
                                 { label: 'RUNLINE CONFLICTS', val: fmt(health.incoherent_runlines_with_bet), warn: typeof health.incoherent_runlines_with_bet === 'number' && health.incoherent_runlines_with_bet > 0 }
                             ].map((item) => (
-                                <div key={item.label} className={`${panelClass} p-4`}>
+                                <div key={item.label} className={`${cardClass} p-4`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
                                     <div className={`text-lg font-bold tabular-nums break-words ${item.warn ? 'text-[#FF4444] drop-shadow-[0_0_10px_rgba(255,68,68,0.4)]' : 'text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.4)]'}`}>
                                         {item.val}
@@ -375,7 +384,7 @@ export default function StatusPage() {
                                     { label: 'PROPS', val: slate.props },
                                     { label: 'BEST BETS', val: slate.best }
                                 ].map((item) => (
-                                    <div key={item.label} className={`${panelClass} p-5 text-center`}>
+                                    <div key={item.label} className={`${cardClass} p-5 text-center`}>
                                         <div className="text-[11px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
                                         <div className="text-3xl font-bold text-[#00D4FF] tabular-nums drop-shadow-[0_0_15px_rgba(0,212,255,0.6)]">
                                             {fmt(item.val)}
@@ -389,19 +398,19 @@ export default function StatusPage() {
                         <div className="mb-8">
                             {sectionHeader(Gauge, 'MODEL ACCURACY')}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className={`${panelClass} p-4 text-center`}>
+                                <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">BRIER (ML)</div>
                                     <div className={`text-2xl font-bold tabular-nums ${brierColor(accuracy.wtd_avg_brier_ml)}`}>{fmtBrier(accuracy.wtd_avg_brier_ml)}</div>
                                 </div>
-                                <div className={`${panelClass} p-4 text-center`}>
+                                <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">BRIER (PROPS)</div>
                                     <div className={`text-2xl font-bold tabular-nums ${brierColor(accuracy.wtd_avg_brier_props)}`}>{fmtBrier(accuracy.wtd_avg_brier_props)}</div>
                                 </div>
-                                <div className={`${panelClass} p-4 text-center`}>
+                                <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">GAMES EVAL</div>
                                     <div className="text-2xl font-bold text-[#00D4FF] tabular-nums">{fmt(accuracy.total_games_evaluated)}</div>
                                 </div>
-                                <div className={`${panelClass} p-4 text-center`}>
+                                <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">DAILY SAMPLES</div>
                                     <div className="text-2xl font-bold text-[#00D4FF] tabular-nums">{fmt(accuracy.daily_samples)}</div>
                                 </div>
@@ -413,7 +422,7 @@ export default function StatusPage() {
                         {Object.keys(tierDist).length > 0 && (
                             <div className="mb-8">
                                 {sectionHeader(Layers, 'BET TIER DISTRIBUTION')}
-                                <div className={`${panelClass} p-4`}>
+                                <div className={`${listPanelClass} p-4`}>
                                     <div className="flex flex-wrap gap-3">
                                         {TIER_META.filter(t => t.key in tierDist).map((t) => (
                                             <div key={t.key} className="flex-1 min-w-[80px] text-center rounded-lg border bg-black/30 py-3 px-2" style={{ borderColor: t.color }}>
@@ -435,7 +444,7 @@ export default function StatusPage() {
                         {/* DATA SOURCE FRESHNESS */}
                         <div className="mb-8">
                             {sectionHeader(Database, 'DATA SOURCE FRESHNESS')}
-                            <div className={panelClass}>
+                            <div className={listPanelClass}>
                                 {sources.length > 0 ? (
                                     <div className="flex flex-col">
                                         {sources.map((src, idx) => {
@@ -465,7 +474,7 @@ export default function StatusPage() {
                         {/* RECENT ALERTS */}
                         <div className="mb-8">
                             {sectionHeader(Bell, 'RECENT ALERTS')}
-                            <div className={panelClass}>
+                            <div className={listPanelClass}>
                                 {alerts.length > 0 ? (
                                     <div className="flex flex-col">
                                         {alerts.map((al, idx) => (
@@ -492,36 +501,40 @@ export default function StatusPage() {
                         {/* RECENT PIPELINE RUNS */}
                         <div className="mb-8">
                             {sectionHeader(CheckCircle2, 'RECENT PIPELINE RUNS')}
-                            <div className="flex flex-col gap-3">
-                                {stages.length > 0 ? stages.map((stage) => {
-                                    const run = latestRuns?.[stage];
-                                    const status = String(run?.status || 'unknown');
-                                    const isError = status === 'error';
-                                    const glowColor = isError ? 'text-[#FF4444]' : 'text-[#00D4FF]';
-                                    const borderGlowColor = isError ? 'border-[#FF4444]' : 'border-[#00D4FF]';
-                                    const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,68,68,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
-                                    return (
-                                        <div key={stage} className={`${panelClass} px-5 py-4 flex justify-between items-center gap-3`}>
-                                            <div className="min-w-0">
-                                                <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
-                                                <div className="text-[11px] text-slate-400 mt-1 tracking-wider break-words">
-                                                    {run?.run_ts ? formatDate(run.run_ts) : '—'}
-                                                    {run && typeof run.rows_written === 'number' ? ` • ${fmt(run.rows_written)} rows` : ''}
-                                                    {run && typeof run.duration_sec === 'number' ? ` • ${run.duration_sec.toFixed(1)}s` : ''}
-                                                </div>
-                                            </div>
-                                            {run && (
-                                                <div className="flex gap-2 items-center shrink-0">
-                                                    <div className="text-slate-400 text-[11px] font-bold tracking-wider hidden sm:block">{timeAgo(run.run_ts)}</div>
-                                                    <div className={`bg-black/50 ${glowColor} border ${borderGlowColor} px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${bgShadow}`}>
-                                                        {status.toUpperCase()}
+                            <div className={listPanelClass}>
+                                {stages.length > 0 ? (
+                                    <div className="flex flex-col">
+                                        {stages.map((stage, idx) => {
+                                            const run = latestRuns?.[stage];
+                                            const status = String(run?.status || 'unknown');
+                                            const isError = ['error', 'failed', 'timeout', 'critical'].includes(status.toLowerCase());
+                                            const glowColor = isError ? 'text-[#FF4444]' : 'text-[#00D4FF]';
+                                            const borderGlowColor = isError ? 'border-[#FF4444]' : 'border-[#00D4FF]';
+                                            const bgShadow = isError ? 'shadow-[0_0_10px_rgba(255,68,68,0.3)]' : 'shadow-[0_0_10px_rgba(0,212,255,0.3)]';
+                                            return (
+                                                <div key={stage} className={`px-5 py-4 flex justify-between items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
+                                                    <div className="min-w-0">
+                                                        <div className="text-[15px] font-bold text-white uppercase tracking-wider">{stage}</div>
+                                                        <div className="text-[11px] text-slate-400 mt-1 tracking-wider break-words">
+                                                            {run?.run_ts ? formatDate(run.run_ts) : '—'}
+                                                            {run && typeof run.rows_written === 'number' ? ` • ${fmt(run.rows_written)} rows` : ''}
+                                                            {run && typeof run.duration_sec === 'number' ? ` • ${run.duration_sec.toFixed(1)}s` : ''}
+                                                        </div>
                                                     </div>
+                                                    {run && (
+                                                        <div className="flex gap-2 items-center shrink-0">
+                                                            <div className="text-slate-400 text-[11px] font-bold tracking-wider hidden sm:block">{timeAgo(run.run_ts)}</div>
+                                                            <div className={`bg-black/50 ${glowColor} border ${borderGlowColor} px-2.5 py-1 rounded text-[10px] font-bold tracking-[0.2em] ${bgShadow}`}>
+                                                                {status.toUpperCase()}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    );
-                                }) : (
-                                    <div className={`${panelClass} p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase`}>No pipeline runs found</div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="p-6 text-center text-slate-500 font-bold tracking-wider text-[11px] uppercase">No pipeline runs found</div>
                                 )}
                             </div>
                         </div>
@@ -529,7 +542,7 @@ export default function StatusPage() {
                         {/* DB TABLE COUNTS */}
                         <div className="mb-8">
                             {sectionHeader(Database, 'DB TABLE COUNTS')}
-                            <div className={panelClass}>
+                            <div className={listPanelClass}>
                                 {tableCounts && Object.keys(tableCounts).length > 0 ? (
                                     <div className="flex flex-col">
                                         {Object.entries(tableCounts).map(([table, count], idx, arr) => (

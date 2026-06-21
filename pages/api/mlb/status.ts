@@ -90,7 +90,18 @@ async function handleRequest() {
         }
         const pipelineHasError = errorCount > 0;
 
-        const health = (d.health && typeof d.health === 'object') ? d.health : {};
+        const rawHealth = (d.health && typeof d.health === 'object') ? d.health : {};
+        const health = {
+            minutes_since_refresh: rawHealth.hours_stale != null ? Math.round(rawHealth.hours_stale * 60) : null,
+            last_refresh: rawHealth.latest_as_of ?? null,
+            is_stale: rawHealth.is_stale ?? true,
+            slate_as_of: rawHealth.slate_as_of ?? null,
+            games_in_run: rawHealth.games_in_run ?? null,
+            games_in_slate: rawHealth.games_in_slate ?? null,
+            total_live_recs: rawHealth.total_live_recs ?? null,
+            unmodeled_games: rawHealth.unmodeled_games ?? null,
+            incoherent_runlines_with_bet: rawHealth.incoherent_runlines_with_bet ?? null
+        };
         // isSystemFresh requires we actually have health data (last_refresh present).
         // An empty health object {} means v_model_health returned no rows — that is NOT fresh.
         const isSystemFresh = !!health.last_refresh && !health.is_stale && !pipelineHasError;
