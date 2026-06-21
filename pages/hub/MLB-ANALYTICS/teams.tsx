@@ -19,39 +19,6 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { logError } from '@/utils/logger';
 
-export interface Streaks {
-  record?: string;
-  last10_record?: string;
-  longest_win_streak?: number;
-  last10_run_diff?: number;
-  [key: string]: any;
-}
-
-export interface Splits {
-  home?: string;
-  road?: string;
-  [key: string]: any;
-}
-
-export interface AdvancedStats {
-  fip?: number;
-  siera?: number;
-  hitting_war?: number;
-  pitching_war?: number;
-  ops?: number;
-  oaa?: number;
-  [key: string]: any;
-}
-
-export interface TeamProfile {
-  team_id: number;
-  name: string;
-  streaks: Streaks | null;
-  splits: Splits | null;
-  adv_stats?: AdvancedStats | null;
-  [key: string]: any;
-}
-
 const TeamLogo = ({ teamId, teamName }: { teamId: number; teamName: string }) => {
   const [imgError, setImgError] = useState(false);
   if (imgError) {
@@ -313,10 +280,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
         {team.adv_stats && (
           <div style={{ marginTop: 12 }}>
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                setExpanded(!expanded);
-              }}
+              onClick={() => setExpanded(!expanded)}
               style={{
                 width: '100%',
                 background: 'transparent',
@@ -476,8 +440,9 @@ export default function TeamsPage({
     fallbackData: fallbackTeams
       ? { teams: fallbackTeams, globalEdgeActive: fallbackGlobalEdgeActive }
       : undefined,
-    refreshInterval: 15000,
+    refreshInterval: 30000,
     revalidateOnFocus: true,
+    dedupingInterval: 10000,
   });
 
   if (error || data?.error) {
@@ -513,6 +478,10 @@ export default function TeamsPage({
   const activeTeams = data?.teams || fallbackTeams || [];
   const globalEdgeActive = data?.globalEdgeActive || fallbackGlobalEdgeActive || false;
   const summary = data?.summary || { gradedCount: 0, eliteCount: 0, strongCount: 0 };
+  // First paint has no SWR data yet (client-rendered, no getServerSideProps
+  // fallback). Distinguish that from a genuinely empty result so we show a
+  // loading skeleton instead of flashing "NO TARGETS ACQUIRED".
+  const isInitialLoading = !data && !error;
 
   const filteredTeams = useMemo(() => {
     let result = activeTeams.filter((team: any) => {
@@ -902,6 +871,8 @@ export default function TeamsPage({
                   >
                     MLB EDGE
                     <div
+                      role="img"
+                      aria-label={globalEdgeActive ? 'MLB edge active' : 'No active MLB edge'}
                       style={{
                         position: 'relative',
                         display: 'flex',
@@ -1014,6 +985,7 @@ export default function TeamsPage({
                   </div>
                   <input
                     type="text"
+                    aria-label="Search teams by name"
                     placeholder="INITIATE SEARCH PROTOCOL..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -1095,6 +1067,7 @@ export default function TeamsPage({
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
                       className="metal-select"
+                      aria-label="Sort teams by"
                     >
                       <option value="SCORE">BET SCORE</option>
                       <option value="NAME">NAME</option>
@@ -1107,7 +1080,21 @@ export default function TeamsPage({
               </div>
 
               {/* Results */}
-              {filteredTeams.length === 0 ? (
+              {isInitialLoading ? (
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+                  aria-busy="true"
+                  aria-label="Loading teams"
+                >
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="metal-frame animate-pulse"
+                      style={{ height: 120, borderRadius: 12, opacity: 0.4 }}
+                    />
+                  ))}
+                </div>
+              ) : filteredTeams.length === 0 ? (
                 <div
                   style={{
                     textAlign: 'center',
