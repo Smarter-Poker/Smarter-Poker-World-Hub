@@ -1,13 +1,15 @@
-import json
-from supabase import create_client
+import os
+from urllib.parse import urlparse
+import psycopg2
 
-with open('.env.local', 'r') as f:
-    env_vars = {}
-    for line in f:
-        if '=' in line:
-            k, v = line.strip().split('=', 1)
-            env_vars[k.strip()] = v.strip()
+db_url = os.environ.get('MLB_SUPABASE_URL')
+if not db_url:
+    print("No MLB_SUPABASE_URL")
+    exit(1)
 
-sb = create_client(env_vars['NEXT_PUBLIC_MLB_SUPABASE_URL'], env_vars['MLB_SUPABASE_SERVICE_ROLE_KEY'])
-res = sb.table('pred_best_bets').select('bet_type, market, selection, player_name').limit(20).execute()
-print(json.dumps(res.data, indent=2))
+conn = psycopg2.connect(db_url)
+cur = conn.cursor()
+cur.execute("SELECT * FROM public.v_model_health")
+print("v_model_health rows:", cur.fetchall())
+cur.execute("SELECT to_jsonb(h) FROM v_model_health h LIMIT 1")
+print("to_jsonb:", cur.fetchone())

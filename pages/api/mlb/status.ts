@@ -49,7 +49,7 @@ async function handleRequest() {
 
         if (rpcError) throw rpcError;
 
-        const d: any = data || {};
+        const d: any = (Array.isArray(data) ? data[0] : data) || {};
 
         // Build "latest run per stage" from the newest-first pipeline_runs feed.
         const pipelineRuns: any[] = Array.isArray(d.pipeline_runs) ? d.pipeline_runs : [];
@@ -62,8 +62,8 @@ async function handleRequest() {
                     stage,
                     run_ts: run?.run_ts ?? null,
                     status: run?.status ?? 'unknown',
-                    duration_sec: typeof run?.duration_sec === 'number' ? run.duration_sec : null,
-                    rows_written: typeof run?.rows_written === 'number' ? run.rows_written : null,
+                    duration_sec: run?.duration_sec != null ? Number(run.duration_sec) : null,
+                    rows_written: run?.rows_written != null ? Number(run.rows_written) : null,
                     notes: run?.notes ?? null
                 };
             }
@@ -83,7 +83,7 @@ async function handleRequest() {
         let okCount = 0;
         let errorCount = 0;
         for (const stage of stages) {
-            const s = latestRuns[stage]?.status;
+            const s = String(latestRuns[stage]?.status || '').toLowerCase();
             // 'partial' counts as ok — engine writes it for incremental loads.
             if (s === 'success' || s === 'ok' || s === 'done' || s === 'partial') okCount += 1;
             else if (s === 'error' || s === 'failed') errorCount += 1;
@@ -92,8 +92,8 @@ async function handleRequest() {
 
         const rawHealth = (d.health && typeof d.health === 'object') ? d.health : {};
         const health = {
-            minutes_since_refresh: rawHealth.hours_stale != null ? Math.round(rawHealth.hours_stale * 60) : null,
-            last_refresh: rawHealth.latest_as_of ?? null,
+            minutes_since_refresh: rawHealth.minutes_since_refresh ?? null,
+            last_refresh: rawHealth.last_refresh ?? null,
             is_stale: rawHealth.is_stale ?? true,
             slate_as_of: rawHealth.slate_as_of ?? null,
             games_in_run: rawHealth.games_in_run ?? null,
@@ -105,6 +105,11 @@ async function handleRequest() {
         // isSystemFresh requires we actually have health data (last_refresh present).
         // An empty health object {} means v_model_health returned no rows — that is NOT fresh.
         const isSystemFresh = !!health.last_refresh && !health.is_stale && !pipelineHasError;
+
+        const rawTierDist = (d.tier_dist && typeof d.tier_dist === 'object') ? d.tier_dist : {};
+        const tierDist = Object.fromEntries(
+            Object.entries(rawTierDist).map(([k, v]) => [String(k).toUpperCase(), v])
+        );
 
         return new Response(JSON.stringify({
             ok: true,
@@ -121,7 +126,7 @@ async function handleRequest() {
             health,
             slate: (d.slate && typeof d.slate === 'object') ? d.slate : {},
             accuracy: (d.accuracy && typeof d.accuracy === 'object') ? d.accuracy : {},
-            tierDist: (d.tier_dist && typeof d.tier_dist === 'object') ? d.tier_dist : {},
+            tierDist,
             sources: Array.isArray(d.sources) ? d.sources : [],
             alerts: Array.isArray(d.alerts) ? d.alerts : [],
             tableCounts: (d.table_counts && typeof d.table_counts === 'object') ? d.table_counts : {},
@@ -155,49 +160,8 @@ async function handleRequest() {
     }
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    try {
-        // x-forwarded-proto can be a comma-separated list (e.g. 'https, http') on some
-        // proxy configurations — take only the first value to avoid a malformed URL.
-        const protocol = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
-        const host = req.headers.host || 'localhost';
-        const url = `${protocol}://${host}${req.url}`;
+export const config = { runtime: 'edge' };
 
-        // Safely convert headers to Record<string, string>
-        const safeHeaders: Record<string, string> = {};
-        for (const [key, value] of Object.entries(req.headers)) {
-            if (Array.isArray(value)) {
-                safeHeaders[key] = value.join(', ');
-            } else if (value !== undefined) {
-                safeHeaders[key] = value;
-            }
-        }
-
-        const requestOptions: RequestInit = {
-            method: req.method,
-            headers: safeHeaders
-        };
-
-        const request = new Request(url, requestOptions);
-        const response = await edgeHandler(request);
-
-        res.status(response.status);
-        response.headers.forEach((value, key) => {
-            res.setHeader(key, value);
-        });
-
-        const text = await response.text();
-        if (text) {
-            try {
-                res.json(JSON.parse(text));
-            } catch {
-                res.send(text);
-            }
-        } else {
-            res.end();
-        }
-    } catch (err: any) {
-        console.error('API Polyfill Error:', err);
-        res.status(500).json({ ok: false, error: err.message || 'Internal Server Error' });
-    }
+export default async function handler(req: Request) {
+    return edgeHandler(req);
 }

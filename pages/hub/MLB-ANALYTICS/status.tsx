@@ -142,7 +142,8 @@ export default function StatusPage() {
 
     const timeAgo = (dateString: string | null | undefined): string => {
         if (!dateString) return '';
-        const past = new Date(dateString);
+        const safeDate = dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+        const past = new Date(safeDate);
         if (isNaN(past.getTime())) return '';
         const diffMs = Math.max(0, nowMs - past.getTime());
         const s = Math.round(diffMs / 1000);
@@ -157,7 +158,8 @@ export default function StatusPage() {
 
     const formatDate = (dateString: string | null | undefined): string => {
         if (!dateString) return '';
-        const d = new Date(dateString);
+        const safeDate = dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+        const d = new Date(safeDate);
         if (isNaN(d.getTime())) return String(dateString);
         return d.toLocaleString('en-US', {
             month: 'numeric',
@@ -178,13 +180,17 @@ export default function StatusPage() {
         return num.toLocaleString();
     };
 
-    const brierColor = (b: number | null | undefined): string => {
-        if (typeof b !== 'number' || isNaN(b)) return 'text-slate-400';
+    const brierColor = (val: number | string | null | undefined): string => {
+        const b = Number(val);
+        if (isNaN(b) || val == null || val === '') return 'text-slate-400';
         if (b < 0.20) return 'text-[#00D4FF]';
         if (b <= 0.25) return 'text-[#FFB020]';
         return 'text-[#FF4444]';
     };
-    const fmtBrier = (b: number | null | undefined): string => (typeof b === 'number' && !isNaN(b)) ? b.toFixed(3) : '-';
+    const fmtBrier = (val: number | string | null | undefined): string => {
+        const b = Number(val);
+        return (!isNaN(b) && val != null && val !== '') ? b.toFixed(3) : '-';
+    };
 
     const alertLevelColor = (level: string | null | undefined): string => {
         const l = String(level || '').toLowerCase();
@@ -256,7 +262,7 @@ export default function StatusPage() {
     const sectionHeader = (Icon: React.ElementType, label: string) => (
         <div className="flex items-center gap-2 mb-3 px-4 md:px-0">
             <Icon size={16} className="text-[#00D4FF]" aria-hidden="true" />
-            <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0 drop-shadow-[0_0_8px_rgba(0,212,255,0.3)]">{label}</h2>
+            <h2 className="text-[14px] font-extrabold text-[#00D4FF] tracking-[0.15em] m-0 drop-shadow-[0_0_8px_rgba(0,212,255,0.3)] font-['Rajdhani'] uppercase">{label}</h2>
         </div>
     );
 
@@ -297,14 +303,14 @@ export default function StatusPage() {
                 </div>
             </div>
 
-            <div className="px-0 md:px-4 py-6 max-w-4xl mx-auto w-full">
+            <div className={`px-0 md:px-4 py-6 max-w-4xl mx-auto w-full transition-opacity duration-300 ${isValidating && !isLoading ? 'opacity-70' : ''}`}>
 
                 <div className="flex justify-end mb-4 px-4 md:px-0">
                     <button
                         onClick={handleRefresh}
                         disabled={manualRefreshing && isValidating}
                         aria-label="Refresh status data"
-                        className={`bg-transparent border border-[#3d4f5f] text-[#00D4FF] px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-xs font-bold tracking-widest uppercase transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${manualRefreshing && isValidating ? 'opacity-50' : ''}`}
+                        className={`bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_10px_rgba(0,0,0,0.4)] text-[#00D4FF] px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-[10px] font-extrabold tracking-widest uppercase transition-all hover:bg-[#1a2332] hover:shadow-[0_0_10px_rgba(0,212,255,0.2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${manualRefreshing && isValidating ? 'opacity-50' : ''}`}
                     >
                         <RefreshCw size={14} className={isValidating ? 'animate-spin' : ''} />
                         Refresh
@@ -316,7 +322,7 @@ export default function StatusPage() {
                         {/* Summary skeleton */}
                         <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]"></div>
                         {/* Cards skeleton */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-4 md:px-0">
                             {[1, 2, 3, 4, 5, 6].map((i) => (
                                 <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 h-24 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]"></div>
                             ))}
@@ -355,7 +361,7 @@ export default function StatusPage() {
                         {/* SYSTEM HEALTH */}
                         <div className="mb-8">
                             {sectionHeader(Clock, 'SYSTEM HEALTH')}
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-4 md:px-0">
                             {[
                                 { label: 'LAST REFRESH', val: timeAgo(health.last_refresh) || '-', warn: !!health.is_stale },
                                 { label: 'SLATE AS OF', val: formatDate(health.slate_as_of) || '-', warn: false },
@@ -367,7 +373,7 @@ export default function StatusPage() {
                             ].map((item) => (
                                 <div key={item.label} className={`${cardClass} p-4`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
-                                    <div className={`text-lg font-bold tabular-nums break-words ${item.warn ? 'text-[#FF4444] drop-shadow-[0_0_10px_rgba(255,68,68,0.4)]' : 'text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.4)]'}`}>
+                                    <div className={`text-xl font-extrabold font-['Rajdhani'] tabular-nums break-words ${item.warn ? 'text-[#FF4444] drop-shadow-[0_0_10px_rgba(255,68,68,0.4)]' : 'text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.4)]'}`}>
                                         {item.val}
                                     </div>
                                 </div>
@@ -378,7 +384,7 @@ export default function StatusPage() {
                         {/* TODAY'S SLATE */}
                         <div className="mb-8">
                             {sectionHeader(Activity, "TODAY'S SLATE")}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 md:px-0">
                                 {[
                                     { label: 'MARKET BETS', val: slate.mkt },
                                     { label: 'PROPS', val: slate.props },
@@ -386,7 +392,7 @@ export default function StatusPage() {
                                 ].map((item) => (
                                     <div key={item.label} className={`${cardClass} p-5 text-center`}>
                                         <div className="text-[11px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
-                                        <div className="text-3xl font-bold text-[#00D4FF] tabular-nums drop-shadow-[0_0_15px_rgba(0,212,255,0.6)]">
+                                        <div className="text-3xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums drop-shadow-[0_0_15px_rgba(0,212,255,0.6)]">
                                             {fmt(item.val)}
                                         </div>
                                     </div>
@@ -397,32 +403,32 @@ export default function StatusPage() {
                         {/* MODEL ACCURACY */}
                         <div className="mb-8">
                             {sectionHeader(Gauge, 'MODEL ACCURACY')}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                                 <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">BRIER (ML)</div>
-                                    <div className={`text-2xl font-bold tabular-nums ${brierColor(accuracy.wtd_avg_brier_ml)}`}>{fmtBrier(accuracy.wtd_avg_brier_ml)}</div>
+                                    <div className={`text-2xl font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_ml)}`}>{fmtBrier(accuracy.wtd_avg_brier_ml)}</div>
                                 </div>
                                 <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">BRIER (PROPS)</div>
-                                    <div className={`text-2xl font-bold tabular-nums ${brierColor(accuracy.wtd_avg_brier_props)}`}>{fmtBrier(accuracy.wtd_avg_brier_props)}</div>
+                                    <div className={`text-2xl font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_props)}`}>{fmtBrier(accuracy.wtd_avg_brier_props)}</div>
                                 </div>
                                 <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">GAMES EVAL</div>
-                                    <div className="text-2xl font-bold text-[#00D4FF] tabular-nums">{fmt(accuracy.total_games_evaluated)}</div>
+                                    <div className="text-2xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">{fmt(accuracy.total_games_evaluated)}</div>
                                 </div>
                                 <div className={`${cardClass} p-4 text-center`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.12em] mb-2">DAILY SAMPLES</div>
-                                    <div className="text-2xl font-bold text-[#00D4FF] tabular-nums">{fmt(accuracy.daily_samples)}</div>
+                                    <div className="text-2xl font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">{fmt(accuracy.daily_samples)}</div>
                                 </div>
                             </div>
-                            <div className="text-[10px] text-slate-500 tracking-wider mt-2 px-1">Brier score: lower is better (0.25 = coin flip). Weighted average over recent graded slates.</div>
+                            <div className="text-[10px] text-slate-500 tracking-wider mt-2 px-4 md:px-0">Brier score: lower is better (0.25 = coin flip). Weighted average over recent graded slates.</div>
                         </div>
 
                         {/* BET TIER DISTRIBUTION */}
                         {Object.keys(tierDist).length > 0 && (
                             <div className="mb-8">
                                 {sectionHeader(Layers, 'BET TIER DISTRIBUTION')}
-                                <div className={`${listPanelClass} p-4`}>
+                                <div className={`${cardClass} p-4 mx-4 md:mx-0`}>
                                     <div className="flex flex-wrap gap-3">
                                         {TIER_META.filter(t => t.key in tierDist).map((t) => (
                                             <div key={t.key} className="flex-1 min-w-[80px] text-center rounded-lg border bg-black/30 py-3 px-2" style={{ borderColor: t.color }}>
