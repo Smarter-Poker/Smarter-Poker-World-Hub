@@ -310,47 +310,6 @@ export default function StatusPage() {
       ? data.error || 'Failed to load status data.'
       : null;
 
-  const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return '';
-    const safeDate =
-      dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
-    const d = new Date(safeDate);
-    if (isNaN(d.getTime())) return String(dateString);
-    return d.toLocaleString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
-  const fmt = (n: number | string | null | undefined): string => {
-    if (n == null || n === '') return '\u2014';
-    const num = Number(n);
-    if (isNaN(num) || !isFinite(num)) return '\u2014';
-    return num.toLocaleString();
-  };
-
-  const brierColor = (val: number | string | null | undefined): string => {
-    const b = Number(val);
-    if (isNaN(b) || val == null || val === '') return 'text-slate-300';
-    if (b < 0.2) return 'text-[#00D4FF]';
-    if (b <= 0.25) return 'text-[#FFB020]';
-    return 'text-[#FF4444]';
-  };
-  const fmtBrier = (val: number | string | null | undefined): string => {
-    const b = Number(val);
-    return !isNaN(b) && val != null && val !== '' ? b.toFixed(3) : '-';
-  };
-
-  const alertLevelColor = (level: string | null | undefined): string => {
-    const l = String(level || '').toLowerCase();
-    if (l === 'critical' || l === 'error') return 'text-[#FF4444] border-[#FF4444]';
-    if (l === 'warning' || l === 'warn') return 'text-[#FFB020] border-[#FFB020]';
-    return 'text-[#00D4FF] border-[#00D4FF]';
-  };
 
   const seo = (
     <SEOHead
@@ -382,12 +341,13 @@ export default function StatusPage() {
             <p className="text-slate-300 text-[12px] relative z-10 mb-6 break-words">{apiError}</p>
             <button
               onClick={handleRefresh}
-              className="inline-flex items-center gap-2 bg-transparent border border-[#00D4FF] text-[#00D4FF] px-4 py-2 rounded text-xs font-bold tracking-widest uppercase transition-colors hover:bg-[#00D4FF]/10 relative z-10"
+              disabled={manualRefreshing && isValidating}
+              className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-xs font-bold tracking-widest uppercase touch-manipulation relative z-10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw
                 aria-hidden="true"
                 size={14}
-                className={isValidating ? 'animate-spin' : ''}
+                className={isValidating ? 'animate-spin neon-animated drop-shadow-[0_0_8px_#00D4FF]' : ''}
               />
               Retry
             </button>

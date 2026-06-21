@@ -45,7 +45,7 @@ async function handleRequest() {
         // Single hardened RPC returns the full status dashboard payload:
         // server_now, today, health, slate, accuracy, tier_dist, sources,
         // alerts, table_counts, pipeline_runs (newest-first), agg_as_of.
-        const { data, error: rpcError } = await mlbDb.rpc('get_status_dashboard').single();
+        const { data, error: rpcError } = await mlbDb.rpc('get_status_dashboard').maybeSingle();
 
         if (rpcError) throw rpcError;
 
