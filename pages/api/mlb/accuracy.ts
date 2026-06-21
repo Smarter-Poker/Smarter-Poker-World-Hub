@@ -1,5 +1,22 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
+interface MarketRow {
+  date: string;
+  market: string;
+  n: number;
+  brier: number | null;
+  avg_clv: number | null;
+  sum_unit_profit: number;
+  bet_count: number;
+}
+
+interface Kpi {
+  n: number;
+  clv: string;
+  roi: string;
+  brier: string;
+}
+
 async function edgeHandler(req: Request) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
@@ -11,139 +28,126 @@ async function edgeHandler(req: Request) {
   try {
     const mlbDb = getMlbSupabase();
 
-    let tableData: any[] = [];
-    let kpi = { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
+    let tableData: MarketRow[] = [];
+    let kpi: Kpi = { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
 
-    // Try getting view first
+    // PRIMARY: per-market-per-date rows from the summary view. We return the raw
+    // per-market breakdown so the client can filter by market category and aggregate
+    // by date. KPIs are computed portfolio-wide here:
+    //   - Brier / CLV: n-weighted, but ONLY over rows where the metric is present
+    //     (rows with a null metric must NOT inflate the denominator — that biases the
+    //     average toward zero; e.g. it understated Brier ~0.142 vs the true ~0.165).
+    //   - ROI: true portfolio return = total unit profit / total bets placed * 100.
     const { data: summaryData, error: sumErr } = await mlbDb
       .from('v_backtest_summary')
-      .select('*')
+      .select('date, market, n, brier, avg_clv, sum_unit_profit, bet_count')
       .order('date', { ascending: false });
 
     if (!sumErr && summaryData && summaryData.length > 0) {
-      // v_backtest_summary real columns: date, market, n, brier, avg_clv, roi,
-      // sum_unit_profit, bet_count. Aggregate per-date across markets. Brier/CLV are
-      // n-weighted (calibration over graded predictions); ROI is a TRUE portfolio return
-      // (total unit profit / total bets placed), NOT prediction-weighted — the latter
-      // understates it ~16x (~9.3k bets placed vs ~154k graded predictions).
-      const byDate: Record<
-        string,
-        { date: string; n: number; bets: number; profit: number; brierNum: number; clvNum: number }
-      > = {};
-      let totalN = 0,
-        totalBets = 0,
-        totalProfit = 0,
-        gBrierNum = 0,
-        gClvNum = 0;
+      let totalN = 0;
+      let brierNum = 0,
+        brierWeight = 0;
+      let clvNum = 0,
+        clvWeight = 0;
+      let totalProfit = 0,
+        totalBets = 0;
 
-      summaryData.forEach((row: any) => {
+      for (const row of summaryData as any[]) {
         const n = Number(row.n) || 0;
-        if (n <= 0) return;
-        totalN += n;
-        const bets = Number(row.bet_count) || 0;
+        if (n <= 0) continue;
+        const brier = row.brier != null ? Number(row.brier) : null;
+        const clv = row.avg_clv != null ? Number(row.avg_clv) : null;
         const profit = Number(row.sum_unit_profit) || 0;
-        totalBets += bets;
+        const bets = Number(row.bet_count) || 0;
+
+        tableData.push({
+          date: row.date,
+          market: String(row.market || 'unknown').toLowerCase(),
+          n,
+          brier,
+          avg_clv: clv,
+          sum_unit_profit: profit,
+          bet_count: bets,
+        });
+
+        totalN += n;
         totalProfit += profit;
-        const d = row.date;
-        if (!byDate[d]) byDate[d] = { date: d, n: 0, bets: 0, profit: 0, brierNum: 0, clvNum: 0 };
-        const g = byDate[d];
-        g.n += n;
-        g.bets += bets;
-        g.profit += profit;
-        if (row.brier != null) {
-          g.brierNum += Number(row.brier) * n;
-          gBrierNum += Number(row.brier) * n;
+        totalBets += bets;
+        if (brier != null) {
+          brierNum += brier * n;
+          brierWeight += n;
         }
-        if (row.avg_clv != null) {
-          g.clvNum += Number(row.avg_clv) * n;
-          gClvNum += Number(row.avg_clv) * n;
+        if (clv != null) {
+          clvNum += clv * n;
+          clvWeight += n;
         }
-      });
+      }
 
-      tableData = Object.values(byDate)
-        .map((g) => ({
-          date: g.date,
-          market: 'All', // aggregated across all markets for that date
-          n: g.n,
-          brier: g.n > 0 ? Number((g.brierNum / g.n).toFixed(4)) : null,
-          avg_clv: g.n > 0 ? Number((g.clvNum / g.n).toFixed(2)) : null,
-          roi: g.bets > 0 ? Number(((g.profit / g.bets) * 100).toFixed(2)) : null,
-        }))
-        .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-
-      kpi.n = totalN;
-      kpi.brier = totalN > 0 ? (gBrierNum / totalN).toFixed(3) : '0.000';
-      kpi.clv = totalN > 0 ? (gClvNum / totalN).toFixed(2) : '0.00';
-      kpi.roi = totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0';
+      kpi = {
+        n: totalN,
+        brier: brierWeight > 0 ? (brierNum / brierWeight).toFixed(3) : '0.000',
+        clv: clvWeight > 0 ? (clvNum / clvWeight).toFixed(2) : '0.00',
+        roi: totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0',
+      };
     } else {
-      // Fallback: manually aggregate sim_bets
+      // FALLBACK: aggregate raw sim_bets (only if the view is empty/unavailable).
+      // Each sim_bets row is one placed bet; unit_profit is already stake-normalized
+      // to units, so bet_count == row count keeps ROI math identical to the view.
+      if (sumErr) {
+        console.warn('[API/MLB/Accuracy] v_backtest_summary unavailable, falling back to sim_bets:', sumErr.message);
+      }
       const { count, error: countErr } = await mlbDb
         .from('sim_bets')
         .select('*', { count: 'exact', head: true });
 
-      if (!countErr && count !== null) {
-        let allMarketRows: any[] = [];
+      if (!countErr && count) {
         const limit = 1000;
-        const numPages = Math.ceil((count || 0) / limit);
+        const numPages = Math.ceil(count / limit);
+        let rows: any[] = [];
 
-        if (numPages > 0) {
-          for (let i = 0; i < numPages; i += 5) {
-            const promises: any[] = [];
-            for (let j = 0; j < 5 && i + j < numPages; j++) {
-              const offset = (i + j) * limit;
-              promises.push(
-                mlbDb
-                  .from('sim_bets')
-                  .select('as_of_ts, market, pnl, result')
-                  .range(offset, offset + limit - 1)
-              );
-            }
-            const results = (await Promise.all(promises)) as any[];
-            for (const r of results) {
-              if (r.error) throw r.error;
-              if (r.data) allMarketRows = allMarketRows.concat(r.data);
-            }
+        for (let i = 0; i < numPages; i += 5) {
+          const promises: any[] = [];
+          for (let j = 0; j < 5 && i + j < numPages; j++) {
+            const offset = (i + j) * limit;
+            promises.push(
+              mlbDb.from('sim_bets').select('as_of_ts, market, unit_profit').range(offset, offset + limit - 1)
+            );
+          }
+          const results = (await Promise.all(promises)) as any[];
+          for (const r of results) {
+            if (r.error) throw r.error;
+            if (r.data) rows = rows.concat(r.data);
           }
         }
 
-        // Aggregate by date and market
-        const groups: Record<string, any> = {};
-        let totalN = 0;
-        let totalProfit = 0;
+        const groups: Record<string, MarketRow> = {};
+        let totalProfit = 0,
+          totalBets = 0;
 
-        for (const row of allMarketRows) {
-          if (row.pnl === null) continue;
-
-          const date = row.as_of_ts ? row.as_of_ts.split('T')[0] : 'Unknown';
-          const market = row.market || 'Unknown';
+        for (const row of rows) {
+          if (row.unit_profit == null) continue;
+          const date = row.as_of_ts ? String(row.as_of_ts).split('T')[0] : 'unknown';
+          const market = String(row.market || 'unknown').toLowerCase();
           const key = `${date}_${market}`;
-
           if (!groups[key]) {
-            groups[key] = { date, market, n: 0, profitSum: 0 };
+            groups[key] = { date, market, n: 0, brier: null, avg_clv: null, sum_unit_profit: 0, bet_count: 0 };
           }
-
-          groups[key].n++;
-          totalN++;
-
-          groups[key].profitSum += Number(row.pnl || 0);
-          totalProfit += Number(row.pnl || 0);
+          const g = groups[key];
+          const profit = Number(row.unit_profit) || 0;
+          g.n += 1;
+          g.bet_count += 1;
+          g.sum_unit_profit += profit;
+          totalProfit += profit;
+          totalBets += 1;
         }
 
-        tableData = Object.values(groups)
-          .map((g) => ({
-            date: g.date,
-            market: g.market,
-            n: g.n,
-            brier: null,
-            avg_clv: null,
-            roi: g.n > 0 ? (g.profitSum / g.n) * 100 : null,
-          }))
-          .sort((a, b) => b.date.localeCompare(a.date));
-
-        kpi.n = totalN;
-        kpi.clv = '0.00';
-        kpi.roi = totalN > 0 ? ((totalProfit / totalN) * 100).toFixed(1) : '0.0';
-        kpi.brier = '0.000';
+        tableData = Object.values(groups).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        kpi = {
+          n: totalBets,
+          clv: '0.00',
+          brier: '0.000',
+          roi: totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0',
+        };
       }
     }
 

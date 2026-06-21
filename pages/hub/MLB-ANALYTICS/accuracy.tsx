@@ -33,17 +33,49 @@ export default function AccuracyPage() {
     const kpi = data?.kpi || { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
     const [filter, setFilter] = useState('All');
 
-    // Filter table
+    // Map a raw market to its display category (matches the filter buttons).
+    const categoryOf = (market: string) => {
+        const m = (market || '').toLowerCase();
+        if (m === 'h2h' || m === 'f5_moneyline') return 'Moneyline';
+        if (m === 'total' || m === 'team_total') return 'Totals';
+        if (m === 'run_line') return 'Run Line';
+        return 'Props';
+    };
+
+    // The API returns per-market-per-date rows. Filter by the active market category,
+    // then aggregate back up to one row per date so the table stays a clean daily time
+    // series. Brier/CLV are n-weighted over rows where the metric exists; ROI is total
+    // unit profit / total bets placed.
     const filteredTable = useMemo(() => {
-        return tableData.filter((row: any) => {
-            if (filter === 'All') return true;
-            const type = row.market?.toLowerCase() || '';
-            if (filter === 'Moneyline' && (type === 'h2h' || type === 'f5_moneyline')) return true;
-            if (filter === 'Totals' && (type === 'total' || type === 'team_total')) return true;
-            if (filter === 'Run Line' && type === 'run_line') return true;
-            if (filter === 'Props' && !['h2h', 'f5_moneyline', 'total', 'team_total', 'run_line'].includes(type)) return true;
-            return false;
-        });
+        const rows = (tableData as any[]).filter(
+            (r) => filter === 'All' || categoryOf(r.market) === filter
+        );
+        const byDate: Record<string, any> = {};
+        for (const r of rows) {
+            const n = Number(r.n) || 0;
+            if (n <= 0) continue;
+            const d = r.date;
+            if (!byDate[d]) {
+                byDate[d] = { date: d, n: 0, brierNum: 0, brierW: 0, clvNum: 0, clvW: 0, profit: 0, bets: 0 };
+            }
+            const g = byDate[d];
+            g.n += n;
+            g.profit += Number(r.sum_unit_profit) || 0;
+            g.bets += Number(r.bet_count) || 0;
+            if (r.brier != null) { g.brierNum += Number(r.brier) * n; g.brierW += n; }
+            if (r.avg_clv != null) { g.clvNum += Number(r.avg_clv) * n; g.clvW += n; }
+        }
+        const label = filter === 'All' ? 'All' : filter;
+        return Object.values(byDate)
+            .map((g: any) => ({
+                date: g.date,
+                market: label,
+                n: g.n,
+                brier: g.brierW > 0 ? g.brierNum / g.brierW : null,
+                avg_clv: g.clvW > 0 ? g.clvNum / g.clvW : null,
+                roi: g.bets > 0 ? (g.profit / g.bets) * 100 : null,
+            }))
+            .sort((a, b) => String(b.date).localeCompare(String(a.date)));
     }, [tableData, filter]);
 
     const isGatePassed = kpi.n >= 300 && Number(kpi.roi) > -3.0 && Number(kpi.brier) < 0.23;
@@ -73,7 +105,7 @@ export default function AccuracyPage() {
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
            <SEOHead 
                title="MLB Prediction Accuracy — CLV, Brier Score & ROI | Smarter.Poker" 
-               description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the 2025 season."
+               description="Track the accuracy of Smarter.Poker's MLB prediction model. Review CLV-first scoring, Brier scores, win rate by market, and ROI across moneyline, totals, run line, and player prop bets for the current MLB season."
                 canonical="/hub/MLB-ANALYTICS/accuracy" 
            
                 ogImage="/images/mlb/og.png"
@@ -210,7 +242,11 @@ export default function AccuracyPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredTable.map((row: any, i: number) => (
+                                    filteredTable.map((row: any, i: number) => {
+                                        const roiNum = row.roi != null ? Number(row.roi) : null;
+                                        const roiColor = roiNum == null ? 'text-white' : (roiNum > 0 ? 'text-[#00D4FF]' : (roiNum < 0 ? 'text-[#FF4444]' : 'text-white'));
+                                        const roiShadow = roiNum == null ? 'none' : (roiNum > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (roiNum < 0 ? '0 0 5px rgba(255,68,68,0.5)' : 'none'));
+                                        return (
                                         <tr key={`${row.date}-${row.market}-${i}`} className="border-b border-[#1a2332] last:border-b-0 hover:bg-[#1a2332] transition-colors">
                                             <td className="px-4 py-3.5 font-bold text-slate-300">{row.date}</td>
                                             <td className="px-4 py-3.5">
@@ -225,11 +261,12 @@ export default function AccuracyPage() {
                                             <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
                                                 {row.avg_clv !== null ? Number(row.avg_clv).toFixed(2) : '—'}
                                             </td>
-                                            <td className={`px-4 py-3.5 text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : (Number(row.roi) < 0 ? 'text-[#FF4444]' : 'text-white')}`} style={{ textShadow: Number(row.roi) > 0 ? '0 0 5px rgba(0,212,255,0.5)' : (Number(row.roi) < 0 ? '0 0 5px rgba(255,68,68,0.5)' : 'none') }}>
-                                                {row.roi !== null ? `${Number(row.roi) > 0 ? '+' : ''}${Number(row.roi).toFixed(1)}%` : '—'}
+                                            <td className={`px-4 py-3.5 text-right font-extrabold ${roiColor}`} style={{ textShadow: roiShadow }}>
+                                                {roiNum != null ? `${roiNum > 0 ? '+' : ''}${roiNum.toFixed(1)}%` : '—'}
                                             </td>
                                         </tr>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
