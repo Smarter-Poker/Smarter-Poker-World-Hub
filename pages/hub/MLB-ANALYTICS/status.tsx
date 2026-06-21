@@ -181,13 +181,22 @@ const TIER_META: { key: string; color: string }[] = [
 const TimeAgo = ({
   dateString,
   serverNow,
-  fallback = '',
+  fallback = '—',
 }: {
-  dateString: string | null | undefined;
+  dateString?: string | null;
   serverNow?: string | null;
   fallback?: string;
 }) => {
   const [nowMs, setNowMs] = useState<number | null>(null);
+  const [diff, setDiff] = useState(0);
+
+  useEffect(() => {
+    if (serverNow) {
+      const serverClientDiff = new Date(serverNow).getTime() - Date.now();
+      setDiff(Number.isNaN(serverClientDiff) ? 0 : serverClientDiff);
+    }
+  }, [serverNow]);
+
   useEffect(() => {
     setNowMs(Date.now());
     const id = setInterval(() => setNowMs(Date.now()), 15000);
@@ -197,12 +206,10 @@ const TimeAgo = ({
   if (nowMs === null) return <>{fallback}</>;
 
   if (!dateString) return <>{fallback}</>;
-  const safeDate =
-    dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+  const isoStr = dateString.trim().replace(' ', 'T');
+  const safeDate = isoStr.endsWith('Z') || isoStr.includes('+') ? isoStr : isoStr + 'Z';
   const past = new Date(safeDate);
   if (isNaN(past.getTime())) return <>{fallback}</>;
-  const serverClientDiff = serverNow ? new Date(serverNow).getTime() - Date.now() : 0;
-  const diff = Number.isNaN(serverClientDiff) ? 0 : serverClientDiff;
   const effectiveNow = nowMs + diff;
   const diffMs = Math.max(0, effectiveNow - past.getTime());
   const s = Math.round(diffMs / 1000);
@@ -218,20 +225,20 @@ const TimeAgo = ({
 
 
 const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return '';
-  const safeDate =
-      dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+  if (!dateString) return '';
+  const isoStr = dateString.trim().replace(' ', 'T');
+  const safeDate = isoStr.endsWith('Z') || isoStr.includes('+') ? isoStr : isoStr + 'Z';
   const d = new Date(safeDate);
-    if (isNaN(d.getTime())) return String(dateString);
-    return d.toLocaleString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+  if (isNaN(d.getTime())) return String(dateString);
+  return d.toLocaleString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
 
 const fmt = (n: number | string | null | undefined): string => {
     if (n == null || n === '') return '—';
@@ -510,14 +517,12 @@ export default function StatusPage() {
                   {
                     label: 'UNMODELED GAMES',
                     val: fmt(health.unmodeled_games),
-                    warn: typeof health.unmodeled_games === 'number' && health.unmodeled_games > 0,
+                    warn: Number(health.unmodeled_games) > 0,
                   },
                   {
                     label: 'RUNLINE CONFLICTS',
                     val: fmt(health.incoherent_runlines_with_bet),
-                    warn:
-                      typeof health.incoherent_runlines_with_bet === 'number' &&
-                      health.incoherent_runlines_with_bet > 0,
+                    warn: Number(health.incoherent_runlines_with_bet) > 0,
                   },
                 ].map((item) => (
                   <MetalFrame key={item.label} className="p-4">

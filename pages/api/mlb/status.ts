@@ -1,5 +1,4 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
-import { NextApiRequest, NextApiResponse } from 'next';
 
 // Canonical pipeline stage order (engine run sequence). Used to render runs in a
 // sensible order regardless of the order rows come back from the database.
@@ -86,7 +85,7 @@ async function handleRequest() {
             const s = String(latestRuns[stage]?.status || '').toLowerCase();
             // 'partial' counts as ok — engine writes it for incremental loads.
             if (s === 'success' || s === 'ok' || s === 'done' || s === 'partial') okCount += 1;
-            else if (s === 'error' || s === 'failed') errorCount += 1;
+            else if (['error', 'failed', 'timeout', 'critical'].includes(s)) errorCount += 1;
         }
         const pipelineHasError = errorCount > 0;
 
