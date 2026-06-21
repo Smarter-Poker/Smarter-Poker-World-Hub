@@ -107,6 +107,10 @@ async function edgeHandler(req: Request) {
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
       .not('best_price', 'is', null)
+      // PostgREST caps the result (~1000 rows) below some slates' priced count,
+      // so order by model edge first — the highest-value props are always kept
+      // within the cap instead of an arbitrary slice — before client Bet Score ranking.
+      .order('edge_pts', { ascending: false, nullsFirst: false })
       .limit(2000);
 
     if (propsRes.error) {
