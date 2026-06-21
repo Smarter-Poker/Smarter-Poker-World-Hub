@@ -9,9 +9,6 @@ import {
   Search,
   X,
   Zap,
-  TrendingUp,
-  Clock,
-  Activity,
   AlertTriangle,
 } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -54,6 +51,15 @@ type SortKey =
   | 'games_per_hr'
   | 'full_name';
 type SortDir = 'asc' | 'desc';
+
+const SORT_LABELS: Record<SortKey, string> = {
+  due_score: 'Raw Due',
+  matchup_due_score: 'Matchup Due',
+  hr: 'HR',
+  games_since_hr: 'Since HR',
+  games_per_hr: 'Games/HR',
+  full_name: 'Player',
+};
 
 const STATUS_CONFIG = {
   OVERDUE: {
@@ -104,7 +110,7 @@ function DueGauge({ score }: { score: number }) {
   const pct = Math.min(score / 2, 1); // cap at 200% for display
   const color = score >= 1.25 ? '#FF4444' : score >= 0.75 ? '#FFB800' : '#00D4FF';
   return (
-    <div className="w-full h-1.5 bg-[#1a2332] rounded-full overflow-hidden">
+    <div className="w-full h-1.5 bg-[#1a2332] rounded-full overflow-hidden" aria-hidden="true">
       <div
         className="h-full rounded-full transition-all duration-700"
         style={{
@@ -128,18 +134,21 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
 
 export default function HRTrackerPage() {
   const router = useRouter();
+  const season = new Date().getFullYear();
   const [sortKey, setSortKey] = useState<SortKey>('due_score');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   const { data, error, isLoading, mutate } = useSWR('/api/mlb/hr-tracker', fetcher, {
-    refreshInterval: 1000 * 60 * 60, // refresh every hour
+    refreshInterval: 1000 * 60 * 60, // revalidate hourly (cache itself refreshes daily)
     revalidateOnFocus: false,
+    onError: (err) => logError('[hr-tracker] SWR fetch failed', err),
   });
 
   const players: HRPlayer[] = data?.players || [];
   const updatedAt: string = data?.updatedAt || '';
+  const isStale: boolean = data?.stale === true;
 
   const handleSort = useCallback(
     (col: SortKey) => {
@@ -151,6 +160,11 @@ export default function HRTrackerPage() {
       }
     },
     [sortKey]
+  );
+
+  const goToPlayer = useCallback(
+    (playerId: number) => router.push(`/hub/MLB-ANALYTICS/players/${playerId}`),
+    [router]
   );
 
   const filtered = useMemo(() => {
@@ -227,24 +241,32 @@ export default function HRTrackerPage() {
     [players]
   );
 
-  const colHeader = (col: SortKey, label: string, align: string = 'text-left') => (
-    <th
-      className={`${align} py-3 px-3 text-[10px] font-extrabold tracking-widest uppercase text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none whitespace-nowrap`}
-      style={{ fontFamily: '"Rajdhani", sans-serif' }}
-      onClick={() => handleSort(col)}
-    >
-      <span className="inline-flex items-center">
-        {label}
-        <SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
-      </span>
-    </th>
-  );
+  const colHeader = (col: SortKey, label: string, align: string = 'text-left') => {
+    const active = sortKey === col;
+    return (
+      <th
+        className={`${align} py-3 px-3 whitespace-nowrap`}
+        aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
+        style={{ fontFamily: '"Rajdhani", sans-serif' }}
+      >
+        <button
+          type="button"
+          onClick={() => handleSort(col)}
+          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[10px] font-extrabold tracking-widest uppercase text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF]"
+          aria-label={`Sort by ${label}`}
+        >
+          {label}
+          <SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
+        </button>
+      </th>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
       <SEOHead
         title="MLB Home Run Tracker — Due Scores & Matchup Analysis | Smarter.Poker"
-        description="Track which MLB sluggers are statistically due for a home run. Daily-updated due scores, last HR dates, games since last HR, opponent pitcher HR/9, and park factor adjustments for the 2025 MLB season."
+        description={`Track which MLB sluggers are statistically due for a home run. Daily-updated due scores, last HR dates, games since last HR, opponent pitcher HR/9, and park factor adjustments for the ${season} MLB season.`}
         canonical="/hub/MLB-ANALYTICS/hr-tracker"
         jsonLd={{
           '@type': 'Dataset',
@@ -253,7 +275,7 @@ export default function HRTrackerPage() {
             'Statistical tracker of MLB hitters most due for a home run based on games since last HR, HR/G rate, matchup, and park factors.',
           url: 'https://smarter.poker/hub/MLB-ANALYTICS/hr-tracker',
           creator: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
-          temporalCoverage: '2025',
+          temporalCoverage: String(season),
           keywords: 'MLB home run tracker, HR due score, baseball home run prediction',
         }}
         ogImage="/images/mlb/og.png"
@@ -287,10 +309,19 @@ export default function HRTrackerPage() {
               >
                 HR Tracker
               </h1>
-              <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
-                {updatedAt
-                  ? `Updated ${new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Loading...'}
+              <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 flex-wrap">
+                <span>
+                  {isLoading
+                    ? 'Loading...'
+                    : updatedAt
+                      ? `Updated ${new Date(updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+                      : '—'}
+                </span>
+                {isStale && !isLoading && (
+                  <span className="inline-flex items-center gap-1 text-[#FFB800] border border-[#FFB800]/50 bg-[#FFB800]/10 px-1.5 py-0.5 rounded">
+                    <AlertTriangle size={10} /> Stale
+                  </span>
+                )}
               </p>
             </div>
             <button
@@ -340,19 +371,50 @@ export default function HRTrackerPage() {
 
         {/* Error State */}
         {!isLoading && error && (
-          <div className="bg-gradient-to-b from-[#00D4FF]/10 to-[#0d1117] border-[2px] border-[#00D4FF]/50 rounded-xl p-6 flex items-center gap-4">
-            <AlertTriangle className="text-[#00D4FF] w-8 h-8 shrink-0" />
+          <div className="bg-gradient-to-b from-[#FF4444]/10 to-[#0d1117] border-[2px] border-[#FF4444]/50 rounded-xl p-6 flex items-center gap-4">
+            <AlertTriangle className="text-[#FF4444] w-8 h-8 shrink-0" />
             <div>
               <div
-                className="text-[#00D4FF] font-extrabold uppercase tracking-widest text-sm"
+                className="text-[#FF4444] font-extrabold uppercase tracking-widest text-sm"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 Failed To Load HR Data
               </div>
-              <div className="text-[#00D4FF]/70 text-xs font-bold mt-1">
-                MLB Stats API may be unavailable. Try refreshing.
+              <div className="text-[#FF4444]/70 text-xs font-bold mt-1">
+                The HR cache is temporarily unavailable. Try refreshing in a moment.
               </div>
+              <button
+                onClick={() => mutate()}
+                className="mt-3 text-[10px] font-extrabold text-[#FF4444] border border-[#FF4444]/60 px-4 py-2 rounded-md tracking-widest uppercase hover:bg-[#FF4444]/10 transition-colors"
+                style={{ fontFamily: '"Rajdhani", sans-serif' }}
+              >
+                Retry
+              </button>
             </div>
+          </div>
+        )}
+
+        {/* Empty State — request succeeded but cache holds no rows (off-season or pending first refresh) */}
+        {!isLoading && !error && players.length === 0 && (
+          <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center">
+            <Zap size={32} className="text-[#3d4f5f] mx-auto mb-3" />
+            <div
+              className="text-slate-300 font-extrabold uppercase tracking-widest text-sm"
+              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+            >
+              No HR Data Yet
+            </div>
+            <div className="text-slate-500 text-xs font-bold mt-2 max-w-md mx-auto">
+              The home-run cache is refreshed daily during the MLB season. If the season is
+              underway, check back shortly or tap Refresh.
+            </div>
+            <button
+              onClick={() => mutate()}
+              className="mt-4 text-[10px] font-extrabold text-[#00D4FF] border border-[#00D4FF]/60 px-4 py-2 rounded-md tracking-widest uppercase hover:bg-[#00D4FF]/10 transition-colors"
+              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+            >
+              Refresh
+            </button>
           </div>
         )}
 
@@ -389,6 +451,8 @@ export default function HRTrackerPage() {
                         src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${p.player_id}/headshot/67/current`}
                         alt={p.full_name}
                         loading="lazy"
+                        width={56}
+                        height={56}
                         className="w-14 h-14 rounded-full object-cover border-[2px] border-[#3d4f5f] group-hover:border-current mb-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/default-avatar.png';
@@ -439,6 +503,7 @@ export default function HRTrackerPage() {
                 </div>
                 <input
                   type="text"
+                  aria-label="Search player or team"
                   placeholder="SEARCH PLAYER OR TEAM..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -464,6 +529,7 @@ export default function HRTrackerPage() {
                     <button
                       key={s}
                       onClick={() => setStatusFilter(s)}
+                      aria-pressed={statusFilter === s}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-extrabold text-[11px] tracking-widest uppercase transition-all border-[2px] whitespace-nowrap ${
                         statusFilter === s
                           ? cfg
@@ -486,7 +552,7 @@ export default function HRTrackerPage() {
               className="text-[10px] text-slate-600 font-extrabold tracking-widest uppercase mb-3"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {filtered.length} Players · Sorted By {sortKey.replace(/_/g, ' ')}{' '}
+              {filtered.length} Players · Sorted By {SORT_LABELS[sortKey]}{' '}
               {sortDir === 'desc' ? '↓' : '↑'}
             </div>
 
@@ -520,11 +586,21 @@ export default function HRTrackerPage() {
                   <tbody className="divide-y divide-[#3d4f5f]/50">
                     {filtered.map((p) => {
                       const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.RECENT;
+                      const hasRate = p.games_per_hr != null && p.games_per_hr > 0;
                       return (
                         <tr
                           key={p.player_id}
-                          className="hover:bg-[#1a2332]/60 transition-colors cursor-pointer group"
-                          onClick={() => router.push(`/hub/MLB-ANALYTICS/players/${p.player_id}`)}
+                          role="link"
+                          tabIndex={0}
+                          aria-label={`${p.full_name}, ${p.team_name}. View player details`}
+                          className="hover:bg-[#1a2332]/60 transition-colors cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#00D4FF]/60"
+                          onClick={() => goToPlayer(p.player_id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              goToPlayer(p.player_id);
+                            }
+                          }}
                         >
                           {/* Player */}
                           <td className="py-3 px-3">
@@ -535,6 +611,8 @@ export default function HRTrackerPage() {
                                   src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${p.player_id}/headshot/67/current`}
                                   alt={p.full_name}
                                   loading="lazy"
+                                  width={36}
+                                  height={36}
                                   className="w-9 h-9 rounded-full object-cover border border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all"
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).src = '/default-avatar.png';
@@ -545,7 +623,10 @@ export default function HRTrackerPage() {
                                   <img
                                     src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`}
                                     alt=""
-                                    className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0d1117] rounded-full p-0.5" loading="lazy"
+                                    width={16}
+                                    height={16}
+                                    className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0d1117] rounded-full p-0.5"
+                                    loading="lazy"
                                   />
                                 ) : null}
                               </div>
@@ -590,19 +671,25 @@ export default function HRTrackerPage() {
                               className="text-[#00D4FF] font-extrabold text-sm"
                               style={{ fontFamily: '"Rajdhani", sans-serif' }}
                             >
-                              {p.games_per_hr > 0 && p.games_per_hr < 999
-                                ? `1 per ${p.games_per_hr}g`
-                                : '—'}
+                              {hasRate ? `1 per ${p.games_per_hr}g` : '—'}
                             </span>
                           </td>
 
                           {/* Games Since HR */}
                           <td className="py-3 px-3 text-right">
                             <span
-                              className={`font-extrabold text-sm ${p.games_since_hr != null ? (p.games_since_hr > p.games_per_hr * 1.25 ? 'text-[#FF4444]' : p.games_since_hr > p.games_per_hr * 0.75 ? 'text-[#FFB800]' : 'text-slate-400') : 'text-slate-600'}`}
+                              className={`font-extrabold text-sm ${
+                                p.games_since_hr != null && hasRate
+                                  ? p.games_since_hr > p.games_per_hr * 1.25
+                                    ? 'text-[#FF4444]'
+                                    : p.games_since_hr > p.games_per_hr * 0.75
+                                      ? 'text-[#FFB800]'
+                                      : 'text-slate-400'
+                                  : 'text-slate-600'
+                              }`}
                               style={{ fontFamily: '"Rajdhani", sans-serif' }}
                             >
-                              {p.games_since_hr != null ? `~${p.games_since_hr}g` : '—'}
+                              {p.games_since_hr != null ? `${p.games_since_hr}g` : '—'}
                             </span>
                           </td>
 
@@ -611,11 +698,15 @@ export default function HRTrackerPage() {
                             {p.opp_pitcher_name ? (
                               <div className="flex flex-col items-end">
                                 <span className="text-white font-bold text-sm truncate max-w-[120px]">
-                                  vs {p.opp_pitcher_name.split(' ').pop()}
+                                  vs{' '}
+                                  {p.opp_pitcher_name.split(' ').filter(Boolean).pop() ||
+                                    p.opp_pitcher_name}
                                 </span>
-                                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">
-                                  {(p.opp_pitcher_hr9 ?? 1.15).toFixed(2)} HR/9
-                                </span>
+                                {p.opp_pitcher_hr9 != null && (
+                                  <span className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">
+                                    {p.opp_pitcher_hr9.toFixed(2)} HR/9
+                                  </span>
+                                )}
                               </div>
                             ) : (
                               <span className="text-slate-600 text-sm">—</span>
@@ -674,6 +765,9 @@ export default function HRTrackerPage() {
                   >
                     No Players Found
                   </div>
+                  <div className="text-slate-600 text-xs font-bold mt-1">
+                    Try a different search or status filter.
+                  </div>
                 </div>
               )}
             </div>
@@ -704,6 +798,10 @@ export default function HRTrackerPage() {
                     <span className="text-slate-300 font-extrabold">Due Score</span> = Games Since
                     Last HR ÷ (Games Played ÷ Total HR)
                   </div>
+                  <div>
+                    <span className="text-slate-300 font-extrabold">Matchup Due</span> = Raw Due
+                    adjusted for opponent pitcher HR/9 and ballpark
+                  </div>
                 </div>
               </div>
               <div>
@@ -714,10 +812,10 @@ export default function HRTrackerPage() {
                   Data Source
                 </div>
                 <div className="text-[11px] text-slate-400 font-bold">
-                  MLB Stats API — Live 2025 season stats.
+                  MLB Stats API — Live {season} season stats.
                   <br />
                   Game log scanned for last HR date. <br />
-                  Refreshes automatically every hour.
+                  Cache refreshes daily; page checks hourly.
                 </div>
               </div>
             </div>

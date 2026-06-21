@@ -222,6 +222,7 @@ ALL_CRONS = [
     # ── MLB Analytics Engine (SCRIPT_JOBS) ────────────────────────────────────
     ('/api/cron/mlb-analytics-daily',       dict(hour=8, minute=0)),   # Daily 8am UTC (4am ET) — Full MLB data refresh & predict
     ('/api/cron/mlb-analytics-intraday',    dict(hour='15-23,0-3', minute='0,15,30,45')), # Every 15 mins intraday (10am CDT - 10:59pm CDT)
+    ('/api/cron/mlb-hr-cache-refresh',      dict(hour=11, minute=0)),  # Daily 11:00 UTC (7am ET) — refresh HR due-score cache for /hub/MLB-ANALYTICS/hr-tracker
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
