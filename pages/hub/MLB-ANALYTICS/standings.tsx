@@ -8,7 +8,10 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { TeamGradeBadge } from '../../../src/components/mlb/TeamGradeBadge';
 import { TIER_STYLE, Tier } from '../../../src/lib/betScore';
+import { Trophy, Activity, Zap } from 'lucide-react';
 import { logError } from '@/utils/logger';
+import MetalFrame from '../../../src/components/ui/MetalFrame';
+import SectionHeader from '../../../src/components/ui/SectionHeader';
 
 type PlayoffStatus = 'div' | 'wc' | null;
 
@@ -233,26 +236,20 @@ function TeamRow({
 
 function DivisionCard({ division, teams, playoffOf }: { division: string; teams: TeamStanding[]; playoffOf: (id: number) => PlayoffStatus }) {
   return (
-    <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40 flex items-center gap-2">
-        <span className="text-[#00D4FF] font-bold">|</span>
-        <h3
-          className="text-sm font-black text-white uppercase tracking-wider"
-          style={{ fontFamily: '"Rajdhani", sans-serif' }}
-        >
-          {division}
-        </h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <HeaderRow />
-          <tbody className="divide-y divide-slate-800/40">
-            {teams.map((team, i) => (
-              <TeamRow key={team.team_id} team={team} rank={i + 1} leader={i === 0} playoff={playoffOf(team.team_id)} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="mb-4">
+      <SectionHeader icon={Trophy} label={division} />
+      <MetalFrame className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <HeaderRow />
+            <tbody className="divide-y divide-slate-800/40">
+              {teams.map((team, i) => (
+                <TeamRow key={team.team_id} team={team} rank={i + 1} leader={i === 0} playoff={playoffOf(team.team_id)} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </MetalFrame>
     </div>
   );
 }
@@ -318,66 +315,60 @@ function WildCardLeagueCard({
   race: { team: TeamStanding; gbText: string; inWC: boolean }[];
 }) {
   return (
-    <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40 flex items-center gap-2">
-        <span className="text-[#00D4FF] font-bold">|</span>
-        <h3
-          className="text-sm font-black text-white uppercase tracking-wider"
-          style={{ fontFamily: '"Rajdhani", sans-serif' }}
-        >
-          {league === 'AL' ? 'American League' : 'National League'} — Playoff Picture
-        </h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/60">
-              <th className="py-2 pl-3 pr-1 text-left w-12">Seed</th>
-              <th className="py-2 px-2 text-left">Team</th>
-              <th className="py-2 px-2 text-center w-9">W</th>
-              <th className="py-2 px-2 text-center w-9">L</th>
-              <th className="py-2 px-2 text-center w-12">PCT</th>
-              <th className="py-2 px-2 text-center w-14">GB/+</th>
-              <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">STRK</th>
-              <th className="py-2 px-2 text-center w-14 hidden md:table-cell">DIFF</th>
-              <th className="py-2 px-2 pr-3 text-right">Grade</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/40">
-            {leaders.map((t, i) => (
-              <WildCardRow
-                key={t.team_id}
-                team={t}
-                label={`DIV ${i + 1}`}
-                labelClass="text-[#00D4FF]"
-                gbText="-"
-                inLine
-              />
-            ))}
-            {race.map((r, i) => (
-              <React.Fragment key={r.team.team_id}>
+    <div className="mb-4">
+      <SectionHeader icon={Trophy} label={`${league === 'AL' ? 'American League' : 'National League'} — Playoff Picture`} />
+      <MetalFrame className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/60">
+                <th className="py-2 pl-3 pr-1 text-left w-12">Seed</th>
+                <th className="py-2 px-2 text-left">Team</th>
+                <th className="py-2 px-2 text-center w-9">W</th>
+                <th className="py-2 px-2 text-center w-9">L</th>
+                <th className="py-2 px-2 text-center w-12">PCT</th>
+                <th className="py-2 px-2 text-center w-14">GB/+</th>
+                <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">STRK</th>
+                <th className="py-2 px-2 text-center w-14 hidden md:table-cell">DIFF</th>
+                <th className="py-2 px-2 pr-3 text-right">Grade</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/40">
+              {leaders.map((t, i) => (
                 <WildCardRow
-                  team={r.team}
-                  label={r.inWC ? `WC${i + 1}` : 'OUT'}
-                  labelClass={r.inWC ? 'text-emerald-400' : 'text-slate-500'}
-                  gbText={r.gbText}
-                  inLine={r.inWC}
+                  key={t.team_id}
+                  team={t}
+                  label={`DIV ${i + 1}`}
+                  labelClass="text-[#00D4FF]"
+                  gbText="-"
+                  inLine
                 />
-                {i === 2 && (
-                  <tr aria-hidden="true">
-                    <td colSpan={9} className="p-0">
-                      <div className="h-[2px] bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent" />
-                      <div className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-500/80 bg-emerald-500/[0.03]">
-                        Wild Card cut line
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              ))}
+              {race.map((r, i) => (
+                <React.Fragment key={r.team.team_id}>
+                  <WildCardRow
+                    team={r.team}
+                    label={r.inWC ? `WC${i + 1}` : 'OUT'}
+                    labelClass={r.inWC ? 'text-emerald-400' : 'text-slate-500'}
+                    gbText={r.gbText}
+                    inLine={r.inWC}
+                  />
+                  {i === 2 && (
+                    <tr aria-hidden="true">
+                      <td colSpan={9} className="p-0">
+                        <div className="h-[2px] bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent" />
+                        <div className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-500/80 bg-emerald-500/[0.03]">
+                          Wild Card cut line
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </MetalFrame>
     </div>
   );
 }
@@ -613,33 +604,27 @@ export default function StandingsPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40 flex items-center gap-2">
-              <span className="text-[#00D4FF] font-bold">|</span>
-              <h3
-                className="text-sm font-black text-white uppercase tracking-wider"
-                style={{ fontFamily: '"Rajdhani", sans-serif' }}
-              >
-                Power Rankings — All 30
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <HeaderRow showDivision />
-                <tbody className="divide-y divide-slate-800/40">
-                  {powerRanked.map((team, i) => (
-                    <TeamRow
-                      key={team.team_id}
-                      team={team}
-                      rank={i + 1}
-                      leader={i === 0}
-                      showDivision
-                      playoff={playoffOf(team.team_id)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="mb-4">
+            <SectionHeader icon={Activity} label="Power Rankings — All 30" />
+            <MetalFrame className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <HeaderRow showDivision />
+                  <tbody className="divide-y divide-slate-800/40">
+                    {powerRanked.map((team, i) => (
+                      <TeamRow
+                        key={team.team_id}
+                        team={team}
+                        rank={i + 1}
+                        leader={i === 0}
+                        showDivision
+                        playoff={playoffOf(team.team_id)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </MetalFrame>
           </div>
         )}
 
