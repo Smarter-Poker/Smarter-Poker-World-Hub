@@ -138,6 +138,30 @@ const formatWinPct = (wc: any) => {
   return n.toFixed(1) + '%';
 };
 
+const selectionLabel = (selection: string | null, matchup?: string): string => {
+  if (!selection) return '—';
+  const s = selection.toLowerCase();
+  if (s === 'home' || s.startsWith('home_')) {
+    let teamName = 'HOME';
+    if (matchup) {
+      const parts = matchup.split(' @ ');
+      if (parts.length === 2) teamName = parts[1];
+    }
+    return teamName.toUpperCase();
+  }
+  if (s === 'away' || s.startsWith('away_')) {
+    let teamName = 'AWAY';
+    if (matchup) {
+      const parts = matchup.split(' @ ');
+      if (parts.length === 2) teamName = parts[0];
+    }
+    return teamName.toUpperCase();
+  }
+  if (s.startsWith('over')) return `OVER ${s.replace(/^over_?/, '')}`.trim();
+  if (s.startsWith('under')) return `UNDER ${s.replace(/^under_?/, '')}`.trim();
+  return selection.replace(/_/g, ' ').toUpperCase();
+};
+
 // Canonical tier palette — identical five tiers/colors to src/lib/betScore.ts (TIER_STYLE)
 // and the props page: ELITE cyan, STRONG emerald, LEAN sky, THIN amber, PASS slate. No gold.
 const getTierColors = (tier: string) => {
@@ -326,7 +350,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
               style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '22px' }}
             >
               {bet?.player_name ||
-                bet?.selection?.split(' ').slice(0, -1).join(' ') ||
+                (isTeamBet ? selectionLabel(bet?.selection, bet?.matchup) : (bet?.selection?.split(' ').slice(0, -1).join(' ') || bet?.selection)) ||
                 bet?.team ||
                 'Unknown'}
             </div>
@@ -360,7 +384,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 className="text-[20px] font-black text-white uppercase leading-tight"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
-                {bet?.selection} {lineStr}
+                {selectionLabel(bet?.selection, bet?.matchup)} {lineStr}
               </div>
             </div>
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
@@ -822,7 +846,7 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
 
   return (
     <div
-      className="flex-shrink-0 w-[300px] md:w-[340px] bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] transition-all duration-200 cursor-pointer touch-manipulation snap-start group"
+      className="w-full bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] transition-all duration-200 cursor-pointer touch-manipulation snap-start group"
       onClick={() => {
         onClick();
         if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
@@ -873,7 +897,7 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
               {bet.matchup || bet.team_name || 'MLB GAME'}
             </div>
             <div className="text-[18px] font-black text-white uppercase leading-tight truncate" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-              {bet?.selection} {lineStr}
+              {selectionLabel(bet?.selection, bet?.matchup)} {lineStr}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-[10px] font-black uppercase">
                <span className="px-1.5 rounded-sm" style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}>{marketLabel}</span>
@@ -933,7 +957,7 @@ const CategoryCarousel = ({ title, icon: Icon, bets, onBetClick, rankLabel = 'RA
         {Icon && <Icon className="text-[#00D4FF]" size={20} />}
         <h2 className="text-[20px] font-black text-white uppercase tracking-wider" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{title}</h2>
       </div>
-      <div className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-4 pb-4">
         {bets.map((bet, idx) => (
           <BetCard key={idx} bet={bet} rank={idx + 1} rankLabel={rankLabel} onClick={() => onBetClick(bet)} />
         ))}

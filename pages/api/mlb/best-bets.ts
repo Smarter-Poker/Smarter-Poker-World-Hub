@@ -337,13 +337,18 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       }
     } else if (isTeamBet) {
       let actualTeamName = bet.team_name || bet.team || bet.selection;
-      if (
-        bet.matchup &&
-        (bet.selection?.toLowerCase() === 'home' || bet.selection?.toLowerCase() === 'away')
-      ) {
-        const parts = bet.matchup.split(' @ ');
-        if (parts.length === 2) {
-          actualTeamName = bet.selection.toLowerCase() === 'home' ? parts[1] : parts[0];
+      if (bet.matchup) {
+        const selLow = bet.selection?.toLowerCase() || '';
+        if (selLow === 'home' || selLow.startsWith('home_')) {
+          const parts = bet.matchup.split(' @ ');
+          if (parts.length === 2) {
+            actualTeamName = parts[1];
+          }
+        } else if (selLow === 'away' || selLow.startsWith('away_')) {
+          const parts = bet.matchup.split(' @ ');
+          if (parts.length === 2) {
+            actualTeamName = parts[0];
+          }
         }
       }
       if (actualTeamName) {
