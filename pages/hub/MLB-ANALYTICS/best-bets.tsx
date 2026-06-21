@@ -23,6 +23,9 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import { detectBetCategory } from '../../../src/lib/mlb_data';
+import { formatOdds, formatWinPct, toTitleCase, formatBetType } from '../../../src/lib/formatters';
+import { getPlayerImageUrl, getTeamLogoUrl, MLB_TEAM_IDS } from '../../../src/lib/mlb_images';
 
 import { ScoringGuideModal } from '../../../src/components/mlb/ScoringGuideModal';
 import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
@@ -142,7 +145,7 @@ const formatWinPct = (wc: any) => {
   return n.toFixed(1) + '%';
 };
 
-export const toTitleCase = (str: string | null | undefined): string => {
+const toTitleCase = (str: string | null | undefined): string => {
   if (!str) return '';
   return str
     .toLowerCase()

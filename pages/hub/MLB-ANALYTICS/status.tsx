@@ -258,7 +258,7 @@ const alertLevelColor = (level: string | null | undefined): string => {
     return 'text-[#00D4FF] border-[#00D4FF]';
   };
 
-const EMPTY_OBJ = {};
+const EMPTY_OBJ: any = {};
 
 export default function StatusPage() {
   const router = useRouter();

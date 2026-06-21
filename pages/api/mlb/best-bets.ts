@@ -202,6 +202,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let hitters: any[] = [];
   let pitchers: any[] = [];
   let aggPitchers: any[] = [];
+  let slates: any[] = [];
   try {
     [hitters, pitchers, aggPitchers, slates] = await Promise.all([
       fetchAllRows(() =>
