@@ -26,9 +26,14 @@ import { logError } from '@/utils/logger';
 import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 
 const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-  return res.json();
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    logError('MLB Best Bets fetch', err);
+    throw err;
+  }
 };
 
 // MLB team abbreviation → team_id mapping for logos
@@ -66,9 +71,12 @@ const MLB_TEAM_IDS: Record<string, number> = {
   SF: 137,
   SFG: 137,
   ARI: 109,
+  AZ: 109,
   COL: 115,
   SDP: 135,
   SD: 135,
+  ATH: 133,
+  WSH: 120,
 };
 
 const detectBetCategory = (bet: any) => {
@@ -445,7 +453,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
             )}
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {bet.edge !== null && bet.edge !== undefined && (
+            {bet.edge_pts !== null && bet.edge_pts !== undefined && (
               <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                 <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
                   Edge
@@ -454,12 +462,12 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                   className="text-[16px] font-black text-[#00D4FF]"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
-                  {Number(bet.edge) > 0 ? '+' : ''}
-                  {Number(bet.edge).toFixed(1)}pts
+                  {Number(bet.edge_pts) > 0 ? '+' : ''}
+                  {Number(bet.edge_pts).toFixed(1)}pts
                 </div>
               </div>
             )}
-            {bet.ev_kelly !== null && bet.ev_kelly !== undefined && (
+            {bet.kelly_pct !== null && bet.kelly_pct !== undefined && (
               <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                 <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
                   Stake
@@ -468,7 +476,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                   className="text-[16px] font-black text-slate-300"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
-                  {Number(bet.ev_kelly).toFixed(1)}u
+                  {Number(bet.kelly_pct).toFixed(1)}u
                 </div>
               </div>
             )}
@@ -486,7 +494,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
               </div>
             )}
           </div>
-          {bet.market_novig_prob !== null && bet.market_novig_prob !== undefined && (
+          {bet.market_prob !== null && bet.market_prob !== undefined && (
             <div className="mt-2 bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
               <div className="flex justify-between items-center">
                 <div>
@@ -497,10 +505,10 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     className="text-[14px] font-black text-slate-300"
                     style={{ fontFamily: '"Rajdhani", sans-serif' }}
                   >
-                    {(Number(bet.market_novig_prob) * 100).toFixed(1)}%
+                    {(Number(bet.market_prob) * 100).toFixed(1)}%
                   </div>
                 </div>
-                {bet.implied_prob_novig !== null && bet.implied_prob_novig !== undefined && (
+                {bet.model_prob !== null && bet.model_prob !== undefined && (
                   <div className="text-right">
                     <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5 ">
                       Model Prob
@@ -509,7 +517,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                       className="text-[14px] font-black text-[#00D4FF]"
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
-                      {(Number(bet.implied_prob_novig) * 100).toFixed(1)}%
+                      {(Number(bet.model_prob) * 100).toFixed(1)}%
                     </div>
                   </div>
                 )}
@@ -1012,9 +1020,9 @@ const GameBox = ({
   const topScore = bets.length > 0 ? Math.max(...bets.map((b) => Number(b.bet_score) || 0)) : 0;
 
   // Top tier
-  const haElite = bets.some((b) => b.bet_tier === 'ELITE');
+  const hasElite = bets.some((b) => b.bet_tier === 'ELITE');
   const hasStrong = bets.some((b) => b.bet_tier === 'STRONG');
-  const groupTierColor = haElite ? '#00D4FF' : hasStrong ? '#34D399' : '#3d4f5f';
+  const groupTierColor = hasElite ? '#00D4FF' : hasStrong ? '#34D399' : '#3d4f5f';
 
   return (
     <div className="relative bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg mx-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-1px_0_rgba(0,0,0,0.4),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] transition-all duration-200 overflow-hidden">
@@ -1082,7 +1090,7 @@ const GameBox = ({
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          {haElite && (
+          {hasElite && (
             <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-black tracking-widest uppercase bg-[rgba(0,212,255,0.12)] text-[#00D4FF] border border-[rgba(0,212,255,0.35)]">
               ELITE
             </span>
@@ -1100,7 +1108,7 @@ const GameBox = ({
         <div className="pb-2">
           {teamBets.map((bet: any, idx: number) => (
             <BetRow
-              key={`${bet.game_pk}-${bet.selection}-${idx}`}
+              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
               bet={bet}
               rank={idx + 1}
               onClick={() => onBetClick(bet)}
@@ -1119,7 +1127,7 @@ const GameBox = ({
                 <div className="mt-2 border-t border-[#2a3a4a] pt-2">
                   {propBets.map((bet: any, idx: number) => (
                     <BetRow
-                      key={`${bet.game_pk}-${bet.selection}-${idx}-prop`}
+                      key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}-prop`}
                       bet={bet}
                       rank={teamBets.length + idx + 1}
                       onClick={() => onBetClick(bet)}
@@ -1161,6 +1169,54 @@ export default function BestBetsPage() {
   const openModal = useCallback((bet: any) => setSelectedBet(bet), []);
   const closeModal = useCallback(() => setSelectedBet(null), []);
 
+  const bets = data?.bets || [];
+  const officialDate = data?.officialDate || null;
+  const stats = data?.stats || { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 };
+  const isStale = !!(todayStr && officialDate && officialDate < todayStr);
+
+  // Filter bets by structured bet_type/market (mutually exclusive). Substring matching
+  // previously mis-bucketed e.g. "total_bases" props into the TOTAL tab and let one bet
+  // satisfy multiple tabs. Real values: bet_type in {line, prop}; market in
+  // {h2h, run_line, total, hits, total_bases, pitcher_strikeouts, home_run, rbi, ...}.
+  const filteredBets = useMemo(() => {
+    if (filter === 'ALL') return bets;
+    return bets.filter((b: any) => {
+      const type = (b.bet_type || '').toLowerCase();
+      const market = (b.market || '').toLowerCase();
+      switch (filter) {
+        case 'ML':
+          return type === 'line' && (market === 'h2h' || market === 'moneyline');
+        case 'TOTAL':
+          return type === 'line' && market === 'total';
+        case 'RUN LINE':
+          return (
+            type === 'line' &&
+            (market === 'run_line' || market === 'runline' || market === 'spread')
+          );
+        case 'PROPS':
+          return type === 'prop';
+        default:
+          return false;
+      }
+    });
+  }, [bets, filter]);
+
+  // Group bets by matchup, sorted by best bet_score desc. Hooks must run before any
+  // conditional return (the error early-return below) to keep hook order stable.
+  const gameGroups = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    for (const bet of filteredBets) {
+      const key = bet.matchup || 'Unknown Matchup';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(bet);
+    }
+    return Array.from(groups.entries()).sort((a, b) => {
+      const aTop = a[1].reduce((m: number, x: any) => Math.max(m, Number(x.bet_score) || 0), 0);
+      const bTop = b[1].reduce((m: number, x: any) => Math.max(m, Number(x.bet_score) || 0), 0);
+      return bTop - aTop;
+    });
+  }, [filteredBets]);
+
   if (error || data?.error) {
     return (
       <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
@@ -1190,58 +1246,6 @@ export default function BestBetsPage() {
       </div>
     );
   }
-
-  const bets = data?.bets || [];
-  const officialDate = data?.officialDate || null;
-  const stats = data?.stats || { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 };
-  const isStale = !!(todayStr && officialDate && officialDate < todayStr);
-
-  // Filter bets
-  const filteredBets = bets.filter((b: any) => {
-    if (filter === 'ALL') return true;
-    const typeStr = ((b.bet_type || '') + ' ' + (b.market || '')).toLowerCase();
-    if (
-      filter === 'ML' &&
-      (typeStr.includes('moneyline') || typeStr.includes('h2h') || typeStr.includes('ml'))
-    )
-      return true;
-    if (filter === 'TOTAL' && typeStr.includes('total')) return true;
-    if (
-      filter === 'RUN LINE' &&
-      (typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread'))
-    )
-      return true;
-    if (
-      filter === 'PROPS' &&
-      (typeStr.includes('prop') ||
-        typeStr.includes('hits') ||
-        typeStr.includes('bases') ||
-        typeStr.includes('runs') ||
-        typeStr.includes('pitcher') ||
-        typeStr.includes('strikeout') ||
-        typeStr.includes('player') ||
-        typeStr.includes('hrr') ||
-        typeStr.includes('walks'))
-    )
-      return true;
-    return false;
-  });
-
-  // Group bets by matchup
-  const gameGroups = useMemo(() => {
-    const groups = new Map<string, any[]>();
-    for (const bet of filteredBets) {
-      const key = bet.matchup || 'Unknown Matchup';
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(bet);
-    }
-    // Sort groups: most total bet score first
-    return Array.from(groups.entries()).sort((a, b) => {
-      const aTop = Math.max(...a[1].map((x: any) => Number(x.bet_score) || 0));
-      const bTop = Math.max(...b[1].map((x: any) => Number(x.bet_score) || 0));
-      return bTop - aTop;
-    });
-  }, [filteredBets]);
 
   return (
     <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
