@@ -11,24 +11,24 @@ import { logError } from '@/utils/logger';
 interface MLBStatusPayload {
     ok: boolean;
     error?: string;
+    serverNow: string | null;
+    today: string | null;
+    aggAsOf: string | null;
     isSystemFresh: boolean;
-    serverNow: string;
-    accuracy: {
-        wtd_avg_brier_ml?: number | null;
-        wtd_avg_brier_props?: number | null;
-        total_games_evaluated?: number | null;
-        daily_samples?: number | null;
+    pipeline: {
+        okCount: number;
+        errorCount: number;
+        total: number;
+        hasError: boolean;
     };
-    tierDist: Record<string, number>;
     health: {
-        games_in_slate?: number | null;
-        games_in_run?: number | null;
-        live_recs?: number | null;
-        total_live_recs?: number | null;
-        last_refresh: string | null;
-        slate_as_of?: string | null;
         minutes_since_refresh?: number | null;
-        is_stale?: boolean | null;
+        last_refresh?: string | null;
+        is_stale?: boolean;
+        slate_as_of?: string | null;
+        games_in_run?: number | null;
+        games_in_slate?: number | null;
+        total_live_recs?: number | null;
         unmodeled_games?: number | null;
         incoherent_runlines_with_bet?: number | null;
     };
@@ -37,17 +37,38 @@ interface MLBStatusPayload {
         props?: number | null;
         best?: number | null;
     };
-    stages: string[];
-    latestRuns: Record<string, { status: string; run_ts: string; rows_written?: number | null; duration_sec?: number | null }>;
-    sources: Array<{ source: string; status: string; pulled_at: string; row_count?: number | null }>;
-    alerts: Array<{ id: number; alert_type: string; level: string; message: string; fired_at: string; source: string; created_at?: string | null }>;
-    pipeline: {
-        hasError: boolean;
-        okCount: number;
-        errorCount: number;
-        total: number;
+    accuracy: {
+        wtd_avg_brier_ml?: number | null;
+        wtd_avg_brier_props?: number | null;
+        total_games_evaluated?: number | null;
+        daily_samples?: number | null;
     };
+    tierDist: Record<string, number>;
+    sources: Array<{
+        source: string;
+        status: string;
+        pulled_at?: string | null;
+        row_count?: number | null;
+    }>;
+    alerts: Array<{
+        id?: number;
+        alert_type?: string;
+        level?: string;
+        message?: string;
+        source?: string;
+        fired_at?: string | null;
+    }>;
     tableCounts: Record<string, number>;
+    stages: string[];
+    latestRuns: Record<string, {
+        step: string;
+        stage: string;
+        run_ts: string | null;
+        status: string;
+        duration_sec: number | null;
+        rows_written: number | null;
+        notes: string | null;
+    }>;
 }
 
 const fetcher = async (url: string) => {
@@ -227,13 +248,13 @@ export default function StatusPage() {
     const pipeline = data?.pipeline || { hasError: false, okCount: 0, errorCount: 0, total: 0 };
 
     const sectionHeader = (Icon: React.ElementType, label: string) => (
-        <div className="flex items-center gap-2 mb-3">
-            <Icon size={16} className="text-[#00D4FF]" />
-            <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0" style={{ textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>{label}</h2>
+        <div className="flex items-center gap-2 mb-3 px-4 md:px-0">
+            <Icon size={16} className="text-[#00D4FF]" aria-hidden="true" />
+            <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0 drop-shadow-[0_0_8px_rgba(0,212,255,0.3)]">{label}</h2>
         </div>
     );
 
-    const panelClass = "relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden";
+    const panelClass = "relative bg-gradient-to-b from-[#3d4f5f] via-[#1a2332] to-[#0d1117] md:border-[2px] border-y border-[#3d4f5f] md:rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden";
 
     return (
         <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
@@ -245,8 +266,8 @@ export default function StatusPage() {
             {/* Sub-header */}
             <div className="bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[2px] border-[#3d4f5f] p-4 flex justify-between items-center gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 <div className="min-w-0">
-                    <h1 className="m-0 text-2xl font-bold uppercase tracking-widest">
-                        Data <span className="text-[#00D4FF]" style={{ textShadow: '0 0 10px rgba(0, 212, 255, 0.6)' }}>Status</span>
+                    <h1 className="m-0 text-2xl font-bold uppercase tracking-widest px-4 md:px-0">
+                        Data <span className="text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.6)]">Status</span>
                     </h1>
                     {/* Show when last model refresh occurred — only show if we actually have a refresh time, not serverNow which always reads 'JUST NOW' */}
                     {data?.health?.last_refresh && (
@@ -262,16 +283,16 @@ export default function StatusPage() {
                     <div className="text-[#00D4FF] text-[11px] font-bold tracking-widest uppercase">SYSTEM</div>
                     <div className="inline-flex items-center gap-1.5 mt-1" role="status" aria-live="polite" aria-label={`System status: ${isSystemFresh ? 'fresh' : 'stale'}`}>
                         <div className={`w-2 h-2 rounded-full ${isSystemFresh ? 'bg-[#00D4FF] shadow-[0_0_10px_#00D4FF]' : 'bg-[#FF4444] shadow-[0_0_10px_#FF4444]'}`}></div>
-                        <div className={`text-xs font-bold tracking-widest ${isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`} style={{ textShadow: isSystemFresh ? '0 0 5px rgba(0,212,255,0.5)' : '0 0 5px rgba(255,68,68,0.5)' }}>
-                            {isSystemFresh ? 'FRESH' : 'STALE'}
+                        <div className={`text-xs font-bold tracking-widest ${isSystemFresh ? 'text-[#00D4FF] drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]' : 'text-[#FF4444] drop-shadow-[0_0_5px_rgba(255,68,68,0.5)]'}`}>
+                            {isLoading ? 'LOADING' : (isSystemFresh ? 'FRESH' : 'STALE')}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="px-4 py-6 max-w-4xl mx-auto w-full">
+            <div className="px-0 md:px-4 py-6 max-w-4xl mx-auto w-full">
 
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-end mb-4 px-4 md:px-0">
                     <button
                         onClick={handleRefresh}
                         disabled={manualRefreshing && isValidating}
@@ -284,7 +305,7 @@ export default function StatusPage() {
                 </div>
 
                 {isLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" aria-busy="true" aria-label="Loading status data">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 px-4 md:px-0" aria-busy="true" aria-label="Loading status data">
                         {[1, 2, 3, 4, 5, 6].map((i) => (
                             <div key={i} className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 animate-pulse shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
                                 <div className="h-3 w-1/2 bg-[#3d4f5f] rounded mb-3"></div>
@@ -299,8 +320,8 @@ export default function StatusPage() {
                             <div className={`${panelClass} px-5 py-4 flex items-center justify-between gap-3`}>
                                 <div className="flex items-center gap-3 min-w-0">
                                     {pipeline.hasError
-                                        ? <AlertTriangle size={22} className="text-[#FF4444] shrink-0" style={{ filter: 'drop-shadow(0 0 6px rgba(255,68,68,0.7))' }} />
-                                        : <CheckCircle2 size={22} className="text-[#00D4FF] shrink-0" style={{ filter: 'drop-shadow(0 0 6px rgba(0,212,255,0.7))' }} />}
+                                        ? <AlertTriangle size={22} className="text-[#FF4444] shrink-0 drop-shadow-[0_0_6px_rgba(255,68,68,0.7)]" aria-hidden="true" />
+                                        : <CheckCircle2 size={22} className="text-[#00D4FF] shrink-0 drop-shadow-[0_0_6px_rgba(0,212,255,0.7)]" aria-hidden="true" />}
                                     <div className="min-w-0">
                                         <div className={`text-[15px] font-extrabold uppercase tracking-wider ${pipeline.hasError ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                             {pipeline.hasError ? 'Pipeline Errors Detected' : 'All Pipeline Stages OK'}
@@ -337,7 +358,7 @@ export default function StatusPage() {
                             ].map((item) => (
                                 <div key={item.label} className={`${panelClass} p-4`}>
                                     <div className="text-[10px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
-                                    <div className={`text-lg font-bold tabular-nums break-words ${item.warn ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`} style={{ textShadow: item.warn ? '0 0 10px rgba(255,68,68,0.4)' : '0 0 10px rgba(0,212,255,0.4)' }}>
+                                    <div className={`text-lg font-bold tabular-nums break-words ${item.warn ? 'text-[#FF4444] drop-shadow-[0_0_10px_rgba(255,68,68,0.4)]' : 'text-[#00D4FF] drop-shadow-[0_0_10px_rgba(0,212,255,0.4)]'}`}>
                                         {item.val}
                                     </div>
                                 </div>
@@ -356,7 +377,7 @@ export default function StatusPage() {
                                 ].map((item) => (
                                     <div key={item.label} className={`${panelClass} p-5 text-center`}>
                                         <div className="text-[11px] font-bold text-slate-400 tracking-[0.15em] mb-2">{item.label}</div>
-                                        <div className="text-3xl font-bold text-[#00D4FF] tabular-nums" style={{ textShadow: '0 0 15px rgba(0,212,255,0.6)' }}>
+                                        <div className="text-3xl font-bold text-[#00D4FF] tabular-nums drop-shadow-[0_0_15px_rgba(0,212,255,0.6)]">
                                             {fmt(item.val)}
                                         </div>
                                     </div>

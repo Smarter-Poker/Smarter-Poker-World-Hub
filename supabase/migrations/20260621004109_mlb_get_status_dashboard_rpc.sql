@@ -87,11 +87,11 @@ SELECT jsonb_build_object(
     'best',  (SELECT count(*) FROM pred_best_bets    WHERE as_of_ts = (SELECT ts FROM bb_latest))
   ),
   'table_counts', jsonb_build_object(
-    'pred_market_output', (SELECT count(*) FROM pred_market_output),
-    'pred_props',         (SELECT count(*) FROM pred_props),
-    'pred_best_bets',     (SELECT count(*) FROM pred_best_bets),
-    'agg_market',         (SELECT count(*) FROM agg_market),
-    'snapshots',          (SELECT count(*) FROM snapshots)
+    'pred_market_output', (SELECT COALESCE(reltuples::bigint, 0) FROM pg_class WHERE relname = 'pred_market_output'),
+    'pred_props',         (SELECT COALESCE(reltuples::bigint, 0) FROM pg_class WHERE relname = 'pred_props'),
+    'pred_best_bets',     (SELECT COALESCE(reltuples::bigint, 0) FROM pg_class WHERE relname = 'pred_best_bets'),
+    'agg_market',         (SELECT COALESCE(reltuples::bigint, 0) FROM pg_class WHERE relname = 'agg_market'),
+    'snapshots',          (SELECT COALESCE(reltuples::bigint, 0) FROM pg_class WHERE relname = 'snapshots')
   ),
   'tier_dist',     (SELECT to_jsonb(tier_dist) FROM tier_dist),
   'pipeline_runs', (SELECT j FROM runs),
