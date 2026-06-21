@@ -430,6 +430,22 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
     if (pitcherToEvaluateId) {
       const aggP = aggPitcherMap.get(pitcherToEvaluateId);
+      const vP = pitcherMap.get(pitcherToEvaluateId);
+      
+      // Inject pitcher stats for Team Bets so UI isn't blank
+      if (isTeamBet) {
+        if (aggP) {
+          enriched.pitcher_era = aggP.era;
+          enriched.pitcher_so = aggP.so;
+          enriched.pitcher_wins = aggP.w;
+          enriched.pitcher_losses = aggP.l;
+          enriched.pitcher_whip = aggP.ip > 0 ? ((aggP.h + aggP.bb) / aggP.ip).toFixed(2) : null;
+        }
+        if (vP) {
+          enriched.pitcher_fip = vP.fip;
+        }
+      }
+
       // If the pitcher has fewer than 25 IP, penalize the bet severely
       if (!aggP || Number(aggP.ip) < 25) {
         enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 20);
@@ -451,6 +467,10 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
            enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
         }
       }
+    }
+    
+    if (typeof enriched.best_book === 'string' && enriched.best_book.toUpperCase() === 'MODEL ONLY') {
+      enriched.best_book = 'CONSENSUS';
     }
 
     return enriched;

@@ -23,9 +23,14 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import { detectBetCategory } from '../../../src/lib/mlb_data';
+import { formatOdds, formatWinPct, toTitleCase, formatBetType } from '../../../src/lib/formatters';
+import { getPlayerImageUrl, getTeamLogoUrl, MLB_TEAM_IDS } from '../../../src/lib/mlb_images';
+import { ScoringGuideModal } from '../../../src/components/mlb/ScoringGuideModal';
 import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import SectionHeader from '../../../src/components/ui/SectionHeader';
+
 const fetcher = async (url: string) => {
   try {
     const res = await fetch(url);
@@ -611,10 +616,10 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
         })()}
 
         {/* Pitcher Profile */}
-        {isPitcherProp && (
+        {(isPitcherProp || (isTeamBet && era !== null)) && (
           <div className="px-4 py-3 border-b border-[#2a3a4a]">
             <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5 ">
-              <Zap size={10} /> Pitcher Profile
+              <Zap size={10} /> {isTeamBet ? 'Starting Pitcher' : 'Pitcher Profile'}
             </div>
             <div className="grid grid-cols-2 gap-2 px-4 md:px-0">
               {era !== null && (
@@ -834,7 +839,7 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
 
   // Stats arrays
   const pitcherStats: { label: string; value: string; color?: string }[] = [];
-  if (isPitcherProp) {
+  if (isPitcherProp || (isTeamBet && bet.pitcher_era != null)) {
     if (bet.pitcher_wins != null && bet.pitcher_losses != null)
       pitcherStats.push({ label: 'W-L', value: `${bet.pitcher_wins}-${bet.pitcher_losses}`, color: '#fff' });
     if (bet.pitcher_era != null)
@@ -863,7 +868,7 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
       hitterStats.push({ label: 'wRC+', value: String(Math.round(Number(bet.hitter_wrc_plus))), color: Number(bet.hitter_wrc_plus) >= 115 ? '#00D4FF' : '#fff' });
   }
 
-  const allStats = isPitcherProp ? pitcherStats : hitterStats;
+  const allStats = (isPitcherProp || (isTeamBet && bet.pitcher_era != null)) ? pitcherStats : hitterStats;
 
   return (
     <div
@@ -1009,6 +1014,7 @@ export default function BestBetsPage() {
   const router = useRouter();
   const [selectedBet, setSelectedBet] = useState<any | null>(null);
   const [todayStr, setTodayStr] = useState<string>('');
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   useEffect(() => {
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -1164,6 +1170,7 @@ export default function BestBetsPage() {
 
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />
+      <ScoringGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
       {/* Page Header — Metal Vault Style */}
       <header className="relative px-4 pt-4 pb-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[3px] border-[#3d4f5f] shadow-[0_6px_25px_rgba(0,0,0,0.7)] z-10">
@@ -1192,17 +1199,22 @@ export default function BestBetsPage() {
               Ranked By Bet Score · {officialDate || todayStr || '—'}
             </p>
           </div>
-          <div className="text-right bg-[#0a0a15] px-2.5 py-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
-            <div className="text-[#00D4FF] text-[10px] font-black tracking-widest uppercase  drop-shadow-[0_0_4px_rgba(0,212,255,0.4)]">
+          <button 
+            onClick={() => setIsGuideOpen(true)}
+            title="Scoring Scale Guide"
+            className="text-right bg-[#0a0a15] hover:bg-[#1a2332] transition-colors cursor-pointer px-2.5 py-2 rounded-sm border border-[#2a3a4a] hover:border-[#00D4FF] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] group"
+          >
+            <div className="flex items-center justify-end gap-1 text-[#00D4FF] text-[10px] font-black tracking-widest uppercase drop-shadow-[0_0_4px_rgba(0,212,255,0.4)]">
+              <Info size={12} className="opacity-70 group-hover:opacity-100" />
               MLB Edge
             </div>
-            <div className="text-[9px] font-black text-[#5a6a7a] mt-0.5 uppercase tracking-widest border-t border-[#2a3a4a] pt-1 ">
+            <div className="text-[9px] font-black text-[#5a6a7a] mt-0.5 uppercase tracking-widest border-t border-[#2a3a4a] pt-1">
               Score 0–100
             </div>
-            <div className="text-[8px] font-black text-[#3d4f5f] uppercase tracking-widest ">
+            <div className="text-[8px] font-black text-[#3d4f5f] uppercase tracking-widest">
               Value + Conf
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Stats bar */}
