@@ -113,12 +113,18 @@ in the World-Hub repo mirroring the engine's canonical SQL. Now tracked in both 
 
 ## SQL Migrations Written
 
-| File | Status | DB Target |
-|------|--------|-----------|
-| `supabase/migrations/20260621004109_mlb_get_status_dashboard_rpc.sql` | ✅ Created (mirror of engine) | MLB Supabase (nscdmxldtyszyvcxxwgr) |
+| File | Repo | Status | DB Target |
+|------|------|--------|--------|
+| `supabase/migrations/20260621004109_mlb_get_status_dashboard_rpc.sql` | World-Hub | ✅ Committed (mirror — already live) | MLB Supabase |
+| `supabase/migrations/20260621150001_status_page_indexes.sql` | Engine | ✅ Committed — **⚠️ PENDING APPLY** | MLB Supabase |
+| `supabase/migrations/20260621150002_v_model_health_view.sql` | Engine | ✅ Committed — **⚠️ PENDING APPLY** | MLB Supabase |
 
-**No new schema changes needed.** `get_status_dashboard()` was already live in the DB.
-The migration file is a disaster-recovery artifact only.
+The index + v_model_health migrations need the current DB password to apply:
+```bash
+cd mlb-analytics-engine
+SUPABASE_DB_PASSWORD='<current-password>' supabase db push
+```
+Until applied: `games_in_slate` column won't appear in health data (additive only — page works without it).
 
 ---
 
@@ -143,3 +149,6 @@ The migration file is a disaster-recovery artifact only.
 - Zero `null`/`undefined`/`NaN`/`"Loading"` rendered in production HTML
 - All 9 data sources green, all 7–12 pipeline stages success
 - `get_status_dashboard()` RPC executes live in MLB Supabase DB
+- Final post-fix API spot-check: `ok: true, isSystemFresh: true, pipeline: 7/7 OK`
+- Accuracy: Brier ML=0.179, Props=0.137, 394 games evaluated
+- Tier distribution: ELITE(1) STRONG(1) LEAN(2) THIN(1) PASS(1)
