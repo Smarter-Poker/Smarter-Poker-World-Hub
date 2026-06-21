@@ -14,20 +14,39 @@ interface MLBStatusPayload {
     isSystemFresh: boolean;
     serverNow: string;
     accuracy: {
-        brier_ml?: number | null;
-        brier_props?: number | null;
-        games_evaluated?: number | null;
+        wtd_avg_brier_ml?: number | null;
+        wtd_avg_brier_props?: number | null;
+        total_games_evaluated?: number | null;
+        daily_samples?: number | null;
     };
-    tierDist: Array<{ tier: string; count: number }>;
+    tierDist: Record<string, number>;
     health: {
         games_in_slate?: number | null;
         games_in_run?: number | null;
         live_recs?: number | null;
+        total_live_recs?: number | null;
         last_refresh: string | null;
+        slate_as_of?: string | null;
+        minutes_since_refresh?: number | null;
+        is_stale?: boolean | null;
+        unmodeled_games?: number | null;
+        incoherent_runlines_with_bet?: number | null;
     };
-    stages: Array<{ stage: string; status: string; run_ts: string; row_ct?: number | null }>;
-    sources: Array<{ source: string; status: string; checked_at: string; rows_loaded?: number | null }>;
-    alerts: Array<{ id: number; alert_type: string; level: string; message: string; fired_at: string; created_at?: string | null }>;
+    slate: {
+        mkt?: number | null;
+        props?: number | null;
+        best?: number | null;
+    };
+    stages: string[];
+    latestRuns: Record<string, { status: string; run_ts: string; rows_written?: number | null; duration_sec?: number | null }>;
+    sources: Array<{ source: string; status: string; pulled_at: string; row_count?: number | null }>;
+    alerts: Array<{ id: number; alert_type: string; level: string; message: string; fired_at: string; source: string; created_at?: string | null }>;
+    pipeline: {
+        hasError: boolean;
+        okCount: number;
+        errorCount: number;
+        total: number;
+    };
     tableCounts: Record<string, number>;
 }
 
@@ -130,17 +149,17 @@ export default function StatusPage() {
 
     // Return '—' for null/undefined/NaN/Infinity so health cards never show junk values.
     // Note: fmt(0) correctly returns '0' (zero is a valid and meaningful count).
-    const fmt = (n: any): string => (n == null || (typeof n === 'number' && !isFinite(n)) || isNaN(Number(n))) ? '\u2014' : Number(n).toLocaleString();
+    const fmt = (n: number | string | null | undefined): string => (n == null || (typeof n === 'number' && !isFinite(n)) || isNaN(Number(n))) ? '\u2014' : Number(n).toLocaleString();
 
-    const brierColor = (b: any): string => {
+    const brierColor = (b: number | null | undefined): string => {
         if (typeof b !== 'number' || isNaN(b)) return 'text-slate-400';
         if (b < 0.20) return 'text-[#00D4FF]';
         if (b <= 0.25) return 'text-[#FFB020]';
         return 'text-[#FF4444]';
     };
-    const fmtBrier = (b: any): string => (typeof b === 'number' && !isNaN(b)) ? b.toFixed(3) : '-';
+    const fmtBrier = (b: number | null | undefined): string => (typeof b === 'number' && !isNaN(b)) ? b.toFixed(3) : '-';
 
-    const alertLevelColor = (level: any): string => {
+    const alertLevelColor = (level: string | null | undefined): string => {
         const l = String(level || '').toLowerCase();
         if (l === 'critical' || l === 'error') return 'text-[#FF4444] border-[#FF4444]';
         if (l === 'warning' || l === 'warn') return 'text-[#FFB020] border-[#FFB020]';
@@ -200,14 +219,14 @@ export default function StatusPage() {
     const slate = data?.slate || {};
     const accuracy = data?.accuracy || {};
     const tierDist = data?.tierDist || {};
-    const sources: any[] = Array.isArray(data?.sources) ? data.sources : [];
-    const alerts: any[] = Array.isArray(data?.alerts) ? data.alerts : [];
+    const sources = Array.isArray(data?.sources) ? data.sources : [];
+    const alerts = Array.isArray(data?.alerts) ? data.alerts : [];
     const tableCounts = data?.tableCounts || {};
-    const stages: string[] = Array.isArray(data?.stages) ? data.stages : [];
+    const stages = Array.isArray(data?.stages) ? data.stages : [];
     const latestRuns = data?.latestRuns || {};
-    const pipeline = data?.pipeline || {};
+    const pipeline = data?.pipeline || { hasError: false, okCount: 0, errorCount: 0, total: 0 };
 
-    const sectionHeader = (Icon: any, label: string) => (
+    const sectionHeader = (Icon: React.ElementType, label: string) => (
         <div className="flex items-center gap-2 mb-3">
             <Icon size={16} className="text-[#00D4FF]" />
             <h2 className="text-[13px] font-bold text-[#00D4FF] tracking-[0.15em] m-0" style={{ textShadow: '0 0 8px rgba(0,212,255,0.3)' }}>{label}</h2>
@@ -378,13 +397,13 @@ export default function StatusPage() {
                                         {TIER_META.filter(t => t.key in tierDist).map((t) => (
                                             <div key={t.key} className="flex-1 min-w-[80px] text-center rounded-lg border bg-black/30 py-3 px-2" style={{ borderColor: t.color }}>
                                                 <div className="text-[10px] font-bold tracking-[0.12em] mb-1" style={{ color: t.color }}>{t.key}</div>
-                                                <div className="text-xl font-bold tabular-nums" style={{ color: t.color }}>{fmt((tierDist as any)[t.key])}</div>
+                                                <div className="text-xl font-bold tabular-nums" style={{ color: t.color }}>{fmt(tierDist[t.key])}</div>
                                             </div>
                                         ))}
-                                        {Number((tierDist as any).unscored) > 0 && (
+                                        {Number(tierDist.unscored) > 0 && (
                                             <div className="flex-1 min-w-[80px] text-center rounded-lg border border-[#475569] bg-black/30 py-3 px-2">
                                                 <div className="text-[10px] font-bold tracking-[0.12em] mb-1 text-slate-500">UNSCORED</div>
-                                                <div className="text-xl font-bold tabular-nums text-slate-500">{fmt((tierDist as any).unscored)}</div>
+                                                <div className="text-xl font-bold tabular-nums text-slate-500">{fmt(tierDist.unscored)}</div>
                                             </div>
                                         )}
                                     </div>
@@ -492,7 +511,7 @@ export default function StatusPage() {
                             <div className={panelClass}>
                                 {tableCounts && Object.keys(tableCounts).length > 0 ? (
                                     <div className="flex flex-col">
-                                        {Object.entries(tableCounts).map(([table, count]: any, idx, arr) => (
+                                        {Object.entries(tableCounts).map(([table, count], idx, arr) => (
                                             <div key={table} className={`flex justify-between px-6 py-4 bg-black/20 gap-3 ${idx !== arr.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}>
                                                 <span className="text-[13px] font-semibold text-slate-400 tracking-wider truncate">{table}</span>
                                                 <span className="text-[14px] font-bold text-[#00D4FF] tabular-nums shrink-0">{fmt(count)}</span>
