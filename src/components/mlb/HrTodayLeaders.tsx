@@ -86,9 +86,11 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
     (async () => {
       try {
         const res = await fetch(`/api/mlb/hr-today?limit=${limit}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const j = await res.json();
         if (!alive) return;
         setLeaders(Array.isArray(j.leaders) ? j.leaders : []);
+        setFailed(false);
       } catch {
         if (alive) setFailed(true);
       } finally {
@@ -99,8 +101,6 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
       alive = false;
     };
   }, [limit]);
-
-  if (failed) return null;
 
   return (
     <div className="mb-8">
@@ -123,6 +123,10 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
               />
             ))}
           </div>
+        ) : failed ? (
+          <div className="text-slate-500 text-[14px] font-bold text-center py-3">
+            Could not load today&apos;s home-run projections. Please try again shortly.
+          </div>
         ) : leaders.length === 0 ? (
           <div className="text-slate-500 text-[14px] font-bold text-center py-3">
             No home-run projections posted yet for today&apos;s slate.
@@ -130,7 +134,7 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {leaders.map((p, i) => (
-              <LeaderCard key={p.player_id} rank={i + 1} p={p} />
+              <LeaderCard key={`${p.player_id}-${i}`} rank={i + 1} p={p} />
             ))}
           </div>
         )}
