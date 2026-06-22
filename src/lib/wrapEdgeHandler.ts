@@ -15,7 +15,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
  * separate, riskier migration (Node API + Supabase client compatibility).
  */
 export function wrapEdgeHandler(
-  edgeHandler: (req: Request) => Promise<Response>,
+  edgeHandler: (req: Request) => Promise<Response>
 ): (req: NextApiRequest, res: NextApiResponse) => Promise<void> {
   return async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
@@ -39,8 +39,7 @@ export function wrapEdgeHandler(
       };
 
       if (req.method !== 'GET' && req.method !== 'HEAD') {
-        requestOptions.body =
-          typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        requestOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
       }
 
       const request = new Request(url, requestOptions);

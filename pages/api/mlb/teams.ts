@@ -99,7 +99,7 @@ async function edgeHandler(req: Request) {
       mlbDb
         .from('pred_props')
         .select(
-          'player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts'
+          'team_id, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts'
         )
         .gte('as_of_ts', `${slateDate}T00:00:00`)
         .lte('as_of_ts', `${slateDate}T23:59:59`)
@@ -149,9 +149,9 @@ async function edgeHandler(req: Request) {
     const propsData = propsRes.data || [];
 
     // dim map (league / division / fallback name & abbr)
-    const dimMap = new Map<number, any>();
+    const dimMap = new Map<string, any>();
     dimData.forEach((d: any) => {
-      if (d.team_id != null) dimMap.set(d.team_id, d);
+      if (d.team_id != null) dimMap.set(String(d.team_id), d);
     });
 
     // Advanced team stats are split across window_kinds: pitching rate stats live
@@ -160,11 +160,15 @@ async function edgeHandler(req: Request) {
     const aggByTeamWindow = new Map<string, any>();
     aggData.forEach((a: any) => {
       if (a.team_id == null || !a.window_kind) return;
-      const key = `${a.team_id}|${a.window_kind}`;
+      const key = `${String(a.team_id)}|${a.window_kind}`;
       if (!aggByTeamWindow.has(key)) aggByTeamWindow.set(key, a);
     });
-    const aggNum = (v: any) => (v == null ? null : Number(v));
-    const mergeAgg = (teamId: number): any | null => {
+    const aggNum = (v: any) => {
+      if (v == null || v === '') return null;
+      const num = Number(v);
+      return isNaN(num) ? null : num;
+    };
+    const mergeAgg = (teamId: string): any | null => {
       const season = aggByTeamWindow.get(`${teamId}|season`);
       const hit = aggByTeamWindow.get(`${teamId}|fg_hitting`);
       const pit = aggByTeamWindow.get(`${teamId}|fg_pitching`);
@@ -193,12 +197,12 @@ async function edgeHandler(req: Request) {
     };
 
     // player_id → team_id
-    const playerToTeam = new Map<number, number>();
+    const playerToTeam = new Map<string, string>();
     (hittersRes.data || []).forEach((h: any) => {
-      if (h.player_id && h.team_id) playerToTeam.set(h.player_id, h.team_id);
+      if (h.player_id && h.team_id) playerToTeam.set(String(h.player_id), String(h.team_id));
     });
     (pitchersRes.data || []).forEach((p: any) => {
-      if (p.player_id && p.team_id) playerToTeam.set(p.player_id, p.team_id);
+      if (p.player_id && p.team_id) playerToTeam.set(String(p.player_id), String(p.team_id));
     });
 
     // ── Build per-team grade = best canonical Bet Score among today's prop edges ──
@@ -212,9 +216,9 @@ async function edgeHandler(req: Request) {
       topLine: number | null;
       isOver: boolean;
     };
-    const teamGrade = new Map<number, Grade>();
+    const teamGrade = new Map<string, Grade>();
     for (const p of propsData) {
-      const teamId = p.player_id != null ? playerToTeam.get(p.player_id) : undefined;
+      const teamId = p.team_id != null ? String(p.team_id) : (p.player_id != null ? playerToTeam.get(String(p.player_id)) : undefined);
       if (!teamId) continue;
       const inputs = betInputsFromProp(p);
       if (!inputs) continue;
@@ -243,9 +247,11 @@ async function edgeHandler(req: Request) {
     // ── Merge & filter to real MLB clubs (must have a division in dim_teams) ──
     const mergedTeams = profiles
       .map((team: any) => {
-        const dim = dimMap.get(team.team_id) || null;
-        if (!dim || !dim.division) return null; // drops AAA / All-Star / international entries
-        const g = teamGrade.get(team.team_id) || null;
+        const teamIdStr = String(team.team_id);
+        const dim = dimMap.get(teamIdStr) || null;
+        const division = team.division || dim?.division || null;
+        if (!division) return null; // drops AAA / All-Star / international entries
+        const g = teamGrade.get(teamIdStr) || null;
         const grade = g
           ? {
               score: g.score,
@@ -266,7 +272,7 @@ async function edgeHandler(req: Request) {
           abbr: team.abbr || dim.abbr || null,
           has_active_edge: !!grade,
           grade,
-          adv_stats: mergeAgg(team.team_id),
+          adv_stats: mergeAgg(String(team.team_id)),
         };
       })
       .filter((t: any) => t !== null);

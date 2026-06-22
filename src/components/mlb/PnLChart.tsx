@@ -32,21 +32,17 @@ const fmtDate = (v: string): string => {
 const fmtInt = (n: number): string => Math.round(n).toLocaleString('en-US');
 
 export default function PnLChart({ data }: PnLChartProps) {
-  const isPositive = data.length > 0 && data[data.length - 1].cum_pnl >= 0;
-  const strokeColor = isPositive ? '#00D4FF' : '#FF4444';
-  const gradientId = isPositive ? 'colorPnlPos' : 'colorPnlNeg';
+  const max = Math.max(...data.map((d) => d.cum_pnl), 0);
+  const min = Math.min(...data.map((d) => d.cum_pnl), 0);
+  const offset = max <= 0 ? 0 : min >= 0 ? 1 : max / (max - min);
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
-          <linearGradient id="colorPnlPos" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.35} />
-            <stop offset="95%" stopColor="#00D4FF" stopOpacity={0.0} />
-          </linearGradient>
-          <linearGradient id="colorPnlNeg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#FF4444" stopOpacity={0.25} />
-            <stop offset="95%" stopColor="#FF4444" stopOpacity={0.0} />
+          <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+            <stop offset={offset} stopColor="#00D4FF" stopOpacity={0.35} />
+            <stop offset={offset} stopColor="#FF4444" stopOpacity={0.35} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#2a3a4a" vertical={false} />
@@ -71,12 +67,12 @@ export default function PnLChart({ data }: PnLChartProps) {
         <Tooltip
           contentStyle={{
             background: '#0a0a15',
-            border: `1px solid ${strokeColor}`,
+            border: `1px solid #3d4f5f`,
             borderRadius: '8px',
             boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)',
             fontSize: '12px',
           }}
-          itemStyle={{ color: strokeColor, fontWeight: 700 }}
+          itemStyle={{ color: '#00D4FF', fontWeight: 700 }}
           labelStyle={{ color: '#F8FAFC', marginBottom: '4px', fontWeight: 600 }}
           formatter={(value: number, _name: string, props: any) => {
             const p = props?.payload || {};
@@ -91,11 +87,11 @@ export default function PnLChart({ data }: PnLChartProps) {
         <Area
           type="monotone"
           dataKey="cum_pnl"
-          stroke={strokeColor}
+          stroke="#00D4FF"
           strokeWidth={2.5}
           fillOpacity={1}
-          fill={`url(#${gradientId})`}
-          activeDot={{ r: 5, fill: strokeColor, stroke: '#0a0a15', strokeWidth: 2 }}
+          fill="url(#splitColor)"
+          activeDot={{ r: 5, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }}
           isAnimationActive={false}
         />
       </AreaChart>

@@ -161,16 +161,20 @@ export default function ValidationPage() {
         description="Statistical validation of Smarter.Poker's MLB prediction model. Review edge group win rates, Brier score vs. market baseline, graded prediction history, and edge calibration for the 2025 season."
         canonical="/hub/MLB-ANALYTICS/validation"
         ogImage="/images/mlb/og.png"
-      
-                jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "Dataset",
-                "name": "MLB Model Validation — Calibration & Backtesting",
-                "description": "Statistical validation of MLB prediction model calibration, Brier scores, probability sharpness, and historical backtesting results.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/validation",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
-            />
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Dataset',
+          name: 'MLB Model Validation — Calibration & Backtesting',
+          description:
+            'Statistical validation of MLB prediction model calibration, Brier scores, probability sharpness, and historical backtesting results.',
+          url: 'https://smarter.poker/hub/MLB-ANALYTICS/validation',
+          provider: {
+            '@type': 'Organization',
+            name: 'Smarter.Poker',
+            url: 'https://smarter.poker',
+          },
+        }}
+      />
 
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
 

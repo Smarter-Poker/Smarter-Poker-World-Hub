@@ -100,13 +100,21 @@ async function edgeHandler(req: Request): Promise<Response> {
           avg_clv: num(k.avg_clv),
           data_through: k.data_through ?? null,
         },
-        gate: rpcData.gate ?? { n: Number(k.total_bets) || 0, clv: (num(k.avg_clv) ?? 0).toFixed(2), roi: (num(k.overall_roi) ?? 0).toFixed(1), brier: (num(k.avg_brier) ?? 0).toFixed(3) },
+        gate: rpcData.gate ?? { 
+          n: Number(k.graded_predictions) || 0, 
+          clv: (num(k.avg_clv) ?? 0).toFixed(2), 
+          roi: (num(k.overall_roi) ?? 0).toFixed(1), 
+          brier: (num(k.avg_brier) ?? 0).toFixed(3) 
+        },
         tableData: Array.isArray(rpcData.table_data) ? rpcData.table_data : [],
         history: Array.isArray(rpcData.history) ? rpcData.history : [],
         clvTrend: Array.isArray(rpcData.clv_trend) ? rpcData.clv_trend : [],
         calibration: Array.isArray(rpcData.calibration) ? rpcData.calibration : [],
         markets: Array.isArray(rpcData.markets) ? rpcData.markets : [],
-        betTypes: Array.isArray(rpcData.bet_types) ? rpcData.bet_types : [],
+        betTypes: Array.isArray(rpcData.bet_types) ? rpcData.bet_types.map((b: any) => ({
+          ...b,
+          sparkline: Array.isArray(rpcData.clv_trend) ? rpcData.clv_trend : [] // Stub using global trend until bet-type specific trend exists
+        })) : [],
       };
     } else {
       if (rpcError) {

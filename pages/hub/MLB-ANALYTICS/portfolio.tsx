@@ -114,7 +114,7 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
 
 const SectionTitle = ({ children, tag }: { children: React.ReactNode; tag?: string }) => (
   <h2
-    className="text-[30px] font-extrabold text-white mb-4 flex items-center gap-2 capitalize tracking-widest relative z-10"
+    className="text-[30px] font-extrabold text-white mb-4 flex items-center gap-2 tracking-widest relative z-10"
     style={{ fontFamily: '"Rajdhani", sans-serif' }}
   >
     <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
@@ -164,8 +164,10 @@ export default function PortfolioPage() {
 
   const apiUrl = `/api/mlb/portfolio-full?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
 
-  const { data, error, isLoading } = useSWR(user ? apiUrl : null, fetcher, {
-    refreshInterval: 600000, // 10 min — portfolio stats update nightly
+  const { data, error, isLoading, isValidating } = useSWR(user ? apiUrl : null, fetcher, {
+    refreshInterval: 7200000, // 2 hours — portfolio stats update nightly
+    dedupingInterval: 60000,
+    keepPreviousData: true,
     revalidateOnFocus: false,
   });
 
@@ -194,12 +196,13 @@ export default function PortfolioPage() {
 
   // Only show the page-level spinner on the very first load (no cached data yet).
   const loading = (isLoading && !data) || userLoading || !user;
+  const isRefreshing = isValidating || isLoading;
 
   const csvHref = `/api/mlb/portfolio-csv?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
 
   // Kelly-vs-flat: Kelly final = last daily end_bankroll; flat from baseline view.
-  const kellyFinal =
-    equityDaily.length > 0 ? Number(equityDaily[equityDaily.length - 1].end_bankroll) : null;
+  const lastEq = equityDaily.length > 0 ? equityDaily[equityDaily.length - 1].end_bankroll : null;
+  const kellyFinal = lastEq != null && !Number.isNaN(Number(lastEq)) ? Number(lastEq) : null;
   const startBankroll = baseline ? Number(baseline.starting_bankroll) : 1000;
   const flatFinal = baseline ? Number(baseline.flat_final_bankroll) : null;
   const kellyGrowth =
@@ -380,7 +383,7 @@ export default function PortfolioPage() {
                   Current Bankroll
                 </div>
                 <div
-                  className="relative z-10 text-5xl font-extrabold text-white leading-none"
+                  className="relative z-10 text-4xl md:text-5xl font-extrabold text-white leading-none"
                   style={{
                     fontFamily: '"Rajdhani", sans-serif',
                     textShadow: '0 0 15px rgba(255,255,255,0.2)',
@@ -396,8 +399,8 @@ export default function PortfolioPage() {
                 >
                   {formatCurrency(totalPnl, true)} from start
                 </div>
-                <div className="relative z-10 text-[17px] text-slate-500 mt-1 font-bold tracking-widest capitalize">
-                  $1,000 Starting Base
+                <div className="relative z-10 text-[17px] text-slate-500 mt-1 font-bold tracking-widest">
+                  {formatCurrency(startBankroll)} Starting Base
                 </div>
               </div>
 
@@ -406,11 +409,13 @@ export default function PortfolioPage() {
                   title="TOTAL BETS"
                   value={totalBets}
                   sub={`${wins}W - ${losses}L - ${pushes}P`}
+                  isLoading={isRefreshing}
                 />
                 <MetricBox
                   title="TOTAL P&L"
                   value={formatCurrency(totalPnl, true)}
                   valueColor={totalPnl > 0 ? '#00D4FF' : totalPnl < 0 ? '#FF0055' : '#FFFFFF'}
+                  isLoading={isRefreshing}
                 />
                 <MetricBox
                   title="ROI"
@@ -418,21 +423,25 @@ export default function PortfolioPage() {
                   valueColor={
                     Number(roi || 0) > 0 ? '#00D4FF' : Number(roi || 0) < 0 ? '#FF0055' : '#FFFFFF'
                   }
+                  isLoading={isRefreshing}
                 />
                 <MetricBox
                   title="MAX DRAWDOWN"
                   value={formatPct(maxDrawdown)}
                   valueColor={Number(maxDrawdown || 0) > 0 ? '#FF0055' : '#FFFFFF'}
+                  isLoading={isRefreshing}
                 />
                 <MetricBox
                   title="PEAK BANKROLL"
                   value={formatCurrency(peakBankroll)}
                   valueColor="#00D4FF"
+                  isLoading={isRefreshing}
                 />
                 <MetricBox
                   title="WIN RATE"
                   value={`${Number(winRate || 0).toFixed(1)}%`}
                   valueColor="#FFFFFF"
+                  isLoading={isRefreshing}
                 />
               </div>
             </div>
@@ -512,7 +521,7 @@ export default function PortfolioPage() {
             {(risk || baseline || markets.length > 0 || grades.length > 0) && (
               <div className="mb-2 mt-2 flex items-center gap-3 relative z-10">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#3d4f5f] to-[#3d4f5f]" />
-                <span className="text-[17px] font-extrabold tracking-[0.2em] text-slate-500 capitalize">
+                <span className="text-[17px] font-extrabold tracking-[0.2em] text-slate-500">
                   Analytics Breakdown
                 </span>
                 <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[#3d4f5f] to-[#3d4f5f]" />
@@ -656,7 +665,7 @@ export default function PortfolioPage() {
                   <table className="w-full min-w-[460px] border-collapse text-left text-[22px]">
                     <thead>
                       <tr
-                        className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] capitalize tracking-widest text-[18px]"
+                        className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] tracking-widest text-[18px]"
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         <th className="py-3 px-4 font-semibold">Market</th>
@@ -758,7 +767,7 @@ export default function PortfolioPage() {
                   <table className="w-full min-w-[460px] border-collapse text-left text-[22px]">
                     <thead>
                       <tr
-                        className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] capitalize tracking-widest text-[18px]"
+                        className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] tracking-widest text-[18px]"
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         <th className="py-3 px-4 font-semibold">Tier</th>
@@ -887,12 +896,12 @@ export default function PortfolioPage() {
             <SectionTitle>
               Recent Bets{' '}
               <span className="text-slate-400 font-bold tracking-widest text-[18px]">
-                (LAST 20)
+                (LAST {recentBets.length || 0})
               </span>
             </SectionTitle>
 
             <div className="w-full">
-              <RecentBetsTable bets={recentBets} isLoading={isLoading && !data} />
+              <RecentBetsTable bets={recentBets} isLoading={isRefreshing} />
             </div>
 
             {/* Methodology / disclaimer */}

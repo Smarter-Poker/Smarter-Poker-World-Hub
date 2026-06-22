@@ -17,7 +17,7 @@ async function edgeHandler(req: Request) {
         const url = new URL(req.url);
         const days = url.searchParams.get('days');
         const market = url.searchParams.get('market');
-        const parsedDays = days ? parseInt(days as string, 10) : undefined;
+        const parsedDays = (days && !isNaN(parseInt(days as string, 10))) ? parseInt(days as string, 10) : undefined;
         const parsedMarket = market ? market as string : undefined;
 
         const mlbDb = getMlbSupabase();
@@ -45,7 +45,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
-        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const rawProtocol = req.headers['x-forwarded-proto'] as string || 'http';
+        const protocol = rawProtocol.split(',')[0].trim();
         const host = req.headers.host || 'localhost';
         const url = `${protocol}://${host}${req.url}`;
         
