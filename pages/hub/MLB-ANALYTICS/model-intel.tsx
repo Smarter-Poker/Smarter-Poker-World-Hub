@@ -643,10 +643,14 @@ export default function ModelIntelPage() {
           <div className="flex gap-1 bg-[#0d1117] p-1 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] mb-4">
             {CHART_RANGES.map((r) => (
               <button
-                key={r}
-                onClick={() => setChartRange(r)}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    try { navigator.vibrate(15); } catch (e) {}
+                  }
+                  setChartRange(r);
+                }}
                 aria-label={`Show ${r} P&L chart`}
-                className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all capitalize tracking-wider ${
+                className={`px-3 min-h-[44px] flex items-center justify-center rounded-md text-[11px] font-bold transition-all capitalize tracking-wider ${
                   chartRange === r
                     ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.3)]'
                     : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
@@ -764,10 +768,14 @@ export default function ModelIntelPage() {
               <div className="flex flex-wrap gap-1 bg-[#0d1117] p-1 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
                 {ACC_FILTERS.map((f) => (
                   <button
-                    key={f}
-                    onClick={() => setAccFilter(f)}
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                        try { navigator.vibrate(15); } catch (e) {}
+                      }
+                      setAccFilter(f);
+                    }}
                     aria-label={`Filter By ${f}`}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all capitalize tracking-wider ${
+                    className={`px-2.5 min-h-[44px] flex items-center justify-center rounded-md text-[11px] font-bold transition-all capitalize tracking-wider ${
                       accFilter === f
                         ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.25)]'
                         : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
@@ -780,10 +788,15 @@ export default function ModelIntelPage() {
               {/* CSV Export */}
               {filteredTable.length > 0 && (
                 <button
-                  onClick={handleExportCsv}
+                  onClick={(e) => {
+                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                      try { navigator.vibrate(15); } catch (err) {}
+                    }
+                    handleExportCsv();
+                  }}
                   aria-label="Export daily performance log as CSV"
                   title="Export As CSV"
-                  className="p-2 bg-[#0d1117] border border-[#3d4f5f] rounded-lg text-slate-400 hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all"
+                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center bg-[#0d1117] border border-[#3d4f5f] rounded-lg text-slate-400 hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                 </button>
@@ -792,7 +805,7 @@ export default function ModelIntelPage() {
           </div>
         </div>
         <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 mb-8">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             <table className="w-full text-left text-[13px] whitespace-nowrap">
               <thead>
                 <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold capitalize tracking-wider text-[10px]">

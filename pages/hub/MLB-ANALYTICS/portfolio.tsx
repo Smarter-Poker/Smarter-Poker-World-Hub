@@ -320,7 +320,7 @@ export default function PortfolioPage() {
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />
 
-      <div className="edge-to-edge-container max-w-[1000px] mx-auto px-4 py-6 relative">
+      <div className="edge-to-edge-container w-full max-w-[1000px] mx-auto px-0 md:px-4 py-6 relative">
         {/* Background Glows */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
         <div className="absolute bottom-40 left-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.02] pointer-events-none"></div>
@@ -377,7 +377,7 @@ export default function PortfolioPage() {
         ) : (
           <>
             {/* Filter Bar */}
-            <div className="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[#0d1117] p-4 rounded-xl border-[2px] border-[#3d4f5f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative z-10">
+            <div className="flex flex-wrap gap-4 mb-6 items-center justify-between bg-[#0d1117] p-4 md:rounded-xl border-y-[2px] md:border-x-[2px] border-[#3d4f5f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] relative z-10">
               <div className="flex gap-2 items-center" role="group" aria-label="Timeframe filter">
                 <span className="text-slate-400 text-[21px] font-semibold mr-2 capitalize tracking-wide">
                   Timeframe:
@@ -385,17 +385,27 @@ export default function PortfolioPage() {
                 {[7, 14, 30].map((d) => (
                   <button
                     key={d}
-                    onClick={() => setDaysFilter(d)}
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                        try { navigator.vibrate(15); } catch (e) {}
+                      }
+                      setDaysFilter(d);
+                    }}
                     aria-pressed={daysFilter === d}
-                    className={`min-h-[36px] py-1.5 px-3 rounded-md text-[21px] font-bold cursor-pointer transition-all duration-200 ${daysFilter === d ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
+                    className={`min-h-[44px] flex items-center justify-center py-1.5 px-3 rounded-md text-[21px] font-bold cursor-pointer transition-all duration-200 ${daysFilter === d ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
                   >
                     {d} DAYS
                   </button>
                 ))}
                 <button
-                  onClick={() => setDaysFilter(null)}
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                      try { navigator.vibrate(15); } catch (e) {}
+                    }
+                    setDaysFilter(null);
+                  }}
                   aria-pressed={daysFilter === null}
-                  className={`min-h-[36px] py-1.5 px-3 rounded-md text-[21px] font-bold cursor-pointer transition-all duration-200 ${daysFilter === null ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
+                  className={`min-h-[44px] flex items-center justify-center py-1.5 px-3 rounded-md text-[21px] font-bold cursor-pointer transition-all duration-200 ${daysFilter === null ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
                 >
                   Ytd
                 </button>
@@ -412,9 +422,14 @@ export default function PortfolioPage() {
                 {MARKETS.map((m) => (
                   <button
                     key={m.val}
-                    onClick={() => setMarketFilter(m.val)}
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                        try { navigator.vibrate(15); } catch (e) {}
+                      }
+                      setMarketFilter(m.val);
+                    }}
                     aria-pressed={marketFilter === m.val}
-                    className={`min-h-[36px] py-1.5 px-3 rounded-md text-[21px] font-bold cursor-pointer transition-all duration-200 ${marketFilter === m.val ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
+                    className={`min-h-[44px] flex items-center justify-center py-1.5 px-3 rounded-md text-[21px] font-bold cursor-pointer transition-all duration-200 ${marketFilter === m.val ? 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'}`}
                   >
                     {m.short}
                   </button>
