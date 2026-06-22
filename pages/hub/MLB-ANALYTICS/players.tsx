@@ -952,7 +952,7 @@ export default function PlayersPage() {
                   )}
                 </>
               ) : (
-                !fetchError && (
+                (
                   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center mt-4">
                     <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
                       <Search size={28} className="text-[#3d4f5f]" />

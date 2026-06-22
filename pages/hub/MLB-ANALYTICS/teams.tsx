@@ -437,10 +437,8 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
               </span>
             )}
           </div>
-        </Link>
-
-        {/* ── 5 Basic Stats Always Visible ── */}
-        <div className="stats-panel" style={{ marginTop: 8 }}>
+          {/* ── 5 Basic Stats Always Visible ── */}
+          <div className="stats-panel" style={{ marginTop: 8 }}>
               <div className="stat-segment">
                 <StatLabel label="ERA" color="#60A5FA" />
                 <div className="stat-value" style={{ color: adv.era != null ? statColor('ERA', adv.era) : undefined }}>
@@ -472,6 +470,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                 </div>
               </div>
             </div>
+        </Link>
 
         {/* Stats Age Indicator */}
         {adv.as_of && (

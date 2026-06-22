@@ -22,8 +22,12 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-      if (req.method !== 'POST') {
+      if (req.method !== 'POST' && req.method !== 'GET') {
           return res.status(405).json({ error: 'Method not allowed' });
+      }
+      
+      if (req.method === 'GET') {
+          res.setHeader('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60');
       }
 
       if (!SUPABASE_SERVICE_ROLE_KEY) {
@@ -84,16 +88,24 @@ export default async function handler(req, res) {
               // Poker notifications sub-flow (only if user follows pages)
               (async () => {
                   if (!followResult.data || followResult.data.length === 0) return 0;
-                  const orConditions = followResult.data.map(
-                      (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
-                  ).join(',');
-                  const { data: pageNotifs } = await sb
-                      .from('page_notifications')
-                      .select('id')
-                      .or(orConditions)
-                      .limit(100);
-                  if (!pageNotifs || pageNotifs.length === 0) return 0;
-                  const allIds = pageNotifs.map(n => n.id);
+                  
+                  // Chunk follows to avoid HTTP 414 URI Too Long errors
+                  const chunkSize = 20;
+                  const allIds = [];
+                  for (let i = 0; i < followResult.data.length; i += chunkSize) {
+                      const chunk = followResult.data.slice(i, i + chunkSize);
+                      const orConditions = chunk.map(
+                          (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
+                      ).join(',');
+                      const { data: pageNotifs } = await sb
+                          .from('page_notifications')
+                          .select('id')
+                          .or(orConditions)
+                          .limit(100);
+                      if (pageNotifs) allIds.push(...pageNotifs.map(n => n.id));
+                  }
+                  
+                  if (allIds.length === 0) return 0;
                   const { data: existingReads } = await sb
                       .from('notification_reads')
                       .select('notification_id')
