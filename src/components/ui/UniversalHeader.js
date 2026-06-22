@@ -112,9 +112,12 @@ export default function UniversalHeader({
     // ── FULL-SCREEN OVERLAY STATES ──
     const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
     const [isVip, setIsVip] = useState(() => {
-        if (_cachedHeader) return !!_cachedHeader.is_vip;
         if (typeof window === 'undefined') return false;
-        return localStorage.getItem('sp-vip-status') === 'true';
+        try { return localStorage.getItem('sp-profile-vip') === 'true'; } catch (_) { return false; }
+    });
+    const [isAdmin, setIsAdmin] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        try { return localStorage.getItem('sp-profile-admin') === 'true'; } catch (_) { return false; }
     });
     const [isMounted, setIsMounted] = useState(false);
 
@@ -176,6 +179,17 @@ export default function UniversalHeader({
             catch (_) { /* private browsing — ignore */ }
         }
     }, [liveNotificationCount]);
+
+    // ── BACKGROUND MLB ALERT SYNC (ADMIN ONLY) ──
+    useEffect(() => {
+        if (!isAdmin) return;
+        const syncAlerts = () => {
+            fetch('/api/mlb/sync-alerts', { method: 'POST' }).catch(() => {});
+        };
+        syncAlerts(); // Sync immediately on mount
+        const interval = setInterval(syncAlerts, 60000); // Polling every minute
+        return () => clearInterval(interval);
+    }, [isAdmin]);
 
     // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
     // Cache read is now synchronous in _cachedHeader above — no extra effect needed.
@@ -345,8 +359,13 @@ export default function UniversalHeader({
                             console.debug(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
                             if (result.success && result.profile && mounted) {
-                                const { diamonds, full_name, username, avatar_url, is_vip } = result.profile;
+                                const { diamonds, full_name, username, avatar_url, is_vip, is_admin } = result.profile;
                                 setDiamondBalance(diamonds ?? 0);
+                                setIsVip(!!is_vip);
+                                setIsAdmin(!!is_admin);
+                                try { localStorage.setItem('sp-profile-diamonds', String(diamonds ?? 0)); } catch (_) {}
+                                try { localStorage.setItem('sp-profile-vip', String(!!is_vip)); } catch (_) {}
+                                try { localStorage.setItem('sp-profile-admin', String(!!is_admin)); } catch (_) {}
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: avatar_url,
@@ -429,6 +448,7 @@ export default function UniversalHeader({
                             if (profile && mounted) {
                                 setDiamondBalance(profile.diamonds ?? 0);
                                 setIsVip(!!profile.is_vip);
+                                setIsAdmin(!!profile.is_admin);
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: profile.avatar_url,
@@ -585,6 +605,7 @@ export default function UniversalHeader({
                 if (result.success && result.profile) {
                     setDiamondBalance(result.profile.diamonds ?? 0);
                     setIsVip(!!result.profile.is_vip);
+                    setIsAdmin(!!result.profile.is_admin);
                     setUser(prev => ({
                         ...prev,
                         avatar: result.profile.avatar_url || prev?.avatar,
