@@ -45,7 +45,9 @@ const STAT_META: Record<string, { full: string; desc: string }> = {
   'Pyth W%':   { full: 'Pythagorean Win %', desc: 'Expected win% based on run differential. Strips out luck better than actual W%.' },
   'oWAR':      { full: 'Offensive WAR', desc: 'Total offensive Wins Above Replacement for all hitters combined.' },
   'pWAR':      { full: 'Pitching WAR', desc: 'Total pitching Wins Above Replacement for all pitchers combined.' },
-  'DRS/OAA':   { full: 'Defensive Runs Saved / Outs Above Average', desc: 'Combined defensive metric. Positive = above-average defense across the roster.' },
+  'OAA':         { full: 'Outs Above Average', desc: "Statcast's range-based fielding metric: outs made vs. an average defender. Positive is better." },
+  'Def':         { full: 'Defensive Runs (FanGraphs)', desc: 'FanGraphs total fielding runs above average. Positive = above-average team defense.' },
+  'Bullpen WHIP':{ full: 'Bullpen WHIP', desc: 'Relief-pitcher walks + hits per inning. Lower is better; a key late-game indicator.' },
 };
 
 // ── Tooltip Component ────────────────────────────────────────────────────────
@@ -128,7 +130,7 @@ const TeamLogo = ({ teamId, teamName, size = 96 }: { teamId: string; teamName: s
           flexShrink: 0,
         }}
       >
-        {teamName.substring(0, 1).toUpperCase()}
+        {(teamName || 'T').substring(0, 1).toUpperCase()}
       </div>
     );
   }
@@ -299,11 +301,11 @@ export default function TeamDetailPage() {
       }) + ' ET'
     : nextGame?.status || 'Scheduled';
   const totalLabel =
-    m?.total && m.total.line != null
+    m?.total && Number.isFinite(Number(m?.total?.line))
       ? `${m.total.side === 'OVER' ? 'Over' : m.total.side === 'UNDER' ? 'Under' : ''} ${m.total.line}`.trim()
       : 'Total';
   const runLineLabel =
-    m?.run_line && m.run_line.line != null
+    m?.run_line && Number.isFinite(Number(m?.run_line?.line))
       ? `Run Line ${Number(m.run_line.line) > 0 ? `+${m.run_line.line}` : m.run_line.line}`
       : 'Run Line';
 
@@ -629,7 +631,7 @@ export default function TeamDetailPage() {
                         <span style={{ fontSize: 9, color: '#475569', fontWeight: 700, letterSpacing: '0.1em', marginRight: 4 }}>Last 5</span>
                         {recentResults.map((g: any, i: number) => (
                           <span
-                            key={i}
+                            key={g.game_pk ?? i}
                             className="result-chip"
                             style={{
                               background: g.result === 'W' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
@@ -792,7 +794,7 @@ export default function TeamDetailPage() {
                 {/* WIN PREDICTORS */}
                 <div className="metal-panel">
                   <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <TrendingUp size={13} style={{ color: '#00D4FF' }} /> 🏆 WIN PREDICTORS
+                    <TrendingUp size={13} style={{ color: '#00D4FF' }} /> WIN PREDICTORS
                   </div>
                   <div className="stat-grid-3">
                     <StatBox label="wRC+" value={adv.wrc_plus != null ? fmtInt(adv.wrc_plus) : '-'} color="#F472B6" highlight />
@@ -820,6 +822,9 @@ export default function TeamDetailPage() {
                     {adv.bullpen_era != null && (
                       <StatBox label="Bullpen ERA" value={fmtEra(adv.bullpen_era)} color="#60A5FA" />
                     )}
+                    {adv.bullpen_whip != null && (
+                      <StatBox label="Bullpen WHIP" value={Number(adv.bullpen_whip).toFixed(2)} color="#60A5FA" />
+                    )}
                   </div>
                 </div>
 
@@ -843,7 +848,7 @@ export default function TeamDetailPage() {
                 {/* SITUATIONAL & DEFENSE */}
                 <div className="metal-panel">
                   <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Zap size={13} style={{ color: '#F59E0B' }} /> 🛡️ SITUATIONAL & DEFENSE
+                    <Zap size={13} style={{ color: '#F59E0B' }} /> SITUATIONAL & DEFENSE
                   </div>
                   <div className="stat-grid-4">
                     <StatBox label="Home Rec" value={homeRec} color="#FCD34D" />
@@ -853,17 +858,13 @@ export default function TeamDetailPage() {
                     <StatBox label="LOB%" value={adv.lob_pct != null ? `${Number(adv.lob_pct).toFixed(1)}%` : '-'} color="#94A3B8" />
                     <StatBox label="oWAR" value={adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : '-'} color="#34D399" />
                     <StatBox label="pWAR" value={adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : '-'} color="#60A5FA" />
+                    <StatBox label="OAA" value={adv.oaa != null ? (Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)) : '-'} color={adv.oaa != null ? (Number(adv.oaa) >= 0 ? '#22C55E' : '#EF4444') : 'white'} />
+                    <StatBox label="Def" value={adv.def != null ? (Number(adv.def) >= 0 ? `+${Number(adv.def).toFixed(1)}` : Number(adv.def).toFixed(1)) : '-'} color={adv.def != null ? (Number(adv.def) >= 0 ? '#22C55E' : '#EF4444') : 'white'} />
                     {adv.drs != null && (
                       <StatBox label="DRS" value={Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)} color={Number(adv.drs) >= 0 ? '#22C55E' : '#EF4444'} />
                     )}
-                    {adv.oaa != null && (
-                      <StatBox label="OAA" value={Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)} color={Number(adv.oaa) >= 0 ? '#22C55E' : '#EF4444'} />
-                    )}
                     {adv.uzr != null && (
                       <StatBox label="UZR" value={Number(adv.uzr) >= 0 ? `+${fmtInt(adv.uzr)}` : fmtInt(adv.uzr)} color={Number(adv.uzr) >= 0 ? '#22C55E' : '#EF4444'} />
-                    )}
-                    {adv.def != null && (
-                      <StatBox label="DEF" value={Number(adv.def) >= 0 ? `+${fmtInt(adv.def)}` : fmtInt(adv.def)} color={Number(adv.def) >= 0 ? '#22C55E' : '#EF4444'} />
                     )}
                   </div>
                 </div>
@@ -972,7 +973,7 @@ export default function TeamDetailPage() {
                           : prop.side || '';
                       return (
                         <div
-                          key={prop.id || idx}
+                          key={`${prop.player_id}-${prop.prop_type ?? prop.prop}-${prop.line ?? ''}-${idx}`}
                           style={{
                             padding: '14px 16px',
                             border: '1px solid #3d4f5f',
