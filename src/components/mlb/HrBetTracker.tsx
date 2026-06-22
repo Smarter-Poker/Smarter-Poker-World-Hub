@@ -77,7 +77,17 @@ export default function HrBetTracker({
         return;
       }
       const j = await res.json();
-      setBets(Array.isArray(j.bets) ? j.bets : []);
+      // Coerce numeric columns (Postgres numeric can arrive as strings) so all
+      // downstream P&L math and per-row rendering operate on real numbers.
+      setBets(
+        Array.isArray(j.bets)
+          ? j.bets.map((b: any) => ({
+              ...b,
+              stake: Number(b.stake),
+              american_odds: Number(b.american_odds),
+            }))
+          : []
+      );
       setAuthed(true);
     } catch (e: any) {
       if (e?.message !== 'not-authed') setErr('Could not load your bets.');
@@ -87,7 +97,7 @@ export default function HrBetTracker({
   }, [authFetch, playerId]);
 
   useEffect(() => {
-    if (playerId) load();
+    if (Number.isFinite(playerId)) load();
   }, [playerId, load]);
 
   const addBet = useCallback(async () => {
@@ -122,10 +132,11 @@ export default function HrBetTracker({
     async (id: number, result: Bet['result']) => {
       setBusy(true);
       try {
-        await authFetch('/api/mlb/hr-bets', {
+        const res = await authFetch('/api/mlb/hr-bets', {
           method: 'PATCH',
           body: JSON.stringify({ id, result }),
         });
+        if (!res.ok) throw new Error('patch-failed');
         await load();
       } catch {
         setErr('Could not update the bet.');
@@ -140,7 +151,8 @@ export default function HrBetTracker({
     async (id: number) => {
       setBusy(true);
       try {
-        await authFetch(`/api/mlb/hr-bets?id=${id}`, { method: 'DELETE' });
+        const res = await authFetch(`/api/mlb/hr-bets?id=${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('delete-failed');
         await load();
       } catch {
         setErr('Could not delete the bet.');

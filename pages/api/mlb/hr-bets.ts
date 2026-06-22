@@ -54,19 +54,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       const b = req.body || {};
       const player_id = parseInt(String(b.player_id), 10);
-      const stake = Number(b.stake);
+      const stake = Math.round(Number(b.stake) * 100) / 100; // 2dp to match numeric(10,2)
       const american_odds = parseInt(String(b.american_odds), 10);
       if (Number.isNaN(player_id)) return res.status(400).json({ error: 'player_id required' });
-      if (Number.isNaN(stake) || stake < 0)
+      if (Number.isNaN(stake) || stake < 0 || stake > 99999999.99)
         return res.status(400).json({ error: 'valid stake required' });
       if (Number.isNaN(american_odds) || american_odds === 0)
         return res.status(400).json({ error: 'valid american_odds required' });
+      // Bound runaway growth / scripted abuse: cap rows per user.
+      const { count: userBetCount } = await sb
+        .from('mlb_hr_bets')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      if ((userBetCount ?? 0) >= 2000) return res.status(429).json({ error: 'Bet limit reached' });
+      let team_id: number | null = null;
+      if (b.team_id != null) {
+        const t = parseInt(String(b.team_id), 10);
+        team_id = Number.isNaN(t) ? null : t;
+      }
       const result = RESULTS.includes(b.result) ? b.result : 'pending';
       const row: Record<string, unknown> = {
         user_id: userId,
         player_id,
         player_name: b.player_name ? String(b.player_name).slice(0, 120) : null,
-        team_id: b.team_id != null ? parseInt(String(b.team_id), 10) || null : null,
+        team_id,
         stake,
         american_odds,
         result,
@@ -88,8 +99,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         patch.result = b.result;
       }
       if (b.stake !== undefined) {
-        const s = Number(b.stake);
-        if (Number.isNaN(s) || s < 0) return res.status(400).json({ error: 'invalid stake' });
+        const s = Math.round(Number(b.stake) * 100) / 100;
+        if (Number.isNaN(s) || s < 0 || s > 99999999.99)
+          return res.status(400).json({ error: 'invalid stake' });
         patch.stake = s;
       }
       if (b.american_odds !== undefined) {
