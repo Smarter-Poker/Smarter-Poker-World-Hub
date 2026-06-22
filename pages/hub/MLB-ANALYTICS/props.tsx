@@ -724,7 +724,6 @@ const PropCard = React.memo(({ prop, idx, isStale, onOpen }: { prop: any; idx: n
                   Kelly: {Number(prop.kelly_pct).toFixed(1)}%
                 </span>
               )}
-              <span className="text-[13px] font-black text-[#3d4f5f] ml-auto">#{idx + 1}</span>
             </div>
 
             {/* Pitcher record inline */}
@@ -740,7 +739,8 @@ const PropCard = React.memo(({ prop, idx, isStale, onOpen }: { prop: any; idx: n
           </div>
 
           {/* Canonical Bet Score badge — or the graded result on a closed slate */}
-          <div className="flex-shrink-0 ml-auto">
+          <div className="flex-shrink-0 ml-auto flex items-center gap-2.5">
+            <span className="text-[22px] font-black text-white leading-none tracking-tight">#{idx + 1}</span>
             {prop.result ? (
               <ResultBadge result={prop.result} pnl={prop.pnl} />
             ) : isStale ? (
