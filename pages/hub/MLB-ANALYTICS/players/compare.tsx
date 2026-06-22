@@ -67,7 +67,7 @@ const PlayerPicker = ({ label, dir, selectedId, onPick, onClear }: {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${selected.player_id}/headshot/67/current`} alt={selected.full_name} loading="lazy" width={36} height={36} className="w-9 h-9 rounded-full object-cover bg-[#0d1117]" />
           <span className="text-white font-extrabold text-[15px] truncate" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{selected.full_name}</span>
-          <button onClick={onClear} className="ml-auto text-slate-500 hover:text-[#00D4FF]" aria-label="Change player"><X size={16} /></button>
+          <button onClick={onClear} className="ml-auto text-slate-500 hover:text-[#00D4FF] min-h-[44px]" aria-label="Change player"><X size={16} /></button>
         </div>
       ) : (
         <div className="relative">
@@ -77,8 +77,8 @@ const PlayerPicker = ({ label, dir, selectedId, onPick, onClear }: {
           {matches.length > 0 && (
             <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg z-50 overflow-hidden divide-y divide-[#1e2d3d]">
               {matches.map((p) => (
-                <button key={p.player_id} onClick={() => { onPick(p.player_id); setQ(''); }}
-                  className="w-full flex items-center gap-2 p-2 hover:bg-[#1a2332] text-left">
+                <button key={p.player_id} onClick={() => { try { navigator.vibrate(15); } catch(err) {}  onPick(p.player_id); setQ(''); }}
+                  className="w-full flex items-center gap-2 p-2 hover:bg-[#1a2332] text-left min-h-[44px]">
                   {p.team_id ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`} alt="" loading="lazy" width={22} height={22} className="w-[22px] h-[22px] object-contain" />
@@ -100,12 +100,14 @@ export default function ComparePage() {
   const a = router.query.a ? Number(router.query.a) : null;
   const b = router.query.b ? Number(router.query.b) : null;
 
-  const { data: dirData } = useSWR('/api/mlb/players', fetcher, { refreshInterval: 300000, revalidateOnFocus: false });
+  // Directory comes from the split hitter/pitcher endpoints (each returns { data: [...] }).
+  const { data: hitData } = useSWR('/api/mlb/hitters', fetcher, { refreshInterval: 300000, revalidateOnFocus: false });
+  const { data: pitData } = useSWR('/api/mlb/pitchers', fetcher, { refreshInterval: 300000, revalidateOnFocus: false });
   const directory: DirPlayer[] = useMemo(() => {
-    const h = (dirData?.hitters || []).map((p: any) => ({ player_id: p.player_id, full_name: p.full_name, team_id: p.team_id, type: 'hitter' as const }));
-    const pi = (dirData?.pitchers || []).map((p: any) => ({ player_id: p.player_id, full_name: p.full_name, team_id: p.team_id, type: 'pitcher' as const }));
+    const h = (hitData?.data || []).map((p: any) => ({ player_id: p.player_id, full_name: p.full_name, team_id: p.team_id, type: 'hitter' as const }));
+    const pi = (pitData?.data || []).map((p: any) => ({ player_id: p.player_id, full_name: p.full_name, team_id: p.team_id, type: 'pitcher' as const }));
     return [...h, ...pi];
-  }, [dirData]);
+  }, [hitData, pitData]);
 
   const { data: dA } = useSWR(a ? `/api/mlb/players/${a}` : null, fetcher, { revalidateOnFocus: false });
   const { data: dB } = useSWR(b ? `/api/mlb/players/${b}` : null, fetcher, { revalidateOnFocus: false });
