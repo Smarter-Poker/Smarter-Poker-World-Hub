@@ -1,52 +1,57 @@
+import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
-// Canonical pipeline stage order (engine run sequence). Used to render runs in a
-// sensible order regardless of the order rows come back from the database.
 const STAGE_ORDER = ['predict', 'push', 'grade', 'grade_props', 'track', 'alert', 'export'];
 
-const CORS_ORIGIN = process.env.VERCEL_ENV === 'production' ? 'https://smarter.poker' : '*'; // allow any origin in dev/preview
+const CORS_ORIGIN = process.env.VERCEL_ENV === 'production' ? 'https://smarter.poker' : '*';
 
-const JSON_HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': CORS_ORIGIN,
-  'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-};
-
-async function edgeHandler(req: Request) {
-  if (req.method !== 'GET' && req.method !== 'OPTIONS' && req.method !== 'HEAD') {
-    return new Response(JSON.stringify({ ok: false, error: 'Method Not Allowed' }), {
-      status: 405,
-      headers: JSON_HEADERS,
-    });
-  }
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': CORS_ORIGIN,
-        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-      },
-    });
+    return res.status(200).end();
   }
 
-  return handleRequest();
-}
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
+  }
 
-async function handleRequest() {
   try {
+    const mainDb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { user: localUser } = await getServerUserWithFallback(req, mainDb);
+    if (!localUser) return res.status(401).json({ ok: false, error: 'Auth required' });
+
+    const { data: profile } = await mainDb
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', localUser.id)
+      .maybeSingle();
+
+    if (!profile?.is_admin) {
+      return res.status(403).json({ ok: false, error: 'Admin only' });
+    }
+
     const mlbDb = getMlbSupabase();
 
-    // Single hardened RPC returns the full status dashboard payload:
-    // server_now, today, health, slate, accuracy, tier_dist, sources,
-    // alerts, table_counts, pipeline_runs (newest-first), agg_as_of.
-    const { data, error: rpcError } = await mlbDb.rpc('get_status_dashboard').maybeSingle();
+    // Timeout protection for the RPC
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Database Timeout')), 8000)
+    );
+
+    const rpcPromise = mlbDb.rpc('get_status_dashboard').maybeSingle();
+
+    const { data, error: rpcError } = (await Promise.race([rpcPromise, timeoutPromise])) as any;
 
     if (rpcError) throw rpcError;
 
     const d: any = data || {};
 
-    // Build "latest run per stage" from the newest-first pipeline_runs feed.
     const pipelineRuns: any[] = Array.isArray(d.pipeline_runs) ? d.pipeline_runs : [];
     const latestRuns: Record<string, any> = {};
     for (const run of pipelineRuns) {
@@ -64,7 +69,6 @@ async function handleRequest() {
       }
     }
 
-    // Order stages: canonical order first, then any unknown stages alphabetically.
     const presentStages = Object.keys(latestRuns);
     const stages = presentStages.sort((a, b) => {
       const ia = STAGE_ORDER.indexOf(a);
@@ -80,7 +84,6 @@ async function handleRequest() {
     let pendingCount = 0;
     for (const stage of stages) {
       const s = String(latestRuns[stage]?.status || '').toLowerCase();
-      // 'partial' counts as ok — engine writes it for incremental loads.
       if (s === 'success' || s === 'ok' || s === 'done' || s === 'partial') okCount += 1;
       else if (['error', 'failed', 'timeout', 'critical'].includes(s)) errorCount += 1;
       else if (['pending', 'running', 'started', 'in_progress'].includes(s)) pendingCount += 1;
@@ -101,8 +104,6 @@ async function handleRequest() {
       unmodeled_games: rawHealth.unmodeled_games ?? null,
       incoherent_runlines_with_bet: rawHealth.incoherent_runlines_with_bet ?? null,
     };
-    // isSystemFresh requires we actually have health data (last_refresh present).
-    // An empty health object {} means v_model_health returned no rows — that is NOT fresh.
     const isSystemFresh = !!health.last_refresh && !health.is_stale && !pipelineHasError;
 
     const rawTierDist = d.tier_dist && typeof d.tier_dist === 'object' ? d.tier_dist : {};
@@ -110,64 +111,38 @@ async function handleRequest() {
       Object.entries(rawTierDist).map(([k, v]) => [String(k).toUpperCase(), v])
     );
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        serverNow: d.server_now ?? null,
-        today: d.today ?? null,
-        aggAsOf: d.agg_as_of ?? null,
-        isSystemFresh,
-        pipeline: {
-          okCount,
-          errorCount,
-          pendingCount,
-          total: stages.length,
-          hasError: pipelineHasError,
-        },
-        health,
-        slate: d.slate && typeof d.slate === 'object' ? d.slate : {},
-        accuracy: d.accuracy && typeof d.accuracy === 'object' ? d.accuracy : {},
-        tierDist,
-        sources: Array.isArray(d.sources) ? d.sources : [],
-        alerts: Array.isArray(d.alerts) ? d.alerts : [],
-        tableCounts: d.table_counts && typeof d.table_counts === 'object' ? d.table_counts : {},
-        stages,
-        latestRuns,
-      }),
-      {
-        status: 200,
-        headers: {
-          ...JSON_HEADERS,
-          // Short edge cache: keep a live status view fresh but shield the DB
-          // from abuse. Was 60/300 which could serve a 5-min-stale status page.
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
-        },
-      }
-    );
+    res.setHeader('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60');
+
+    return res.status(200).json({
+      ok: true,
+      serverNow: d.server_now ?? null,
+      today: d.today ?? null,
+      aggAsOf: d.agg_as_of ?? null,
+      isSystemFresh,
+      pipeline: {
+        okCount,
+        errorCount,
+        pendingCount,
+        total: stages.length,
+        hasError: pipelineHasError,
+      },
+      health,
+      slate: d.slate && typeof d.slate === 'object' ? d.slate : {},
+      accuracy: d.accuracy && typeof d.accuracy === 'object' ? d.accuracy : {},
+      tierDist,
+      sources: Array.isArray(d.sources) ? d.sources : [],
+      alerts: Array.isArray(d.alerts) ? d.alerts : [],
+      tableCounts: d.table_counts && typeof d.table_counts === 'object' ? d.table_counts : {},
+      stages,
+      latestRuns,
+    });
   } catch (err: any) {
-    // Surface a safe, specific error instead of an opaque 500 so the UI can
-    // tell the user which subsystem failed and offer a retry. Returned as 200
-    // (no-store) so the client renders the message rather than throwing.
     console.error('Error fetching MLB status data:', err);
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: err && err.message ? String(err.message) : 'Failed to load status data',
-        serverNow: new Date().toISOString(),
-      }),
-      {
-        status: 200,
-        headers: {
-          ...JSON_HEADERS,
-          'Cache-Control': 'no-store',
-        },
-      }
-    );
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({
+      ok: false,
+      error: err && err.message ? String(err.message) : 'Failed to load status data',
+      serverNow: new Date().toISOString(),
+    });
   }
-}
-
-export const config = { runtime: 'edge' };
-
-export default async function handler(req: Request) {
-  return edgeHandler(req);
 }
