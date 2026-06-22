@@ -1,6 +1,6 @@
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════
    AUTH-CRITICAL FILES — BUILD-TIME EXISTENCE GUARD
-   ───────────────────────────────────────────────────────────────────────────
+   ─────────────────────────────────────────────────────────────────────────────────────────────────────────
    This block runs every time Next.js parses next.config.js (build, dev, lint).
    If any of the listed auth-flow files is missing or empty, the build dies
    IMMEDIATELY with a clear error — before Vercel can compile and ship a
@@ -21,7 +21,7 @@
      - .github/workflows/build-safety-gate.yml CHECK 8
      - scripts/pre-push-hook.sh CHECK 6 (canonical route validation)
    See docs/AUTH_FLOW.md.
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 (() => {
   const fs = require('fs');
   const path = require('path');
@@ -50,12 +50,12 @@
   if (missing.length || tooSmall.length) {
     const lines = [
       '',
-      '╔══════════════════════════════════════════════════════════════════╗',
+      '╔═════════════════════════════════════════════════════════════╗',
       '║  BUILD ABORTED — AUTH-CRITICAL FILES ARE MISSING OR TRUNCATED    ║',
-      '╠══════════════════════════════════════════════════════════════════╣',
+      '╠═════════════════════════════════════════════════════════════╣',
       '║  Without these files the live signup flow 404s. Restore from    ║',
       '║  git history before continuing. See docs/AUTH_FLOW.md.          ║',
-      '╚══════════════════════════════════════════════════════════════════╝',
+      '╚═════════════════════════════════════════════════════════════╝',
       '',
     ];
     if (missing.length) {
@@ -190,7 +190,7 @@ const nextConfig = {
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
   compress: true, // Enable gzip compression for all responses
 
-  // ─── Serverless Bundle Slimming ──────────────────────────────────────────────
+  // ─── Serverless Bundle Slimming ────────────────────────────────────────────────
   // 'standalone' output makes Next trace actual require()s and copies ONLY
   // what each API route / page needs into .next/standalone. On Vercel this
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
@@ -198,7 +198,7 @@ const nextConfig = {
   // this in dev — dev uses the default server.
   output: process.env.VERCEL ? 'standalone' : undefined,
 
-  // ─── R3F Package Transpilation ───────────────────────────────────────────────
+  // ─── R3F Package Transpilation ───────────────────────────────────────────────────
   // ESM-only packages need transpilation for proper Next.js compatibility.
   //
   // [Phase 1.2, 2026-04-21] Removed 'three' from this list. Three.js ships
@@ -219,7 +219,7 @@ const nextConfig = {
     '@smarter-poker/commander-shared',
   ],
 
-  // ─── Build Memory Optimization ───────────────────────────────────────────────
+  // ─── Build Memory Optimization ────────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
   // workerThreads offloads page compilation to separate workers (lower per-worker memory).
   // cpus limits parallel compilation to prevent 8-core machines from OOMing.
@@ -258,7 +258,7 @@ const nextConfig = {
     '@ffprobe-installer/linux-x64',
   ],
 
-  // ─── Output File Tracing — Serverless Bundle Exclusions ─────────────────
+  // ─── Output File Tracing — Serverless Bundle Exclusions ──────────────────
   // Excludes heavy packages AND all non-linux ffmpeg/ffprobe platform binaries
   // from every serverless function bundle.
   //
@@ -326,7 +326,7 @@ const nextConfig = {
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
   },
-  // ─── Dev Server Memory Management ──────────────────────────────────────────────
+  // ─── Dev Server Memory Management ────────────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
   // [HARDENED] Keep a reasonable number of pages hot — enough to avoid recompilation
   // thrashing, but not so many that it wastes GB of RAM on a 950+ page codebase.
@@ -336,7 +336,7 @@ const nextConfig = {
     pagesBufferLength: 16, // Keep 16 pages hot in memory (sufficient for active dev)
   },
 
-  // ─── TypeScript Build Config ──────────────────────────────────────────────────
+  // ─── TypeScript Build Config ───────────────────────────────────────────────────
   // ignoreDuringBuilds (eslint) is already set above. Redeclaring it silently
   // overrode the compress flag's ordering in pre-Next-14.1. Keep just typescript
   // here since the eslint one was a duplicate.
@@ -344,7 +344,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // ─── Ultimate Dev Server Hardening ──────────────────────────────────────────────
+  // ─── Ultimate Dev Server Hardening ─────────────────────────────────────────────
   // Next 14.2.3 handles 950+ pages heavily. Webpack natively monitors node_modules
   // which burns CPU and memory. We aggressively ignore 300,000+ unneeded files.
   // NOTE: `--webpack` flag in vercel.json buildCommand forces webpack bundler on
@@ -353,7 +353,7 @@ const nextConfig = {
   // It sets HMR watchOptions and resolve aliases needed for local development.
   turbopack: {},
   webpack: (config, { dev, isServer }) => {
-    // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
+    // ─── Supabase Client Resolution Fix ──────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
     // in src/lib/. Without this alias, imports with explicit .js extension
     // (e.g. from decision-bridge.js) resolve to the mock and crash the app.
@@ -406,7 +406,7 @@ const nextConfig = {
   // to enter an infinite reload loop when the .next cache is cleared, because the browser HMR
   // client expects the old Webpack hash but the server generates a new one.
 
-  // ─── next/image Optimization ───────────────────────────────────────────────
+  // ─── next/image Optimization ─────────────────────────────────────────────────
   // Allows next/image to serve optimized WebP/AVIF from these external domains.
   images: {
     remotePatterns: [
@@ -434,7 +434,7 @@ const nextConfig = {
     minimumCacheTTL: 2592000, // 30 days
   },
 
-  // ─── HTTP Security Headers ──────────────────────────────────────────────────
+  // ─── HTTP Security Headers ────────────────────────────────────────────────────
   // Applied to all routes. CSP is in Report-Only mode: violations are logged
   // to the browser console without breaking any functionality. Once violations
   // have been monitored and confirmed zero, switch to Content-Security-Policy.
@@ -618,7 +618,7 @@ const nextConfig = {
         destination: '/hub/preflop-charts/:path*',
         permanent: true,
       },
-      // ── Poker Near Me URL Migration (April 2026) ────────────────────────────────────────
+      // ── Poker Near Me URL Migration (April 2026) ───────────────────────────────────
       // Old lobby URL → new canonical lobby sub-route (301 permanent redirect)
       {
         source: '/hub/poker-near-me-lobby',
