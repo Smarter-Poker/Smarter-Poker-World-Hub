@@ -248,7 +248,7 @@ export default function PortfolioPage() {
   const { kellyFinal, startBankroll, flatFinal, kellyGrowth, flatGrowth, kellyMultiple } = React.useMemo(() => {
     const lastEq = equityDaily.length > 0 ? equityDaily[equityDaily.length - 1].end_bankroll : null;
     const kFinal = lastEq != null && !Number.isNaN(Number(lastEq)) ? Number(lastEq) : null;
-    const sBankroll = baseline ? Number(baseline.starting_bankroll) : (data?.currentBankroll ? data.currentBankroll - (data.totalPnl || 0) : 1000);
+    const sBankroll = baseline ? Number(baseline.starting_bankroll) : (data?.currentBankroll != null ? data.currentBankroll - (data.totalPnl || 0) : 1000);
     const fFinal = baseline ? Number(baseline.flat_final_bankroll) : null;
     return {
       kellyFinal: kFinal,
@@ -438,6 +438,11 @@ export default function PortfolioPage() {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-4 mb-8 relative z-10">
+              {isRefreshing && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a15]/50 backdrop-blur-sm rounded-xl">
+                  <Loader2 className="w-12 h-12 animate-spin text-[#00D4FF]" />
+                </div>
+              )}
               <div className="relative w-full lg:w-1/3 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 flex flex-col justify-center items-center shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[40px] opacity-20 animate-pulse"></div>
                 <div className="relative z-10 text-[18px] font-extrabold text-[#00D4FF] tracking-widest mb-2 capitalize">
@@ -508,6 +513,12 @@ export default function PortfolioPage() {
             </div>
 
             <SectionTitle>Equity Curve</SectionTitle>
+            <div className="relative">
+              {isRefreshing && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a15]/50 backdrop-blur-sm rounded-xl">
+                  <Loader2 className="w-12 h-12 animate-spin text-[#00D4FF]" />
+                </div>
+              )}
             <div
               className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-8 h-[350px] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden z-10"
               role="img"
@@ -578,6 +589,7 @@ export default function PortfolioPage() {
                   </ChartErrorBoundary>
                 </ResponsiveContainer>
               )}
+            </div>
             </div>
 
             {/* ───────── FULL BACKTEST ANALYTICS (filter-independent) ───────── */}
@@ -780,7 +792,7 @@ export default function PortfolioPage() {
                     const tc = tierColor(g.bet_tier);
                     return (
                       <div
-                        key={g.bet_tier}
+                        key={(g.bet_tier || '').toUpperCase()}
                         className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl p-4 flex flex-col gap-3 shadow-[0_4px_10px_rgba(0,0,0,0.3)]"
                       >
                         <div className="flex justify-between items-center border-b border-[#2a3a4a] pb-2">
@@ -792,7 +804,7 @@ export default function PortfolioPage() {
                               border: `1px solid ${tc.border}`,
                             }}
                           >
-                            {g.bet_tier}
+                            {(g.bet_tier || '').toUpperCase()}
                           </span>
                           <span className="text-slate-400 font-semibold text-[16px]">
                             {g.bets} Bets
@@ -845,7 +857,7 @@ export default function PortfolioPage() {
                         const tc = tierColor(g.bet_tier);
                         return (
                           <tr
-                            key={g.bet_tier}
+                            key={(g.bet_tier || '').toUpperCase()}
                             className="border-b border-[#2a3a4a] hover:bg-[#1a2332]/50 transition-colors"
                           >
                             <td className="py-3 px-4">
@@ -857,7 +869,7 @@ export default function PortfolioPage() {
                                   border: `1px solid ${tc.border}`,
                                 }}
                               >
-                                {g.bet_tier}
+                                {(g.bet_tier || '').toUpperCase()}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right text-slate-300">{g.bets}</td>

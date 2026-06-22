@@ -3,30 +3,34 @@ import { betScore, tier, TIER_STYLE } from "../../lib/betScore";
 export function BetScoreBadge({
   pWin,
   price,
+  score,
+  tierName,
   vol = false,
   lineupLocked = true,
   pMarket = null,
   compact = false,
   pendingLabel = "Awaiting price",
 }: {
-  pWin: number | null | undefined;
-  price: number | null | undefined;
+  pWin?: number | null;
+  price?: number | null;
+  score?: number | null;
+  tierName?: string | null;
   vol?: boolean;
   lineupLocked?: boolean;
   pMarket?: number | null;
   compact?: boolean;
   pendingLabel?: string;
 }) {
-  if (pWin == null || price == null) {
+  if (score == null && (pWin == null || price == null)) {
     return (
       <span className="rounded-[4px] bg-[linear-gradient(180deg,#0a0a15_0%,#1a2332_100%)] border border-[var(--metal-highlight)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] px-1.5 py-0.5 text-[17px] font-semibold text-slate-500 capitalize tracking-wider">
         {pendingLabel}
       </span>
     );
   }
-  const s = betScore(pWin, price, { vol, lineupLocked, pMarket });
-  const t = tier(s);
-  const st = TIER_STYLE[t];
+  const s = score ?? betScore(pWin!, price!, { vol, lineupLocked, pMarket });
+  const t = tierName ? (tierName.toUpperCase() as any) : tier(s);
+  const st = TIER_STYLE[t as keyof typeof TIER_STYLE] || TIER_STYLE['PASS'];
   return (
     <span
       title={`Bet Score ${s}/100 — ${t}`}

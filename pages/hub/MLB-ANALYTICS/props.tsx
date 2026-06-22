@@ -416,7 +416,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
               className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-sm text-[12px] font-black tracking-widest capitalize"
               style={{ background: ts.color, color: '#000' }}
             >
-              {prop.bet_tier || 'PASS'}
+              {(prop.bet_tier || 'PASS').toUpperCase()}
             </div>
           </div>
           <div className="text-center mt-1">
@@ -753,7 +753,7 @@ const PropCard = React.memo(({ prop, idx, isStale, onOpen }: { prop: any; idx: n
                 <span className="text-[20px] font-black leading-none">Pending</span>
               </span>
             ) : (
-              <BetScoreBadge pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
+              <BetScoreBadge score={prop.bet_score} tierName={prop.bet_tier} pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
             )}
           </div>
         </div>

@@ -369,7 +369,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
               className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-sm text-[16px] font-black tracking-widest capitalize"
               style={{ background: tierColor, color: '#000' }}
             >
-              {bet.bet_tier || 'BET'}
+              {(bet.bet_tier || 'BET').toUpperCase()}
             </div>
           </div>
 
@@ -1082,7 +1082,7 @@ const BetCard = ({
             {/* Overlay team logo on player image */}
             {showPlayerImg && teamLogoUrl && (
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0a0a15] rounded-full border border-[#2a3a4a] p-0.5 flex items-center justify-center z-10">
-                <img src={teamLogoUrl} alt="Team" className="w-full h-full object-contain" />
+                <img src={teamLogoUrl} alt="Team" className="w-full h-full object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://www.mlbstatic.com/team-logos/league-on-dark/1.svg'; }} />
               </div>
             )}
           </div>
