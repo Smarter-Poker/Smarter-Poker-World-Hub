@@ -109,7 +109,7 @@ async function edgeHandler(req: Request) {
       // Team defense (OAA/DRS/Def) + bullpen ERA/WHIP — one row per team_id.
       mlbDb
         .from('v_mlb_team_defense_bullpen')
-        .select('team_id, oaa, drs, def, bullpen_era, bullpen_whip'),
+        .select('team_id, oaa, drs, def, bullpen_era, bullpen_whip, hitting_war, pitching_war'),
     ]);
 
     if (profRes.error) {
@@ -200,8 +200,8 @@ async function edgeHandler(req: Request) {
         sb: aggNum(hit?.sb),
         wrc_plus: aggNum(season?.wrc_plus ?? hit?.wrc_plus),
         woba: aggNum(season?.woba ?? hit?.woba),
-        hitting_war: aggNum(season?.hitting_war ?? hit?.hitting_war),
-        pitching_war: aggNum(pit?.pitching_war),
+        hitting_war: aggNum(def.hitting_war) ?? aggNum(season?.hitting_war ?? hit?.hitting_war),
+        pitching_war: aggNum(def.pitching_war) ?? aggNum(pit?.pitching_war),
         // Defense + bullpen now sourced from v_mlb_team_defense_bullpen (agg_team cols are NULL).
         def: aggNum(def.def) ?? null,
         uzr: aggNum(season?.uzr),
