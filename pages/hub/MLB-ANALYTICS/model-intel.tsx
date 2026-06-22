@@ -1028,7 +1028,7 @@ export default function ModelIntelPage() {
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Lock-In Gate</span>{' '}
-            &mdash; The Model Must Pass All Four Thresholds (N≥300, CLV{'>'}&thinsp;0, ROI{'>'}&thinsp;&minus;3%,
+            &mdash; The Model Must Pass All Four Thresholds (N≥500, CLV{'>'}&thinsp;0, ROI{'>'}&thinsp;&minus;3%,
             Brier{'<'}0.23) Before Value Bets Are Surfaced For Real-Money Play.
           </p>
         </div>

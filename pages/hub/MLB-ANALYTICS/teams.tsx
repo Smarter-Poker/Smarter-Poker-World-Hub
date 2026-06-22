@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -59,6 +59,68 @@ const STAT_META: Record<string, { full: string; desc: string }> = {
   'pWAR':      { full: 'Pitching WAR', desc: 'Total Wins Above Replacement contributed by all pitchers. Measures combined pitching value vs. a replacement-level pitcher.' },
 };
 
+// ── Stat Color Coding (2025 MLB benchmarks) ────────────────────────────────
+function statColor(key: string, value: number | null | undefined): string {
+  if (value == null) return 'white';
+  const v = Number(value);
+  // Lower is better: [good_threshold, bad_threshold]
+  const lowerBetter: Record<string, [number, number]> = {
+    ERA:  [3.75, 4.50],
+    FIP:  [3.75, 4.25],
+    xFIP: [3.75, 4.25],
+    SIERA:[3.75, 4.25],
+  };
+  // Higher is better: [good_threshold, bad_threshold]
+  const higherBetter: Record<string, [number, number]> = {
+    OPS:    [0.760, 0.700],
+    OBP:    [0.330, 0.305],
+    SLG:    [0.435, 0.390],
+    AVG:    [0.260, 0.240],
+    'wRC+': [108,   92],
+    wOBA:   [0.330, 0.305],
+    HR:     [100,   70],
+    SB:     [70,    40],
+    oWAR:   [18,    10],
+    pWAR:   [18,    10],
+  };
+  // Zero-centered: threshold above = good, below negative = bad
+  const centered: Record<string, number> = {
+    DRS: 5, OAA: 5, UZR: 5, DEF: 5,
+  };
+  if (lowerBetter[key] != null) {
+    const [good, bad] = lowerBetter[key];
+    if (v <= good) return '#34D399';
+    if (v >= bad)  return '#EF4444';
+    return '#F59E0B';
+  }
+  if (higherBetter[key] != null) {
+    const [good, bad] = higherBetter[key];
+    if (v >= good) return '#34D399';
+    if (v <= bad)  return '#EF4444';
+    return '#F59E0B';
+  }
+  if (centered[key] != null) {
+    const t = centered[key];
+    if (v >= t)  return '#34D399';
+    if (v <= -t) return '#EF4444';
+    return '#F59E0B';
+  }
+  return 'white';
+}
+
+// ── Data Age Formatter ───────────────────────────────────────────────────────
+function getRelativeAge(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  try {
+    const date = new Date(`${String(dateStr).slice(0, 10)}T12:00:00Z`);
+    if (isNaN(date.getTime())) return null;
+    const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000);
+    if (diffDays <= 0) return 'Today';
+    if (diffDays === 1) return '1d Ago';
+    if (diffDays < 7)  return `${diffDays}d Ago`;
+    return `${Math.floor(diffDays / 7)}w Ago`;
+  } catch { return null; }
+}
 
 // ── Tooltip Component ────────────────────────────────────────────────────────
 const StatLabel = ({
@@ -68,7 +130,26 @@ const StatLabel = ({
   label: string;
   color?: string;
 }) => {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
   const meta = STAT_META[label];
+
+  // Close on outside click/tap (mobile-friendly)
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', close, true);
+    document.addEventListener('touchstart', close, true);
+    return () => {
+      document.removeEventListener('mousedown', close, true);
+      document.removeEventListener('touchstart', close, true);
+    };
+  }, [open]);
+
   if (!meta) {
     return (
       <span className="stat-label" style={{ color }}>
@@ -77,10 +158,20 @@ const StatLabel = ({
     );
   }
   return (
-    <span className="stat-tooltip-wrap">
+    <span
+      ref={wrapRef}
+      className={`stat-tooltip-wrap${open ? ' is-open' : ''}`}
+    >
       <span className="stat-label" style={{ color }}>
         {label}
-        <span className="tooltip-dot">?</span>
+        <span
+          className="tooltip-dot"
+          role="button"
+          tabIndex={0}
+          aria-label={`Info about ${label}`}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v); } }}
+        >?</span>
       </span>
       <span className="stat-tooltip-box">
         <span className="stat-tooltip-title">{meta.full}</span>
@@ -198,7 +289,7 @@ const DIVISION_ABBR: Record<string, string> = {
 };
 
 // ── Team Card ─────────────────────────────────────────────────────────────────
-const TeamCardComponent = ({ team }: { team: any }) => {
+const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLeader?: boolean }) => {
   const [expanded, setExpanded] = useState(false);
 
   const record = team.streaks?.record || '0-0';
@@ -286,6 +377,23 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                   >
                     {record} · L10 {last10}
                   </span>
+                  {isDivLeader && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: '#F59E0B',
+                        background: 'rgba(245,158,11,0.08)',
+                        border: '1px solid rgba(245,158,11,0.5)',
+                        padding: '2px 6px',
+                        borderRadius: 3,
+                        letterSpacing: '0.06em',
+                        textShadow: '0 0 8px rgba(245,158,11,0.6)',
+                      }}
+                    >
+                      ⚡ DIV LEADER
+                    </span>
+                  )}
                   {isHot && (
                     <span
                       style={{
@@ -383,6 +491,22 @@ const TeamCardComponent = ({ team }: { team: any }) => {
             </div>
         </Link>
 
+        {/* Stats Age Indicator */}
+        {adv.as_of && (
+          <div style={{ textAlign: 'right', marginTop: 5, marginBottom: 2, paddingRight: 2 }}>
+            <span style={{
+              fontSize: 9,
+              fontWeight: 700,
+              color: '#3d4f5f',
+              fontFamily: "'Rajdhani', sans-serif",
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+            }}>
+              Stats: {getRelativeAge(adv.as_of)}
+            </span>
+          </div>
+        )}
+
         {/* ── Expandable Drawer — All 20 Stats ── */}
         {team.adv_stats && (
           <div style={{ marginTop: 12 }}>
@@ -419,112 +543,97 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                   animation: 'fadeIn 0.2s ease',
                 }}
               >
-                {/* TIER 1 - Win Predictors */}
+                {/* TIER 1 — Win Predictors */}
                 <div className="drawer-section-header">🏆 WIN PREDICTORS</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
-                    <span className="drawer-label">
-                      <StatLabel label="W-L" color="#94A3B8" />
-                    </span>
+                    <span className="drawer-label"><StatLabel label="W-L" color="#94A3B8" /></span>
                     <span className="drawer-value">{record}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label">
-                      <StatLabel label="Run Diff" color="#94A3B8" />
-                    </span>
-                    <span
-                      className="drawer-value"
-                      style={{ color: runDiff == null ? 'white' : runDiff >= 0 ? '#34D399' : '#EF4444' }}
-                    >
+                    <span className="drawer-label"><StatLabel label="Run Diff" color="#94A3B8" /></span>
+                    <span className="drawer-value" style={{ color: runDiff == null ? 'white' : runDiff >= 0 ? '#34D399' : '#EF4444' }}>
                       {fmtRunDiff(runDiff)}
                     </span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label">
-                      <StatLabel label="Pyth W%" color="#94A3B8" />
-                    </span>
-                    <span className="drawer-value">
-                      {team.pyth_wpct != null ? Number(team.pyth_wpct).toFixed(3) : '-'}
-                    </span>
+                    <span className="drawer-label"><StatLabel label="Pyth W%" color="#94A3B8" /></span>
+                    <span className="drawer-value">{team.pyth_wpct != null ? Number(team.pyth_wpct).toFixed(3) : '-'}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label">
-                      <StatLabel label="wRC+" color="#94A3B8" />
-                    </span>
-                    <span className="drawer-value">{fmtInt(adv.wrc_plus)}</span>
+                    <span className="drawer-label"><StatLabel label="wRC+" color="#94A3B8" /></span>
+                    <span className="drawer-value" style={{ color: statColor('wRC+', adv.wrc_plus) }}>{fmtInt(adv.wrc_plus)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label">
-                      <StatLabel label="wOBA" color="#94A3B8" />
-                    </span>
-                    <span className="drawer-value">{fmtOps(adv.woba)}</span>
+                    <span className="drawer-label"><StatLabel label="wOBA" color="#94A3B8" /></span>
+                    <span className="drawer-value" style={{ color: statColor('wOBA', adv.woba) }}>{fmtOps(adv.woba)}</span>
                   </div>
                 </div>
 
-                {/* TIER 2 - Pitching */}
+                {/* TIER 2 — Pitching */}
                 <div className="drawer-section-header" style={{ marginTop: 16 }}>🔥 PITCHING</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="ERA" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtEra(adv.era)}</span>
+                    <span className="drawer-value" style={{ color: statColor('ERA', adv.era) }}>{fmtEra(adv.era)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="FIP" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtEra(adv.fip)}</span>
+                    <span className="drawer-value" style={{ color: statColor('FIP', adv.fip) }}>{fmtEra(adv.fip)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="xFIP" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtEra(adv.xfip)}</span>
+                    <span className="drawer-value" style={{ color: statColor('xFIP', adv.xfip) }}>{fmtEra(adv.xfip)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="SIERA" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtEra(adv.siera)}</span>
+                    <span className="drawer-value" style={{ color: statColor('SIERA', adv.siera) }}>{fmtEra(adv.siera)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="pWAR" color="#94A3B8" /></span>
-                    <span className="drawer-value">{adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : '-'}</span>
+                    <span className="drawer-value" style={{ color: statColor('pWAR', adv.pitching_war) }}>{adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : '-'}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="OAA" color="#94A3B8" /></span>
-                    <span className="drawer-value">{adv.oaa != null ? (Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)) : '-'}</span>
+                    <span className="drawer-value" style={{ color: statColor('OAA', adv.oaa) }}>{adv.oaa != null ? (Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)) : '-'}</span>
                   </div>
                 </div>
 
-                {/* TIER 3 - Offense */}
+                {/* TIER 3 — Offense */}
                 <div className="drawer-section-header" style={{ marginTop: 16 }}>⚙️ OFFENSE</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="OPS" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtOps(adv.ops)}</span>
+                    <span className="drawer-value" style={{ color: statColor('OPS', adv.ops) }}>{fmtOps(adv.ops)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="OBP" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtOps(adv.obp)}</span>
+                    <span className="drawer-value" style={{ color: statColor('OBP', adv.obp) }}>{fmtOps(adv.obp)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="SLG" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtOps(adv.slg)}</span>
+                    <span className="drawer-value" style={{ color: statColor('SLG', adv.slg) }}>{fmtOps(adv.slg)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="AVG" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtOps(adv.avg)}</span>
+                    <span className="drawer-value" style={{ color: statColor('AVG', adv.avg) }}>{fmtOps(adv.avg)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="HR" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtInt(adv.hr)}</span>
+                    <span className="drawer-value" style={{ color: statColor('HR', adv.hr) }}>{fmtInt(adv.hr)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="SB" color="#94A3B8" /></span>
-                    <span className="drawer-value">{fmtInt(adv.sb)}</span>
+                    <span className="drawer-value" style={{ color: statColor('SB', adv.sb) }}>{fmtInt(adv.sb)}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="oWAR" color="#94A3B8" /></span>
-                    <span className="drawer-value">{adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : '-'}</span>
+                    <span className="drawer-value" style={{ color: statColor('oWAR', adv.hitting_war) }}>{adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : '-'}</span>
                   </div>
                 </div>
 
-                {/* TIER 4 - Situational */}
-                <div className="drawer-section-header" style={{ marginTop: 16 }}>🛡️ SITUATIONAL</div>
+                {/* TIER 4 — Defense & Situational */}
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>🛡️ DEFENSE &amp; SITUATIONAL</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="Home" color="#94A3B8" /></span>
@@ -540,37 +649,33 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="vs .500+" color="#94A3B8" /></span>
-                    <span className="drawer-value">
-                      {team.splits?.vs_500_plus || team.streaks?.vs_500_record || '-'}
-                    </span>
+                    <span className="drawer-value">{team.splits?.vs_500_plus || team.streaks?.vs_500_record || '-'}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="1-Run W%" color="#94A3B8" /></span>
-                    <span className="drawer-value">
-                      {team.streaks?.one_run_record || '-'}
-                    </span>
+                    <span className="drawer-value">{team.streaks?.one_run_record || '-'}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="DRS" color="#94A3B8" /></span>
-                    <span className="drawer-value">
+                    <span className="drawer-value" style={{ color: statColor('DRS', adv.drs) }}>
                       {adv.drs != null ? (Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)) : '-'}
                     </span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="OAA" color="#94A3B8" /></span>
-                    <span className="drawer-value">
+                    <span className="drawer-value" style={{ color: statColor('OAA', adv.oaa) }}>
                       {adv.oaa != null ? (Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)) : '-'}
                     </span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="UZR" color="#94A3B8" /></span>
-                    <span className="drawer-value">
+                    <span className="drawer-value" style={{ color: statColor('UZR', adv.uzr) }}>
                       {adv.uzr != null ? (Number(adv.uzr) >= 0 ? `+${Number(adv.uzr).toFixed(1)}` : Number(adv.uzr).toFixed(1)) : '-'}
                     </span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="DEF" color="#94A3B8" /></span>
-                    <span className="drawer-value">
+                    <span className="drawer-value" style={{ color: statColor('DEF', adv.def) }}>
                       {adv.def != null ? (Number(adv.def) >= 0 ? `+${Number(adv.def).toFixed(1)}` : Number(adv.def).toFixed(1)) : '-'}
                     </span>
                   </div>
@@ -853,7 +958,8 @@ export default function TeamsPage({
                 font-family: inherit;
             }
             .stat-tooltip-wrap:hover .stat-tooltip-box,
-            .stat-tooltip-wrap:focus-within .stat-tooltip-box {
+            .stat-tooltip-wrap:focus-within .stat-tooltip-box,
+            .stat-tooltip-wrap.is-open .stat-tooltip-box {
                 opacity: 1;
                 visibility: visible;
             }
@@ -1385,8 +1491,8 @@ export default function TeamsPage({
                         <div className="division-header-line" />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {teams.map((team: any) => (
-                          <TeamCardComponent key={team.team_id} team={team} />
+                        {teams.map((team: any, idx: number) => (
+                          <TeamCardComponent key={team.team_id} team={team} isDivLeader={idx === 0} />
                         ))}
                       </div>
                     </div>
