@@ -11,6 +11,8 @@ import {
   TrendingUp,
   BarChart3,
   DollarSign,
+  CloudSun,
+  ClipboardList,
 } from 'lucide-react';
 import MetalFrame from '../../../../src/components/ui/MetalFrame';
 import SectionHeader from '../../../../src/components/ui/SectionHeader';
@@ -95,6 +97,15 @@ const calcAge = (birth: any): number | null => {
 // R/L/S batting or throwing hand -> full word.
 const handed = (c?: string) =>
   c === 'R' ? 'Right' : c === 'L' ? 'Left' : c === 'S' ? 'Switch' : c || '—';
+
+// 1 -> "1st", 2 -> "2nd", etc. (batting-order display).
+const ordinal = (n: any): string => {
+  const x = Number(n);
+  if (!x || isNaN(x)) return '—';
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = x % 100;
+  return x + (s[(v - 20) % 10] || s[v] || s[0]);
+};
 
 type Stat = [string, string, Fmt];
 const HITTER_GROUPS: { title: string; icon: any; stats: Stat[] }[] = [
@@ -545,6 +556,41 @@ export default function PlayerProfilePage() {
                         </div>
                       </div>
                     </div>
+
+                    {(matchup.weather || (type === 'hitter' && matchup.lineup !== undefined)) && (
+                      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {matchup.weather && (
+                          <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <CloudSun size={15} className="text-[#FFB800]" />
+                              <span className="text-[13px] font-extrabold text-slate-400 tracking-widest">Conditions</span>
+                            </div>
+                            <div className="text-white font-bold text-[14px] leading-snug mb-1">{matchup.weather.summary}</div>
+                            <div className="text-slate-500 text-[13px] font-bold">
+                              {matchup.weather.temp_f != null ? `${Math.round(matchup.weather.temp_f)}°F` : '—'}
+                              {matchup.weather.wind_mph != null ? ` · Wind ${Math.round(matchup.weather.wind_mph)} mph` : ''}
+                              {matchup.weather.humidity != null ? ` · ${Math.round(matchup.weather.humidity)}% RH` : ''}
+                              {matchup.weather.roof_state ? ` · Roof ${matchup.weather.roof_state}` : ''}
+                            </div>
+                          </div>
+                        )}
+                        {type === 'hitter' && (
+                          <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <ClipboardList size={15} className="text-[#00D4FF]" />
+                              <span className="text-[13px] font-extrabold text-slate-400 tracking-widest">Today&apos;s Status</span>
+                            </div>
+                            {matchup.lineup ? (
+                              <div className="text-white font-bold text-[14px] leading-snug">
+                                {matchup.lineup.confirmed ? 'Confirmed Starter' : 'Projected Starter'} — Batting {ordinal(matchup.lineup.batting_order)}
+                              </div>
+                            ) : (
+                              <div className="text-slate-400 font-bold text-[14px] leading-snug">Not In The Posted Lineup Yet</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {type === 'hitter' ? (
                       <>
