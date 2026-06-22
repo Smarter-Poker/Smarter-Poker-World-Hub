@@ -35,7 +35,7 @@ function getTeamName(fullName: string): string {
 function EdgeBadge({ g }: { g: GameCard }) {
   if (g.modelHome == null)
     return (
-      <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-0.5 text-[13px] font-black text-[#5a6a7a] capitalize tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+      <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-0.5 text-[17px] font-black text-[#5a6a7a] capitalize tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
         Pending
       </span>
     );
@@ -51,7 +51,7 @@ function EdgeBadge({ g }: { g: GameCard }) {
           lineupLocked={ll}
         />
         {hasKelly && (
-          <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700] px-1.5 py-0.5 text-[13px] font-black text-[#FFD700] capitalize tracking-wider shadow-[0_0_8px_rgba(255,215,0,0.2)]">
+          <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700] px-1.5 py-0.5 text-[17px] font-black text-[#FFD700] capitalize tracking-wider shadow-[0_0_8px_rgba(255,215,0,0.2)]">
             {g.bet.kelly_pct}%
           </span>
         )}
@@ -99,7 +99,7 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
     return (
       <div className="fixed bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-[#0d1117] border border-[#3d4f5f] rounded-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] z-50 pointer-events-none">
         <div className="w-2 h-2 rounded-full bg-[#3d4f5f]" />
-        <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize ">
+        <span className="text-[17px] font-black text-[#5a6a7a] tracking-widest capitalize ">
           System Sync
         </span>
       </div>
@@ -115,7 +115,7 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
       className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] rounded-sm shadow-[0_0_15px_rgba(0,212,255,0.4)] z-50 cursor-pointer hover:bg-[#00D4FF] group transition-all animate-pulse"
     >
       <div className="w-2.5 h-2.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#00D4FF] group-hover:bg-[#0d1117]" />
-      <span className="text-[14px] font-black text-[#00D4FF] tracking-widest capitalize  group-hover:text-[#0d1117]">
+      <span className="text-[18px] font-black text-[#00D4FF] tracking-widest capitalize  group-hover:text-[#0d1117]">
         Sync New Data
       </span>
     </button>
@@ -238,23 +238,23 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
               title={factors}
               className={`flex flex-col items-center justify-center rounded-sm border px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
             >
-              <span className="text-[16px] font-black capitalize tracking-widest text-[#7a8a9a] mb-1.5 opacity-90">
+              <span className="text-[21px] font-black capitalize tracking-widest text-[#7a8a9a] mb-1.5 opacity-90">
                 {label}
               </span>
               <div className="flex flex-col items-center justify-center w-full">
                 <span
-                  className={`text-[36px] font-black leading-none text-slate-200 font-sans tracking-tight`}
+                  className={`text-[47px] font-black leading-none text-slate-200 font-sans tracking-tight`}
                 >
                   {score > 0 ? score : '—'}
                 </span>
                 <span
-                  className={`text-[18px] font-black capitalize tracking-widest mt-1.5 text-center leading-tight ${st.text} drop-shadow-sm`}
+                  className={`text-[23px] font-black capitalize tracking-widest mt-1.5 text-center leading-tight ${st.text} drop-shadow-sm`}
                 >
                   {score > 0 ? rec : 'PASS'}
                 </span>
                 {score > 0 && label === 'Money Line' && (
                   <span
-                    className={`text-[14px] font-black tracking-widest capitalize mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-500'}`}
+                    className={`text-[18px] font-black tracking-widest capitalize mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-500'}`}
                   >
                     {ev > 0 ? '+' : ''}
                     {ev}% EV
@@ -282,7 +282,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
             router.push(`/hub/MLB-ANALYTICS/props?game=${g.gamePk}`);
           }
         }}
-        className="flex items-center justify-center gap-2 w-full py-2 bg-[#0a0a15] border border-[#2a3a4a] rounded-sm text-[14px] font-black capitalize tracking-widest text-[#8a9ba8] hover:border-[#00D4FF] hover:text-[#00D4FF] hover:shadow-[0_0_10px_rgba(0,212,255,0.1)] transition-all cursor-pointer select-none"
+        className="flex items-center justify-center gap-2 w-full py-2 bg-[#0a0a15] border border-[#2a3a4a] rounded-sm text-[18px] font-black capitalize tracking-widest text-[#8a9ba8] hover:border-[#00D4FF] hover:text-[#00D4FF] hover:shadow-[0_0_10px_rgba(0,212,255,0.1)] transition-all cursor-pointer select-none"
       >
         <span>See Prop Bets</span>
         <span className="text-[#3d4f5f] group-hover:text-[#00D4FF]">→</span>
@@ -325,7 +325,7 @@ function FilterBar({
           className={`w-2 h-2 rounded-full ${filters.actionable ? 'bg-[#00D4FF] shadow-[0_0_8px_#00D4FF]' : 'bg-[#2a3a4a]'}`}
         />
         <span
-          className={`text-[14px] font-black capitalize tracking-widest ${filters.actionable ? 'text-[#00D4FF]' : 'text-[#5a6a7a]'}`}
+          className={`text-[18px] font-black capitalize tracking-widest ${filters.actionable ? 'text-[#00D4FF]' : 'text-[#5a6a7a]'}`}
         >
           Actionable ({edgesCount})
         </span>
@@ -344,7 +344,7 @@ function FilterBar({
           className={`w-2 h-2 rounded-full ${filters.propsOnly ? 'bg-[#00BFFF] shadow-[0_0_8px_#00BFFF]' : 'bg-[#2a3a4a]'}`}
         />
         <span
-          className={`text-[14px] font-black capitalize tracking-widest ${filters.propsOnly ? 'text-[#00BFFF]' : 'text-[#5a6a7a]'}`}
+          className={`text-[18px] font-black capitalize tracking-widest ${filters.propsOnly ? 'text-[#00BFFF]' : 'text-[#5a6a7a]'}`}
         >
           Player Props
         </span>
@@ -352,13 +352,13 @@ function FilterBar({
 
       {/* Min Edge */}
       <div className="flex items-center gap-2 ml-auto bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm px-2 py-1 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] hover:border-[#3d4f5f] transition-colors">
-        <span className="text-[13px] font-black capitalize tracking-widest text-[#5a6a7a]">
+        <span className="text-[17px] font-black capitalize tracking-widest text-[#5a6a7a]">
           Min Edge:
         </span>
         <select
           value={filters.minEdge}
           onChange={(e) => onFilter({ ...filters, minEdge: parseFloat(e.target.value) })}
-          className="bg-transparent border-none text-[16px] font-black text-[#00D4FF] outline-none cursor-pointer capitalize tracking-wider"
+          className="bg-transparent border-none text-[21px] font-black text-[#00D4FF] outline-none cursor-pointer capitalize tracking-wider"
         >
           <option value="0" className="bg-[#0d1117] text-[#00D4FF]">
             Any
@@ -462,7 +462,7 @@ export default function MlbSlatePage() {
           <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" />
 
           <h1
-            className="text-[39px] font-black tracking-[0.2em] capitalize text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] text-center"
+            className="text-[51px] font-black tracking-[0.2em] capitalize text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] text-center"
             style={{ fontFamily: "'Rajdhani', sans-serif" }}
           >
             MLB Analytics{' '}
@@ -470,7 +470,7 @@ export default function MlbSlatePage() {
           </h1>
 
           <div className="flex flex-col items-center mt-3 mb-4 gap-3">
-            <p className="text-[16px] text-[#5a6a7a] font-bold tracking-widest capitalize bg-[#0d1117] px-3 py-1 rounded-sm border border-[#2a3a4a] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
+            <p className="text-[21px] text-[#5a6a7a] font-bold tracking-widest capitalize bg-[#0d1117] px-3 py-1 rounded-sm border border-[#2a3a4a] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
               {isLoading ? 'Loading...' : `SYS.DATE: ${date ?? 'NO DATA'}`}
               {!isLoading && (
                 <>
@@ -483,7 +483,7 @@ export default function MlbSlatePage() {
 
           <Link
             href="/hub/MLB-ANALYTICS/best-bets"
-            className="block w-full text-center relative overflow-hidden bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] hover:bg-[#00D4FF] text-[#00D4FF] font-black capitalize tracking-[0.2em] text-[16px] py-2.5 transition-all shadow-[0_0_15px_rgba(0,212,255,0.2),inset_0_1px_2px_rgba(255,255,255,0.1)] group rounded-sm"
+            className="block w-full text-center relative overflow-hidden bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] hover:bg-[#00D4FF] text-[#00D4FF] font-black capitalize tracking-[0.2em] text-[21px] py-2.5 transition-all shadow-[0_0_15px_rgba(0,212,255,0.2),inset_0_1px_2px_rgba(255,255,255,0.1)] group rounded-sm"
           >
             <span className="relative z-10 group-hover:text-[#0a0a15]">
               Execute Today&apos;s Best Bets
@@ -493,7 +493,7 @@ export default function MlbSlatePage() {
 
           <Link
             href="/hub/MLB-ANALYTICS/model-intel"
-            className="block w-full text-center relative overflow-hidden bg-[#0d1117] border border-[#3d4f5f] hover:border-[#00D4FF] text-[#5a6a7a] hover:text-[#00D4FF] font-black capitalize tracking-[0.2em] text-[14px] py-2 mt-2 transition-all rounded-sm group"
+            className="block w-full text-center relative overflow-hidden bg-[#0d1117] border border-[#3d4f5f] hover:border-[#00D4FF] text-[#5a6a7a] hover:text-[#00D4FF] font-black capitalize tracking-[0.2em] text-[18px] py-2 mt-2 transition-all rounded-sm group"
           >
             <span className="relative z-10">View Model Intel &amp; Track Record</span>
             <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-[#00D4FF]/10 to-transparent skew-x-[45deg] group-hover:left-[200%] transition-all duration-700 ease-in-out" />
@@ -507,10 +507,10 @@ export default function MlbSlatePage() {
         {slateStale && !fetchError && (
           <div className="mx-4 mt-5 rounded-sm border-2 border-amber-500/50 bg-[#1a1500] px-4 py-3 shadow-[0_0_15px_rgba(245,158,11,0.1),inset_0_2px_4px_rgba(0,0,0,0.5)] relative overflow-hidden">
             <div className="absolute left-0 top-0 w-1 h-full bg-amber-500 shadow-[0_0_10px_#f59e0b]" />
-            <p className="text-[16px] font-black tracking-widest capitalize text-amber-500">
+            <p className="text-[21px] font-black tracking-widest capitalize text-amber-500">
               Warning: Showing {date}
             </p>
-            <p className="text-[14px] text-amber-600/70 mt-1 font-bold capitalize tracking-wider">
+            <p className="text-[18px] text-amber-600/70 mt-1 font-bold capitalize tracking-wider">
               Today&apos;s slate ({CST_TODAY}) is not initialized. Awaiting market data.
             </p>
           </div>
@@ -519,10 +519,10 @@ export default function MlbSlatePage() {
         {fetchError && (
           <div className="mx-4 mt-5 rounded-sm border-2 border-red-500/50 bg-[#1a0a0a] px-4 py-3 shadow-[0_0_15px_rgba(239,68,68,0.1),inset_0_2px_4px_rgba(0,0,0,0.5)] relative">
             <div className="absolute left-0 top-0 w-1 h-full bg-red-500 shadow-[0_0_10px_#ef4444]" />
-            <p className="text-[16px] font-black tracking-widest capitalize text-red-500">
+            <p className="text-[21px] font-black tracking-widest capitalize text-red-500">
               System Error
             </p>
-            <p className="text-[14px] text-red-400 mt-1 font-bold tracking-wider">
+            <p className="text-[18px] text-red-400 mt-1 font-bold tracking-wider">
               Failed to establish secure connection to data vault. Retrying...
             </p>
           </div>
@@ -535,7 +535,7 @@ export default function MlbSlatePage() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center mt-20">
             <div className="w-8 h-8 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin mb-4" />
-            <span className="text-[#5a6a7a]  font-black tracking-widest text-[13px] capitalize">
+            <span className="text-[#5a6a7a]  font-black tracking-widest text-[17px] capitalize">
               Initializing Slate Data...
             </span>
           </div>
@@ -545,7 +545,7 @@ export default function MlbSlatePage() {
         {!isLoading && slate.length === 0 && !fetchError && (
           <div className="mx-4 mt-8 flex flex-col items-center justify-center p-8 border-2 border-dashed border-[#3d4f5f] rounded-sm bg-[#0d1117] opacity-60">
             <div className="w-8 h-8 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin mb-3" />
-            <p className="text-[17px] font-black tracking-widest capitalize text-[#5a6a7a]">
+            <p className="text-[22px] font-black tracking-widest capitalize text-[#5a6a7a]">
               {filters.actionable
                 ? 'Zero Actionable Targets Detected'
                 : 'Awaiting Nightly Pipeline Payload...'}
@@ -575,34 +575,34 @@ export default function MlbSlatePage() {
                 <div className="flex items-center justify-between mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
                   <div className="flex flex-col">
                     <span
-                      className="text-[20px] text-white font-black tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]"
+                      className="text-[26px] text-white font-black tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]"
                       style={{ fontFamily: "'Rajdhani', sans-serif" }}
                     >
                       {g.away} @ {g.home}
                     </span>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       {/* SGP badge */}
-                      <span className="rounded-sm bg-[#1a2030] border border-[#3d4f5f] px-1.5 py-[2px] text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest">
+                      <span className="rounded-sm bg-[#1a2030] border border-[#3d4f5f] px-1.5 py-[2px] text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest">
                         Sgp
                       </span>
                       {/* Game ID */}
-                      <span className="text-[12px] text-[#3d4f5f]  font-black">ID:{g.gamePk}</span>
+                      <span className="text-[16px] text-[#3d4f5f]  font-black">ID:{g.gamePk}</span>
                       {/* Lineup state */}
                       {g.lineupState === 'confirmed' ? (
-                        <span className="rounded-sm bg-[#001a0a] border border-[#00C853]/50 px-1.5 py-[2px] text-[12px] font-black text-[#00C853] capitalize tracking-widest">
+                        <span className="rounded-sm bg-[#001a0a] border border-[#00C853]/50 px-1.5 py-[2px] text-[16px] font-black text-[#00C853] capitalize tracking-widest">
                           Confirmed
                         </span>
                       ) : g.lineupState === 'pending' ? (
-                        <span className="rounded-sm bg-[#1a1000] border border-[#FFA000]/50 px-1.5 py-[2px] text-[12px] font-black text-[#FFA000] capitalize tracking-widest">
+                        <span className="rounded-sm bg-[#1a1000] border border-[#FFA000]/50 px-1.5 py-[2px] text-[16px] font-black text-[#FFA000] capitalize tracking-widest">
                           Pending
                         </span>
                       ) : (
-                        <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-[2px] text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest">
+                        <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-[2px] text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest">
                           Awaiting Price
                         </span>
                       )}
                       {/* Status */}
-                      <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-[2px] text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest">
+                      <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-[2px] text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest">
                         Projected
                       </span>
                     </div>
@@ -611,7 +611,7 @@ export default function MlbSlatePage() {
                   {/* First pitch time */}
                   {g.firstPitch && (
                     <span
-                      className="text-[17px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
+                      className="text-[22px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
                       style={{ fontFamily: "'Rajdhani', sans-serif" }}
                     >
                       {new Date(g.firstPitch).toLocaleTimeString('en-US', {
@@ -641,24 +641,24 @@ export default function MlbSlatePage() {
                             className="h-full w-full object-contain brightness-125"
                           />
                         ) : (
-                          <span className="text-[13px] text-[#5a6a7a] font-black">
+                          <span className="text-[17px] text-[#5a6a7a] font-black">
                             {g.away?.slice(0, 3)}
                           </span>
                         )}
                       </div>
                       <div className="flex flex-col leading-tight whitespace-nowrap min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-[23px] font-black text-white tracking-wide group-hover:text-[#00D4FF] transition-colors">
+                          <span className="text-[30px] font-black text-white tracking-wide group-hover:text-[#00D4FF] transition-colors">
                             {getTeamName(g.away)}
                           </span>
                           {g.awayRecord && (
-                            <span className="text-[23px] text-[#8a9ba8] font-bold capitalize">
+                            <span className="text-[30px] text-[#8a9ba8] font-bold capitalize">
                               {g.awayRecord.wins}-{g.awayRecord.losses}
                               {g.awayStreak ? ` [${g.awayStreak}]` : ''}
                             </span>
                           )}
                         </div>
-                        <span className="text-[23px] text-[#8a9ba8] font-bold capitalize truncate">
+                        <span className="text-[30px] text-[#8a9ba8] font-bold capitalize truncate">
                           P:{' '}
                           {g.awayStarter
                             ? `${g.awayStarter.name}${g.awayStarter.wins != null ? ` (${g.awayStarter.wins}-${g.awayStarter.losses}, ${g.awayStarter.era?.toFixed(2)})` : ''}`
@@ -680,24 +680,24 @@ export default function MlbSlatePage() {
                             className="h-full w-full object-contain brightness-125"
                           />
                         ) : (
-                          <span className="text-[13px] text-[#5a6a7a] font-black">
+                          <span className="text-[17px] text-[#5a6a7a] font-black">
                             {g.home?.slice(0, 3)}
                           </span>
                         )}
                       </div>
                       <div className="flex flex-col leading-tight whitespace-nowrap min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-[23px] font-black text-white tracking-wide group-hover:text-[#00D4FF] transition-colors">
+                          <span className="text-[30px] font-black text-white tracking-wide group-hover:text-[#00D4FF] transition-colors">
                             {getTeamName(g.home)}
                           </span>
                           {g.homeRecord && (
-                            <span className="text-[23px] text-[#8a9ba8] font-bold capitalize">
+                            <span className="text-[30px] text-[#8a9ba8] font-bold capitalize">
                               {g.homeRecord.wins}-{g.homeRecord.losses}
                               {g.homeStreak ? ` [${g.homeStreak}]` : ''}
                             </span>
                           )}
                         </div>
-                        <span className="text-[23px] text-[#8a9ba8] font-bold capitalize truncate">
+                        <span className="text-[30px] text-[#8a9ba8] font-bold capitalize truncate">
                           P:{' '}
                           {g.homeStarter
                             ? `${g.homeStarter.name}${g.homeStarter.wins != null ? ` (${g.homeStarter.wins}-${g.homeStarter.losses}, ${g.homeStarter.era?.toFixed(2)})` : ''}`
@@ -712,14 +712,14 @@ export default function MlbSlatePage() {
                     {/* Spread */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[16px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgAwaySpreadLine != null
                             ? g.avgAwaySpreadLine > 0
                               ? `+${g.avgAwaySpreadLine}`
                               : g.avgAwaySpreadLine
                             : '—'}
                         </span>
-                        <span className="text-[17px] font-black text-white leading-none ">
+                        <span className="text-[22px] font-black text-white leading-none ">
                           {g.avgAwaySpreadOdds != null
                             ? g.avgAwaySpreadOdds > 0
                               ? `+${g.avgAwaySpreadOdds}`
@@ -728,14 +728,14 @@ export default function MlbSlatePage() {
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[16px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgHomeSpreadLine != null
                             ? g.avgHomeSpreadLine > 0
                               ? `+${g.avgHomeSpreadLine}`
                               : g.avgHomeSpreadLine
                             : '—'}
                         </span>
-                        <span className="text-[17px] font-black text-white leading-none ">
+                        <span className="text-[22px] font-black text-white leading-none ">
                           {g.avgHomeSpreadOdds != null
                             ? g.avgHomeSpreadOdds > 0
                               ? `+${g.avgHomeSpreadOdds}`
@@ -748,7 +748,7 @@ export default function MlbSlatePage() {
                     {/* Moneyline */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[18px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                        <span className="text-[23px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
                           {g.avgAwayLine != null
                             ? g.avgAwayLine > 0
                               ? `+${g.avgAwayLine}`
@@ -757,7 +757,7 @@ export default function MlbSlatePage() {
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[18px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                        <span className="text-[23px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
                           {g.avgHomeLine != null
                             ? g.avgHomeLine > 0
                               ? `+${g.avgHomeLine}`
@@ -770,10 +770,10 @@ export default function MlbSlatePage() {
                     {/* Total */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[16px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgTotalLine != null ? `O ${g.avgTotalLine}` : '—'}
                         </span>
-                        <span className="text-[17px] font-black text-white leading-none ">
+                        <span className="text-[22px] font-black text-white leading-none ">
                           {g.avgOverOdds != null
                             ? g.avgOverOdds > 0
                               ? `+${g.avgOverOdds}`
@@ -782,10 +782,10 @@ export default function MlbSlatePage() {
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[16px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgTotalLine != null ? `U ${g.avgTotalLine}` : '—'}
                         </span>
-                        <span className="text-[17px] font-black text-white leading-none ">
+                        <span className="text-[22px] font-black text-white leading-none ">
                           {g.avgUnderOdds != null
                             ? g.avgUnderOdds > 0
                               ? `+${g.avgUnderOdds}`
@@ -806,7 +806,7 @@ export default function MlbSlatePage() {
 
         {/* ── Footer ─────────────────────────────────────────────── */}
         <div className="mt-12 px-4 py-4 text-center border-t-2 border-[#2a3a4a] bg-[#0d1117] shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)]">
-          <p className="text-[13px] font-black tracking-widest capitalize text-[#5a6a7a] ">
+          <p className="text-[17px] font-black tracking-widest capitalize text-[#5a6a7a] ">
             {'// SYSTEM ALERTS: ANALYSIS ONLY. PROBABILITIES ARE ALGORITHMIC ESTIMATES.'}
           </p>
         </div>

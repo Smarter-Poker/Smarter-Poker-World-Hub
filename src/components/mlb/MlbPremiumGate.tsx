@@ -44,18 +44,18 @@ export default function MlbPremiumGate({ children, featureName }: MlbPremiumGate
             {/* Absolute overlay over the fake content */}
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 bg-black/60 backdrop-blur-[2px]">
                 <div className="bg-gradient-to-br from-[#1a1a3e] to-[#0a0a2a] p-8 rounded-2xl max-w-md w-full border border-yellow-500/30 shadow-[0_16px_48px_rgba(0,0,0,0.6),0_0_60px_rgba(255,215,0,0.05)] text-center">
-                    <div className="w-16 h-16 rounded-full mx-auto mb-4 bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center text-[39px] shadow-[0_4px_20px_rgba(255,215,0,0.3)]">
+                    <div className="w-16 h-16 rounded-full mx-auto mb-4 bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center text-[51px] shadow-[0_4px_20px_rgba(255,215,0,0.3)]">
                         <Lock size={28} className="text-black" />
                     </div>
-                    <h2 className="text-[#E4E6EB] text-[31px] font-extrabold mb-2 tracking-wide">
+                    <h2 className="text-[#E4E6EB] text-[40px] font-extrabold mb-2 tracking-wide">
                         VIP Exclusive
                     </h2>
-                    <p className="text-[#B0B3B8] text-[18px] leading-relaxed mb-6">
+                    <p className="text-[#B0B3B8] text-[23px] leading-relaxed mb-6">
                         <strong className="text-[#FFD700] font-bold">{featureName}</strong> is a proprietary model output. 
                         Upgrade to VIP to unlock unlimited access to the full MLB intelligence suite!
                     </p>
                     <Link href="/hub/diamond-store?tab=vip"
-                        className="block w-full py-3.5 px-5 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black font-extrabold text-[20px] shadow-[0_4px_16px_rgba(255,215,0,0.3)] transition-transform hover:scale-[1.02]"
+                        className="block w-full py-3.5 px-5 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black font-extrabold text-[26px] shadow-[0_4px_16px_rgba(255,215,0,0.3)] transition-transform hover:scale-[1.02]"
                     >
                         Get VIP Membership
                     </Link>

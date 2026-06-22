@@ -634,12 +634,12 @@ export default function TeamsPage({
               style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }}
             />
             <h2
-              className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10"
+              className="text-[40px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               System Error
             </h2>
-            <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
+            <p className="text-[#FF4444] font-bold capitalize tracking-widest text-[14px] relative z-10">
               Failed To Load Teams Database. Please Try Again Later.
             </p>
           </div>

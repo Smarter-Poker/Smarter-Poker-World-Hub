@@ -215,14 +215,14 @@ export default function TeamDetailPage() {
           <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
             <Shield className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
-            <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+            <h2 className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
               System Error
             </h2>
-            <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
+            <p className="text-[#FF4444] font-bold capitalize tracking-widest text-[14px] relative z-10">
               Failed to load Team Details. Please try again later.
             </p>
-            <Link href="/hub/MLB-ANALYTICS/teams" className="mt-6 inline-block bg-[#1a2332] text-white px-6 py-2 rounded-sm border border-[#3d4f5f] text-[10px] font-extrabold tracking-widest uppercase hover:bg-[#2a3a4a] relative z-10">
-              BACK TO TEAMS
+            <Link href="/hub/MLB-ANALYTICS/teams" className="mt-6 inline-block bg-[#1a2332] text-white px-6 py-2 rounded-sm border border-[#3d4f5f] text-[13px] font-extrabold tracking-widest capitalize hover:bg-[#2a3a4a] relative z-10">
+              Back To Teams
             </Link>
           </div>
         </main>
@@ -252,7 +252,7 @@ export default function TeamDetailPage() {
         <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
         <MlbSubNav />
         <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[50vh]">
-          <h2 className="text-xl font-extrabold font-['Rajdhani'] text-white mb-4">Team Not Found</h2>
+          <h2 className="text-[26px] font-extrabold font-['Rajdhani'] text-white mb-4">Team Not Found</h2>
           <Link href="/hub/MLB-ANALYTICS/teams" className="text-[#00D4FF] underline">Return to Teams</Link>
         </div>
         <BottomNavBar />
@@ -347,7 +347,7 @@ export default function TeamDetailPage() {
           margin-bottom: 16px;
           border-bottom: 1px solid rgba(61,79,95,0.5);
           padding-bottom: 8px;
-          text-transform: uppercase;
+          text-transform: capitalize;
           font-family: 'Rajdhani', sans-serif;
         }
         /* ── Stat Boxes ── */
@@ -415,7 +415,7 @@ export default function TeamDetailPage() {
           letter-spacing: 0.1em;
           color: #64748B;
           cursor: help;
-          text-transform: uppercase;
+          text-transform: capitalize;
         }
         .detail-tooltip-dot {
           display: inline-flex;
@@ -501,7 +501,7 @@ export default function TeamDetailPage() {
           font-size: 10px;
           font-weight: 800;
           letter-spacing: 0.12em;
-          text-transform: uppercase;
+          text-transform: capitalize;
           cursor: pointer;
           white-space: nowrap;
           transition: all 0.2s ease;
@@ -560,7 +560,7 @@ export default function TeamDetailPage() {
           font-weight: 800;
           color: #475569;
           letter-spacing: 0.18em;
-          text-transform: uppercase;
+          text-transform: capitalize;
           white-space: nowrap;
           font-family: 'Rajdhani', sans-serif;
         }
@@ -575,7 +575,7 @@ export default function TeamDetailPage() {
         {/* Back Button */}
         <Link
           href="/hub/MLB-ANALYTICS/teams"
-          className="inline-flex items-center text-sm font-bold tracking-wider text-[#94A3B8] hover:text-[#00D4FF] transition-colors mb-6 uppercase gap-1"
+          className="inline-flex items-center text-[18px] font-bold tracking-wider text-[#94A3B8] hover:text-[#00D4FF] transition-colors mb-6 capitalize gap-1"
         >
           <ChevronLeft size={16} /> Back to Teams
         </Link>
@@ -611,7 +611,7 @@ export default function TeamDetailPage() {
                     {/* Recent W/L strip */}
                     {recentResults.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                        <span style={{ fontSize: 9, color: '#475569', fontWeight: 700, letterSpacing: '0.1em', marginRight: 4 }}>LAST 5</span>
+                        <span style={{ fontSize: 9, color: '#475569', fontWeight: 700, letterSpacing: '0.1em', marginRight: 4 }}>Last 5</span>
                         {recentResults.map((g: any, i: number) => (
                           <span
                             key={i}
@@ -641,7 +641,7 @@ export default function TeamDetailPage() {
                     { label: 'Run Diff', value: fmtRunDiff(runDiff), color: runDiff == null ? 'white' : Number(runDiff) >= 0 ? '#22C55E' : '#EF4444' },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ background: '#000', padding: '10px 12px', borderRadius: 8, border: '1px solid #1a2332' }}>
-                      <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', marginBottom: 4, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <StatTooltipLabel label={label} />
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 900, color, fontFamily: "'Rajdhani', sans-serif" }}>
@@ -678,11 +678,11 @@ export default function TeamDetailPage() {
                   <div className="matchup-panel">
                     <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Swords size={13} style={{ color: '#00D4FF' }} />
-                      NEXT MATCHUP
+                      Next Matchup
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                       <div>
-                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'capitalize', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                           {nextGame.is_home
                             ? <><Home size={11} style={{ color: '#00D4FF' }} /> Home vs</>
                             : <><Plane size={11} style={{ color: '#F59E0B' }} /> Away @</>
@@ -705,7 +705,7 @@ export default function TeamDetailPage() {
                           {matchupTime}
                         </div>
                         {nextGame.status && nextGame.status !== 'Scheduled' && (
-                          <div style={{ fontSize: 10, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.1em', marginTop: 4, textTransform: 'uppercase' }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.1em', marginTop: 4, textTransform: 'capitalize' }}>
                             {nextGame.status}
                           </div>
                         )}
@@ -732,7 +732,7 @@ export default function TeamDetailPage() {
                 {/* PITCHING METRICS */}
                 <div className="metal-panel">
                   <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Activity size={13} style={{ color: '#60A5FA' }} /> PITCHING METRICS
+                    <Activity size={13} style={{ color: '#60A5FA' }} /> Pitching Metrics
                   </div>
                   <div className="stat-grid-4">
                     <StatBox label="Era" value={fmtEra(adv.era)} color="white" />
@@ -749,7 +749,7 @@ export default function TeamDetailPage() {
                 {/* HITTING METRICS */}
                 <div className="metal-panel">
                   <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Activity size={13} style={{ color: '#F472B6' }} /> HITTING METRICS
+                    <Activity size={13} style={{ color: '#F472B6' }} /> Hitting Metrics
                   </div>
                   <div className="stat-grid-4">
                     <StatBox label="wRC+" value={adv.wrc_plus != null ? fmtInt(adv.wrc_plus) : '-'} color="#F472B6" highlight />
@@ -824,7 +824,7 @@ export default function TeamDetailPage() {
                               <span style={{ color: '#64748B', fontSize: 12 }}>{game.is_home ? 'vs ' : '@ '}</span>
                               {game.opponent || (game.is_home ? game.away_team : game.home_team)}
                             </div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', letterSpacing: '0.08em', textTransform: 'capitalize' }}>
                               {dateLabel}
                               {game.final ? ` · ${game.status}` : ` · ${timeLabel}`}
                             </div>
@@ -849,7 +849,7 @@ export default function TeamDetailPage() {
                                 </span>
                               </>
                             ) : (
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#00D4FF', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#00D4FF', letterSpacing: '0.08em', textTransform: 'capitalize' }}>
                                 {game.status || 'Scheduled'}
                               </span>
                             )}
@@ -858,7 +858,7 @@ export default function TeamDetailPage() {
                       );
                     })
                   ) : (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#475569', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#475569', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'capitalize' }}>
                       No games found
                     </div>
                   )}
@@ -870,7 +870,7 @@ export default function TeamDetailPage() {
             {activeTab === 'PROPS' && (
               <div className="metal-panel">
                 <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Target size={13} style={{ color: '#00D4FF' }} /> ACTIVE PROP EDGES
+                  <Target size={13} style={{ color: '#00D4FF' }} /> Active Prop Edges
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {props.length > 0 ? (
@@ -900,7 +900,7 @@ export default function TeamDetailPage() {
                             <div style={{ fontSize: 15, fontWeight: 700, color: 'white', letterSpacing: '0.02em' }}>
                               {prop.player_name}
                             </div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: '0.08em', textTransform: 'capitalize' }}>
                               {label}{lineLabel ? ` · ${lineLabel}` : ''}
                             </div>
                             {prop.ev_pct != null && (
@@ -914,7 +914,7 @@ export default function TeamDetailPage() {
                             {prop.p_win != null && prop.price != null ? (
                               <BetScoreBadge pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
                             ) : (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'capitalize' }}>
                                 Awaiting price
                               </span>
                             )}
@@ -923,7 +923,7 @@ export default function TeamDetailPage() {
                       );
                     })
                   ) : (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#475569', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#475569', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'capitalize' }}>
                       No active props found for this team
                     </div>
                   )}

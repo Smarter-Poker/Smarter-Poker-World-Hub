@@ -50,15 +50,15 @@ class StatusErrorBoundary extends React.Component<
           <main className="feed-layout flex justify-center items-center min-h-[50vh] py-12">
             <MetalFrame className="w-full max-w-md p-8 text-center border-[#FF4444]/50 shadow-[0_0_20px_rgba(255,68,68,0.15)]">
               <ServerCrash className="w-12 h-12 text-[#FF4444] mx-auto mb-4" aria-hidden="true" />
-              <h2 className="text-[31px] font-black text-white capitalize tracking-[0.12em] mb-2 font-['Rajdhani']">
+              <h2 className="text-[40px] font-black text-white capitalize tracking-[0.12em] mb-2 font-['Rajdhani']">
                 Render Error
               </h2>
-              <p className="text-slate-400 text-[13px] font-bold capitalize tracking-widest mb-6 break-words">
+              <p className="text-slate-400 text-[17px] font-bold capitalize tracking-widest mb-6 break-words">
                 {this.state.error?.message || 'An unexpected rendering error occurred.'}
               </p>
               <button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center justify-center gap-2 hex-button px-6 py-3 text-[14px] font-black tracking-widest capitalize touch-manipulation text-[#00D4FF] hover:text-white transition-colors"
+                className="inline-flex items-center justify-center gap-2 hex-button px-6 py-3 text-[18px] font-black tracking-widest capitalize touch-manipulation text-[#00D4FF] hover:text-white transition-colors"
               >
                 <RefreshCw size={14} />
                 Reload
@@ -345,14 +345,14 @@ export default function StatusPage() {
               aria-hidden="true"
               className="w-12 h-12 text-[#FF4444] mx-auto mb-4 relative z-10"
             />
-            <h2 className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10 font-['Rajdhani']">
+            <h2 className="text-[40px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10 font-['Rajdhani']">
               System Error
             </h2>
-            <p className="text-slate-300 text-[16px] relative z-10 mb-6 break-words">{apiError}</p>
+            <p className="text-slate-300 text-[21px] relative z-10 mb-6 break-words">{apiError}</p>
             <button
               onClick={handleRefresh}
               disabled={manualRefreshing && isValidating}
-              className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-[16px] font-bold tracking-widest capitalize touch-manipulation relative z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-[21px] font-bold tracking-widest capitalize touch-manipulation relative z-10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw
                 aria-hidden="true"
@@ -397,11 +397,11 @@ export default function StatusPage() {
 
       <div className="bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[2px] border-[#3d4f5f] p-4 flex justify-between items-center gap-3">
         <div className="min-w-0">
-          <h1 className="m-0 text-[31px] font-extrabold font-['Rajdhani'] capitalize tracking-widest">
+          <h1 className="m-0 text-[40px] font-extrabold font-['Rajdhani'] capitalize tracking-widest">
             Data <span className="text-[#00D4FF]">Status</span>
           </h1>
           {data?.health?.last_refresh && (
-            <div className="text-[16px] text-slate-400 tracking-widest capitalize mt-0.5 flex items-center gap-2 flex-wrap">
+            <div className="text-[21px] text-slate-400 tracking-widest capitalize mt-0.5 flex items-center gap-2 flex-wrap">
               <span>
                 Data refreshed{' '}
                 <TimeAgo dateString={data.health.last_refresh} serverNow={data?.serverNow} />
@@ -413,7 +413,7 @@ export default function StatusPage() {
           )}
         </div>
         <div className="text-right flex flex-col items-end shrink-0">
-          <div className="text-[#00D4FF] text-[16px] font-bold tracking-widest capitalize">System</div>
+          <div className="text-[#00D4FF] text-[21px] font-bold tracking-widest capitalize">System</div>
           <div
             className="inline-flex items-center gap-1.5 mt-1"
             role="status"
@@ -424,7 +424,7 @@ export default function StatusPage() {
               className={`w-2 h-2 rounded-full ${isLoading ? 'bg-slate-400' : isSystemFresh ? 'bg-[#00D4FF]' : 'bg-[#FF4444]'}`}
             ></div>
             <div
-              className={`text-[16px] font-bold tracking-widest ${isLoading ? 'text-slate-400' : isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
+              className={`text-[21px] font-bold tracking-widest ${isLoading ? 'text-slate-400' : isSystemFresh ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
             >
               {isLoading ? 'LOADING' : isSystemFresh ? 'FRESH' : 'STALE'}
             </div>
@@ -439,7 +439,7 @@ export default function StatusPage() {
               <button
                 onClick={handleRefresh}
                 disabled={manualRefreshing && isValidating}
-                className="hex-button px-4 py-3 rounded flex items-center gap-2 cursor-pointer text-[16px] font-extrabold tracking-widest capitalize touch-manipulation disabled:opacity-50"
+                className="hex-button px-4 py-3 rounded flex items-center gap-2 cursor-pointer text-[21px] font-extrabold tracking-widest capitalize touch-manipulation disabled:opacity-50"
               >
                 <RefreshCw
                   aria-hidden="true"
@@ -474,13 +474,13 @@ export default function StatusPage() {
                       )}
                       <div className="min-w-0">
                         <div
-                          className={`text-[20px] font-extrabold capitalize tracking-wider font-['Rajdhani'] ${pipeline.hasError ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}
+                          className={`text-[26px] font-extrabold capitalize tracking-wider font-['Rajdhani'] ${pipeline.hasError ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}
                         >
                           {pipeline.hasError
                             ? 'Pipeline Errors Detected'
                             : 'All Pipeline Stages OK'}
                         </div>
-                        <div className="text-[16px] text-slate-300 tracking-wider mt-0.5">
+                        <div className="text-[21px] text-slate-300 tracking-wider mt-0.5">
                           {fmt(pipeline.okCount)} OK
                           {pipeline.pendingCount ? ` \u2022 ${pipeline.pendingCount} PENDING` : ''}
                           {' \u2022 '}
@@ -537,11 +537,11 @@ export default function StatusPage() {
                       },
                     ].map((item) => (
                       <MetalFrame key={item.label} className="p-4">
-                        <div className="text-[16px] font-bold text-slate-400 tracking-[0.15em] mb-2">
+                        <div className="text-[21px] font-bold text-slate-400 tracking-[0.15em] mb-2">
                           {item.label}
                         </div>
                         <div
-                          className={`text-[26px] font-extrabold font-['Rajdhani'] tabular-nums break-words ${item.warn ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}
+                          className={`text-[34px] font-extrabold font-['Rajdhani'] tabular-nums break-words ${item.warn ? 'text-[#FF4444]' : 'text-[#00D4FF]'}`}
                         >
                           {item.val}
                         </div>
@@ -559,10 +559,10 @@ export default function StatusPage() {
                       { label: 'BEST BETS', val: slate.best },
                     ].map((item) => (
                       <MetalFrame key={item.label} className="p-5 text-center">
-                        <div className="text-[16px] font-bold text-slate-400 tracking-[0.15em] mb-2">
+                        <div className="text-[21px] font-bold text-slate-400 tracking-[0.15em] mb-2">
                           {item.label}
                         </div>
-                        <div className="text-[39px] font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
+                        <div className="text-[51px] font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
                           {fmt(item.val)}
                         </div>
                       </MetalFrame>
@@ -574,43 +574,43 @@ export default function StatusPage() {
                   <SectionHeader icon={Gauge} label="Model Accuracy" />
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                     <MetalFrame className="p-4 text-center">
-                      <div className="text-[16px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                      <div className="text-[21px] font-bold text-slate-400 tracking-[0.12em] mb-2">
                         BRIER (ML)
                       </div>
                       <div
-                        className={`text-[31px] font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_ml)}`}
+                        className={`text-[40px] font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_ml)}`}
                       >
                         {fmtBrier(accuracy.wtd_avg_brier_ml)}
                       </div>
                     </MetalFrame>
                     <MetalFrame className="p-4 text-center">
-                      <div className="text-[16px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                      <div className="text-[21px] font-bold text-slate-400 tracking-[0.12em] mb-2">
                         BRIER (PROPS)
                       </div>
                       <div
-                        className={`text-[31px] font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_props)}`}
+                        className={`text-[40px] font-extrabold font-['Rajdhani'] tabular-nums ${brierColor(accuracy.wtd_avg_brier_props)}`}
                       >
                         {fmtBrier(accuracy.wtd_avg_brier_props)}
                       </div>
                     </MetalFrame>
                     <MetalFrame className="p-4 text-center">
-                      <div className="text-[16px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                      <div className="text-[21px] font-bold text-slate-400 tracking-[0.12em] mb-2">
                         Games Eval
                       </div>
-                      <div className="text-[31px] font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
+                      <div className="text-[40px] font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
                         {fmt(accuracy.total_games_evaluated)}
                       </div>
                     </MetalFrame>
                     <MetalFrame className="p-4 text-center">
-                      <div className="text-[16px] font-bold text-slate-400 tracking-[0.12em] mb-2">
+                      <div className="text-[21px] font-bold text-slate-400 tracking-[0.12em] mb-2">
                         Daily Samples
                       </div>
-                      <div className="text-[31px] font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
+                      <div className="text-[40px] font-extrabold font-['Rajdhani'] text-[#00D4FF] tabular-nums">
                         {fmt(accuracy.daily_samples)}
                       </div>
                     </MetalFrame>
                   </div>
-                  <div className="text-[14px] text-slate-400 tracking-wider mt-2 px-4 md:px-0">
+                  <div className="text-[18px] text-slate-400 tracking-wider mt-2 px-4 md:px-0">
                     Brier Score: Lower Is Better (0.25 = Coin Flip). Weighted Average Over Recent
                     Graded Slates.
                   </div>
@@ -628,13 +628,13 @@ export default function StatusPage() {
                             style={{ borderColor: t.color }}
                           >
                             <div
-                              className="text-[16px] font-bold tracking-[0.12em] mb-1"
+                              className="text-[21px] font-bold tracking-[0.12em] mb-1"
                               style={{ color: t.color }}
                             >
                               {t.key}
                             </div>
                             <div
-                              className="text-[26px] font-extrabold font-['Rajdhani'] tabular-nums"
+                              className="text-[34px] font-extrabold font-['Rajdhani'] tabular-nums"
                               style={{ color: t.color }}
                             >
                               {fmt(tierDist[t.key])}
@@ -643,10 +643,10 @@ export default function StatusPage() {
                         ))}
                         {Number(tierDist.UNSCORED) > 0 && (
                           <div className="flex-1 min-w-[80px] text-center rounded-lg border border-[#475569] bg-black/30 py-3 px-2">
-                            <div className="text-[16px] font-bold tracking-[0.12em] mb-1 text-slate-400">
+                            <div className="text-[21px] font-bold tracking-[0.12em] mb-1 text-slate-400">
                               Unscored
                             </div>
-                            <div className="text-[26px] font-extrabold font-['Rajdhani'] tabular-nums text-slate-400">
+                            <div className="text-[34px] font-extrabold font-['Rajdhani'] tabular-nums text-slate-400">
                               {fmt(tierDist.UNSCORED)}
                             </div>
                           </div>
@@ -671,10 +671,10 @@ export default function StatusPage() {
                               className={`flex justify-between items-center px-5 py-3 bg-black/20 gap-3 ${idx !== sources.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
                             >
                               <div className="min-w-0">
-                                <div className="text-[17px] font-semibold text-slate-200 tracking-wider truncate">
+                                <div className="text-[22px] font-semibold text-slate-200 tracking-wider truncate">
                                   {SOURCE_LABEL_MAP[src?.source] || src?.source || '-'}
                                 </div>
-                                <div className="text-[16px] text-slate-400 tracking-wider mt-0.5">
+                                <div className="text-[21px] text-slate-400 tracking-wider mt-0.5">
                                   <TimeAgo
                                     dateString={src?.pulled_at}
                                     serverNow={data?.serverNow}
@@ -683,7 +683,7 @@ export default function StatusPage() {
                                 </div>
                               </div>
                               <div
-                                className={`bg-black/50 border px-2.5 py-1 rounded text-[16px] font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF]' : 'text-[#FF4444] border-[#FF4444]'}`}
+                                className={`bg-black/50 border px-2.5 py-1 rounded text-[21px] font-bold tracking-[0.15em] ${ok ? 'text-[#00D4FF] border-[#00D4FF]' : 'text-[#FF4444] border-[#FF4444]'}`}
                               >
                                 {String(src?.status || 'UNKNOWN').toUpperCase()}
                               </div>
@@ -692,7 +692,7 @@ export default function StatusPage() {
                         })}
                       </ul>
                     ) : (
-                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[16px] capitalize">
+                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[21px] capitalize">
                         No Data Available
                       </div>
                     )}
@@ -710,15 +710,15 @@ export default function StatusPage() {
                             className={`flex justify-between items-start px-5 py-3 bg-black/20 gap-3 ${idx !== alerts.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
                           >
                             <div className="min-w-0">
-                              <div className="text-[17px] font-semibold text-slate-200 break-words">
+                              <div className="text-[22px] font-semibold text-slate-200 break-words">
                                 {al?.message || '-'}
                               </div>
-                              <div className="text-[16px] text-slate-400 tracking-wider mt-0.5 capitalize">
+                              <div className="text-[21px] text-slate-400 tracking-wider mt-0.5 capitalize">
                                 {al?.source || 'SYSTEM'}
                               </div>
                             </div>
                             <div
-                              className={`bg-black/50 border px-2 py-0.5 rounded text-[16px] font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}
+                              className={`bg-black/50 border px-2 py-0.5 rounded text-[21px] font-bold tracking-[0.15em] ${alertLevelColor(al?.level)}`}
                             >
                               {String(al?.level || 'INFO').toUpperCase()}
                             </div>
@@ -726,7 +726,7 @@ export default function StatusPage() {
                         ))}
                       </ul>
                     ) : (
-                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[16px] capitalize">
+                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[21px] capitalize">
                         No Alerts Found
                       </div>
                     )}
@@ -754,15 +754,15 @@ export default function StatusPage() {
                               className={`px-5 py-4 flex justify-between items-center gap-3 bg-black/20 ${idx !== stages.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
                             >
                               <div className="min-w-0">
-                                <div className="text-[20px] font-bold text-white capitalize tracking-wider">
+                                <div className="text-[26px] font-bold text-white capitalize tracking-wider">
                                   {stage}
                                 </div>
-                                <div className="text-[16px] text-slate-400 mt-1 tracking-wider">
+                                <div className="text-[21px] text-slate-400 mt-1 tracking-wider">
                                   {run?.run_ts ? formatDate(run.run_ts) : '—'}
                                 </div>
                               </div>
                               <div
-                                className={`bg-black/50 border px-2.5 py-1 rounded text-[16px] font-bold tracking-[0.2em] ${statusColor}`}
+                                className={`bg-black/50 border px-2.5 py-1 rounded text-[21px] font-bold tracking-[0.2em] ${statusColor}`}
                               >
                                 {status}
                               </div>
@@ -771,7 +771,7 @@ export default function StatusPage() {
                         })}
                       </ul>
                     ) : (
-                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[16px] capitalize">
+                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[21px] capitalize">
                         No Stages Found
                       </div>
                     )}
@@ -788,17 +788,17 @@ export default function StatusPage() {
                             key={table}
                             className={`flex justify-between px-6 py-4 bg-black/20 gap-3 ${idx !== arr.length - 1 ? 'border-b border-[#2a3a4a]' : ''}`}
                           >
-                            <span className="text-[17px] font-semibold text-slate-400 tracking-wider truncate">
+                            <span className="text-[22px] font-semibold text-slate-400 tracking-wider truncate">
                               {table}
                             </span>
-                            <span className="text-[18px] font-bold text-[#00D4FF] tabular-nums shrink-0">
+                            <span className="text-[23px] font-bold text-[#00D4FF] tabular-nums shrink-0">
                               {fmt(count as number)}
                             </span>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[16px] capitalize">
+                      <div className="p-6 text-center text-slate-400 font-bold tracking-wider text-[21px] capitalize">
                         No Table Data Available
                       </div>
                     )}

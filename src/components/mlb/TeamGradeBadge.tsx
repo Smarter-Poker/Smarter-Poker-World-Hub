@@ -14,7 +14,7 @@ export function TeamGradeBadge({
 }) {
   if (score == null || Number.isNaN(Number(score))) {
     return (
-      <span className="rounded-[4px] bg-[linear-gradient(180deg,#0a0a15_0%,#1a2332_100%)] border border-[var(--metal-highlight)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] px-1.5 py-0.5 text-[13px] font-semibold text-slate-500 capitalize tracking-wider">
+      <span className="rounded-[4px] bg-[linear-gradient(180deg,#0a0a15_0%,#1a2332_100%)] border border-[var(--metal-highlight)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] px-1.5 py-0.5 text-[17px] font-semibold text-slate-500 capitalize tracking-wider">
         N/A
       </span>
     );
@@ -27,8 +27,8 @@ export function TeamGradeBadge({
       title={`Power rating ${s} — ${t}`}
       className={`inline-flex items-baseline gap-1 rounded-[5px] border px-2 py-0.5 ${st.chip} shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),_inset_0_-1px_2px_rgba(0,0,0,0.3)]`}
     >
-      <span className={`text-[22px] font-black leading-none ${st.text}`}>{s}</span>
-      <span className={`text-[16px] font-black capitalize tracking-wide ${st.text}`}>· {t}</span>
+      <span className={`text-[29px] font-black leading-none ${st.text}`}>{s}</span>
+      <span className={`text-[21px] font-black capitalize tracking-wide ${st.text}`}>· {t}</span>
     </span>
   );
 }

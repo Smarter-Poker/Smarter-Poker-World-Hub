@@ -125,11 +125,11 @@ interface MetricBoxProps {
 
 const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,0,0,0.5)] transition-all hover:border-[#00D4FF] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_15px_rgba(0,212,255,0.2)]">
-    <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-2 uppercase">
+    <div className="text-[13px] font-bold text-slate-400 tracking-widest mb-2 capitalize">
       {title}
     </div>
     <div
-      className="text-xl sm:text-2xl font-extrabold break-words"
+      className="text-[26px] sm:text-[31px] font-extrabold break-words"
       style={{
         color: isLoading ? '#00D4FF' : valueColor,
         textShadow:
@@ -142,7 +142,7 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
       {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-[#00D4FF]" /> : value}
     </div>
     {sub && (
-      <div className="text-[10px] text-slate-500 mt-1 font-bold tracking-widest uppercase">
+      <div className="text-[13px] text-slate-500 mt-1 font-bold tracking-widest capitalize">
         {isLoading ? '--' : sub}
       </div>
     )}
@@ -151,7 +151,7 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h2
-    className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 uppercase tracking-widest relative z-10"
+    className="text-[23px] font-extrabold text-white mb-4 flex items-center gap-2 capitalize tracking-widest relative z-10"
     style={{ fontFamily: '"Rajdhani", sans-serif' }}
   >
     <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
@@ -183,7 +183,7 @@ const TrustBadge = ({ status, scoreMult }: { status: string | null; scoreMult: n
   }
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-bold capitalize tracking-wider whitespace-nowrap"
       style={{ color, background: bg, border: `1px solid ${color}40` }}
     >
       <Icon className="w-3 h-3" />
@@ -310,17 +310,17 @@ export default function ModelIntelPage() {
             style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }}
           />
           <h2
-            className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10"
+            className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10"
             style={{ fontFamily: '"Rajdhani", sans-serif' }}
           >
             System Error
           </h2>
-          <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10 mb-5">
+          <p className="text-[#FF4444] font-bold capitalize tracking-widest text-[14px] relative z-10 mb-5">
             Failed To Load Intel Data. Please Try Again.
           </p>
           <button
             onClick={() => mutate()}
-            className="relative z-10 inline-flex items-center gap-2 bg-[#00D4FF] text-[#0a0a15] font-extrabold uppercase tracking-widest text-[11px] px-5 py-2.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.5)]"
+            className="relative z-10 inline-flex items-center gap-2 bg-[#00D4FF] text-[#0a0a15] font-extrabold capitalize tracking-widest text-[14px] px-5 py-2.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.5)]"
           >
             <RefreshCw className="w-4 h-4" />
             Retry
@@ -359,7 +359,7 @@ export default function ModelIntelPage() {
             </div>
             <div>
               <h1
-                className="m-0 text-2xl sm:text-3xl font-extrabold text-white tracking-widest uppercase"
+                className="m-0 text-[31px] sm:text-[39px] font-extrabold text-white tracking-widest capitalize"
                 style={{
                   fontFamily: '"Rajdhani", sans-serif',
                   textShadow: '0 0 15px rgba(255,255,255,0.2)',
@@ -370,10 +370,10 @@ export default function ModelIntelPage() {
                   className="text-[#00D4FF]"
                   style={{ textShadow: '0 0 15px rgba(0,212,255,0.4)' }}
                 >
-                  INTEL
+                  Intel
                 </span>
               </h1>
-              <p className="m-0 mt-1 text-[#00D4FF] font-bold uppercase tracking-wider text-[11px]">
+              <p className="m-0 mt-1 text-[#00D4FF] font-bold capitalize tracking-wider text-[14px]">
                 Calibration, Edge &amp; Backtesting Intelligence
               </p>
             </div>
@@ -382,7 +382,7 @@ export default function ModelIntelPage() {
             onClick={() => mutate()}
             disabled={isValidating}
             aria-label="Refresh model intel data"
-            className="inline-flex items-center gap-2 bg-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-300 font-bold uppercase tracking-widest text-[10px] px-3 py-2 rounded-lg transition-all hover:border-[#00D4FF] hover:text-[#00D4FF] disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-300 font-bold capitalize tracking-widest text-[13px] px-3 py-2 rounded-lg transition-all hover:border-[#00D4FF] hover:text-[#00D4FF] disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
             {isValidating ? 'Syncing' : 'Refresh'}
@@ -390,7 +390,7 @@ export default function ModelIntelPage() {
         </div>
 
         {/* As-of line */}
-        <div className="mb-6 text-[11px] text-slate-500 font-bold uppercase tracking-widest relative z-10">
+        <div className="mb-6 text-[14px] text-slate-500 font-bold capitalize tracking-widest relative z-10">
           {isLoading ? (
             'Loading Model Diagnostics...'
           ) : (
@@ -477,7 +477,7 @@ export default function ModelIntelPage() {
           {isLoading ? (
             <div className="w-full h-full flex flex-col items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mb-4" />
-              <div className="text-[#00D4FF] font-bold tracking-widest text-sm animate-pulse uppercase">
+              <div className="text-[#00D4FF] font-bold tracking-widest text-[18px] animate-pulse capitalize">
                 Compiling Matrices...
               </div>
             </div>
@@ -540,7 +540,7 @@ export default function ModelIntelPage() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 font-bold uppercase tracking-widest text-[11px]">
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 font-bold capitalize tracking-widest text-[14px]">
               <TrendingUp className="w-8 h-8 mb-3 opacity-40" />
               No Historical Data Available
             </div>
@@ -552,34 +552,34 @@ export default function ModelIntelPage() {
         <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden z-10">
           {/* Metal Frame Details */}
           <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
-            <span className="text-[6px] text-[#1a2a3a]">+</span>
+            <span className="text-[8px] text-[#1a2a3a]">+</span>
           </div>
           <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
-            <span className="text-[6px] text-[#1a2a3a]">+</span>
+            <span className="text-[8px] text-[#1a2a3a]">+</span>
           </div>
           <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
-            <span className="text-[6px] text-[#1a2a3a]">+</span>
+            <span className="text-[8px] text-[#1a2a3a]">+</span>
           </div>
           <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
-            <span className="text-[6px] text-[#1a2a3a]">+</span>
+            <span className="text-[8px] text-[#1a2a3a]">+</span>
           </div>
 
           <div className="relative z-10">
             <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
               <div className="flex items-center gap-3">
                 <h3
-                  className="m-0 text-base font-extrabold uppercase text-white tracking-wider"
+                  className="m-0 text-[21px] font-extrabold capitalize text-white tracking-wider"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
                   Lock-In Gate
                 </h3>
                 {accLoading && !accData ? (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded text-[13px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
                     <Loader2 size={10} className="animate-spin" /> Loading
                   </span>
                 ) : (
                   <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
+                    className={`px-2 py-0.5 rounded text-[13px] font-extrabold tracking-wider border ${
                       isGatePassed
                         ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
                         : 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]'
@@ -589,7 +589,7 @@ export default function ModelIntelPage() {
                   </span>
                 )}
               </div>
-              <div className="text-[10px] font-bold text-[#00D4FF] tracking-widest hidden sm:block">
+              <div className="text-[13px] font-bold text-[#00D4FF] tracking-widest hidden sm:block">
                 Required For Real-Money Play
               </div>
             </div>
@@ -599,11 +599,11 @@ export default function ModelIntelPage() {
               <div
                 className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${accKpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
               >
-                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                <div className="text-[13px] text-slate-400 mb-2 font-bold capitalize tracking-wider">
                   Sample Size (N≥300)
                 </div>
                 <div
-                  className={`text-2xl font-extrabold ${accKpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`}
+                  className={`text-[31px] font-extrabold ${accKpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`}
                   style={{ textShadow: accKpi.n >= 300 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}
                 >
                   {accLoading && !accData ? (
@@ -617,11 +617,11 @@ export default function ModelIntelPage() {
               <div
                 className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(accKpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
               >
-                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                <div className="text-[13px] text-slate-400 mb-2 font-bold capitalize tracking-wider">
                   Avg CLV ({'>'}0 Pts)
                 </div>
                 <div
-                  className={`text-2xl font-extrabold ${Number(accKpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`}
+                  className={`text-[31px] font-extrabold ${Number(accKpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`}
                   style={{
                     textShadow: Number(accKpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none',
                   }}
@@ -637,11 +637,11 @@ export default function ModelIntelPage() {
               <div
                 className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(accKpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
               >
-                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                <div className="text-[13px] text-slate-400 mb-2 font-bold capitalize tracking-wider">
                   Expected ROI ({'>'}&#x2011;3%)
                 </div>
                 <div
-                  className={`text-2xl font-extrabold ${Number(accKpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
+                  className={`text-[31px] font-extrabold ${Number(accKpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
                   style={{
                     textShadow:
                       Number(accKpi.roi) > -3
@@ -660,11 +660,11 @@ export default function ModelIntelPage() {
               <div
                 className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(accKpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
               >
-                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                <div className="text-[13px] text-slate-400 mb-2 font-bold capitalize tracking-wider">
                   Brier Score ({'<'}0.23)
                 </div>
                 <div
-                  className={`text-2xl font-extrabold ${Number(accKpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
+                  className={`text-[31px] font-extrabold ${Number(accKpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
                   style={{
                     textShadow:
                       Number(accKpi.brier) < 0.23
@@ -692,7 +692,7 @@ export default function ModelIntelPage() {
                 key={f}
                 onClick={() => setAccFilter(f)}
                 aria-label={`Filter By ${f}`}
-                className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-all uppercase tracking-wider ${
+                className={`px-3 py-1.5 rounded-md text-[17px] font-bold transition-all capitalize tracking-wider ${
                   accFilter === f
                     ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
                     : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
@@ -705,15 +705,15 @@ export default function ModelIntelPage() {
         </div>
         <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 mb-8">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px] whitespace-nowrap">
+            <table className="w-full text-left text-[17px] whitespace-nowrap">
               <thead>
-                <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold capitalize tracking-wider text-[14px]">
                   <th className="px-4 py-4">Date</th>
                   <th className="px-4 py-4">Market</th>
                   <th className="px-4 py-4 text-right">N</th>
                   <th className="px-4 py-4 text-right">Brier</th>
                   <th className="px-4 py-4 text-right">Avg CLV</th>
-                  <th className="px-4 py-4 text-right">ROI</th>
+                  <th className="px-4 py-4 text-right">Roi</th>
                 </tr>
               </thead>
               <tbody className="bg-[#0a0a15]">
@@ -722,7 +722,7 @@ export default function ModelIntelPage() {
                     <td colSpan={6} className="px-4 py-12 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
-                        <span className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">
+                        <span className="text-[17px] font-extrabold text-[#00D4FF] tracking-widest capitalize animate-pulse">
                           Scanning Database...
                         </span>
                       </div>
@@ -763,7 +763,7 @@ export default function ModelIntelPage() {
                       >
                         <td className="px-4 py-3.5 font-bold text-slate-300">{row.date}</td>
                         <td className="px-4 py-3.5">
-                          <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[10px] text-slate-300 font-bold uppercase tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                          <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[13px] text-slate-300 font-bold capitalize tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                             {row.market}
                           </span>
                         </td>
@@ -800,15 +800,15 @@ export default function ModelIntelPage() {
             </div>
           ) : markets.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[560px]">
+              <table className="w-full text-[18px] min-w-[560px]">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b border-[#2a3a4a]">
+                  <tr className="text-[13px] capitalize tracking-widest text-slate-400 border-b border-[#2a3a4a]">
                     <th className="text-left font-bold px-4 py-3">Market</th>
                     <th className="text-right font-bold px-3 py-3">Graded</th>
                     <th className="text-right font-bold px-3 py-3">Bets</th>
                     <th className="text-right font-bold px-3 py-3">Brier</th>
-                    <th className="text-right font-bold px-3 py-3">CLV</th>
-                    <th className="text-right font-bold px-3 py-3">ROI</th>
+                    <th className="text-right font-bold px-3 py-3">Clv</th>
+                    <th className="text-right font-bold px-3 py-3">Roi</th>
                     <th className="text-right font-bold px-4 py-3">Units</th>
                   </tr>
                 </thead>
@@ -855,7 +855,7 @@ export default function ModelIntelPage() {
               </table>
             </div>
           ) : (
-            <div className="p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-[11px]">
+            <div className="p-8 text-center text-slate-500 font-bold capitalize tracking-widest text-[14px]">
               No Market Data Available
             </div>
           )}
@@ -863,7 +863,7 @@ export default function ModelIntelPage() {
 
         {/* Bet-type trust ledger */}
         <SectionTitle>Bet-Type Trust Ledger</SectionTitle>
-        <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
+        <p className="text-[14px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
           The Model Self-Grades Every Bet Type From Its Realized Sample. Suppressed Types Are
           Auto-Removed From Recommendations; Cautioned Types Are Stake-Scaled By The Trust
           Multiplier.
@@ -875,14 +875,14 @@ export default function ModelIntelPage() {
             </div>
           ) : betTypes.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[620px]">
+              <table className="w-full text-[18px] min-w-[620px]">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b border-[#2a3a4a]">
+                  <tr className="text-[13px] capitalize tracking-widest text-slate-400 border-b border-[#2a3a4a]">
                     <th className="text-left font-bold px-4 py-3">Bet Type</th>
                     <th className="text-right font-bold px-3 py-3">Sample</th>
                     <th className="text-right font-bold px-3 py-3">Win%</th>
-                    <th className="text-right font-bold px-3 py-3">ROI</th>
-                    <th className="text-right font-bold px-3 py-3">CLV</th>
+                    <th className="text-right font-bold px-3 py-3">Roi</th>
+                    <th className="text-right font-bold px-3 py-3">Clv</th>
                     <th className="text-right font-bold px-4 py-3">Trust</th>
                   </tr>
                 </thead>
@@ -895,7 +895,7 @@ export default function ModelIntelPage() {
                       <td className="text-left px-4 py-3 whitespace-nowrap">
                         <span className="font-bold text-white">{marketLabel(b.bet_type)}</span>
                         {b.category && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wider text-slate-500">
+                          <span className="ml-2 text-[13px] capitalize tracking-wider text-slate-500">
                             {b.category}
                           </span>
                         )}
@@ -929,7 +929,7 @@ export default function ModelIntelPage() {
               </table>
             </div>
           ) : (
-            <div className="p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-[11px]">
+            <div className="p-8 text-center text-slate-500 font-bold capitalize tracking-widest text-[14px]">
               No Reliability Data Available
             </div>
           )}
@@ -937,29 +937,29 @@ export default function ModelIntelPage() {
 
         {/* Methodology glossary */}
         <SectionTitle>How To Read This</SectionTitle>
-        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-5 mb-4 relative z-10 text-[12px] leading-relaxed text-slate-400 space-y-2">
+        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-5 mb-4 relative z-10 text-[16px] leading-relaxed text-slate-400 space-y-2">
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Brier</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Brier</span> &mdash;
             Mean Squared Error Of Probability Forecasts (0 = Perfect, 0.25 = A Coin Flip). Lower Is
             Better; N-Weighted Across Every Graded Prediction.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">CLV</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Clv</span> &mdash;
             Closing-Line Value, How Much The Model Beat The Market&apos;s Closing Price.
             Persistently Positive CLV Is The Strongest Signal Of A Genuine Edge.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">ROI</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Roi</span> &mdash;
             True Portfolio Return (Total Unit Profit Divided By Bets Placed), Not A
             Prediction-Weighted Average.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Trust</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Trust</span> &mdash;
             Self-Assessed Reliability Per Bet Type From Realized Results. Allow = Full Stake,
             Caution = Scaled Stake, Suppress = Removed From Recommendations.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Lock-In Gate</span>{' '}
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Lock-In Gate</span>{' '}
             &mdash; The Model Must Pass All Four Thresholds (N≥300, CLV{'>'} 0, ROI{'>'}&#x2011;3%,
             Brier{'<'}0.23) Before Value Bets Are Surfaced For Real-Money Play.
           </p>
