@@ -207,7 +207,7 @@ export default function GameMatchupDashboard() {
                     <p className="text-[23px] font-['Rajdhani'] mt-2 text-[#00D4FF]">
                       P: {game.awayStarter.name}{' '}
                       {game.awayStarter.wins != null
-                        ? `(${game.awayStarter.wins}-${game.awayStarter.losses}, ${game.awayStarter.era})`
+                        ? `(${game.awayStarter.wins}-${game.awayStarter.losses}, ${game.awayStarter.era}${game.awayStarter.whip != null ? `, ${game.awayStarter.whip.toFixed(2)} WHIP` : ''})`
                         : ''}
                     </p>
                   )}
@@ -254,7 +254,7 @@ export default function GameMatchupDashboard() {
                     <p className="text-[23px] font-['Rajdhani'] mt-2 text-[#00D4FF]">
                       P: {game.homeStarter.name}{' '}
                       {game.homeStarter.wins != null
-                        ? `(${game.homeStarter.wins}-${game.homeStarter.losses}, ${game.homeStarter.era})`
+                        ? `(${game.homeStarter.wins}-${game.homeStarter.losses}, ${game.homeStarter.era}${game.homeStarter.whip != null ? `, ${game.homeStarter.whip.toFixed(2)} WHIP` : ''})`
                         : ''}
                     </p>
                   )}
@@ -662,7 +662,7 @@ function PropModal({
                 <span className="text-[17px] font-bold font-['Rajdhani'] text-[#00D4FF] text-right">
                   {oppStarter.name}
                   {oppStarter.wins != null
-                    ? ` (${oppStarter.wins}-${oppStarter.losses}, ${oppStarter.era} ERA)`
+                    ? ` (${oppStarter.wins}-${oppStarter.losses}, ${oppStarter.era} ERA${oppStarter.whip != null ? `, ${oppStarter.whip.toFixed(2)} WHIP` : ''})`
                     : ''}
                 </span>
               </div>
