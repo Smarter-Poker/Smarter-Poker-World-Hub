@@ -12,14 +12,15 @@ import { createClient } from '@supabase/supabase-js';
  *  DELETE /api/mlb/hr-bets?id=123             → delete a bet
  */
 
-let _sb: ReturnType<typeof createClient> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _sb: any = null;
 function getSupabase() {
   if (!_sb) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
     _sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   }
-  return _sb;
+  return _sb as ReturnType<typeof createClient>;
 }
 
 const RESULTS = ['pending', 'hit', 'miss', 'push'];
@@ -71,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         note: b.note ? String(b.note).slice(0, 500) : null,
       };
       if (b.bet_date && /^\d{4}-\d{2}-\d{2}$/.test(String(b.bet_date))) row.bet_date = b.bet_date;
-      const { data, error } = await sb.from('mlb_hr_bets').insert(row).select().maybeSingle();
+      const { data, error } = await (sb as any).from('mlb_hr_bets').insert(row).select().maybeSingle();
       if (error) throw error;
       return res.status(200).json({ bet: data });
     }
