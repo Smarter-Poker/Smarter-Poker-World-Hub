@@ -62,7 +62,9 @@ export default function HrMatchupConditions({
                 </span>
               </div>
               {w.summary && (
-                <div className="text-white font-bold text-[14px] leading-snug mb-1">{w.summary}</div>
+                <div className="text-white font-bold text-[14px] leading-snug mb-1">
+                  {w.summary}
+                </div>
               )}
               <div className="text-slate-500 text-[13px] font-bold">
                 {w.temp_f != null ? `${Math.round(w.temp_f)}°F` : '—'}

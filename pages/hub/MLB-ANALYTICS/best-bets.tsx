@@ -656,7 +656,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 </div>
               )}
 
-              {bet.team_era !== undefined && (
+              {bet.team_era != null && (
                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                   <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
                     Team ERA
@@ -670,7 +670,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 </div>
               )}
 
-              {bet.team_avg !== undefined && (
+              {bet.team_avg != null && (
                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                   <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
                     Team AVG
@@ -1290,15 +1290,6 @@ export default function BestBetsPage() {
       .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
-  const bestF5 = useMemo(() => {
-    return [...bets]
-      .filter((b) => {
-        const m = (b.market || '').toLowerCase();
-        return m.includes('first_5') || m.includes('f5') || m.includes('1st_half');
-      })
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
-  }, [bets]);
-
   const mostLikelyToHomer = useMemo(() => {
     return [...bets]
       .filter((b) => {
@@ -1563,13 +1554,6 @@ export default function BestBetsPage() {
                   bets={bestTotals}
                   onBetClick={openModal}
                 />
-                {bestF5.length > 0 && (
-                  <CategoryCarousel
-                    title="Best First 5 Innings"
-                    bets={bestF5}
-                    onBetClick={openModal}
-                  />
-                )}
                 <CategoryCarousel
                   title="Most Likely to Homer"
                   icon={Zap}

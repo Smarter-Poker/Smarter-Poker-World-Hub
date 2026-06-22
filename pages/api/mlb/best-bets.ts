@@ -1,4 +1,5 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { tier } from '../../../src/lib/betScore';
 
 // MLB team ID → team name mapping
 const TEAM_ID_TO_NAME: Record<number, string> = {
@@ -503,8 +504,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       // If the pitcher has fewer than 25 IP, penalize the bet severely
       if (!aggP || Number(aggP.ip) < 25) {
         enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 20);
-        if (enriched.bet_tier === 'ELITE') enriched.bet_tier = 'STRONG';
-        if (enriched.bet_tier === 'STRONG' && enriched.bet_score < 68) enriched.bet_tier = 'LEAN';
+        // Recompute the tier canonically from the penalized score (the old hand-rolled
+        // downgrade only handled ELITE/STRONG, leaving LEAN/THIN/PASS desynced from score).
+        enriched.bet_tier = tier(enriched.bet_score);
         enriched.win_confidence = Math.max(0, (enriched.win_confidence || 0) - 0.15);
         penaltyApplied = true;
         enriched.penalty_reason = `Reduced score: Low data sample on starting pitcher (<25 IP).`;
@@ -529,6 +531,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       if (oppP && oppP.era < 3.0 && Number(oppP.ip) > 50) {
         if (!ourP || ourP.era > 4.5 || Number(ourP.ip) < 25) {
           enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
+          enriched.bet_tier = tier(enriched.bet_score);
           enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
 
           let factors: any[] = [];
@@ -703,24 +706,27 @@ async function edgeHandler(req: Request) {
       );
     }
 
-    // Ensure topLock is formatted correctly if it's 0-1
-    let topLock = data?.stats?.topLock || 0;
-    if (topLock > 0 && topLock < 1) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
-
     // Enrich bets from RPC result
     const rawBets = data?.bets || [];
     const enrichedBets = await enrichBets(rawBets, mlbDb);
 
+    // Derive the headline stats from the returned (post-penalty) rows so the header never
+    // advertises an ELITE count / top score / top lock that no card on the page shows.
+    // (The RPC's raw stats are pre-penalty.) win_confidence is already on a 0-100 scale.
     return new Response(
       JSON.stringify({
         bets: enrichedBets,
         stats: {
           totalBets: data?.stats?.totalBets || 0,
-          // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), derived from the returned
-          // rows so the count matches betScore.ts everywhere — not the RPC's legacy edge>=5.
           eliteBets: enrichedBets.filter((b: any) => b.bet_tier === 'ELITE').length,
-          topScore: data?.stats?.topScore || 0,
-          topLock: topLock,
+          topScore:
+            enrichedBets.length > 0
+              ? Math.max(...enrichedBets.map((b: any) => b.bet_score || 0))
+              : 0,
+          topLock:
+            enrichedBets.length > 0
+              ? Math.max(...enrichedBets.map((b: any) => Number(b.win_confidence) || 0))
+              : 0,
         },
         officialDate: data?.officialDate || null,
       }),

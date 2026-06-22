@@ -15,6 +15,7 @@
  * ═══════════════════════════════════════════════════════════════════════
  */
 
+import { useEffect } from 'react';
 import { useAvatar } from '../contexts/AvatarContext';
 
 const VIP_CACHE_KEY = 'sp-vip-status';
@@ -41,12 +42,16 @@ export default function useVIP() {
         }
     }
 
-    // Persist authoritative answer for optimistic rendering next load
-    if (!initializing && typeof window !== 'undefined') {
-        try {
-            localStorage.setItem(VIP_CACHE_KEY, String(contextIsVip));
-        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-    }
+    // Persist authoritative answer for optimistic rendering next load. Done in an effect
+    // (not during render) so it's a proper side effect, not an impure render write that
+    // fires on every re-render and double-runs under React 18 StrictMode.
+    useEffect(() => {
+        if (!initializing && typeof window !== 'undefined') {
+            try {
+                localStorage.setItem(VIP_CACHE_KEY, String(contextIsVip));
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+        }
+    }, [initializing, contextIsVip]);
 
     return {
         isVip,
