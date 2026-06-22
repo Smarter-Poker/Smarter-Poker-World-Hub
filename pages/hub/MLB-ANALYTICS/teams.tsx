@@ -45,6 +45,7 @@ const STAT_META: Record<string, { full: string; desc: string }> = {
   'OAA':       { full: 'Outs Above Average', desc: 'MLB\'s primary fielding metric. Measures how many outs a fielder saves vs. a league-average fielder at the same position.' },
   'UZR':       { full: 'Ultimate Zone Rating', desc: 'Defensive runs saved based on batted ball location and fielder positioning. Positive = above-average defense.' },
   'DEF':       { full: 'Defensive Runs (Composite)', desc: 'Combined defensive value metric. Aggregates multiple fielding components into a single run-value number.' },
+  'Bullpen ERA': { full: 'Bullpen ERA', desc: 'Relief-pitcher earned run average. Modern games are often won or lost in the bullpen.' },
   'oWAR':      { full: 'Offensive WAR', desc: 'Total Wins Above Replacement contributed by all hitters. Measures combined offensive value vs. a replacement-level player.' },
   'pWAR':      { full: 'Pitching WAR', desc: 'Total Wins Above Replacement contributed by all pitchers. Measures combined pitching value vs. a replacement-level pitcher.' },
 };
@@ -686,6 +687,12 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                       {adv.def != null ? (Number(adv.def) >= 0 ? `+${Number(adv.def).toFixed(1)}` : Number(adv.def).toFixed(1)) : '-'}
                     </span>
                   </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Bullpen ERA" color="#94A3B8" /></span>
+                    <span className="drawer-value" style={{ color: statColor('ERA', adv.bullpen_era) }}>
+                      {fmtEra(adv.bullpen_era)}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -762,7 +769,7 @@ export default function TeamsPage({
 
   const activeTeams = data?.teams || fallbackTeams || [];
   const globalEdgeActive = data?.globalEdgeActive || fallbackGlobalEdgeActive || false;
-  const summary = data?.summary || useMemo(() => {
+  const computedSummary = useMemo(() => {
     let gradedCount = 0, eliteCount = 0, strongCount = 0;
     activeTeams.forEach((t: any) => {
       if (t.grade) {
@@ -773,6 +780,7 @@ export default function TeamsPage({
     });
     return { gradedCount, eliteCount, strongCount };
   }, [activeTeams]);
+  const summary = data?.summary ?? computedSummary;
   const isInitialLoading = !data && !error;
 
   // Filter teams by search/league/division
