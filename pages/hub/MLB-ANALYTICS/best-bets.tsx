@@ -1290,15 +1290,6 @@ export default function BestBetsPage() {
       .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
-  const bestF5 = useMemo(() => {
-    return [...bets]
-      .filter((b) => {
-        const m = (b.market || '').toLowerCase();
-        return m.includes('first_5') || m.includes('f5') || m.includes('1st_half');
-      })
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
-  }, [bets]);
-
   const mostLikelyToHomer = useMemo(() => {
     return [...bets]
       .filter((b) => {
@@ -1563,13 +1554,6 @@ export default function BestBetsPage() {
                   bets={bestTotals}
                   onBetClick={openModal}
                 />
-                {bestF5.length > 0 && (
-                  <CategoryCarousel
-                    title="Best First 5 Innings"
-                    bets={bestF5}
-                    onBetClick={openModal}
-                  />
-                )}
                 <CategoryCarousel
                   title="Most Likely to Homer"
                   icon={Zap}
