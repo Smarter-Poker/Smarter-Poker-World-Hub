@@ -81,7 +81,7 @@ async function edgeHandler(req: Request) {
 
     let slateDate = today;
 
-    const { data: todayCheck } = await mlbDb
+    const { data: todayCheck, error: todayErr } = await mlbDb
       .from('pred_props')
       .select('as_of_ts')
       .gte('as_of_ts', todayStart)
@@ -89,9 +89,13 @@ async function edgeHandler(req: Request) {
       .not('best_price', 'is', null)
       .limit(1);
 
+    if (todayErr) {
+      console.error('[API/MLB/Props] todayCheck error:', todayErr);
+    }
+
     if (!todayCheck || todayCheck.length === 0) {
       // No priced props for today yet — fall back to the most recent slate.
-      const { data: latestRow } = await mlbDb
+      const { data: latestRow, error: latestErr } = await mlbDb
         .from('pred_props')
         .select('as_of_ts')
         .lt('as_of_ts', todayEnd)
@@ -99,6 +103,11 @@ async function edgeHandler(req: Request) {
         .order('as_of_ts', { ascending: false })
         .limit(1)
         .maybeSingle();
+      
+      if (latestErr) {
+        console.error('[API/MLB/Props] latestRow error:', latestErr);
+      }
+      
       if (latestRow?.as_of_ts) {
         slateDate = slateYmdFromTs(latestRow.as_of_ts as string);
       }
@@ -144,7 +153,9 @@ async function edgeHandler(req: Request) {
     for (const r of rawProps) {
       const key = `${r.player_id}|${r.prop}|${r.line}`;
       const prev = dedupMap.get(key);
-      if (!prev || new Date(r.as_of_ts).getTime() > new Date(prev.as_of_ts).getTime()) dedupMap.set(key, r);
+      if (!prev || r.as_of_ts > prev.as_of_ts) {
+        dedupMap.set(key, r);
+      }
     }
     const slateProps: any[] = [...dedupMap.values()];
 
@@ -177,7 +188,6 @@ async function edgeHandler(req: Request) {
             .eq('window_kind', 'fg_season')
             .in('pitcher_id', uniquePlayerIds)
             .order('as_of', { ascending: false })
-            .limit(1000)
         : { data: [] },
       uniquePlayerIds.length > 0
         ? mlbDb
@@ -187,7 +197,6 @@ async function edgeHandler(req: Request) {
             .eq('vs_hand', 'A')
             .in('batter_id', uniquePlayerIds)
             .order('as_of', { ascending: false })
-            .limit(1000)
         : { data: [] },
     ]);
 
@@ -308,7 +317,6 @@ async function edgeHandler(req: Request) {
         slg: agg?.slg ?? null,
         woba: agg?.woba ?? null,
         wrc_plus: agg?.wrc_plus ?? null,
-        pa: null,
       });
     }
 
@@ -493,11 +501,7 @@ async function edgeHandler(req: Request) {
         price,
         odds: price,
         kelly_pct: p.kelly_pct != null ? Number(p.kelly_pct) : null,
-        // Aliases consumed by props.tsx UI
-        prop_type: p.prop,
-        implied_prob: pWin,
         model_proj: p.proj_mean,
-        market_novig_over: p.market_novig_over,
         best_book: isOver ? p.best_book : (p.best_book_under ?? null),
         best_lines: isOver ? p.best_lines : (p.best_lines_under ?? null),
         price_estimated: !priceIsReal,
@@ -575,44 +579,8 @@ async function edgeHandler(req: Request) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-}
+export const config = {
+  runtime: 'edge',
+};
 
-import { NextApiRequest, NextApiResponse } from 'next';
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host || 'localhost';
-    const url = `${protocol}://${host}${req.url}`;
-
-    const safeHeaders: Record<string, string> = {};
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (Array.isArray(value)) safeHeaders[key] = value.join(', ');
-      else if (value !== undefined) safeHeaders[key] = value;
-    }
-
-    const requestOptions: RequestInit = { method: req.method, headers: safeHeaders };
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      requestOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    }
-
-    const response = await edgeHandler(new Request(url, requestOptions));
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-
-    const text = await response.text();
-    if (text) {
-      try {
-        res.json(JSON.parse(text));
-      } catch {
-        res.send(text);
-      }
-    } else {
-      res.end();
-    }
-  } catch (err: any) {
-    console.error('API Polyfill Error:', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
-  }
-}
+export default edgeHandler;

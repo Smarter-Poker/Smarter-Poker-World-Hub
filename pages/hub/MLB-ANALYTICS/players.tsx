@@ -574,6 +574,7 @@ export default function PlayersPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
       <SEOHead
         title="MLB Player Analytics — Stats, Rankings & Predictive Grades | Smarter.Poker"

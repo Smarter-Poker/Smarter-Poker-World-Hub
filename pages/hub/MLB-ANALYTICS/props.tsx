@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useRouter } from 'next/router';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -57,6 +57,9 @@ const FILTERS: { label: string; match: (prop: string) => boolean }[] = [
   { label: 'Stolen Bases', match: (p) => p === 'stolen_bases' },
   { label: 'H+R+RBI', match: (p) => p === 'hrr' },
   { label: 'Earned Runs', match: (p) => p === 'earned_runs' },
+  { label: 'Hits Allowed', match: (p) => p === 'hits_allowed' },
+  { label: 'Runs Allowed', match: (p) => p === 'runs_allowed' },
+  { label: 'Outs Recorded', match: (p) => p === 'outs_recorded' },
 ];
 
 // ── Sort options (client-side reorder of the already-ranked slate) ──────────────
@@ -108,6 +111,7 @@ const PITCHER_PROPS = new Set([
   'earned_runs',
   'outs_recorded',
   'runs_allowed',
+  'hits_allowed'
 ]);
 
 function formatProp(raw: string): string {
@@ -152,7 +156,7 @@ function fmtAvg(v: any): string {
 
 function isPitcherProp(prop: any): boolean {
   if (prop.player_kind === 'pitcher') return true;
-  const market = (prop.prop_type || prop.prop || '').toLowerCase();
+  const market = (prop.prop || '').toLowerCase();
   return (
     PITCHER_PROPS.has(market) ||
     market.includes('pitcher') ||
@@ -425,7 +429,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
                     {isOver ? 'OVER' : 'UNDER'} {prop.line}
                   </span>
                 )}
-                <span>{formatProp(prop.prop_type || prop.prop)}</span>
+                <span>{formatProp(prop.prop)}</span>
               </span>
             </div>
             {prop.team_abbr && (
@@ -644,7 +648,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
 }
 
 // ── Prop Card ────────────────────────────────────────────────────────────────
-const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: any) => void }) => {
+const PropCard = React.memo(({ prop, idx, isStale, onOpen }: { prop: any; idx: number; isStale?: boolean; onOpen: (p: any) => void }) => {
   const ts = tierStyle(prop.bet_tier);
   const isOver = prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
   const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
@@ -708,7 +712,7 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
                     {isOver ? 'OVER' : 'UNDER'} {prop.line}
                   </span>
                 )}
-                {formatProp(prop.prop_type || prop.prop)}
+                {formatProp(prop.prop)}
               </span>
               {prop.kelly_pct != null && prop.kelly_pct > 0 && (
                 <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[1px] text-[13px] font-black text-[#FFD700]">
@@ -734,6 +738,12 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
           <div className="flex-shrink-0 ml-auto">
             {prop.result ? (
               <ResultBadge result={prop.result} pnl={prop.pnl} />
+            ) : isStale ? (
+              <span
+                className="inline-flex items-baseline gap-1.5 rounded-[5px] border px-2 py-0.5 border-[#3d4f5f] bg-[#0d1117] text-[#8a9ba8]"
+              >
+                <span className="text-[20px] font-black leading-none">Pending</span>
+              </span>
             ) : (
               <BetScoreBadge pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
             )}
@@ -874,7 +884,7 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
       </div>
     </div>
   );
-};
+});
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 60;
@@ -933,7 +943,7 @@ export default function PropsPage() {
 
   const filtered = useMemo(() => {
     const rows = props.filter((p: any) => {
-      if (!activeFilter.match((p.prop_type || p.prop || '').toLowerCase())) return false;
+      if (!activeFilter.match((p.prop || '').toLowerCase())) return false;
       if (minScore > 0 && (p.bet_score == null || p.bet_score < minScore)) return false;
       return true;
     });
@@ -1258,6 +1268,7 @@ export default function PropsPage() {
                   key={`prop-${prop.player_id}-${prop.prop}-${prop.line}`}
                   prop={prop}
                   idx={idx}
+                  isStale={isStale}
                   onOpen={openModal}
                 />
               ))}
