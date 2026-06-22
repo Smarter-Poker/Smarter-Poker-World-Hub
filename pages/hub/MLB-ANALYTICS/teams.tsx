@@ -516,7 +516,13 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
         {team.adv_stats && (
           <div style={{ marginTop: 12 }}>
             <button
-              onClick={() => setExpanded(!expanded)}
+              onClick={(e) => {
+                e.preventDefault();
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                  try { navigator.vibrate(15); } catch (err) {}
+                }
+                setExpanded(!expanded);
+              }}
               style={{
                 width: '100%',
                 background: 'transparent',
@@ -1087,8 +1093,15 @@ export default function TeamsPage({
             .filter-row {
                 display: flex;
                 gap: 12px 24px;
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
                 margin-bottom: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 4px;
+            }
+            .filter-row::-webkit-scrollbar {
+                display: none;
             }
             .filter-row-label {
                 font-size: 9px;
@@ -1101,6 +1114,10 @@ export default function TeamsPage({
             }
             .filter-pill {
                 padding: 7px 16px;
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
                 border-radius: 20px;
                 font-size: 0.72rem;
                 font-weight: 700;
@@ -1188,7 +1205,7 @@ export default function TeamsPage({
         style={{
           minHeight: '100vh',
           color: '#FFFFFF',
-          paddingBottom: 90,
+          paddingBottom: 70,
           fontFamily:
             "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
           width: '100%',
@@ -1455,7 +1472,12 @@ export default function TeamsPage({
                     {(['ALL', 'AL', 'NL'] as const).map((l) => (
                       <button
                         key={l}
-                        onClick={() => setFilterLeague(l)}
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                            try { navigator.vibrate(15); } catch (e) {}
+                          }
+                          setFilterLeague(l);
+                        }}
                         className={`filter-pill ${filterLeague === l ? 'active' : ''}`}
                       >
                         {l}
@@ -1467,7 +1489,12 @@ export default function TeamsPage({
                     {(['ALL', 'East', 'Central', 'West'] as const).map((d) => (
                       <button
                         key={d}
-                        onClick={() => setFilterDivision(d)}
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                            try { navigator.vibrate(15); } catch (e) {}
+                          }
+                          setFilterDivision(d);
+                        }}
                         className={`filter-pill ${filterDivision === d ? 'active' : ''}`}
                       >
                         {d === 'ALL' ? 'ALL' : d === 'Central' ? 'CEN' : d.toUpperCase()}
