@@ -54,6 +54,9 @@ const calcAge = (birth: any): number | null => {
   return Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000));
 };
 
+// R/L/S batting or throwing hand -> full word.
+const handed = (c?: string) => (c === 'R' ? 'Right' : c === 'L' ? 'Left' : c === 'S' ? 'Switch' : c || '—');
+
 type Stat = [string, string, Fmt];
 const HITTER_GROUPS: { title: string; icon: any; stats: Stat[] }[] = [
   { title: 'Standard', icon: BarChart3, stats: [
@@ -166,6 +169,24 @@ export default function PlayerProfilePage() {
   const hotCold: string | null = streaks?.hot_cold || null;
   const groups = type === 'pitcher' ? PITCHER_GROUPS : HITTER_GROUPS;
 
+  // Lineup/pitching role badge. Hitters: regular -> Starter, bench -> Backup (PA fallback).
+  // Pitchers: mostly-starts -> Starting Pitcher; else 10+ saves -> Closer; else Reliever.
+  const roleLabel: string | null = (() => {
+    if (!player) return null;
+    if (type === 'pitcher') {
+      if (!season) return null;
+      const gs = Number(season.GS) || 0;
+      const g = Number(season.G) || 0;
+      const sv = Number(season.SV) || 0;
+      if (g > 0 && gs / g >= 0.5) return 'Starting Pitcher';
+      if (sv >= 10) return 'Closer';
+      return 'Reliever';
+    }
+    if (player.player_class === 'regular') return 'Starter';
+    if (player.player_class === 'bench') return 'Backup';
+    return (Number(season?.PA) || 0) >= 300 ? 'Starter' : 'Backup';
+  })();
+
   const firstPitchET = matchup?.first_pitch_utc
     ? new Date(matchup.first_pitch_utc).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }) + ' ET'
     : null;
@@ -211,42 +232,48 @@ export default function PlayerProfilePage() {
           </div>
         ) : (
           <>
-            <MetalFrame className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-6 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
-              <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,0.8)]" />
-              <div className="relative w-32 h-32 shrink-0 z-10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imgSrc} onError={() => setImgSrc('/default-avatar.png')} alt={player.full_name} loading="lazy" width={128} height={128}
-                  className="w-32 h-32 rounded-full object-cover bg-[#1a2332] border-[3px] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.4),inset_0_4px_8px_rgba(0,0,0,0.8)]" />
-                {player.team_id && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`} alt={teamName || 'Team'} loading="lazy" width={40} height={40}
-                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#0d1117] rounded-full p-1 border-[2px] border-[#3d4f5f]" />
-                )}
-              </div>
-              <div className="flex-1 text-center md:text-left z-10">
-                <div className="inline-block bg-[#1a2332] border border-[#3d4f5f] px-3 py-1 rounded-sm text-[13px] font-extrabold text-[#00D4FF] tracking-widest mb-2">
-                  {type === 'pitcher' ? 'Pitcher Profile' : 'Hitter Profile'}
+            <MetalFrame className="p-6 mb-6">
+              <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                <div className="relative w-32 h-32 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imgSrc} onError={() => setImgSrc('/default-avatar.png')} alt={player.full_name} loading="lazy" width={128} height={128}
+                    className="w-32 h-32 rounded-full object-cover bg-[#1a2332] border-[3px] border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.4),inset_0_4px_8px_rgba(0,0,0,0.8)]" />
+                  {player.team_id && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`} alt={teamName || 'Team'} loading="lazy" width={40} height={40}
+                      className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#0d1117] rounded-full p-1 border-[2px] border-[#3d4f5f]" />
+                  )}
                 </div>
-                <h1 className="m-0 text-3xl md:text-5xl font-extrabold text-white tracking-wide" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                  {player.full_name}
-                </h1>
-                <div className="flex items-center justify-center md:justify-start gap-2 mt-3 flex-wrap">
-                  {teamName && <span className="text-slate-300 font-bold text-[14px] tracking-widest">{teamName}</span>}
-                  {(type === 'pitcher' ? player.role : player.position) && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-300 tracking-widest">
-                      {type === 'pitcher' ? player.role : player.position}
-                    </span>
-                  )}
-                  {(player.bats || player.throws) && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest" title="Bats / Throws">
-                      B/T {player.bats || '—'}/{player.throws || '—'}
-                    </span>
-                  )}
-                  {age != null && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest">
-                      Age {age}
-                    </span>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <div className="inline-block bg-[#1a2332] border border-[#3d4f5f] px-3 py-1 rounded-sm text-[13px] font-extrabold text-[#00D4FF] tracking-widest mb-2">
+                    {type === 'pitcher' ? 'Pitcher Profile' : 'Hitter Profile'}
+                  </div>
+                  <h1 className="m-0 text-3xl md:text-5xl font-extrabold text-white tracking-wide" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                    {player.full_name}
+                  </h1>
+                  <div className="flex items-center justify-center md:justify-start gap-2 mt-3 flex-wrap">
+                    {teamName && <span className="text-slate-300 font-bold text-[14px] tracking-widest">{teamName}</span>}
+                    {player.position && (
+                      <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-300 tracking-widest" title="Field position">
+                        {player.position}
+                      </span>
+                    )}
+                    {roleLabel && (
+                      <span className="bg-[#00D4FF]/10 border border-[#00D4FF]/40 px-2 py-0.5 rounded text-[13px] font-extrabold text-[#00D4FF] tracking-widest" title={type === 'pitcher' ? 'Pitching role' : 'Lineup role'}>
+                        {roleLabel}
+                      </span>
+                    )}
+                    {(player.bats || player.throws) && (
+                      <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest" title="Which side the batter hits from / which hand the player throws with">
+                        Bats {handed(player.bats)} · Throws {handed(player.throws)}
+                      </span>
+                    )}
+                    {age != null && (
+                      <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest">
+                        Age {age}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </MetalFrame>
