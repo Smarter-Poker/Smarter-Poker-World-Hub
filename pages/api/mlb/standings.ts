@@ -28,7 +28,11 @@ async function edgeHandler(req: Request) {
     const mlbDb = getMlbSupabase();
 
     const [standingsRes, seasonRes] = await Promise.all([
-      mlbDb.from('v_mlb_standings').select('*'),
+      // get_mlb_standings_ext() returns the base v_mlb_standings rows enriched with
+      // runs_per_game, runs_allowed_per_game, era, whip, team_avg/obp/slg/ops sourced
+      // from the daily-refreshed agg_team snapshots. (Plain v_mlb_standings has none of
+      // those, which is why ERA/AVG/R-G/RA-G rendered as "--".)
+      mlbDb.rpc('get_mlb_standings_ext'),
       mlbDb
         .from('fact_games')
         .select('official_date')
@@ -39,10 +43,11 @@ async function edgeHandler(req: Request) {
 
     if (standingsRes.error) {
       console.warn('[API/MLB/Standings] Error fetching standings:', standingsRes.error.message);
-      return EMPTY({ error: 'standings_unavailable' });
+      return EMPTY({ error: 'standings_unavailable', last_game_date: null });
     }
 
-    const teams = standingsRes.data || [];
+    // RPC returns a jsonb array of team rows.
+    const teams = Array.isArray(standingsRes.data) ? standingsRes.data : [];
     const latestDate: string | undefined = seasonRes.data?.[0]?.official_date;
     const season = latestDate ? new Date(latestDate).getUTCFullYear() : null;
 

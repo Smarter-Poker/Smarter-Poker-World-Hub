@@ -11,73 +11,39 @@ async function edgeHandler(req: Request) {
   try {
     const mlbDb = getMlbSupabase();
 
-    // Fetch Hitters and Pitchers concurrently
-    // PostgREST caps responses at 1000 rows regardless of .limit(); page through with
-    // .range() so the directory returns the full pool (~1950 hitters / ~1220 pitchers)
-    // instead of the first 1000.
-    const fetchAllRows = async (
-      build: () => any,
-      pageSize = 1000,
-      maxRows = 20000
-    ): Promise<any[]> => {
-      let all: any[] = [];
-      for (let from = 0; from < maxRows; from += pageSize) {
-        const { data, error } = await build().range(from, from + pageSize - 1);
-        if (error) throw error;
-        const rows = data || [];
-        all = all.concat(rows);
-        if (rows.length < pageSize) break;
-      }
-      return all;
-    };
-
-    // Hitters: only rows that have actually batted (pa > 0). This excludes the ~1100
-    // pitchers/non-batters that exist in v_hitter_profile with NULL wRC+ and would
-    // otherwise float to the TOP of the directory under Postgres' default
-    // "DESC => NULLS FIRST" ordering. nullsFirst:false is a belt-and-suspenders guard.
-    // player_id is a deterministic tiebreak so .range() pagination is stable across pages.
-    const buildHitters = () =>
-      mlbDb
-        .from('v_hitter_profile')
-        .select('player_id, full_name, team_id, wrc_plus, woba, pa')
-        .gt('pa', 0)
-        .order('wrc_plus', { ascending: false, nullsFirst: false })
-        .order('pa', { ascending: false, nullsFirst: false })
-        .order('player_id', { ascending: true });
-
-    // Pitchers: only rows that have faced a batter (bf > 0). Lower FIP is better.
-    const buildPitchers = () =>
-      mlbDb
-        .from('v_pitcher_profile')
-        .select('player_id, full_name, team_id, fip, siera, bf')
-        .gt('bf', 0)
-        .order('fip', { ascending: true, nullsFirst: false })
-        .order('bf', { ascending: false, nullsFirst: false })
-        .order('player_id', { ascending: true });
-
+    // Directory RPCs return the full hitter/pitcher lists with real season stat lines
+    // (AVG/HR/RBI/OBP/SLG/OPS + wRC+/wOBA/PA for hitters; W-L/SV/ERA/WHIP/K/IP/FIP for
+    // pitchers) from the engine's daily fg_season snapshot. Each is isolated so one
+    // failing list doesn't blank the other. Hitters come pre-sorted by wRC+ desc,
+    // pitchers by strikeouts desc; the page re-sorts/filters per tab.
     let hitters: any[] = [];
     let pitchers: any[] = [];
     let hittersFailed = false;
     let pitchersFailed = false;
 
-    // Isolate the two fetches: a failure in one view must not blank the other.
     const [hRes, pRes] = await Promise.allSettled([
-      fetchAllRows(buildHitters),
-      fetchAllRows(buildPitchers),
+      mlbDb.rpc('get_mlb_hitter_directory'),
+      mlbDb.rpc('get_mlb_pitcher_directory'),
     ]);
 
-    if (hRes.status === 'fulfilled') {
-      hitters = hRes.value;
+    if (hRes.status === 'fulfilled' && !hRes.value.error) {
+      hitters = Array.isArray(hRes.value.data) ? hRes.value.data : [];
     } else {
       hittersFailed = true;
-      console.error('[MLB Players] hitter fetch failed:', hRes.reason);
+      console.error(
+        '[MLB Players] hitter directory failed:',
+        hRes.status === 'fulfilled' ? hRes.value.error : hRes.reason
+      );
     }
 
-    if (pRes.status === 'fulfilled') {
-      pitchers = pRes.value;
+    if (pRes.status === 'fulfilled' && !pRes.value.error) {
+      pitchers = Array.isArray(pRes.value.data) ? pRes.value.data : [];
     } else {
       pitchersFailed = true;
-      console.error('[MLB Players] pitcher fetch failed:', pRes.reason);
+      console.error(
+        '[MLB Players] pitcher directory failed:',
+        pRes.status === 'fulfilled' ? pRes.value.error : pRes.reason
+      );
     }
 
     const fetchError = hittersFailed || pitchersFailed;

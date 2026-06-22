@@ -8,6 +8,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import { glossaryFor } from '../../../src/lib/mlbStatGlossary';
 
 const fuzzyMatch = (str: string, query: string) => {
   if (!query) return true;
@@ -27,11 +28,39 @@ export interface PlayerProfile {
   player_id: number;
   full_name: string;
   team_id?: number;
+  // hitter
+  avg?: number;
+  hr?: number;
+  rbi?: number;
+  r?: number;
+  sb?: number;
+  bb?: number;
+  so?: number;
+  h?: number;
+  obp?: number;
+  slg?: number;
+  ops?: number;
+  iso?: number;
+  pa?: number;
   wrc_plus?: number;
   woba?: number;
-  pa?: number;
+  k_pct?: number;
+  bb_pct?: number;
+  // pitcher
+  w?: number;
+  l?: number;
+  sv?: number;
+  hld?: number;
+  era?: number;
+  whip?: number;
+  k?: number;
+  ip?: number;
+  gs?: number;
+  g?: number;
   fip?: number;
   siera?: number;
+  k9?: number;
+  bb9?: number;
   bf?: number;
 }
 
@@ -117,6 +146,30 @@ const fetcher = async (url: string) => {
   }
 };
 
+// Compact stat formatters for the directory cards.
+const fmtAvg = (v?: number | null) => (v == null ? '—' : Number(v).toFixed(3).replace(/^0\./, '.'));
+const fmt2 = (v?: number | null) => (v == null ? '—' : Number(v).toFixed(2));
+const fmtInt = (v?: number | null) => (v == null ? '—' : String(Math.round(Number(v))));
+const fmtIp = (v?: number | null) => (v == null ? '—' : String(v));
+
+// One stat on a directory card: label + value, with a hover tooltip from the glossary.
+const CardStat = ({ label, value, lead }: { label: string; value: string; lead?: boolean }) => (
+  <span
+    className="inline-flex items-baseline gap-1"
+    title={glossaryFor(label) || undefined}
+    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+  >
+    <span className={`${lead ? 'text-[#00D4FF]' : 'text-slate-500'} text-[10px] font-bold tracking-wide`}>
+      {label}
+    </span>
+    <span
+      className={`${lead ? 'text-white text-sm' : 'text-slate-300 text-[11px]'} font-extrabold tracking-wide`}
+    >
+      {value}
+    </span>
+  </span>
+);
+
 const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
   const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
   const [imgSrc, setImgSrc] = useState(headshotUrl);
@@ -159,9 +212,9 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' |
               />
             )}
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <span
-              className="font-extrabold text-white text-lg tracking-widest uppercase"
+              className="font-extrabold text-white text-lg tracking-wide truncate"
               style={{
                 fontFamily: '"Rajdhani", sans-serif',
                 textShadow: '0 1px 2px rgba(0,0,0,0.8)',
@@ -169,61 +222,35 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' |
             >
               {player.full_name}
             </span>
-            <div className="flex items-center gap-2 mt-1">
-              {type === 'pitchers' ? (
-                <>
-                  <span
-                    className="text-[#00D4FF] font-extrabold text-sm tracking-widest uppercase"
-                    style={{
-                      fontFamily: '"Rajdhani", sans-serif',
-                      textShadow: '0 0 5px rgba(0,212,255,0.4)',
-                    }}
-                  >
-                    FIP {player.fip != null ? Number(player.fip).toFixed(2) : 'N/A'}
-                  </span>
-                  <span className="text-slate-600 text-xs">|</span>
-                  <span
-                    className="text-slate-400 text-[11px] font-bold tracking-widest uppercase"
-                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                  >
-                    SIERA {player.siera != null ? Number(player.siera).toFixed(2) : 'N/A'}
-                  </span>
-                  <span className="text-slate-600 text-xs">|</span>
-                  <span
-                    className="text-slate-400 text-[11px] font-bold tracking-widest uppercase"
-                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                  >
-                    {player.bf != null ? player.bf : 'N/A'} BF
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span
-                    className="text-[#00D4FF] font-extrabold text-sm tracking-widest uppercase"
-                    style={{
-                      fontFamily: '"Rajdhani", sans-serif',
-                      textShadow: '0 0 5px rgba(0,212,255,0.4)',
-                    }}
-                  >
-                    wRC+ {player.wrc_plus != null ? Number(player.wrc_plus).toFixed(0) : 'N/A'}
-                  </span>
-                  <span className="text-slate-600 text-xs">|</span>
-                  <span
-                    className="text-slate-400 text-[11px] font-bold tracking-widest uppercase"
-                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                  >
-                    wOBA {player.woba != null ? Number(player.woba).toFixed(3) : 'N/A'}
-                  </span>
-                  <span className="text-slate-600 text-xs">|</span>
-                  <span
-                    className="text-slate-400 text-[11px] font-bold tracking-widest uppercase"
-                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                  >
-                    {player.pa != null ? player.pa : 'N/A'} PA
-                  </span>
-                </>
-              )}
-            </div>
+            {type === 'pitchers' ? (
+              <>
+                <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
+                  <CardStat label="ERA" value={fmt2(player.era)} lead />
+                  <CardStat label="W-L" value={`${fmtInt(player.w)}-${fmtInt(player.l)}`} lead />
+                  <CardStat label="K" value={fmtInt(player.k)} lead />
+                </div>
+                <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
+                  <CardStat label="WHIP" value={fmt2(player.whip)} />
+                  <CardStat label="IP" value={fmtIp(player.ip)} />
+                  <CardStat label="SV" value={fmtInt(player.sv)} />
+                  <CardStat label="FIP" value={fmt2(player.fip)} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
+                  <CardStat label="AVG" value={fmtAvg(player.avg)} lead />
+                  <CardStat label="HR" value={fmtInt(player.hr)} lead />
+                  <CardStat label="RBI" value={fmtInt(player.rbi)} lead />
+                </div>
+                <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
+                  <CardStat label="OBP" value={fmtAvg(player.obp)} />
+                  <CardStat label="SLG" value={fmtAvg(player.slg)} />
+                  <CardStat label="OPS" value={fmtAvg(player.ops)} />
+                  <CardStat label="wRC+" value={fmtInt(player.wrc_plus)} />
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -288,7 +315,7 @@ const TeamSelectorRow = ({
         {/* Name + record + streak */}
         <div className="flex items-center gap-2 flex-wrap">
           <span
-            className="font-extrabold text-white text-[15px] uppercase tracking-widest truncate"
+            className="font-extrabold text-white text-[15px] tracking-widest truncate"
             style={{ fontFamily: '"Rajdhani", sans-serif' }}
           >
             {teamName}
@@ -334,9 +361,9 @@ const TeamSelectorRow = ({
 };
 
 const StatPill = ({ label, value }: { label: string; value: string | null }) => (
-  <div className="flex items-center gap-1">
+  <div className="flex items-center gap-1" title={glossaryFor(label) || undefined}>
     <span
-      className="text-slate-500 text-[10px] font-bold tracking-widest uppercase"
+      className="text-slate-500 text-[10px] font-bold tracking-widest"
       style={{ fontFamily: '"Rajdhani", sans-serif' }}
     >
       {label}
@@ -451,12 +478,12 @@ export default function PlayersPage() {
               style={{ filter: 'drop-shadow(0 0 8px rgba(255,68,68,0.8))' }}
             />
             <h2
-              className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10"
+              className="text-2xl font-extrabold text-white tracking-wider mb-2 relative z-10"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               System Error
             </h2>
-            <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
+            <p className="text-[#FF4444] font-bold tracking-widest text-[11px] relative z-10">
               Failed to load data. Please try again later.
             </p>
           </div>
@@ -497,7 +524,7 @@ export default function PlayersPage() {
 
         <div className="mb-6">
           <h1
-            className="m-0 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase"
+            className="m-0 text-2xl md:text-3xl font-extrabold text-white tracking-widest"
             style={{
               fontFamily: '"Rajdhani", sans-serif',
               textShadow: '0 0 10px rgba(255,255,255,0.2)',
@@ -519,7 +546,7 @@ export default function PlayersPage() {
             type="text"
             inputMode="search"
             aria-label="Search players by name"
-            placeholder="SEARCH PLAYERS BY NAME..."
+            placeholder="Search Players by Name..."
             value={searchQuery}
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -528,7 +555,7 @@ export default function PlayersPage() {
               if (e.target.value && selectedTeam) setSelectedTeam(null);
               setShowSuggestions(true);
             }}
-            className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 pl-12 pr-12 text-white font-extrabold text-sm tracking-widest uppercase focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600 relative z-20"
+            className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-3 pl-12 pr-12 text-white font-extrabold text-sm tracking-widest focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600 relative z-20"
           />
           {(searchQuery || selectedTeam) && (
             <button
@@ -536,9 +563,9 @@ export default function PlayersPage() {
                 setSearchQuery('');
                 setSelectedTeam(null);
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00D4FF] transition-colors flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase z-30"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00D4FF] transition-colors flex items-center gap-1 text-[10px] font-extrabold tracking-widest z-30"
             >
-              CLEAR <X size={14} />
+              Clear <X size={14} />
             </button>
           )}
 
@@ -546,7 +573,7 @@ export default function PlayersPage() {
           {showSuggestions && searchQuery.length >= 3 && suggestions.length > 0 && (
             <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[100] overflow-hidden divide-y divide-[#3d4f5f]">
               <div
-                className="px-4 py-2 bg-[#1a2332] text-slate-400 text-[10px] font-extrabold tracking-widest uppercase"
+                className="px-4 py-2 bg-[#1a2332] text-slate-400 text-[10px] font-extrabold tracking-widest"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 Top Suggestions
@@ -573,7 +600,7 @@ export default function PlayersPage() {
                   )}
                   <div className="flex flex-col">
                     <span
-                      className="text-white font-extrabold tracking-widest text-sm uppercase group-hover:text-[#00D4FF] transition-colors"
+                      className="text-white font-extrabold tracking-widest text-sm group-hover:text-[#00D4FF] transition-colors"
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       {p.full_name}
@@ -600,7 +627,7 @@ export default function PlayersPage() {
                 setActiveTab(tab);
               }}
               aria-pressed={activeTab === tab}
-              className={`w-full md:w-auto px-4 py-3 md:py-2 rounded-md font-extrabold text-[13px] md:text-[11px] uppercase tracking-widest whitespace-nowrap transition-all ${
+              className={`w-full md:w-auto px-4 py-3 md:py-2 rounded-md font-extrabold text-[13px] md:text-[11px] tracking-widest whitespace-nowrap transition-all ${
                 activeTab === tab
                   ? 'bg-gradient-to-b from-[#00D4FF]/20 to-[#1a2332] border-[2px] border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)]'
                   : 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-500 shadow-[inset_0_2px_4px_rgba(255,255,255,0.05)] hover:border-[#4b637a]'
@@ -619,7 +646,7 @@ export default function PlayersPage() {
             </div>
             <div>
               <div
-                className="text-[#FF4444] font-extrabold text-sm uppercase tracking-widest"
+                className="text-[#FF4444] font-extrabold text-sm tracking-widest"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 System Error
@@ -657,7 +684,7 @@ export default function PlayersPage() {
                 <Activity size={28} className="text-[#3d4f5f]" />
               </div>
               <div
-                className="text-slate-400 font-extrabold text-sm tracking-widest uppercase"
+                className="text-slate-400 font-extrabold text-sm tracking-widest"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 No Player Data Available
@@ -670,7 +697,7 @@ export default function PlayersPage() {
             /* ── TEAM SELECTOR: League / Division Grouped ── */
             <div className="space-y-8">
               <p
-                className="text-center text-[11px] font-extrabold text-slate-500 tracking-widest uppercase"
+                className="text-center text-[11px] font-extrabold text-slate-500 tracking-widest"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 Select a Team
@@ -681,7 +708,7 @@ export default function PlayersPage() {
                   <div className="flex items-center gap-3 mb-4">
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#3d4f5f]" />
                     <span
-                      className="text-[#00D4FF] font-extrabold text-[13px] tracking-[0.2em] uppercase px-3 py-1 rounded-full border border-[#00D4FF]/30 bg-[#00D4FF]/5"
+                      className="text-[#00D4FF] font-extrabold text-[13px] tracking-[0.2em] px-3 py-1 rounded-full border border-[#00D4FF]/30 bg-[#00D4FF]/5"
                       style={{
                         fontFamily: '"Rajdhani", sans-serif',
                         textShadow: '0 0 8px rgba(0,212,255,0.5)',
@@ -710,7 +737,7 @@ export default function PlayersPage() {
                         >
                           {/* Division header */}
                           <div
-                            className="text-[10px] font-extrabold text-slate-500 tracking-[0.2em] uppercase mb-3 pl-2 border-b border-[#2a3a4a] pb-2"
+                            className="text-[10px] font-extrabold text-slate-500 tracking-[0.2em] mb-3 pl-2 border-b border-[#2a3a4a] pb-2"
                             style={{ fontFamily: '"Rajdhani", sans-serif' }}
                           >
                             {division}
@@ -748,7 +775,7 @@ export default function PlayersPage() {
                     height={40}
                   />
                   <span
-                    className="text-white font-extrabold text-lg uppercase tracking-widest"
+                    className="text-white font-extrabold text-lg tracking-widest"
                     style={{ fontFamily: '"Rajdhani", sans-serif' }}
                   >
                     {standingsMap.get(selectedTeam)?.name ??
@@ -760,7 +787,7 @@ export default function PlayersPage() {
                       setSelectedTeam(null);
                       setSearchQuery('');
                     }}
-                    className="ml-auto text-slate-500 hover:text-[#00D4FF] text-[10px] font-extrabold tracking-widest uppercase flex items-center gap-1 transition-colors"
+                    className="ml-auto text-slate-500 hover:text-[#00D4FF] text-[10px] font-extrabold tracking-widest flex items-center gap-1 transition-colors"
                   >
                     Change Team <X size={12} />
                   </button>
@@ -779,7 +806,7 @@ export default function PlayersPage() {
 
                   {isCapped && (
                     <div
-                      className="text-center py-6 pb-8 text-slate-500 font-extrabold text-[11px] tracking-widest uppercase"
+                      className="text-center py-6 pb-8 text-slate-500 font-extrabold text-[11px] tracking-widest"
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       Showing Top {DISPLAY_LIMIT} Results. Keep Typing To Refine Your Search.
@@ -793,21 +820,21 @@ export default function PlayersPage() {
                       <Search size={28} className="text-[#3d4f5f]" />
                     </div>
                     <div
-                      className="text-slate-400 font-extrabold text-sm tracking-widest uppercase mb-4"
+                      className="text-slate-400 font-extrabold text-sm tracking-widest mb-4"
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       {searchQuery
-                        ? `NO PLAYERS FOUND MATCHING "${searchQuery}"`
-                        : 'NO PLAYERS FOUND FOR THIS TEAM'}
+                        ? `No Players Found Matching "${searchQuery}"`
+                        : 'No Players Found for This Team'}
                     </div>
                     <button
                       onClick={() => {
                         setSearchQuery('');
                         setSelectedTeam(null);
                       }}
-                      className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[12px] font-extrabold tracking-widest uppercase hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
+                      className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[12px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
                     >
-                      CLEAR FILTERS
+                      Clear Filters
                     </button>
                   </div>
                 )
