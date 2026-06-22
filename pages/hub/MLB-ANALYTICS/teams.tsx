@@ -1309,7 +1309,7 @@ export default function TeamsPage({
                       border: `1px solid ${globalEdgeActive ? 'var(--neon-cyan)' : '#3d4f5f'}`,
                     }}
                   >
-                    Mlb Edge
+                    MLB Edge
                     <div
                       role="img"
                       aria-label={globalEdgeActive ? 'MLB edge active' : 'No active MLB edge'}

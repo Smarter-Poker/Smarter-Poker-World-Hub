@@ -335,7 +335,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     className="text-[51px] font-black text-[#00D4FF]"
                     style={{ fontFamily: '"Rajdhani", sans-serif' }}
                   >
-                    Mlb
+                    MLB
                   </span>
                 </div>
               )
