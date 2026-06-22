@@ -55,6 +55,15 @@ function inferSide(
   return 'over';
 }
 
+// Fair American odds (integer) implied by a no-vig probability (0..1). Used to
+// price the UNDER side honestly, since pred_props only stores the OVER price.
+function fairAmericanFromProb(prob: number | null): number | null {
+  if (prob == null || prob <= 0 || prob >= 1) return null;
+  return prob > 0.5
+    ? Math.round((-100 * prob) / (1 - prob))
+    : Math.round((100 * (1 - prob)) / prob);
+}
+
 async function edgeHandler(req: Request) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
@@ -97,12 +106,16 @@ async function edgeHandler(req: Request) {
 
     const { startIso, endIso } = utcDayRange(slateDate);
 
+    // A slate older than today (Chicago) is already played — a graded recap,
+    // NOT a live actionable board. The UI shows results instead of bet badges.
+    const isStale = slateDate < today;
+
     // ── 1. Fetch priced props for the slate ──────────────────────────────
     // Only rows with a posted price are gradeable / actionable.
     const propsRes = await mlbDb
       .from('pred_props')
       .select(
-        'game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, blended_over, market_novig_over, best_lines, best_price, best_book, rec, kelly_pct'
+        'game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, blended_over, market_novig_over, best_lines, best_price, best_book, rec, kelly_pct, result, pnl'
       )
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
@@ -411,7 +424,17 @@ async function edgeHandler(req: Request) {
       // Win prob / market prob for the RECOMMENDED side.
       const pWin = pOver == null ? null : isOver ? pOver : 1 - pOver;
       const pMarket = pMarketOver == null ? null : isOver ? pMarketOver : 1 - pMarketOver;
-      const price = p.best_price != null ? Number(p.best_price) : null;
+
+      // CRITICAL: pred_props.best_price is ALWAYS the best OVER price (the engine
+      // only stores over prices). For an OVER rec it is the correct offered price.
+      // For an UNDER rec there is NO stored under price, so pairing the under win
+      // prob with the over price fabricates EV (the "phantom ELITE" bug). Use the
+      // side-correct price: the real over price for overs; the no-vig FAIR under
+      // price (derived from the market) for unders — an honest, price-shop-free
+      // number reflecting only model-vs-market edge.
+      const overPrice = p.best_price != null ? Number(p.best_price) : null;
+      const price = isOver ? overPrice : fairAmericanFromProb(pMarket);
+      const priceIsReal = isOver && overPrice != null;
 
       // Canonical Bet Score (0-100) + tier — identical scale to every other surface.
       let bet_score: number | null = null;
@@ -461,8 +484,12 @@ async function edgeHandler(req: Request) {
         implied_prob: pWin,
         model_proj: p.proj_mean,
         market_novig_over: p.market_novig_over,
-        best_book: p.best_book,
-        best_lines: p.best_lines,
+        best_book: isOver ? p.best_book : null,
+        best_lines: isOver ? p.best_lines : null,
+        price_estimated: !priceIsReal,
+        // Graded outcome — present on closed/stale slates.
+        result: (p.result as string) ?? null,
+        pnl: p.pnl != null ? Number(p.pnl) : null,
         // Full stats payload
         stats: {
           avg: info.avg ?? null,
@@ -497,11 +524,22 @@ async function edgeHandler(req: Request) {
       topLock: scored.reduce((m, p) => Math.max(m, p.win_confidence ?? 0), 0),
     };
 
+    // Graded recap — only meaningful on a closed/stale slate (games resolved).
+    const graded = mappedProps.filter((p) => p.result === 'win' || p.result === 'loss');
+    const results = {
+      graded: graded.length,
+      wins: graded.filter((p) => p.result === 'win').length,
+      losses: graded.filter((p) => p.result === 'loss').length,
+      units: Math.round(mappedProps.reduce((s, p) => s + (p.pnl ?? 0), 0) * 100) / 100,
+    };
+
     return new Response(
       JSON.stringify({
         props: mappedProps,
         official_date: slateDate,
+        is_stale: isStale,
         stats,
+        results,
       }),
       {
         status: 200,

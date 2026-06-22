@@ -296,6 +296,25 @@ function HeaderStat({
   );
 }
 
+// ── Result badge (closed/graded slates) ────────────────────────────────────────
+function ResultBadge({ result, pnl }: { result: string; pnl: number | null }) {
+  const r = (result || '').toLowerCase();
+  const win = r === 'win';
+  const loss = r === 'loss';
+  const label = win ? 'WON' : loss ? 'LOST' : 'PUSH';
+  const color = win ? '#34D399' : loss ? '#FF6B6B' : '#8a9ba8';
+  const u = pnl != null ? `${Number(pnl) > 0 ? '+' : ''}${Number(pnl).toFixed(2)}u` : '';
+  return (
+    <span
+      className="inline-flex items-baseline gap-1.5 rounded-[5px] border px-2 py-0.5"
+      style={{ color, borderColor: color, background: '#0d1117' }}
+    >
+      <span className="text-[15px] font-black leading-none">{label}</span>
+      {u && <span className="text-[11px] font-bold opacity-80">{u}</span>}
+    </span>
+  );
+}
+
 // ── Detail Modal — rationale + full stats (parity with Best Bets) ──────────────
 function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) {
   useEffect(() => {
@@ -701,15 +720,23 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
             )}
           </div>
 
-          {/* Canonical Bet Score badge */}
+          {/* Canonical Bet Score badge — or the graded result on a closed slate */}
           <div className="flex-shrink-0 ml-auto">
-            <BetScoreBadge pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
+            {prop.result ? (
+              <ResultBadge result={prop.result} pnl={prop.pnl} />
+            ) : (
+              <BetScoreBadge pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
+            )}
           </div>
         </div>
 
         {/* ── Model Stats Row ── */}
         <div className="flex gap-1.5 flex-wrap mb-2.5">
-          <StatPill label="ODDS" value={formatOdds(prop.odds ?? prop.price)} color="#ffffff" />
+          <StatPill
+            label={prop.price_estimated ? 'FAIR' : 'ODDS'}
+            value={formatOdds(prop.odds ?? prop.price)}
+            color="#ffffff"
+          />
           {prop.model_proj != null && (
             <StatPill label="PROJ" value={fmtStat(prop.model_proj, 1)} color="#00D4FF" />
           )}
@@ -992,45 +1019,74 @@ export default function PropsPage() {
           className="flex items-stretch gap-2 mt-3 overflow-x-auto pb-0.5"
           style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
         >
-          <HeaderStat
-            label="TOTAL"
-            value={isLoading && !data ? '—' : slateStats.total}
-            color="#ffffff"
-            border="#3d4f5f"
-            bg="#0a0a15"
-          />
-          <HeaderStat
-            label="ELITE"
-            value={isLoading && !data ? '—' : slateStats.elite}
-            color="#00D4FF"
-            border="rgba(0,212,255,0.5)"
-            bg="#001a2a"
-            glow
-          />
-          <HeaderStat
-            label="STRONG"
-            value={isLoading && !data ? '—' : slateStats.strong}
-            color="#34D399"
-            border="rgba(52,211,153,0.5)"
-            bg="#06140f"
-          />
-          {slateStats.topScore > 0 && (
-            <HeaderStat
-              label="TOP"
-              value={slateStats.topScore}
-              color="#FFD700"
-              border="rgba(255,215,0,0.5)"
-              bg="#1a1000"
-            />
-          )}
-          {slateStats.topLock > 0 && (
-            <HeaderStat
-              label="LOCK"
-              value={`${Math.round(slateStats.topLock)}%`}
-              color="#A78BFA"
-              border="rgba(167,139,250,0.5)"
-              bg="#120a1f"
-            />
+          {isStale && data?.results ? (
+            <>
+              <HeaderStat
+                label="GRADED"
+                value={isLoading && !data ? '—' : data.results.graded}
+                color="#ffffff"
+                border="#3d4f5f"
+                bg="#0a0a15"
+              />
+              <HeaderStat
+                label="RECORD"
+                value={`${data.results.wins}-${data.results.losses}`}
+                color="#00D4FF"
+                border="rgba(0,212,255,0.5)"
+                bg="#001a2a"
+                glow
+              />
+              <HeaderStat
+                label="UNITS"
+                value={`${data.results.units > 0 ? '+' : ''}${Number(data.results.units).toFixed(1)}`}
+                color={data.results.units >= 0 ? '#34D399' : '#FF6B6B'}
+                border={data.results.units >= 0 ? 'rgba(52,211,153,0.5)' : 'rgba(255,107,107,0.5)'}
+                bg={data.results.units >= 0 ? '#06140f' : '#1a0a0a'}
+              />
+            </>
+          ) : (
+            <>
+              <HeaderStat
+                label="TOTAL"
+                value={isLoading && !data ? '—' : slateStats.total}
+                color="#ffffff"
+                border="#3d4f5f"
+                bg="#0a0a15"
+              />
+              <HeaderStat
+                label="ELITE"
+                value={isLoading && !data ? '—' : slateStats.elite}
+                color="#00D4FF"
+                border="rgba(0,212,255,0.5)"
+                bg="#001a2a"
+                glow
+              />
+              <HeaderStat
+                label="STRONG"
+                value={isLoading && !data ? '—' : slateStats.strong}
+                color="#34D399"
+                border="rgba(52,211,153,0.5)"
+                bg="#06140f"
+              />
+              {slateStats.topScore > 0 && (
+                <HeaderStat
+                  label="TOP"
+                  value={slateStats.topScore}
+                  color="#FFD700"
+                  border="rgba(255,215,0,0.5)"
+                  bg="#1a1000"
+                />
+              )}
+              {slateStats.topLock > 0 && (
+                <HeaderStat
+                  label="LOCK"
+                  value={`${Math.round(slateStats.topLock)}%`}
+                  color="#A78BFA"
+                  border="rgba(167,139,250,0.5)"
+                  bg="#120a1f"
+                />
+              )}
+            </>
           )}
         </div>
 
@@ -1108,10 +1164,10 @@ export default function PropsPage() {
             <CalendarX size={15} className="text-amber-500 flex-shrink-0" />
             <div>
               <p className="text-[12px] font-black tracking-widest uppercase text-amber-500 m-0">
-                STALE SLATE — NOT ACTIONABLE
+                LAST GRADED SLATE · RESULTS
               </p>
               <p className="text-[10px] text-amber-600/70 font-bold uppercase tracking-wider m-0 mt-0.5">
-                Props from {data?.official_date || 'a previous date'}. Today's lines not yet posted.
+                Showing {data?.official_date || 'a previous date'} — games already played. Today's lines aren't posted yet, so these are graded outcomes, not live bets.
               </p>
             </div>
           </div>
