@@ -579,6 +579,8 @@ async function edgeHandler(req: Request) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+}
+
 export const config = {
   runtime: 'edge',
 };
