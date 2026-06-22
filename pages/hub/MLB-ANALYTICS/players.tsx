@@ -9,6 +9,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 import { glossaryFor } from '../../../src/lib/mlbStatGlossary';
+import HrTodayLeaders from '../../../src/components/mlb/HrTodayLeaders';
 
 const fuzzyMatch = (str: string, query: string) => {
   if (!query) return true;
@@ -539,6 +540,8 @@ export default function PlayersPage() {
             projections, and advanced metrics.
           </p>
         </div>
+
+        <HrTodayLeaders />
 
         <div className="relative mb-6">
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00D4FF] flex pointer-events-none">
