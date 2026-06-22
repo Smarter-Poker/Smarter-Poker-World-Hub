@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 import { createClient } from '@supabase/supabase-js';
+// @ts-ignore
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,7 +13,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const mainDb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const mainDb = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
     const { user: localUser } = await getServerUserWithFallback(req, mainDb);
     if (!localUser) return res.status(401).json({ error: 'Auth required' });
 

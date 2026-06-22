@@ -299,15 +299,15 @@ export default function PortfolioPage() {
     <div className="bg-[#0a0a15] min-h-screen font-inter pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
       <SEOHead
         title="MLB Betting Portfolio — System P&L & Unit Tracking | Smarter.Poker"
-        description="System MLB betting portfolio for Smarter.Poker model picks: cumulative bankroll, ROI, win rate, profit factor, max drawdown, per-market and per-tier results, and the full bet log across the MLB season."
+        description="System MLB betting portfolio for Smarter.Poker model picks: cumulative bankroll, roi, win rate, profit factor, max drawdown, per-market and per-tier results, and the full bet log across the MLB season."
         canonical="/hub/MLB-ANALYTICS/portfolio"
         ogImage="/images/mlb/og.png"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'Dataset',
-          name: 'MLB Portfolio Analytics — Cumulative ROI & Performance Tracking',
+          name: 'MLB Portfolio Analytics — Cumulative roi & Performance Tracking',
           description:
-            'Full-season portfolio performance for Smarter.Poker MLB model picks: cumulative bankroll, ROI, win rate, profit factor, max drawdown, and per-market / per-Bet-Score-tier breakdowns over the MLB season.',
+            'Full-season portfolio performance for Smarter.Poker MLB model picks: cumulative bankroll, roi, win rate, profit factor, max drawdown, and per-market / per-Bet-Score-tier breakdowns over the MLB season.',
           url: 'https://smarter.poker/hub/MLB-ANALYTICS/portfolio',
           provider: {
             '@type': 'Organization',
@@ -464,10 +464,10 @@ export default function PortfolioPage() {
                   isLoading={isRefreshing}
                 />
                 <MetricBox
-                  title="ROI"
+                  title="roi"
                   value={formatPct(roi, true)}
                   valueColor={
-                    Number(roi || 0) > 0 ? '#00D4FF' : Number(ROI || 0) < 0 ? '#FF0055' : '#FFFFFF'
+                    Number(roi || 0) > 0 ? '#00D4FF' : Number(roi || 0) < 0 ? '#FF0055' : '#FFFFFF'
                   }
                   isLoading={isRefreshing}
                 />
@@ -697,7 +697,7 @@ export default function PortfolioPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-[18px]">
-                        <span className="text-slate-400 font-semibold">ROI</span>
+                        <span className="text-slate-400 font-semibold">roi</span>
                         <span
                           className={`font-bold ${Number(m.roi) >= 0 ? 'text-[#00D4FF]' : 'text-[#FF0055]'}`}
                         >
@@ -720,7 +720,7 @@ export default function PortfolioPage() {
                         <th className="py-3 px-4 font-semibold text-right">Bets</th>
                         <th className="py-3 px-4 font-semibold text-right">Win%</th>
                         <th className="py-3 px-4 font-semibold text-right">P&amp;L</th>
-                        <th className="py-3 px-4 font-semibold text-right">ROI</th>
+                        <th className="py-3 px-4 font-semibold text-right">roi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -798,7 +798,7 @@ export default function PortfolioPage() {
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-[18px]">
-                          <span className="text-slate-400 font-semibold">ROI</span>
+                          <span className="text-slate-400 font-semibold">roi</span>
                           <span
                             className={`font-bold ${Number(g.roi) >= 0 ? 'text-[#00D4FF]' : 'text-[#FF0055]'}`}
                           >
@@ -822,7 +822,7 @@ export default function PortfolioPage() {
                         <th className="py-3 px-4 font-semibold text-right">Bets</th>
                         <th className="py-3 px-4 font-semibold text-right">Win%</th>
                         <th className="py-3 px-4 font-semibold text-right">P&amp;L</th>
-                        <th className="py-3 px-4 font-semibold text-right">ROI</th>
+                        <th className="py-3 px-4 font-semibold text-right">roi</th>
                       </tr>
                     </thead>
                     <tbody>

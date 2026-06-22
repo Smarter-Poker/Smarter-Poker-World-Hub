@@ -79,7 +79,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
           {label} EDGE
         </p>
         <p
-          className={`text-[30px] font-extrabold ${Number(roi) > 0 ? 'text-[#00D4FF]' : Number(ROI) < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`}
+          className={`text-[30px] font-extrabold ${Number(roi) > 0 ? 'text-[#00D4FF]' : Number(roi) < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`}
           style={{
             textShadow:
               Number(roi) > 0
@@ -90,7 +90,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
           }}
         >
           {Number(roi) > 0 ? '+' : ''}
-          {Number(roi).toFixed(2)}% ROI
+          {Number(roi).toFixed(2)}% roi
         </p>
         <p className="text-slate-500 text-[21px] mt-1">{payload[0].payload.n} bets graded</p>
       </div>
@@ -284,7 +284,7 @@ export default function ValidationPage() {
                   Flat-Stake Roi
                 </div>
                 <div
-                  className={`text-[40px] font-extrabold ${Number(stats.flagged.roi) > 0 ? 'text-[#00D4FF]' : Number(stats.flagged.ROI) < 0 ? 'text-[#FF0055]' : 'text-white'}`}
+                  className={`text-[40px] font-extrabold ${Number(stats.flagged.roi) > 0 ? 'text-[#00D4FF]' : Number(stats.flagged.roi) < 0 ? 'text-[#FF0055]' : 'text-white'}`}
                   style={{
                     textShadow:
                       Number(stats.flagged.roi) > 0
@@ -355,14 +355,14 @@ export default function ValidationPage() {
               — a real skill signal.
             </div>
 
-            {/* ROI BY EDGE SIZE - VISUALIZATION */}
+            {/* roi BY EDGE SIZE - VISUALIZATION */}
             <div
               className="text-[18px] font-extrabold text-[#00D4FF] tracking-[1px] mb-3 capitalize flex items-center justify-between"
               style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}
             >
-              <span>ROI By Edge Size</span>
+              <span>roi By Edge Size</span>
               <span className="text-[17px] text-slate-400 lowercase font-bold border border-[#3d4f5f] bg-[#0d1117] px-2 py-0.5 rounded shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-                Flat-stake ROI %
+                Flat-stake roi %
               </span>
             </div>
             <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden mb-4 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative pt-6 pb-2 px-2">
@@ -412,7 +412,7 @@ export default function ValidationPage() {
                         {stats.edgeData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={entry.roi > 0 ? '#00D4FF' : entry.ROI < 0 ? '#FF0055' : '#94a3b8'}
+                            fill={entry.roi > 0 ? '#00D4FF' : entry.roi < 0 ? '#FF0055' : '#94a3b8'}
                           />
                         ))}
                       </Bar>
@@ -430,7 +430,7 @@ export default function ValidationPage() {
                     <div>Edge Threshold</div>
                     <div className="text-right">Bets</div>
                     <div className="text-right">Win%</div>
-                    <div className="text-right">ROI</div>
+                    <div className="text-right">roi</div>
                   </div>
                   {stats.edgeData.map((row, idx) => (
                     <div
@@ -439,14 +439,14 @@ export default function ValidationPage() {
                     >
                       <div className="font-bold text-white flex items-center gap-2">
                         <div
-                          className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.ROI) < 0 ? 'bg-[#FF0055] shadow-[0_0_5px_rgba(255,0,85,0.8)]' : 'bg-slate-500'}`}
+                          className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.roi) < 0 ? 'bg-[#FF0055] shadow-[0_0_5px_rgba(255,0,85,0.8)]' : 'bg-slate-500'}`}
                         ></div>
                         {row.edge}
                       </div>
                       <div className="text-right text-slate-300 font-medium">{row.n}</div>
                       <div className="text-right text-slate-300 font-medium">{row.winPct}%</div>
                       <div
-                        className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.ROI) < 0 ? 'text-[#00D4FF]' : 'text-white'}`}
+                        className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#00D4FF]' : 'text-white'}`}
                         style={{
                           textShadow:
                             Number(row.roi) > 0
@@ -471,7 +471,7 @@ export default function ValidationPage() {
               </strong>
               The edge size represents the difference between the model's projected win probability
               and the market's implied probability. A higher edge theoretically correlates with a
-              higher ROI, but variance in smaller sample sizes can cause non-monotonic returns
+              higher roi, but variance in smaller sample sizes can cause non-monotonic returns
               across different edge buckets.
             </div>
 

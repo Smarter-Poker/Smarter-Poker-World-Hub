@@ -105,7 +105,7 @@ const fetcher = async (url: string) => {
   }
 };
 
-const EMPTY_HEALTH = {};
+const EMPTY_HEALTH: any = {};
 const EMPTY_SLATE = {};
 const EMPTY_ACCURACY = {};
 const EMPTY_TIER_DIST: Record<string, number> = {};
