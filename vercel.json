@@ -380,14 +380,6 @@
     {
       "source": "/api/commander/:path*",
       "destination": "https://commander.smarter.poker/api/:path*"
-    },
-    {
-      "source": "/hub/MLB-ANALYTICS",
-      "destination": "https://mlb-analytics-engine.vercel.app/hub/MLB-ANALYTICS"
-    },
-    {
-      "source": "/hub/MLB-ANALYTICS/:path*",
-      "destination": "https://mlb-analytics-engine.vercel.app/hub/MLB-ANALYTICS/:path*"
     }
   ]
 }
