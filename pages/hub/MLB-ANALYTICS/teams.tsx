@@ -121,25 +121,7 @@ const StatLabel = ({
   label: string;
   color?: string;
 }) => {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLSpanElement>(null);
   const meta = STAT_META[label];
-
-  // Close on outside click/tap (mobile-friendly)
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', close, true);
-    document.addEventListener('touchstart', close, true);
-    return () => {
-      document.removeEventListener('mousedown', close, true);
-      document.removeEventListener('touchstart', close, true);
-    };
-  }, [open]);
 
   if (!meta) {
     return (
@@ -149,19 +131,13 @@ const StatLabel = ({
     );
   }
   return (
-    <span
-      ref={wrapRef}
-      className={`stat-tooltip-wrap${open ? ' is-open' : ''}`}
-    >
+    <span className="stat-tooltip-wrap">
       <span className="stat-label" style={{ color }}>
         {label}
         <span
           className="tooltip-dot"
-          role="button"
           tabIndex={0}
           aria-label={`Info about ${label}`}
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v); } }}
         >?</span>
       </span>
       <span className="stat-tooltip-box">
@@ -961,11 +937,12 @@ export default function TeamsPage({
             }
             .stat-tooltip-wrap:hover .stat-tooltip-box,
             .stat-tooltip-wrap:focus-within .stat-tooltip-box,
-            .stat-tooltip-wrap.is-open .stat-tooltip-box {
+            .stat-tooltip-wrap:hover .stat-tooltip-box,
+            .stat-tooltip-wrap:focus-within .stat-tooltip-box {
                 opacity: 1;
                 visibility: visible;
-            }
-            /* ── Expanded Drawer ── */
+                pointer-events: auto;
+            }/* ── Expanded Drawer ── */
             .drawer-section-header {
                 font-size: 9px;
                 font-weight: 800;

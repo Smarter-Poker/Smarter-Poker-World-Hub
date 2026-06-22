@@ -20,13 +20,23 @@
 -- ROI is a TRUE portfolio return (total unit profit / total bets placed), matching
 -- the proven aggregation in pages/api/mlb/accuracy.ts.
 
-create or replace function public.get_mlb_model_intel()
-returns jsonb
-language sql
-stable
-security invoker
-set search_path = public
-as $$
+DO $do$
+BEGIN
+  -- GUARD: Only execute this RPC creation if we are on the MLB Engine DB.
+  -- We detect this by checking if v_backtest_summary has the 'market' column.
+  -- If it doesn't, this is likely the HUB database during a db:push, and we skip silently.
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'v_backtest_summary' AND column_name = 'market'
+  ) THEN
+    EXECUTE $func$
+CREATE OR REPLACE FUNCTION public.get_mlb_model_intel()
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $_$
 with src as (
   select
     date,
@@ -169,18 +179,35 @@ calibration as (
          ) order by bucket), '[]'::jsonb) as data
   from calib_agg
   where n > 0
+),
+td as (
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'date',            to_char(date, 'YYYY-MM-DD'),
+    'market',          lower(market),
+    'n',               n,
+    'brier',           brier,
+    'avg_clv',         clv,
+    'sum_unit_profit', profit,
+    'bet_count',       bets
+  ) order by date desc), '[]'::jsonb) as data
+  from src
 )
 select jsonb_build_object(
   'kpi',           (select to_jsonb(k) from kpi k),
   'model_version', (select model_version from sim_bets where model_version is not null order by as_of_ts desc limit 1),
   'recent_roi',    (select roi from recent),
   'history',       (select data from hist),
+  'table_data',    (select data from td),
   'markets',       (select data from mkt),
   'bet_types',     (select data from bt),
   'clv_trend',     (select data from clv_trend),
   'calibration',   (select data from calibration)
 );
-$$;
+$_$;
+    $func$;
 
-grant execute on function public.get_mlb_model_intel() to anon, authenticated, service_role;
-
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.get_mlb_model_intel() TO anon, authenticated, service_role;';
+  ELSE
+    RAISE NOTICE 'Skipping get_mlb_model_intel execution: v_backtest_summary is missing the market column. This is expected if running against the HUB database instead of the MLB engine database.';
+  END IF;
+END $do$;

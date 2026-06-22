@@ -7,9 +7,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const { days, market } = req.query;
-        const parsedDays = days && typeof days === 'string' ? parseInt(days, 10) : undefined;
-        const parsedMarket = market && typeof market === 'string' && market !== 'ALL' ? market : undefined;
+        const { days: daysQuery, market: marketQuery } = req.query;
+        const daysStr = Array.isArray(daysQuery) ? daysQuery[0] : daysQuery;
+        const marketStr = Array.isArray(marketQuery) ? marketQuery[0] : marketQuery;
+        const parsedDays = (daysStr && !isNaN(parseInt(daysStr, 10))) ? parseInt(daysStr, 10) : undefined;
+        const parsedMarket = marketStr && marketStr !== 'ALL' ? marketStr : undefined;
 
         const mlbDb = getMlbSupabase();
 
@@ -21,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Anchor the rolling window to the latest bet (mirrors get_portfolio_stats RPC),
         // so a filtered export matches exactly what the page shows for the same filters.
         let anchorCutoffIso: string | undefined;
-        if (parsedDays && !isNaN(parsedDays)) {
+        if (parsedDays !== undefined && !isNaN(parsedDays)) {
             let maxQuery = mlbDb
                 .from('sim_bets')
                 .select('as_of_ts')

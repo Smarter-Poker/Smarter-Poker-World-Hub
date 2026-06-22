@@ -921,7 +921,7 @@ export default function ModelIntelPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[600px]">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b border-[#2a3a4a]">
+                  <tr className="text-[10px] tracking-widest text-slate-400 border-b border-[#2a3a4a]">
                     <th className="text-left font-bold px-4 py-3">Market</th>
                     <th className="text-right font-bold px-3 py-3">Graded</th>
                     <th className="text-right font-bold px-3 py-3">Bets</th>
@@ -1008,7 +1008,7 @@ export default function ModelIntelPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[560px]">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b border-[#2a3a4a]">
+                  <tr className="text-[10px] tracking-widest text-slate-400 border-b border-[#2a3a4a]">
                     <th className="text-left font-bold px-4 py-3">Bet Type</th>
                     <th className="text-right font-bold px-3 py-3">Sample</th>
                     <th className="text-right font-bold px-3 py-3">Win%</th>
@@ -1056,7 +1056,7 @@ export default function ModelIntelPage() {
                       <td className="text-right px-3 py-3">
                         {Array.isArray(b.sparkline) && b.sparkline.length > 1 ? (
                           <div style={{ width: 56, height: 24, display: 'inline-block' }}>
-                            <svg viewBox={`0 0 56 24`} width={56} height={24} style={{ overflow: 'visible' }}>
+                            <svg viewBox={`0 0 56 24`} width={56} height={24} style={{ overflow: 'visible' }} aria-hidden="true">
                               {(() => {
                                 const pts = b.sparkline;
                                 const vals = pts.map((p: any) => p.clv);
