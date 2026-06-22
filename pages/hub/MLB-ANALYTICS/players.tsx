@@ -2,7 +2,9 @@ import { useRouter } from 'next/router';
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ChevronRight, Search, X, AlertTriangle, Activity } from 'lucide-react';
+import React from "react";
+import { ChevronRight, Search, X, AlertTriangle, Activity } from "lucide-react";
+import PageErrorBoundary from "../../../src/components/ui/PageErrorBoundary";
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -983,5 +985,6 @@ export default function PlayersPage() {
 
       <BottomNavBar />
     </div>
+    </PageErrorBoundary>
   );
 }
