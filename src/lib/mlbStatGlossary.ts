@@ -51,6 +51,12 @@ export const STAT_GLOSSARY: Record<string, string> = {
   'O-Swing%': 'Chase rate — swings at pitches outside the zone.',
   Spd: 'Speed Score — a measure of baserunning speed.',
   BsR: 'Base Running runs above average.',
+  LA: 'Average launch angle off the bat (degrees).',
+  Clutch: 'Performance in high-leverage situations vs a context-neutral baseline.',
+  'Swing%': 'Share of all pitches the batter swings at.',
+  'Z-Swing%': 'Swing rate on pitches inside the strike zone.',
+  'Zone%': 'Share of pitches seen that were inside the strike zone.',
+  'F-Strike%': 'Share of plate appearances where the first pitch was a strike.',
   // ---- Pitching: standard ----
   W: 'Wins.',
   L: 'Losses.',
