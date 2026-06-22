@@ -114,8 +114,6 @@ const staticPages = [
     { path: '/hub/MLB-ANALYTICS/teams', priority: '0.7', changefreq: 'daily' },
     { path: '/hub/MLB-ANALYTICS/hr-tracker', priority: '0.7', changefreq: 'daily' },
     { path: '/hub/MLB-ANALYTICS/tracker', priority: '0.7', changefreq: 'hourly' },
-    { path: '/hub/MLB-ANALYTICS/accuracy', priority: '0.6', changefreq: 'daily' },
-    { path: '/hub/MLB-ANALYTICS/backtest', priority: '0.6', changefreq: 'daily' },
     { path: '/hub/MLB-ANALYTICS/validation', priority: '0.6', changefreq: 'daily' },
     { path: '/hub/MLB-ANALYTICS/portfolio', priority: '0.5', changefreq: 'weekly' },
     { path: '/hub/MLB-ANALYTICS/model-intel', priority: '0.5', changefreq: 'weekly' },

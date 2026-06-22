@@ -1,275 +1,29 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
-import useSWR from 'swr';
-import { ArrowLeft, ArrowRight, Loader2, Target, BarChart3, TrendingUp, DollarSign } from 'lucide-react';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import MlbSubNav from '../../../src/components/ui/MlbSubNav';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { logError } from '@/utils/logger';
-import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
 
-const fetcher = async (url: string) => {
-    try {
-        const res = await fetch(url);
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return await res.json();
-    } catch (err) {
-        logError('SWR Fetch', err);
-        throw err;
-    }
-};
+/**
+ * Backtest page — deprecated June 2026. Its Lock-In Gate, market breakdown,
+ * and daily trend were a subset of Model Intel, which adds the cumulative
+ * P&L curve and the bet-type trust ledger. Redirects there so there is one
+ * source of truth for the real-money go-live gate (n>=500).
+ */
+export default function BacktestRedirectPage() {
+  const router = useRouter();
 
-export default function BacktestPage() {
-    const router = useRouter();
-    const { data, error, isLoading } = useSWR('/api/mlb/backtest', fetcher, {
-        refreshInterval: 60000,
-        revalidateOnFocus: false,
-    });
+  useEffect(() => {
+    router.replace('/hub/MLB-ANALYTICS/model-intel');
+  }, [router]);
 
-    if (error || data?.error) {
-        logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
-        return (
-            <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Backtest Simulator — Unit P&amp;L &amp; Historical Edge Analysis | Smarter.Poker" description="Run historical backtests on the Smarter.Poker MLB prediction model." noindex={true} />
-                <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
-                <MlbSubNav />
-                <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
-                    <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
-                        <Target className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
-                        <h2 className="text-[40px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF4444] font-bold capitalize tracking-widest text-[14px] relative z-10">Failed To Load Data. Please Try Again Later.</p>
-                    </div>
-                </main>
-                <BottomNavBar />
-            </div>
-        );
-    }
-
-    const formatPct = (val: any) => val === null || val === undefined || isNaN(val) ? '—' : `${Number(val) > 0 ? '+' : ''}${Number(val).toFixed(1)}%`;
-    const formatNum = (val: any) => val === null || val === undefined || isNaN(val) ? '—' : val.toLocaleString();
-
-    const dailyTrend = data?.dailyTrend || [];
-    const marketBreakdown = data?.marketBreakdown || [];
-    const stats = data?.stats || {
-        totalPredictions: 0, wonBets: 0, lostBets: 0, winRate: null, avgBrier: null,
-        brierVsBaseline: null, cumulativeRoi: null, unitsWon: null, avgClv: null
-    };
-    
-    const hasData = !!data?.stats && Number(stats.totalPredictions) > 0;
-
-    // Lock-in Gate evaluation
-    const sampleSizePassed = Number(stats.totalPredictions) >= 500;
-    const brierPassed = Number(stats.avgBrier) < 0.23 && Number(stats.avgBrier) > 0;
-    const roiPassed = Number(stats.cumulativeRoi) > -3.0;
-    const clvPassed = Number(stats.avgClv) > 0;
-    const gatesPassed = [sampleSizePassed, brierPassed, roiPassed, clvPassed].filter(Boolean).length;
-    
-    const GateCard = ({ label, target, value, passed, isPct = false, isBrier = false }: any) => (
-        <div className={`relative bg-[#0d1117] border-[2px] ${passed ? 'border-[#00D4FF]' : 'border-[#00D4FF]/50'} rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] transition-all`}>
-            {passed && <div className="absolute top-0 right-0 w-8 h-8 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[15px] opacity-20"></div>}
-            <div className="text-[16px] font-bold text-slate-400 tracking-widest capitalize mb-1">{label} ({target})</div>
-            <div className={`text-[34px] font-extrabold ${passed ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={passed ? { textShadow: '0 0 5px rgba(0,212,255,0.4)', fontFamily: '"Rajdhani", sans-serif' } : { fontFamily: '"Rajdhani", sans-serif' }}>
-                {isPct ? formatPct(value) : (isBrier ? (value != null ? Number(value).toFixed(4) : '0.0000') : formatNum(value))}
-            </div>
-        </div>
-    );
-
-    return (
-        <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">
-           <SEOHead 
-               title="MLB Model Backtest — Live Market Edge Evaluation | Smarter.Poker" 
-               description="Historical backtest results for Smarter.Poker's MLB prediction model. Review daily P&L trends, market-level breakdowns, win rates, ROI, CLV, and Brier score performance across the 2025 MLB season."
-                canonical="/hub/MLB-ANALYTICS/backtest"
-           
-                ogImage="/images/mlb/og.png"
-            
-                jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "Dataset",
-                "name": "MLB Model Backtesting — Historical Prediction Simulation",
-                "description": "Backtesting of the Smarter.Poker MLB AI model across historical slates: win rate, ROI, CLV, and Brier score by market type and season window.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/backtest",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
-            />
-
-           <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
-           <MlbSubNav />
-
-           <MlbPremiumGate featureName="Backtest Portfolio">
-           <div className="p-4 w-full max-w-4xl mx-auto box-border relative">
-               {/* Background Glows */}
-               <div className="absolute top-20 right-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.03] pointer-events-none"></div>
-               <div className="absolute bottom-40 left-0 w-96 h-96 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.02] pointer-events-none"></div>
-
-               {/* Header Section */}
-               <div className="mb-6">
-                   <Link href="/hub/MLB-ANALYTICS/accuracy" className="inline-flex items-center gap-1 text-[#00D4FF] text-[17px] font-extrabold tracking-widest capitalize hover:text-white transition-colors mb-2">
-                       <ArrowLeft size={14} /> Accuracy
-                   </Link>
-                   <div className="flex justify-between items-center bg-[#0d1117] border border-[#3d4f5f] p-5 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                       <div>
-                           <h1 className="m-0 text-[40px] md:text-[51px] font-extrabold text-white tracking-widest capitalize" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>Backtest Results</h1>
-                           <div className="text-[18px] font-bold text-slate-400 mt-1 capitalize tracking-widest">Live Market Evaluation</div>
-                       </div>
-                       <Link href="/hub/MLB-ANALYTICS/accuracy" className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF]/30 hover:border-[#00D4FF] px-4 py-2 rounded-sm text-[18px] font-extrabold capitalize tracking-widest flex items-center gap-2 transition-all hover:shadow-[0_0_10px_rgba(0,212,255,0.3)]">
-                           Live Accuracy <ArrowRight size={14} />
-                       </Link>
-                   </div>
-               </div>
-
-                {isLoading && !data ? (
-                    <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-                        <Loader2 className="w-12 h-12 animate-spin text-[#00D4FF] mx-auto mb-4" />
-                        <div className="text-[23px] font-extrabold text-[#00D4FF] tracking-widest capitalize animate-pulse">Calculating Matrices...</div>
-                    </div>
-                ) : (error || data?.error) ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-[#131420] border-[3px] border-[#ef4444]/50 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] mb-8">
-                        <div className="text-[22px] font-extrabold text-[#ef4444] tracking-[1px] mb-2 capitalize">System Error Detected</div>
-                        <div className="text-[18px] text-slate-400 max-w-[300px] text-center">
-                            Failed To Load Backtest Evaluation Data. The Database Connection Might Be Unavailable.
-                        </div>
-                    </div>
-                ) : (
-                   <>
-                       {/* Top Metric Cards */}
-                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 px-4 md:px-0">
-                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                               <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><Target size={40} /></div>
-                               <div className="text-[17px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">Total Predictions</div>
-                               <div className="text-[40px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatNum(stats.totalPredictions)}</div>
-                               <div className="text-[17px] font-bold text-slate-500 mt-1 capitalize tracking-widest">resolved bets</div>
-                           </div>
-                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                               <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><TrendingUp size={40} /></div>
-                               <div className="text-[17px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">Overall Win Rate</div>
-                               <div className="text-[40px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.winRate != null ? Number(stats.winRate).toFixed(1) : '0.0'}%</div>
-                               <div className="text-[17px] font-bold text-[#00D4FF] mt-1 capitalize tracking-widest">{stats.wonBets || 0} W / {stats.lostBets || 0} L</div>
-                           </div>
-                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                               <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]"><BarChart3 size={40} /></div>
-                               <div className="text-[17px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">AVG BRIER (0.25)</div>
-                               <div className="text-[40px] font-extrabold text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>{hasData && stats.avgBrier != null ? Number(stats.avgBrier).toFixed(4) : '—'}</div>
-                               <div className={`text-[17px] font-bold mt-1 capitalize tracking-widest ${hasData && Number(stats.brierVsBaseline) < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
-                                   {hasData ? `${Number(stats.brierVsBaseline) >= 0 ? '+' : ''}${stats.brierVsBaseline != null ? Number(stats.brierVsBaseline).toFixed(4) : '0.0000'} vs base` : '—'}
-                               </div>
-                           </div>
-                           <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                               <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]"><DollarSign size={40} /></div>
-                               <div className="text-[17px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">Cumulative Ml Roi</div>
-                               <div className={`text-[40px] font-extrabold ${hasData && Number(stats.cumulativeRoi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{hasData ? formatPct(stats.cumulativeRoi) : '—'}</div>
-                               <div className="text-[17px] font-bold text-slate-500 mt-1 capitalize tracking-widest">{hasData ? `${Number(stats.unitsWon) > 0 ? '+' : ''}${stats.unitsWon != null ? Number(stats.unitsWon).toFixed(2) : '0.00'}u profit` : '—'}</div>
-                           </div>
-                       </div>
-
-                       {/* Lock-In Gate */}
-                       <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-5 mb-8 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                           <div className="flex justify-between items-center mb-4 pb-3 border-b border-[#3d4f5f]">
-                               <div className="flex items-center gap-3">
-                                   <h2 className="m-0 text-[27px] md:text-[30px] font-extrabold text-white tracking-widest capitalize" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Lock-In Gate</h2>
-                                   <span className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 text-[16px] font-extrabold px-2 py-0.5 rounded-sm tracking-widest capitalize shadow-[0_0_5px_rgba(255,215,0,0.2)]">Evaluating</span>
-                               </div>
-                               <div className="text-[16px] font-bold text-slate-500 tracking-widest capitalize hidden md:block">
-                                   Required Before Real-Money Play
-                               </div>
-                           </div>
-                           
-                           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 md:px-0">
-                               <GateCard label="Sample Size" target="n≥500" value={stats.totalPredictions} passed={sampleSizePassed} />
-                               <GateCard label="Brier Score" target="<0.23" value={stats.avgBrier} passed={brierPassed} isBrier={true} />
-                               <GateCard label="Ml Roi" target=">-3%" value={stats.cumulativeRoi} passed={roiPassed} isPct={true} />
-                               <GateCard label="Avg CLV" target=">0 pts" value={stats.avgClv} passed={clvPassed} />
-                               
-                               <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] flex flex-col justify-center items-center text-center">
-                                   <div className="text-[17px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">All Gates</div>
-                                   <div className={`text-[34px] font-extrabold ${gatesPassed === 4 ? 'text-[#00D4FF]' : 'text-[#FFD700]'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                                       {gatesPassed === 4 ? 'PASSED' : 'PENDING'}
-                                   </div>
-                                   <div className="text-[17px] font-bold text-slate-500 mt-1 tracking-widest capitalize">{gatesPassed}/4 passed</div>
-                               </div>
-                           </div>
-                       </div>
-
-                       {/* Market Breakdown */}
-                       <div className="mb-8">
-                           <h2 className="text-[27px] font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Market Breakdown</h2>
-                           <div className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                               <table className="w-full min-w-[600px] text-left border-collapse">
-                                   <thead>
-                                       <tr className="bg-[#1a2332] border-b border-[#3d4f5f]">
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest">Market</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-center">n</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Win Rate</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Avg Brier</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-right">Roi%</th>
-                                       </tr>
-                                   </thead>
-                                   <tbody>
-                                       {marketBreakdown.map((row: any, idx: number) => (
-                                           <tr key={idx} className="border-b border-[#3d4f5f] hover:bg-[#1a2332]/50 transition-colors">
-                                               <td className="p-4">
-                                                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[18px] font-extrabold text-slate-300 capitalize tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">{row.market}</span>
-                                               </td>
-                                               <td className="p-4 text-center font-bold text-slate-400 text-[23px]">{row.n}</td>
-                                               <td className="p-4 text-center font-bold text-white text-[23px]">{row.winRate != null ? Number(row.winRate).toFixed(1) : '0.0'}%</td>
-                                               <td className="p-4 text-center font-extrabold text-[#00D4FF] text-[23px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.avgBrier ? Number(row.avgBrier).toFixed(4) : '—'}</td>
-                                               <td className={`p-4 text-right font-extrabold text-[23px] ${Number(row.roi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-400'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi)}</td>
-                                           </tr>
-                                       ))}
-                                       {marketBreakdown.length === 0 && (
-                                           <tr>
-                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-[21px] capitalize tracking-widest">No market data available</td>
-                                           </tr>
-                                       )}
-                                   </tbody>
-                               </table>
-                           </div>
-                       </div>
-
-                       {/* Daily Trend */}
-                       <div className="mb-4">
-                           <h2 className="text-[27px] font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Daily Trend — Last 14 Days</h2>
-                           <div className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                               <table className="w-full min-w-[600px] text-left border-collapse">
-                                   <thead>
-                                       <tr className="bg-[#1a2332] border-b border-[#3d4f5f]">
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest">Date</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Games</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Brier (ML)</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Ml Roi%</th>
-                                           <th className="p-4 text-[17px] font-extrabold text-slate-400 capitalize tracking-widest text-right">Props ROI%</th>
-                                       </tr>
-                                   </thead>
-                                   <tbody>
-                                       {dailyTrend.map((row: any, idx: number) => (
-                                           <tr key={idx} className="border-b border-[#3d4f5f] hover:bg-[#1a2332]/50 transition-colors">
-                                               <td className="p-4 font-bold text-slate-300 text-[23px] tracking-widest">{row.backtest_date}</td>
-                                               <td className="p-4 text-center font-bold text-slate-400 text-[23px]">{row.games_evaluated}</td>
-                                               <td className="p-4 text-center font-extrabold text-[#00D4FF] text-[23px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.brier_score_ml ? Number(row.brier_score_ml).toFixed(4) : '—'}</td>
-                                               <td className={`p-4 text-center font-extrabold text-[23px] ${Number(row.roi_ml) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_ml) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_ml)}</td>
-                                               <td className={`p-4 text-right font-extrabold text-[23px] ${Number(row.roi_props) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_props) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_props)}</td>
-                                           </tr>
-                                       ))}
-                                       {dailyTrend.length === 0 && (
-                                           <tr>
-                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-[21px] capitalize tracking-widest">No daily trend data available</td>
-                                           </tr>
-                                       )}
-                                   </tbody>
-                               </table>
-                           </div>
-                       </div>
-                   </>
-               )}
-           </div>
-           </MlbPremiumGate>
-           
-           <BottomNavBar />
-        </div>
-    );
+  return (
+    <>
+      <SEOHead
+        title="MLB Model Backtest — Redirecting | Smarter.Poker"
+        description="Redirecting to the unified Model Intel page."
+        noindex={true}
+      />
+      {/* Blank while redirect fires */}
+      <div className="min-h-screen bg-[#0a0a15]" />
+    </>
+  );
 }

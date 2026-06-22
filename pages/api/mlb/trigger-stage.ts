@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -12,13 +13,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // TODO: Wire this up to the actual backend pipeline webhook or Supabase RPC
-    // For now, this is a stub that waits 2 seconds to simulate a network request
-    // and returns a success response.
-    console.log(`[API/MLB/Trigger] Simulating trigger for stage: ${stage}`);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const mlbDb = getMlbSupabase();
+    
+    // Insert a pending run for the backend pipeline engine to pick up
+    const { error: insertError } = await mlbDb.from('pipeline_runs').insert({
+      stage: stage,
+      step: stage,
+      status: 'pending',
+      run_ts: new Date().toISOString(),
+      notes: 'Manually triggered via Hub UI'
+    });
 
-    return res.status(200).json({ ok: true, message: `Successfully triggered stage: ${stage}` });
+    if (insertError) {
+      console.error(`[API/MLB/Trigger] Database Error triggering stage ${stage}:`, insertError);
+      return res.status(500).json({ error: 'Failed to queue stage rerun' });
+    }
+
+    return res.status(200).json({ ok: true, message: `Successfully queued stage: ${stage}` });
   } catch (error) {
     console.error(`[API/MLB/Trigger] Error triggering stage ${stage}:`, error);
     return res.status(500).json({ error: 'Internal Server Error' });

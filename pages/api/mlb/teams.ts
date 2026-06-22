@@ -188,6 +188,7 @@ async function edgeHandler(req: Request) {
         uzr: aggNum(season?.uzr),
         drs: aggNum(season?.drs),
         oaa: aggNum(season?.oaa),
+        as_of: season?.as_of || pit?.as_of || hit?.as_of || null,
       };
     };
 
