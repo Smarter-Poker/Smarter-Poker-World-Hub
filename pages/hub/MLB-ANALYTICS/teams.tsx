@@ -72,16 +72,17 @@ function statColor(key: string, value: number | null | undefined): string {
   };
   // Higher is better: [good_threshold, bad_threshold]
   const higherBetter: Record<string, [number, number]> = {
-    OPS:    [0.760, 0.700],
-    OBP:    [0.330, 0.305],
-    SLG:    [0.435, 0.390],
-    AVG:    [0.260, 0.240],
-    'wRC+': [108,   92],
-    wOBA:   [0.330, 0.305],
-    HR:     [100,   70],
-    SB:     [70,    40],
-    oWAR:   [18,    10],
-    pWAR:   [18,    10],
+    OPS:      [0.760, 0.700],
+    OBP:      [0.330, 0.305],
+    SLG:      [0.435, 0.390],
+    AVG:      [0.260, 0.240],
+    'wRC+':   [108,   92],
+    wOBA:     [0.330, 0.305],
+    HR:       [100,   70],
+    SB:       [70,    40],
+    oWAR:     [18,    10],
+    pWAR:     [18,    10],
+    'Pyth W%':[0.550, 0.450],
   };
   // Zero-centered: threshold above = good, below negative = bad
   const centered: Record<string, number> = {
@@ -558,7 +559,7 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="Pyth W%" color="#94A3B8" /></span>
-                    <span className="drawer-value">{team.pyth_wpct != null ? Number(team.pyth_wpct).toFixed(3) : '-'}</span>
+                    <span className="drawer-value" style={{ color: statColor('Pyth W%', team.pyth_wpct) }}>{team.pyth_wpct != null ? Number(team.pyth_wpct).toFixed(3) : '-'}</span>
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="wRC+" color="#94A3B8" /></span>
@@ -592,10 +593,6 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="pWAR" color="#94A3B8" /></span>
                     <span className="drawer-value" style={{ color: statColor('pWAR', adv.pitching_war) }}>{adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : '-'}</span>
-                  </div>
-                  <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="OAA" color="#94A3B8" /></span>
-                    <span className="drawer-value" style={{ color: statColor('OAA', adv.oaa) }}>{adv.oaa != null ? (Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)) : '-'}</span>
                   </div>
                 </div>
 
