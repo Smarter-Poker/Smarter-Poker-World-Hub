@@ -12,7 +12,7 @@ returns jsonb language sql stable as $$
   from (
     select jsonb_build_object(
       'player_id', d.player_id, 'full_name', d.full_name, 'team_id', d.team_id,
-      'player_class', d.player_class,
+      'player_class', d.player_class, 'position', d."position",
       'avg',(b.metrics->>'AVG')::numeric, 'hr',(b.metrics->>'HR')::numeric, 'rbi',(b.metrics->>'RBI')::numeric,
       'r',(b.metrics->>'R')::numeric, 'sb',(b.metrics->>'SB')::numeric, 'bb',(b.metrics->>'BB')::numeric,
       'so',(b.metrics->>'SO')::numeric, 'h',(b.metrics->>'H')::numeric, 'obp',(b.metrics->>'OBP')::numeric,
