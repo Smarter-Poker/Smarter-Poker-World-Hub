@@ -521,13 +521,20 @@ export default function PlayersPage() {
     // Explicit sort overrides the tab's default ranking.
     if (sortKey !== 'default' && SORT_FIELDS[sortKey]) {
       const { field, asc } = SORT_FIELDS[sortKey];
-      list = list.slice().sort((a, b) => {
-        const av = (a as any)[field];
-        const bv = (b as any)[field];
-        const an = av == null || isNaN(Number(av)) ? (asc ? Infinity : -Infinity) : Number(av);
-        const bn = bv == null || isNaN(Number(bv)) ? (asc ? Infinity : -Infinity) : Number(bv);
-        return asc ? an - bn : bn - an;
-      });
+      // Rate stats need a minimum sample so a tiny-sample player (1 IP / 0.00 ERA, or
+      // 3 AB / 1.000 AVG) doesn't top the leaderboard. Counting stats are self-qualifying.
+      const RATE_QUALIFY: Record<string, { field: string; min: number }> = {
+        avg: { field: 'pa', min: 50 }, ops: { field: 'pa', min: 50 },
+        era: { field: 'ip', min: 20 }, whip: { field: 'ip', min: 20 },
+      };
+      const q = RATE_QUALIFY[sortKey];
+      const worst = asc ? Infinity : -Infinity;
+      const val = (p: any) => {
+        if (q && Number(p[q.field] || 0) < q.min) return worst;
+        const v = p[field];
+        return v == null || isNaN(Number(v)) ? worst : Number(v);
+      };
+      list = list.slice().sort((a, b) => (asc ? val(a) - val(b) : val(b) - val(a)));
     }
 
     return list;
