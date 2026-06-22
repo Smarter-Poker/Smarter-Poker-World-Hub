@@ -1235,6 +1235,20 @@ const CategoryCarousel = ({
 // ──────────────────────────────────────────────────────────────────────────────
 // Page
 // ──────────────────────────────────────────────────────────────────────────────
+// Two-sided game markets (moneyline, run line, total) expose two opposing rows per game —
+// both can carry positive EV, but a single "best bets" list must never show both sides of the
+// same game (e.g. both teams of one matchup as "most likely to win"). Collapse to the single
+// best row per game by the list's own ranking metric.
+function bestPerGame<T extends Record<string, any>>(rows: T[], rankOf: (b: T) => number): T[] {
+  const byGame = new Map<any, T>();
+  for (const b of rows) {
+    const key = b.game_pk ?? b.matchup ?? b.selection;
+    const prev = byGame.get(key);
+    if (!prev || rankOf(b) > rankOf(prev)) byGame.set(key, b);
+  }
+  return Array.from(byGame.values());
+}
+
 export default function BestBetsPage() {
   const router = useRouter();
   const [selectedBet, setSelectedBet] = useState<any | null>(null);
@@ -1267,32 +1281,36 @@ export default function BestBetsPage() {
   // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
   // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
-    return [...bets]
-      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
-      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
+    const wc = (b: any) => Number(b.win_confidence) || 0;
+    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
+    // One row per game, and only sides the model actually favors (>= 50% win prob) — a
+    // sub-coinflip team is "most likely to LOSE", so it belongs in Best Money Lines, not here.
+    return bestPerGame(ml, wc)
+      .filter((b) => wc(b) >= 50)
+      .sort((a, b) => wc(b) - wc(a))
       .slice(0, 8);
   }, [bets]);
 
   const bestMoneyLines = useMemo(() => {
-    return [...bets]
-      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const sc = (b: any) => Number(b.bet_score) || 0;
+    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
+    return bestPerGame(ml, sc).sort((a, b) => sc(b) - sc(a));
   }, [bets]);
 
   const bestRunLines = useMemo(() => {
-    return [...bets]
-      .filter(
-        (b) =>
-          b.bet_type === 'line' &&
-          (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
-      )
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const sc = (b: any) => Number(b.bet_score) || 0;
+    const rl = bets.filter(
+      (b) =>
+        b.bet_type === 'line' &&
+        (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
+    );
+    return bestPerGame(rl, sc).sort((a, b) => sc(b) - sc(a));
   }, [bets]);
 
   const bestTotals = useMemo(() => {
-    return [...bets]
-      .filter((b) => b.bet_type === 'line' && b.market === 'total')
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const sc = (b: any) => Number(b.bet_score) || 0;
+    const tt = bets.filter((b) => b.bet_type === 'line' && b.market === 'total');
+    return bestPerGame(tt, sc).sort((a, b) => sc(b) - sc(a));
   }, [bets]);
 
   const mostLikelyToHomer = useMemo(() => {
