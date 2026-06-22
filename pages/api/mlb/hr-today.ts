@@ -27,7 +27,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const asOf = latestRow.as_of_ts;
 
-    // 2) Top players by modeled HR probability for that slate.
+    // 2) Top players by modeled HR probability for that slate. Fetch a WIDER window than
+    //    `limit` because a player can have multiple home_run prop rows at one as_of_ts
+    //    (doubleheaders / multiple lines); we then collapse to one row per player so the
+    //    leaderboard never shows a player twice (and never collides React keys downstream).
     const { data: props, error: propsErr } = await db
       .from('pred_props')
       .select('player_id, prob_over, game_pk')
@@ -35,11 +38,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('as_of_ts', asOf)
       .not('prob_over', 'is', null)
       .order('prob_over', { ascending: false })
-      .limit(limit);
+      .limit(Math.min(limit * 4, 400));
     if (propsErr) throw propsErr;
 
-    const rows = Array.isArray(props) ? props : [];
-    const ids = Array.from(new Set(rows.map((r: any) => r.player_id))).filter((x) => x != null);
+    // Collapse to the single best (highest prob_over, already sorted desc) row per
+    // player_id, then take the top `limit`.
+    const seen = new Set<number>();
+    const rows = (Array.isArray(props) ? props : [])
+      .filter((r: any) => {
+        if (r.player_id == null || seen.has(r.player_id)) return false;
+        seen.add(r.player_id);
+        return true;
+      })
+      .slice(0, limit);
+    const ids = rows.map((r: any) => r.player_id);
 
     // 3) Names + teams.
     const nameMap: Record<number, { full_name: string; team_id: number | null }> = {};
