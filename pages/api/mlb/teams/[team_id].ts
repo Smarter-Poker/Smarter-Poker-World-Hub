@@ -200,7 +200,9 @@ async function edgeHandler(req: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          // Live betting data (odds, scores, lineups) + SWR already refreshes client-side every
+          // 60s — never serve a stale edge copy (it caused empty stat boxes right after deploys).
+          'Cache-Control': 'no-store, max-age=0',
         },
       }
     );
