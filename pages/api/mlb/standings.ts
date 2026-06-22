@@ -12,14 +12,18 @@ async function edgeHandler(req: Request) {
     });
   }
 
-  const EMPTY = (extra: Record<string, unknown> = {}) =>
+  const EMPTY = (extra: Record<string, unknown> = {}, cache = true) =>
     new Response(
       JSON.stringify({ teams: [], season: null, updated: new Date().toISOString(), ...extra }),
       {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900',
+          // Never cache an error/empty response — a transient outage must not get
+          // pinned in the CDN for 5 minutes. Only cache genuine empty-but-OK results.
+          ...(cache
+            ? { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' }
+            : {}),
         },
       }
     );
@@ -27,28 +31,34 @@ async function edgeHandler(req: Request) {
   try {
     const mlbDb = getMlbSupabase();
 
-    const [standingsRes, seasonRes] = await Promise.all([
-      // get_mlb_standings_ext() returns the base v_mlb_standings rows enriched with
-      // runs_per_game, runs_allowed_per_game, era, whip, team_avg/obp/slg/ops sourced
-      // from the daily-refreshed agg_team snapshots. (Plain v_mlb_standings has none of
-      // those, which is why ERA/AVG/R-G/RA-G rendered as "--".)
-      mlbDb.rpc('get_mlb_standings_ext'),
-      mlbDb
-        .from('fact_games')
-        .select('official_date')
-        .eq('final', true)
-        .order('official_date', { ascending: false })
-        .limit(1),
-    ]);
+    // get_mlb_standings_ext() returns the base v_mlb_standings rows enriched with
+    // runs_per_game, runs_allowed_per_game, era, whip, team_avg/obp/slg/ops sourced
+    // from the daily-refreshed agg_team snapshots. (Plain v_mlb_standings has none of
+    // those, which is why ERA/AVG/R-G/RA-G rendered as "--".)
+    const standingsRes = await mlbDb.rpc('get_mlb_standings_ext');
 
     if (standingsRes.error) {
       console.warn('[API/MLB/Standings] Error fetching standings:', standingsRes.error.message);
-      return EMPTY({ error: 'standings_unavailable', last_game_date: null });
+      return EMPTY({ error: 'standings_unavailable', last_game_date: null }, false);
     }
 
     // RPC returns a jsonb array of team rows.
     const teams = Array.isArray(standingsRes.data) ? standingsRes.data : [];
-    const latestDate: string | undefined = seasonRes.data?.[0]?.official_date;
+
+    // Latest-game lookup is best-effort: a failure here must not blank the (more
+    // important) standings payload, so it runs in its own guard and degrades to null.
+    let latestDate: string | null = null;
+    try {
+      const seasonRes = await mlbDb
+        .from('fact_games')
+        .select('official_date')
+        .eq('final', true)
+        .order('official_date', { ascending: false })
+        .limit(1);
+      latestDate = seasonRes.data?.[0]?.official_date ?? null;
+    } catch (e) {
+      console.warn('[API/MLB/Standings] season lookup failed (degrading to null):', e);
+    }
     const season = latestDate ? new Date(latestDate).getUTCFullYear() : null;
 
     return new Response(

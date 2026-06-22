@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { createClient } from '@supabase/supabase-js';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 const STAGE_ORDER = ['predict', 'push', 'grade', 'grade_props', 'track', 'alert', 'export'];

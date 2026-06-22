@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { createClient } from '@supabase/supabase-js';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';

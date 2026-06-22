@@ -44,7 +44,7 @@ const TIER_META = [
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return '';
-  const isoStr = dateString.trim().replace(' ', 'T');
+  const isoStr = dateString.trim().replace(/ /g, 'T');
   const safeDate = isoStr.endsWith('Z') || isoStr.includes('+') ? isoStr : isoStr + 'Z';
   const d = new Date(safeDate);
   if (isNaN(d.getTime())) return String(dateString);
@@ -434,7 +434,7 @@ export const AlertsPanel = React.memo(({ alerts }: { alerts: MLBStatusPayload['a
   );
 });
 
-export const PipelineRunsPanel = React.memo(({ stages, latestRuns }: { stages: string[]; latestRuns: MLBStatusPayload['latestRuns'] }) => {
+export const PipelineRunsPanel = React.memo(({ stages, latestRuns, onMutate }: { stages: string[]; latestRuns: MLBStatusPayload['latestRuns']; onMutate?: () => void }) => {
   const [triggering, setTriggering] = useState<Record<string, boolean>>({});
 
   const handleTrigger = async (stage: string) => {
@@ -448,7 +448,9 @@ export const PipelineRunsPanel = React.memo(({ stages, latestRuns }: { stages: s
       if (!res.ok) {
         throw new Error(`Trigger failed: ${res.status}`);
       }
-      // The status will auto-refresh on the next SWR poll interval.
+      if (onMutate) {
+        onMutate();
+      }
     } catch (e) {
       console.error(e);
       alert(`Failed to rerun stage: ${stage}. Please check logs.`);

@@ -275,7 +275,7 @@ export default function StatusPage() {
                 <BetTierDistPanel tierDist={tierDist} />
                 <DataSourcePanel sources={sources} serverNow={data?.serverNow} />
                 <AlertsPanel alerts={alerts} />
-                <PipelineRunsPanel stages={stages} latestRuns={latestRuns} />
+                <PipelineRunsPanel stages={stages} latestRuns={latestRuns} onMutate={mutate} />
                 <DBTableCountsPanel tableCounts={tableCounts} />
               </>
             )}
