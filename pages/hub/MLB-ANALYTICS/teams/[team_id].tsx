@@ -282,6 +282,8 @@ export default function TeamDetailPage() {
 
   // Next / current matchup
   const nextGame = games.find((g: any) => !g.final);
+  // Rich matchup enrichment from the API (probable pitchers, model win %, h2h Bet Score).
+  const m = data?.matchup || null;
   const matchupDate = nextGame?.official_date
     ? new Date(`${nextGame.official_date}T12:00:00`).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -711,6 +713,44 @@ export default function TeamDetailPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* Probable pitchers + model win % + moneyline Bet Score (from data.matchup) */}
+                    {m && (m.team_pitcher || m.opp_pitcher || m.team_win_prob != null || (m.bet && m.bet.p_win != null)) && (
+                      <div style={{ marginTop: 18, borderTop: '1px solid rgba(61,79,95,0.5)', paddingTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize', marginBottom: 4 }}>
+                            Probable · {team.abbr || (nextGame.is_home ? 'Home' : 'Away')}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{m.team_pitcher || 'TBD'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize', marginBottom: 4 }}>
+                            Probable · {nextGame.opponent_abbr || 'Opp'}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{m.opp_pitcher || 'TBD'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: '#00D4FF', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize', marginBottom: 4 }}>
+                            Model Win %
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: 'white', fontFamily: "'Rajdhani', sans-serif" }}>
+                            {m.team_win_prob != null ? `${(Number(m.team_win_prob) * 100).toFixed(1)}%` : '—'}
+                            {m.opp_win_prob != null ? <span style={{ color: '#64748B', fontWeight: 700, fontSize: 12 }}> vs {(Number(m.opp_win_prob) * 100).toFixed(1)}%</span> : null}
+                          </div>
+                        </div>
+                        {m.bet && m.bet.p_win != null && m.bet.price != null && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                            <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize' }}>
+                              Moneyline Bet Score
+                            </div>
+                            <BetScoreBadge pWin={m.bet.p_win} price={m.bet.price} pMarket={m.bet.p_market} />
+                            {m.bet.rec && (
+                              <span style={{ fontSize: 9, fontWeight: 800, color: '#64748B', letterSpacing: '0.08em', textTransform: 'capitalize' }}>{m.bet.rec}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
