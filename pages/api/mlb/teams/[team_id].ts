@@ -211,15 +211,15 @@ async function edgeHandler(req: Request) {
     });
 
     // ── Current / next matchup: enrich the next non-final game with the model
-    //    line (probable pitchers, model win prob) from v_daily_slate and the
-    //    canonical h2h Bet Score inputs from pred_market_output (latest as_of_ts,
-    //    this team's side). Best-effort: any failure leaves `matchup` null and
-    //    never breaks the rest of the payload. ──
+    //    line (probable pitchers, model win prob, live status) from v_daily_slate and
+    //    the canonical Bet Score inputs from pred_market_output for h2h + total +
+    //    run_line (latest snapshot per selection, this team's side). Best-effort: any
+    //    failure leaves `matchup` null and never breaks the rest of the payload. ──
     let matchup: any = null;
     try {
       const upcoming = games.find((g: any) => !g.final);
       if (upcoming?.game_pk != null) {
-        const [slateRes, h2hRes] = await Promise.all([
+        const [slateRes, mktRes] = await Promise.all([
           mlbDb
             .from('v_daily_slate')
             .select(
@@ -230,22 +230,70 @@ async function edgeHandler(req: Request) {
           mlbDb
             .from('pred_market_output')
             .select(
-              'selection, model_prob, market_novig_prob, best_price, best_book, edge_pts, rec, as_of_ts'
+              'market, selection, model_prob, market_novig_prob, best_price, best_book, edge_pts, rec, as_of_ts'
             )
             .eq('game_pk', upcoming.game_pk)
-            .eq('market', 'h2h')
+            .in('market', ['h2h', 'total', 'run_line'])
             .order('as_of_ts', { ascending: false }),
         ]);
         const slate = slateRes.data as any;
-        const h2hRows = (h2hRes.data || []) as any[];
         const isHome = upcoming.is_home;
-        const teamH2h =
-          h2hRows.find((r: any) => r.selection === (isHome ? 'home' : 'away')) || null;
+        const side = isHome ? 'home' : 'away';
         const num = (v: any) => {
           if (v == null) return null;
           const n = Number(v);
           return Number.isFinite(n) ? n : null;
         };
+        // Latest snapshot per (market, selection) — rows arrive newest-first.
+        const seen = new Set<string>();
+        const rows: any[] = [];
+        for (const r of (mktRes.data || []) as any[]) {
+          const k = `${r.market}|${r.selection}`;
+          if (!seen.has(k)) {
+            seen.add(k);
+            rows.push(r);
+          }
+        }
+        const betObj = (r: any) =>
+          r && r.model_prob != null && r.best_price != null
+            ? {
+                p_win: num(r.model_prob),
+                price: num(r.best_price),
+                p_market: num(r.market_novig_prob),
+                rec: r.rec ?? null,
+                edge_pts: num(r.edge_pts),
+                best_book: r.best_book ?? null,
+                selection: r.selection,
+              }
+            : null;
+        // Moneyline: this team's side.
+        const h2hRow = rows.find((r) => r.market === 'h2h' && r.selection === side) || null;
+        // Total: priced over/under with the best model edge.
+        const totalRow =
+          rows
+            .filter((r) => r.market === 'total' && r.best_price != null)
+            .sort((a, b) => (Number(b.edge_pts) || -99) - (Number(a.edge_pts) || -99))[0] || null;
+        // Run line: this team's side, priced, best edge.
+        const rlRow =
+          rows
+            .filter(
+              (r) =>
+                r.market === 'run_line' &&
+                String(r.selection).startsWith(`${side}_`) &&
+                r.best_price != null
+            )
+            .sort((a, b) => (Number(b.edge_pts) || -99) - (Number(a.edge_pts) || -99))[0] || null;
+        const total: any = betObj(totalRow);
+        if (total && totalRow) {
+          const [sd, ln] = String(totalRow.selection).split('_');
+          total.side = sd ? sd.toUpperCase() : null;
+          total.line = ln != null && ln !== '' ? Number(ln) : null;
+        }
+        const run_line: any = betObj(rlRow);
+        if (run_line && rlRow) {
+          const ln = String(rlRow.selection).replace(`${side}_`, '');
+          run_line.line = ln !== '' ? Number(ln) : null;
+        }
         matchup = {
           game_pk: upcoming.game_pk,
           is_home: isHome,
@@ -259,20 +307,13 @@ async function edgeHandler(req: Request) {
           opp_pitcher: slate ? (isHome ? slate.away_pitcher : slate.home_pitcher) : null,
           team_win_prob: slate
             ? num(isHome ? slate.home_win_prob : slate.away_win_prob)
-            : teamH2h
-              ? num(teamH2h.model_prob)
+            : h2hRow
+              ? num(h2hRow.model_prob)
               : null,
           opp_win_prob: slate ? num(isHome ? slate.away_win_prob : slate.home_win_prob) : null,
-          bet: teamH2h
-            ? {
-                p_win: num(teamH2h.model_prob),
-                price: num(teamH2h.best_price),
-                p_market: num(teamH2h.market_novig_prob),
-                rec: teamH2h.rec ?? null,
-                edge_pts: num(teamH2h.edge_pts),
-                best_book: teamH2h.best_book ?? null,
-              }
-            : null,
+          bet: betObj(h2hRow),
+          total,
+          run_line,
         };
       }
     } catch (mErr: any) {
