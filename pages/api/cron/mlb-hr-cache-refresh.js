@@ -23,6 +23,8 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
+export const config = { maxDuration: 300 };
+
 const CRON_SECRET = process.env.CRON_SECRET;
 const MLB_API = 'https://statsapi.mlb.com/api/v1';
 const CURRENT_SEASON = new Date().getFullYear();
@@ -155,16 +157,21 @@ export default async function handler(req, res) {
           const awayId = away?.team?.id;
           if (!homeId || !awayId) return;
           // Park factor is always the HOME team's venue.
-          scheduleMap[awayId] = {
-            oppPitcherId: home.probablePitcher?.id ?? null,
-            oppPitcherName: home.probablePitcher?.fullName ?? null,
-            venueTeamId: homeId,
-          };
-          scheduleMap[homeId] = {
-            oppPitcherId: away.probablePitcher?.id ?? null,
-            oppPitcherName: away.probablePitcher?.fullName ?? null,
-            venueTeamId: homeId,
-          };
+          // Prefer Game 1 in doubleheaders to avoid overwriting matchup data
+          if (!scheduleMap[awayId]) {
+            scheduleMap[awayId] = {
+              oppPitcherId: home.probablePitcher?.id ?? null,
+              oppPitcherName: home.probablePitcher?.fullName ?? null,
+              venueTeamId: homeId,
+            };
+          }
+          if (!scheduleMap[homeId]) {
+            scheduleMap[homeId] = {
+              oppPitcherId: away.probablePitcher?.id ?? null,
+              oppPitcherName: away.probablePitcher?.fullName ?? null,
+              venueTeamId: homeId,
+            };
+          }
         });
       });
       console.log(
@@ -234,9 +241,10 @@ export default async function handler(req, res) {
           let dueScore = 0;
 
           if (lastHrDate) {
-            // Fixed UTC noon anchor — avoids server-locale/DST drift.
-            const hrDateMs = new Date(`${lastHrDate}T12:00:00Z`).getTime();
-            daysSinceHr = Math.max(0, Math.floor((Date.now() - hrDateMs) / 86400000));
+            const hrDate = new Date(`${lastHrDate}T12:00:00Z`);
+            const today = new Date(`${easternYmd()}T12:00:00Z`);
+            daysSinceHr = Math.max(0, Math.floor((today.getTime() - hrDate.getTime()) / 86400000));
+            
             // Prefer the REAL games-since-HR from the game log; fall back to a
             // calendar estimate (~0.9 G/day) only when the log is unavailable.
             gamesSinceHr =
@@ -252,15 +260,22 @@ export default async function handler(req, res) {
           let oppPitcherHr9 = null;
           let parkFactor = 1.0;
           let matchupDueScore = null;
+          
+          // Determine explicit ERROR status if we have HRs but the log fetch failed completely
+          let computedStatus = computeStatus(dueScore, hr);
+          if (hr > 0 && !lastHrDate) {
+            computedStatus = 'ERROR';
+          }
 
           const matchup = teamId ? scheduleMap[teamId] : null;
           if (matchup) {
             oppPitcherId = matchup.oppPitcherId;
             oppPitcherName = matchup.oppPitcherName;
             // REAL opponent HR/9 when we have it; otherwise league average (neutral).
+            // Regress absolute 0.00 to 0.5 to prevent overdue score from plummeting to 0
             oppPitcherHr9 =
               oppPitcherId != null && pitcherHr9Map.has(oppPitcherId)
-                ? pitcherHr9Map.get(oppPitcherId)
+                ? Math.max(pitcherHr9Map.get(oppPitcherId), 0.5)
                 : LEAGUE_AVG_HR9;
             parkFactor = parkFactorFor(matchup.venueTeamId);
             if (dueScore > 0) {
@@ -282,7 +297,7 @@ export default async function handler(req, res) {
             days_since_hr: daysSinceHr,
             games_since_hr: gamesSinceHr,
             due_score: dueScore,
-            status: computeStatus(dueScore, hr),
+            status: computedStatus,
             opp_pitcher_id: oppPitcherId,
             opp_pitcher_name: oppPitcherName,
             opp_pitcher_hr9: oppPitcherHr9,

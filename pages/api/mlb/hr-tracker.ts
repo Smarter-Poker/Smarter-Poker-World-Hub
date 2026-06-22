@@ -22,7 +22,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const supabase = getMainSupabase();
-    let query = supabase.from('mlb_hr_cache').select('*').eq('season', CURRENT_SEASON);
+    // Exclude 'ghost' players who are no longer active/refreshed
+    const FORTY_EIGHT_HOURS_AGO = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    let query = supabase.from('mlb_hr_cache').select('*').eq('season', CURRENT_SEASON).gte('refreshed_at', FORTY_EIGHT_HOURS_AGO);
 
     if (filterStatus && filterStatus !== 'ALL') {
       query = query.eq('status', filterStatus.toUpperCase());
@@ -32,6 +34,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (sortBy) {
       case 'due_score':
         query = query.order('due_score', { ascending: false });
+        break;
+      case 'matchup_due_score':
+        query = query.order('matchup_due_score', { ascending: false, nullsFirst: false });
         break;
       case 'hr':
         query = query.order('hr', { ascending: false });
