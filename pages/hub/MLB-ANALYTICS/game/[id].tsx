@@ -1,13 +1,12 @@
 import { useRouter } from 'next/router';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { ArrowLeft, Target, TrendingUp, Loader2, Zap, Activity } from 'lucide-react';
-import Link from 'next/link';
+import { Target, Loader2, Zap, X, TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { teamLogo, type GameCard } from '../../../../src/lib/mlb_data';
+import { teamLogo, playerHeadshot, type GameCard } from '../../../../src/lib/mlb_data';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -30,10 +29,18 @@ const PROP_LABELS: Record<string, string> = {
 const propLabel = (p?: string | null) =>
   p ? (PROP_LABELS[p] ?? p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())) : '';
 
+// ── Stat formatters (shared by the prop modal) ─────────────────────────────────
+const f3 = (v: any) => (v == null ? '—' : Number(v).toFixed(3).replace(/^0\./, '.'));
+const f2 = (v: any) => (v == null ? '—' : Number(v).toFixed(2));
+const f0 = (v: any) => (v == null ? '—' : String(Math.round(Number(v))));
+const fmtOdds = (o: any) => (o == null ? '—' : Number(o) > 0 ? `+${o}` : `${o}`);
+
 export default function GameMatchupDashboard() {
   const router = useRouter();
   const { id } = router.query;
   const gamePk = typeof id === 'string' ? parseInt(id, 10) : null;
+
+  const [selectedProp, setSelectedProp] = useState<any | null>(null);
 
   // Fetch dashboard data to get the slate games (and find our game) — live, refresh every 2 min
   const { data: dashData, error: dashErr } = useSWR('/api/mlb/dashboard', fetcher, {
@@ -96,7 +103,7 @@ export default function GameMatchupDashboard() {
     );
     const _sp = new Set<string>();
     return _mp.filter((p: any) => {
-      const k = `${p.player_id}|${p.prop}|${p.line ?? ''}|${p.selection ?? ''}`;
+      const k = `${p.player_id}|${p.prop}|${p.line ?? ''}|${p.side ?? ''}`;
       if (_sp.has(k)) return false;
       _sp.add(k);
       return true;
@@ -388,17 +395,35 @@ export default function GameMatchupDashboard() {
                   gameProps.slice(0, 10).map((prop: any, idx: number) => (
                     <div
                       key={idx}
-                      className="bg-[#0A101C] p-4 rounded-lg border border-[#1A2436] flex items-center justify-between hover:border-[#00D4FF]/30 transition-colors"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedProp(prop)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedProp(prop);
+                        }
+                      }}
+                      className="bg-[#0A101C] p-4 rounded-lg border border-[#1A2436] flex items-center justify-between hover:border-[#00D4FF]/40 transition-colors cursor-pointer focus:outline-none focus:border-[#00D4FF]/60"
                     >
-                      <div className="flex flex-col">
-                        <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white">
-                          {prop.player_name}
-                        </span>
-                        <span className="text-[21px] text-[#8BA4D5] capitalize tracking-wider">
-                          {propLabel(prop.prop)} {prop.side === 'under' ? 'U' : 'O'} {prop.line}
-                        </span>
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={playerHeadshot(prop.player_id) || teamLogo(prop.team_id) || ''}
+                          alt={prop.player_name}
+                          className="w-10 h-10 rounded-full object-cover bg-[#060B14] border border-[#1A2436] shrink-0"
+                          loading="lazy"
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white truncate">
+                            {prop.player_name}
+                          </span>
+                          <span className="text-[21px] text-[#8BA4D5] capitalize tracking-wider">
+                            {propLabel(prop.prop)} {prop.side === 'under' ? 'U' : 'O'} {prop.line}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end">
+                      <div className="flex flex-col items-end shrink-0">
                         <div
                           className={`font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] ${prop.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}
                         >
@@ -406,11 +431,7 @@ export default function GameMatchupDashboard() {
                           {(Number(prop.ev_pct) || 0).toFixed(1)}% EV
                         </div>
                         <span className="text-[21px] font-['Rajdhani'] text-[#00D4FF] bg-[#00D4FF]/10 px-2 rounded">
-                          Odds:{' '}
-                          {(() => {
-                            const o = prop.odds ?? prop.price;
-                            return o == null ? '—' : Number(o) > 0 ? `+${o}` : `${o}`;
-                          })()}
+                          Odds: {fmtOdds(prop.odds ?? prop.price)}
                         </span>
                       </div>
                     </div>
@@ -421,7 +442,240 @@ export default function GameMatchupDashboard() {
           </div>
         )}
       </main>
+
+      {selectedProp && game && (
+        <PropModal prop={selectedProp} game={game} onClose={() => setSelectedProp(null)} />
+      )}
+
       <BottomNavBar />
+    </div>
+  );
+}
+
+// ── Player-prop detail modal ───────────────────────────────────────────────────
+function PropModal({
+  prop,
+  game,
+  onClose,
+}: {
+  prop: any;
+  game: GameCard;
+  onClose: () => void;
+}) {
+  // Close on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const isPitcher = prop.player_kind === 'pitcher';
+  const s = prop.stats || {};
+  const tierColor = TIER_HEX[prop.bet_tier] || '#00D4FF';
+  const head = playerHeadshot(prop.player_id) || teamLogo(prop.team_id) || '';
+
+  // Opposing starter: the player faces the OTHER team's starting pitcher.
+  const playerIsHome = prop.team_id != null && prop.team_id === game.homeId;
+  const playerIsAway = prop.team_id != null && prop.team_id === game.awayId;
+  const oppStarter = playerIsHome ? game.awayStarter : playerIsAway ? game.homeStarter : null;
+  const oppTeam = playerIsHome ? game.away : playerIsAway ? game.home : null;
+
+  const wl = s.w == null && s.l == null ? '—' : `${f0(s.w)}-${f0(s.l)}`;
+  const statCells: [string, string][] = isPitcher
+    ? [
+        ['ERA', f2(s.era)],
+        ['WHIP', f2(s.whip)],
+        ['FIP', f2(s.fip)],
+        ['SIERA', f2(s.siera)],
+        ['W-L', wl],
+        ['SO', f0(s.so)],
+      ]
+    : [
+        ['AVG', f3(s.avg)],
+        ['OBP', f3(s.obp)],
+        ['SLG', f3(s.slg)],
+        ['wOBA', f3(s.woba)],
+        ['wRC+', f0(s.wrc_plus)],
+        ['HR', f0(s.hr)],
+        ['RBI', f0(s.rbi)],
+      ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="bg-[#0A101C] border border-[#1A2436] w-full sm:max-w-lg max-h-[88vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-[0_0_40px_rgba(0,212,255,0.18)] font-['Orbitron',sans-serif]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="relative p-5 border-b border-[#1A2436]">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-4 right-4 text-[#8BA4D5] hover:text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <div className="flex items-center gap-4 pr-8">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={head}
+              alt={prop.player_name}
+              className="w-16 h-16 rounded-full object-cover bg-[#060B14] border border-[#00D4FF]/30 shrink-0"
+              loading="lazy"
+            />
+            <div className="min-w-0">
+              <h3 className="text-[26px] font-extrabold font-['Rajdhani'] text-white truncate">
+                {prop.player_name}
+              </h3>
+              <p className="text-[17px] text-[#8BA4D5] font-['Rajdhani'] tracking-wider">
+                {prop.team_abbr ? `${prop.team_abbr} · ` : ''}
+                {propLabel(prop.prop)} {prop.side === 'under' ? 'Under' : 'Over'} {prop.line}
+                {'  ·  '}
+                {fmtOdds(prop.odds ?? prop.price)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Score row */}
+        <div className="grid grid-cols-3 gap-px bg-[#1A2436] border-b border-[#1A2436]">
+          <div className="bg-[#0A101C] p-3 text-center">
+            <p className="text-[12px] text-[#8BA4D5] capitalize tracking-widest mb-1">Bet Score</p>
+            <p
+              className="text-[30px] font-extrabold font-['Rajdhani'] leading-none"
+              style={{ color: tierColor }}
+            >
+              {prop.bet_score != null ? Number(prop.bet_score).toFixed(0) : '—'}
+            </p>
+            <p className="text-[13px] font-bold mt-1" style={{ color: tierColor }}>
+              {prop.bet_tier || ''}
+            </p>
+          </div>
+          <div className="bg-[#0A101C] p-3 text-center">
+            <p className="text-[12px] text-[#8BA4D5] capitalize tracking-widest mb-1">Top Lock</p>
+            <p className="text-[30px] font-extrabold font-['Rajdhani'] leading-none text-white">
+              {prop.win_confidence != null ? `${Number(prop.win_confidence).toFixed(0)}%` : '—'}
+            </p>
+            <p className="text-[13px] text-[#8BA4D5] mt-1">to hit</p>
+          </div>
+          <div className="bg-[#0A101C] p-3 text-center">
+            <p className="text-[12px] text-[#8BA4D5] capitalize tracking-widest mb-1">Expected</p>
+            <p
+              className={`text-[30px] font-extrabold font-['Rajdhani'] leading-none ${prop.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}
+            >
+              {prop.ev_pct > 0 ? '+' : ''}
+              {prop.ev_pct != null ? `${Number(prop.ev_pct).toFixed(1)}%` : '—'}
+            </p>
+            <p className="text-[13px] text-[#8BA4D5] mt-1">EV / $1</p>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Verdict */}
+          {prop.score_verdict && (
+            <div
+              className="rounded-lg px-4 py-3 text-[16px] font-bold font-['Rajdhani'] tracking-wide"
+              style={{ color: tierColor, background: `${tierColor}14`, border: `1px solid ${tierColor}40` }}
+            >
+              {prop.score_verdict}
+            </div>
+          )}
+
+          {/* Why this bet */}
+          <div>
+            <h4 className="text-[15px] text-[#8BA4D5] capitalize tracking-widest mb-2 font-['Rajdhani']">
+              Why This Bet
+            </h4>
+            {Array.isArray(prop.score_factors) && prop.score_factors.length > 0 ? (
+              <ul className="space-y-2">
+                {prop.score_factors.map((fct: any, i: number) => {
+                  const Icon =
+                    fct.dir === 'up'
+                      ? TrendingUp
+                      : fct.dir === 'down'
+                        ? TrendingDown
+                        : fct.dir === 'flat'
+                          ? Minus
+                          : Info;
+                  const c =
+                    fct.dir === 'up'
+                      ? '#00FF88'
+                      : fct.dir === 'down'
+                        ? '#FF6B6B'
+                        : fct.dir === 'flat'
+                          ? '#F59E0B'
+                          : '#00D4FF';
+                  return (
+                    <li key={i} className="flex items-start gap-2">
+                      <Icon className="w-4 h-4 mt-1 shrink-0" style={{ color: c }} />
+                      <span className="text-[14px] text-[#C7D2E6] font-['Rajdhani'] leading-snug">
+                        {fct.text}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-[14px] text-[#8BA4D5] font-['Rajdhani']">
+                Not enough model edge to grade this prop.
+              </p>
+            )}
+          </div>
+
+          {/* Player stats */}
+          <div>
+            <h4 className="text-[15px] text-[#8BA4D5] capitalize tracking-widest mb-2 font-['Rajdhani']">
+              {isPitcher ? 'Pitcher Stats (Season)' : 'Hitter Stats (Season)'}
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              {statCells.map(([label, val]) => (
+                <div
+                  key={label}
+                  className="bg-[#060B14] border border-[#1A2436] rounded p-2 text-center"
+                >
+                  <p className="text-[12px] text-[#8BA4D5] tracking-widest">{label}</p>
+                  <p className="text-[20px] font-extrabold font-['Rajdhani'] text-white leading-tight">
+                    {val}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Matchup */}
+          {oppStarter && (
+            <div>
+              <h4 className="text-[15px] text-[#8BA4D5] capitalize tracking-widest mb-2 font-['Rajdhani']">
+                Matchup{oppTeam ? ` vs ${oppTeam}` : ''}
+              </h4>
+              <div className="bg-[#060B14] border border-[#1A2436] rounded-lg p-3 flex items-center justify-between">
+                <span className="text-[14px] text-[#8BA4D5] font-['Rajdhani'] tracking-wider">
+                  Opposing Starter
+                </span>
+                <span className="text-[17px] font-bold font-['Rajdhani'] text-[#00D4FF] text-right">
+                  {oppStarter.name}
+                  {oppStarter.wins != null
+                    ? ` (${oppStarter.wins}-${oppStarter.losses}, ${oppStarter.era} ERA)`
+                    : ''}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {prop.price_estimated && (
+            <p className="text-[12px] text-[#8BA4D5] font-['Rajdhani'] italic">
+              Under price is a no-vig fair estimate (book has not posted a live under price).
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
