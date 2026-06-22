@@ -144,7 +144,7 @@ async function edgeHandler(req: Request) {
     for (const r of rawProps) {
       const key = `${r.player_id}|${r.prop}|${r.line}`;
       const prev = dedupMap.get(key);
-      if (!prev || String(r.as_of_ts) > String(prev.as_of_ts)) dedupMap.set(key, r);
+      if (!prev || new Date(r.as_of_ts).getTime() > new Date(prev.as_of_ts).getTime()) dedupMap.set(key, r);
     }
     const slateProps: any[] = [...dedupMap.values()];
 
@@ -437,11 +437,17 @@ async function edgeHandler(req: Request) {
       // Use the side-correct REAL offered price now that the engine stores both
       // sides. Unders fall back to a vig-adjusted no-vig estimate only when a real
       // under price is missing — so the displayed price/EV is honest either way.
-      const price = isOver
+      let price = isOver
         ? overPrice
         : underPrice != null
           ? underPrice
           : fairAmericanFromProb(pMarket != null ? Math.min(0.985, pMarket + 0.023) : null);
+      // Reject a pathological estimated under price (e.g. a near-certain
+      // favourite's fair line at -6000) so it can't fabricate a Bet Score.
+      // Real book prices (over or under) are never clamped.
+      if (!isOver && underPrice == null && price != null && Math.abs(price) > 600) {
+        price = null;
+      }
       const priceIsReal = isOver ? overPrice != null : underPrice != null;
 
       // Canonical Bet Score (0-100) + tier — identical scale to every other surface.
@@ -542,6 +548,7 @@ async function edgeHandler(req: Request) {
       graded: bets.length,
       wins: bets.filter((p) => p.result === 'win').length,
       losses: bets.filter((p) => p.result === 'loss').length,
+      voided: mappedProps.filter((p) => p.was_bet && p.result === 'void').length,
       units: Math.round(bets.reduce((s, p) => s + (p.pnl ?? 0), 0) * 100) / 100,
     };
 

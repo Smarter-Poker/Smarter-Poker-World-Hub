@@ -796,10 +796,10 @@ export default function TeamDetailPage() {
                   </div>
                   <div className="stat-grid-3">
                     <StatBox label="wRC+" value={adv.wrc_plus != null ? fmtInt(adv.wrc_plus) : '-'} color="#F472B6" highlight />
-                    <StatBox label="Ops" value={fmtOps(adv.ops)} color="#34D399" />
+                    <StatBox label="OPS" value={fmtOps(adv.ops)} color="#34D399" />
                     <StatBox label="wOBA" value={fmtOps(adv.woba)} color="#34D399" />
-                    <StatBox label="Era" value={fmtEra(adv.era)} color="white" />
-                    <StatBox label="Fip" value={fmtEra(adv.fip)} color="#A78BFA" />
+                    <StatBox label="ERA" value={fmtEra(adv.era)} color="white" />
+                    <StatBox label="FIP" value={fmtEra(adv.fip)} color="#A78BFA" />
                     <StatBox label="Pyth W%" value={adv.pyth_wpct != null ? Number(adv.pyth_wpct).toFixed(3) : '-'} color="#94A3B8" />
                   </div>
                 </div>
@@ -810,13 +810,13 @@ export default function TeamDetailPage() {
                     <Activity size={13} style={{ color: '#60A5FA' }} /> Pitching Metrics
                   </div>
                   <div className="stat-grid-4">
-                    <StatBox label="Era" value={fmtEra(adv.era)} color="white" />
-                    <StatBox label="Fip" value={fmtEra(adv.fip)} color="#A78BFA" />
+                    <StatBox label="ERA" value={fmtEra(adv.era)} color="white" />
+                    <StatBox label="FIP" value={fmtEra(adv.fip)} color="#A78BFA" />
                     <StatBox label="xFIP" value={fmtEra(adv.xfip)} color="#A78BFA" />
-                    <StatBox label="Siera" value={fmtEra(adv.siera)} color="#FCD34D" />
-                    <StatBox label="Whip" value={adv.whip != null ? Number(adv.whip).toFixed(2) : '-'} color="white" />
+                    <StatBox label="SIERA" value={fmtEra(adv.siera)} color="#FCD34D" />
+                    <StatBox label="WHIP" value={adv.whip != null ? Number(adv.whip).toFixed(2) : '-'} color="white" />
                     <StatBox label="K%" value={adv.k_pct != null ? `${Number(adv.k_pct).toFixed(1)}%` : '-'} color="#60A5FA" />
-                    <StatBox label="Bb%" value={adv.bb_pct != null ? `${Number(adv.bb_pct).toFixed(1)}%` : '-'} color="#F59E0B" />
+                    <StatBox label="BB%" value={adv.bb_pct != null ? `${Number(adv.bb_pct).toFixed(1)}%` : '-'} color="#F59E0B" />
                     {adv.bullpen_era != null && (
                       <StatBox label="Bullpen ERA" value={fmtEra(adv.bullpen_era)} color="#60A5FA" />
                     )}
@@ -830,13 +830,13 @@ export default function TeamDetailPage() {
                   </div>
                   <div className="stat-grid-4">
                     <StatBox label="wRC+" value={adv.wrc_plus != null ? fmtInt(adv.wrc_plus) : '-'} color="#F472B6" highlight />
-                    <StatBox label="Ops" value={fmtOps(adv.ops)} color="#34D399" />
-                    <StatBox label="Obp" value={fmtOps(adv.obp)} color="#34D399" />
-                    <StatBox label="Slg" value={fmtOps(adv.slg)} color="#34D399" />
-                    <StatBox label="Avg" value={fmtOps(adv.avg)} color="white" />
-                    <StatBox label="Hr" value={fmtInt(adv.hr)} color="#F59E0B" />
-                    <StatBox label="Sb" value={fmtInt(adv.sb)} color="#94A3B8" />
-                    <StatBox label="Babip" value={adv.babip != null ? fmtOps(adv.babip) : '-'} color="#94A3B8" />
+                    <StatBox label="OPS" value={fmtOps(adv.ops)} color="#34D399" />
+                    <StatBox label="OBP" value={fmtOps(adv.obp)} color="#34D399" />
+                    <StatBox label="SLG" value={fmtOps(adv.slg)} color="#34D399" />
+                    <StatBox label="AVG" value={fmtOps(adv.avg)} color="white" />
+                    <StatBox label="HR" value={fmtInt(adv.hr)} color="#F59E0B" />
+                    <StatBox label="SB" value={fmtInt(adv.sb)} color="#94A3B8" />
+                    <StatBox label="BABIP" value={adv.babip != null ? fmtOps(adv.babip) : '-'} color="#94A3B8" />
                   </div>
                 </div>
 

@@ -274,28 +274,28 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' |
             {type === 'pitchers' ? (
               <>
                 <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
-                  <CardStat label="Era" value={fmt2(player.era)} lead />
+                  <CardStat label="ERA" value={fmt2(player.era)} lead />
                   <CardStat label="W-L" value={`${fmtInt(player.w)}-${fmtInt(player.l)}`} lead />
                   <CardStat label="K" value={fmtInt(player.k)} lead />
                 </div>
                 <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
-                  <CardStat label="Whip" value={fmt2(player.whip)} />
-                  <CardStat label="Ip" value={fmtIp(player.ip)} />
-                  <CardStat label="Sv" value={fmtInt(player.sv)} />
-                  <CardStat label="Fip" value={fmt2(player.fip)} />
+                  <CardStat label="WHIP" value={fmt2(player.whip)} />
+                  <CardStat label="IP" value={fmtIp(player.ip)} />
+                  <CardStat label="SV" value={fmtInt(player.sv)} />
+                  <CardStat label="FIP" value={fmt2(player.fip)} />
                 </div>
               </>
             ) : (
               <>
                 <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
-                  <CardStat label="Avg" value={fmtAvg(player.avg)} lead />
-                  <CardStat label="Hr" value={fmtInt(player.hr)} lead />
-                  <CardStat label="Rbi" value={fmtInt(player.rbi)} lead />
+                  <CardStat label="AVG" value={fmtAvg(player.avg)} lead />
+                  <CardStat label="HR" value={fmtInt(player.hr)} lead />
+                  <CardStat label="RBI" value={fmtInt(player.rbi)} lead />
                 </div>
                 <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
-                  <CardStat label="Obp" value={fmtAvg(player.obp)} />
-                  <CardStat label="Slg" value={fmtAvg(player.slg)} />
-                  <CardStat label="Ops" value={fmtAvg(player.ops)} />
+                  <CardStat label="OBP" value={fmtAvg(player.obp)} />
+                  <CardStat label="SLG" value={fmtAvg(player.slg)} />
+                  <CardStat label="OPS" value={fmtAvg(player.ops)} />
                   <CardStat label="wRC+" value={fmtInt(player.wrc_plus)} />
                 </div>
               </>
@@ -394,10 +394,10 @@ const TeamSelectorRow = ({
 
         {/* Stat pills row */}
         <div className="flex items-center gap-3 mt-1 flex-wrap">
-          <StatPill label="Era" value={era} />
-          <StatPill label="Avg" value={avg} />
+          <StatPill label="ERA" value={era} />
+          <StatPill label="AVG" value={avg} />
           <StatPill label="R/G" value={rpg} />
-          <StatPill label="Ra/G" value={rapg} />
+          <StatPill label="RA/G" value={rapg} />
         </div>
       </div>
 

@@ -726,7 +726,7 @@ export default function ModelIntelPage() {
                 loading={isLoading && !data}
               />
               <GateRow
-                label="Avg CLV (>0 Pts)"
+                label="AVG CLV (>0 Pts)"
                 value={gateKpi.clv}
                 passed={Number(gateKpi.clv) > 0}
                 loading={isLoading && !data}

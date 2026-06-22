@@ -421,7 +421,7 @@ export default function PortfolioPage() {
                   title="ROI"
                   value={formatPct(roi, true)}
                   valueColor={
-                    Number(roi || 0) > 0 ? '#00D4FF' : Number(roi || 0) < 0 ? '#FF0055' : '#FFFFFF'
+                    Number(roi || 0) > 0 ? '#00D4FF' : Number(ROI || 0) < 0 ? '#FF0055' : '#FFFFFF'
                   }
                   isLoading={isRefreshing}
                 />
@@ -672,7 +672,7 @@ export default function PortfolioPage() {
                         <th className="py-3 px-4 font-semibold text-right">Bets</th>
                         <th className="py-3 px-4 font-semibold text-right">Win%</th>
                         <th className="py-3 px-4 font-semibold text-right">P&amp;L</th>
-                        <th className="py-3 px-4 font-semibold text-right">Roi</th>
+                        <th className="py-3 px-4 font-semibold text-right">ROI</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -774,7 +774,7 @@ export default function PortfolioPage() {
                         <th className="py-3 px-4 font-semibold text-right">Bets</th>
                         <th className="py-3 px-4 font-semibold text-right">Win%</th>
                         <th className="py-3 px-4 font-semibold text-right">P&amp;L</th>
-                        <th className="py-3 px-4 font-semibold text-right">Roi</th>
+                        <th className="py-3 px-4 font-semibold text-right">ROI</th>
                       </tr>
                     </thead>
                     <tbody>

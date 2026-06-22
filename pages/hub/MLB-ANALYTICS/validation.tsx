@@ -79,7 +79,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
           {label} EDGE
         </p>
         <p
-          className={`text-[30px] font-extrabold ${Number(roi) > 0 ? 'text-[#00D4FF]' : Number(roi) < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`}
+          className={`text-[30px] font-extrabold ${Number(roi) > 0 ? 'text-[#00D4FF]' : Number(ROI) < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`}
           style={{
             textShadow:
               Number(roi) > 0
@@ -202,7 +202,7 @@ export default function ValidationPage() {
             </p>
           </div>
           <div className="text-right hidden sm:block">
-            <div className="text-[#00D4FF] text-[18px] font-extrabold tracking-[1px]">Mlb Edge</div>
+            <div className="text-[#00D4FF] text-[18px] font-extrabold tracking-[1px]">MLB Edge</div>
           </div>
         </div>
 
@@ -284,7 +284,7 @@ export default function ValidationPage() {
                   Flat-Stake Roi
                 </div>
                 <div
-                  className={`text-[40px] font-extrabold ${Number(stats.flagged.roi) > 0 ? 'text-[#00D4FF]' : Number(stats.flagged.roi) < 0 ? 'text-[#FF0055]' : 'text-white'}`}
+                  className={`text-[40px] font-extrabold ${Number(stats.flagged.roi) > 0 ? 'text-[#00D4FF]' : Number(stats.flagged.ROI) < 0 ? 'text-[#FF0055]' : 'text-white'}`}
                   style={{
                     textShadow:
                       Number(stats.flagged.roi) > 0
@@ -360,7 +360,7 @@ export default function ValidationPage() {
               className="text-[18px] font-extrabold text-[#00D4FF] tracking-[1px] mb-3 capitalize flex items-center justify-between"
               style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}
             >
-              <span>Roi By Edge Size</span>
+              <span>ROI By Edge Size</span>
               <span className="text-[17px] text-slate-400 lowercase font-bold border border-[#3d4f5f] bg-[#0d1117] px-2 py-0.5 rounded shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                 Flat-stake ROI %
               </span>
@@ -412,7 +412,7 @@ export default function ValidationPage() {
                         {stats.edgeData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={entry.roi > 0 ? '#00D4FF' : entry.roi < 0 ? '#FF0055' : '#94a3b8'}
+                            fill={entry.roi > 0 ? '#00D4FF' : entry.ROI < 0 ? '#FF0055' : '#94a3b8'}
                           />
                         ))}
                       </Bar>
@@ -430,7 +430,7 @@ export default function ValidationPage() {
                     <div>Edge Threshold</div>
                     <div className="text-right">Bets</div>
                     <div className="text-right">Win%</div>
-                    <div className="text-right">Roi</div>
+                    <div className="text-right">ROI</div>
                   </div>
                   {stats.edgeData.map((row, idx) => (
                     <div
@@ -439,14 +439,14 @@ export default function ValidationPage() {
                     >
                       <div className="font-bold text-white flex items-center gap-2">
                         <div
-                          className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.roi) < 0 ? 'bg-[#FF0055] shadow-[0_0_5px_rgba(255,0,85,0.8)]' : 'bg-slate-500'}`}
+                          className={`w-2 h-2 rounded-full ${Number(row.roi) > 0 ? 'bg-[#00D4FF] shadow-[0_0_5px_rgba(0,212,255,0.8)]' : Number(row.ROI) < 0 ? 'bg-[#FF0055] shadow-[0_0_5px_rgba(255,0,85,0.8)]' : 'bg-slate-500'}`}
                         ></div>
                         {row.edge}
                       </div>
                       <div className="text-right text-slate-300 font-medium">{row.n}</div>
                       <div className="text-right text-slate-300 font-medium">{row.winPct}%</div>
                       <div
-                        className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#00D4FF]' : 'text-white'}`}
+                        className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.ROI) < 0 ? 'text-[#00D4FF]' : 'text-white'}`}
                         style={{
                           textShadow:
                             Number(row.roi) > 0

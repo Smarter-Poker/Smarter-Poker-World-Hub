@@ -564,19 +564,19 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             {isPitcher ? (
               <>
                 {stats.era != null && (
-                  <StatPill label="Era" value={fmtStat(stats.era, 2)} color="#00D4FF" />
+                  <StatPill label="ERA" value={fmtStat(stats.era, 2)} color="#00D4FF" />
                 )}
                 {stats.whip != null && (
-                  <StatPill label="Whip" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
+                  <StatPill label="WHIP" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
                 )}
                 {stats.fip != null && (
-                  <StatPill label="Fip" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
+                  <StatPill label="FIP" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
                 )}
                 {stats.siera != null && (
-                  <StatPill label="Siera" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
+                  <StatPill label="SIERA" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
                 )}
                 {stats.so != null && (
-                  <StatPill label="So" value={String(Math.round(stats.so))} color="#22C55E" />
+                  <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
                 )}
                 {stats.w != null && stats.l != null && (
                   <StatPill
@@ -589,19 +589,19 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             ) : (
               <>
                 {stats.avg != null && (
-                  <StatPill label="Avg" value={fmtAvg(stats.avg)} color="#00D4FF" />
+                  <StatPill label="AVG" value={fmtAvg(stats.avg)} color="#00D4FF" />
                 )}
                 {stats.hr != null && (
-                  <StatPill label="Hr" value={String(Math.round(stats.hr))} color="#FFD700" />
+                  <StatPill label="HR" value={String(Math.round(stats.hr))} color="#FFD700" />
                 )}
                 {stats.rbi != null && (
-                  <StatPill label="Rbi" value={String(Math.round(stats.rbi))} color="#22C55E" />
+                  <StatPill label="RBI" value={String(Math.round(stats.rbi))} color="#22C55E" />
                 )}
                 {stats.obp != null && (
-                  <StatPill label="Obp" value={fmtAvg(stats.obp)} color="#8a9ba8" />
+                  <StatPill label="OBP" value={fmtAvg(stats.obp)} color="#8a9ba8" />
                 )}
                 {stats.slg != null && (
-                  <StatPill label="Slg" value={fmtAvg(stats.slg)} color="#8a9ba8" />
+                  <StatPill label="SLG" value={fmtAvg(stats.slg)} color="#8a9ba8" />
                 )}
                 {stats.wrc_plus != null && (
                   <StatPill
@@ -741,7 +741,7 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
           )}
           {ev != null && (
             <StatPill
-              label="Ev%"
+              label="EV%"
               value={`${ev > 0 ? '+' : ''}${ev.toFixed(1)}`}
               color={ev > 0 ? '#22C55E' : '#8a9ba8'}
             />
@@ -798,19 +798,19 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
           {isPitcher ? (
             <div className="flex gap-1.5 flex-wrap">
               {stats.era != null && (
-                <StatPill label="Era" value={fmtStat(stats.era, 2)} color="#00D4FF" />
+                <StatPill label="ERA" value={fmtStat(stats.era, 2)} color="#00D4FF" />
               )}
               {stats.whip != null && (
-                <StatPill label="Whip" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
+                <StatPill label="WHIP" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
               )}
               {stats.fip != null && (
-                <StatPill label="Fip" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
+                <StatPill label="FIP" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
               )}
               {stats.siera != null && (
-                <StatPill label="Siera" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
+                <StatPill label="SIERA" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
               )}
               {stats.so != null && (
-                <StatPill label="So" value={String(Math.round(stats.so))} color="#22C55E" />
+                <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
               )}
               {stats.w != null && stats.l != null && (
                 <StatPill
@@ -828,19 +828,19 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
           ) : (
             <div className="flex gap-1.5 flex-wrap">
               {stats.avg != null && (
-                <StatPill label="Avg" value={fmtAvg(stats.avg)} color="#00D4FF" />
+                <StatPill label="AVG" value={fmtAvg(stats.avg)} color="#00D4FF" />
               )}
               {stats.hr != null && (
-                <StatPill label="Hr" value={String(Math.round(stats.hr))} color="#FFD700" />
+                <StatPill label="HR" value={String(Math.round(stats.hr))} color="#FFD700" />
               )}
               {stats.rbi != null && (
-                <StatPill label="Rbi" value={String(Math.round(stats.rbi))} color="#22C55E" />
+                <StatPill label="RBI" value={String(Math.round(stats.rbi))} color="#22C55E" />
               )}
               {stats.obp != null && (
-                <StatPill label="Obp" value={fmtAvg(stats.obp)} color="#8a9ba8" />
+                <StatPill label="OBP" value={fmtAvg(stats.obp)} color="#8a9ba8" />
               )}
               {stats.slg != null && (
-                <StatPill label="Slg" value={fmtAvg(stats.slg)} color="#8a9ba8" />
+                <StatPill label="SLG" value={fmtAvg(stats.slg)} color="#8a9ba8" />
               )}
               {stats.wrc_plus != null && (
                 <StatPill label="wRC+" value={String(Math.round(stats.wrc_plus))} color="#e2e8f0" />
@@ -868,23 +868,32 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
 // ── Page ─────────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 60;
 
+function chicagoToday(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Chicago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  } catch {
+    return '';
+  }
+}
+
 export default function PropsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState('All');
   const [minScore, setMinScore] = useState(0);
   const [sort, setSort] = useState('SCORE');
-  const [todayStr, setTodayStr] = useState<string>('');
+  // Initialise synchronously so the stale-slate check is correct on first paint
+  // (an empty string made every slate look live until the effect first fired).
+  const [todayStr, setTodayStr] = useState<string>(() => chicagoToday());
   const [selected, setSelected] = useState<any | null>(null);
   const [visible, setVisible] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Chicago',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const sync = () => setTodayStr(formatter.format(new Date()));
+    const sync = () => setTodayStr(chicagoToday());
     sync();
     // Re-evaluate periodically so the stale-slate check rolls over at midnight
     // even if the tab is left open past midnight Chicago time.
@@ -1042,6 +1051,15 @@ export default function PropsPage() {
                 border={data.results.units >= 0 ? 'rgba(52,211,153,0.5)' : 'rgba(255,107,107,0.5)'}
                 bg={data.results.units >= 0 ? '#06140f' : '#1a0a0a'}
               />
+              {data.results.voided > 0 && (
+                <HeaderStat
+                  label="Void"
+                  value={data.results.voided}
+                  color="#8a9ba8"
+                  border="#3d4f5f"
+                  bg="#0a0a15"
+                />
+              )}
             </>
           ) : (
             <>
@@ -1203,18 +1221,18 @@ export default function PropsPage() {
           {/* Empty */}
           {!isLoading && !error && filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-[#3d4f5f] rounded-lg bg-[#0d1117] mt-4 opacity-60">
-              {filter === 'ALL' && minScore === 0 ? (
+              {filter === 'All' && minScore === 0 ? (
                 <CalendarX size={40} className="text-[#3d4f5f] mb-4" />
               ) : (
                 <SearchX size={40} className="text-[#3d4f5f] mb-4" />
               )}
               <p className="text-[20px] font-black tracking-widest capitalize text-[#5a6a7a] text-center">
-                {filter === 'ALL' && minScore === 0
+                {filter === 'All' && minScore === 0
                   ? 'No Props Available — Awaiting Model Output'
                   : 'No Props Match This Filter'}
               </p>
               <p className="text-[14px] text-[#3d4f5f] font-bold tracking-widest capitalize text-center mt-1.5">
-                {filter === 'ALL' && minScore === 0
+                {filter === 'All' && minScore === 0
                   ? 'Props release 3–4 hours before first pitch'
                   : 'Try a broader grade or market'}
               </p>
