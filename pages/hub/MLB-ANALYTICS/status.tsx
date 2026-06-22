@@ -24,7 +24,7 @@ import {
   DBTableCountsPanel,
 } from '../../../src/components/mlb/status/StatusPanels';
 
-interface MLBStatusPayload {
+export interface MLBStatusPayload {
   ok: boolean;
   error?: string;
   serverNow: string | null;
@@ -105,6 +105,14 @@ const fetcher = async (url: string) => {
   }
 };
 
+const EMPTY_HEALTH = {};
+const EMPTY_SLATE = {};
+const EMPTY_ACCURACY = {};
+const EMPTY_TIER_DIST: Record<string, number> = {};
+const EMPTY_TABLE_COUNTS: Record<string, number> = {};
+const EMPTY_LATEST_RUNS = {};
+const EMPTY_PIPELINE = { hasError: false, okCount: 0, errorCount: 0, total: 0 };
+
 export default function StatusPage() {
   const router = useRouter();
   const { data, error, mutate, isValidating } = useSWR<MLBStatusPayload>(
@@ -182,17 +190,17 @@ export default function StatusPage() {
   }
 
   const isSystemFresh = !!data?.isSystemFresh;
-  const health = data?.health || {};
-  const slate = data?.slate || {};
-  const accuracy = data?.accuracy || {};
-  const tierDist = data?.tierDist || {};
+  const health = data?.health || EMPTY_HEALTH;
+  const slate = data?.slate || EMPTY_SLATE;
+  const accuracy = data?.accuracy || EMPTY_ACCURACY;
+  const tierDist = data?.tierDist || EMPTY_TIER_DIST;
 
   const sources = useMemo(() => (Array.isArray(data?.sources) ? data.sources : []), [data?.sources]);
   const alerts = useMemo(() => (Array.isArray(data?.alerts) ? data.alerts : []), [data?.alerts]);
-  const tableCounts = typeof data?.tableCounts === 'object' && data.tableCounts !== null ? data.tableCounts : {};
+  const tableCounts = typeof data?.tableCounts === 'object' && data.tableCounts !== null ? data.tableCounts : EMPTY_TABLE_COUNTS;
   const stages = useMemo(() => (Array.isArray(data?.stages) ? data.stages : []), [data?.stages]);
-  const latestRuns = typeof data?.latestRuns === 'object' && data.latestRuns !== null ? data.latestRuns : {};
-  const pipeline = data?.pipeline || { hasError: false, okCount: 0, errorCount: 0, total: 0 };
+  const latestRuns = typeof data?.latestRuns === 'object' && data.latestRuns !== null ? data.latestRuns : EMPTY_LATEST_RUNS;
+  const pipeline = data?.pipeline || EMPTY_PIPELINE;
 
   const wrappedContent = (
     <div className="min-h-screen bg-[#0a0a15] text-slate-200 pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border">

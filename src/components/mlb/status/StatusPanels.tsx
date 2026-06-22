@@ -15,8 +15,12 @@ import {
   Bell,
   RefreshCw,
 } from 'lucide-react';
+import { MLBStatusPayload } from '../../../../pages/hub/MLB-ANALYTICS/status';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url).then((res) => {
+  if (!res.ok) throw new Error('API Error');
+  return res.json();
+});
 
 const SOURCE_LABEL_MAP: Record<string, string> = {
   daily_predict: 'Predictions',
@@ -81,7 +85,7 @@ const alertLevelColor = (level: string | null | undefined): string => {
   return 'text-[#00D4FF] border-[#00D4FF]';
 };
 
-export const PipelineStatusPanel = React.memo(({ pipeline }: { pipeline: any }) => (
+export const PipelineStatusPanel = React.memo(({ pipeline }: { pipeline: MLBStatusPayload['pipeline'] }) => (
   <div className="mb-8">
     <MetalFrame className="px-5 py-4 flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
@@ -108,7 +112,7 @@ export const PipelineStatusPanel = React.memo(({ pipeline }: { pipeline: any }) 
   </div>
 ));
 
-export const HealthPanel = React.memo(({ health, data, serverNow }: { health: any; data: any; serverNow: any }) => (
+export const HealthPanel = React.memo(({ health, data, serverNow }: { health: MLBStatusPayload['health']; data: any; serverNow: any }) => (
   <div className="mb-8">
     <SectionHeader icon={Clock} label="System Health" />
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
@@ -157,7 +161,7 @@ export const HealthPanel = React.memo(({ health, data, serverNow }: { health: an
   </div>
 ));
 
-export const TodaySlatePanel = React.memo(({ slate }: { slate: any }) => (
+export const TodaySlatePanel = React.memo(({ slate }: { slate: MLBStatusPayload['slate'] }) => (
   <div className="mb-8">
     <SectionHeader icon={Activity} label="Today's Slate" />
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 md:px-0">
@@ -179,8 +183,8 @@ export const TodaySlatePanel = React.memo(({ slate }: { slate: any }) => (
   </div>
 ));
 
-export const ModelAccuracyPanel = React.memo(({ accuracy }: { accuracy: any }) => {
-  const { data } = useSWR('/api/mlb/accuracy', fetcher, { refreshInterval: 60000 });
+export const ModelAccuracyPanel = React.memo(({ accuracy }: { accuracy: MLBStatusPayload['accuracy'] }) => {
+  const { data, error } = useSWR('/api/mlb/accuracy', fetcher, { refreshInterval: 60000 });
 
   const brierTrend = React.useMemo(() => {
     if (!data?.tableData) return [];
@@ -263,6 +267,11 @@ export const ModelAccuracyPanel = React.memo(({ accuracy }: { accuracy: any }) =
                   />
                 </LineChart>
               </ResponsiveContainer>
+            ) : error ? (
+              <div className="h-full flex flex-col items-center justify-center text-[#FF4444] font-bold tracking-wider text-[14px]">
+                <AlertTriangle size={16} className="mb-2" />
+                Error loading trend
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center text-slate-500 font-bold tracking-wider text-[14px]">
                 Loading trend...
