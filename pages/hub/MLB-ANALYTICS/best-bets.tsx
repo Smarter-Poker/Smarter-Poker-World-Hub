@@ -369,7 +369,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
               className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-sm text-[16px] font-black tracking-widest capitalize"
               style={{ background: tierColor, color: '#000' }}
             >
-              {(bet.bet_tier || 'BET').toUpperCase()}
+              {bet.bet_tier || 'BET'}
             </div>
           </div>
 
@@ -661,7 +661,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 </div>
               )}
 
-              {bet.team_era !== undefined && (
+              {bet.team_era != null && (
                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                   <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
                     Team ERA
@@ -675,7 +675,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 </div>
               )}
 
-              {bet.team_avg !== undefined && (
+              {bet.team_avg != null && (
                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                   <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
                     Team AVG
@@ -1082,7 +1082,7 @@ const BetCard = ({
             {/* Overlay team logo on player image */}
             {showPlayerImg && teamLogoUrl && (
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0a0a15] rounded-full border border-[#2a3a4a] p-0.5 flex items-center justify-center z-10">
-                <img src={teamLogoUrl} alt="Team" className="w-full h-full object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://www.mlbstatic.com/team-logos/league-on-dark/1.svg'; }} />
+                <img src={teamLogoUrl} alt="Team" className="w-full h-full object-contain" />
               </div>
             )}
           </div>
@@ -1292,15 +1292,6 @@ export default function BestBetsPage() {
   const bestTotals = useMemo(() => {
     return [...bets]
       .filter((b) => b.bet_type === 'line' && b.market === 'total')
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
-  }, [bets]);
-
-  const bestF5 = useMemo(() => {
-    return [...bets]
-      .filter((b) => {
-        const m = (b.market || '').toLowerCase();
-        return m.includes('first_5') || m.includes('f5') || m.includes('1st_half');
-      })
       .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
@@ -1573,13 +1564,6 @@ export default function BestBetsPage() {
                   bets={bestTotals}
                   onBetClick={openModal}
                 />
-                {bestF5.length > 0 && (
-                  <CategoryCarousel
-                    title="Best First 5 Innings"
-                    bets={bestF5}
-                    onBetClick={openModal}
-                  />
-                )}
                 <CategoryCarousel
                   title="Most Likely to Homer"
                   icon={Zap}
