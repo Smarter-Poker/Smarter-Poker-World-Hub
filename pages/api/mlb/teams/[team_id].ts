@@ -185,6 +185,75 @@ async function edgeHandler(req: Request) {
       };
     });
 
+    // ── Current / next matchup: enrich the next non-final game with the model
+    //    line (probable pitchers, model win prob) from v_daily_slate and the
+    //    canonical h2h Bet Score inputs from pred_market_output (latest as_of_ts,
+    //    this team's side). Best-effort: any failure leaves `matchup` null and
+    //    never breaks the rest of the payload. ──
+    let matchup: any = null;
+    try {
+      const upcoming = games.find((g: any) => !g.final);
+      if (upcoming?.game_pk != null) {
+        const [slateRes, h2hRes] = await Promise.all([
+          mlbDb
+            .from('v_daily_slate')
+            .select(
+              'game_pk, event_time, status, home_pitcher, away_pitcher, home_win_prob, away_win_prob'
+            )
+            .eq('game_pk', upcoming.game_pk)
+            .maybeSingle(),
+          mlbDb
+            .from('pred_market_output')
+            .select(
+              'selection, model_prob, market_novig_prob, best_price, best_book, edge_pts, rec, as_of_ts'
+            )
+            .eq('game_pk', upcoming.game_pk)
+            .eq('market', 'h2h')
+            .order('as_of_ts', { ascending: false }),
+        ]);
+        const slate = slateRes.data as any;
+        const h2hRows = (h2hRes.data || []) as any[];
+        const isHome = upcoming.is_home;
+        const teamH2h =
+          h2hRows.find((r: any) => r.selection === (isHome ? 'home' : 'away')) || null;
+        const num = (v: any) => {
+          if (v == null) return null;
+          const n = Number(v);
+          return Number.isFinite(n) ? n : null;
+        };
+        matchup = {
+          game_pk: upcoming.game_pk,
+          is_home: isHome,
+          official_date: upcoming.official_date,
+          first_pitch_utc: upcoming.first_pitch_utc,
+          event_time: slate?.event_time ?? null,
+          status: slate?.status ?? upcoming.status ?? 'Scheduled',
+          opponent: upcoming.opponent,
+          opponent_abbr: upcoming.opponent_abbr,
+          team_pitcher: slate ? (isHome ? slate.home_pitcher : slate.away_pitcher) : null,
+          opp_pitcher: slate ? (isHome ? slate.away_pitcher : slate.home_pitcher) : null,
+          team_win_prob: slate
+            ? num(isHome ? slate.home_win_prob : slate.away_win_prob)
+            : teamH2h
+              ? num(teamH2h.model_prob)
+              : null,
+          opp_win_prob: slate ? num(isHome ? slate.away_win_prob : slate.home_win_prob) : null,
+          bet: teamH2h
+            ? {
+                p_win: num(teamH2h.model_prob),
+                price: num(teamH2h.best_price),
+                p_market: num(teamH2h.market_novig_prob),
+                rec: teamH2h.rec ?? null,
+                edge_pts: num(teamH2h.edge_pts),
+                best_book: teamH2h.best_book ?? null,
+              }
+            : null,
+        };
+      }
+    } catch (mErr: any) {
+      console.warn(`[API/MLB/Teams/${id}] matchup enrich error:`, mErr?.message);
+    }
+
     // ── Active prop edges for this team's players (canonical Bet Score). ──
     // Resolve the active slate (today if available, else most recent).
     let slateDate = todayStr;
@@ -321,6 +390,7 @@ async function edgeHandler(req: Request) {
         team,
         stats: statsData || null,
         games,
+        matchup,
         props: propsData,
         slateDate,
       }),
