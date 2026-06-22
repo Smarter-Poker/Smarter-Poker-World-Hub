@@ -380,7 +380,7 @@ export default function GameMatchupDashboard() {
                           {prop.player_name}
                         </span>
                         <span className="text-[21px] text-[#8BA4D5] capitalize tracking-wider">
-                          {prop.selection} {prop.line} | {prop.market}
+                          {propLabel(prop.prop)} {prop.side === 'under' ? 'U' : 'O'} {prop.line}
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
