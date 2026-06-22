@@ -133,6 +133,11 @@ if (fs.existsSync(buildIndex2Path)) {
   const renameReplace  = 'try { await _fs.promises.rename(orig, dest); } catch(e) { if (e.code !== \'ENOENT\') throw e; }';
   const rename2Target  = 'await _fs.promises.rename(updatedOrig, updatedDest);';
   const rename2Replace = 'try { await _fs.promises.rename(updatedOrig, updatedDest); } catch(e) { if (e.code !== \'ENOENT\') throw e; }';
+  // Also patch the _not-found.html -> 404.html copyFile which fails with ENOENT
+  // in Pages-Router-only projects (App Router never generates _not-found.html).
+  // existsSync check passes in a race but the file vanishes before copyFile runs.
+  const copyTarget  = 'await _fs.promises.copyFile(orig, _path.default.join(distDir, \'server\', updatedRelativeDest));';
+  const copyReplace = 'try { await _fs.promises.copyFile(orig, _path.default.join(distDir, \'server\', updatedRelativeDest)); } catch(e) { if (e.code !== \'ENOENT\') throw e; }';
   let changed = false;
   if (content.includes(renameTarget) && !content.includes(renameReplace)) {
     content = content.replace(new RegExp(renameTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), renameReplace);
@@ -142,9 +147,13 @@ if (fs.existsSync(buildIndex2Path)) {
     content = content.replace(new RegExp(rename2Target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), rename2Replace);
     changed = true;
   }
+  if (content.includes(copyTarget) && !content.includes(copyReplace)) {
+    content = content.replace(new RegExp(copyTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), copyReplace);
+    changed = true;
+  }
   if (changed) {
     fs.writeFileSync(buildIndex2Path, content, 'utf8');
-    console.log('   ✅ build/index.js static-page rename ENOENT tolerance patched.');
+    console.log('   ✅ build/index.js static-page rename/copyFile ENOENT tolerance patched.');
   } else {
     console.log('   ✅ build/index.js static-page rename is already patched or healthy.');
   }
