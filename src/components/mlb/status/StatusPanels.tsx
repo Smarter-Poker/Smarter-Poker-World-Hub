@@ -287,7 +287,7 @@ export const ModelAccuracyPanel = React.memo(({ accuracy }: { accuracy: MLBStatu
   );
 });
 
-export const BetTierDistPanel = React.memo(({ tierDist }: { tierDist: any }) => {
+export const BetTierDistPanel = React.memo(({ tierDist }: { tierDist: MLBStatusPayload['tierDist'] }) => {
   if (Object.keys(tierDist).length === 0) return null;
   return (
     <div className="mb-8">
@@ -330,7 +330,7 @@ export const BetTierDistPanel = React.memo(({ tierDist }: { tierDist: any }) => 
   );
 });
 
-export const DataSourcePanel = React.memo(({ sources, serverNow }: { sources: any[]; serverNow: any }) => (
+export const DataSourcePanel = React.memo(({ sources, serverNow }: { sources: MLBStatusPayload['sources']; serverNow: any }) => (
   <div className="mb-8">
     <SectionHeader icon={Database} label="Data Source Freshness" />
     <MetalFrame className="p-0">
@@ -371,7 +371,7 @@ export const DataSourcePanel = React.memo(({ sources, serverNow }: { sources: an
   </div>
 ));
 
-export const AlertsPanel = React.memo(({ alerts }: { alerts: any[] }) => {
+export const AlertsPanel = React.memo(({ alerts }: { alerts: MLBStatusPayload['alerts'] }) => {
   const [filter, setFilter] = useState<'ALL' | 'ERRORS' | 'WARNINGS'>('ALL');
 
   const filteredAlerts = alerts.filter((al) => {
@@ -391,6 +391,7 @@ export const AlertsPanel = React.memo(({ alerts }: { alerts: any[] }) => {
               <button
                 key={f}
                 onClick={() => setFilter(f as any)}
+                aria-pressed={filter === f}
                 className={`px-3 py-1 text-[13px] font-bold tracking-wider rounded border ${filter === f ? 'bg-[#00D4FF]/20 border-[#00D4FF] text-[#00D4FF]' : 'bg-transparent border-[#475569] text-slate-400 hover:border-[#00D4FF] hover:text-white'} transition-colors`}
               >
                 {f}
@@ -433,20 +434,24 @@ export const AlertsPanel = React.memo(({ alerts }: { alerts: any[] }) => {
   );
 });
 
-export const PipelineRunsPanel = React.memo(({ stages, latestRuns }: { stages: string[]; latestRuns: any }) => {
+export const PipelineRunsPanel = React.memo(({ stages, latestRuns }: { stages: string[]; latestRuns: MLBStatusPayload['latestRuns'] }) => {
   const [triggering, setTriggering] = useState<Record<string, boolean>>({});
 
   const handleTrigger = async (stage: string) => {
     setTriggering((prev) => ({ ...prev, [stage]: true }));
     try {
-      await fetch('/api/mlb/trigger-stage', {
+      const res = await fetch('/api/mlb/trigger-stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stage }),
       });
+      if (!res.ok) {
+        throw new Error(`Trigger failed: ${res.status}`);
+      }
       // The status will auto-refresh on the next SWR poll interval.
     } catch (e) {
       console.error(e);
+      alert(`Failed to rerun stage: ${stage}. Please check logs.`);
     } finally {
       setTriggering((prev) => ({ ...prev, [stage]: false }));
     }
@@ -492,6 +497,7 @@ export const PipelineRunsPanel = React.memo(({ stages, latestRuns }: { stages: s
                       <button
                         onClick={() => handleTrigger(stage)}
                         disabled={triggering[stage]}
+                        aria-label={`Rerun ${stage}`}
                         className="hex-button px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer text-[13px] font-bold tracking-wider capitalize disabled:opacity-50"
                       >
                         <RefreshCw
@@ -516,7 +522,7 @@ export const PipelineRunsPanel = React.memo(({ stages, latestRuns }: { stages: s
   );
 });
 
-export const DBTableCountsPanel = React.memo(({ tableCounts }: { tableCounts: Record<string, number> }) => {
+export const DBTableCountsPanel = React.memo(({ tableCounts }: { tableCounts: MLBStatusPayload['tableCounts'] }) => {
   const maxCount = Math.max(0, ...Object.values(tableCounts).map(Number));
 
   return (
