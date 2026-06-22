@@ -113,7 +113,18 @@ const PITCHER_PROPS = new Set([
 function formatProp(raw: string): string {
   if (!raw) return '';
   if (raw === 'hrr') return 'H+R+RBI';
-  return raw.replace(/_/g, ' ').replace(/(^|[^a-zA-Z])([a-z])/g, (m, p, c) => p + c.toUpperCase());
+  const val = raw.replace(/_/g, ' ').replace(/(^|[^a-zA-Z])([a-z])/g, (m, p, c) => p + c.toUpperCase());
+  return val.replace(/\bRbi\b/g, 'RBI')
+            .replace(/\bHr\b/g, 'HR')
+            .replace(/\bAvg\b/g, 'AVG')
+            .replace(/\bObp\b/g, 'OBP')
+            .replace(/\bSlg\b/g, 'SLG')
+            .replace(/\bEra\b/g, 'ERA')
+            .replace(/\bWhip\b/g, 'WHIP')
+            .replace(/\bFip\b/g, 'FIP')
+            .replace(/\bSo\b/g, 'SO')
+            .replace(/\bWrc\+\b/i, 'wRC+')
+            .replace(/\bWoba\b/i, 'wOBA');
 }
 
 function formatOdds(n: any): string {
@@ -241,7 +252,7 @@ function StatPill({
 }) {
   return (
     <div className="flex flex-col items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-1 min-w-[44px]">
-      <span className="text-[13px] font-black text-[#4a5a6a] tracking-widest capitalize leading-none mb-0.5">
+      <span className="text-[13px] font-black text-[#4a5a6a] tracking-widest uppercase leading-none mb-0.5">
         {label}
       </span>
       <span className="text-[22px] font-black leading-none" style={{ color }}>
@@ -277,7 +288,7 @@ function HeaderStat({
       }}
     >
       <span
-        className="text-[13px] font-black tracking-widest capitalize leading-none mb-0.5"
+        className="text-[13px] font-black tracking-widest uppercase leading-none mb-0.5"
         style={{ color }}
       >
         {label}
@@ -406,16 +417,16 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             <div className="inline-flex items-center gap-1.5 bg-[#0d1117] border border-[#3d4f5f] px-3 py-1 rounded-sm mt-1">
               <div className="w-2 h-2 rounded-full" style={{ background: ts.color }} />
               <span
-                className="text-[16px] font-black tracking-wider capitalize"
+                className="text-[16px] font-black tracking-wider uppercase flex gap-1.5"
                 style={{ color: '#00D4FF' }}
               >
-                {formatProp(prop.prop_type || prop.prop)}
+                {prop.line != null && (
+                  <span className="text-slate-300">
+                    {isOver ? 'OVER' : 'UNDER'} {prop.line}
+                  </span>
+                )}
+                <span>{formatProp(prop.prop_type || prop.prop)}</span>
               </span>
-              {prop.line != null && (
-                <span className="text-[16px] font-black text-slate-300">
-                  {isOver ? 'OVER' : 'UNDER'} {prop.line}
-                </span>
-              )}
             </div>
             {prop.team_abbr && (
               <div className="text-[14px] font-black text-[#5a6a7a] mt-2 tracking-widest capitalize">
@@ -689,19 +700,19 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span
-                className="text-[17px] font-black tracking-wider capitalize"
+                className="text-[17px] font-black tracking-wider uppercase"
                 style={{ color: '#00D4FF', textShadow: '0 0 6px rgba(0,212,255,0.4)' }}
               >
+                {prop.line != null && (
+                  <span className="text-[#8a9ba8] mr-1.5">
+                    {isOver ? 'OVER' : 'UNDER'} {prop.line}
+                  </span>
+                )}
                 {formatProp(prop.prop_type || prop.prop)}
               </span>
-              {prop.line != null && (
-                <span className="text-[17px] font-black text-[#8a9ba8]">
-                  {isOver ? 'O' : 'U'} {prop.line}
-                </span>
-              )}
               {prop.kelly_pct != null && prop.kelly_pct > 0 && (
                 <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[1px] text-[13px] font-black text-[#FFD700]">
-                  {Number(prop.kelly_pct).toFixed(2)}% K
+                  Kelly: {Number(prop.kelly_pct).toFixed(1)}%
                 </span>
               )}
               <span className="text-[13px] font-black text-[#3d4f5f] ml-auto">#{idx + 1}</span>
@@ -1087,7 +1098,7 @@ export default function PropsPage() {
               />
               {slateStats.topScore > 0 && (
                 <HeaderStat
-                  label="Top"
+                  label="Max Score"
                   value={slateStats.topScore}
                   color="#FFD700"
                   border="rgba(255,215,0,0.5)"
@@ -1096,7 +1107,7 @@ export default function PropsPage() {
               )}
               {slateStats.topLock > 0 && (
                 <HeaderStat
-                  label="Lock"
+                  label="Max Win%"
                   value={`${Math.round(slateStats.topLock)}%`}
                   color="#A78BFA"
                   border="rgba(167,139,250,0.5)"

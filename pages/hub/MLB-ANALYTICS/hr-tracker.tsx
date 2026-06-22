@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useDeferredValue, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -107,7 +107,7 @@ function formatDate(dateStr: string | null): string {
 }
 
 function DueGauge({ score }: { score: number }) {
-  const pct = Math.min(score / 2, 1); // cap at 200% for display
+  const pct = Math.max(Math.min(score / 2, 1), 0.02); // cap at 200% for display, min 2%
   const color = score >= 1.25 ? '#FF4444' : score >= 0.75 ? '#FFB800' : '#00D4FF';
   return (
     <div className="w-full h-1.5 bg-[#1a2332] rounded-full overflow-hidden" aria-hidden="true">
@@ -139,6 +139,12 @@ export default function HRTrackerPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [mounted, setMounted] = useState(false);
+  const deferredSearch = useDeferredValue(searchQuery);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data, error, isLoading, mutate } = useSWR('/api/mlb/hr-tracker', fetcher, {
     refreshInterval: 1000 * 60 * 60, // revalidate hourly (cache itself refreshes daily)
@@ -156,7 +162,7 @@ export default function HRTrackerPage() {
         setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
       } else {
         setSortKey(col);
-        setSortDir('desc');
+        setSortDir(col === 'full_name' ? 'asc' : 'desc');
       }
     },
     [sortKey]
@@ -174,8 +180,8 @@ export default function HRTrackerPage() {
       list = list.filter((p) => p.status === statusFilter);
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
       list = list.filter(
         (p) => p.full_name.toLowerCase().includes(q) || p.team_name.toLowerCase().includes(q)
       );
@@ -219,14 +225,14 @@ export default function HRTrackerPage() {
     });
 
     return list;
-  }, [players, statusFilter, searchQuery, sortKey, sortDir]);
+  }, [players, statusFilter, deferredSearch, sortKey, sortDir]);
 
   // Top 5 most overdue for the spotlight section
   const spotlight = useMemo(
     () =>
       [...players]
         .filter((p) => p.hr >= 3 && p.due_score > 0)
-        .sort((a, b) => b.due_score - a.due_score)
+        .sort((a, b) => b.due_score - a.due_score || b.hr - a.hr)
         .slice(0, 5),
     [players]
   );
@@ -237,6 +243,7 @@ export default function HRTrackerPage() {
       OVERDUE: players.filter((p) => p.status === 'OVERDUE').length,
       DUE: players.filter((p) => p.status === 'DUE').length,
       RECENT: players.filter((p) => p.status === 'RECENT').length,
+      NO_HR: players.filter((p) => p.status === 'NO_HR').length,
     }),
     [players]
   );
@@ -311,13 +318,13 @@ export default function HRTrackerPage() {
               </h1>
               <p className="text-[17px] text-slate-500 font-bold tracking-widest capitalize flex items-center gap-2 flex-wrap">
                 <span>
-                  {isLoading
+                  {isLoading || !mounted
                     ? 'Loading...'
                     : updatedAt
                       ? `Updated ${new Date(updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
                       : '—'}
                 </span>
-                {isStale && !isLoading && (
+                {isStale && !isLoading && mounted && (
                   <span className="inline-flex items-center gap-1 text-[#FFB800] border border-[#FFB800]/50 bg-[#FFB800]/10 px-1.5 py-0.5 rounded">
                     <AlertTriangle size={10} /> Stale
                   </span>
@@ -423,25 +430,23 @@ export default function HRTrackerPage() {
             {/* ── Spotlight: Most Due ─────────────────────────────── */}
             <div className="mb-8">
               <h2
-                className="text-[23px] font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#FF4444]"
-                style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                className="text-[23px] font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#FF4444] font-rajdhani"
               >
                 Most Due for a Home Run
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 md:px-0">
+              <div className="flex flex-nowrap overflow-x-auto snap-x md:grid md:grid-cols-5 gap-3 px-4 md:px-0 pb-4 md:pb-0">
                 {spotlight.map((p, idx) => {
                   const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.RECENT;
                   return (
                     <Link
                       key={p.player_id}
                       href={`/hub/MLB-ANALYTICS/players/${p.player_id}`}
-                      className={`block bg-[#0d1117] border-[2px] ${cfg.border} rounded-xl p-4 ${cfg.glow} hover:scale-[1.02] transition-all relative overflow-hidden group`}
+                      className={`block shrink-0 w-[200px] md:w-auto snap-start bg-[#0d1117] border-[2px] ${cfg.border} rounded-xl p-4 ${cfg.glow} hover:scale-[1.02] transition-all relative overflow-hidden group`}
                       style={{ textDecoration: 'none' }}
                     >
                       {idx === 0 && (
                         <div
-                          className="absolute top-2 right-2 text-[16px] font-extrabold text-[#FF4444] tracking-widest capitalize bg-[#FF4444]/10 px-1.5 py-0.5 rounded border border-[#FF4444]/30"
-                          style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                          className="absolute top-2 right-2 text-[16px] font-extrabold text-[#FF4444] tracking-widest capitalize bg-[#FF4444]/10 px-1.5 py-0.5 rounded border border-[#FF4444]/30 font-rajdhani"
                         >
                           #1 Due
                         </div>
@@ -455,18 +460,17 @@ export default function HRTrackerPage() {
                         height={56}
                         className="w-14 h-14 rounded-full object-cover border-[2px] border-[#3d4f5f] group-hover:border-current mb-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/default-avatar.png';
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/default-avatar.png';
                         }}
                       />
                       <div
-                        className={`text-[17px] font-extrabold tracking-widest capitalize ${cfg.color} mb-1`}
-                        style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                        className={`text-[17px] font-extrabold tracking-widest capitalize ${cfg.color} mb-1 font-rajdhani`}
                       >
                         {cfg.icon} {cfg.label}
                       </div>
                       <div
-                        className="text-white font-extrabold text-[23px] capitalize tracking-wide leading-tight truncate"
-                        style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                        className="text-white font-extrabold text-[23px] capitalize tracking-wide leading-tight truncate font-rajdhani"
                       >
                         {p.full_name}
                       </div>
@@ -528,7 +532,7 @@ export default function HRTrackerPage() {
 
               {/* Status filter pills */}
               <div className="flex gap-2 flex-wrap">
-                {(['ALL', 'OVERDUE', 'DUE', 'RECENT'] as const).map((s) => {
+                {(['ALL', 'OVERDUE', 'DUE', 'RECENT', 'NO_HR'] as const).map((s) => {
                   const cfg = s === 'ALL' ? null : STATUS_CONFIG[s];
                   const count = statusCounts[s as keyof typeof statusCounts];
                   return (
@@ -536,14 +540,13 @@ export default function HRTrackerPage() {
                       key={s}
                       onClick={() => setStatusFilter(s)}
                       aria-pressed={statusFilter === s}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-extrabold text-[18px] tracking-widest capitalize transition-all border-[2px] whitespace-nowrap ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-extrabold text-[18px] tracking-widest capitalize transition-all border-[2px] whitespace-nowrap font-rajdhani ${
                         statusFilter === s
                           ? cfg
                             ? `${cfg.bg} ${cfg.border} ${cfg.color} ${cfg.glow}`
                             : 'bg-[#00D4FF]/10 border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
                           : 'bg-[#0d1117] border-[#3d4f5f] text-slate-500 hover:border-[#4b637a]'
                       }`}
-                      style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       {cfg && <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />}
                       {s === 'ALL' ? 'All' : (cfg?.label ?? s)}{' '}
@@ -556,8 +559,7 @@ export default function HRTrackerPage() {
 
             {/* ── Results count ────────────────────────────────────── */}
             <div
-              className="text-[17px] text-slate-600 font-extrabold tracking-widest capitalize mb-3"
-              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+              className="text-[17px] text-slate-600 font-extrabold tracking-widest capitalize mb-3 font-rajdhani"
             >
               {filtered.length} Players · Sorted By {SORT_LABELS[sortKey]}{' '}
               {sortDir === 'desc' ? '↓' : '↑'}
@@ -570,10 +572,22 @@ export default function HRTrackerPage() {
                 <table className="w-full min-w-[700px]">
                   <thead className="bg-[#1a2332] border-b border-[#3d4f5f]">
                     <tr>
-                      {colHeader('full_name', 'Player')}
                       <th
-                        className="text-center py-3 px-3 text-[17px] font-extrabold tracking-widest capitalize text-slate-400"
-                        style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                        className="text-left py-3 px-3 whitespace-nowrap sticky left-0 z-20 bg-[#1a2332]"
+                        aria-sort={sortKey === 'full_name' ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleSort('full_name')}
+                          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[17px] font-extrabold tracking-widest capitalize text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF] font-rajdhani"
+                          aria-label="Sort by Player"
+                        >
+                          Player
+                          <SortIcon col="full_name" sortKey={sortKey} sortDir={sortDir} />
+                        </button>
+                      </th>
+                      <th
+                        className="text-center py-3 px-3 text-[17px] font-extrabold tracking-widest capitalize text-slate-400 font-rajdhani"
                       >
                         Status
                       </th>
@@ -581,8 +595,7 @@ export default function HRTrackerPage() {
                       {colHeader('games_per_hr', 'Games/HR', 'text-right')}
                       {colHeader('games_since_hr', 'Since HR', 'text-right')}
                       <th
-                        className="text-right py-3 px-3 text-[17px] font-extrabold tracking-widest capitalize text-slate-400"
-                        style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                        className="text-right py-3 px-3 text-[17px] font-extrabold tracking-widest capitalize text-slate-400 font-rajdhani"
                       >
                         Matchup
                       </th>
@@ -597,21 +610,17 @@ export default function HRTrackerPage() {
                       return (
                         <tr
                           key={p.player_id}
-                          role="link"
-                          tabIndex={0}
-                          aria-label={`${p.full_name}, ${p.team_name}. View player details`}
-                          className="hover:bg-[#1a2332]/60 transition-colors cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#00D4FF]/60"
-                          onClick={() => goToPlayer(p.player_id)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              goToPlayer(p.player_id);
-                            }
-                          }}
+                          className="hover:bg-[#1a2332]/60 transition-colors cursor-pointer group focus-within:ring-2 focus-within:ring-inset focus-within:ring-[#00D4FF]/60 relative"
                         >
                           {/* Player */}
-                          <td className="py-3 px-3">
+                          <td className="py-3 px-3 sticky left-0 z-10 bg-[#0d1117] group-hover:bg-[#131924] transition-colors">
                             <div className="flex items-center gap-3">
+                              {/* absolute link overlay for a11y */}
+                              <Link
+                                href={`/hub/MLB-ANALYTICS/players/${p.player_id}`}
+                                className="absolute inset-0 z-20"
+                                aria-label={`${p.full_name}, ${p.team_name}. View player details`}
+                              />
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <div className="relative shrink-0">
                                 <img
@@ -622,7 +631,8 @@ export default function HRTrackerPage() {
                                   height={36}
                                   className="w-9 h-9 rounded-full object-cover border border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = '/default-avatar.png';
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = '/default-avatar.png';
                                   }}
                                 />
                                 {p.team_id ? (
@@ -639,8 +649,7 @@ export default function HRTrackerPage() {
                               </div>
                               <div>
                                 <div
-                                  className="text-white font-extrabold text-[23px] tracking-wider capitalize group-hover:text-[#00D4FF] transition-colors"
-                                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                                  className="text-white font-extrabold text-[23px] tracking-wider capitalize group-hover:text-[#00D4FF] transition-colors font-rajdhani"
                                 >
                                   {p.full_name}
                                 </div>
@@ -654,8 +663,7 @@ export default function HRTrackerPage() {
                           {/* Status Badge */}
                           <td className="py-3 px-3 text-center">
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[17px] font-extrabold tracking-widest capitalize ${cfg.bg} ${cfg.color} border ${cfg.border}`}
-                              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[17px] font-extrabold tracking-widest capitalize ${cfg.bg} ${cfg.color} border ${cfg.border} font-rajdhani`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} shrink-0`} />
                               {cfg.label}
@@ -665,8 +673,7 @@ export default function HRTrackerPage() {
                           {/* HR Count */}
                           <td className="py-3 px-3 text-right">
                             <span
-                              className="text-white font-extrabold text-[27px]"
-                              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                              className="text-white font-extrabold text-[27px] font-rajdhani"
                             >
                               {p.hr}
                             </span>
@@ -675,8 +682,7 @@ export default function HRTrackerPage() {
                           {/* Games Per HR Rate */}
                           <td className="py-3 px-3 text-right">
                             <span
-                              className="text-[#00D4FF] font-extrabold text-[23px]"
-                              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                              className="text-[#00D4FF] font-extrabold text-[23px] font-rajdhani"
                             >
                               {hasRate ? `1 Per ${p.games_per_hr}g` : '—'}
                             </span>
@@ -693,8 +699,7 @@ export default function HRTrackerPage() {
                                       ? 'text-[#FFB800]'
                                       : 'text-slate-400'
                                   : 'text-slate-600'
-                              }`}
-                              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                              } font-rajdhani`}
                             >
                               {p.games_since_hr != null ? `${p.games_since_hr}g` : '—'}
                             </span>
@@ -724,9 +729,8 @@ export default function HRTrackerPage() {
                           <td className="py-3 px-3 text-right">
                             <div className="flex flex-col items-end gap-1">
                               <span
-                                className={`font-extrabold text-[27px] ${(p.matchup_due_score ?? p.due_score) > p.due_score ? 'text-[#FF4444]' : (p.matchup_due_score ?? p.due_score) < p.due_score ? 'text-[#00D4FF]' : cfg.color}`}
+                                className={`font-extrabold text-[27px] ${(p.matchup_due_score ?? p.due_score) > p.due_score ? 'text-[#FF4444]' : (p.matchup_due_score ?? p.due_score) < p.due_score ? 'text-[#00D4FF]' : cfg.color} font-rajdhani`}
                                 style={{
-                                  fontFamily: '"Rajdhani", sans-serif',
                                   textShadow:
                                     (p.matchup_due_score ?? p.due_score) >= 1.25
                                       ? '0 0 8px rgba(255,68,68,0.5)'
@@ -749,8 +753,7 @@ export default function HRTrackerPage() {
                           <td className="py-3 px-3 text-right">
                             <div className="flex flex-col items-end gap-1">
                               <span
-                                className={`font-extrabold text-[23px] text-slate-400`}
-                                style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                                className={`font-extrabold text-[23px] text-slate-400 font-rajdhani`}
                               >
                                 {p.due_score > 0 ? `${p.due_score.toFixed(2)}x` : '—'}
                               </span>
@@ -767,8 +770,7 @@ export default function HRTrackerPage() {
                 <div className="py-16 text-center">
                   <Search size={32} className="text-[#3d4f5f] mx-auto mb-3" />
                   <div
-                    className="text-slate-500 font-extrabold capitalize tracking-widest text-[23px]"
-                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                    className="text-slate-500 font-extrabold capitalize tracking-widest text-[23px] font-rajdhani"
                   >
                     No Players Found
                   </div>
@@ -783,8 +785,7 @@ export default function HRTrackerPage() {
             <div className="mt-6 bg-[#0d1117] border border-[#3d4f5f] rounded-xl p-4 flex flex-wrap gap-6">
               <div>
                 <div
-                  className="text-[17px] text-slate-500 font-extrabold tracking-widest capitalize mb-2"
-                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  className="text-[17px] text-slate-500 font-extrabold tracking-widest capitalize mb-2 font-rajdhani"
                 >
                   How To Read This
                 </div>

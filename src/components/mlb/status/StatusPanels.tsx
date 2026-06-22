@@ -44,7 +44,7 @@ const TIER_META = [
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return '';
-  const isoStr = dateString.trim().replace(/ /g, 'T');
+  const isoStr = dateString.trim().replace(/ /g, 'T').replace(/\.(\d{3})\d+/, '.$1');
   const safeDate = isoStr.endsWith('Z') || isoStr.includes('+') ? isoStr : isoStr + 'Z';
   const d = new Date(safeDate);
   if (isNaN(d.getTime())) return String(dateString);
@@ -112,7 +112,7 @@ export const PipelineStatusPanel = React.memo(({ pipeline }: { pipeline: MLBStat
   </div>
 ));
 
-export const HealthPanel = React.memo(({ health, data, serverNow }: { health: MLBStatusPayload['health']; data: any; serverNow: any }) => (
+export const HealthPanel = React.memo(({ health, data, serverNow }: { health: MLBStatusPayload['health']; data?: { aggAsOf?: string | null }; serverNow: Date }) => (
   <div className="mb-8">
     <SectionHeader icon={Clock} label="System Health" />
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
@@ -191,7 +191,7 @@ export const ModelAccuracyPanel = React.memo(({ accuracy }: { accuracy: MLBStatu
 
     const byDate: Record<string, { totalBrier: number; totalWeight: number }> = {};
     for (const row of data.tableData) {
-      if (row.brier != null && row.n > 0) {
+      if (row && row.brier != null && row.n > 0) {
         if (!byDate[row.date]) byDate[row.date] = { totalBrier: 0, totalWeight: 0 };
         byDate[row.date].totalBrier += row.brier * row.n;
         byDate[row.date].totalWeight += row.n;
@@ -330,7 +330,7 @@ export const BetTierDistPanel = React.memo(({ tierDist }: { tierDist: MLBStatusP
   );
 });
 
-export const DataSourcePanel = React.memo(({ sources, serverNow }: { sources: MLBStatusPayload['sources']; serverNow: any }) => (
+export const DataSourcePanel = React.memo(({ sources, serverNow }: { sources: MLBStatusPayload['sources']; serverNow: Date }) => (
   <div className="mb-8">
     <SectionHeader icon={Database} label="Data Source Freshness" />
     <MetalFrame className="p-0">
@@ -390,7 +390,7 @@ export const AlertsPanel = React.memo(({ alerts }: { alerts: MLBStatusPayload['a
             {['ALL', 'ERRORS', 'WARNINGS'].map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f as any)}
+                onClick={() => setFilter(f as 'ALL' | 'ERRORS' | 'WARNINGS')}
                 aria-pressed={filter === f}
                 className={`px-3 py-1 text-[13px] font-bold tracking-wider rounded border ${filter === f ? 'bg-[#00D4FF]/20 border-[#00D4FF] text-[#00D4FF]' : 'bg-transparent border-[#475569] text-slate-400 hover:border-[#00D4FF] hover:text-white'} transition-colors`}
               >
@@ -434,7 +434,7 @@ export const AlertsPanel = React.memo(({ alerts }: { alerts: MLBStatusPayload['a
   );
 });
 
-export const PipelineRunsPanel = React.memo(({ stages, latestRuns, onMutate }: { stages: string[]; latestRuns: MLBStatusPayload['latestRuns']; onMutate?: () => void }) => {
+export const PipelineRunsPanel = React.memo(({ stages, latestRuns, onMutate }: { stages: string[]; latestRuns: MLBStatusPayload['latestRuns']; onMutate?: () => Promise<any> | void }) => {
   const [triggering, setTriggering] = useState<Record<string, boolean>>({});
 
   const handleTrigger = async (stage: string) => {
@@ -449,7 +449,7 @@ export const PipelineRunsPanel = React.memo(({ stages, latestRuns, onMutate }: {
         throw new Error(`Trigger failed: ${res.status}`);
       }
       if (onMutate) {
-        onMutate();
+        await onMutate();
       }
     } catch (e) {
       console.error(e);
