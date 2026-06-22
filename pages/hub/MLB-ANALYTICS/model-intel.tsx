@@ -677,9 +677,9 @@ export default function ModelIntelPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-0">
               <GateRow
-                label="Sample Size (N≥300)"
+                label="Sample Size (N≥500)"
                 value={String(gateKpi.n)}
-                passed={gateKpi.n >= 300}
+                passed={gateKpi.n >= 500}
                 loading={isLoading && !data}
               />
               <GateRow
