@@ -152,7 +152,7 @@ const fetcher = async (url: string) => {
 };
 
 // Compact stat formatters for the directory cards.
-const fmtAvg = (v?: number | null) => (v == null ? '—' : Number(v).toFixed(3).replace(/^0\./, '.'));
+const fmtAvg = (v?: number | null) => (v == null || isNaN(Number(v)) ? '—' : Number(v).toFixed(3).replace(/^0\./, '.'));
 const fmt2 = (v?: number | null) => (v == null ? '—' : Number(v).toFixed(2));
 const fmtInt = (v?: number | null) => (v == null ? '—' : String(Math.round(Number(v))));
 const fmtIp = (v?: number | null) => (v == null ? '—' : String(v));
@@ -211,7 +211,7 @@ const cardRole = (player: PlayerProfile, type: 'hitters' | 'pitchers'): string |
   return null;
 };
 
-const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
+const PlayerCard = React.memo(({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
   const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
   const [imgSrc, setImgSrc] = useState(headshotUrl);
 
@@ -229,12 +229,12 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' |
         {/* Neon strip effect */}
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#3d4f5f] transition-all group-hover:bg-[#00D4FF] group-hover:shadow-[0_0_10px_rgba(0,212,255,0.8)]" />
 
-        <div className="flex items-center gap-4 z-10 pl-2">
+        <div className="flex items-center gap-4 z-10 pl-2 flex-1 min-w-0">
           <div className="relative w-14 h-14">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imgSrc}
-              onError={() => setImgSrc('/default-avatar.png')}
+              onError={() => { if (imgSrc !== '/default-avatar.png') setImgSrc('/default-avatar.png'); }}
               alt={player.full_name}
               loading="lazy"
               width={56}
@@ -315,7 +315,7 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' |
       </div>
     </Link>
   );
-};
+});
 
 // Helper: format streak as "W3" or "L2"
 function formatStreak(streak: number): { label: string; isWin: boolean } {
@@ -348,8 +348,13 @@ const TeamSelectorRow = React.memo(
 
     return (
       <button
-        onClick={() => onSelect(teamId)}
-        className="w-full flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-white/5 transition-all group text-left"
+        onClick={() => {
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try { navigator.vibrate(15); } catch (e) {}
+          }
+          onSelect(teamId);
+        }}
+        className="w-full flex items-center gap-3 py-2 px-2 min-h-[44px] rounded-xl hover:bg-white/5 transition-all group text-left"
       >
         {/* Logo — large, no background, no border */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -432,17 +437,24 @@ const StatPill = React.memo(({ label, value }: { label: string; value: string | 
 
 export default function PlayersPage() {
   const router = useRouter();
-  const { data, error, isLoading } = useSWR('/api/mlb/players', fetcher, {
+  const { data: hittersData, error: hittersError, isLoading: hittersLoading } = useSWR('/api/mlb/hitters', fetcher, {
     refreshInterval: 60000,
   });
 
-  const { data: standingsData } = useSWR('/api/mlb/standings', fetcher, {
+  const { data: pitchersData, error: pitchersError, isLoading: pitchersLoading } = useSWR('/api/mlb/pitchers', fetcher, {
+    refreshInterval: 60000,
+  });
+
+  const { data: standingsData, isLoading: isStandingsLoading } = useSWR('/api/mlb/standings', fetcher, {
     refreshInterval: 3600000, // 1 hour (matches CDN cache)
   });
 
-  const hitters = data?.hitters || EMPTY_ARRAY;
-  const pitchers = data?.pitchers || EMPTY_ARRAY;
-  const fetchError = error || data?.fetchError || data?.error;
+  const hitters = hittersData?.data || EMPTY_ARRAY;
+  const pitchers = pitchersData?.data || EMPTY_ARRAY;
+  const fetchError = hittersError || pitchersError || hittersData?.fetchError || pitchersData?.fetchError;
+  const error = hittersError || pitchersError;
+  const isLoading = hittersLoading || pitchersLoading;
+  const data = hittersData && pitchersData ? { hitters, pitchers } : undefined;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -452,14 +464,10 @@ export default function PlayersPage() {
   const [posFilter, setPosFilter] = useState('All');
   const [visibleCount, setVisibleCount] = useState(50);
 
-  // Reset paging + sort when the view changes.
+  // Reset paging when the view changes.
   useEffect(() => {
     setVisibleCount(50);
   }, [activeTab, selectedTeam, searchQuery, sortKey, posFilter]);
-  useEffect(() => {
-    setSortKey('default');
-    setPosFilter('All');
-  }, [activeTab]);
 
   // Build a map of teamId -> TeamStanding for quick lookup
   const standingsMap = useMemo<Map<number, TeamStanding>>(() => {
@@ -533,7 +541,14 @@ export default function PlayersPage() {
 
   const visiblePlayers = filteredPlayers.slice(0, visibleCount);
   const canLoadMore = filteredPlayers.length > visibleCount;
-  const suggestions = searchQuery.length >= 3 ? filteredPlayers.slice(0, 5) : [];
+  // Suggestions are a global name search across the active tab — intentionally NOT
+  // scoped by the position filter or active sort, so a name match always surfaces.
+  const suggestions =
+    searchQuery.trim().length >= 3
+      ? (activeTab === 'Pitchers' ? pitchers : hitters)
+          .filter((p: PlayerProfile) => fuzzyMatch(p.full_name || '', searchQuery.trim()))
+          .slice(0, 5)
+      : [];
   // Distinct "feed returned nothing" state: data loaded successfully but both directories
   // are empty. Without this the user is silently dropped into the team selector and then
   // into per-team dead-ends.
@@ -543,13 +558,13 @@ export default function PlayersPage() {
 
   // fetchError is a soft API-level error (DB failures). SWR's `error` is a network error.
   // Only show full-screen error on network failure — DB partial errors show the inline banner.
-  const hasError = !!error;
+  const hasError = !!error && !data;
 
   if (hasError) {
     return (
       <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
         <SEOHead
-          title="MLB Player Analytics — Stats, Rankings &amp; Predictive Grades | Smarter.Poker"
+          title="MLB Player Analytics — Stats, Rankings & Predictive Grades | Smarter.Poker"
           description="Complete MLB player database with advanced statistics and AI-powered predictive grades."
           noindex={true}
         />
@@ -653,10 +668,13 @@ export default function PlayersPage() {
             {(searchQuery || selectedTeam) && (
               <button
                 onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    try { navigator.vibrate(15); } catch (e) {}
+                  }
                   setSearchQuery('');
                   setSelectedTeam(null);
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00D4FF] transition-colors flex items-center gap-1 text-[13px] font-extrabold tracking-widest z-30"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#00D4FF] transition-colors flex items-center justify-center gap-1 text-[13px] font-extrabold tracking-widest z-30 min-h-[44px] min-w-[44px] px-2"
               >
                 Clear <X size={14} />
               </button>
@@ -691,9 +709,9 @@ export default function PlayersPage() {
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-[#3d4f5f]" />
                     )}
-                    <div className="flex flex-col">
+                    <div className="flex flex-col min-w-0">
                       <span
-                        className="text-white font-extrabold tracking-widest text-[18px] group-hover:text-[#00D4FF] transition-colors"
+                        className="text-white font-extrabold tracking-widest text-[18px] group-hover:text-[#00D4FF] transition-colors truncate"
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         {p.full_name}
@@ -710,17 +728,22 @@ export default function PlayersPage() {
           </div>
 
           <div
-            className="flex flex-col md:flex-row gap-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden"
+            className="flex flex-row gap-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden"
             style={{ scrollbarWidth: 'none' }}
           >
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    try { navigator.vibrate(15); } catch (e) {}
+                  }
                   setActiveTab(tab);
+                  setSortKey('default');
+                  setPosFilter('All');
                 }}
                 aria-pressed={activeTab === tab}
-                className={`w-full md:w-auto px-4 py-3 md:py-2 rounded-md font-extrabold text-[17px] md:text-[14px] tracking-widest whitespace-nowrap transition-all ${
+                className={`min-h-[44px] w-full md:w-auto px-4 py-3 md:py-2 rounded-md font-extrabold text-[17px] md:text-[14px] tracking-widest whitespace-nowrap transition-all ${
                   activeTab === tab
                     ? 'bg-gradient-to-b from-[#00D4FF]/20 to-[#1a2332] border-[2px] border-[#00D4FF] text-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(255,255,255,0.1)]'
                     : 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-500 shadow-[inset_0_2px_4px_rgba(255,255,255,0.05)] hover:border-[#4b637a]'
@@ -788,13 +811,18 @@ export default function PlayersPage() {
               </div>
             ) : !searchQuery && !selectedTeam ? (
               /* ── TEAM SELECTOR: League / Division Grouped ── */
-              <div className="space-y-8">
-                <p
-                  className="text-center text-[14px] font-extrabold text-slate-500 tracking-widest"
-                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                >
-                  Select a Team
-                </p>
+              isStandingsLoading && !standingsData ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-[2px] border-[#3d4f5f] border-t-[#00D4FF]"></div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  <p
+                    className="text-center text-[14px] font-extrabold text-slate-500 tracking-widest"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    Select a Team
+                  </p>
                 {Object.entries(MLB_STRUCTURE).map(([league, divisions]) => (
                   <div key={league}>
                     {/* League header */}
@@ -853,8 +881,9 @@ export default function PlayersPage() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="space-y-3">
+            )
+          ) : (
+            <div className="space-y-3">
                 {/* Sort + position controls */}
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <label
@@ -888,7 +917,7 @@ export default function PlayersPage() {
                         value={posFilter}
                         onChange={(e) => setPosFilter(e.target.value)}
                         aria-label="Filter by position"
-                        className="bg-[#0d1117] border border-[#3d4f5f] text-slate-200 text-[13px] font-bold rounded px-2 py-1 focus:outline-none focus:border-[#00D4FF]"
+                        className="bg-[#0d1117] border border-[#3d4f5f] text-slate-200 text-[16px] md:text-[13px] font-bold rounded px-2 py-1 focus:outline-none focus:border-[#00D4FF]"
                       >
                         {POSITIONS.map((p) => (
                           <option key={p} value={p}>
@@ -924,10 +953,13 @@ export default function PlayersPage() {
                     </span>
                     <button
                       onClick={() => {
+                        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                          try { navigator.vibrate(15); } catch (e) {}
+                        }
                         setSelectedTeam(null);
                         setSearchQuery('');
                       }}
-                      className="ml-auto text-slate-500 hover:text-[#00D4FF] text-[13px] font-extrabold tracking-widest flex items-center gap-1 transition-colors"
+                      className="min-h-[44px] ml-auto text-slate-500 hover:text-[#00D4FF] text-[13px] font-extrabold tracking-widest flex items-center gap-1 transition-colors"
                     >
                       Change Team <X size={12} />
                     </button>
@@ -947,8 +979,13 @@ export default function PlayersPage() {
                     {canLoadMore && (
                       <div className="text-center py-6 pb-8">
                         <button
-                          onClick={() => setVisibleCount((c) => c + 50)}
-                          className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF]/50 px-6 py-2 rounded text-[14px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors"
+                          onClick={() => {
+                            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                              try { navigator.vibrate(15); } catch (e) {}
+                            }
+                            setVisibleCount((c) => c + 50);
+                          }}
+                          className="min-h-[44px] bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF]/50 px-6 py-2 rounded text-[14px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors"
                           style={{ fontFamily: '"Rajdhani", sans-serif' }}
                         >
                           Load More ({filteredPlayers.length - visibleCount} more)
@@ -971,10 +1008,13 @@ export default function PlayersPage() {
                     </div>
                     <button
                       onClick={() => {
+                        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                          try { navigator.vibrate(15); } catch (e) {}
+                        }
                         setSearchQuery('');
                         setSelectedTeam(null);
                       }}
-                      className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[16px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
+                      className="min-h-[44px] bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[16px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
                     >
                       Clear Filters
                     </button>

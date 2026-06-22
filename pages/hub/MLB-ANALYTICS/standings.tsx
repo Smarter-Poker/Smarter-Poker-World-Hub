@@ -534,7 +534,7 @@ export default function StandingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+    <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
       <SEOHead
         title="MLB Standings 2026 — Division Races, Wild Card & Power Rankings | Smarter.Poker"
         description="Live 2026 MLB standings: divisional breakdowns, wild-card playoff race, run differential, Pythagorean expected records, win streaks, and AI-graded team ratings on the ELITE/STRONG/LEAN/THIN/PASS scale."
@@ -581,8 +581,13 @@ export default function StandingsPage() {
                 key={key}
                 role="tab"
                 aria-selected={view === key}
-                onClick={() => setView(key)}
-                className={`px-3 py-1.5 text-[18px] font-extrabold capitalize tracking-wider rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    try { navigator.vibrate(15); } catch (e) {}
+                  }
+                  setView(key);
+                }}
+                className={`min-h-[44px] px-3 py-1.5 text-[18px] font-extrabold capitalize tracking-wider rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${
                   view === key
                     ? 'bg-[#00D4FF] text-black shadow-[0_0_12px_rgba(0,212,255,0.4)]'
                     : 'text-slate-400 hover:text-slate-200'

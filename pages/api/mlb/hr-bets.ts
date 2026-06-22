@@ -29,7 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const sb = getSupabase() as any;
 
   // ── Auth: verify the caller and derive their user_id from the JWT ──
-  const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
+  const authHeader = req.headers.authorization;
+  const authStr = Array.isArray(authHeader) ? authHeader[0] : (authHeader || '');
+  const token = authStr.replace('Bearer ', '').trim();
   if (!token) return res.status(401).json({ error: 'Auth required' });
   const { data: authData, error: authErr } = await sb.auth.getUser(token);
   const user = authData?.user;
@@ -135,6 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (err: any) {
     console.error('[hr-bets] error:', err?.message || err);
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.status(500).json({ error: 'Bet tracking request failed' });
   }
 }

@@ -642,7 +642,10 @@ async function edgeHandler(req: Request) {
         console.error('[MLB Best Bets] Fallback error on pred_best_bets:', dateErr);
         return new Response(JSON.stringify({ error: `Database error: ${dateErr.message}` }), {
           status: 500,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, max-age=0'
+          },
         });
       }
 
@@ -736,7 +739,10 @@ async function edgeHandler(req: Request) {
     console.error('Error fetching best bets API:', err);
     return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      },
     });
   }
 }
@@ -788,6 +794,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (err: any) {
     console.error('API Polyfill Error:', err);
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
 }

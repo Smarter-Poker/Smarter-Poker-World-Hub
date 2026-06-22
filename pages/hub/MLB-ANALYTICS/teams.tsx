@@ -733,7 +733,7 @@ export default function TeamsPage({
   if (error || data?.error) {
     logError('UI Error', error || (typeof data !== 'undefined' ? data?.error : null));
     return (
-      <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+      <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
         <SEOHead title="MLB Teams - Error" description="Data fetch failed" />
         <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
         <MlbSubNav />

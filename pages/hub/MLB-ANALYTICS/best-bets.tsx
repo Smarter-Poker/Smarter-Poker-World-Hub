@@ -298,9 +298,14 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
             Bet Details
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(15); } catch (e) {}
+              }
+              onClose();
+            }}
             aria-label="Close bet details"
-            className="p-2 rounded-sm border border-[#3d4f5f] text-slate-400 hover:text-white hover:border-[#00D4FF] transition-all active:scale-95"
+            className="flex items-center justify-center p-2 rounded-sm border border-[#3d4f5f] text-slate-400 hover:text-white hover:border-[#00D4FF] transition-all active:scale-95 min-h-[44px] min-w-[44px]"
           >
             <X size={16} />
           </button>
@@ -1432,9 +1437,14 @@ export default function BestBetsPage() {
             </p>
           </div>
           <button
-            onClick={() => setIsGuideOpen(true)}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(15); } catch (e) {}
+              }
+              setIsGuideOpen(true);
+            }}
             title="Scoring Scale Guide"
-            className="text-right bg-[#0a0a15] hover:bg-[#1a2332] transition-colors cursor-pointer px-2.5 py-2 rounded-sm border border-[#2a3a4a] hover:border-[#00D4FF] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] group"
+            className="text-right bg-[#0a0a15] hover:bg-[#1a2332] transition-colors cursor-pointer px-2.5 py-2 rounded-sm border border-[#2a3a4a] hover:border-[#00D4FF] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] group min-h-[44px]"
           >
             <div className="flex items-center justify-end gap-1 text-[#00D4FF] text-[17px] font-black tracking-widest capitalize drop-shadow-[0_0_4px_rgba(0,212,255,0.4)]">
               <Info size={12} className="opacity-70 group-hover:opacity-100" />

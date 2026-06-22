@@ -1,8 +1,28 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
-// @ts-ignore
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+
+interface DashboardData {
+  pipeline_runs?: Array<{
+    step?: string;
+    stage?: string;
+    run_ts?: string;
+    status?: string;
+    duration_sec?: number | string;
+    rows_written?: number | string;
+    notes?: string;
+  }>;
+  health?: Record<string, any>;
+  tier_dist?: Record<string, any>;
+  server_now?: string;
+  today?: string;
+  agg_as_of?: string;
+  slate?: Record<string, any>;
+  accuracy?: Record<string, any>;
+  sources?: any[];
+  alerts?: any[];
+  table_counts?: Record<string, number>;
+}
 
 const STAGE_ORDER = ['predict', 'push', 'grade', 'grade_props', 'track', 'alert', 'export'];
 
@@ -25,7 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    const { user: localUser } = await getServerUserWithFallback(req, mainDb);
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const { data: { user: localUser } } = await mainDb.auth.getUser(token || '');
     if (!localUser) return res.status(401).json({ ok: false, error: 'Auth required' });
 
     const { data: profile } = await mainDb
@@ -49,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let data, rpcError;
     try {
-      const result = (await Promise.race([rpcPromise, timeoutPromise])) as any;
+      const result = await Promise.race([rpcPromise, timeoutPromise]) as { data: any; error: any };
       data = result?.data;
       rpcError = result?.error;
     } finally {
@@ -58,9 +79,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (rpcError) throw rpcError;
 
-    const d: any = data || {};
+    const d = (data || {}) as DashboardData;
 
-    const pipelineRuns: any[] = Array.isArray(d.pipeline_runs) ? d.pipeline_runs : [];
+    const pipelineRuns = Array.isArray(d.pipeline_runs) ? d.pipeline_runs : [];
     const latestRuns: Record<string, any> = {};
     for (const run of pipelineRuns) {
       const stage = run?.stage || run?.step;

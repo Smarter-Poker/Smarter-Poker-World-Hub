@@ -306,7 +306,7 @@ export default function TrackerPage() {
                     navigator.vibrate(15);
                   } catch (e) {}
               }}
-              className={`px-5 py-2 rounded-sm border-[2px] text-[17px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all capitalize ${
+              className={`min-h-[44px] px-5 py-2 rounded-sm border-[2px] text-[17px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all capitalize ${
                 filter === f
                   ? 'bg-[#1a2332] text-[#22C55E] border-[#22C55E] shadow-[0_0_10px_rgba(34,197,94,0.3)]'
                   : 'bg-[#0d1117] text-slate-400 border-[#3d4f5f] hover:border-[#5a6a7a] hover:text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'

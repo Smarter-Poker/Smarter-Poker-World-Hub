@@ -207,7 +207,7 @@ export default function TeamDetailPage() {
   // ── Error State ──
   if (error || data?.error) {
     return (
-      <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+      <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
         <SEOHead title="MLB Team Detail - Error" description="Data fetch failed" />
         <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
         <MlbSubNav />
@@ -234,7 +234,7 @@ export default function TeamDetailPage() {
   // ── Loading State ──
   if (!data && !error) {
     return (
-      <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
+      <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
         <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
         <MlbSubNav />
         <div className="flex-1 flex items-center justify-center min-h-[50vh]">
@@ -248,7 +248,7 @@ export default function TeamDetailPage() {
   // ── Not Found ──
   if (!data?.team && data) {
     return (
-      <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
+      <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
         <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS/teams')} />
         <MlbSubNav />
         <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[50vh]">
@@ -311,7 +311,7 @@ export default function TeamDetailPage() {
   const recentResults = games.filter((g: any) => g.final).slice(-5);
 
   return (
-    <div className="min-h-screen bg-[#0a0a15] pb-24 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
+    <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
       <SEOHead
         title={`Smarter.Poker | MLB Team | ${team?.name || 'Loading...'}`}
         description={`Advanced MLB analytics for ${team?.name}`}

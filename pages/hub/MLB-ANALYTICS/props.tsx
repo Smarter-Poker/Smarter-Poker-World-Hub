@@ -382,8 +382,13 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             Prop Details
           </div>
           <button
-            onClick={onClose}
-            className="p-2 rounded-sm border border-[#3d4f5f] text-slate-400 hover:text-white hover:border-[#00D4FF] transition-all active:scale-95"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(15); } catch (e) {}
+              }
+              onClose();
+            }}
+            className="flex items-center justify-center p-2 rounded-sm border border-[#3d4f5f] text-slate-400 hover:text-white hover:border-[#00D4FF] transition-all active:scale-95 min-h-[44px] min-w-[44px]"
           >
             <X size={16} />
           </button>
@@ -1140,8 +1145,13 @@ export default function PropsPage() {
           {FILTERS.map((f) => (
             <button
               key={f.label}
-              onClick={() => setFilter(f.label)}
-              className={`px-3 py-1.5 border-2 text-[14px] font-black tracking-widest whitespace-nowrap cursor-pointer transition-all capitalize rounded-sm ${
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                  try { navigator.vibrate(15); } catch (e) {}
+                }
+                setFilter(f.label);
+              }}
+              className={`min-h-[44px] px-3 py-1.5 border-2 text-[14px] font-black tracking-widest whitespace-nowrap cursor-pointer transition-all capitalize rounded-sm ${
                 filter === f.label
                   ? 'bg-[#001a2a] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.25)]'
                   : 'bg-[#0d1117] text-[#5a6a7a] border-[#2a3a4a] hover:border-[#3d4f5f] hover:text-slate-300'
@@ -1279,8 +1289,13 @@ export default function PropsPage() {
           {!isLoading && filtered.length > visible && (
             <div className="mt-4 flex justify-center">
               <button
-                onClick={() => setVisible((v) => v + PAGE_SIZE)}
-                className="px-5 py-2.5 bg-[#0d1117] border-2 border-[#2a3a4a] text-[14px] font-black text-[#5a6a7a] tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    try { navigator.vibrate(15); } catch (e) {}
+                  }
+                  setVisible((v) => v + PAGE_SIZE);
+                }}
+                className="min-h-[44px] px-5 py-2.5 bg-[#0d1117] border-2 border-[#2a3a4a] text-[14px] font-black text-[#5a6a7a] tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm"
               >
                 Load More ({filtered.length - visible} remaining)
               </button>

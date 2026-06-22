@@ -80,6 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ as_of: asOf, leaders });
   } catch (err: any) {
     console.error('[hr-today] error:', err?.message || err);
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.status(500).json({ error: 'Failed to load HR leaders' });
   }
 }

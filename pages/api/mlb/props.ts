@@ -86,7 +86,7 @@ export default async function edgeHandler(req: Request) {
       .select('as_of_ts')
       .gte('as_of_ts', todayStart)
       .lt('as_of_ts', todayEnd)
-      .not('best_price', 'is', null)
+      .or('best_price.not.is.null,best_price_under.not.is.null')
       .limit(1);
 
     if (todayErr) {
@@ -99,7 +99,7 @@ export default async function edgeHandler(req: Request) {
         .from('pred_props')
         .select('as_of_ts')
         .lt('as_of_ts', todayEnd)
-        .not('best_price', 'is', null)
+        .or('best_price.not.is.null,best_price_under.not.is.null')
         .order('as_of_ts', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -128,7 +128,7 @@ export default async function edgeHandler(req: Request) {
       )
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
-      .not('best_price', 'is', null)
+      .or('best_price.not.is.null,best_price_under.not.is.null')
       // PostgREST caps the result (~1000 rows) below some slates' priced count,
       // so order by model edge first — the highest-value props are always kept
       // within the cap instead of an arbitrary slice — before client Bet Score ranking.
@@ -139,7 +139,10 @@ export default async function edgeHandler(req: Request) {
       console.error('[API/MLB/Props] pred_props error:', propsRes.error);
       return new Response(JSON.stringify({ error: `Database error: ${propsRes.error.message}` }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        },
       });
     }
 
@@ -450,12 +453,7 @@ export default async function edgeHandler(req: Request) {
         : underPrice != null
           ? underPrice
           : fairAmericanFromProb(pMarket != null ? Math.min(0.985, pMarket + 0.023) : null);
-      // Reject a pathological estimated under price (e.g. a near-certain
-      // favourite's fair line at -6000) so it can't fabricate a Bet Score.
-      // Real book prices (over or under) are never clamped.
-      if (!isOver && underPrice == null && price != null && Math.abs(price) > 600) {
-        price = null;
-      }
+      // Removed pathologically tight -600 clamping so heavy favorites still score.
       const priceIsReal = isOver ? overPrice != null : underPrice != null;
 
       // Canonical Bet Score (0-100) + tier — identical scale to every other surface.
@@ -576,7 +574,10 @@ export default async function edgeHandler(req: Request) {
     console.error('[API/MLB/Props] Unhandled error:', err);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      },
     });
   }
 }

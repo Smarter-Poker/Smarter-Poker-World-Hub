@@ -209,20 +209,35 @@ export default function ValidationPage() {
         {/* Dynamic Controls */}
         <div className="flex gap-1 mb-6 p-1 bg-[#0d1117] border border-[#3d4f5f] rounded-lg w-fit shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
           <button
-            onClick={() => setDays(7)}
-            className={`px-4 py-2 rounded-md text-[18px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === 7 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(15); } catch (e) {}
+              }
+              setDays(7);
+            }}
+            className={`min-h-[44px] px-4 py-2 rounded-md text-[18px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === 7 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
           >
             7 Days
           </button>
           <button
-            onClick={() => setDays(30)}
-            className={`px-4 py-2 rounded-md text-[18px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === 30 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(15); } catch (e) {}
+              }
+              setDays(30);
+            }}
+            className={`min-h-[44px] px-4 py-2 rounded-md text-[18px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === 30 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
           >
             30 Days
           </button>
           <button
-            onClick={() => setDays(null)}
-            className={`px-4 py-2 rounded-md text-[18px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === null ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(15); } catch (e) {}
+              }
+              setDays(null);
+            }}
+            className={`min-h-[44px] px-4 py-2 rounded-md text-[18px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === null ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
           >
             Season
           </button>
