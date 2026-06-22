@@ -25,7 +25,8 @@ function getSupabase() {
 const RESULTS = ['pending', 'hit', 'miss', 'push'];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const sb = getSupabase();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = getSupabase() as any;
 
   // ── Auth: verify the caller and derive their user_id from the JWT ──
   const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
