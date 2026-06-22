@@ -22,7 +22,7 @@ import {
   type Tier,
 } from '../../../src/lib/betScore';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────
 
 function getTeamName(fullName: string): string {
   if (!fullName) return '';
@@ -68,7 +68,7 @@ function EdgeBadge({ g }: { g: GameCard }) {
   );
 }
 
-// ─── Supabase live-sync indicator ─────────────────────────────────────────────
+// ─── Supabase live-sync indicator ──────────────────────────────────────
 
 const sbUrl = typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_URL || '' : '';
 const sbAnonKey =
@@ -122,7 +122,7 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
   );
 }
 
-// ─── Market Grades Panel ──────────────────────────────────────────────────────
+// ─── Market Grades Panel ────────────────────────────────────────────
 
 function MarketGradesPanel({ g }: { g: GameCard }) {
   const router = useRouter();
@@ -291,7 +291,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   );
 }
 
-// ─── Filter Bar ───────────────────────────────────────────────────────────────
+// ─── Filter Bar ──────────────────────────────────────────────────
 
 interface FilterState {
   actionable: boolean;
@@ -381,7 +381,7 @@ function FilterBar({
   );
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -455,7 +455,7 @@ export default function MlbSlatePage() {
       <SyncIndicator onSync={() => mutate()} />
 
       <main className="mx-auto max-w-2xl bg-[#0a0a15] min-h-screen shadow-2xl relative pb-[70px] text-slate-300 w-full">
-        {/* ── Header ─────────────────────────────────────────────── */}
+        {/* ── Header ───────────────────────────────────── */}
         <header className="relative px-4 pt-6 pb-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[3px] border-[#3d4f5f] shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-10">
           {/* Corner bolts */}
           <div className="absolute top-3 left-3 w-3 h-3 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" />
@@ -503,7 +503,7 @@ export default function MlbSlatePage() {
           <div className="absolute bottom-0 left-[10%] right-[10%] h-[3px] bg-[#00D4FF] shadow-[0_0_10px_#00D4FF,0_0_20px_rgba(0,212,255,0.4)] rounded-t-full" />
         </header>
 
-        {/* ── Stale / Error banners ──────────────────────────────── */}
+        {/* ── Stale / Error banners ─────────────────────── */}
         {slateStale && !fetchError && (
           <div className="mx-4 mt-5 rounded-sm border-2 border-amber-500/50 bg-[#1a1500] px-4 py-3 shadow-[0_0_15px_rgba(245,158,11,0.1),inset_0_2px_4px_rgba(0,0,0,0.5)] relative overflow-hidden">
             <div className="absolute left-0 top-0 w-1 h-full bg-amber-500 shadow-[0_0_10px_#f59e0b]" />
@@ -528,10 +528,10 @@ export default function MlbSlatePage() {
           </div>
         )}
 
-        {/* ── Filter Bar ─────────────────────────────────────────── */}
+        {/* ── Filter Bar ────────────────────────── */}
         <FilterBar edgesCount={edgesCount} filters={filters} onFilter={setFilters} />
 
-        {/* ── Loading Spinner ────────────────────────────────────── */}
+        {/* ── Loading Spinner ─────────────────────── */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center mt-20">
             <div className="w-8 h-8 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin mb-4" />
@@ -541,7 +541,7 @@ export default function MlbSlatePage() {
           </div>
         )}
 
-        {/* ── Empty State ─────────────────────────────────────────── */}
+        {/* ── Empty State ───────────────────────── */}
         {!isLoading && slate.length === 0 && !fetchError && (
           <div className="mx-4 mt-8 flex flex-col items-center justify-center p-8 border-2 border-dashed border-[#3d4f5f] rounded-sm bg-[#0d1117] opacity-60">
             <div className="w-8 h-8 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin mb-3" />
@@ -553,7 +553,7 @@ export default function MlbSlatePage() {
           </div>
         )}
 
-        {/* ── Game Cards ──────────────────────────────────────────── */}
+        {/* ── Game Cards ────────────────────────── */}
         {!isLoading && slate.length > 0 && (
           <div className="flex flex-col pt-2 gap-6">
             {slate.map((g) => (
@@ -571,7 +571,7 @@ export default function MlbSlatePage() {
                 {/* Left neon edge */}
                 <div className="absolute top-[20%] bottom-[20%] left-[-2px] w-[3px] bg-[#00D4FF] rounded-r-md opacity-30 group-hover:opacity-100 group-hover:shadow-[0_0_12px_#00D4FF] transition-all" />
 
-                {/* ── Game Header ───────────────────────── */}
+                {/* ── Game Header ────────────────── */}
                 <div className="flex items-center justify-between mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
                   <div className="flex flex-col">
                     <span
@@ -624,7 +624,7 @@ export default function MlbSlatePage() {
                   )}
                 </div>
 
-                {/* ── Teams + Odds Grid ─────────────────── */}
+                {/* ── Teams + Odds Grid ─────────────── */}
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   {/* Left: Away + Home stacked */}
                   <div className="flex flex-col gap-4 flex-1 min-w-0">
@@ -658,12 +658,16 @@ export default function MlbSlatePage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[30px] text-[#8a9ba8] font-bold capitalize truncate">
-                          P:{' '}
-                          {g.awayStarter
-                            ? `${g.awayStarter.name}${g.awayStarter.wins != null ? ` (${g.awayStarter.wins}-${g.awayStarter.losses}, ${g.awayStarter.era?.toFixed(2)})` : ''}`
-                            : 'TBA'}
-                        </span>
+                        {g.awayStarter ? (
+                          <span className="flex flex-col leading-tight min-w-0">
+                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize truncate">P: {g.awayStarter.name}</span>
+                            {g.awayStarter.wins != null && (
+                              <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">{g.awayStarter.wins}-{g.awayStarter.losses}{g.awayStarter.era != null ? ` · ${g.awayStarter.era.toFixed(2)} ERA` : ''}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-[20px] text-[#8a9ba8] font-bold capitalize">P: TBA</span>
+                        )}
                       </div>
                     </div>
 
@@ -697,12 +701,16 @@ export default function MlbSlatePage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[30px] text-[#8a9ba8] font-bold capitalize truncate">
-                          P:{' '}
-                          {g.homeStarter
-                            ? `${g.homeStarter.name}${g.homeStarter.wins != null ? ` (${g.homeStarter.wins}-${g.homeStarter.losses}, ${g.homeStarter.era?.toFixed(2)})` : ''}`
-                            : 'TBA'}
-                        </span>
+                        {g.homeStarter ? (
+                          <span className="flex flex-col leading-tight min-w-0">
+                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize truncate">P: {g.homeStarter.name}</span>
+                            {g.homeStarter.wins != null && (
+                              <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">{g.homeStarter.wins}-{g.homeStarter.losses}{g.homeStarter.era != null ? ` · ${g.homeStarter.era.toFixed(2)} ERA` : ''}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-[20px] text-[#8a9ba8] font-bold capitalize">P: TBA</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -712,14 +720,14 @@ export default function MlbSlatePage() {
                     {/* Spread */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgAwaySpreadLine != null
                             ? g.avgAwaySpreadLine > 0
                               ? `+${g.avgAwaySpreadLine}`
                               : g.avgAwaySpreadLine
                             : '—'}
                         </span>
-                        <span className="text-[22px] font-black text-white leading-none ">
+                        <span className="text-[15px] font-black text-white leading-none ">
                           {g.avgAwaySpreadOdds != null
                             ? g.avgAwaySpreadOdds > 0
                               ? `+${g.avgAwaySpreadOdds}`
@@ -728,14 +736,14 @@ export default function MlbSlatePage() {
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgHomeSpreadLine != null
                             ? g.avgHomeSpreadLine > 0
                               ? `+${g.avgHomeSpreadLine}`
                               : g.avgHomeSpreadLine
                             : '—'}
                         </span>
-                        <span className="text-[22px] font-black text-white leading-none ">
+                        <span className="text-[15px] font-black text-white leading-none ">
                           {g.avgHomeSpreadOdds != null
                             ? g.avgHomeSpreadOdds > 0
                               ? `+${g.avgHomeSpreadOdds}`
@@ -748,7 +756,7 @@ export default function MlbSlatePage() {
                     {/* Moneyline */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[23px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                        <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
                           {g.avgAwayLine != null
                             ? g.avgAwayLine > 0
                               ? `+${g.avgAwayLine}`
@@ -757,7 +765,7 @@ export default function MlbSlatePage() {
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[23px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                        <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
                           {g.avgHomeLine != null
                             ? g.avgHomeLine > 0
                               ? `+${g.avgHomeLine}`
@@ -770,10 +778,10 @@ export default function MlbSlatePage() {
                     {/* Total */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgTotalLine != null ? `O ${g.avgTotalLine}` : '—'}
                         </span>
-                        <span className="text-[22px] font-black text-white leading-none ">
+                        <span className="text-[15px] font-black text-white leading-none ">
                           {g.avgOverOdds != null
                             ? g.avgOverOdds > 0
                               ? `+${g.avgOverOdds}`
@@ -782,10 +790,10 @@ export default function MlbSlatePage() {
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[21px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
                           {g.avgTotalLine != null ? `U ${g.avgTotalLine}` : '—'}
                         </span>
-                        <span className="text-[22px] font-black text-white leading-none ">
+                        <span className="text-[15px] font-black text-white leading-none ">
                           {g.avgUnderOdds != null
                             ? g.avgUnderOdds > 0
                               ? `+${g.avgUnderOdds}`
@@ -804,7 +812,7 @@ export default function MlbSlatePage() {
           </div>
         )}
 
-        {/* ── Footer ─────────────────────────────────────────────── */}
+        {/* ── Footer ───────────────────────────────────── */}
         <div className="mt-12 px-4 py-4 text-center border-t-2 border-[#2a3a4a] bg-[#0d1117] shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)]">
           <p className="text-[17px] font-black tracking-widest capitalize text-[#5a6a7a] ">
             {'// SYSTEM ALERTS: ANALYSIS ONLY. PROBABILITIES ARE ALGORITHMIC ESTIMATES.'}
