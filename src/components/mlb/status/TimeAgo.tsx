@@ -33,7 +33,7 @@ export const TimeAgo = ({
   if (!mounted) return <>{fallback}</>;
   if (!dateString) return <>{fallback}</>;
 
-  const isoStr = dateString.trim().replace(/ /g, 'T');
+  const isoStr = dateString.trim().replace(/ /g, 'T').replace(/\.(\d{3})\d+/, '.$1');
   const safeDate = isoStr.endsWith('Z') || isoStr.includes('+') ? isoStr : isoStr + 'Z';
   const past = new Date(safeDate);
   if (isNaN(past.getTime())) return <>{fallback}</>;
